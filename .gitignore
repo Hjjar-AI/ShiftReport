@@ -1,0 +1,58 @@
+# Gradle and Android build output
+.gradle/
+.kotlin/
+**/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Local SDK paths and machine-specific Gradle configuration
+/local.properties
+*.local.properties
+/legacy-hardcoded-credentials.local.properties
+/GITHUB-GUIDE.local.md
+
+# Signing material and local secret configuration
+/keys/
+/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+# Packaged release artifacts
+/app/release/
+*.apk
+*.aab
+*.apks
+
+# Android Studio / IntelliJ user state
+*.iml
+/.idea/caches/
+/.idea/libraries/
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
+/.idea/shelf/
+/.idea/httpRequests/
+
+# Diagnostics and OS metadata
+*.log
+*.hprof
+.DS_Store
+Thumbs.db
+
+# Local clinical-data exports and encrypted backups
+/exports/
+/reports/
+/backups/
+*.rushdbackup
+*.rushdbak

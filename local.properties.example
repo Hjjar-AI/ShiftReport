@@ -1,0 +1,4 @@
+sdk.dir=/path/to/Android/Sdk
+
+# Telegram and hospital/project credentials are entered during first-run setup.
+# They are stored in Android encrypted preferences and must not be committed here.
