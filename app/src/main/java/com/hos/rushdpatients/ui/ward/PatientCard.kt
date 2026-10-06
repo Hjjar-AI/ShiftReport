@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -79,8 +80,11 @@ fun PatientCard(
     twoColumn: Boolean,
     doctorNames: Map<String, String>,
     readOnly: Boolean = false,
+    selected: Boolean = false,
     onClick: () -> Unit,
     onLongClick: () -> Unit = onClick,
+    onEdit: () -> Unit = onClick,
+    onBadgeEdit: () -> Unit = onEdit,
     onDelete: () -> Unit,
     onCopy: () -> Unit = {},
     onPriorityChange: (Boolean) -> Unit = {},
@@ -105,6 +109,7 @@ fun PatientCard(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
+                this.selected = selected
                 contentDescription = buildString {
                     append(patient.name)
                     append("، رقم القبول الحالي ").append(patient.admittanceNumber)
@@ -123,27 +128,27 @@ fun PatientCard(
                     if (patient.isPriority) append("، أولوية")
                     append(if (expanded) "، التفاصيل موسعة" else "، التفاصيل مطوية")
                 }
-                customActions = listOf(
-                    CustomAccessibilityAction(
-                        label = if (expanded) "طي تفاصيل المريض" else "توسيع تفاصيل المريض",
-                        action = { onExpandToggle(); true }
-                    ),
-                    CustomAccessibilityAction(
-                        label = if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت",
-                        action = { onPinToggle(); true }
-                    ),
-                    CustomAccessibilityAction(
-                        label = "فتح تفاصيل المريض",
-                        action = { onLongClick(); true }
-                    )
-                )
+                customActions = buildList {
+                    if (showViewControls) {
+                        add(CustomAccessibilityAction(if (expanded) "طي تفاصيل المريض" else "توسيع تفاصيل المريض") { onExpandToggle(); true })
+                        add(CustomAccessibilityAction(if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت") { onPinToggle(); true })
+                        add(CustomAccessibilityAction("فتح تفاصيل المريض") { onLongClick(); true })
+                        if (!readOnly) {
+                            add(CustomAccessibilityAction("تعديل بيانات المريض") { onEdit(); true })
+                            add(CustomAccessibilityAction("تعديل شارات المريض") { onBadgeEdit(); true })
+                            add(CustomAccessibilityAction(if (patient.isPriority) "إلغاء الأولوية" else "تحديد أولوية") { onPriorityChange(!patient.isPriority); true })
+                            add(CustomAccessibilityAction("نسخ كمريض جديد") { onCopy(); true })
+                            add(CustomAccessibilityAction("حذف المريض مع التأكيد") { onDelete(); true })
+                        }
+                    }
+                }
             }
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(enabled = showViewControls, onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
-            width = if (patient.badges.isNotEmpty()) 2.dp else 1.dp,
+            width = if (selected || patient.badges.isNotEmpty()) 2.dp else 1.dp,
             color = when {
                 patient.badges.any { it.priority == PatientBadgePriority.HIGH } -> clinicalColors.urgent
                 patient.badges.any { it.priority == PatientBadgePriority.MEDIUM } -> clinicalColors.warning
@@ -152,7 +157,7 @@ fun PatientCard(
                 else -> MaterialTheme.colorScheme.outlineVariant
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 3.dp else 1.dp)
     ) {
         Column(
             modifier = Modifier

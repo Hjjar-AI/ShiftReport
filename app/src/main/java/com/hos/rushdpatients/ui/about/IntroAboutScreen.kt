@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.BuildConfig
 import com.hos.rushdpatients.R
 
+private val technicalContributors = listOf("د. أيهم شيخة", "محمد زاهر شقير")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IntroAboutScreen(
@@ -96,10 +98,18 @@ fun IntroAboutScreen(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    "مساهمة تقنية: د. أيهم شيخة",
+                    "مساهمة تقنية",
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center
                 )
+                technicalContributors.forEach { name ->
+                    Text(
+                        name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
                 Text(
                     "الفكرة الأولية وبنية التقرير الأساسي: د. نديم العباس",
                     style = MaterialTheme.typography.bodySmall,
@@ -219,7 +229,8 @@ fun IntroAboutScreen(
                     )
                     CreditBlock(
                         title = "مساهمة تقنية",
-                        name = "د. أيهم شيخة"
+                        name = technicalContributors.joinToString("\n"),
+                        prominent = true
                     )
                     Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     CreditBlock(
@@ -258,7 +269,7 @@ fun IntroAboutScreen(
 }
 
 @Composable
-private fun CreditBlock(title: String, name: String) {
+private fun CreditBlock(title: String, name: String, prominent: Boolean = false) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -271,8 +282,8 @@ private fun CreditBlock(title: String, name: String) {
         )
         Text(
             name,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            style = if (prominent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+            fontWeight = if (prominent) FontWeight.Bold else FontWeight.SemiBold,
             textAlign = TextAlign.Center
         )
     }

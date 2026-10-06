@@ -31,13 +31,17 @@ MainActivity
           -> About
 ```
 
-The compact ward uses bottom navigation for Patients, Dashboard, and Activity. Expanded layouts use a navigation rail. The side drawer keeps secondary actions in accordion submenus and groups clinician/role/shift context with a data-health panel for freshness, connectivity, synchronization, and conflicts. Connectivity uses validated Android network callbacks exposed by the ward ViewModel and collected with the screen lifecycle; callbacks are released when collection stops. Connectivity does not establish that clinical data is verified or current. The default patient header stays focused on patient count and compact filter presets. The ward FAB opens a compact readiness sheet before report review/send; adding a patient remains available from the top bar.
+The ward uses persistent Patients, Dashboard, and Activity tabs with saved selection. Compact windows use bottom navigation; widths from 600dp use a navigation rail. Activity renders full content with saved Arabic search/filter state and separate audit/publication scroll state; refresh failures retain cached entries and show an error. The side drawer keeps secondary actions in accordion submenus and groups clinician/role/shift context with a data-health panel for freshness, connectivity, synchronization, and conflicts. Connectivity uses validated Android network callbacks exposed by the ward ViewModel and collected with the screen lifecycle; callbacks are released when collection stops. Connectivity does not establish that clinical data is verified or current. The default patient header stays focused on patient count and compact filter presets. The ward FAB opens a compact readiness sheet before report review/send; adding a patient remains available from the top bar.
+
+Patient browsing uses a simultaneous list-detail layout when the ward content has at least 760dp width and 360dp height, after navigation space. The list is a single patient column in panes. A 48dp divider retains its width fraction during the session, clamps to readable minimums after resizing, and supports RTL-aware dragging, keyboard adjustment/reset, visible focus, and accessibility resizing. Without a selected patient, the second pane displays existing report readiness and recent local activity. Tall medium content can show that support below the list; compact/short layouts use a supporting sheet and full-screen detail. Phone card taps continue to edit; pane card taps select detail.
+
+Jetpack WindowManager 1.2.0 is newly added for lifecycle-observed separating/occluding folds. Shared ward layout code translates window hinge bounds into local physical coordinates, reserves margins, and positions suitable list/detail regions on opposite sides of vertical or horizontal folds. Small regions fall back to the larger safe region. Ward bars/navigation, patient details, report/support sheets, and the add/edit/copy form container use this geometry. Selected patient, detail section/scroll, and list state are retained across presentation changes; deletion or switching to a shift without that patient clears selection. Build and real-device folding/keyboard/accessibility validation remain pending.
 
 ## Main technology
 
 | Concern | Current implementation |
 |---|---|
-| UI | Jetpack Compose Material 3, RTL-first |
+| UI | Jetpack Compose Material 3, RTL-first; WindowManager folding features |
 | State | Hilt ViewModels with StateFlow |
 | Dependency injection | Hilt |
 | Local persistence | Room 2.6.1 over SQLCipher |
@@ -133,7 +137,7 @@ Administrators can export and import a versioned UTF-8 doctor-registry CSV throu
 
 The ward FAB shows a readiness count derived from shared `ReportReadiness` rules plus unresolved merge conflicts. Opening it presents an express sheet with patient count, freshness, and the correct review/send action rather than publishing immediately. Current readiness checks cover missing resident, supervisor, diagnosis, and treatment; structured acuity, tasks, contingencies, and receiver acknowledgment remain planned work.
 
-Ward cards support comfortable/compact density, individual expansion, session-local pinning, relative freshness, and consolidated accessibility summaries/actions. Tapping an editable card opens editing; long-pressing opens the tabbed details view. The list keeps its existing structured grouping and adds quick filter presets. Patient details keep the section navigator sticky, expose quick actions, and show patient-specific audit history when available. Patient forms show unsaved state, section completion, all validation failures together, field error states, IME-safe layout, paired compact fields, and tinted section headers. Existing-patient editing puts clinical fields before admission and identity fields. Patient status supports an ordered list of free-text badges, each with an optional low/medium/high level; legacy fixed-warning and single-badge data is converted on read through the existing persistence columns.
+Ward cards support comfortable/compact density, individual expansion, session-local pinning, relative freshness, selected state, and consolidated accessibility summaries/actions. Live editable cards expose edit, badge, priority, copy, and confirmed-delete custom actions; read-only/detail-only cards omit unavailable or no-op actions. In compact layouts, tapping an editable card opens editing and long-pressing opens tabbed details; pane layouts use taps to select detail. The list keeps its existing structured grouping and adds quick filter presets. Patient details keep the section navigator sticky, expose quick actions, and show patient-specific audit history when available. Patient forms show unsaved state, section completion, all validation failures together, field error states, IME-safe layout, paired compact fields, and tinted section headers. Existing-patient editing puts clinical fields before admission and identity fields. Patient status supports an ordered list of free-text badges, each with an optional low/medium/high level; legacy fixed-warning and single-badge data is converted on read through the existing persistence columns.
 
 ## Security boundaries
 
@@ -151,7 +155,7 @@ Ward cards support comfortable/compact density, individual expansion, session-lo
 2. Production signing still needs configuration; administrative import/rank/destination transactions need runtime failure/cancellation validation.
 3. Provisioning files are encrypted but reusable; credential rotation and safe project reconnection remain unfinished. Server-enforced one-time expiry is optional.
 4. Structured I-PASS fields, tasks, receiver synthesis, and closed-loop critical acknowledgments do not yet exist in the core model.
-5. Large-screen patient browsing still needs a simultaneous list-detail layout.
+5. Adaptive panes, fold handling, Activity restoration, forms, icon direction, and accessibility actions need build and hands-on device validation. Structured task/acknowledged-change card counts remain dependent on the P1 model.
 
 ## Documentation discipline
 

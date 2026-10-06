@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
@@ -400,7 +399,7 @@ internal fun PatientFormDialog(
         }
     }
 
-    AlertDialog(
+    WardFormDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         modifier = if (compactWindow) {
             Modifier.fillMaxSize().imePadding()

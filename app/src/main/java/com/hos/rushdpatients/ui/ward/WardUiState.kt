@@ -50,6 +50,8 @@ data class WardUiState(
     val patientDraft: PatientDraft? = null,
     val rolloverPatients: List<Patient> = emptyList(),
     val rolloverReviewPatients: List<Patient> = emptyList(),
+    val activityLoading: Boolean = false,
+    val activityError: String? = null,
     val recentActivity: List<AuditEntryEntity> = emptyList(),
     val publications: List<PublicationJournalEntry> = emptyList(),
     val mergeConflicts: List<PatientFieldConflict> = emptyList(),

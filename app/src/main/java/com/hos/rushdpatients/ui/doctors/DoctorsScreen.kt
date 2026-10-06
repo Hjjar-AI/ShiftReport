@@ -18,7 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material3.AlertDialog
@@ -46,6 +46,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -116,7 +119,8 @@ fun DoctorsScreen(
                 title = { Text("سجل الأطباء") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "رجوع")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "رجوع",
+                            modifier = Modifier.rotate(if (LocalLayoutDirection.current == LayoutDirection.Rtl) 180f else 0f))
                     }
                 },
                 actions = {
@@ -124,7 +128,7 @@ fun DoctorsScreen(
                         onClick = viewModel::refresh,
                         enabled = !state.saving && !state.importing && !state.exporting
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "مزامنة")
+                        Icon(Icons.Default.Sync, contentDescription = "مزامنة سجل الأطباء")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -351,10 +355,10 @@ private fun DoctorCard(
                 }
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "تعديل")
+                Icon(Icons.Default.Edit, contentDescription = "تعديل ${doctor.fullName}")
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "حذف")
+                Icon(Icons.Default.Delete, contentDescription = "حذف ${doctor.fullName}")
             }
         }
     }

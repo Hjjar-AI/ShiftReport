@@ -74,38 +74,20 @@ Telegram remains the shared storage and delivery channel. Users retrieve publish
 
 2. Enforce authorization inside the legacy VBA importer itself, in addition to its navigation guard, when importer/migration files are explicitly in scope for review.
 
-## P3 — remaining UI validation and large-screen refinement
+## P3 — remaining UI model dependencies and device validation
 
-1. Upgrade expanded windows from an adaptive grid plus full-screen detail to a simultaneous list-detail pane.
-   - Keep the current one-pane full-screen details experience on phones.
-   - Preserve the selected patient when switching between one- and two-pane layouts or crossing a fold posture.
-
-2. Add a supporting report/activity pane on medium and expanded windows.
-   - Follow the primary list-detail layout; show report readiness, recent meaningful changes, or the selected patient's activity without obscuring the primary ward content.
-   - On compact windows, present the same supporting content in the existing sheet or full-screen destination.
-
-3. Add a resizable pane divider for expanded layouts.
-   - Requires the list-detail layout; preserve the user's list/detail width during the session. This is a refinement, not a prerequisite for the initial two-pane layout.
-   - Enforce readable minimum widths and reset safely after a window-size change.
-
-4. Make expanded layouts fold-aware.
-   - Do not place patient content or primary controls beneath a separating hinge.
-   - Place the list and detail panes on opposite sides when posture and available width allow it.
-
-5. Complete the card hierarchy after the structured task and handoff models in P1 exist.
+1. Complete the card hierarchy after the structured task and handoff models in P1 exist.
    - Show overdue/pending task counts and the latest meaningful acknowledged change in the collapsed card.
    - Do not infer these clinical states from free-form follow-up text.
 
-6. Promote Activity from the current focused overlay to a persistent primary destination with restorable filters and scroll state.
-
-7. Finish the remaining secondary-screen icon and interaction vocabulary audit.
-   - Review remaining action icons and semantics for ambiguity; the completed grouping, descriptions, and labelled import/export actions should not be repeated.
-
-8. Perform hands-on accessibility and palette validation on real devices.
+2. Perform hands-on accessibility, adaptive-layout, and palette validation on real devices.
    - Confirm the statically audited contrast in rendered light/dark screens, then verify large font, landscape, split-screen, keyboard, TalkBack, Switch Access, and reduced motion.
-   - Audit traversal order and expose custom accessibility actions for patient edit, badge, priority, copy, and delete operations.
-   - Validate the 600dp navigation transition and full-screen editor behavior on tablets and foldables.
+   - Verify pane traversal and the implemented patient edit, badge, priority, copy, and delete custom actions; confirm divider keyboard/focus, accessibility resizing, and 48dp targets.
+   - Validate navigation at 600dp, the wide list-detail transition, tall-medium support panel, minimum pane widths, divider clamping after resize, and selected-patient/detail-state retention after rotation or recreation.
+   - Exercise book/tabletop folds, an occluding hinge at a content edge, small-pane fallback, full-screen patient forms, keyboard opening, date pickers, readiness/support sheets, and returning from compact details to panes.
+   - Confirm Activity selection, Arabic search, filters, independent audit/publication scroll restoration, offline refresh errors, and cached activity retention.
    - Verify adaptive, round, launcher, recents, and Android app-settings emblem rendering after a fresh install or launcher-cache refresh; preserve the existing artwork.
+   - Build/compile verification of the new UI and WindowManager integration remains pending until explicitly authorized.
 
 ## Later — optional differentiators
 

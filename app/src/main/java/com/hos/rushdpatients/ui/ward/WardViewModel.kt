@@ -304,11 +304,37 @@ class WardViewModel @Inject constructor(
 
     fun dismissRollover() = _state.update { it.copy(rolloverPatients = emptyList()) }
 
-    fun loadRecentActivity() {
+    private var activityJob: Job? = null
+
+    fun loadLocalActivity() {
         viewModelScope.launch {
-            val activity = auditRepository.getRecent()
-            val publications = runCatching { syncService.getPublicationJournal() }.getOrDefault(emptyList())
-            _state.update { it.copy(recentActivity = activity, publications = publications) }
+            try {
+                val activity = auditRepository.getRecent()
+                _state.update { it.copy(recentActivity = activity) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(activityError = e.message ?: "تعذر تحميل النشاط المحلي") }
+            }
+        }
+    }
+
+    fun loadRecentActivity() {
+        if (activityJob?.isActive == true) return
+        activityJob = viewModelScope.launch {
+            _state.update { it.copy(activityLoading = true, activityError = null) }
+            try {
+                val activity = auditRepository.getRecent()
+                _state.update { it.copy(recentActivity = activity) }
+                val publications = syncService.getPublicationJournal()
+                _state.update { it.copy(publications = publications) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(activityError = e.message ?: "تعذر تحديث النشاط والمنشورات") }
+            } finally {
+                _state.update { it.copy(activityLoading = false) }
+            }
         }
     }
 
