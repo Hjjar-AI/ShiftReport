@@ -15,7 +15,7 @@ Completed and removed from the active backlog. The remaining roadmap is in [work
 - First launch supports create-project and join-project flows, validates the bot and group, creates or downloads the pinned doctor registry, and stores the project connection in encrypted device-local preferences.
 - The configured hospital/project name appears in the clinical header and drawer while the existing logo and About/credits page remain unchanged.
 - Patient entry has a concise General mode and a detailed Advanced mode without discarding hidden clinical data.
-- Opening a patient presents a full-screen details experience with Overview, Clinical, Tasks, Badge, and History sections; editing is a separate explicit action.
+- Long-pressing a patient presents a full-screen details experience with Overview, Clinical, Tasks, Badge, and History sections; a normal tap opens clinical editing directly.
 - The patient list keeps its selected patient and scroll position through configuration changes.
 - Ward search, filters, grouping, and sorting share one panel, and active filters are visible as individually removable chips.
 - Live ward cards use one predictable clinical hierarchy; legacy visual-style settings are retained only for stored-setting compatibility.
@@ -23,7 +23,7 @@ Completed and removed from the active backlog. The remaining roadmap is in [work
 - The UI has stable semantic colors for normal, warning, urgent, pending, conflict, and success states, independent of dynamic color.
 - App and PDF palettes were consolidated into distinct color families; duplicate cyan-night variants were removed and stale saved selections safely fall back to System/Teal.
 - All remaining explicit app theme role pairs, clinical semantic pairs, and PDF header pairs pass the WCAG AA 4.5:1 normal-text contrast threshold in the static audit.
-- The ward header shows hospital, shift date, patient count, freshness, semantic headings, and polite sync-status announcements.
+- The ward header keeps only hospital, shift date, patient count, and primary patient actions. Freshness, offline state, synchronization progress/actions, and conflict health are grouped in the side drawer with polite status announcements.
 - First initialization starts with a concise three-path guide: read-only Demo, Join (the default), then Create.
 - Demo mode requires no credentials and displays four dummy patients with shuffled flower/fruit names. The dummy patients are held in memory and are never saved or synchronized.
 - The splash fits the viewport without scrolling and can be skipped by tapping anywhere; it uses the white-field emblem while the full About/credits page keeps the original department artwork.
@@ -41,7 +41,7 @@ Completed and removed from the active backlog. The remaining roadmap is in [work
 - The ignored local Git/GitHub/VS Code manual is now a complete project-agnostic reference with ShiftReport-specific guidance. It covers setup, daily work, remotes and forks, authentication, branching, conflict handling, pull requests, releases, recovery, advanced operations, secret response, safe history rewriting, repository controls, CI, maintenance, troubleshooting, reusable templates, and the completed clean-history reset.
 - Ward scanning now has quick filter presets, comfortable/compact density, individually expandable cards, session-local patient pins sorted first, relative freshness labels, offline/local-data messaging, and action-focused badges.
 - The report FAB now opens an express readiness sheet with patient count, freshness, blockers, and a direct review/send path; haptic feedback confirms the primary report and pin/priority actions.
-- The drawer header now shows clinician role, shift, patient count, sync health, and actionable conflicts. Administrator destinations are promoted for administrators without removing any submenu items, and ward filtering uses a consistent filter icon.
+- The drawer now shows clinician role, shift, patient count, and a dedicated data-health panel with freshness, offline state, synchronization actions/progress, and actionable conflicts. Administrator destinations remain available without removing submenu items, while the patient header uses short, compact filter presets and a consistent filter icon.
 - Patient cards expose a consolidated TalkBack summary plus expansion and pin accessibility actions. Patient details have a sticky section navigator, section counts, quick copy/priority actions, freshness, a sticky edit action, and patient-specific meaningful audit history when available.
 - Patient forms now show unsaved state, section completion markers, a complete validation summary with field error states, keyboard/IME-safe spacing, and compact paired short fields; Save and Cancel remain outside the scrolling form.
 - Classic PDF output keeps multiple patients per page but moves a complete patient row to the next page whenever the remaining space is insufficient. The former Cards option is now Elegant Rows, sharing the non-splitting renderer with white patient rows for a smaller, print-friendly export; oversized rows fit without dropping clinical text.
@@ -52,3 +52,5 @@ Completed and removed from the active backlog. The remaining roadmap is in [work
 - Tapping an editable patient card opens clinical editing immediately; long-pressing opens the tabbed patient view. Existing patients place clinical status, treatment, follow-up, and responsible clinicians before admission and identity fields, while new-patient entry keeps identity fields first.
 - The splash uses the corrected emblem with an opaque white circular field and transparent area only outside the circle; the full About page retains the credited department artwork.
 - All user-facing admission-number labels now say “رقم القبول الحالي”.
+- Android system surfaces now resolve the project emblem through proper adaptive and legacy launcher resources instead of bypassing them with a raw drawable. The report preview's first summary section lists the doctors selected for that shift before patient totals.
+- Ward patient add/edit (including badge and priority), delete/restore, rollover, and shift doctor/sort changes now commit with their pending-sync marker and audit records in one Room transaction through `WardMutationRepository`. Failed or stale mutations roll back all three; audit before-values come from the transaction's current row. New-patient capacity, ID collision, and sort-order assignment are checked inside that transaction. Source inspection and whitespace checks completed; runtime verification remains pending.

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -318,16 +319,122 @@ fun WardScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${state.shift?.date ?: "—"} · ${state.patients.size} مريض · ${state.syncStatus.arabicLabel}",
+                        text = "${state.shift?.date ?: "—"} · ${state.patients.size} مريض",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (state.mergeConflicts.isNotEmpty()) {
-                        Text(
-                            "${state.mergeConflicts.size} تعارض يحتاج إجراء",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.error
+                }
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("حالة البيانات", style = MaterialTheme.typography.titleSmall)
+                            if (state.syncing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
+                        val syncColors = when (state.syncStatus) {
+                            PatientSyncStatus.LOCAL -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+                            PatientSyncStatus.PENDING -> clinicalColors.pendingContainer to clinicalColors.onPendingContainer
+                            PatientSyncStatus.BACKED_UP -> clinicalColors.successContainer to clinicalColors.onSuccessContainer
+                            PatientSyncStatus.SYNCING -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurface
+                            PatientSyncStatus.CONFLICT -> clinicalColors.urgentContainer to clinicalColors.onUrgentContainer
+                        }
+                        AssistChip(
+                            onClick = {
+                                scope.launch {
+                                    snackbarHost.showSnackbar(
+                                        state.lastOperation ?: state.syncStatus.arabicLabel
+                                    )
+                                }
+                            },
+                            label = { Text(freshnessLabel, style = MaterialTheme.typography.labelSmall) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = when (state.syncStatus) {
+                                        PatientSyncStatus.LOCAL -> Icons.Filled.Save
+                                        PatientSyncStatus.PENDING -> Icons.Filled.CloudUpload
+                                        PatientSyncStatus.BACKED_UP -> Icons.Filled.CloudDone
+                                        PatientSyncStatus.SYNCING -> Icons.Filled.Sync
+                                        PatientSyncStatus.CONFLICT -> Icons.Filled.Warning
+                                    },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = syncColors.first,
+                                labelColor = syncColors.second,
+                                leadingIconContentColor = syncColors.second
+                            ),
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
+                        if (!NetworkStatus.isOnline(context)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.WifiOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    "غير متصل · تُعرض البيانات المحلية",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        state.lastOperation?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (state.mergeConflicts.isNotEmpty()) {
+                            Text(
+                                "${state.mergeConflicts.size} تعارض يحتاج إجراء",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            TextButton(
+                                onClick = { closeDrawer { confirmLatest = true } },
+                                enabled = !state.syncing
+                            ) { Text("مزامنة", style = MaterialTheme.typography.labelSmall) }
+                            TextButton(
+                                onClick = { closeDrawer { confirmPrevious = true } },
+                                enabled = !state.syncing
+                            ) { Text("نسخة سابقة", style = MaterialTheme.typography.labelSmall) }
+                        }
+                        if (state.showSyncHint) {
+                            Text(
+                                "يمكن اختيار واحدة من آخر ثلاث مناوبات عند جلب نسخة سابقة.",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            TextButton(onClick = viewModel::dismissSyncHint) {
+                                Text("فهمت", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
                 }
                 Divider()
@@ -516,7 +623,7 @@ fun WardScreen(
                                 maxLines = 1
                             )
                             Text(
-                                text = "${state.shift?.date ?: "—"} · ${state.patients.size} مريض · $freshnessLabel",
+                                text = "${state.shift?.date ?: "—"} · ${state.patients.size} مريض",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 maxLines = 1
@@ -536,14 +643,6 @@ fun WardScreen(
                         }
                         IconButton(onClick = { showSearch = !showSearch }) {
                             Icon(Icons.Filled.Search, contentDescription = "بحث عن مريض")
-                        }
-                        if (state.syncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp)
-                                    .size(24.dp),
-                                strokeWidth = 2.dp
-                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -678,137 +777,58 @@ fun WardScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                val syncColors = when (state.syncStatus) {
-                                    PatientSyncStatus.LOCAL -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-                                    PatientSyncStatus.PENDING -> clinicalColors.pendingContainer to clinicalColors.onPendingContainer
-                                    PatientSyncStatus.BACKED_UP -> clinicalColors.successContainer to clinicalColors.onSuccessContainer
-                                    PatientSyncStatus.SYNCING -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-                                    PatientSyncStatus.CONFLICT -> clinicalColors.urgentContainer to clinicalColors.onUrgentContainer
-                                }
-                                AssistChip(
-                                    onClick = {
-                                        scope.launch {
-                                            snackbarHost.showSnackbar(
-                                                state.lastOperation ?: state.syncStatus.arabicLabel
-                                            )
-                                        }
-                                    },
-                                    label = { Text(state.syncStatus.arabicLabel) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = when (state.syncStatus) {
-                                                PatientSyncStatus.LOCAL -> Icons.Filled.Save
-                                                PatientSyncStatus.PENDING -> Icons.Filled.CloudUpload
-                                                PatientSyncStatus.BACKED_UP -> Icons.Filled.CloudDone
-                                                PatientSyncStatus.SYNCING -> Icons.Filled.Sync
-                                                PatientSyncStatus.CONFLICT -> Icons.Filled.Warning
-                                            },
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = syncColors.first,
-                                        labelColor = syncColors.second,
-                                        leadingIconContentColor = syncColors.second
-                                    ),
-                                    modifier = Modifier.semantics {
-                                        liveRegion = LiveRegionMode.Polite
-                                    }
-                                )
                                 FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
                                     TextButton(
-                                        onClick = { confirmLatest = true },
-                                        enabled = !state.syncing
-                                    ) { Text("مزامنة") }
+                                        onClick = { showFilters = true },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.FilterList,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text("تصفية", style = MaterialTheme.typography.labelSmall)
+                                    }
                                     TextButton(
-                                        onClick = { confirmPrevious = true },
-                                        enabled = !state.syncing
-                                    ) { Text("نسخة سابقة") }
-                                    TextButton(onClick = { showFilters = true }) { Text("تصفية") }
-                                    TextButton(onClick = viewModel::togglePatientDetails) {
-                                        Text(if (state.patientDetailsExpanded) "طيّ" else "تفاصيل")
+                                        onClick = viewModel::togglePatientDetails,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Text(
+                                            if (state.patientDetailsExpanded) "طيّ" else "تفاصيل",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
                                     }
                                 }
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FilterChip(
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    CompactFilterChip(
                                         selected = viewMode == WardViewMode.ALL && !urgentOnly &&
                                             !unassignedOnly && !warningsOnly && !priorityOnly &&
                                             !newAdmissionsOnly && searchQuery.isBlank(),
                                         onClick = { applyDashboardFilter(DashboardFilter.ALL) },
-                                        label = { Text("الكل") }
+                                        label = "الكل"
                                     )
-                                    FilterChip(
+                                    CompactFilterChip(
                                         selected = viewMode == WardViewMode.MINE,
                                         onClick = { applyDashboardFilter(DashboardFilter.MINE) },
-                                        label = { Text("مرضاي") }
+                                        label = "مرضاي"
                                     )
-                                    FilterChip(
+                                    CompactFilterChip(
                                         selected = urgentOnly,
                                         onClick = { applyDashboardFilter(DashboardFilter.URGENT) },
-                                        label = { Text("بحاجة لانتباه") }
+                                        label = "عاجل"
                                     )
-                                    FilterChip(
+                                    CompactFilterChip(
                                         selected = unassignedOnly,
                                         onClick = { applyDashboardFilter(DashboardFilter.UNASSIGNED) },
-                                        label = { Text("غير معيّن") }
+                                        label = "غير معيّن"
                                     )
-                                    FilterChip(
+                                    CompactFilterChip(
                                         selected = state.compactCards,
                                         onClick = { viewModel.setCompactCards(!state.compactCards) },
-                                        label = { Text(if (state.compactCards) "كثافة مضغوطة" else "كثافة مريحة") }
-                                    )
-                                }
-                                if (!NetworkStatus.isOnline(context)) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .semantics { liveRegion = LiveRegionMode.Polite },
-                                        color = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                        shape = MaterialTheme.shapes.small
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(Icons.Filled.WifiOff, contentDescription = null)
-                                            Text("غير متصل · تعرض آخر بيانات محلية محفوظة · $freshnessLabel")
-                                        }
-                                    }
-                                }
-                                if (state.showSyncHint) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        shape = MaterialTheme.shapes.small
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                "اضغط مطولاً على زر المزامنة لاختيار واحدة من آخر ثلاث مناوبات.",
-                                                modifier = Modifier.weight(1f),
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                            TextButton(onClick = viewModel::dismissSyncHint) {
-                                                Text("فهمت")
-                                            }
-                                        }
-                                    }
-                                }
-                                state.lastOperation?.let {
-                                    Text(
-                                        it,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        label = if (state.compactCards) "مضغوط" else "مريح"
                                     )
                                 }
                                 if (state.isReadOnly) {
@@ -1460,11 +1480,33 @@ fun WardScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun CompactFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1
+            )
+        },
+        modifier = Modifier.heightIn(min = 32.dp)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun ActiveFilterChip(label: String, onRemove: () -> Unit) {
     FilterChip(
         selected = true,
         onClick = onRemove,
-        label = { Text("$label ×") }
+        label = { Text("$label ×", style = MaterialTheme.typography.labelSmall) },
+        modifier = Modifier.heightIn(min = 32.dp)
     )
 }
 

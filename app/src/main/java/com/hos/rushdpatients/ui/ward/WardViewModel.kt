@@ -15,6 +15,7 @@ import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
 import com.hos.rushdpatients.data.repository.AuditRepository
+import com.hos.rushdpatients.data.repository.WardMutationRepository
 import com.hos.rushdpatients.data.model.SyncChannel
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
@@ -50,6 +51,7 @@ class WardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val shiftRepository: ShiftRepository,
     private val patientRepository: PatientRepository,
+    private val wardMutations: WardMutationRepository,
     private val doctorRepository: DoctorRepository,
     private val syncService: SyncService,
     private val settingsRepository: SettingsRepository,
@@ -329,18 +331,14 @@ class WardViewModel @Inject constructor(
                     ) to decision
                 }
                 val selected = rolled.map { it.first }
-                markPatientChangesPending()
-                patientRepository.insertRolloverIfShiftEmpty(selected, shiftId)
-                candidates.forEach { patient ->
-                    val decision = decisions[patient.id] ?: RolloverDecision.SKIP
-                    auditRepository.record(
-                        sessionManager.current()?.doctorId,
-                        sessionManager.current()?.doctorName,
-                        "rollover_${decision.name.lowercase()}",
-                        patient.name,
-                        patientId = patient.id
-                    )
-                }
+                wardMutations.rollover(
+                    selected,
+                    shiftId,
+                    candidates.map { patient ->
+                        patient to (decisions[patient.id] ?: RolloverDecision.SKIP).name.lowercase()
+                    },
+                    sessionManager.current()
+                )
                 val reviewPatients = rolled.filter { (_, decision) ->
                     decision == RolloverDecision.CONTINUE_AND_EDIT ||
                         decision == RolloverDecision.REASSIGN
@@ -555,18 +553,7 @@ class WardViewModel @Inject constructor(
             }
             saveAction(onSuccess) {
                 requireEditableShift(shiftId)
-                val order = (_state.value.patients.maxOfOrNull { it.sortOrder } ?: 0) + 1
-                markPatientChangesPending()
-                patientRepository.upsert(
-                    patient.copy(
-                        sortOrder = order,
-                        revision = 1,
-                        lastEditedByDoctorId = sessionManager.current()?.doctorId,
-                        lastEditedByName = sessionManager.current()?.doctorName
-                    ),
-                    shiftId
-                )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_ADDED, null, patient)
+                wardMutations.addPatient(patient, shiftId, sessionManager.current())
                 clearDraft()
             }
         }
@@ -578,17 +565,7 @@ class WardViewModel @Inject constructor(
             if (!validateForSave(patient)) return@launch
             saveAction(onSuccess) {
                 requireEditableShift(shiftId)
-                val before = patientRepository.getById(patient.id)
-                markPatientChangesPending()
-                val updated = patientRepository.updateOptimistically(
-                    patient.copy(
-                        lastEditedByDoctorId = sessionManager.current()?.doctorId,
-                        lastEditedByName = sessionManager.current()?.doctorName
-                    ),
-                    shiftId = shiftId,
-                    expectedRevision = patient.revision
-                )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, before, updated)
+                wardMutations.updatePatient(patient, shiftId, sessionManager.current())
             }
         }
     }
@@ -599,16 +576,7 @@ class WardViewModel @Inject constructor(
         viewModelScope.launch {
             saveAction(onSuccess = { deleted?.let(onSuccess) }) {
                 requireEditableShift(shiftId)
-                require(patientRepository.getShiftId(patient.id) == shiftId) {
-                    "المريض لا ينتمي إلى المناوبة الحالية"
-                }
-                markPatientChangesPending()
-                deleted = patientRepository.softDeleteOptimistically(
-                    id = patient.id,
-                    shiftId = shiftId,
-                    expectedRevision = patient.revision
-                )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_DELETED, patient, null)
+                deleted = wardMutations.deletePatient(patient, shiftId, sessionManager.current())
             }
         }
     }
@@ -625,20 +593,7 @@ class WardViewModel @Inject constructor(
         viewModelScope.launch {
             saveAction(onSuccess = { loadRecycleBin() }) {
                 requireEditableShift(shiftId)
-                require(patientRepository.getShiftId(patient.id) == shiftId) {
-                    "المريض لا ينتمي إلى المناوبة الحالية"
-                }
-                markPatientChangesPending()
-                val restored = patientRepository.restoreOptimistically(
-                    id = patient.id,
-                    shiftId = shiftId,
-                    expectedRevision = patient.revision
-                )
-                recordPatientChange(
-                    AppConstants.AUDIT_PATIENT_RESTORED,
-                    patient,
-                    restored
-                )
+                wardMutations.restorePatient(patient, shiftId, sessionManager.current())
             }
         }
     }
@@ -648,17 +603,9 @@ class WardViewModel @Inject constructor(
         viewModelScope.launch {
             saveAction(onSuccess = {}) {
                 requireEditableShift(shiftId)
-                markPatientChangesPending()
-                val updated = patientRepository.updateOptimistically(
-                    patient.copy(
-                        isPriority = priority,
-                        lastEditedByDoctorId = sessionManager.current()?.doctorId,
-                        lastEditedByName = sessionManager.current()?.doctorName
-                    ),
-                    shiftId = shiftId,
-                    expectedRevision = patient.revision
+                wardMutations.updatePatient(
+                    patient.copy(isPriority = priority), shiftId, sessionManager.current()
                 )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, patient, updated)
             }
         }
     }
@@ -679,38 +626,6 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    private suspend fun markPatientChangesPending() {
-        settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
-    }
-
-    private suspend fun recordPatientChange(action: String, before: Patient?, after: Patient?) {
-        val session = sessionManager.current()
-        auditRepository.record(
-            actorDoctorId = session?.doctorId,
-            actorName = session?.doctorName,
-            action = action,
-            detail = after?.name ?: before?.name.orEmpty(),
-            patientId = after?.id ?: before?.id,
-            beforeValue = before?.let(::patientHistorySummary),
-            afterValue = after?.let(::patientHistorySummary)
-        )
-    }
-
-    private fun patientHistorySummary(patient: Patient): String = buildString {
-        append("name=").append(patient.name)
-        append(";diagnosis=").append(patient.initialDiagnosis)
-        append(";plan=").append(patient.treatmentPlan)
-        append(";followUp=").append(patient.followUp)
-        append(";labs=").append(patient.labs)
-        append(";resident=").append(patient.responsibleResidentId.orEmpty())
-        append(";supervisor=").append(patient.responsibleSpecialistId.orEmpty())
-        append(";badges=").append(patient.badges.joinToString("|") { badge ->
-            "${badge.priority?.code.orEmpty()}:${badge.text}"
-        })
-        append(";priority=").append(patient.isPriority)
-        append(";revision=").append(patient.revision)
-    }
-
     fun setShiftDoctors(ids: List<String>, onSuccess: () -> Unit = {}) {
         val shiftId = editableShiftId() ?: return
         val shift = _state.value.shift?.takeIf { it.id == shiftId } ?: return
@@ -728,11 +643,11 @@ class WardViewModel @Inject constructor(
         viewModelScope.launch {
             saveAction(onSuccess) {
                 requireEditableShift(shiftId)
-                markPatientChangesPending()
-                shiftRepository.updateDoctorIds(
+                wardMutations.setShiftDoctors(
                     shiftId = shift.id,
                     doctorIds = ids,
-                    expectedRevision = shift.revision
+                    expectedRevision = shift.revision,
+                    actor = sessionManager.current()
                 )
             }
         }
@@ -744,11 +659,11 @@ class WardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 requireEditableShift(shiftId)
-                markPatientChangesPending()
-                shiftRepository.updateSortSpec(
+                wardMutations.setShiftSort(
                     shiftId = shift.id,
                     sortSpecJson = SortSpecCodec.encode(spec),
-                    expectedRevision = shift.revision
+                    expectedRevision = shift.revision,
+                    actor = sessionManager.current()
                 )
             } catch (e: Exception) {
                 showError(e.message ?: "تعذر حفظ الترتيب")

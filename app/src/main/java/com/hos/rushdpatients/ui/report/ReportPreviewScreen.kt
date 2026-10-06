@@ -153,8 +153,21 @@ fun ReportPreviewScreen(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            Text(
+                                "ملخص المناوبة",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                "أطباء المناوبة",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            summary.doctors.forEach { doctor ->
+                                Text("• ${doctor.fullName}")
+                            }
+                            Divider()
                             Text("عدد المرضى: ${summary.patientCount}")
                             if (summary.psychoCount > 0) {
                                 Text("عدد الحالات النفسية: ${summary.psychoCount}")

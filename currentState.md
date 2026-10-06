@@ -31,7 +31,7 @@ MainActivity
           -> About
 ```
 
-The compact ward uses bottom navigation for Patients, Dashboard, and Activity. Expanded layouts use a navigation rail. The side drawer keeps secondary actions in accordion submenus, shows clinician/role/shift/sync health, and promotes administration actions for administrators. The ward FAB opens a compact readiness sheet before report review/send; adding a patient remains available from the top bar.
+The compact ward uses bottom navigation for Patients, Dashboard, and Activity. Expanded layouts use a navigation rail. The side drawer keeps secondary actions in accordion submenus and groups clinician/role/shift context with a data-health panel for freshness, connectivity, synchronization, and conflicts. The default patient header stays focused on patient count and compact filter presets. The ward FAB opens a compact readiness sheet before report review/send; adding a patient remains available from the top bar.
 
 ## Main technology
 
@@ -77,7 +77,10 @@ Current patient mutation behavior:
 - Successful patient mutations increment the revision.
 - Shift doctor and sort changes use revision-checked DAO updates.
 - Guided rollover refuses to insert when the target shift is no longer empty, preventing duplicate local application.
-- Pending-sync and audit writes are ordered safely but are not yet part of the same transaction as every mutation; this remains active P0 work.
+- `WardMutationRepository` commits ward patient add/edit (including badges and priority), delete/restore, rollover, and shift doctor/sort changes with the pending-sync marker and audit records in one Room transaction on the IO dispatcher. Stale or failed mutations roll back the entire operation.
+- Audit before-values are read within that transaction; new-patient ID collisions, capacity, and sort-order assignment are checked there as well. Current-shift editability is rechecked at this repository boundary.
+- The existing stale-edit message still requires the user to reopen the editor; a focused draft-preserving reload/review workflow remains active P0 work.
+- This transaction boundary covers local ward mutations; remote synchronization, backup restore, and doctor-registry workflows retain their separate orchestration.
 
 ## Project configuration and onboarding
 
@@ -111,7 +114,7 @@ Telegram pinned metadata is still a shared pointer without atomic compare-and-sw
 
 ## Reports and handoff
 
-`ReportBuilder` reads the current shift, current non-deleted patients, doctors, and sort specification each time a preview, save, share, or send operation begins. Both PDF styles therefore render a fresh repository snapshot.
+`ReportBuilder` reads the current shift, current non-deleted patients, doctors, and sort specification each time a preview, save, share, or send operation begins. The report preview places the selected shift doctors in its first summary section. Both PDF styles therefore render a fresh repository snapshot.
 
 Both PDF styles now use compact row layouts with multiple patients per page. A patient row is measured before drawing; when the remaining page space is insufficient, the complete row moves to the next page. Exceptionally large rows are fitted without discarding clinical text. Classic uses only restrained header and zebra colors, while Elegant Row uses white patient rows and slightly more generous typography to keep exported files print-friendly and smaller than the former card output.
 
@@ -134,7 +137,7 @@ Ward cards support comfortable/compact density, individual expansion, session-lo
 ## Known high-priority limitations
 
 1. Telegram cannot be the final authoritative multi-writer database.
-2. Patient mutation, pending-sync state, and audit recording are not universally committed in one database transaction.
+2. Stale ward edits are rejected safely but still need a focused draft-preserving reload/review experience.
 3. Doctor registry changes need a last-synced base and explicit three-way conflict workflow.
 4. Provisioning files are encrypted but reusable rather than server-issued, signed, one-time, and expiring.
 5. Structured I-PASS fields, tasks, receiver synthesis, and closed-loop critical acknowledgments do not yet exist in the core model.

@@ -9,11 +9,9 @@ This file contains only remaining work. Completed items are tracked in [workDone
    - Use a small authoritative service/database with row versions or transactions for shifts, patients, doctors, and publication ownership.
    - Keep Telegram as the delivery/archive channel after the authoritative transaction commits.
 
-2. Finish optimistic local mutations at the repository boundary.
-   - Patient edit (including badge changes), delete, restore, priority, and shift doctor/sort mutations now reject stale revisions at the Room boundary.
-   - Rollover now rejects duplicate application when the target shift is no longer empty.
-   - Apply each successful mutation, pending-sync flag, and audit row in one database transaction; the current ordering is safe but not yet atomic.
-   - Add a focused reload/review experience after a stale-edit rejection.
+2. Add a focused reload/review experience after a stale-edit rejection.
+   - Preserve the rejected draft while showing the latest patient or shift settings for deliberate review.
+   - Keep expected-revision checks when the user retries; never silently overwrite the newer version.
 
 3. Add a real doctor-registry merge workflow.
    - Persist a last-synced base registry.
@@ -107,9 +105,9 @@ This file contains only remaining work. Completed items are tracked in [workDone
    - The ward now distinguishes offline local data visually, but connectivity changes should update without requiring another screen recomposition.
    - Complete this with the verified downtime snapshot, age, and later reconciliation workflow in P1.
 
-9. Finish the app-wide icon and interaction vocabulary audit.
-   - Ward filtering, synchronization, reporting, pinning, expansion, priority, and history now use stable meanings.
-   - Apply the same vocabulary to secondary administration/setup screens and remove any remaining ambiguous duplicate icons.
+9. Finish the remaining secondary-screen icon and interaction vocabulary audit.
+   - Apply the established ward vocabulary to administration and setup screens, and remove any ambiguous duplicate action icons.
+   - Verify the adaptive, round, launcher, recents, and Android app-settings emblem rendering on representative real devices after a fresh install or launcher-cache refresh.
 
 10. Perform hands-on accessibility and palette validation on real devices.
    - Confirm the statically audited contrast in rendered light/dark screens, then verify large font, landscape, split-screen, keyboard, TalkBack, Switch Access, and reduced motion.
@@ -131,17 +129,3 @@ This file contains only remaining work. Completed items are tracked in [workDone
 - NHS warning guidance: concise, specific warnings reserved for significant or time-critical information.
 - WCAG 2.2: visible focus, target size, programmatic status messages, and interaction that does not rely on color alone.
 - Coolors palette exploration: distinct olive, oceanic, navy/gold, and muted-violet families, adjusted where required for readable foreground contrast.
-
-
-
-
-
-also there are still some generic app icon(android icon) instead of my app icoon
-
-also معاينة التقرير should contains doctors selections for the shift  in the first top section
-
-also the patiints page (the default page is too crowded on the top) especially the sync state (move it to the side nav
-also make the filter button more compact and small tet so they fit in the top ( with compact paddings 
-
-
-then update the workdone and workremains to be consistent
