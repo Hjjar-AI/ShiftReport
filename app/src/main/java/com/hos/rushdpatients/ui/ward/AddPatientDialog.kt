@@ -1,7 +1,5 @@
 package com.hos.rushdpatients.ui.ward
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1063,7 +1061,6 @@ private fun MultiValueEditor(
 
 // ---------------- Item rows ----------------
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DragHandleButton(
     index: Int,
@@ -1071,20 +1068,14 @@ private fun DragHandleButton(
     onMove: (Int, Int) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { expanded = true }
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            Icons.Filled.DragHandle,
-            contentDescription = "إعادة الترتيب (اضغط مطولاً)",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Box {
+        IconButton(onClick = { expanded = true }, modifier = Modifier.size(48.dp)) {
+            Icon(
+                Icons.Filled.DragHandle,
+                contentDescription = "إعادة ترتيب العنصر ${index + 1}",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }

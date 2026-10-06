@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -20,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.config.AppConstants
@@ -76,8 +79,12 @@ internal fun WardActivityScreen(
         item(key = "activity-heading") {
             Text("مركز النشاط", style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(top = 12.dp).semantics { heading() })
-            TextButton(onClick = onRefresh, enabled = !loading) { Text(if (loading) "جار تحديث النشاط…" else "تحديث النشاط") }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            TextButton(onClick = onRefresh, enabled = !loading,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                Text(if (loading) "جار تحديث النشاط…" else "تحديث النشاط")
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
         }
         item(key = "activity-search") {
             OutlinedTextField(value = query, onValueChange = onQueryChange,
@@ -85,10 +92,11 @@ internal fun WardActivityScreen(
                 modifier = Modifier.fillMaxWidth())
         }
         item(key = "activity-filters") {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 ActivityFilter.entries.forEach { option ->
                     FilterChip(selected = filter == option, onClick = { onFilterChange(option) },
-                        label = { Text(option.arabicLabel) })
+                        label = { Text(option.arabicLabel) }, modifier = Modifier.heightIn(min = 48.dp))
                 }
             }
         }

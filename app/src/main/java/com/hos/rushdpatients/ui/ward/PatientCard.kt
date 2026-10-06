@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -181,7 +180,8 @@ fun PatientCard(
             )
 
             if (effectiveStyle != PatientCardStyle.AVATAR_CHIPS) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     DiagnosisChip(patient.diagnosisType)
                     if (patient.hasCompanion) {
                         SmallChip(
@@ -195,12 +195,11 @@ fun PatientCard(
 
             // -------- Doctor chips row --------
             if (supervisorName != null || residentName != null) {
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Spacer(Modifier.weight(1f))
                     supervisorName?.let {
                         SmallChip(
                             text = it,
@@ -443,7 +442,7 @@ private fun PatientIdentityHeader(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (showViewControls) Row {
+            if (showViewControls) Column {
                 IconButton(onClick = onPinToggle) {
                     Icon(
                         if (pinned) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
@@ -457,7 +456,7 @@ private fun PatientIdentityHeader(
                     )
                 }
             }
-            if (!readOnly) {
+            if (showViewControls && !readOnly) {
                 PatientMenu(
                     priority = patient.isPriority,
                     onPriorityChange = onPriorityChange,
@@ -794,8 +793,6 @@ private fun SmallChip(text: String, container: Color, content: Color) {
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
             style = MaterialTheme.typography.labelSmall,
             color = content,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
         )
     }
