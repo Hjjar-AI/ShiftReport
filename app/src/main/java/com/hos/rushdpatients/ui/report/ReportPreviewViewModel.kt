@@ -12,6 +12,7 @@ import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.report.BuiltReport
 import com.hos.rushdpatients.domain.report.ReportBuilder
+import com.hos.rushdpatients.domain.report.ReportReadiness
 import com.hos.rushdpatients.domain.report.TextReportBuilder
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.network.ReportSender
@@ -124,7 +125,7 @@ class ReportPreviewViewModel @Inject constructor(
                         previewMarkdown = built.textChunks.joinToString("\n\n") {
                             Markdown.toPlainText(it)
                         },
-                        readinessWarnings = readinessWarnings(built),
+                        readinessWarnings = ReportReadiness.warnings(built.patients),
                         changeBriefing = briefing,
                         reportAsPdf = asPdf
                     )
@@ -659,17 +660,6 @@ class ReportPreviewViewModel @Inject constructor(
             }
         }
         return saved
-    }
-
-    private fun readinessWarnings(built: BuiltReport): List<String> = buildList {
-        val noSupervisor = built.patients.count { it.responsibleSpecialistId.isNullOrBlank() }
-        val noResident = built.patients.count { it.responsibleResidentId.isNullOrBlank() }
-        val noDiagnosis = built.patients.count { it.initialDiagnosis.isBlank() }
-        val noTreatment = built.patients.count { it.treatmentPlan.isBlank() }
-        if (noSupervisor > 0) add("$noSupervisor مريض دون اختصاصي")
-        if (noResident > 0) add("$noResident مريض دون مقيم")
-        if (noDiagnosis > 0) add("$noDiagnosis مريض دون تشخيص أولي")
-        if (noTreatment > 0) add("$noTreatment مريض دون خطة علاجية")
     }
 
     private fun reportFileName(date: java.time.LocalDate, suffix: String? = null): String {

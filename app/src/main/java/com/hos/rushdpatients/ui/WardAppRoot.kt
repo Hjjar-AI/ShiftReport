@@ -39,6 +39,7 @@ import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import com.hos.rushdpatients.ui.login.PinUnlockScreen
 import com.hos.rushdpatients.ui.navigation.WardNavHost
 import com.hos.rushdpatients.ui.setup.ProjectSetupScreen
+import com.hos.rushdpatients.ui.demo.DemoWardScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -60,7 +61,7 @@ class RootViewModel @Inject constructor(
     private val auditRepository: AuditRepository,
     private val doctorRepository: DoctorRepository,
     private val hasher: PasswordHasher,
-    projectConfigStore: ProjectConfigStore
+    private val projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
 
     val projectConfig = projectConfigStore.config
@@ -143,6 +144,11 @@ class RootViewModel @Inject constructor(
             }
         }
     }
+
+    fun exitDemo() {
+        sessionManager.clear()
+        projectConfigStore.clear()
+    }
 }
 
 @Composable
@@ -199,6 +205,7 @@ fun WardAppRoot(
     val current = session
     when {
         !projectConfig.initialized -> ProjectSetupScreen()
+        projectConfig.demoMode -> DemoWardScreen(onExit = viewModel::exitDemo)
         current == null -> LoginScreen()
         needsUnlock -> PinUnlockScreen(
             doctorName = current.doctorName,

@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.setup
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -37,6 +39,9 @@ fun ProjectSetupScreen(
     viewModel: ProjectSetupViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val openProvisioning = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let(viewModel::importProvisioning) }
 
     Column(
         modifier = Modifier
@@ -52,59 +57,103 @@ fun ProjectSetupScreen(
             fontWeight = FontWeight.Bold
         )
         Text(
-            "اربط هذا الجهاز بمشروع المستشفى. يبقى شعار التطبيق وصفحة الاعتمادات كما هما، بينما تصبح بيانات المستشفى والبوت خاصة بكل مشروع.",
+            "اختر طريقة البدء. الانضمام هو الخيار المعتاد للأجهزة الجديدة، ولا يتطلب إنشاء بوت جديد.",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                "١. تجربة: بيانات وهمية بلا إعدادات أو حفظ.\n٢. انضمام: لمستشفى مهيأ مسبقاً (الخيار الافتراضي).\n٣. إنشاء: للمسؤول الذي يجهز مشروع مستشفى جديداً فقط.",
+                Modifier.padding(14.dp)
+            )
+        }
+
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
-                selected = state.mode == ProjectSetupMode.CREATE,
-                onClick = { viewModel.setMode(ProjectSetupMode.CREATE) },
-                label = { Text("إنشاء مشروع") },
+                selected = state.mode == ProjectSetupMode.DEMO,
+                onClick = { viewModel.setMode(ProjectSetupMode.DEMO) },
+                label = { Text("تجربة") },
                 enabled = !state.busy
             )
             FilterChip(
                 selected = state.mode == ProjectSetupMode.JOIN,
                 onClick = { viewModel.setMode(ProjectSetupMode.JOIN) },
-                label = { Text("الانضمام لمشروع") },
+                label = { Text("انضمام") },
+                enabled = !state.busy
+            )
+            FilterChip(
+                selected = state.mode == ProjectSetupMode.CREATE,
+                onClick = { viewModel.setMode(ProjectSetupMode.CREATE) },
+                label = { Text("إنشاء") },
                 enabled = !state.busy
             )
         }
 
         InstructionCard(state.mode)
 
-        OutlinedTextField(
-            value = state.hospitalName,
-            onValueChange = viewModel::setHospitalName,
-            label = { Text("اسم المستشفى أو المشروع") },
-            singleLine = true,
-            enabled = !state.busy,
-            modifier = Modifier.fillMaxWidth()
-        )
-        PasswordField(
-            value = state.botToken,
-            onValueChange = viewModel::setBotToken,
-            label = "رمز البوت من BotFather",
-            enabled = !state.busy
-        )
-        NumberField(
-            value = state.chatId,
-            onValueChange = viewModel::setChatId,
-            label = "معرف المجموعة الرئيسي (رقم سالب)",
-            signed = true,
-            enabled = !state.busy
-        )
+        if (state.mode != ProjectSetupMode.DEMO) {
+            if (state.mode == ProjectSetupMode.JOIN) {
+                Text("ملف الانضمام المشفر", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "اطلب الملف من المدير وعبارة مروره عبر قناة منفصلة. لا تُرسل العبارة مع الملف.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                PasswordField(
+                    value = state.provisioningPassphrase,
+                    onValueChange = viewModel::setProvisioningPassphrase,
+                    label = "عبارة مرور الملف (10 محارف على الأقل)",
+                    enabled = !state.busy
+                )
+                Button(
+                    onClick = { openProvisioning.launch(arrayOf("application/octet-stream", "*/*")) },
+                    enabled = !state.busy && state.provisioningPassphrase.length >= 10,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (state.importedProvisioning) "اختيار ملف انضمام آخر" else "اختيار ملف الانضمام") }
+                Text(
+                    "أو أدخل البيانات يدوياً:",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
 
-        Text("معرفات المواضيع", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "اختيارية. اترك الحقل فارغاً للنشر في General.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        NumberField(state.reportsTopicId, viewModel::setReportsTopicId, "موضوع التقارير", enabled = !state.busy)
-        NumberField(state.announcementsTopicId, viewModel::setAnnouncementsTopicId, "موضوع الإعلانات", enabled = !state.busy)
-        NumberField(state.csvTopicId, viewModel::setCsvTopicId, "موضوع بيانات المناوبات", enabled = !state.busy)
-        NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, "موضوع سجل الأطباء", enabled = !state.busy)
+            OutlinedTextField(
+                value = state.hospitalName,
+                onValueChange = viewModel::setHospitalName,
+                label = { Text("اسم المستشفى أو المشروع") },
+                singleLine = true,
+                enabled = !state.busy,
+                modifier = Modifier.fillMaxWidth()
+            )
+            PasswordField(
+                value = state.botToken,
+                onValueChange = viewModel::setBotToken,
+                label = "رمز البوت من BotFather",
+                enabled = !state.busy
+            )
+            NumberField(
+                value = state.chatId,
+                onValueChange = viewModel::setChatId,
+                label = "معرف المجموعة الرئيسي (رقم سالب)",
+                signed = true,
+                enabled = !state.busy
+            )
+
+            Text("معرفات المواضيع", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "اختيارية. اترك الحقل فارغاً للنشر في General.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, "موضوع التقارير", enabled = !state.busy)
+            NumberField(state.announcementsTopicId, viewModel::setAnnouncementsTopicId, "موضوع الإعلانات", enabled = !state.busy)
+            NumberField(state.csvTopicId, viewModel::setCsvTopicId, "موضوع بيانات المناوبات", enabled = !state.busy)
+            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, "موضوع سجل الأطباء", enabled = !state.busy)
+        }
 
         if (state.mode == ProjectSetupMode.CREATE) {
             Text("المدير الأول", style = MaterialTheme.typography.titleMedium)
@@ -170,17 +219,26 @@ fun ProjectSetupScreen(
                     strokeWidth = 2.dp
                 )
             }
-            Text(if (state.mode == ProjectSetupMode.CREATE) "إنشاء وتهيئة المشروع" else "التحقق والانضمام")
+            Text(
+                when (state.mode) {
+                    ProjectSetupMode.DEMO -> "بدء التجربة"
+                    ProjectSetupMode.JOIN -> "التحقق والانضمام"
+                    ProjectSetupMode.CREATE -> "إنشاء وتهيئة المشروع"
+                }
+            )
         }
     }
 }
 
 @Composable
 private fun InstructionCard(mode: ProjectSetupMode) {
-    val text = if (mode == ProjectSetupMode.CREATE) {
-        "١. أنشئ بوتاً عبر BotFather.\n٢. أنشئ مجموعة Supergroup وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل.\n٣. أنشئ المواضيع المطلوبة إن رغبت، ثم أدخل المعرفات أدناه.\n٤. استخدم مجموعة جديدة لا تحتوي رسالة مشروع مثبّتة."
-    } else {
-        "اطلب من مدير المشروع اسم المستشفى ورمز البوت ومعرف المجموعة ومعرفات المواضيع نفسها. يجب أن تكون بيانات المشروع مثبّتة في المجموعة."
+    val text = when (mode) {
+        ProjectSetupMode.DEMO ->
+            "شاهد التطبيق فوراً بأسماء زهور وفواكه ومرضى وهميين. لا يحتاج رمز بوت، ولا يحفظ أو يزامن أي بيانات. يمكنك الخروج والعودة للتهيئة الحقيقية في أي وقت."
+        ProjectSetupMode.JOIN ->
+            "انضم بعد دخولك مجموعة تليجرام الخاصة بالمستشفى. استخدم ملف الانضمام المشفر من المدير لتعبئة الإعدادات، أو أدخلها يدوياً. يتحقق التطبيق من البوت والمجموعة ثم ينزل سجل المشروع المثبّت."
+        ProjectSetupMode.CREATE ->
+            "١. أنشئ بوتاً عبر BotFather.\n٢. أنشئ مجموعة Supergroup وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل.\n٣. أنشئ المواضيع المطلوبة إن رغبت، ثم أدخل المعرفات أدناه.\n٤. استخدم مجموعة جديدة لا تحتوي رسالة مشروع مثبّتة.\n٥. بعد التهيئة، صدّر ملف انضمام مشفراً للأعضاء من إعدادات المدير."
     }
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,

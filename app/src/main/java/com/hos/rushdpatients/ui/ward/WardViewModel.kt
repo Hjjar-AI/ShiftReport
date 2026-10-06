@@ -305,15 +305,18 @@ class WardViewModel @Inject constructor(
 
     fun applyRollover(decisions: Map<String, RolloverDecision>) {
         val shiftId = editableShiftId() ?: return
+        if (_state.value.saving) return
+        _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            val candidates = _state.value.rolloverPatients
-            val rolled = candidates.filter {
-                decisions[it.id] in setOf(
-                    RolloverDecision.CONTINUE,
-                    RolloverDecision.CONTINUE_AND_EDIT,
-                    RolloverDecision.REASSIGN
-                )
-            }.mapIndexed { index, patient ->
+            saveAction(onSuccess = {}) {
+                val candidates = _state.value.rolloverPatients
+                val rolled = candidates.filter {
+                    decisions[it.id] in setOf(
+                        RolloverDecision.CONTINUE,
+                        RolloverDecision.CONTINUE_AND_EDIT,
+                        RolloverDecision.REASSIGN
+                    )
+                }.mapIndexed { index, patient ->
                     val decision = decisions[patient.id] ?: RolloverDecision.SKIP
                     patient.copy(
                         id = UUID.randomUUID().toString(),
@@ -326,28 +329,30 @@ class WardViewModel @Inject constructor(
                         responsibleSpecialistId = if (decision == RolloverDecision.REASSIGN) null else patient.responsibleSpecialistId
                     ) to decision
                 }
-            val selected = rolled.map { it.first }
-            markPatientChangesPending()
-            patientRepository.upsertAll(selected, shiftId)
-            candidates.forEach { patient ->
-                val decision = decisions[patient.id] ?: RolloverDecision.SKIP
-                auditRepository.record(
-                    sessionManager.current()?.doctorId,
-                    sessionManager.current()?.doctorName,
-                    "rollover_${decision.name.lowercase()}",
-                    patient.name,
-                    patientId = patient.id
-                )
-            }
-            val reviewPatients = rolled.filter { (_, decision) ->
-                decision == RolloverDecision.CONTINUE_AND_EDIT || decision == RolloverDecision.REASSIGN
-            }.map { it.first }
-            _state.update {
-                it.copy(
-                    rolloverPatients = emptyList(),
-                    rolloverReviewPatients = reviewPatients,
-                    snackbar = "تم ترحيل ${selected.size} مريض؛ يحتاج ${reviewPatients.size} إلى مراجعة"
-                )
+                val selected = rolled.map { it.first }
+                markPatientChangesPending()
+                patientRepository.insertRolloverIfShiftEmpty(selected, shiftId)
+                candidates.forEach { patient ->
+                    val decision = decisions[patient.id] ?: RolloverDecision.SKIP
+                    auditRepository.record(
+                        sessionManager.current()?.doctorId,
+                        sessionManager.current()?.doctorName,
+                        "rollover_${decision.name.lowercase()}",
+                        patient.name,
+                        patientId = patient.id
+                    )
+                }
+                val reviewPatients = rolled.filter { (_, decision) ->
+                    decision == RolloverDecision.CONTINUE_AND_EDIT ||
+                        decision == RolloverDecision.REASSIGN
+                }.map { it.first }
+                _state.update {
+                    it.copy(
+                        rolloverPatients = emptyList(),
+                        rolloverReviewPatients = reviewPatients,
+                        snackbar = "تم ترحيل ${selected.size} مريض؛ يحتاج ${reviewPatients.size} إلى مراجعة"
+                    )
+                }
             }
         }
     }
@@ -569,31 +574,35 @@ class WardViewModel @Inject constructor(
                 requireEditableShift(shiftId)
                 val before = patientRepository.getById(patient.id)
                 markPatientChangesPending()
-                patientRepository.upsert(
+                val updated = patientRepository.updateOptimistically(
                     patient.copy(
-                        revision = (before?.revision ?: patient.revision) + 1,
                         lastEditedByDoctorId = sessionManager.current()?.doctorId,
                         lastEditedByName = sessionManager.current()?.doctorName
                     ),
-                    shiftId
+                    shiftId = shiftId,
+                    expectedRevision = patient.revision
                 )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, before, patient)
+                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, before, updated)
             }
         }
     }
 
-    fun deletePatient(id: String, onSuccess: () -> Unit = {}) {
+    fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {}) {
         val shiftId = editableShiftId() ?: return
+        var deleted: Patient? = null
         viewModelScope.launch {
-            saveAction(onSuccess) {
+            saveAction(onSuccess = { deleted?.let(onSuccess) }) {
                 requireEditableShift(shiftId)
-                require(patientRepository.getShiftId(id) == shiftId) {
+                require(patientRepository.getShiftId(patient.id) == shiftId) {
                     "المريض لا ينتمي إلى المناوبة الحالية"
                 }
-                val before = patientRepository.getById(id)
                 markPatientChangesPending()
-                patientRepository.softDelete(id)
-                recordPatientChange(AppConstants.AUDIT_PATIENT_DELETED, before, null)
+                deleted = patientRepository.softDeleteOptimistically(
+                    id = patient.id,
+                    shiftId = shiftId,
+                    expectedRevision = patient.revision
+                )
+                recordPatientChange(AppConstants.AUDIT_PATIENT_DELETED, patient, null)
             }
         }
     }
@@ -605,20 +614,24 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun restorePatient(id: String) {
+    fun restorePatient(patient: Patient) {
         val shiftId = editableShiftId() ?: return
         viewModelScope.launch {
             saveAction(onSuccess = { loadRecycleBin() }) {
                 requireEditableShift(shiftId)
-                require(patientRepository.getShiftId(id) == shiftId) {
+                require(patientRepository.getShiftId(patient.id) == shiftId) {
                     "المريض لا ينتمي إلى المناوبة الحالية"
                 }
                 markPatientChangesPending()
-                patientRepository.restore(id)
+                val restored = patientRepository.restoreOptimistically(
+                    id = patient.id,
+                    shiftId = shiftId,
+                    expectedRevision = patient.revision
+                )
                 recordPatientChange(
                     AppConstants.AUDIT_PATIENT_RESTORED,
-                    null,
-                    patientRepository.getById(id)
+                    patient,
+                    restored
                 )
             }
         }
@@ -630,16 +643,16 @@ class WardViewModel @Inject constructor(
             saveAction(onSuccess = {}) {
                 requireEditableShift(shiftId)
                 markPatientChangesPending()
-                patientRepository.upsert(
+                val updated = patientRepository.updateOptimistically(
                     patient.copy(
                         isPriority = priority,
-                        revision = patient.revision + 1,
                         lastEditedByDoctorId = sessionManager.current()?.doctorId,
                         lastEditedByName = sessionManager.current()?.doctorName
                     ),
-                    shiftId
+                    shiftId = shiftId,
+                    expectedRevision = patient.revision
                 )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, patient, patient.copy(isPriority = priority))
+                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, patient, updated)
             }
         }
     }
@@ -655,16 +668,16 @@ class WardViewModel @Inject constructor(
                     patient.warningFlags + flag
                 }
                 markPatientChangesPending()
-                patientRepository.upsert(
+                val updated = patientRepository.updateOptimistically(
                     patient.copy(
                         warningFlags = warnings,
-                        revision = patient.revision + 1,
                         lastEditedByDoctorId = sessionManager.current()?.doctorId,
                         lastEditedByName = sessionManager.current()?.doctorName
                     ),
-                    shiftId
+                    shiftId = shiftId,
+                    expectedRevision = patient.revision
                 )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, patient, patient.copy(warningFlags = warnings))
+                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, patient, updated)
             }
         }
     }
@@ -733,7 +746,11 @@ class WardViewModel @Inject constructor(
             saveAction(onSuccess) {
                 requireEditableShift(shiftId)
                 markPatientChangesPending()
-                shiftRepository.updateDoctorIds(shift.id, ids)
+                shiftRepository.updateDoctorIds(
+                    shiftId = shift.id,
+                    doctorIds = ids,
+                    expectedRevision = shift.revision
+                )
             }
         }
     }
@@ -745,7 +762,11 @@ class WardViewModel @Inject constructor(
             try {
                 requireEditableShift(shiftId)
                 markPatientChangesPending()
-                shiftRepository.updateSortSpec(shift.id, SortSpecCodec.encode(spec))
+                shiftRepository.updateSortSpec(
+                    shiftId = shift.id,
+                    sortSpecJson = SortSpecCodec.encode(spec),
+                    expectedRevision = shift.revision
+                )
             } catch (e: Exception) {
                 showError(e.message ?: "تعذر حفظ الترتيب")
             }

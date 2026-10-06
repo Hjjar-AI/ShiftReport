@@ -27,7 +27,8 @@ class RushdApplication : Application() {
             // On a fresh install the registry is empty until the user completes
             // Telegram bootstrap on the login screen. Only schedule background
             // sync once we actually have doctors locally.
-            if (!projectConfigStore.current().initialized || doctorRepository.count() == 0) {
+            val project = projectConfigStore.current()
+            if (!project.initialized || project.demoMode || doctorRepository.count() == 0) {
                 return@launch
             }
             AutoSyncScheduler.configure(

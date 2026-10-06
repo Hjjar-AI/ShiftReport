@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.data.repository
 
+import androidx.room.withTransaction
+import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.data.db.dao.PatientDao
 import com.hos.rushdpatients.data.mapper.PatientMapper
 import com.hos.rushdpatients.data.model.Patient
@@ -14,6 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class PatientRepository @Inject constructor(
     private val dao: PatientDao,
+    private val database: AppDatabase,
     private val dispatchers: DispatcherProvider
 ) {
 
@@ -47,6 +50,89 @@ class PatientRepository @Inject constructor(
     suspend fun upsertAll(patients: List<Patient>, shiftId: String) = withContext(dispatchers.io) {
         val now = Instant.now()
         dao.upsertAll(patients.map { PatientMapper.toEntity(it.copy(updatedAt = now), shiftId) })
+    }
+
+    suspend fun insertRolloverIfShiftEmpty(patients: List<Patient>, shiftId: String) =
+        withContext(dispatchers.io) {
+            database.withTransaction {
+                require(dao.countForShift(shiftId) == 0) {
+                    "لم تعد المناوبة فارغة؛ أعد مراجعة المرضى قبل تطبيق الترحيل"
+                }
+                if (patients.isNotEmpty()) {
+                    val now = Instant.now()
+                    dao.upsertAll(
+                        patients.map { PatientMapper.toEntity(it.copy(updatedAt = now), shiftId) }
+                    )
+                }
+            }
+        }
+
+    suspend fun updateOptimistically(
+        patient: Patient,
+        shiftId: String,
+        expectedRevision: Long
+    ): Patient = withContext(dispatchers.io) {
+        database.withTransaction {
+            val current = dao.getById(patient.id)
+                ?: throw StalePatientEditException()
+            if (current.shiftId != shiftId || current.revision != expectedRevision ||
+                current.deletedAtEpochMillis != null
+            ) {
+                throw StalePatientEditException()
+            }
+            val updated = patient.copy(
+                revision = expectedRevision + 1,
+                updatedAt = Instant.now(),
+                deletedAt = null
+            )
+            dao.upsert(PatientMapper.toEntity(updated, shiftId))
+            updated
+        }
+    }
+
+    suspend fun softDeleteOptimistically(
+        id: String,
+        shiftId: String,
+        expectedRevision: Long
+    ): Patient = withContext(dispatchers.io) {
+        database.withTransaction {
+            val current = dao.getById(id) ?: throw StalePatientEditException()
+            if (current.shiftId != shiftId || current.revision != expectedRevision ||
+                current.deletedAtEpochMillis != null
+            ) {
+                throw StalePatientEditException()
+            }
+            val now = Instant.now()
+            val deleted = PatientMapper.fromEntity(current).copy(
+                revision = expectedRevision + 1,
+                updatedAt = now,
+                deletedAt = now
+            )
+            dao.upsert(PatientMapper.toEntity(deleted, shiftId))
+            deleted
+        }
+    }
+
+    suspend fun restoreOptimistically(
+        id: String,
+        shiftId: String,
+        expectedRevision: Long
+    ): Patient = withContext(dispatchers.io) {
+        database.withTransaction {
+            val current = dao.getById(id) ?: throw StalePatientEditException()
+            if (current.shiftId != shiftId || current.revision != expectedRevision ||
+                current.deletedAtEpochMillis == null
+            ) {
+                throw StalePatientEditException()
+            }
+            val restored = PatientMapper.fromEntity(current).copy(
+                revision = expectedRevision + 1,
+                updatedAt = Instant.now(),
+                deletedAt = null
+            )
+            dao.upsert(PatientMapper.toEntity(restored, shiftId))
+            restored
+        }
     }
 
     suspend fun softDelete(id: String) = withContext(dispatchers.io) {
@@ -86,3 +172,7 @@ class PatientRepository @Inject constructor(
     }
 
 }
+
+class StalePatientEditException : IllegalStateException(
+    "تغيّرت بيانات المريض منذ فتحها. أعد فتح المريض وراجع أحدث نسخة قبل الحفظ."
+)

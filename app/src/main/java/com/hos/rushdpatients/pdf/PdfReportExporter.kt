@@ -527,8 +527,10 @@ class PdfReportExporter @Inject constructor() {
         append(patient.diagnosisType.arabicLabel)
         if (patient.warningFlags.isNotEmpty()) {
             append('\n')
-            append("⚠ ")
-            append(patient.warningFlags.sortedBy { it.ordinal }.joinToString(" • ") { it.arabicLabel })
+            append(patient.warningFlags.sortedBy { it.ordinal }.joinToString("\n") { flag ->
+                val detail = patient.warningDetails[flag].orEmpty().trim()
+                if (detail.isBlank()) "⚠ ${flag.arabicLabel}" else "⚠ ${flag.arabicLabel}: $detail"
+            })
         }
         if (patient.initialDiagnosis.isNotBlank()) {
             append('\n')

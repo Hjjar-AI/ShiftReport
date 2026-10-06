@@ -98,18 +98,38 @@ class ShiftRepository @Inject constructor(
             )
         }
 
-    suspend fun updateDoctorIds(shiftId: String, doctorIds: List<String>) =
+    suspend fun updateDoctorIds(
+        shiftId: String,
+        doctorIds: List<String>,
+        expectedRevision: Long
+    ) =
         withContext(dispatchers.io) {
-            dao.updateDoctorIds(
+            val changed = dao.updateDoctorIds(
                 shiftId = shiftId,
                 doctorIdsCsv = doctorIds.joinToString(","),
+                expectedRevision = expectedRevision,
                 updatedAtMillis = Instant.now().toEpochMilli()
             )
+            if (changed != 1) throw StaleShiftEditException()
         }
 
-    suspend fun updateSortSpec(shiftId: String, sortSpecJson: String?) =
+    suspend fun updateSortSpec(
+        shiftId: String,
+        sortSpecJson: String?,
+        expectedRevision: Long
+    ) =
         withContext(dispatchers.io) {
-            dao.updateSortSpec(shiftId, sortSpecJson, Instant.now().toEpochMilli())
+            val changed = dao.updateSortSpec(
+                shiftId,
+                sortSpecJson,
+                expectedRevision,
+                Instant.now().toEpochMilli()
+            )
+            if (changed != 1) throw StaleShiftEditException()
         }
 
 }
+
+class StaleShiftEditException : IllegalStateException(
+    "تغيّرت إعدادات المناوبة على هذا الجهاز. راجع أحدث نسخة ثم أعد المحاولة."
+)

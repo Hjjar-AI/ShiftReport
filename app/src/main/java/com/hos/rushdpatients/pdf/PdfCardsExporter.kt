@@ -201,8 +201,7 @@ class PdfCardsExporter @Inject constructor() {
 
         if (patient.warningFlags.isNotEmpty()) {
             h += measureSection(
-                "⚠ " + patient.warningFlags.sortedBy { it.ordinal }
-                    .joinToString(" • ") { it.arabicLabel },
+                warningText(patient),
                 innerWidth
             )
         }
@@ -293,6 +292,9 @@ class PdfCardsExporter @Inject constructor() {
             chipX = chipLeft - 4f
         }
         drawChip(patient.diagnosisType.arabicLabel, palette.tableHeader, Color.WHITE)
+        if (patient.isPriority) {
+            drawChip("أولوية", 0xFF9F1239.toInt(), Color.WHITE)
+        }
         if (patient.hasCompanion) {
             drawChip("مرافق", palette.zebra, palette.text)
         }
@@ -312,8 +314,7 @@ class PdfCardsExporter @Inject constructor() {
                 innerRight,
                 innerWidth,
                 "تنبيهات",
-                "⚠ " + patient.warningFlags.sortedBy { it.ordinal }
-                    .joinToString(" • ") { it.arabicLabel }
+                warningText(patient)
             )
         }
 
@@ -344,6 +345,13 @@ class PdfCardsExporter @Inject constructor() {
         drawSection(canvas, cursor, innerLeft, innerRight, innerWidth,
             "التحاليل", patient.labs, "Labs", "خ", 0xFF174A7E.toInt())
     }
+
+    private fun warningText(patient: Patient): String = patient.warningFlags
+        .sortedBy { it.ordinal }
+        .joinToString("\n") { flag ->
+            val detail = patient.warningDetails[flag].orEmpty().trim()
+            if (detail.isBlank()) "⚠ ${flag.arabicLabel}" else "⚠ ${flag.arabicLabel}: $detail"
+        }
 
     private fun drawStyledHeader(
         canvas: Canvas,

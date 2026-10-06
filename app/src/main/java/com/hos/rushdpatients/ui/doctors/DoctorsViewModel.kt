@@ -13,6 +13,7 @@ import com.hos.rushdpatients.domain.doctor.DoctorNaming
 import com.hos.rushdpatients.domain.doctor.DoctorValidationResult
 import com.hos.rushdpatients.domain.doctor.DoctorValidator
 import com.hos.rushdpatients.domain.auth.PasswordHasher
+import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.sync.DoctorsRegistryCodec
 import com.hos.rushdpatients.sync.SyncService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +30,8 @@ class DoctorsViewModel @Inject constructor(
     private val patientRepository: PatientRepository,
     private val auditRepository: AuditRepository,
     private val syncService: SyncService,
-    private val passwordHasher: PasswordHasher
+    private val passwordHasher: PasswordHasher,
+    private val adminAuthorizer: AdminAuthorizer
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DoctorsUiState())
@@ -65,6 +67,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(saving = true) }
             try {
+                val actor = adminAuthorizer.requireAdmin()
                 if (doctorRepository.count() >= AppConstants.MAX_DOCTORS) {
                     fail("تم الوصول إلى الحد الأقصى لعدد الأطباء")
                     return@launch
@@ -91,7 +94,7 @@ class DoctorsViewModel @Inject constructor(
                         extraOptions = setOf("pin:${passwordHasher.hash(pin)}")
                     )
                 )
-                auditRepository.record(null, null, AppConstants.AUDIT_DOCTOR_ADDED, fullName)
+                auditRepository.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_ADDED, fullName)
                 finishWithSync("تم إضافة الطبيب", onSuccess)
             } catch (e: Exception) {
                 fail(e.message ?: "تعذر إضافة الطبيب")
@@ -120,6 +123,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(saving = true) }
             try {
+                val actor = adminAuthorizer.requireAdmin()
                 val existing = doctorRepository.getById(id) ?: return@launch fail("الطبيب غير موجود")
                 val fullName = DoctorNaming.formatName(firstName, lastName)
                 val conflict = doctorRepository.getByFullName(fullName)
@@ -145,7 +149,7 @@ class DoctorsViewModel @Inject constructor(
                         }
                     )
                 )
-                auditRepository.record(null, null, AppConstants.AUDIT_DOCTOR_EDITED, fullName)
+                auditRepository.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_EDITED, fullName)
                 finishWithSync("تم تحديث الطبيب", onSuccess)
             } catch (e: Exception) {
                 fail(e.message ?: "تعذر تحديث الطبيب")
@@ -157,6 +161,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(saving = true) }
             try {
+                val actor = adminAuthorizer.requireAdmin()
                 val doctor = doctorRepository.getById(id) ?: return@launch fail("الطبيب غير موجود")
                 if (doctor.isAdmin) {
                     return@launch fail("أزل صلاحية المدير قبل حذف الطبيب")
@@ -165,7 +170,7 @@ class DoctorsViewModel @Inject constructor(
                     return@launch fail("لا يمكن حذف طبيب مسؤول عن مرضى حاليين")
                 }
                 doctorRepository.softDelete(id)
-                auditRepository.record(null, null, AppConstants.AUDIT_DOCTOR_DELETED, doctor.fullName)
+                auditRepository.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_DELETED, doctor.fullName)
                 finishWithSync("تم حذف الطبيب", onSuccess)
             } catch (e: Exception) {
                 fail(e.message ?: "تعذر حذف الطبيب")
@@ -177,7 +182,10 @@ class DoctorsViewModel @Inject constructor(
         if (_state.value.saving) return
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            val result = uploadRegistry()
+            val result = runCatching {
+                adminAuthorizer.requireAdmin()
+                uploadRegistry().getOrThrow()
+            }
             _state.update {
                 it.copy(
                     saving = false,

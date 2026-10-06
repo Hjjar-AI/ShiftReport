@@ -1,46 +1,24 @@
-# ShiftReport plan
+# ShiftReport remaining work
 
-## Completed / removed from the backlog
-
-- Patient sync already has three-way field merging, explicit conflict review, immutable uploaded CSV files, recovery snapshots, and a publication journal.
-- The ward screen already exposes persistent local/pending/uploading/published/conflict sync states; this is no longer a standalone backlog item.
-- Concurrent sync operations on one device are now serialized per patient and doctor channel.
-- Edits made while a patient upload is in flight remain pending for the next publication, and sync metadata updates no longer replace concurrent shift doctor/sort changes.
-- Fetching the latest patient snapshot now refuses to replace unsent local edits.
-- Doctor publishing now rejects a stale registry instead of replacing a newer remote registry; an explicit “bring latest” action is the recovery path.
-- Pinned sync-state writes now preserve the newest patient, doctor, and announcement pointers instead of allowing one channel to erase another.
-- The patient list is now the initial ward view; the dashboard remains one tap away.
-- The Telegram doctor picker now respects safe system insets, patient overflow actions use a 48dp target, and the password visibility action has an accessible label.
-- The APK is now hospital-agnostic: bot credentials, group/topic IDs, hospital name, and first-admin identity are no longer compiled into the app.
-- First launch now offers create-project and join-project flows, validates the bot and group, creates or downloads the pinned doctor registry, and stores the project connection in encrypted device-local preferences.
-- The configured hospital/project name now appears in the clinical header and drawer while the existing logo and About/credits page remain unchanged.
-- Patient entry now has a concise General mode and a detailed Advanced mode without discarding hidden clinical data.
-- Opening a patient now presents a full-screen details experience with Overview, Clinical, Tasks, Warnings, and History sections; editing is a separate explicit action.
-- The patient list keeps its selected patient and scroll position through configuration changes.
-- Ward search, filters, grouping, and sorting share one panel, and active filters are visible as individually removable chips.
-- Live ward cards now use one predictable clinical hierarchy; the former visual variants remain PDF-only.
-- Primary navigation now uses Patients, Dashboard, and Activity in a bottom bar on compact windows and a rail on tablet/landscape widths.
-- The UI now has stable semantic colors for normal, warning, urgent, pending, conflict, and success states, independent of dynamic color.
-- App and PDF palettes were consolidated into distinct color families; the duplicate cyan-night variants were removed and stale saved selections safely fall back to System/Teal.
-- All remaining explicit app theme role pairs, clinical semantic pairs, and PDF header pairs pass the WCAG AA 4.5:1 normal-text contrast threshold in the static audit.
-- The ward header now shows hospital, shift date, patient count, freshness, semantic headings, and polite sync-status announcements.
+This file contains only remaining work. Completed items are tracked in [workDone.md](workDone.md).
 
 ## P0 — multi-user correctness and safety
 
-1. Replace the Telegram pinned-message pointer as the authoritative multi-writer database.
+1. Establish an authoritative multi-writer service before expanding cross-device workflows.
    - Telegram documents are useful immutable artifacts, but the Bot API does not provide an atomic compare-and-swap operation for the pinned JSON state.
    - Use a small authoritative service/database with row versions or transactions for shifts, patients, doctors, and publication ownership.
    - Keep Telegram as the delivery/archive channel after the authoritative transaction commits.
 
-2. Add a real doctor-registry merge workflow.
+2. Finish optimistic local mutations at the repository boundary.
+   - Patient edit, delete, restore, priority, warning, and shift doctor/sort mutations now reject stale revisions at the Room boundary.
+   - Rollover now rejects duplicate application when the target shift is no longer empty.
+   - Apply each successful mutation, pending-sync flag, and audit row in one database transaction; the current ordering is safe but not yet atomic.
+   - Add a focused reload/review experience after a stale-edit rejection.
+
+3. Add a real doctor-registry merge workflow.
    - Persist a last-synced base registry.
    - Three-way merge additions, edits, deletions, admin rank, and Telegram identity.
    - Present conflicts for explicit review instead of requiring the admin to accept the entire remote registry.
-
-3. Make patient edits optimistic at the database/repository boundary.
-   - Save with an expected revision and reject stale local editor submissions.
-   - Apply patient mutation, pending-sync flag, and audit entry in one Room transaction.
-   - Do the same for delete, restore, priority, warning, rollover, and shift doctor/sort changes.
 
 4. Manually verify the high-risk concurrency scenarios before release.
    - Two devices edit different fields of the same patient.
@@ -49,49 +27,53 @@
    - Doctor edit versus doctor edit and doctor deletion while assigned to an active patient.
    - Patient publish concurrent with doctor-registry or announcement updates.
 
-## P1 — signature handoff workflow
+## P1 — structured, closed-loop handoff
 
-1. Add a guided I-PASS handoff mode instead of treating publishing as the end of handoff.
+1. Build the structured clinical handoff model before adding more handoff UI.
    - Illness severity: stable, watcher, or unstable as a dedicated field—not inferred from card color or priority.
    - Patient summary: the concise current clinical picture.
-   - Action list: structured tasks assigned to a person or incoming shift.
    - Situation awareness: explicit “if this happens, then do this” contingency entries.
-   - Synthesis by receiver: receiver reviews, asks questions, and accepts the handoff.
+   - Receiver synthesis and acceptance as explicit records.
+   - This requires deliberate schema/model work and is not bundled into unrelated UI changes.
 
-2. Make “What changed since my last accepted handoff?” the primary returning-user experience.
+2. Promote structured patient tasks into the core model.
+   - Description, owner, due time or shift, priority, pending/done state, completion actor, and completion timestamp.
+   - Overdue and unassigned tasks appear in the shift dashboard and “My patients.”
+   - Pending tasks carry forward explicitly during rollover rather than being hidden in follow-up text.
+
+3. Add a guided I-PASS handoff flow using the structured model instead of treating publication as the end of handoff.
+   - Walk through severity, summary, actions, contingency planning, and receiver synthesis.
+   - Preserve a fast emergency path while recording incomplete sections and any authorized override reason.
+
+4. Complete the handoff readiness check before publication.
+   - Highlight missing ownership, unresolved urgent warnings, unassigned or overdue tasks, missing contingency plans for unstable patients, and unresolved sync conflicts.
+   - This is a completeness check, not diagnostic or treatment advice.
+   - Allow an authorized override with a recorded reason; never silently block emergency work.
+
+5. Make “What changed since my last accepted handoff?” the primary returning-user experience.
    - Show only meaningful patient additions, removals, field changes, new warnings, completed tasks, and reassignment.
    - Group changes by patient and severity; allow one-tap navigation to the exact changed section.
    - Track a per-user acknowledgment cursor so the badge clears only for that receiver.
 
-3. Add closed-loop critical-change acknowledgment.
+6. Add closed-loop critical-change acknowledgment.
    - Critical changes have an owner, recipients, sent time, seen time, and acknowledged time.
    - Keep unacknowledged critical items pinned above routine activity.
    - Escalate by age and severity without repeatedly alerting for low-value updates.
    - Never use color alone; show a label, icon, and timestamp.
 
-4. Promote structured patient tasks into the core model.
-   - Description, owner, due time or shift, priority, pending/done state, completion actor, and completion timestamp.
-   - Overdue and unassigned tasks appear in the shift dashboard and “My patients.”
-   - Pending tasks carry forward explicitly during rollover rather than being hidden in follow-up text.
-
-5. Add a handoff readiness check before publication.
-   - Highlight missing ownership, unresolved urgent warnings, unassigned or overdue tasks, missing contingency plans for unstable patients, and unresolved sync conflicts.
-   - This is a completeness check, not diagnostic or treatment advice.
-   - Allow an authorized override with a recorded reason; never silently block emergency work.
-
-6. Add a verified downtime view.
+7. Add a verified downtime view.
    - Keep the last successfully verified handoff available offline with a prominent snapshot time and stale-data banner.
    - Provide a compact printable/exportable downtime sheet and record later reconciliation.
 
 ## P2 — setup and access
 
 1. Complete secure multi-device provisioning and credential lifecycle.
-   - Replace manual token entry on joining devices with a signed, encrypted, short-lived provisioning bundle or QR flow.
+   - After the P0 service exists, replace the current reusable join file with a server-issued, signed, one-time, short-lived provisioning bundle or QR flow; a client-side timestamp alone is not meaningful expiry.
    - Verify the intended project identity and expiry before import; never place a raw reusable bot token in a QR code.
    - Add explicit bot-token rotation/revocation and a safe re-connect flow that cannot silently mix one hospital's local clinical database with another project.
    - Longer term, remove the broadly privileged bot token from ordinary client devices by proxying Telegram operations through the authoritative service proposed in P0.
 
-2. Keep admin-only actions enforced below the UI layer as well as through navigation guards.
+2. Enforce authorization inside the legacy VBA importer itself, in addition to its navigation guard, when importer/migration files are explicitly in scope for review.
 
 ## P3 — remaining UI validation and large-screen refinement
 

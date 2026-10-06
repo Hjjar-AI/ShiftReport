@@ -5,6 +5,7 @@ import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.domain.doctor.DoctorNaming
+import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,7 +17,8 @@ sealed interface PromoteResult {
 @Singleton
 class PromoteAdminUseCase @Inject constructor(
     private val doctorRepository: DoctorRepository,
-    private val auditRepository: AuditRepository
+    private val auditRepository: AuditRepository,
+    private val adminAuthorizer: AdminAuthorizer
 ) {
 
     suspend fun execute(
@@ -25,6 +27,9 @@ class PromoteAdminUseCase @Inject constructor(
         actorDoctorId: String?,
         actorName: String?
     ): PromoteResult {
+        val actor = runCatching { adminAuthorizer.requireAdmin() }
+            .getOrElse { return PromoteResult.Failure(it.message ?: "ليس لديك صلاحية") }
+        if (actorDoctorId != actor.id) return PromoteResult.Failure("هوية المنفذ غير متطابقة")
         val target = doctorRepository.getById(doctorId)
             ?: return PromoteResult.Failure("الطبيب غير موجود")
         if (target.isDeleted) return PromoteResult.Failure("الطبيب محذوف")

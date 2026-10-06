@@ -47,14 +47,17 @@ import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -94,6 +97,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -102,9 +107,9 @@ import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
+import com.hos.rushdpatients.domain.report.ReportReadiness
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.EmptyState
-import com.hos.rushdpatients.ui.components.LongPressTriggerButton
 import com.hos.rushdpatients.sync.ConflictChoice
 import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 import kotlinx.coroutines.launch
@@ -147,6 +152,9 @@ fun WardScreen(
         state.doctors.associate { it.id to it.fullName }
     }
     val patientGridState = rememberLazyGridState()
+    val reportReadinessIssueCount = remember(state.patients, state.mergeConflicts) {
+        ReportReadiness.warnings(state.patients).size + state.mergeConflicts.size
+    }
 
     var showAdd by remember { mutableStateOf(false) }
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -161,7 +169,9 @@ fun WardScreen(
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var showRecycleBin by remember { mutableStateOf(false) }
-    var showQuickActions by remember { mutableStateOf(false) }
+    var wardMenuExpanded by rememberSaveable { mutableStateOf(true) }
+    var dataMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var appMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var viewMode by remember { mutableStateOf(WardViewMode.ALL) }
     var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
     var showFilters by remember { mutableStateOf(false) }
@@ -286,173 +296,176 @@ fun WardScreen(
                     )
                 }
                 Divider()
-                DrawerSectionLabel("المناوبة")
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-                    label = { Text("جميع المرضى") },
-                    selected = viewMode == WardViewMode.ALL &&
-                        !priorityOnly && !warningsOnly && !unassignedOnly &&
-                        !urgentOnly && !newAdmissionsOnly && searchQuery.isBlank(),
-                    onClick = { closeDrawer { applyDashboardFilter(DashboardFilter.ALL) } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-                    label = { Text("لوحة تسليم المناوبة") },
-                    selected = viewMode == WardViewMode.DASHBOARD,
-                    onClick = { closeDrawer { viewMode = WardViewMode.DASHBOARD } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                    label = { Text("مرضاي") },
-                    selected = viewMode == WardViewMode.MINE,
-                    onClick = { closeDrawer { viewMode = WardViewMode.MINE } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
-                    label = { Text("بحث وتصفية وترتيب") },
-                    selected = priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
-                        newAdmissionsOnly || searchQuery.isNotBlank(),
-                    onClick = { closeDrawer { showFilters = true } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
-                    label = { Text("ترتيب المرضى") },
-                    selected = false,
+                DrawerSubmenuHeader(
+                    label = "المناوبة والمرضى",
+                    expanded = wardMenuExpanded,
                     onClick = {
-                        if (!state.isReadOnly) closeDrawer { showSort = true }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    colors = readOnlyDrawerColors(state.isReadOnly)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-                    label = { Text("تجميع المرضى") },
-                    selected = state.groupByMode != GroupByMode.NONE,
-                    onClick = { closeDrawer { showGroupBy = true } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Groups, contentDescription = null) },
-                    label = { Text("أطباء المناوبة") },
-                    selected = false,
-                    onClick = {
-                        if (!state.isReadOnly) closeDrawer { showShiftDoctors = true }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    colors = readOnlyDrawerColors(state.isReadOnly)
-                )
-
-                Divider(modifier = Modifier.padding(vertical = 4.dp))
-                DrawerSectionLabel("التقارير والبيانات")
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.History, contentDescription = null) },
-                    label = { Text("مركز النشاط والسجل") },
-                    selected = false,
-                    onClick = {
-                        closeDrawer {
-                            viewModel.loadRecentActivity()
-                            showActivity = true
+                        wardMenuExpanded = !wardMenuExpanded
+                        if (wardMenuExpanded) {
+                            dataMenuExpanded = false
+                            appMenuExpanded = false
                         }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
-                    label = { Text("معاينة التقرير") },
-                    selected = false,
-                    onClick = {
-                        val id = state.shift?.id ?: return@NavigationDrawerItem
-                        closeDrawer { onOpenReport(id) }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    colors = if (state.shift == null) {
-                        NavigationDrawerItemDefaults.colors(
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        )
-                    } else {
-                        NavigationDrawerItemDefaults.colors()
                     }
                 )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
-                    label = { Text("حفظ بيانات المرضى CSV") },
-                    selected = false,
-                    onClick = {
-                        closeDrawer { viewModel.exportCsv() }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    colors = if (state.exportingCsv) {
-                        NavigationDrawerItemDefaults.colors(
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        )
-                    } else {
-                        NavigationDrawerItemDefaults.colors()
-                    }
-                )
-
-                if (isAdmin) {
+                if (wardMenuExpanded) {
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null) },
-                        label = { Text("لوحة المدير") },
-                        selected = false,
-                        onClick = { closeDrawer { onOpenAdmin() } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
+                        icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
+                        label = { Text("جميع المرضى") },
+                        selected = viewMode == WardViewMode.ALL &&
+                            !priorityOnly && !warningsOnly && !unassignedOnly &&
+                            !urgentOnly && !newAdmissionsOnly && searchQuery.isBlank(),
+                        onClick = { closeDrawer { applyDashboardFilter(DashboardFilter.ALL) } },
+                        modifier = Modifier.padding(horizontal = 22.dp)
                     )
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.FileUpload, contentDescription = null) },
-                        label = { Text("استيراد بيانات من ملف") },
+                        icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
+                        label = { Text("لوحة تسليم المناوبة") },
+                        selected = viewMode == WardViewMode.DASHBOARD,
+                        onClick = { closeDrawer { viewMode = WardViewMode.DASHBOARD } },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                        label = { Text("مرضاي") },
+                        selected = viewMode == WardViewMode.MINE,
+                        onClick = { closeDrawer { viewMode = WardViewMode.MINE } },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
+                        label = { Text("بحث وتصفية وترتيب") },
+                        selected = priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
+                            newAdmissionsOnly || searchQuery.isNotBlank(),
+                        onClick = { closeDrawer { showFilters = true } },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
+                        label = { Text("ترتيب المرضى") },
                         selected = false,
-                        onClick = { closeDrawer { onOpenVbaImport() } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
+                        onClick = { if (!state.isReadOnly) closeDrawer { showSort = true } },
+                        modifier = Modifier.padding(horizontal = 22.dp),
+                        colors = disabledDrawerColors(state.isReadOnly)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
+                        label = { Text("تجميع المرضى") },
+                        selected = state.groupByMode != GroupByMode.NONE,
+                        onClick = { closeDrawer { showGroupBy = true } },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Groups, contentDescription = null) },
+                        label = { Text("أطباء المناوبة") },
+                        selected = false,
+                        onClick = { if (!state.isReadOnly) closeDrawer { showShiftDoctors = true } },
+                        modifier = Modifier.padding(horizontal = 22.dp),
+                        colors = disabledDrawerColors(state.isReadOnly)
                     )
                 }
 
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Recycling, contentDescription = null) },
-                    label = { Text("سلة المحذوفات") },
-                    selected = false,
+                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                DrawerSubmenuHeader(
+                    label = "التقارير والبيانات",
+                    expanded = dataMenuExpanded,
                     onClick = {
-                        closeDrawer {
-                            viewModel.loadRecycleBin()
-                            showRecycleBin = true
+                        dataMenuExpanded = !dataMenuExpanded
+                        if (dataMenuExpanded) {
+                            wardMenuExpanded = false
+                            appMenuExpanded = false
                         }
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp)
+                    }
                 )
+                if (dataMenuExpanded) {
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.History, contentDescription = null) },
+                        label = { Text("مركز النشاط والسجل") },
+                        selected = false,
+                        onClick = {
+                            closeDrawer {
+                                viewModel.loadRecentActivity()
+                                showActivity = true
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
+                        label = { Text("معاينة وإرسال التقرير") },
+                        selected = false,
+                        onClick = {
+                            val id = state.shift?.id ?: return@NavigationDrawerItem
+                            closeDrawer { onOpenReport(id) }
+                        },
+                        modifier = Modifier.padding(horizontal = 22.dp),
+                        colors = disabledDrawerColors(state.shift == null)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
+                        label = { Text("حفظ بيانات المرضى CSV") },
+                        selected = false,
+                        onClick = { closeDrawer { viewModel.exportCsv() } },
+                        modifier = Modifier.padding(horizontal = 22.dp),
+                        colors = disabledDrawerColors(state.exportingCsv)
+                    )
+                    if (isAdmin) {
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null) },
+                            label = { Text("لوحة المدير") },
+                            selected = false,
+                            onClick = { closeDrawer { onOpenAdmin() } },
+                            modifier = Modifier.padding(horizontal = 22.dp)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Filled.FileUpload, contentDescription = null) },
+                            label = { Text("استيراد بيانات من ملف") },
+                            selected = false,
+                            onClick = { closeDrawer { onOpenVbaImport() } },
+                            modifier = Modifier.padding(horizontal = 22.dp)
+                        )
+                    }
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Recycling, contentDescription = null) },
+                        label = { Text("سلة المحذوفات") },
+                        selected = false,
+                        onClick = {
+                            closeDrawer {
+                                viewModel.loadRecycleBin()
+                                showRecycleBin = true
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                }
 
                 Divider(modifier = Modifier.padding(vertical = 4.dp))
-                DrawerSectionLabel("التطبيق")
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                    label = { Text("الإعدادات") },
-                    selected = false,
-                    onClick = { closeDrawer { onOpenSettings() } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
+                DrawerSubmenuHeader(
+                    label = "التطبيق",
+                    expanded = appMenuExpanded,
+                    onClick = {
+                        appMenuExpanded = !appMenuExpanded
+                        if (appMenuExpanded) {
+                            wardMenuExpanded = false
+                            dataMenuExpanded = false
+                        }
+                    }
                 )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Info, contentDescription = null) },
-                    label = { Text("حول التطبيق") },
-                    selected = false,
-                    onClick = { closeDrawer { onOpenAbout() } },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
+                if (appMenuExpanded) {
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        label = { Text("الإعدادات") },
+                        selected = false,
+                        onClick = { closeDrawer { onOpenSettings() } },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Info, contentDescription = null) },
+                        label = { Text("حول التطبيق") },
+                        selected = false,
+                        onClick = { closeDrawer { onOpenAbout() } },
+                        modifier = Modifier.padding(horizontal = 22.dp)
+                    )
+                }
             }
         }
     ) {
@@ -481,6 +494,11 @@ fun WardScreen(
                         }
                     },
                     actions = {
+                        if (!state.isReadOnly) {
+                            IconButton(onClick = { showAdd = true }) {
+                                Icon(Icons.Filled.Add, contentDescription = "إضافة مريض")
+                            }
+                        }
                         IconButton(onClick = { showSearch = !showSearch }) {
                             Icon(Icons.Filled.Search, contentDescription = "بحث عن مريض")
                         }
@@ -499,53 +517,41 @@ fun WardScreen(
                 )
             },
             floatingActionButton = {
-                Box {
-                    LongPressTriggerButton(
-                        text = "إضافة مريض",
-                        holdDurationMs = 600,
-                        onClick = { showAdd = true },
-                        onHoldTriggered = { showQuickActions = true },
-                        enabled = !state.isReadOnly
+                state.shift?.let { shift ->
+                    ExtendedFloatingActionButton(
+                        onClick = { onOpenReport(shift.id) },
+                        icon = { Icon(Icons.Filled.Send, contentDescription = null) },
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    if (reportReadinessIssueCount == 0) {
+                                        "التقرير جاهز للإرسال"
+                                    } else {
+                                        "مراجعة وإرسال التقرير"
+                                    }
+                                )
+                                if (reportReadinessIssueCount > 0) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = MaterialTheme.colorScheme.onError
+                                    ) { Text(reportReadinessIssueCount.toString()) }
+                                }
+                            }
+                        },
+                        expanded = true,
+                        modifier = Modifier.semantics {
+                            stateDescription = if (reportReadinessIssueCount == 0) {
+                                "التقرير جاهز"
+                            } else {
+                                "$reportReadinessIssueCount ملاحظات جاهزية"
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
-                    DropdownMenu(
-                        expanded = showQuickActions,
-                        onDismissRequest = { showQuickActions = false }
-                    ) {
-                        DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                            text = { Text("إضافة مريض") },
-                            enabled = !state.isReadOnly,
-                            onClick = {
-                                showQuickActions = false
-                                showAdd = true
-                            }
-                        )
-                        DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                            text = { Text("بحث") },
-                            onClick = {
-                                showQuickActions = false
-                                showSearch = true
-                            }
-                        )
-                        DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Filled.Sync, contentDescription = null) },
-                            text = { Text("مزامنة") },
-                            onClick = {
-                                showQuickActions = false
-                                confirmLatest = true
-                            }
-                        )
-                        DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
-                            text = { Text("التقرير") },
-                            enabled = state.shift != null,
-                            onClick = {
-                                showQuickActions = false
-                                state.shift?.id?.let(onOpenReport)
-                            }
-                        )
-                    }
                 }
             },
             bottomBar = {
@@ -1128,7 +1134,7 @@ fun WardScreen(
             title = "حذف مريض",
             message = "هل أنت متأكد من حذف ${p.name}؟",
             onConfirm = {
-                viewModel.deletePatient(p.id) {
+                viewModel.deletePatient(p) { deletedPatient ->
                     deleteTarget = null
                     scope.launch {
                         val result = snackbarHost.showSnackbar(
@@ -1136,7 +1142,7 @@ fun WardScreen(
                             actionLabel = "تراجع"
                         )
                         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                            viewModel.restorePatient(p.id)
+                            viewModel.restorePatient(deletedPatient)
                         }
                     }
                 }
@@ -1235,7 +1241,7 @@ fun WardScreen(
                                     )
                                 }
                                 if (!state.isReadOnly) {
-                                    TextButton(onClick = { viewModel.restorePatient(patient.id) }) {
+                                    TextButton(onClick = { viewModel.restorePatient(patient) }) {
                                         Text("استعادة")
                                     }
                                 }
@@ -1338,18 +1344,28 @@ private fun GroupHeader(name: String, count: Int, collapsed: Boolean, onToggle: 
 }
 
 @Composable
-private fun DrawerSectionLabel(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier.padding(horizontal = 28.dp, vertical = 6.dp),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary
+private fun DrawerSubmenuHeader(
+    label: String,
+    expanded: Boolean,
+    onClick: () -> Unit
+) {
+    NavigationDrawerItem(
+        label = { Text(label, fontWeight = FontWeight.SemiBold) },
+        selected = false,
+        onClick = onClick,
+        badge = {
+            Icon(
+                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = if (expanded) "طي $label" else "فتح $label"
+            )
+        },
+        modifier = Modifier.padding(horizontal = 8.dp)
     )
 }
 
 @Composable
-private fun readOnlyDrawerColors(readOnly: Boolean) =
-    if (readOnly) {
+private fun disabledDrawerColors(disabled: Boolean) =
+    if (disabled) {
         NavigationDrawerItemDefaults.colors(
             unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
             unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)

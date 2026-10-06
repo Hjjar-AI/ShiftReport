@@ -6,6 +6,7 @@ import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.config.Topic
 import com.hos.rushdpatients.config.Topics
 import com.hos.rushdpatients.data.repository.AuditRepository
+import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.sync.SyncService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +22,8 @@ class AnnouncementViewModel @Inject constructor(
     private val telegram: TelegramClient,
     private val topics: Topics,
     private val syncService: SyncService,
-    private val auditRepository: AuditRepository
+    private val auditRepository: AuditRepository,
+    private val adminAuthorizer: AdminAuthorizer
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AnnouncementUiState())
@@ -48,6 +50,7 @@ class AnnouncementViewModel @Inject constructor(
         _state.update { it.copy(sending = true) }
         viewModelScope.launch {
             try {
+                val actor = adminAuthorizer.requireAdmin()
                 val existing = _state.value.lastMessageId
                 val message = if (existing != null) {
                     telegram.editMessageText(
@@ -69,8 +72,8 @@ class AnnouncementViewModel @Inject constructor(
                 syncService.recordAnnouncement(message.messageId)
 
                 auditRepository.record(
-                    actorDoctorId = null,
-                    actorName = null,
+                    actorDoctorId = actor.id,
+                    actorName = actor.fullName,
                     action = AppConstants.AUDIT_ANNOUNCEMENT_UPDATED,
                     detail = "messageId=${message.messageId}"
                 )

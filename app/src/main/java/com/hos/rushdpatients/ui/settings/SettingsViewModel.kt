@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
+import com.hos.rushdpatients.config.ProjectConfigStore
+import com.hos.rushdpatients.config.ProjectProvisioningManager
 import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.SyncChannel
 import com.hos.rushdpatients.data.repository.DoctorRepository
@@ -13,6 +15,7 @@ import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
 import com.hos.rushdpatients.domain.auth.BiometricHelper
+import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.backup.EncryptedBackupManager
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
@@ -53,7 +56,10 @@ class SettingsViewModel @Inject constructor(
     private val syncService: SyncService,
     private val csvExporter: PatientCsvExporter,
     private val biometricHelper: BiometricHelper,
-    private val encryptedBackupManager: EncryptedBackupManager
+    private val encryptedBackupManager: EncryptedBackupManager,
+    private val projectConfigStore: ProjectConfigStore,
+    private val provisioningManager: ProjectProvisioningManager,
+    private val adminAuthorizer: AdminAuthorizer
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -303,6 +309,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(savingSupervisorGroupId = doctorId, snackbar = null) }
             try {
+                adminAuthorizer.requireAdmin()
                 val doctor = doctorRepository.getById(doctorId)
                     ?: error("المشرف غير موجود")
                 require(doctor.clinicalRole == ClinicalRole.SUPERVISOR) {
@@ -540,6 +547,31 @@ class SettingsViewModel @Inject constructor(
                         it.copy(backupBusy = false, snackbar = error.message ?: "فشل إنشاء النسخة المشفرة")
                     }
                 }
+        }
+    }
+
+    fun exportProjectProvisioning(uri: Uri, passphrase: String) {
+        if (_state.value.provisioningBusy) return
+        _state.update { it.copy(provisioningBusy = true, snackbar = null) }
+        viewModelScope.launch {
+            runCatching {
+                adminAuthorizer.requireAdmin()
+                provisioningManager.export(uri, projectConfigStore.current(), passphrase.toCharArray())
+            }.onSuccess {
+                _state.update {
+                    it.copy(
+                        provisioningBusy = false,
+                        snackbar = "تم إنشاء ملف الانضمام المشفر. شارك عبارة المرور عبر قناة منفصلة."
+                    )
+                }
+            }.onFailure { error ->
+                _state.update {
+                    it.copy(
+                        provisioningBusy = false,
+                        snackbar = error.message ?: "فشل إنشاء ملف الانضمام"
+                    )
+                }
+            }
         }
     }
 

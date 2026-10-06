@@ -98,26 +98,30 @@ interface ShiftDao {
     @Query("""
         UPDATE shifts
         SET doctorIdsCsv = :doctorIdsCsv,
+            revision = revision + 1,
             updatedAtEpochMillis = :updatedAtMillis
-        WHERE id = :shiftId
+        WHERE id = :shiftId AND revision = :expectedRevision
     """)
     suspend fun updateDoctorIds(
         shiftId: String,
         doctorIdsCsv: String,
+        expectedRevision: Long,
         updatedAtMillis: Long
-    )
+    ): Int
 
     @Query("""
         UPDATE shifts
         SET sortSpecJson = :sortSpecJson,
+            revision = revision + 1,
             updatedAtEpochMillis = :updatedAtMillis
-        WHERE id = :shiftId
+        WHERE id = :shiftId AND revision = :expectedRevision
     """)
     suspend fun updateSortSpec(
         shiftId: String,
         sortSpecJson: String?,
+        expectedRevision: Long,
         updatedAtMillis: Long
-    )
+    ): Int
 
     @Query("DELETE FROM shifts")
     suspend fun deleteAll()

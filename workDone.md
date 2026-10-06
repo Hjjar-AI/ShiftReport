@@ -1,0 +1,41 @@
+# ShiftReport completed work
+
+Completed and removed from the active backlog. The remaining roadmap is in [workRemains.md](workRemains.md).
+
+- Patient sync has three-way field merging, explicit conflict review, immutable uploaded CSV files, recovery snapshots, and a publication journal.
+- The ward screen exposes persistent local/pending/uploading/published/conflict sync states.
+- Concurrent sync operations on one device are serialized per patient and doctor channel.
+- Edits made while a patient upload is in flight remain pending for the next publication, and sync metadata updates no longer replace concurrent shift doctor/sort changes.
+- Fetching the latest patient snapshot refuses to replace unsent local edits.
+- Doctor publishing rejects a stale registry instead of replacing a newer remote registry; an explicit “bring latest” action is the recovery path.
+- Pinned sync-state writes preserve the newest patient, doctor, and announcement pointers instead of allowing one channel to erase another.
+- The patient list is the initial ward view; the dashboard remains one tap away.
+- The Telegram doctor picker respects safe system insets, patient overflow actions use a 48dp target, and the password visibility action has an accessible label.
+- The APK is hospital-agnostic: bot credentials, group/topic IDs, hospital name, and first-admin identity are no longer compiled into the app.
+- First launch supports create-project and join-project flows, validates the bot and group, creates or downloads the pinned doctor registry, and stores the project connection in encrypted device-local preferences.
+- The configured hospital/project name appears in the clinical header and drawer while the existing logo and About/credits page remain unchanged.
+- Patient entry has a concise General mode and a detailed Advanced mode without discarding hidden clinical data.
+- Opening a patient presents a full-screen details experience with Overview, Clinical, Tasks, Warnings, and History sections; editing is a separate explicit action.
+- The patient list keeps its selected patient and scroll position through configuration changes.
+- Ward search, filters, grouping, and sorting share one panel, and active filters are visible as individually removable chips.
+- Live ward cards use one predictable clinical hierarchy; the former visual variants remain PDF-only.
+- Primary navigation uses Patients, Dashboard, and Activity in a bottom bar on compact windows and a rail on tablet/landscape widths.
+- The UI has stable semantic colors for normal, warning, urgent, pending, conflict, and success states, independent of dynamic color.
+- App and PDF palettes were consolidated into distinct color families; duplicate cyan-night variants were removed and stale saved selections safely fall back to System/Teal.
+- All remaining explicit app theme role pairs, clinical semantic pairs, and PDF header pairs pass the WCAG AA 4.5:1 normal-text contrast threshold in the static audit.
+- The ward header shows hospital, shift date, patient count, freshness, semantic headings, and polite sync-status announcements.
+- First initialization starts with a concise three-path guide: read-only Demo, Join (the default), then Create.
+- Demo mode requires no credentials and displays four dummy patients with shuffled flower/fruit names. The dummy patients are held in memory and are never saved or synchronized.
+- The splash fits the viewport without scrolling and can be skipped by tapping anywhere; the existing logo and full About/credits page are unchanged.
+- General and Advanced patient entry are cross-compatible: both edit the same patient draft and switching modes preserves advanced fields. General text is converted to the same ordered treatment/follow-up representation used by Advanced mode.
+- Classic and Cards PDFs are rebuilt from the current shift repository snapshot for every preview, save, or send. Both include the current clinical fields; warning details are rendered in both and Cards shows priority explicitly.
+- Admin settings can export a password-encrypted `.srjoin` file containing project connection settings. Join is the default setup path and can import that file, while manual entry remains available. The passphrase is neither stored nor embedded and must be shared separately.
+- The side drawer retains every action but organizes them into accordion submenus for Ward/Patients, Reports/Data, and Application; opening one section collapses the others.
+- The ward FAB opens report review/send directly, while Add Patient remains one tap away in the top app bar.
+- The report FAB shows a readiness badge before opening: it counts incomplete assignment/clinical categories plus unresolved merge conflicts, and announces the count to accessibility services. The report preview uses the same shared readiness rules.
+- Patient edit, delete, restore, priority, and warning mutations now use atomic local expected-revision checks. A stale screen can no longer silently overwrite a newer local Room row and receives an explicit reload/review message.
+- Shift doctor and sort changes now use revision-checked DAO updates, preventing two stale local controls from silently overwriting each other.
+- Guided rollover is guarded against double submission and inserts only when the target shift is still empty inside the repository transaction.
+- Live admin authorization is enforced below navigation for doctor-registry mutations, role promotion/demotion, announcements, supervisor-group settings, and project provisioning export. Audit records for doctor and announcement changes now include the verified actor.
+- Project documentation now separates the product/developer overview (`README.md`), repository agent rules (`AGENTS.md`), current technical architecture (`currentState.md`), remaining work, and completed work. Exported `.rpb` and `.srjoin` files are explicitly ignored by Git.
+- The ignored local Git/GitHub/VS Code manual is now a complete project-agnostic reference with ShiftReport-specific guidance. It covers setup, daily work, remotes and forks, authentication, branching, conflict handling, pull requests, releases, recovery, advanced operations, secret response, safe history rewriting, repository controls, CI, maintenance, troubleshooting, reusable templates, and the completed clean-history reset.

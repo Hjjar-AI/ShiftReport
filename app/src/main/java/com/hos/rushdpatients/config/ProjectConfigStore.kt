@@ -19,6 +19,7 @@ data class InitialAdminConfig(
 
 data class ProjectConfig(
     val initialized: Boolean = false,
+    val demoMode: Boolean = false,
     val hospitalName: String = "",
     val botToken: String = "",
     val chatId: Long = 0L,
@@ -57,6 +58,16 @@ class ProjectConfigStore @Inject constructor(
         write(_config.value.copy(initialized = true))
     }
 
+    fun enterDemo() {
+        write(
+            ProjectConfig(
+                initialized = true,
+                demoMode = true,
+                hospitalName = "مشروع تجريبي"
+            )
+        )
+    }
+
     fun clear() {
         prefs.edit().clear().apply()
         _config.value = ProjectConfig()
@@ -65,6 +76,7 @@ class ProjectConfigStore @Inject constructor(
     private fun write(config: ProjectConfig) {
         prefs.edit()
             .putBoolean(KEY_INITIALIZED, config.initialized)
+            .putBoolean(KEY_DEMO_MODE, config.demoMode)
             .putString(KEY_HOSPITAL_NAME, config.hospitalName)
             .putString(KEY_BOT_TOKEN, config.botToken)
             .putLong(KEY_CHAT_ID, config.chatId)
@@ -82,6 +94,7 @@ class ProjectConfigStore @Inject constructor(
 
     private fun read() = ProjectConfig(
         initialized = prefs.getBoolean(KEY_INITIALIZED, false),
+        demoMode = prefs.getBoolean(KEY_DEMO_MODE, false),
         hospitalName = prefs.getString(KEY_HOSPITAL_NAME, "").orEmpty(),
         botToken = prefs.getString(KEY_BOT_TOKEN, "").orEmpty(),
         chatId = prefs.getLong(KEY_CHAT_ID, 0L),
@@ -100,6 +113,7 @@ class ProjectConfigStore @Inject constructor(
     private companion object {
         const val FILE_NAME = "shift_report_project_encrypted"
         const val KEY_INITIALIZED = "initialized"
+        const val KEY_DEMO_MODE = "demo_mode"
         const val KEY_HOSPITAL_NAME = "hospital_name"
         const val KEY_BOT_TOKEN = "bot_token"
         const val KEY_CHAT_ID = "chat_id"

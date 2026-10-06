@@ -81,6 +81,9 @@ fun SettingsScreen(
     var confirmBackupRestore by remember { mutableStateOf(false) }
     var confirmForceUpload by remember { mutableStateOf(false) }
     var forceConfirmationText by remember { mutableStateOf("") }
+    var provisioningDialog by remember { mutableStateOf(false) }
+    var provisioningPassphrase by remember { mutableStateOf("") }
+    var pendingProvisioningPassphrase by remember { mutableStateOf("") }
 
     val createBackup = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream")
@@ -98,6 +101,14 @@ fun SettingsScreen(
             backupPassword = ""
             backupDialogMode = "restore"
         }
+    }
+    val createProvisioning = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        if (uri != null && pendingProvisioningPassphrase.isNotEmpty()) {
+            viewModel.exportProjectProvisioning(uri, pendingProvisioningPassphrase)
+        }
+        pendingProvisioningPassphrase = ""
     }
 
     LaunchedEffect(state.snackbar) {
@@ -428,6 +439,22 @@ fun SettingsScreen(
 
             if (isAdmin) {
                 SettingsSection(title = "إدارة التطبيق") {
+                    Text("ضم أجهزة جديدة", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "أنشئ ملفاً مشفراً يعبئ إعدادات المستشفى والبوت على جهاز العضو. أرسل عبارة المرور إليه عبر قناة منفصلة.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    LoadingButton(
+                        text = "تصدير ملف انضمام مشفر",
+                        loading = state.provisioningBusy,
+                        onClick = {
+                            provisioningPassphrase = ""
+                            provisioningDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     Text("مجموعات المشرفين", style = MaterialTheme.typography.labelMedium)
                     Text(
                         "معرّفات مجموعات تليجرام لاستقبال تقارير كل مشرف.",
@@ -509,6 +536,45 @@ fun SettingsScreen(
                     backupDialogMode = null
                     backupPassword = ""
                     if (mode == "restore") pendingImportUri = null
+                }) { Text("إلغاء") }
+            }
+        )
+    }
+
+    if (provisioningDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                provisioningDialog = false
+                provisioningPassphrase = ""
+            },
+            title = { Text("حماية ملف الانضمام") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("اختر عبارة قوية من 10 محارف على الأقل. لا تُحفظ العبارة داخل الملف.")
+                    OutlinedTextField(
+                        value = provisioningPassphrase,
+                        onValueChange = { provisioningPassphrase = it },
+                        label = { Text("عبارة المرور") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = provisioningPassphrase.length >= 10,
+                    onClick = {
+                        pendingProvisioningPassphrase = provisioningPassphrase
+                        provisioningPassphrase = ""
+                        provisioningDialog = false
+                        createProvisioning.launch("ShiftReport_Join_${LocalDate.now()}.srjoin")
+                    }
+                ) { Text("إنشاء") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    provisioningDialog = false
+                    provisioningPassphrase = ""
                 }) { Text("إلغاء") }
             }
         )
