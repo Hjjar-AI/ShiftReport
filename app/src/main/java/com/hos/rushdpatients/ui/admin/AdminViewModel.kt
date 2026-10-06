@@ -2,6 +2,7 @@ package com.hos.rushdpatients.ui.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.usecase.DemoteAdminUseCase
@@ -48,51 +49,59 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    fun assignAdmin(doctorId: String, customTitle: String?, onDone: (String) -> Unit) {
+    fun assignAdmin(expected: Doctor, customTitle: String?, onDone: (String) -> Unit) {
+        if (_state.value.saving) return
         if (_state.value.currentActor?.isAdmin != true) {
             onDone("غير مصرح لك بتنفيذ هذا الإجراء")
             return
         }
+        val actor = _state.value.currentActor ?: return
+        _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            val actor = _state.value.currentActor
-            when (val result = promoteAdmin.execute(
-                doctorId = doctorId,
-                customTitle = customTitle,
-                actorDoctorId = actor?.id,
-                actorName = actor?.fullName
-            )) {
-                is PromoteResult.Success -> {
-                    onDone(uploadRegistry().fold(
-                        onSuccess = { "تم ترقية ${result.doctor.fullName}" },
-                        onFailure = { "تمت الترقية محلياً وتعذرت مزامنة تليجرام" }
-                    ))
+            try {
+                when (val result = promoteAdmin.execute(
+                    expected = expected,
+                    customTitle = customTitle,
+                    actorDoctorId = actor.id
+                )) {
+                    is PromoteResult.Success -> {
+                        onDone(uploadRegistry().fold(
+                            onSuccess = { "تم ترقية ${result.doctor.fullName}" },
+                            onFailure = { "تمت الترقية محلياً وتعذرت مزامنة تليجرام" }
+                        ))
+                    }
+                    is PromoteResult.Failure -> onDone(result.reason)
                 }
-                is PromoteResult.Failure -> onDone(result.reason)
+            } finally {
+                _state.update { it.copy(saving = false) }
             }
         }
     }
 
-    fun removeAdmin(doctorId: String, onDone: (String) -> Unit) {
+    fun removeAdmin(expected: Doctor, onDone: (String) -> Unit) {
+        if (_state.value.saving) return
         if (_state.value.currentActor?.isAdmin != true) {
             onDone("غير مصرح لك بتنفيذ هذا الإجراء")
             return
         }
+        val actor = _state.value.currentActor ?: return
+        _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            val actor = _state.value.currentActor
-                ?: return@launch onDone("المستخدم الحالي غير معروف")
-            when (val result = demoteAdmin.execute(
-                targetId = doctorId,
-                actorId = actor.id,
-                actorDoctorId = actor.id,
-                actorName = actor.fullName
-            )) {
-                is PromoteResult.Success -> {
-                    onDone(uploadRegistry().fold(
-                        onSuccess = { "تم إزالة ${result.doctor.fullName} من المديرين" },
-                        onFailure = { "تمت الإزالة محلياً وتعذرت مزامنة تليجرام" }
-                    ))
+            try {
+                when (val result = demoteAdmin.execute(
+                    expected = expected,
+                    actorDoctorId = actor.id
+                )) {
+                    is PromoteResult.Success -> {
+                        onDone(uploadRegistry().fold(
+                            onSuccess = { "تم إزالة ${result.doctor.fullName} من المديرين" },
+                            onFailure = { "تمت الإزالة محلياً وتعذرت مزامنة تليجرام" }
+                        ))
+                    }
+                    is PromoteResult.Failure -> onDone(result.reason)
                 }
-                is PromoteResult.Failure -> onDone(result.reason)
+            } finally {
+                _state.update { it.copy(saving = false) }
             }
         }
     }

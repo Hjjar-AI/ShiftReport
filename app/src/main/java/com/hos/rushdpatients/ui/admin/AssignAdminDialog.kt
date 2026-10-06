@@ -27,13 +27,14 @@ import com.hos.rushdpatients.data.model.Doctor
 @Composable
 fun AssignAdminDialog(
     candidates: List<Doctor>,
-    onConfirm: (doctorId: String) -> Unit,
-    onDismiss: () -> Unit
+    onConfirm: (Doctor) -> Unit,
+    onDismiss: () -> Unit,
+    saving: Boolean = false
 ) {
     var selected by remember { mutableStateOf<Doctor?>(null) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("ترقية إلى مدير") },
         text = {
             Column(
@@ -62,7 +63,7 @@ fun AssignAdminDialog(
                                     .fillMaxWidth()
                                     .padding(12.dp)
                             ) {
-                                TextButton(onClick = { selected = doctor }) {
+                                TextButton(onClick = { selected = doctor }, enabled = !saving) {
                                     Text(doctor.fullName)
                                 }
                             }
@@ -73,12 +74,12 @@ fun AssignAdminDialog(
         },
         confirmButton = {
             Button(
-                onClick = { selected?.let { onConfirm(it.id) } },
-                enabled = selected != null
+                onClick = { selected?.let { onConfirm(it) } },
+                enabled = selected != null && !saving
             ) { Text("ترقية") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
+            TextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
         }
     )
 }
@@ -86,13 +87,14 @@ fun AssignAdminDialog(
 @Composable
 fun RemoveAdminDialog(
     admins: List<Doctor>,
-    onConfirm: (doctorId: String) -> Unit,
-    onDismiss: () -> Unit
+    onConfirm: (Doctor) -> Unit,
+    onDismiss: () -> Unit,
+    saving: Boolean = false
 ) {
     var selected by remember { mutableStateOf<Doctor?>(null) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("إزالة من المديرين") },
         text = {
             Column(
@@ -121,7 +123,7 @@ fun RemoveAdminDialog(
                                     .fillMaxWidth()
                                     .padding(12.dp)
                             ) {
-                                TextButton(onClick = { selected = doctor }) {
+                                TextButton(onClick = { selected = doctor }, enabled = !saving) {
                                     Text("${doctor.fullName} (رتبة ${doctor.rank})")
                                 }
                             }
@@ -132,12 +134,12 @@ fun RemoveAdminDialog(
         },
         confirmButton = {
             Button(
-                onClick = { selected?.let { onConfirm(it.id) } },
-                enabled = selected != null
+                onClick = { selected?.let { onConfirm(it) } },
+                enabled = selected != null && !saving
             ) { Text("إزالة") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
+            TextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
         }
     )
 }

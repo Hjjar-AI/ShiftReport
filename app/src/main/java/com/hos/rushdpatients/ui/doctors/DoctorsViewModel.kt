@@ -10,6 +10,8 @@ import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.DoctorMutationRepository
 import com.hos.rushdpatients.data.repository.StaleDoctorEditException
+import com.hos.rushdpatients.domain.doctor.DoctorImportPlan
+import com.hos.rushdpatients.data.repository.StaleDoctorImportException
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.domain.doctor.DoctorCsvCodec
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
@@ -39,7 +41,7 @@ class DoctorsViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(DoctorsUiState())
     val state: StateFlow<DoctorsUiState> = _state.asStateFlow()
-    private var pendingImportDoctors: List<Doctor>? = null
+    private var pendingImportPlan: DoctorImportPlan? = null
 
     init {
         observe()
@@ -138,7 +140,7 @@ class DoctorsViewModel @Inject constructor(
     }
 
     fun refresh() {
-        if (_state.value.saving) return
+        if (_state.value.saving || _state.value.importing) return
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
             val result = runCatching {
@@ -160,7 +162,7 @@ class DoctorsViewModel @Inject constructor(
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
 
     fun exportDoctors(uri: Uri) {
-        if (_state.value.exporting || _state.value.importing) return
+        if (_state.value.saving || _state.value.exporting || _state.value.importing) return
         _state.update { it.copy(exporting = true) }
         viewModelScope.launch {
             try {
@@ -193,14 +195,15 @@ class DoctorsViewModel @Inject constructor(
     }
 
     fun prepareDoctorImport(uri: Uri) {
-        if (_state.value.exporting || _state.value.importing) return
+        if (_state.value.saving || _state.value.exporting || _state.value.importing) return
+        pendingImportPlan = null
         _state.update { it.copy(importing = true, importPreview = null) }
         viewModelScope.launch {
             try {
                 adminAuthorizer.requireAdmin()
-                val text = withContext(Dispatchers.IO) { readCsv(uri) }
-                val decoded = DoctorCsvCodec.decode(text)
-                val existing = doctorRepository.getAllIncludingDeleted()
+                val decoded = withContext(Dispatchers.IO) { DoctorCsvCodec.decode(readCsv(uri)) }
+                val plan = doctorMutations.prepareImport(decoded.doctors)
+                val existing = plan.expectedRegistry
                 val existingKeys = existing.flatMap { doctor ->
                     listOfNotNull(
                         "id:${doctor.id}",
@@ -208,27 +211,31 @@ class DoctorsViewModel @Inject constructor(
                         "name:${doctor.fullName.lowercase()}"
                     )
                 }.toSet()
-                val newWithoutPin = decoded.doctors.count { doctor ->
+                val newWithoutPin = plan.reviewedChanges.count { doctor ->
                     !doctor.isDeleted && listOfNotNull(
                         "id:${doctor.id}",
                         doctor.telegramId?.let { "tg:$it" },
                         "name:${doctor.fullName.lowercase()}"
                     ).none { it in existingKeys }
                 }
-                pendingImportDoctors = decoded.doctors
+                pendingImportPlan = plan
                 _state.update {
                     it.copy(
                         importing = false,
                         importPreview = DoctorImportPreview(
-                            activeCount = decoded.activeCount,
-                            adminCount = decoded.adminCount,
-                            deletedCount = decoded.deletedCount,
+                            activeCount = plan.reviewedChanges.count { doctor -> !doctor.isDeleted },
+                            adminCount = plan.reviewedChanges.count { doctor -> !doctor.isDeleted && doctor.isAdmin },
+                            deletedCount = plan.reviewedChanges.count { doctor -> doctor.isDeleted },
                             newWithoutPinCount = newWithoutPin
                         )
                     )
                 }
+            } catch (e: CancellationException) {
+                pendingImportPlan = null
+                _state.update { it.copy(importing = false, importPreview = null) }
+                throw e
             } catch (e: Exception) {
-                pendingImportDoctors = null
+                pendingImportPlan = null
                 _state.update {
                     it.copy(
                         importing = false,
@@ -241,94 +248,36 @@ class DoctorsViewModel @Inject constructor(
     }
 
     fun dismissDoctorImport() {
-        pendingImportDoctors = null
+        pendingImportPlan = null
         _state.update { it.copy(importPreview = null) }
     }
 
     fun confirmDoctorImport() {
-        val imported = pendingImportDoctors ?: return
-        if (_state.value.importing) return
+        val plan = pendingImportPlan ?: return
+        if (_state.value.importing || _state.value.saving) return
         _state.update { it.copy(importing = true) }
         viewModelScope.launch {
             try {
-                val actor = adminAuthorizer.requireAdmin()
-                val existing = doctorRepository.getAllIncludingDeleted()
-                val merged = imported.map { incoming ->
-                    val matches = existing.filter { candidate ->
-                        candidate.id == incoming.id ||
-                            (incoming.telegramId != null && candidate.telegramId == incoming.telegramId) ||
-                            candidate.fullName.equals(incoming.fullName, ignoreCase = true)
-                    }
-                    require(matches.map { it.id }.distinct().size <= 1) {
-                        "بيانات ${incoming.fullName} تطابق أكثر من طبيب محلي"
-                    }
-                    val local = matches.singleOrNull()
-                    val localSecrets = local?.extraOptions.orEmpty()
-                        .filter { it.startsWith("pin:") }
-                        .toSet()
-                    var result = incoming.copy(
-                        id = local?.id ?: incoming.id,
-                        extraOptions = incoming.extraOptions + localSecrets,
-                        // A portable file may be old; importing it must not delete a
-                        // currently active local clinician implicitly.
-                        deletedAt = if (local != null && !local.isDeleted) null else incoming.deletedAt
-                    )
-                    if (local?.isPermanentAdmin == true || local?.id == actor.id) {
-                        result = result.copy(
-                            rank = local.rank,
-                            isPermanentAdmin = local.isPermanentAdmin,
-                            deletedAt = null
-                        )
-                    }
-                    result
-                }
-                require(merged.map { it.id }.distinct().size == merged.size) {
-                    "تطابق أكثر من صف مستورد مع الطبيب المحلي نفسه"
-                }
-                val finalById = existing.associateBy { it.id }.toMutableMap().apply {
-                    merged.forEach { put(it.id, it) }
-                }
-                require(finalById.values.count { !it.isDeleted } <= AppConstants.MAX_DOCTORS) {
-                    "سيؤدي الاستيراد إلى تجاوز الحد الأقصى لعدد الأطباء"
-                }
-                val finalActive = finalById.values.filterNot { it.isDeleted }
-                require(finalActive.map { it.fullName.lowercase() }.distinct().size == finalActive.size) {
-                    "سيؤدي الاستيراد إلى تكرار اسم طبيب محلي"
-                }
-                val finalTelegramIds = finalActive.mapNotNull { it.telegramId }
-                require(finalTelegramIds.distinct().size == finalTelegramIds.size) {
-                    "سيؤدي الاستيراد إلى تكرار معرّف تليجرام"
-                }
-                val finalAdminRanks = finalActive.filter { it.rank > 0 }.map { it.rank }
-                require(finalAdminRanks.distinct().size == finalAdminRanks.size) {
-                    "سيؤدي الاستيراد إلى تكرار رتبة مدير"
-                }
-
-                doctorRepository.upsertAll(merged)
-                auditRepository.record(
-                    actor.id,
-                    actor.fullName,
-                    AppConstants.AUDIT_DOCTORS_IMPORTED,
-                    "import_csv:${merged.size}"
-                )
+                val count = doctorMutations.importRegistry(plan)
+                // The local transaction committed; do not permit retrying this import after a network failure.
+                pendingImportPlan = null
+                _state.update { it.copy(importPreview = null) }
                 val sync = uploadRegistry()
-                pendingImportDoctors = null
                 _state.update {
-                    it.copy(
-                        importing = false,
-                        importPreview = null,
-                        snackbar = if (sync.isSuccess) {
-                            "تم استيراد ${merged.size} سجل ومزامنة سجل الأطباء"
-                        } else {
-                            "تم الاستيراد محلياً، وتعذرت مزامنة تليجرام: " +
-                                sync.exceptionOrNull()?.message.orEmpty()
-                        }
-                    )
+                    it.copy(importing = false, snackbar = if (sync.isSuccess) {
+                        "تم استيراد $count سجل ومزامنة سجل الأطباء"
+                    } else {
+                        "تم الاستيراد محلياً، وتعذرت مزامنة تليجرام: " + sync.exceptionOrNull()?.message.orEmpty()
+                    })
                 }
+            } catch (e: CancellationException) {
+                _state.update { it.copy(importing = false) }
+                throw e
+            } catch (e: StaleDoctorImportException) {
+                pendingImportPlan = null
+                _state.update { it.copy(importing = false, importPreview = null, snackbar = e.message) }
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(importing = false, snackbar = e.message ?: "تعذر استيراد سجل الأطباء")
-                }
+                _state.update { it.copy(importing = false, snackbar = e.message ?: "تعذر استيراد سجل الأطباء") }
             }
         }
     }

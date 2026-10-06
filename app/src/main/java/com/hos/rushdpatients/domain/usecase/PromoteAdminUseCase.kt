@@ -1,11 +1,8 @@
 package com.hos.rushdpatients.domain.usecase
 
-import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.Doctor
-import com.hos.rushdpatients.data.repository.AuditRepository
-import com.hos.rushdpatients.data.repository.DoctorRepository
-import com.hos.rushdpatients.domain.doctor.DoctorNaming
-import com.hos.rushdpatients.domain.auth.AdminAuthorizer
+import com.hos.rushdpatients.data.repository.DoctorMutationRepository
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,37 +13,13 @@ sealed interface PromoteResult {
 
 @Singleton
 class PromoteAdminUseCase @Inject constructor(
-    private val doctorRepository: DoctorRepository,
-    private val auditRepository: AuditRepository,
-    private val adminAuthorizer: AdminAuthorizer
+    private val doctorMutations: DoctorMutationRepository
 ) {
-
-    suspend fun execute(
-        doctorId: String,
-        customTitle: String?,
-        actorDoctorId: String?,
-        actorName: String?
-    ): PromoteResult {
-        val actor = runCatching { adminAuthorizer.requireAdmin() }
-            .getOrElse { return PromoteResult.Failure(it.message ?: "ليس لديك صلاحية") }
-        if (actorDoctorId != actor.id) return PromoteResult.Failure("هوية المنفذ غير متطابقة")
-        val target = doctorRepository.getById(doctorId)
-            ?: return PromoteResult.Failure("الطبيب غير موجود")
-        if (target.isDeleted) return PromoteResult.Failure("الطبيب محذوف")
-        if (target.rank > 0) return PromoteResult.Success(target)
-
-        val title = customTitle?.takeIf { it.isNotBlank() }
-            ?: DoctorNaming.defaultAdminTitle(target)
-
-        val updated = doctorRepository.promoteToAdmin(target.id, title)
-            ?: return PromoteResult.Failure("فشل رفع الصلاحية")
-
-        auditRepository.record(
-            actorDoctorId = actorDoctorId,
-            actorName = actorName,
-            action = AppConstants.AUDIT_ADMIN_PROMOTED,
-            detail = "target=${target.fullName} rank=${updated.rank}"
-        )
-        return PromoteResult.Success(updated)
+    suspend fun execute(expected: Doctor, customTitle: String?, actorDoctorId: String?): PromoteResult = try {
+        PromoteResult.Success(doctorMutations.promote(expected, customTitle, actorDoctorId))
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        PromoteResult.Failure(e.message ?: "تعذر تغيير صلاحية المدير")
     }
 }

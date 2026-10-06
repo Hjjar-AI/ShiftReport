@@ -470,14 +470,16 @@ fun SettingsScreen(
                         )
                     } else {
                         state.supervisors.forEach { supervisor ->
-                            SupervisorGroupEditor(
-                                supervisor = supervisor,
-                                saving = state.savingSupervisorGroupId == supervisor.id,
-                                enabled = state.savingSupervisorGroupId == null,
-                                onSave = { value ->
-                                    viewModel.setSupervisorGroupChatId(supervisor.id, value)
-                                }
-                            )
+                            androidx.compose.runtime.key(supervisor.id) {
+                                SupervisorGroupEditor(
+                                    supervisor = supervisor,
+                                    saving = state.savingSupervisorGroupId == supervisor.id,
+                                    enabled = state.savingSupervisorGroupId == null,
+                                    onSave = { expected, value ->
+                                        viewModel.setSupervisorGroupChatId(expected, value)
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -707,9 +709,10 @@ private fun SupervisorGroupEditor(
     supervisor: Doctor,
     saving: Boolean,
     enabled: Boolean,
-    onSave: (String) -> Unit
+    onSave: (Doctor, String) -> Unit
 ) {
-    var chatId by remember(supervisor.id, supervisor.supervisorGroupChatId) {
+    var baseline by remember(supervisor.id) { mutableStateOf(supervisor) }
+    var chatId by remember(supervisor.id) {
         mutableStateOf(supervisor.supervisorGroupChatId?.toString().orEmpty())
     }
     Column(
@@ -730,11 +733,18 @@ private fun SupervisorGroupEditor(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         )
+        if (supervisor != baseline) {
+            Text("تغيّر سجل المشرف؛ راجع النسخة المحفوظة قبل الحفظ", color = MaterialTheme.colorScheme.error)
+            TextButton(onClick = {
+                baseline = supervisor
+                chatId = supervisor.supervisorGroupChatId?.toString().orEmpty()
+            }, enabled = enabled) { Text("تحميل النسخة المحفوظة") }
+        }
         LoadingButton(
             text = if (chatId.isBlank()) "إزالة المعرف" else "حفظ",
             loading = saving,
-            onClick = { onSave(chatId) },
-            enabled = enabled,
+            onClick = { onSave(baseline, chatId) },
+            enabled = enabled && supervisor == baseline,
             modifier = Modifier.fillMaxWidth()
         )
     }

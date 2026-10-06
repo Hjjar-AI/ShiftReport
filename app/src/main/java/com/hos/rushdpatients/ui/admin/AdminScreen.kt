@@ -135,10 +135,12 @@ fun AdminScreen(
                     )
                     OutlinedButton(
                         onClick = { showAssignAdmin = true },
+                        enabled = !state.saving,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("ترقية طبيب إلى مدير") }
                     OutlinedButton(
                         onClick = { showRemoveAdmin = true },
+                        enabled = !state.saving,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("إزالة صلاحية مدير") }
                 }
@@ -149,8 +151,9 @@ fun AdminScreen(
     if (showAssignAdmin) {
         AssignAdminDialog(
             candidates = state.nonAdmins,
-            onConfirm = { id ->
-                viewModel.assignAdmin(id, null) { msg ->
+            saving = state.saving,
+            onConfirm = { doctor ->
+                viewModel.assignAdmin(doctor, null) { msg ->
                     showAssignAdmin = false
                     notify(msg)
                 }
@@ -162,8 +165,9 @@ fun AdminScreen(
     if (showRemoveAdmin) {
         RemoveAdminDialog(
             admins = state.admins.filter { it.id != state.currentActor?.id },
-            onConfirm = { id ->
-                viewModel.removeAdmin(id) { msg ->
+            saving = state.saving,
+            onConfirm = { doctor ->
+                viewModel.removeAdmin(doctor) { msg ->
                     showRemoveAdmin = false
                     notify(msg)
                 }

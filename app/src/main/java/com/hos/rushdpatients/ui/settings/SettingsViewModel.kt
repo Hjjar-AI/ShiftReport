@@ -7,8 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.config.ProjectConfigStore
 import com.hos.rushdpatients.config.ProjectProvisioningManager
+import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.SyncChannel
+import com.hos.rushdpatients.data.repository.DoctorMutationRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
@@ -49,6 +51,7 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val doctorRepository: DoctorRepository,
+    private val doctorMutations: DoctorMutationRepository,
     private val shiftRepository: ShiftRepository,
     private val patientRepository: PatientRepository,
     private val syncStateRepository: SyncStateRepository,
@@ -291,7 +294,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setSupervisorGroupChatId(doctorId: String, rawValue: String) {
+    fun setSupervisorGroupChatId(expected: Doctor, rawValue: String) {
         if (_state.value.savingSupervisorGroupId != null) return
         val session = sessionManager.current()
         if (session?.isAdmin != true) {
@@ -306,16 +309,10 @@ class SettingsViewModel @Inject constructor(
             }
             return
         }
+        _state.update { it.copy(savingSupervisorGroupId = expected.id, snackbar = null) }
         viewModelScope.launch {
-            _state.update { it.copy(savingSupervisorGroupId = doctorId, snackbar = null) }
             try {
-                adminAuthorizer.requireAdmin()
-                val doctor = doctorRepository.getById(doctorId)
-                    ?: error("المشرف غير موجود")
-                require(doctor.clinicalRole == ClinicalRole.SUPERVISOR) {
-                    "يمكن ربط مجموعة بالمشرفين فقط"
-                }
-                doctorRepository.upsert(doctor.copy(supervisorGroupChatId = chatId))
+                doctorMutations.setSupervisorGroup(expected, chatId)
                 val syncResult = syncService.uploadCurrentDoctors()
                 _state.update {
                     it.copy(
@@ -328,6 +325,9 @@ class SettingsViewModel @Inject constructor(
                         )
                     )
                 }
+            } catch (e: CancellationException) {
+                _state.update { it.copy(savingSupervisorGroupId = null) }
+                throw e
             } catch (e: Exception) {
                 _state.update {
                     it.copy(

@@ -13,16 +13,13 @@ Telegram remains the shared storage and delivery channel. Users retrieve publish
    - Preserve pending local drafts when retrieving data; exercise any existing merge review and its recovery after process death.
    - Retry interrupted uploads and handle offline-to-online recovery without claiming publication succeeded before it completes.
    - Verify local stale patient/doctor edits and stale deletion, including patient-reference and current-shift-roster protections.
+   - Change the doctor registry after an import preview, change administrator permissions before confirmation, and retry a failed local import; verify no partial mutation or audit remains.
+   - Verify stale promotion/demotion selections and supervisor-group drafts, repeated taps, permission loss, protected-admin/rank restrictions, and cancellation before/after commit.
    - Report confirmation while patient fields, shift roster, supervisor destinations, or doctor identities change; synchronization that changes reviewed content must return to preview before text/PDF delivery.
    - Partial supervisor delivery and interrupted text/PDF delivery; recovery must account for recipients already reached.
    - Re-linking a Telegram identity invalidates the old device-local PIN; permanent-admin deletion protections still hold.
 
-2. Finish transactional protection for the remaining administrative workflows.
-   - Basic doctor add/edit/delete now have live authorization, snapshot checks, pending markers, and audit in one transaction; CSV import and admin promotion/demotion still need equivalent guarded orchestration.
-   - Recheck import preview assumptions and actor/target permissions at commit, preserve intervening edits, and commit the mutation, pending state, and audit together.
-   - Apply expected-snapshot protection to supervisor-group destination changes; handle intervening role or identity changes explicitly.
-
-3. Configure production signing before distribution.
+2. Configure production signing before distribution.
    - Release currently uses the debug signing configuration. Configure a protected release keystore through local/CI secrets without committing keys or passwords.
    - Verify the signed release only when build/package work is explicitly authorized.
 

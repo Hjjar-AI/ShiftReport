@@ -7,6 +7,7 @@ import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.auth.PasswordHasher
+import com.hos.rushdpatients.domain.doctor.DoctorImportPlan
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.domain.doctor.DoctorNaming
 import com.hos.rushdpatients.domain.doctor.DoctorValidationResult
@@ -103,6 +104,152 @@ class DoctorMutationRepository @Inject constructor(
         }
     }
 
+    suspend fun prepareImport(imported: List<Doctor>): DoctorImportPlan = withContext(dispatchers.io) {
+        database.withTransaction {
+            val actor = authorizer.requireAdmin()
+            val existing = doctors.getAllIncludingDeleted()
+            val merged = mergeImport(imported, existing, actor)
+            DoctorImportPlan(imported.toList(), existing.toList(), actor.id, merged)
+        }
+    }
+
+    suspend fun importRegistry(plan: DoctorImportPlan): Int = withContext(dispatchers.io) {
+        database.withTransaction {
+            val actor = authorizer.requireAdmin()
+            val existing = doctors.getAllIncludingDeleted()
+            if (actor.id != plan.actorId || existing.associateBy { it.id } != plan.expectedRegistry.associateBy { it.id }) {
+                throw StaleDoctorImportException()
+            }
+            val merged = mergeImport(plan.imported, existing, actor)
+            if (merged != plan.reviewedChanges) throw StaleDoctorImportException()
+            doctors.upsertAll(merged)
+            audit.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTORS_IMPORTED, "import_csv:${merged.size}")
+            merged.size
+        }
+    }
+
+    private suspend fun mergeImport(imported: List<Doctor>, existing: List<Doctor>, actor: Doctor): List<Doctor> {
+        require(imported.isNotEmpty() && imported.size <= AppConstants.MAX_DOCTORS) { "عدد سجلات الاستيراد غير صالح" }
+        require(imported.map { it.id }.distinct().size == imported.size) { "معرّفات مستوردة مكررة" }
+        imported.forEach {
+            require(it.id.isNotBlank() && it.rank >= 0 && (!it.isPermanentAdmin || it.rank > 0)) { "هوية أو صلاحية مستوردة غير صالحة" }
+            require(DoctorValidator.validate(it.firstName, it.lastName, it.customTitle) is DoctorValidationResult.Valid) { "اسم أو لقب مستورد غير صالح" }
+            require(it.supervisorGroupChatId == null ||
+                it.clinicalRole == ClinicalRole.SUPERVISOR && it.supervisorGroupChatId < 0) { "مجموعة مشرف مستوردة غير صالحة" }
+        }
+        val merged = imported.map { incoming ->
+            val matches = existing.filter { candidate ->
+                candidate.id == incoming.id ||
+                    (incoming.telegramId != null && candidate.telegramId == incoming.telegramId) ||
+                    candidate.fullName.equals(incoming.fullName, ignoreCase = true)
+            }
+            require(matches.map { it.id }.distinct().size <= 1) {
+                "بيانات ${incoming.fullName} تطابق أكثر من طبيب محلي"
+            }
+            val local = matches.singleOrNull()
+            val localSecrets = local?.extraOptions.orEmpty()
+                .filter { it.startsWith("syncAlias:") ||
+                    it.startsWith("pin:") && local?.telegramId == incoming.telegramId }
+                .toSet()
+            var result = incoming.copy(
+                id = local?.id ?: incoming.id,
+                extraOptions = incoming.extraOptions.filterNot {
+                    it.startsWith("pin:") || it.startsWith("syncAlias:")
+                }.toSet() + localSecrets,
+                // A portable file may be old; importing it must not delete a
+                // currently active local clinician implicitly.
+                deletedAt = if (local != null && !local.isDeleted) null else incoming.deletedAt
+            )
+            if (local != null && (local.isPermanentAdmin || local.id == actor.id)) {
+                result = result.copy(
+                    rank = local.rank,
+                    isPermanentAdmin = local.isPermanentAdmin,
+                    deletedAt = null
+                )
+            }
+            if (local != null && !local.isDeleted) {
+                require(local.clinicalRole == result.clinicalRole ||
+                    patients.countActiveReferencesToDoctor(local.id) == 0) {
+                    "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب ${local.fullName}"
+                }
+            }
+            val permissionChanged = local?.rank != result.rank ||
+                local?.isPermanentAdmin != result.isPermanentAdmin
+            if (permissionChanged && !actor.isPermanentAdmin) {
+                require(local?.isPermanentAdmin != true && (local?.rank ?: 0) < actor.rank &&
+                    !result.isPermanentAdmin && result.rank < actor.rank) {
+                    "لا يمكن للاستيراد تغيير صلاحيات مدير أعلى رتبة أو منح صلاحية أعلى من المنفذ"
+                }
+            }
+            require(result.telegramId == null || result.telegramId > 0) { "معرّف تليجرام غير صالح" }
+            result
+        }
+        require(merged.map { it.id }.distinct().size == merged.size) {
+            "تطابق أكثر من صف مستورد مع الطبيب المحلي نفسه"
+        }
+        val finalById = existing.associateBy { it.id }.toMutableMap().apply {
+            merged.forEach { put(it.id, it) }
+        }
+        require(finalById.values.count { !it.isDeleted } <= AppConstants.MAX_DOCTORS) {
+            "سيؤدي الاستيراد إلى تجاوز الحد الأقصى لعدد الأطباء"
+        }
+        val finalActive = finalById.values.filterNot { it.isDeleted }
+        require(finalActive.map { it.fullName.lowercase() }.distinct().size == finalActive.size) {
+            "سيؤدي الاستيراد إلى تكرار اسم طبيب محلي"
+        }
+        val finalTelegramIds = finalActive.mapNotNull { it.telegramId }
+        require(finalTelegramIds.distinct().size == finalTelegramIds.size) {
+            "سيؤدي الاستيراد إلى تكرار معرّف تليجرام"
+        }
+        val finalAdminRanks = finalActive.filter { it.rank > 0 }.map { it.rank }
+        require(finalAdminRanks.distinct().size == finalAdminRanks.size) {
+            "سيؤدي الاستيراد إلى تكرار رتبة مدير"
+        }
+        return merged
+    }
+
+    suspend fun promote(expected: Doctor, customTitle: String?, expectedActorId: String?): Doctor = withContext(dispatchers.io) {
+        database.withTransaction {
+            val actor = authorizer.requireAdmin()
+            require(actor.id == expectedActorId) { "هوية المنفذ غير متطابقة" }
+            val current = requireCurrent(expected)
+            if (current.isAdmin) return@withTransaction current
+            val title = customTitle?.takeIf { it.isNotBlank() } ?: DoctorNaming.defaultAdminTitle(current)
+            require(DoctorValidator.validate(current.firstName, current.lastName, title) is DoctorValidationResult.Valid) { "اللقب غير صالح" }
+            val updated = doctors.promoteToAdmin(current.id, title) ?: error("فشل رفع الصلاحية")
+            audit.record(actor.id, actor.fullName, AppConstants.AUDIT_ADMIN_PROMOTED,
+                "target=${current.fullName} rank=${updated.rank}")
+            updated
+        }
+    }
+
+    suspend fun demote(expected: Doctor, expectedActorId: String?): Doctor = withContext(dispatchers.io) {
+        database.withTransaction {
+            val actor = authorizer.requireAdmin()
+            require(actor.id == expectedActorId) { "هوية المنفذ غير متطابقة" }
+            val current = requireCurrent(expected)
+            require(!current.isPermanentAdmin) { "لا يمكن إزالة مدير دائم" }
+            require(actor.isPermanentAdmin || actor.rank > current.rank) { "لا يمكنك إزالة مدير أعلى رتبة" }
+            if (!current.isAdmin) return@withTransaction current
+            val updated = doctors.demoteFromAdmin(current.id) ?: error("فشل إزالة الصلاحية")
+            audit.record(actor.id, actor.fullName, AppConstants.AUDIT_ADMIN_DEMOTED, "target=${current.fullName}")
+            updated
+        }
+    }
+
+    suspend fun setSupervisorGroup(expected: Doctor, chatId: Long?) = withContext(dispatchers.io) {
+        require(chatId == null || chatId < 0) { "معرف مجموعة تليجرام يجب أن يكون رقماً سالباً" }
+        database.withTransaction {
+            val actor = authorizer.requireAdmin()
+            val current = requireCurrent(expected)
+            require(current.clinicalRole == ClinicalRole.SUPERVISOR) { "يمكن ربط مجموعة بالمشرفين فقط" }
+            doctors.upsert(current.copy(supervisorGroupChatId = chatId))
+            audit.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_EDITED,
+                "supervisor_group:${current.id}", beforeValue = current.supervisorGroupChatId?.toString().orEmpty(),
+                afterValue = chatId?.toString().orEmpty())
+        }
+    }
+
     suspend fun delete(expected: Doctor) = withContext(dispatchers.io) {
         database.withTransaction {
             val actor = authorizer.requireAdmin()
@@ -117,4 +264,8 @@ class DoctorMutationRepository @Inject constructor(
 
 class StaleDoctorEditException : IllegalStateException(
     "تغيّر سجل الطبيب منذ فتحه. المسودة لم تُحفظ؛ راجع أحدث نسخة قبل المحاولة مجدداً."
+)
+
+class StaleDoctorImportException : IllegalStateException(
+    "تغيّر سجل الأطباء أو المستخدم منذ معاينة الاستيراد. لم يُحفظ الاستيراد؛ اختر الملف وراجع المعاينة من جديد."
 )
