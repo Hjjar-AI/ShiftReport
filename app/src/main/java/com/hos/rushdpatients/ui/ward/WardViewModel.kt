@@ -9,7 +9,6 @@ import com.hos.rushdpatients.config.ProjectConfigStore
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.model.PatientWarningFlag
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
@@ -415,6 +414,13 @@ class WardViewModel @Inject constructor(
         }
     }
 
+    fun setCompactCards(compact: Boolean) {
+        _state.update { it.copy(compactCards = compact) }
+        viewModelScope.launch {
+            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, compact)
+        }
+    }
+
     fun setGroupByMode(mode: GroupByMode) {
         viewModelScope.launch {
             settingsRepository.put(AppConstants.SETTING_GROUP_BY_MODE, mode.name)
@@ -657,31 +663,6 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun toggleWarning(patient: Patient, flag: PatientWarningFlag) {
-        val shiftId = editableShiftId() ?: return
-        viewModelScope.launch {
-            saveAction(onSuccess = {}) {
-                requireEditableShift(shiftId)
-                val warnings = if (flag in patient.warningFlags) {
-                    patient.warningFlags - flag
-                } else {
-                    patient.warningFlags + flag
-                }
-                markPatientChangesPending()
-                val updated = patientRepository.updateOptimistically(
-                    patient.copy(
-                        warningFlags = warnings,
-                        lastEditedByDoctorId = sessionManager.current()?.doctorId,
-                        lastEditedByName = sessionManager.current()?.doctorName
-                    ),
-                    shiftId = shiftId,
-                    expectedRevision = patient.revision
-                )
-                recordPatientChange(AppConstants.AUDIT_PATIENT_EDITED, patient, updated)
-            }
-        }
-    }
-
     fun dismissSyncHint() {
         _state.update { it.copy(showSyncHint = false) }
         viewModelScope.launch {
@@ -723,7 +704,8 @@ class WardViewModel @Inject constructor(
         append(";labs=").append(patient.labs)
         append(";resident=").append(patient.responsibleResidentId.orEmpty())
         append(";supervisor=").append(patient.responsibleSpecialistId.orEmpty())
-        append(";warnings=").append(patient.warningFlags.joinToString { it.code })
+        append(";badge=").append(patient.badgeText)
+        append(";badgePriority=").append(patient.badgePriority?.code.orEmpty())
         append(";priority=").append(patient.isPriority)
         append(";revision=").append(patient.revision)
     }
@@ -917,7 +899,7 @@ class WardViewModel @Inject constructor(
     private fun validationMessage(result: PatientValidationResult.Invalid): String =
         when (result.errors.firstOrNull()) {
             PatientValidationError.NAME_EMPTY -> "اسم المريض مطلوب"
-            PatientValidationError.ADMITTANCE_NUMBER_EMPTY -> "رقم الدخول مطلوب"
+            PatientValidationError.ADMITTANCE_NUMBER_EMPTY -> "رقم القبول الحالي مطلوب"
             PatientValidationError.ADMITTANCE_DATE_INVALID -> "تاريخ الدخول غير صحيح"
             PatientValidationError.BIRTH_DATE_INVALID -> "تاريخ الميلاد غير صحيح"
             PatientValidationError.INITIAL_DIAGNOSIS_EMPTY -> "التشخيص الأولي مطلوب"

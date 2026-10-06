@@ -3,6 +3,7 @@ package com.hos.rushdpatients.sync
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.data.model.PatientWarningFlag
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.sort.SortSpecCodec
@@ -98,12 +99,9 @@ object CsvCodec {
         append(',')
         append(escape(p.responsibleSpecialistId.orEmpty()))
         append(',')
-        append(escape(p.warningFlags.sortedBy { it.ordinal }.joinToString("|") { it.code }))
+        append(escape(p.badgePriority?.code.orEmpty()))
         append(',')
-        append(escape(p.warningDetails.entries.joinToString("|") { (flag, detail) ->
-            flag.code + ":" + Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(detail.toByteArray(Charsets.UTF_8))
-        }))
+        append(escape(p.badgeText))
         append(',')
         append(if (p.isPriority) "Y" else "N")
         append(',')
@@ -225,7 +223,7 @@ object CsvCodec {
         require(name.isNotEmpty()) { "السطر $rowNumber: اسم المريض مطلوب" }
 
         val admissionNumber = field(CsvSchema.COL_ADMIT_NUM).trim()
-        require(admissionNumber.isNotEmpty()) { "السطر $rowNumber: رقم الدخول مطلوب" }
+        require(admissionNumber.isNotEmpty()) { "السطر $rowNumber: رقم القبول الحالي مطلوب" }
 
         val genderText = field(CsvSchema.COL_GENDER).trim().uppercase()
         require(genderText in setOf("M", "MALE", "F", "FEMALE")) {
@@ -257,19 +255,29 @@ object CsvCodec {
         require(id.isNotEmpty()) { "السطر $rowNumber: المعرّف الخارجي مطلوب" }
         val residentId = field(CsvSchema.COL_RESIDENT_ID).ifBlank { null }
         val specialistId = field(CsvSchema.COL_SUPERVISOR_ID).ifBlank { null }
-        val warningFlags = field(CsvSchema.COL_WARNING_FLAGS)
-            .split('|')
+        val badgePriorityText = field(CsvSchema.COL_WARNING_FLAGS).trim()
+        val legacyFlags = badgePriorityText.split('|')
             .mapNotNull(PatientWarningFlag::fromCode)
-            .toSet()
-        val warningDetails = field(CsvSchema.COL_WARNING_DETAILS).split('|').mapNotNull { item ->
-            val separator = item.indexOf(':')
-            if (separator <= 0) return@mapNotNull null
-            val flag = PatientWarningFlag.fromCode(item.substring(0, separator)) ?: return@mapNotNull null
-            val detail = runCatching {
-                String(Base64.getUrlDecoder().decode(item.substring(separator + 1)), Charsets.UTF_8)
-            }.getOrNull() ?: return@mapNotNull null
-            flag to detail
-        }.toMap()
+        val badgePriority = PatientBadgePriority.fromCode(badgePriorityText) ?: when {
+            PatientWarningFlag.URGENT_REVIEW in legacyFlags -> PatientBadgePriority.HIGH
+            legacyFlags.isNotEmpty() -> PatientBadgePriority.MEDIUM
+            else -> null
+        }
+        val badgeValue = field(CsvSchema.COL_WARNING_DETAILS).trim()
+        val badgeText = if (PatientBadgePriority.fromCode(badgePriorityText) != null) {
+            badgeValue
+        } else {
+            badgeValue.split('|').firstNotNullOfOrNull { item ->
+                val separator = item.indexOf(':')
+                if (separator <= 0) return@firstNotNullOfOrNull null
+                runCatching {
+                    String(
+                        Base64.getUrlDecoder().decode(item.substring(separator + 1)),
+                        Charsets.UTF_8
+                    )
+                }.getOrNull()?.takeIf(String::isNotBlank)
+            } ?: legacyFlags.firstOrNull()?.arabicLabel.orEmpty()
+        }
         val priority = field(CsvSchema.COL_IS_PRIORITY).trim().uppercase() in
             setOf("Y", "TRUE", "1")
         val updatedAt = field(CsvSchema.COL_UPDATED_AT).trim().toLongOrNull()
@@ -291,8 +299,8 @@ object CsvCodec {
             labs = field(CsvSchema.COL_LABS),
             responsibleResidentId = residentId,
             responsibleSpecialistId = specialistId,
-            warningFlags = warningFlags,
-            warningDetails = warningDetails,
+            badgeText = badgeText,
+            badgePriority = badgePriority,
             isPriority = priority,
             lastEditedByDoctorId = field(CsvSchema.COL_LAST_EDITED_BY_DOCTOR_ID)
                 .ifBlank { null },

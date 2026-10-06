@@ -82,6 +82,8 @@ object AppConstants {
     const val AUDIT_ADMIN_DEMOTED = "admin_demoted"
     const val AUDIT_ANNOUNCEMENT_UPDATED = "announcement_updated"
     const val AUDIT_DOCTORS_SYNCED = "doctors_synced"
+    const val AUDIT_DOCTORS_EXPORTED = "doctors_exported"
+    const val AUDIT_DOCTORS_IMPORTED = "doctors_imported"
     const val AUDIT_PATIENT_ADDED = "patient_added"
     const val AUDIT_PATIENT_EDITED = "patient_edited"
     const val AUDIT_PATIENT_DELETED = "patient_deleted"

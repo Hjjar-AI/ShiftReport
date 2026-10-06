@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -52,7 +53,6 @@ import java.time.LocalDate
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.data.model.Doctor
-import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
@@ -172,6 +172,13 @@ fun SettingsScreen(
                 }
             }
 
+            Text(
+                "ابدأ بإعدادات الواجهة والتقرير. توجد المزامنة والنسخ الاحتياطي بالأسفل، وتظهر أدوات إدارة المستشفى للمدير فقط.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+
             SettingsSection(title = "واجهة التطبيق") {
                 SettingsSubheading("الألوان والخط")
                 Text("ألوان التطبيق", style = MaterialTheme.typography.labelMedium)
@@ -184,7 +191,6 @@ fun SettingsScreen(
                         )
                     }
                 }
-
                 Text("حجم الخط", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AppFontScale.entries.forEach { option ->
@@ -198,7 +204,7 @@ fun SettingsScreen(
                 Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 SettingsSubheading("بطاقات المرضى")
                 Text(
-                    "تستخدم شاشة المناوبة بطاقة سريرية موحّدة حتى تبقى التحذيرات والأولوية واضحة بنفس المعنى للجميع.",
+                    "تستخدم شاشة المناوبة بطاقة سريرية موحّدة حتى تبقى الشارات والأولوية واضحة بنفس المعنى للجميع.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -249,18 +255,12 @@ fun SettingsScreen(
                 }
 
                 if (state.pdfStyle == PdfStyle.CARDS) {
-                    Text("تصميم بطاقات PDF", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        PatientCardStyle.entries.forEach { option ->
-                            FilterChip(
-                                selected = state.pdfPatientCardStyle == option,
-                                onClick = { viewModel.setPdfPatientCardStyle(option) },
-                                label = { Text("${option.shortLabel} · ${option.arabicLabel}") }
-                            )
-                        }
-                    }
+                    Text(
+                        "الصفوف الأنيقة تستخدم خلفية بيضاء وألواناً محدودة لتقليل حجم الملف وتحسين الطباعة.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-
                 Text("اتجاه الصفحة", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     PdfOrientation.entries.forEach { option ->
@@ -296,12 +296,14 @@ fun SettingsScreen(
                     }
                 }
 
-                ToggleRow(
-                    title = "PDF داكن",
-                    subtitle = "خلفية داكنة ونص فاتح",
-                    checked = state.pdfDarkMode,
-                    onCheckedChange = viewModel::setPdfDarkMode
-                )
+                if (state.pdfStyle == PdfStyle.CLASSIC) {
+                    ToggleRow(
+                        title = "PDF داكن",
+                        subtitle = "خلفية داكنة ونص فاتح",
+                        checked = state.pdfDarkMode,
+                        onCheckedChange = viewModel::setPdfDarkMode
+                    )
+                }
                 ToggleRow(
                     title = "ملف PDF لكل مشرف",
                     subtitle = "عند الحفظ المحلي",
@@ -657,9 +659,10 @@ private fun SettingsSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -667,12 +670,22 @@ private fun SettingsSection(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                )
+            }
             Divider(color = MaterialTheme.colorScheme.outlineVariant)
             content()
         }

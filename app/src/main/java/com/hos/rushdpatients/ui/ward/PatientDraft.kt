@@ -21,8 +21,8 @@ data class PatientDraft(
     val labDraft: String = "",
     val residentId: String? = null,
     val specialistId: String? = null,
-    val warningFlags: Set<String> = emptySet(),
-    val warningDetails: Map<String, String> = emptyMap(),
+    val badgeText: String = "",
+    val badgePriority: String? = null,
     val isPriority: Boolean = false
 ) {
     val isEmpty: Boolean

@@ -20,6 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -40,6 +44,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -52,11 +59,13 @@ import androidx.compose.ui.unit.sp
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.model.PatientWarningFlag
+import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 import com.hos.rushdpatients.util.ArabicNumbers
 import java.time.ZoneId
+import java.time.Duration
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -69,13 +78,16 @@ fun PatientCard(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onCopy: () -> Unit = {},
-    onWarningToggle: (PatientWarningFlag) -> Unit = {},
     onPriorityChange: (Boolean) -> Unit = {},
+    pinned: Boolean = false,
+    onPinToggle: () -> Unit = {},
+    onExpandToggle: () -> Unit = {},
+    showViewControls: Boolean = true,
     compact: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    // The app uses one predictable clinical hierarchy. Legacy styles remain available
-    // to the PDF renderer, where they do not change the meaning of live ward status.
+    // The live ward uses one predictable clinical hierarchy. Legacy style values are
+    // retained only so older stored preferences continue to decode safely.
     val effectiveStyle = PatientCardStyle.BADGE_HEADER
     val clinicalColors = LocalClinicalColors.current
     val admissionCount = remember(patient.admittanceNumber) {
@@ -88,22 +100,46 @@ fun PatientCard(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
-                stateDescription = buildString {
-                    append(if (patient.warningFlags.isEmpty()) "دون تحذيرات" else "تحذيرات فعالة")
-                    if (patient.isPriority) append("، أولوية")
+                contentDescription = buildString {
+                    append(patient.name)
+                    append("، رقم القبول الحالي ").append(patient.admittanceNumber)
+                    append("، ").append(patient.diagnosisType.arabicLabel)
+                    patient.responsibleResidentId?.let { id ->
+                        doctorNames[id]?.let { append("، المقيم ").append(it) }
+                    }
+                    if (patient.badgeText.isNotBlank()) append("، شارة: ").append(patient.badgeText)
+                    if (pinned) append("، مثبت مؤقتاً")
+                    append("، ").append(relativeFreshness(patient.updatedAt))
                 }
+                stateDescription = buildString {
+                    append(if (patient.badgeText.isBlank()) "دون شارة" else "شارة فعالة")
+                    if (patient.isPriority) append("، أولوية")
+                    append(if (expanded) "، التفاصيل موسعة" else "، التفاصيل مطوية")
+                }
+                customActions = listOf(
+                    CustomAccessibilityAction(
+                        label = if (expanded) "طي تفاصيل المريض" else "توسيع تفاصيل المريض",
+                        action = { onExpandToggle(); true }
+                    ),
+                    CustomAccessibilityAction(
+                        label = if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت",
+                        action = { onPinToggle(); true }
+                    )
+                )
             }
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
-            width = if (patient.warningFlags.isNotEmpty()) 2.dp else 1.dp,
-            color = if (PatientWarningFlag.URGENT_REVIEW in patient.warningFlags) {
-                clinicalColors.urgent
-            } else if (patient.warningFlags.isNotEmpty()) {
-                clinicalColors.warning
-            } else MaterialTheme.colorScheme.outlineVariant
+            width = if (patient.badgeText.isNotBlank()) 2.dp else 1.dp,
+            color = when (patient.badgePriority) {
+                PatientBadgePriority.HIGH -> clinicalColors.urgent
+                PatientBadgePriority.MEDIUM -> clinicalColors.warning
+                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.tertiary
+                null -> if (patient.badgeText.isNotBlank()) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outlineVariant
+            }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -118,9 +154,13 @@ fun PatientCard(
                 style = effectiveStyle,
                 admissionCount = admissionCount,
                 readOnly = readOnly,
+                expanded = expanded,
+                pinned = pinned,
+                showViewControls = showViewControls,
+                onExpandToggle = onExpandToggle,
+                onPinToggle = onPinToggle,
                 onPriorityChange = onPriorityChange,
                 onCopy = onCopy,
-                onWarningToggle = onWarningToggle,
                 onDelete = onDelete
             )
 
@@ -162,30 +202,22 @@ fun PatientCard(
                 }
             }
 
-            if (patient.warningFlags.isNotEmpty()) {
+            if (patient.badgeText.isNotBlank()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    patient.warningFlags.sortedBy { it.ordinal }.forEach { flag ->
-                        val isUrgent = flag == PatientWarningFlag.URGENT_REVIEW
-                        SmallChip(
-                            text = flag.arabicLabel,
-                            container = if (isUrgent) clinicalColors.urgentContainer
-                                else clinicalColors.warningContainer,
-                            content = if (isUrgent) clinicalColors.onUrgentContainer
-                                else clinicalColors.onWarningContainer
-                        )
-                    }
-                }
-                if (expanded) {
-                    patient.warningDetails.filterValues { it.isNotBlank() }.forEach { (flag, detail) ->
-                        Text(
-                            "${flag.arabicLabel}: $detail",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
+                    val isUrgent = patient.badgePriority == PatientBadgePriority.HIGH
+                    SmallChip(
+                        text = buildString {
+                            append(patient.badgeText)
+                            patient.badgePriority?.let { append(" · ").append(it.arabicLabel) }
+                        },
+                        container = if (isUrgent) clinicalColors.urgentContainer
+                            else clinicalColors.warningContainer,
+                        content = if (isUrgent) clinicalColors.onUrgentContainer
+                            else clinicalColors.onWarningContainer
+                    )
                 }
             }
 
@@ -224,7 +256,7 @@ fun PatientCard(
                         .format(patient.updatedAt.atZone(ZoneId.systemDefault()))
                 }
                 Text(
-                    text = "آخر تعديل: $editor · $time",
+                    text = "آخر تعديل: $editor · $time · ${relativeFreshness(patient.updatedAt)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -241,9 +273,13 @@ private fun PatientIdentityHeader(
     style: PatientCardStyle,
     admissionCount: Int,
     readOnly: Boolean,
+    expanded: Boolean,
+    pinned: Boolean,
+    showViewControls: Boolean,
+    onExpandToggle: () -> Unit,
+    onPinToggle: () -> Unit,
     onPriorityChange: (Boolean) -> Unit,
     onCopy: () -> Unit,
-    onWarningToggle: (PatientWarningFlag) -> Unit,
     onDelete: () -> Unit
 ) {
     val initial = patient.name.trim().firstOrNull()?.toString() ?: "م"
@@ -381,13 +417,25 @@ private fun PatientIdentityHeader(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (showViewControls) Row {
+                IconButton(onClick = onPinToggle) {
+                    Icon(
+                        if (pinned) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                        contentDescription = if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت"
+                    )
+                }
+                IconButton(onClick = onExpandToggle) {
+                    Icon(
+                        if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (expanded) "طي التفاصيل" else "توسيع التفاصيل"
+                    )
+                }
+            }
             if (!readOnly) {
                 PatientMenu(
                     priority = patient.isPriority,
-                    warningFlags = patient.warningFlags,
                     onPriorityChange = onPriorityChange,
                     onCopy = onCopy,
-                    onWarningToggle = onWarningToggle,
                     onDelete = onDelete
                 )
             }
@@ -403,6 +451,16 @@ private fun PatientIdentityHeader(
                 OrderBadge(patient.sortOrder, admissionCount)
             }
         }
+    }
+}
+
+private fun relativeFreshness(updatedAt: Instant): String {
+    val minutes = Duration.between(updatedAt, Instant.now()).toMinutes().coerceAtLeast(0)
+    return when {
+        minutes < 1 -> "تم التحديث الآن"
+        minutes < 60 -> "تم التحديث منذ $minutes دقيقة"
+        minutes < 24 * 60 -> "تم التحديث منذ ${minutes / 60} ساعة"
+        else -> "تم التحديث منذ ${minutes / (24 * 60)} يوم"
     }
 }
 
@@ -613,10 +671,8 @@ private fun TwoColumnDetail(patient: Patient) {
 @Composable
 private fun PatientMenu(
     priority: Boolean,
-    warningFlags: Set<PatientWarningFlag>,
     onPriorityChange: (Boolean) -> Unit,
     onCopy: () -> Unit,
-    onWarningToggle: (PatientWarningFlag) -> Unit,
     onDelete: () -> Unit
 ) {
     var menu by remember { mutableStateOf(false) }
@@ -646,17 +702,6 @@ private fun PatientMenu(
                     onCopy()
                 }
             )
-            PatientWarningFlag.entries.forEach { flag ->
-                DropdownMenuItem(
-                    text = {
-                        Text("${if (flag in warningFlags) "✓ " else "+ "}${flag.arabicLabel}")
-                    },
-                    onClick = {
-                        menu = false
-                        onWarningToggle(flag)
-                    }
-                )
-            }
             DropdownMenuItem(
                 text = { Text("حذف") },
                 onClick = {

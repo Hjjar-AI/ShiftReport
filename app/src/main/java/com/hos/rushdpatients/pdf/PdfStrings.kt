@@ -11,7 +11,7 @@ object PdfStrings {
     const val HEADER_ID = "#"
     const val HEADER_PATIENT = "المريض"
     const val HEADER_CONDITION = "التشخيص / التنبيهات"
-    const val HEADER_ADMIT_NUM = "رقم الدخول"
+    const val HEADER_ADMIT_NUM = "رقم القبول الحالي"
     const val HEADER_ADMIT_DAYS = "التاريخ / الأيام"
     const val HEADER_SUPERVISOR = "الاختصاصي"
     const val HEADER_RESIDENT = "المقيم"

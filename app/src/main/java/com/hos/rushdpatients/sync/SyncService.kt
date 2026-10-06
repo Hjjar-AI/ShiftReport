@@ -671,7 +671,7 @@ class SyncService @Inject constructor(
             }
 
             merged += before.copy(
-                admittanceNumber = field("admittanceNumber", "رقم الدخول", before.admittanceNumber, ours.admittanceNumber, theirs.admittanceNumber),
+                admittanceNumber = field("admittanceNumber", "رقم القبول الحالي", before.admittanceNumber, ours.admittanceNumber, theirs.admittanceNumber),
                 admittanceDate = field("admittanceDate", "تاريخ الدخول", before.admittanceDate, ours.admittanceDate, theirs.admittanceDate),
                 gender = field("gender", "الجنس", before.gender, ours.gender, theirs.gender) {
                     if (it == com.hos.rushdpatients.data.model.Gender.MALE) "ذكر" else "أنثى"
@@ -686,8 +686,8 @@ class SyncService @Inject constructor(
                 labs = field("labs", "التحاليل", before.labs, ours.labs, theirs.labs),
                 responsibleResidentId = field("resident", "المقيم", before.responsibleResidentId, ours.responsibleResidentId, theirs.responsibleResidentId),
                 responsibleSpecialistId = field("specialist", "الاختصاصي", before.responsibleSpecialistId, ours.responsibleSpecialistId, theirs.responsibleSpecialistId),
-                warningFlags = field("warningFlags", "التحذيرات", before.warningFlags, ours.warningFlags, theirs.warningFlags) { flags -> flags.joinToString { it.arabicLabel } },
-                warningDetails = field("warningDetails", "تفاصيل التحذيرات", before.warningDetails, ours.warningDetails, theirs.warningDetails),
+                badgeText = field("badgeText", "نص الشارة", before.badgeText, ours.badgeText, theirs.badgeText),
+                badgePriority = field("badgePriority", "مستوى الشارة", before.badgePriority, ours.badgePriority, theirs.badgePriority) { it?.arabicLabel.orEmpty() },
                 isPriority = field("priority", "الأولوية", before.isPriority, ours.isPriority, theirs.isPriority),
                 lastEditedByDoctorId = if (localRecordChanged) ours.lastEditedByDoctorId else theirs.lastEditedByDoctorId,
                 lastEditedByName = if (localRecordChanged) ours.lastEditedByName else theirs.lastEditedByName,

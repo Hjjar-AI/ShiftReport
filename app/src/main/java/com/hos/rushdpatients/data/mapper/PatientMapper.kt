@@ -4,6 +4,7 @@ import com.hos.rushdpatients.data.db.entity.PatientEntity
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.data.model.PatientWarningFlag
 import java.time.Instant
 import java.time.LocalDate
@@ -27,8 +28,10 @@ object PatientMapper {
         labs = patient.labs,
         responsibleResidentId = patient.responsibleResidentId,
         responsibleSpecialistId = patient.responsibleSpecialistId,
-        warningFlagsCsv = patient.warningFlags.sortedBy { it.ordinal }.joinToString(",") { it.code },
-        warningDetailsEncoded = encodeWarningDetails(patient.warningDetails),
+        // Existing columns are intentionally reused so a fresh database does not need
+        // another schema solely for the free-text badge feature.
+        warningFlagsCsv = patient.badgePriority?.code.orEmpty(),
+        warningDetailsEncoded = encodeBadgeText(patient.badgeText),
         isPriority = patient.isPriority,
         lastEditedByDoctorId = patient.lastEditedByDoctorId,
         lastEditedByName = patient.lastEditedByName,
@@ -54,10 +57,8 @@ object PatientMapper {
         labs = entity.labs,
         responsibleResidentId = entity.responsibleResidentId,
         responsibleSpecialistId = entity.responsibleSpecialistId,
-        warningFlags = entity.warningFlagsCsv.split(',')
-            .mapNotNull(PatientWarningFlag::fromCode)
-            .toSet(),
-        warningDetails = decodeWarningDetails(entity.warningDetailsEncoded),
+        badgeText = decodeBadgeText(entity.warningDetailsEncoded, entity.warningFlagsCsv),
+        badgePriority = decodeBadgePriority(entity.warningFlagsCsv),
         isPriority = entity.isPriority,
         lastEditedByDoctorId = entity.lastEditedByDoctorId,
         lastEditedByName = entity.lastEditedByName,
@@ -68,19 +69,39 @@ object PatientMapper {
         )
     }
 
-    private fun encodeWarningDetails(details: Map<PatientWarningFlag, String>): String =
-        details.entries.joinToString(";") { (flag, detail) ->
-            "${flag.code}:${Base64.getUrlEncoder().withoutPadding().encodeToString(detail.toByteArray())}"
-        }
+    private fun encodeBadgeText(text: String): String = if (text.isBlank()) "" else {
+        "badge:" + Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(text.trim().toByteArray(Charsets.UTF_8))
+    }
 
-    private fun decodeWarningDetails(value: String): Map<PatientWarningFlag, String> =
-        value.split(';').mapNotNull { item ->
+    private fun decodeBadgePriority(value: String): PatientBadgePriority? {
+        PatientBadgePriority.fromCode(value)?.let { return it }
+        val legacy = value.split(',').mapNotNull(PatientWarningFlag::fromCode)
+        return when {
+            PatientWarningFlag.URGENT_REVIEW in legacy -> PatientBadgePriority.HIGH
+            legacy.isNotEmpty() -> PatientBadgePriority.MEDIUM
+            else -> null
+        }
+    }
+
+    private fun decodeBadgeText(encoded: String, legacyFlags: String): String {
+        if (encoded.startsWith("badge:")) {
+            return runCatching {
+                String(
+                    Base64.getUrlDecoder().decode(encoded.removePrefix("badge:")),
+                    Charsets.UTF_8
+                )
+            }.getOrDefault("")
+        }
+        val legacyDetails = encoded.split(';').firstNotNullOfOrNull { item ->
             val separator = item.indexOf(':')
-            if (separator <= 0) return@mapNotNull null
-            val flag = PatientWarningFlag.fromCode(item.substring(0, separator)) ?: return@mapNotNull null
-            val detail = runCatching {
-                String(Base64.getUrlDecoder().decode(item.substring(separator + 1)))
-            }.getOrNull() ?: return@mapNotNull null
-            flag to detail
-        }.toMap()
+            if (separator <= 0) return@firstNotNullOfOrNull null
+            runCatching {
+                String(Base64.getUrlDecoder().decode(item.substring(separator + 1)), Charsets.UTF_8)
+            }.getOrNull()?.takeIf(String::isNotBlank)
+        }
+        if (legacyDetails != null) return legacyDetails
+        return legacyFlags.split(',').mapNotNull(PatientWarningFlag::fromCode)
+            .firstOrNull()?.arabicLabel.orEmpty()
+    }
 }

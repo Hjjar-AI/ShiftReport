@@ -11,6 +11,7 @@
 *.local.properties
 /legacy-hardcoded-credentials.local.properties
 /GITHUB-GUIDE.local.md
+/doctors-import.local.csv
 
 # Signing material and local secret configuration
 /keys/

@@ -50,15 +50,15 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val SageColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF56622F),
+    primary = androidx.compose.ui.graphics.Color(0xFF4F6527),
     onPrimary = androidx.compose.ui.graphics.Color.White,
     primaryContainer = androidx.compose.ui.graphics.Color(0xFFE4E8C7),
     onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF283618),
-    secondary = androidx.compose.ui.graphics.Color(0xFF795322),
+    secondary = androidx.compose.ui.graphics.Color(0xFF82501B),
     onSecondary = androidx.compose.ui.graphics.Color.White,
     secondaryContainer = androidx.compose.ui.graphics.Color(0xFFF3D8B5),
     onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF42280B),
-    tertiary = androidx.compose.ui.graphics.Color(0xFF8A4A16),
+    tertiary = androidx.compose.ui.graphics.Color(0xFF944513),
     onTertiary = androidx.compose.ui.graphics.Color.White,
     tertiaryContainer = androidx.compose.ui.graphics.Color(0xFFFFDCBE),
     onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFF512400),
@@ -72,15 +72,15 @@ private val SageColorScheme = lightColorScheme(
 )
 
 private val CoastalColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF006494),
+    primary = androidx.compose.ui.graphics.Color(0xFF006A9E),
     onPrimary = androidx.compose.ui.graphics.Color.White,
     primaryContainer = androidx.compose.ui.graphics.Color(0xFFCAF0F8),
     onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF023E8A),
-    secondary = androidx.compose.ui.graphics.Color(0xFF007C91),
+    secondary = androidx.compose.ui.graphics.Color(0xFF007F98),
     onSecondary = androidx.compose.ui.graphics.Color.White,
     secondaryContainer = androidx.compose.ui.graphics.Color(0xFFADE8F4),
     onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF004C5A),
-    tertiary = androidx.compose.ui.graphics.Color(0xFF485A8A),
+    tertiary = androidx.compose.ui.graphics.Color(0xFF435A94),
     onTertiary = androidx.compose.ui.graphics.Color.White,
     background = androidx.compose.ui.graphics.Color(0xFFF5FCFE),
     surface = androidx.compose.ui.graphics.Color.White,
@@ -92,15 +92,15 @@ private val CoastalColorScheme = lightColorScheme(
 )
 
 private val SunsetColorScheme = darkColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFFFFD60A),
+    primary = androidx.compose.ui.graphics.Color(0xFFFFD900),
     onPrimary = androidx.compose.ui.graphics.Color(0xFF332B00),
     primaryContainer = androidx.compose.ui.graphics.Color(0xFF594B00),
     onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFFFFE980),
-    secondary = androidx.compose.ui.graphics.Color(0xFF90E0EF),
+    secondary = androidx.compose.ui.graphics.Color(0xFF83E4F5),
     onSecondary = androidx.compose.ui.graphics.Color(0xFF00363F),
     secondaryContainer = androidx.compose.ui.graphics.Color(0xFF004D5A),
     onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFFCAF0F8),
-    tertiary = androidx.compose.ui.graphics.Color(0xFFFFC300),
+    tertiary = androidx.compose.ui.graphics.Color(0xFFFFBF00),
     onTertiary = androidx.compose.ui.graphics.Color(0xFF352A00),
     background = androidx.compose.ui.graphics.Color(0xFF000814),
     surface = androidx.compose.ui.graphics.Color(0xFF00152C),
@@ -112,15 +112,15 @@ private val SunsetColorScheme = darkColorScheme(
 )
 
 private val FuchsiaColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF6C557F),
+    primary = androidx.compose.ui.graphics.Color(0xFF714D88),
     onPrimary = androidx.compose.ui.graphics.Color.White,
     primaryContainer = androidx.compose.ui.graphics.Color(0xFFE9DDF1),
     onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF342640),
-    secondary = androidx.compose.ui.graphics.Color(0xFF89516F),
+    secondary = androidx.compose.ui.graphics.Color(0xFF94496F),
     onSecondary = androidx.compose.ui.graphics.Color.White,
     secondaryContainer = androidx.compose.ui.graphics.Color(0xFFF4D7E7),
     onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF4B2338),
-    tertiary = androidx.compose.ui.graphics.Color(0xFF4A4E69),
+    tertiary = androidx.compose.ui.graphics.Color(0xFF454B73),
     onTertiary = androidx.compose.ui.graphics.Color.White,
     background = androidx.compose.ui.graphics.Color(0xFFFCF8FC),
     surface = androidx.compose.ui.graphics.Color.White,

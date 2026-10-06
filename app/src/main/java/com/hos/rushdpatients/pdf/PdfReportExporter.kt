@@ -10,7 +10,6 @@ import android.text.TextDirectionHeuristics
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.report.ReportSummary
-import com.hos.rushdpatients.domain.sort.GroupingDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -44,6 +43,7 @@ class PdfReportExporter @Inject constructor() {
     private var colWidths = FloatArray(colWeights.size)
     private var colX = FloatArray(colWeights.size)
     private var palette = PdfPalette.resolve(PdfExportOptions())
+    private var elegantRows = false
     private val bidiFormatter = BidiFormatter.getInstance()
 
     private val titleBandHeight = 26f
@@ -105,13 +105,12 @@ class PdfReportExporter @Inject constructor() {
         residentNames: Map<String, String>,
         supervisorNames: Map<String, String>,
         options: PdfExportOptions = PdfExportOptions(),
+        elegant: Boolean = false,
         outputFile: File
     ): File = exportMutex.withLock {
         withContext(Dispatchers.IO) {
-            configure(options)
+            configure(options, elegant)
             val document = PdfDocument()
-            val grouped = GroupingDetector.isGroupedBySupervisor(patients, supervisorNames)
-
             try {
                 var pageNumber = 1
                 var page = document.startPage(
@@ -137,70 +136,46 @@ class PdfReportExporter @Inject constructor() {
 
                 val bottomLimit = pageHeight - marginBottom - summaryBandHeight - 2f
 
-                var groupIndex = 0
-                var lastSupervisor = ""
-                var inGroupPos = 0
-
                 patients.forEachIndexed { index, patient ->
-                    val supervisorName = patient.responsibleSpecialistId
-                        ?.let { supervisorNames[it] }.orEmpty()
-                    val bgColor: Int? = if (grouped) {
-                        if (supervisorName != lastSupervisor) {
-                            if (lastSupervisor.isNotEmpty()) groupIndex++
-                            lastSupervisor = supervisorName
-                            inGroupPos = 0
-                        } else {
-                            inGroupPos++
-                        }
-                        if (inGroupPos % 2 == 0) palette.group(groupIndex)
-                        else palette.cream
+                    val bgColor: Int? = if (elegantRows) {
+                        null
                     } else {
                         if (index % 2 == 0) palette.zebra else null
                     }
 
-                    val cells = layoutPatientRow(patient, residentNames, supervisorNames)
-                    val lineHeight = PdfTextWrapper.lineHeight(bodyPaint)
-                    val totalLines = cells.maxOf { it.lines.size }.coerceAtLeast(1)
-                    var lineOffset = 0
+                    val maxRowHeight = bottomLimit - marginTop - headerHeight
+                    val (cells, rowHeight) = layoutPatientRowToFit(
+                        patient = patient,
+                        residentNames = residentNames,
+                        supervisorNames = supervisorNames,
+                        maxHeight = maxRowHeight
+                    )
 
-                    while (lineOffset < totalLines) {
-                        val minimumSliceHeight = lineHeight + 2 * cellPadding
-                        if (bottomLimit - y < minimumSliceHeight) {
-                            document.finishPage(page)
-                            pageNumber++
-                            page = document.startPage(
-                                PdfDocument.PageInfo.Builder(
-                                    pageWidth.toInt(), pageHeight.toInt(), pageNumber
-                                ).create()
-                            )
-                            canvas = page.canvas
-                            drawPageBackground(canvas)
-                            y = marginTop
-                            y += drawHeaderRow(canvas, y)
-                        }
-
-                        val availableHeight = bottomLimit - y
-                        val lineCapacity = ((availableHeight - 2 * cellPadding) / lineHeight)
-                            .toInt()
-                            .coerceAtLeast(1)
-                        val linesThisPage = minOf(totalLines - lineOffset, lineCapacity)
-                        val rowHeight = (linesThisPage * lineHeight + 2 * cellPadding)
-                            .coerceAtLeast(rowMinHeight)
-                            .coerceAtMost(availableHeight)
-
-                        drawPatientRowSlice(
-                            canvas = canvas,
-                            y = y,
-                            height = rowHeight,
-                            patient = patient,
-                            cells = cells,
-                            lineOffset = lineOffset,
-                            lineCount = linesThisPage,
-                            bgColor = bgColor
+                    if (y + rowHeight > bottomLimit) {
+                        document.finishPage(page)
+                        pageNumber++
+                        page = document.startPage(
+                            PdfDocument.PageInfo.Builder(
+                                pageWidth.toInt(), pageHeight.toInt(), pageNumber
+                            ).create()
                         )
-                        y += rowHeight
-                        lineOffset += linesThisPage
+                        canvas = page.canvas
+                        drawPageBackground(canvas)
+                        y = marginTop
+                        y += drawHeaderRow(canvas, y)
                     }
+
+                    drawPatientRowSlice(
+                        canvas = canvas,
+                        y = y,
+                        height = rowHeight,
+                        patient = patient,
+                        cells = cells,
+                        lineOffset = 0,
+                        lineCount = cells.maxOf { it.lines.size }.coerceAtLeast(1),
+                        bgColor = bgColor
+                    )
+                    y += rowHeight
                 }
 
                 if (y + summaryBandHeight > pageHeight - marginBottom - 2f) {
@@ -229,7 +204,7 @@ class PdfReportExporter @Inject constructor() {
         }
     }
 
-    private fun configure(options: PdfExportOptions) {
+    private fun configure(options: PdfExportOptions, elegant: Boolean) {
         val paper = options.paperSize
         val portraitWidth = paper.widthPoints.toFloat()
         val portraitHeight = paper.heightPoints.toFloat()
@@ -252,7 +227,10 @@ class PdfReportExporter @Inject constructor() {
             }
         }
 
-        palette = PdfPalette.resolve(options)
+        elegantRows = elegant
+        palette = PdfPalette.resolve(if (elegantRows) options.copy(darkMode = false) else options)
+        bodyPaint.textSize = if (elegantRows) 9.5f else 9f
+        bodyCenterPaint.textSize = bodyPaint.textSize
         summaryPaint.color = palette.text
         bodyPaint.color = palette.text
         bodyCenterPaint.color = palette.text
@@ -261,7 +239,8 @@ class PdfReportExporter @Inject constructor() {
     }
 
     private fun drawPageBackground(canvas: Canvas) {
-        canvas.drawColor(palette.pageBackground)
+        // Elegant rows are always print-friendly; Classic retains its explicit dark option.
+        canvas.drawColor(if (elegantRows) Color.WHITE else palette.pageBackground)
     }
 
     private fun drawTitleBand(
@@ -293,7 +272,7 @@ class PdfReportExporter @Inject constructor() {
         y: Float,
         summary: ReportSummary
     ) {
-        fillPaint.color = palette.summary
+        fillPaint.color = if (elegantRows) Color.WHITE else palette.summary
         canvas.drawRect(contentLeft, y, contentRight, y + summaryBandHeight, fillPaint)
 
         val c1 = contentLeft
@@ -382,6 +361,42 @@ class PdfReportExporter @Inject constructor() {
     }
 
     private data class CellLines(val lines: List<String>, val paint: Paint)
+
+    private fun layoutPatientRowToFit(
+        patient: Patient,
+        residentNames: Map<String, String>,
+        supervisorNames: Map<String, String>,
+        maxHeight: Float
+    ): Pair<List<CellLines>, Float> {
+        val preferredSize = if (elegantRows) 9.5f else 9f
+        var size = preferredSize
+        var cells: List<CellLines>
+        var lineHeight: Float
+        var height: Float
+        do {
+            bodyPaint.textSize = size
+            bodyCenterPaint.textSize = size
+            cells = layoutPatientRow(patient, residentNames, supervisorNames)
+            lineHeight = PdfTextWrapper.lineHeight(bodyPaint)
+            height = (cells.maxOf { it.lines.size }.coerceAtLeast(1) * lineHeight + 2 * cellPadding)
+                .coerceAtLeast(rowMinHeight)
+            size -= 0.5f
+        } while (height > maxHeight && size >= 4f)
+
+        if (height > maxHeight) {
+            // Preserve every clinical line. For pathological amounts of text, scale the
+            // row further rather than silently truncating or continuing it on another page.
+            val scaledSize = (bodyPaint.textSize * maxHeight / height * 0.98f)
+                .coerceAtLeast(0.5f)
+            bodyPaint.textSize = scaledSize
+            bodyCenterPaint.textSize = scaledSize
+            cells = layoutPatientRow(patient, residentNames, supervisorNames)
+            lineHeight = PdfTextWrapper.lineHeight(bodyPaint)
+            height = (cells.maxOf { it.lines.size }.coerceAtLeast(1) * lineHeight + 2 * cellPadding)
+                .coerceAtLeast(rowMinHeight)
+        }
+        return cells to height
+    }
 
     private fun layoutPatientRow(
         patient: Patient,
@@ -525,12 +540,10 @@ class PdfReportExporter @Inject constructor() {
 
     private fun buildDiagnosisCell(patient: Patient): String = buildString {
         append(patient.diagnosisType.arabicLabel)
-        if (patient.warningFlags.isNotEmpty()) {
+        if (patient.badgeText.isNotBlank()) {
             append('\n')
-            append(patient.warningFlags.sortedBy { it.ordinal }.joinToString("\n") { flag ->
-                val detail = patient.warningDetails[flag].orEmpty().trim()
-                if (detail.isBlank()) "⚠ ${flag.arabicLabel}" else "⚠ ${flag.arabicLabel}: $detail"
-            })
+            append("⚠ ").append(patient.badgeText)
+            patient.badgePriority?.let { append(" · ").append(it.arabicLabel) }
         }
         if (patient.initialDiagnosis.isNotBlank()) {
             append('\n')

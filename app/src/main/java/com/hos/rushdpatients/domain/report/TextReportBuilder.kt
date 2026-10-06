@@ -75,9 +75,12 @@ class TextReportBuilder @Inject constructor() {
         }
         append('\n')
         append(Markdown.escape("نوع التشخيص: ${patient.diagnosisType.arabicLabel}"))
-        if (patient.warningFlags.isNotEmpty()) {
+        if (patient.badgeText.isNotBlank()) {
             append('\n')
-            append(Markdown.bold("⚠ ${patient.warningFlags.sortedBy { it.ordinal }.joinToString(" • ") { it.arabicLabel }}"))
+            append(Markdown.bold(buildString {
+                append("⚠ ").append(patient.badgeText)
+                patient.badgePriority?.let { append(" · ").append(it.arabicLabel) }
+            }))
         }
         if (patient.initialDiagnosis.isNotBlank()) {
             append('\n')
@@ -85,7 +88,7 @@ class TextReportBuilder @Inject constructor() {
         }
         if (patient.admittanceNumber.isNotBlank()) {
             append('\n')
-            append(Markdown.escape("رقم الدخول: ${patient.admittanceNumber}"))
+            append(Markdown.escape("رقم القبول الحالي: ${patient.admittanceNumber}"))
         }
         patient.admittanceDate?.let { date ->
             append('\n')

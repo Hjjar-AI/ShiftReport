@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +14,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -29,12 +33,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.db.entity.AuditEntryEntity
+import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -43,10 +51,14 @@ import java.time.format.DateTimeFormatter
 fun PatientDetailsScreen(
     patient: Patient,
     doctorNames: Map<String, String>,
+    activity: List<AuditEntryEntity> = emptyList(),
     readOnly: Boolean,
     onEdit: () -> Unit,
+    onCopy: () -> Unit = {},
+    onPriorityChange: (Boolean) -> Unit = {},
     onDismiss: () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     var section by rememberSaveable(patient.id) {
         mutableStateOf(PatientDetailSection.OVERVIEW)
     }
@@ -59,28 +71,70 @@ fun PatientDetailsScreen(
     ) {
         Surface(Modifier.fillMaxSize()) {
             Scaffold(
-                modifier = Modifier.safeDrawingPadding(),
+                modifier = Modifier.safeDrawingPadding().imePadding(),
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    patient.name,
-                                    modifier = Modifier.semantics { heading() }
-                                )
-                                Text(
-                                    "ملف المريض · رقم الدخول ${patient.admittanceNumber}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                    Column {
+                        TopAppBar(
+                            title = {
+                                Column {
+                                    Text(
+                                        patient.name,
+                                        modifier = Modifier.semantics { heading() },
+                                        maxLines = 2
+                                    )
+                                    Text(
+                                        "رقم القبول الحالي ${patient.admittanceNumber} · ${freshnessText(patient.updatedAt)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = onDismiss) {
+                                    Icon(Icons.Filled.Close, contentDescription = "إغلاق ملف المريض")
+                                }
                             }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(Icons.Filled.Close, contentDescription = "إغلاق ملف المريض")
+                        )
+                        Surface(tonalElevation = 2.dp) {
+                            FlowRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                PatientDetailSection.entries.forEach { option ->
+                                    val count = when (option) {
+                                        PatientDetailSection.TASKS -> patient.followUp.lineSequence().count { it.isNotBlank() }
+                                        PatientDetailSection.WARNINGS -> if (patient.badgeText.isBlank()) 0 else 1
+                                        PatientDetailSection.HISTORY -> activity.size.coerceAtLeast(1)
+                                        else -> 0
+                                    }
+                                    FilterChip(
+                                        selected = section == option,
+                                        onClick = { section = option },
+                                        label = {
+                                            Text(option.arabicLabel + if (count > 0) " $count" else "")
+                                        }
+                                    )
+                                }
                             }
                         }
-                    )
+                    }
+                },
+                bottomBar = {
+                    if (!readOnly) {
+                        Surface(tonalElevation = 3.dp) {
+                            Button(
+                                onClick = onEdit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp)
+                            ) {
+                                Icon(Icons.Filled.Edit, contentDescription = null)
+                                Text("تعديل بيانات المريض", Modifier.padding(start = 8.dp))
+                            }
+                        }
+                    }
                 }
             ) { padding ->
                 Column(
@@ -91,15 +145,6 @@ fun PatientDetailsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        PatientDetailSection.entries.forEach { option ->
-                            FilterChip(
-                                selected = section == option,
-                                onClick = { section = option },
-                                label = { Text(option.arabicLabel) }
-                            )
-                        }
-                    }
                     when (section) {
                         PatientDetailSection.OVERVIEW,
                         PatientDetailSection.CLINICAL -> PatientCard(
@@ -108,6 +153,7 @@ fun PatientDetailsScreen(
                             twoColumn = true,
                             doctorNames = doctorNames,
                             readOnly = true,
+                            showViewControls = false,
                             onClick = {},
                             onDelete = {}
                         )
@@ -119,38 +165,76 @@ fun PatientDetailsScreen(
                                 .ifBlank { "لا توجد مهام أو متابعة مسجلة" }
                         )
                         PatientDetailSection.WARNINGS -> DetailTextSection(
-                            title = "التحذيرات الفعالة",
-                            content = patient.warningFlags.sortedBy { it.ordinal }
-                                .joinToString("\n") { flag ->
-                                    val detail = patient.warningDetails[flag].orEmpty()
-                                    "• ${flag.arabicLabel}${detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()}"
-                                }
-                                .ifBlank { "لا توجد تحذيرات فعالة" }
+                            title = "شارة المريض",
+                            content = patient.badgeText.takeIf(String::isNotBlank)?.let { text ->
+                                patient.badgePriority?.let { "$text · أولوية ${it.arabicLabel}" } ?: text
+                            } ?: "لا توجد شارة"
                         )
                         PatientDetailSection.HISTORY -> DetailTextSection(
-                            title = "آخر تحديث محلي",
-                            content = buildString {
-                                append(patient.lastEditedByName ?: "غير محدد")
-                                append("\n")
-                                append(
-                                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                        .format(patient.updatedAt.atZone(ZoneId.systemDefault()))
-                                )
-                            }
+                            title = "السجل الزمني المهم",
+                            content = meaningfulTimeline(patient, activity)
                         )
                     }
-                    if (!readOnly) {
-                        Button(
-                            onClick = onEdit,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Filled.Edit, contentDescription = null)
-                            Text("تعديل بيانات المريض", Modifier.padding(start = 8.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onCopy) {
+                            Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                            Text("نسخ", Modifier.padding(start = 6.dp))
+                        }
+                        if (!readOnly) {
+                            Button(onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onPriorityChange(!patient.isPriority)
+                            }) {
+                                Icon(
+                                    if (patient.isPriority) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                    contentDescription = null
+                                )
+                                Text(
+                                    if (patient.isPriority) "إلغاء الأولوية" else "تحديد أولوية",
+                                    Modifier.padding(start = 6.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun meaningfulTimeline(patient: Patient, activity: List<AuditEntryEntity>): String {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val matching = activity.filter { it.patientId == patient.id }
+        .sortedByDescending { it.atEpochMillis }
+        .take(20)
+    if (matching.isNotEmpty()) {
+        return matching.joinToString("\n\n") { entry ->
+            buildString {
+                append(formatter.format(Instant.ofEpochMilli(entry.atEpochMillis).atZone(ZoneId.systemDefault())))
+                append(" · ").append(entry.actorName ?: "النظام")
+                append("\n").append(entry.detail.ifBlank { entry.action })
+                entry.beforeValue?.takeIf(String::isNotBlank)?.let { append("\nقبل: ").append(it) }
+                entry.afterValue?.takeIf(String::isNotBlank)?.let { append("\nبعد: ").append(it) }
+            }
+        }
+    }
+    return buildString {
+        append("آخر تعديل محلي · ")
+        append(patient.lastEditedByName ?: "غير محدد")
+        append("\n")
+        append(formatter.format(patient.updatedAt.atZone(ZoneId.systemDefault())))
+        if (patient.isPriority) append("\nالمريض محدد كأولوية")
+        if (patient.badgeText.isNotBlank()) append("\nشارة: ${patient.badgeText}")
+    }
+}
+
+private fun freshnessText(updatedAt: Instant): String {
+    val minutes = java.time.Duration.between(updatedAt, Instant.now()).toMinutes().coerceAtLeast(0)
+    return when {
+        minutes < 1 -> "محدّث الآن"
+        minutes < 60 -> "منذ $minutes دقيقة"
+        minutes < 1440 -> "منذ ${minutes / 60} ساعة"
+        else -> "منذ ${minutes / 1440} يوم"
     }
 }
 
@@ -175,6 +259,6 @@ private enum class PatientDetailSection(val arabicLabel: String) {
     OVERVIEW("نظرة عامة"),
     CLINICAL("سريري"),
     TASKS("المهام"),
-    WARNINGS("التحذيرات"),
+    WARNINGS("الشارة"),
     HISTORY("السجل")
 }

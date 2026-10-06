@@ -10,7 +10,7 @@ This file contains only remaining work. Completed items are tracked in [workDone
    - Keep Telegram as the delivery/archive channel after the authoritative transaction commits.
 
 2. Finish optimistic local mutations at the repository boundary.
-   - Patient edit, delete, restore, priority, warning, and shift doctor/sort mutations now reject stale revisions at the Room boundary.
+   - Patient edit (including badge changes), delete, restore, priority, and shift doctor/sort mutations now reject stale revisions at the Room boundary.
    - Rollover now rejects duplicate application when the target shift is no longer empty.
    - Apply each successful mutation, pending-sync flag, and audit row in one database transaction; the current ordering is safe but not yet atomic.
    - Add a focused reload/review experience after a stale-edit rejection.
@@ -81,15 +81,39 @@ This file contains only remaining work. Completed items are tracked in [workDone
    - Keep the current one-pane full-screen details experience on phones.
    - Preserve the selected patient when switching between one- and two-pane layouts or crossing a fold posture.
 
-2. Complete the card hierarchy after the structured task and handoff models in P1 exist.
+2. Add a supporting report/activity pane on medium and expanded windows.
+   - Show report readiness, recent meaningful changes, or the selected patient's activity without obscuring the primary ward content.
+   - On compact windows, present the same supporting content in the existing sheet or full-screen destination.
+
+3. Add a resizable pane divider for expanded layouts.
+   - Preserve the user's list/detail width during the session.
+   - Enforce readable minimum widths and reset safely after a window-size change.
+
+4. Make expanded layouts fold-aware.
+   - Do not place patient content or primary controls beneath a separating hinge.
+   - Place the list and detail panes on opposite sides when posture and available width allow it.
+
+5. Add an optional three-pane mode for very wide windows.
+   - Use patient list, selected-patient detail, and tasks/history as the three panes.
+   - Collapse predictably to list-detail and then single-pane navigation as width decreases.
+
+6. Complete the card hierarchy after the structured task and handoff models in P1 exist.
    - Show overdue/pending task counts and the latest meaningful acknowledged change in the collapsed card.
    - Do not infer these clinical states from free-form follow-up text.
 
-3. Promote Activity from the current focused overlay to a persistent primary destination with restorable filters and scroll state.
+7. Promote Activity from the current focused overlay to a persistent primary destination with restorable filters and scroll state.
 
-4. Perform hands-on accessibility and palette validation on real devices.
+8. Make offline status lifecycle-aware and connect it to verified snapshot metadata.
+   - The ward now distinguishes offline local data visually, but connectivity changes should update without requiring another screen recomposition.
+   - Complete this with the verified downtime snapshot, age, and later reconciliation workflow in P1.
+
+9. Finish the app-wide icon and interaction vocabulary audit.
+   - Ward filtering, synchronization, reporting, pinning, expansion, priority, and history now use stable meanings.
+   - Apply the same vocabulary to secondary administration/setup screens and remove any remaining ambiguous duplicate icons.
+
+10. Perform hands-on accessibility and palette validation on real devices.
    - Confirm the statically audited contrast in rendered light/dark screens, then verify large font, landscape, split-screen, keyboard, TalkBack, Switch Access, and reduced motion.
-   - Audit traversal order and expose custom accessibility actions for patient edit, warning, priority, copy, and delete operations.
+   - Audit traversal order and expose custom accessibility actions for patient edit, badge, priority, copy, and delete operations.
    - Validate the 600dp navigation transition and full-screen editor behavior on tablets and foldables.
 
 ## Later — optional differentiators

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,6 +49,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,17 +57,19 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.model.PatientWarningFlag
+import com.hos.rushdpatients.data.model.PatientBadgePriority
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.launch
 
 @Composable
 private fun autoDirTextStyle(): TextStyle =
@@ -170,18 +174,13 @@ internal fun PatientFormDialog(
     var isPriority by remember(initial, restoredDraft) {
         mutableStateOf(initial?.isPriority ?: restoredDraft?.isPriority ?: false)
     }
-    var warningFlags by remember(initial) {
-        mutableStateOf(
-            initial?.warningFlags ?: restoredDraft?.warningFlags
-                ?.mapNotNull(PatientWarningFlag::fromCode)
-                ?.toSet().orEmpty()
-        )
+    var badgeText by remember(initial, restoredDraft) {
+        mutableStateOf(initial?.badgeText ?: restoredDraft?.badgeText.orEmpty())
     }
-    var warningDetails by remember(initial, restoredDraft) {
+    var badgePriority by remember(initial, restoredDraft) {
         mutableStateOf(
-            initial?.warningDetails ?: restoredDraft?.warningDetails.orEmpty()
-                .mapNotNull { (code, detail) -> PatientWarningFlag.fromCode(code)?.let { it to detail } }
-                .toMap()
+            initial?.badgePriority ?: restoredDraft?.badgePriority
+                ?.let { PatientBadgePriority.fromCode(it) }
         )
     }
     var diagnosisType by remember(initial) {
@@ -210,7 +209,7 @@ internal fun PatientFormDialog(
     var specialistId by remember(initial, restoredDraft) {
         mutableStateOf(initial?.responsibleSpecialistId ?: restoredDraft?.specialistId)
     }
-    var validationMessage by remember(initial) { mutableStateOf<String?>(null) }
+    var validationMessages by remember(initial) { mutableStateOf(emptyList<String>()) }
 
     val birthYear = birthYearText.trim().toIntOrNull()
     val age = birthYear?.let { (currentYear - it).takeIf { a -> a in 0..120 } }
@@ -221,12 +220,28 @@ internal fun PatientFormDialog(
     val specialistDoctors = activeDoctors.filter { it.clinicalRole.canBeSupervisor() }
     val autoStyle = autoDirTextStyle()
     val compactWindow = LocalConfiguration.current.screenWidthDp < 600
+    val formScrollState = rememberScrollState()
+    val formScope = rememberCoroutineScope()
+    val changedFieldCount = listOf(
+        admittanceNumber != initial?.admittanceNumber.orEmpty(),
+        name != initial?.name.orEmpty(),
+        birthYearText != initial?.birthDate?.year?.toString().orEmpty(),
+        initialDiagnosis != initial?.initialDiagnosis.orEmpty(),
+        treatmentItems.joinToString("\n") != initial?.treatmentPlan.orEmpty(),
+        followUpItems.joinToString("\n") != initial?.followUp.orEmpty(),
+        labItems.joinToString("\n") != initial?.labs.orEmpty(),
+        residentId != initial?.responsibleResidentId,
+        specialistId != initial?.responsibleSpecialistId,
+        badgeText != initial?.badgeText.orEmpty(),
+        badgePriority != initial?.badgePriority,
+        isPriority != (initial?.isPriority ?: false)
+    ).count { it }
 
     LaunchedEffect(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
         hasCompanion, diagnosisType, initialDiagnosis, treatmentItems, treatmentDraft,
         followUpItems, followUpDraft, labItems, labDraft, residentId, specialistId,
-        warningFlags, warningDetails, isPriority
+        badgeText, badgePriority, isPriority
     ) {
         if (initial == null) {
             onDraftChanged(
@@ -248,8 +263,8 @@ internal fun PatientFormDialog(
                     labDraft = labDraft,
                     residentId = residentId,
                     specialistId = specialistId,
-                    warningFlags = warningFlags.mapTo(mutableSetOf()) { it.code },
-                    warningDetails = warningDetails.mapKeys { it.key.code },
+                    badgeText = badgeText,
+                    badgePriority = badgePriority?.code,
                     isPriority = isPriority
                 )
             )
@@ -259,25 +274,35 @@ internal fun PatientFormDialog(
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         modifier = if (compactWindow) {
-            Modifier.fillMaxSize()
+            Modifier.fillMaxSize().imePadding()
         } else {
             Modifier
                 .fillMaxHeight()
                 .width(600.dp)
+                .imePadding()
         },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         ),
         title = {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Column {
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                if (changedFieldCount > 0) {
+                    Text(
+                        "توجد تغييرات غير محفوظة",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
         },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = if (compactWindow) 760.dp else 900.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(formScrollState),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -296,35 +321,65 @@ internal fun PatientFormDialog(
                     if (formMode == PatientFormMode.GENERAL) {
                         "الحقول الأساسية لتسليم المناوبة بسرعة. البيانات المتقدمة محفوظة ويمكن فتحها عند الحاجة."
                     } else {
-                        "تفاصيل التحذيرات والعناصر القابلة للترتيب والتحاليل."
+                        "تفاصيل الشارة والعناصر القابلة للترتيب والتحاليل."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                SectionTitle("بيانات الدخول")
-                OutlinedTextField(
-                    value = admittanceNumber,
-                    onValueChange = { admittanceNumber = it; validationMessage = null },
-                    label = { Text("رقم الدخول *") },
+                if (validationMessages.isNotEmpty()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("راجع الحقول التالية", style = MaterialTheme.typography.titleSmall)
+                            validationMessages.forEach { Text("• $it") }
+                        }
+                    }
+                }
+                SectionTitle(
+                    "بيانات الدخول",
+                    complete = admittanceNumber.isNotBlank() && admittanceDate != null
+                )
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    textStyle = autoStyle
-                )
-                DateField(
-                    value = admittanceDate,
-                    onValueChange = { admittanceDate = it; validationMessage = null },
-                    label = "تاريخ الدخول *",
-                    supportingText = admissionDays?.let { "مدة الإقامة: $it يوم" }
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    OutlinedTextField(
+                        value = admittanceNumber,
+                        onValueChange = { admittanceNumber = it; validationMessages = emptyList() },
+                        label = { Text("رقم القبول الحالي *") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = autoStyle,
+                        isError = validationMessages.any { it.contains("رقم القبول") },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                    )
+                    DateField(
+                        value = admittanceDate,
+                        onValueChange = { admittanceDate = it; validationMessages = emptyList() },
+                        label = "تاريخ الدخول *",
+                        supportingText = admissionDays?.let { "مدة الإقامة: $it يوم" },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-                SectionTitle("البيانات الشخصية")
+                SectionTitle(
+                    "البيانات الشخصية",
+                    complete = name.isNotBlank() && birthYear != null && age != null
+                )
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it; validationMessage = null },
+                    onValueChange = { name = it; validationMessages = emptyList() },
                     label = { Text("اسم المريض *") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    textStyle = autoStyle
+                    textStyle = autoStyle,
+                    isError = validationMessages.any { it.contains("اسم المريض") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -340,13 +395,17 @@ internal fun PatientFormDialog(
                                 ?.takeIf { it in 0..120 }
                                 ?.toString()
                                 .orEmpty()
-                            validationMessage = null
+                            validationMessages = emptyList()
                         },
                         label = { Text("سنة الميلاد *") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         textStyle = autoStyle,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        isError = validationMessages.any { it.contains("سنة الميلاد") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        )
                     )
                     OutlinedTextField(
                         value = ageText,
@@ -358,13 +417,17 @@ internal fun PatientFormDialog(
                                 ?.let { currentYear - it }
                                 ?.toString()
                                 .orEmpty()
-                            validationMessage = null
+                            validationMessages = emptyList()
                         },
                         label = { Text("العمر *") },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         textStyle = autoStyle,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        isError = validationMessages.any { it.contains("العمر") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        )
                     )
                 }
                 Row(
@@ -396,7 +459,7 @@ internal fun PatientFormDialog(
                     )
                 }
 
-                SectionTitle("تنبيهات سريعة")
+                SectionTitle("تنبيهات سريعة", complete = true)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -405,36 +468,37 @@ internal fun PatientFormDialog(
                     Text("تثبيت كمريض ذي أولوية", style = MaterialTheme.typography.labelMedium)
                     Switch(checked = isPriority, onCheckedChange = { isPriority = it })
                 }
+                OutlinedTextField(
+                    value = badgeText,
+                    onValueChange = { badgeText = it.take(80) },
+                    label = { Text("نص الشارة (اختياري)") },
+                    supportingText = { Text("مثال: تحسس دوائي، يحتاج مراجعة، خطر سقوط") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = autoStyle
+                )
+                Text("مستوى الشارة (اختياري)", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    PatientWarningFlag.entries.forEach { flag ->
+                    FilterChip(
+                        selected = badgePriority == null,
+                        onClick = { badgePriority = null },
+                        label = { Text("بدون مستوى") }
+                    )
+                    PatientBadgePriority.entries.forEach { level ->
                         FilterChip(
-                            selected = flag in warningFlags,
-                            onClick = {
-                                warningFlags = if (flag in warningFlags) {
-                                    warningFlags - flag
-                                } else {
-                                    warningFlags + flag
-                                }
-                            },
-                            label = { Text(flag.arabicLabel) }
-                        )
-                    }
-                }
-                if (formMode == PatientFormMode.ADVANCED) {
-                    warningFlags.sortedBy { it.ordinal }.forEach { flag ->
-                        OutlinedTextField(
-                            value = warningDetails[flag].orEmpty(),
-                            onValueChange = { value ->
-                                warningDetails = warningDetails + (flag to value)
-                            },
-                            label = { Text("تفاصيل ${flag.arabicLabel} (اختياري)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            maxLines = 2
+                            selected = badgePriority == level,
+                            onClick = { badgePriority = level },
+                            label = { Text(level.arabicLabel) }
                         )
                     }
                 }
 
-                SectionTitle("التشخيص والعلاج")
+                SectionTitle(
+                    "التشخيص والعلاج",
+                    complete = initialDiagnosis.isNotBlank() &&
+                        (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
+                        (followUpItems + followUpDraft).any(String::isNotBlank)
+                )
                 Text("نوع التشخيص", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     DiagnosisType.entries.forEach { type ->
@@ -445,7 +509,13 @@ internal fun PatientFormDialog(
                         )
                     }
                 }
-                MultilineField(initialDiagnosis, { initialDiagnosis = it }, "التشخيص الأولي", autoStyle)
+                MultilineField(
+                    initialDiagnosis,
+                    { initialDiagnosis = it; validationMessages = emptyList() },
+                    "التشخيص الأولي",
+                    autoStyle,
+                    isError = validationMessages.any { it.contains("التشخيص الأولي") }
+                )
 
                 if (formMode == PatientFormMode.GENERAL) {
                     MultilineField(
@@ -455,10 +525,11 @@ internal fun PatientFormDialog(
                         onValueChange = {
                             treatmentItems = parseFieldItems(it)
                             treatmentDraft = ""
-                            validationMessage = null
+                            validationMessages = emptyList()
                         },
                         label = "الخطة العلاجية",
-                        textStyle = autoStyle
+                        textStyle = autoStyle,
+                        isError = validationMessages.any { it.contains("الخطة العلاجية") }
                     )
                     MultilineField(
                         value = (followUpItems + followUpDraft)
@@ -467,20 +538,21 @@ internal fun PatientFormDialog(
                         onValueChange = {
                             followUpItems = parseFieldItems(it)
                             followUpDraft = ""
-                            validationMessage = null
+                            validationMessages = emptyList()
                         },
                         label = "المتابعة وتسليم المهام",
-                        textStyle = autoStyle
+                        textStyle = autoStyle,
+                        isError = validationMessages.any { it == "المتابعة مطلوبة" }
                     )
                 } else {
                 MultiValueEditor(
                     label = "الخطة العلاجية",
                     items = treatmentItems,
                     draft = treatmentDraft,
-                    onDraftChange = { treatmentDraft = it; validationMessage = null },
+                    onDraftChange = { treatmentDraft = it; validationMessages = emptyList() },
                     onEditItem = { index, value ->
                         treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
-                        validationMessage = null
+                        validationMessages = emptyList()
                     },
                     onMove = { from, to ->
                         treatmentItems = reorder(treatmentItems, from, to)
@@ -497,16 +569,17 @@ internal fun PatientFormDialog(
                     },
                     onAddSeparator = { treatmentItems = treatmentItems + FIELD_SEPARATOR },
                     onAddDate = null,
-                    textStyle = autoStyle
+                    textStyle = autoStyle,
+                    isError = validationMessages.any { it.contains("الخطة العلاجية") }
                 )
                 MultiValueEditor(
                     label = "المتابعة",
                     items = followUpItems,
                     draft = followUpDraft,
-                    onDraftChange = { followUpDraft = it; validationMessage = null },
+                    onDraftChange = { followUpDraft = it; validationMessages = emptyList() },
                     onEditItem = { index, value ->
                         followUpItems = followUpItems.toMutableList().also { it[index] = value }
-                        validationMessage = null
+                        validationMessages = emptyList()
                     },
                     onMove = { from, to ->
                         followUpItems = reorder(followUpItems, from, to)
@@ -522,7 +595,8 @@ internal fun PatientFormDialog(
                     },
                     onAddSeparator = { followUpItems = followUpItems + FIELD_SEPARATOR },
                     onAddDate = null,
-                    textStyle = autoStyle
+                    textStyle = autoStyle,
+                    isError = validationMessages.any { it == "المتابعة مطلوبة" }
                 )
                 OutlinedButton(
                     onClick = {
@@ -540,10 +614,10 @@ internal fun PatientFormDialog(
                     label = "التحاليل",
                     items = labItems,
                     draft = labDraft,
-                    onDraftChange = { labDraft = it; validationMessage = null },
+                    onDraftChange = { labDraft = it; validationMessages = emptyList() },
                     onEditItem = { index, value ->
                         labItems = labItems.toMutableList().also { it[index] = value }
-                        validationMessage = null
+                        validationMessages = emptyList()
                     },
                     onMove = { from, to ->
                         labItems = reorder(labItems, from, to)
@@ -561,33 +635,38 @@ internal fun PatientFormDialog(
                     onAddDate = { date ->
                         labItems = labItems + dateMarkerFrom(date)
                     },
-                    textStyle = autoStyle
+                    textStyle = autoStyle,
+                    isError = false
                 )
                 }
 
-                SectionTitle("الفريق المسؤول")
-                DoctorDropdown(
-                    label = "المقيم المسؤول (اختياري)",
-                    undefinedLabel = "مقيم غير محدد",
-                    selectedId = residentId,
-                    doctors = residentDoctors,
-                    onSelected = { residentId = it; validationMessage = null }
+                SectionTitle(
+                    "الفريق المسؤول",
+                    complete = residentId != null && specialistId != null && residentId != specialistId
                 )
-                DoctorDropdown(
-                    label = "الاختصاصي المسؤول (اختياري)",
-                    undefinedLabel = "اختصاصي غير محدد",
-                    selectedId = specialistId,
-                    doctors = specialistDoctors,
-                    onSelected = { specialistId = it; validationMessage = null }
-                )
-
-                validationMessage?.let {
-                    Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    DoctorDropdown(
+                        label = "المقيم",
+                        undefinedLabel = "مقيم غير محدد",
+                        selectedId = residentId,
+                        doctors = residentDoctors,
+                        onSelected = { residentId = it; validationMessages = emptyList() },
+                        modifier = Modifier.weight(1f)
+                    )
+                    DoctorDropdown(
+                        label = "الاختصاصي",
+                        undefinedLabel = "اختصاصي غير محدد",
+                        selectedId = specialistId,
+                        doctors = specialistDoctors,
+                        onSelected = { specialistId = it; validationMessages = emptyList() },
+                        modifier = Modifier.weight(1f)
                     )
                 }
+
             }
         },
         confirmButton = {
@@ -610,29 +689,35 @@ internal fun PatientFormDialog(
                     .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
                     .joinToString("\n")
 
-                val message = when {
-                    admittanceNumber.isBlank() -> "رقم الدخول مطلوب"
-                    admittanceDate == null -> "اختر تاريخ الدخول"
-                    admittanceDate?.isAfter(today) == true ->
-                        "تاريخ الدخول لا يمكن أن يكون في المستقبل"
-                    name.isBlank() -> "اسم المريض مطلوب"
-                    ageText.toIntOrNull()?.let { it !in 0..120 } == true ->
-                        "العمر يجب أن يكون بين 0 و120 سنة"
-                    birthYear == null -> "أدخل سنة الميلاد أو العمر"
-                    birthYear > currentYear ->
-                        "سنة الميلاد لا يمكن أن تكون في المستقبل"
-                    age == null -> "سنة الميلاد تنتج عمراً غير صحيح"
-                    initialDiagnosis.isBlank() -> "التشخيص الأولي مطلوب"
-                    resolvedTreatments.none { it != FIELD_SEPARATOR && it.isNotBlank() } ->
-                        "الخطة العلاجية مطلوبة"
-                    resolvedFollowUp.none { it != FIELD_SEPARATOR && it.isNotBlank() } ->
-                        "المتابعة مطلوبة"
-                    residentId != null && residentId == specialistId ->
-                        "يجب اختيار طبيبين مختلفين للمقيم والاختصاصي"
-                    else -> null
+                val errors = buildList {
+                    if (admittanceNumber.isBlank()) add("رقم القبول الحالي مطلوب")
+                    if (admittanceDate == null) add("اختر تاريخ الدخول")
+                    if (admittanceDate?.isAfter(today) == true) {
+                        add("تاريخ الدخول لا يمكن أن يكون في المستقبل")
+                    }
+                    if (name.isBlank()) add("اسم المريض مطلوب")
+                    if (ageText.toIntOrNull()?.let { it !in 0..120 } == true) {
+                        add("العمر يجب أن يكون بين 0 و120 سنة")
+                    }
+                    if (birthYear == null) add("أدخل سنة الميلاد أو العمر")
+                    if (birthYear != null && birthYear > currentYear) {
+                        add("سنة الميلاد لا يمكن أن تكون في المستقبل")
+                    }
+                    if (birthYear != null && age == null) add("سنة الميلاد تنتج عمراً غير صحيح")
+                    if (initialDiagnosis.isBlank()) add("التشخيص الأولي مطلوب")
+                    if (resolvedTreatments.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
+                        add("الخطة العلاجية مطلوبة")
+                    }
+                    if (resolvedFollowUp.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
+                        add("المتابعة مطلوبة")
+                    }
+                    if (residentId != null && residentId == specialistId) {
+                        add("يجب اختيار طبيبين مختلفين للمقيم والاختصاصي")
+                    }
                 }
-                if (message != null) {
-                    validationMessage = message
+                if (errors.isNotEmpty()) {
+                    validationMessages = errors
+                    formScope.launch { formScrollState.animateScrollTo(0) }
                     return@TextButton
                 }
 
@@ -652,8 +737,8 @@ internal fun PatientFormDialog(
                     labs = labs.trim(),
                     responsibleResidentId = residentId,
                     responsibleSpecialistId = specialistId,
-                    warningFlags = warningFlags,
-                    warningDetails = warningDetails.filterKeys { it in warningFlags },
+                    badgeText = badgeText.trim(),
+                    badgePriority = badgePriority.takeIf { badgeText.isNotBlank() },
                     isPriority = isPriority
                 ) ?: Patient(
                     admittanceNumber = admittanceNumber.trim(),
@@ -669,8 +754,8 @@ internal fun PatientFormDialog(
                     labs = labs.trim(),
                     responsibleResidentId = residentId,
                     responsibleSpecialistId = specialistId,
-                    warningFlags = warningFlags,
-                    warningDetails = warningDetails.filterKeys { it in warningFlags },
+                    badgeText = badgeText.trim(),
+                    badgePriority = badgePriority.takeIf { badgeText.isNotBlank() },
                     isPriority = isPriority
                 )
                 onConfirm(patient)
@@ -687,13 +772,29 @@ private enum class PatientFormMode { GENERAL, ADVANCED }
 // ---------------- Section + field helpers ----------------
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 6.dp, bottom = 0.dp)
-    )
+private fun SectionTitle(text: String, complete: Boolean? = null) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Text(
+            text = buildString {
+                append(text)
+                when (complete) {
+                    true -> append("  ✓ مكتمل")
+                    false -> append("  • يحتاج إكمال")
+                    null -> Unit
+                }
+            },
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -702,12 +803,13 @@ private fun DateField(
     value: LocalDate?,
     onValueChange: (LocalDate) -> Unit,
     label: String,
-    supportingText: String?
+    supportingText: String?,
+    modifier: Modifier = Modifier
 ) {
     var open by remember { mutableStateOf(false) }
     OutlinedButton(
         onClick = { open = true },
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -745,7 +847,8 @@ private fun MultilineField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    textStyle: TextStyle
+    textStyle: TextStyle,
+    isError: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
@@ -754,7 +857,8 @@ private fun MultilineField(
         modifier = Modifier.fillMaxWidth(),
         minLines = 2,
         maxLines = 3,
-        textStyle = textStyle
+        textStyle = textStyle,
+        isError = isError
     )
 }
 
@@ -797,7 +901,8 @@ private fun MultiValueEditor(
     onRemove: (Int) -> Unit,
     onAddSeparator: () -> Unit,
     onAddDate: ((LocalDate) -> Unit)?,
-    textStyle: TextStyle
+    textStyle: TextStyle,
+    isError: Boolean = false
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -841,7 +946,8 @@ private fun MultiValueEditor(
             modifier = Modifier.fillMaxWidth(),
             minLines = 1,
             maxLines = 2,
-            textStyle = textStyle
+            textStyle = textStyle,
+            isError = isError
         )
 
         Row(
@@ -1048,11 +1154,12 @@ private fun DoctorDropdown(
     undefinedLabel: String = "غير محدد",
     selectedId: String?,
     doctors: List<Doctor>,
-    onSelected: (String?) -> Unit
+    onSelected: (String?) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedName = doctors.firstOrNull { it.id == selectedId }?.fullName
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = modifier.fillMaxWidth()) {
         OutlinedButton(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth()

@@ -529,6 +529,7 @@ class ReportPreviewViewModel @Inject constructor(
             PdfStyle.CARDS -> cardsPdfExporter.export(
                 patients = patients,
                 doctors = doctors,
+                summary = summary,
                 residentNames = residentNames,
                 supervisorNames = supervisorNames,
                 options = options,

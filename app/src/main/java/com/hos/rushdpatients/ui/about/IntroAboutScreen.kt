@@ -61,8 +61,7 @@ fun IntroAboutScreen(
         ) {
             Surface(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(0.62f),
+                    .size(220.dp),
                 color = MaterialTheme.colorScheme.surface,
                 shape = MaterialTheme.shapes.extraLarge,
                 shadowElevation = 6.dp
@@ -98,6 +97,11 @@ fun IntroAboutScreen(
                 )
                 Text(
                     "مساهمة تقنية: د. أيهم شيخة",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    "الفكرة الأولية وبنية التقرير الأساسي: د. نديم العباس",
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center
                 )
@@ -220,7 +224,7 @@ fun IntroAboutScreen(
                     Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     CreditBlock(
                         title = "الفكرة الأولية وبنية التقرير الأساسي",
-                        name = "من عمل د. نديم العباس"
+                        name = "د. نديم العباس"
                     )
                 }
             }

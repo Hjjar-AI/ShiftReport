@@ -79,48 +79,68 @@ fun AdminScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             state.currentActor?.let { actor ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
                         Text("المدير الحالي: ${actor.fullName}")
                         Text("الرتبة: ${actor.rank}")
+                        Text(
+                            "تؤثر الإجراءات في هذه الشاشة على جميع مستخدمي المشروع.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                 }
             }
 
-            Divider()
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("ملخص الصلاحيات", style = MaterialTheme.typography.titleSmall)
+                    Text("المديرون: ${state.admins.size} · الأطباء الآخرون: ${state.nonAdmins.size}")
+                }
+            }
 
-            Text("إدارة الأطباء", style = MaterialTheme.typography.titleMedium)
-            Button(
+            AdminActionCard(
+                title = "الأطباء والحسابات",
+                description = "إضافة الأطباء وتعديل بياناتهم واستيراد أو تصدير سجل CSV.",
+                actionLabel = "فتح سجل الأطباء",
                 onClick = onOpenDoctors,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("سجل الأطباء") }
+                primary = true
+            )
 
-            Divider()
-
-            Text("الإعلانات", style = MaterialTheme.typography.titleMedium)
-            OutlinedButton(
-                onClick = onOpenAnnouncement,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("إدارة إعلان المجموعة") }
-
-            Divider()
-
-            Text("إدارة صلاحيات المديرين", style = MaterialTheme.typography.titleMedium)
-            OutlinedButton(
-                onClick = { showAssignAdmin = true },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("ترقية طبيب إلى مدير") }
-            OutlinedButton(
-                onClick = { showRemoveAdmin = true },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("إزالة مدير") }
-
-            Divider()
+            AdminActionCard(
+                title = "إعلان المجموعة",
+                description = "تعديل الرسالة المثبتة التي يراها أعضاء الفريق.",
+                actionLabel = "إدارة الإعلان",
+                onClick = onOpenAnnouncement
+            )
 
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("عدد المديرين: ${state.admins.size}")
-                    Text("عدد الأطباء: ${state.nonAdmins.size}")
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("صلاحيات المديرين", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "الترقية تمنح أدوات الإدارة. أزل الصلاحية قبل حذف حساب مدير.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        onClick = { showAssignAdmin = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("ترقية طبيب إلى مدير") }
+                    OutlinedButton(
+                        onClick = { showRemoveAdmin = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("إزالة صلاحية مدير") }
                 }
             }
         }
@@ -150,5 +170,33 @@ fun AdminScreen(
             },
             onDismiss = { showRemoveAdmin = false }
         )
+    }
+}
+
+@Composable
+private fun AdminActionCard(
+    title: String,
+    description: String,
+    actionLabel: String,
+    onClick: () -> Unit,
+    primary: Boolean = false
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (primary) {
+                Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
+            } else {
+                OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
+            }
+        }
     }
 }

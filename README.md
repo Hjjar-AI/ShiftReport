@@ -8,7 +8,8 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 
 - Structured ward list with patient details, warnings, priority, responsible clinicians, search, filters, grouping, and sorting.
 - Dashboard, personal patient view, activity history, recycle bin, guided rollover, and stored-shift viewing.
-- Classic and card-based PDF reports generated from a fresh current-shift snapshot.
+- Classic and Elegant Row PDF reports generated from a fresh current-shift snapshot. Multiple patients share a page, but a patient row is moved intact to the next page instead of splitting.
+- Administrator-controlled UTF-8 doctor-registry CSV import/export for fresh starts and spreadsheet editing.
 - Telegram report delivery, immutable CSV snapshots, background synchronization, three-way patient merging, and explicit conflict review.
 - Local stale-edit protection through patient and shift revisions.
 - Encrypted local database, encrypted project preferences, PIN/biometric access, encrypted backups, and verified admin authorization for core privileged actions.

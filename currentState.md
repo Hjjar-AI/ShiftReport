@@ -31,7 +31,7 @@ MainActivity
           -> About
 ```
 
-The compact ward uses bottom navigation for Patients, Dashboard, and Activity. Expanded layouts use a navigation rail. The side drawer keeps secondary actions in accordion submenus. The ward FAB opens report review/send; adding a patient remains available from the top bar.
+The compact ward uses bottom navigation for Patients, Dashboard, and Activity. Expanded layouts use a navigation rail. The side drawer keeps secondary actions in accordion submenus, shows clinician/role/shift/sync health, and promotes administration actions for administrators. The ward FAB opens a compact readiness sheet before report review/send; adding a patient remains available from the top bar.
 
 ## Main technology
 
@@ -46,7 +46,7 @@ The compact ward uses bottom navigation for Patients, Dashboard, and Activity. E
 | Serialization | kotlinx.serialization JSON plus CSV codecs |
 | Background work | WorkManager and coroutines |
 | Authentication | Clinician identity, PBKDF2 PIN hashes, optional biometric unlock |
-| Reports | Text reports plus Classic and Cards PDF renderers |
+| Reports | Text reports plus Classic and Elegant Row PDF renderers |
 | Minimum Android | API 23 |
 
 ## Source layout
@@ -58,11 +58,12 @@ The compact ward uses bottom navigation for Patients, Dashboard, and Activity. E
 - `domain/auth/`: session handling, PIN hashing, biometric support, bootstrap, and live admin authorization.
 - `domain/backup/`: password-encrypted local backup and restore.
 - `domain/patient/`: patient validation and card-related domain rules.
+- `domain/doctor/`: doctor naming/validation plus the versioned UTF-8 CSV interchange codec.
 - `domain/report/`: report assembly, readiness checks, and text generation.
 - `domain/sort/`: stable patient sorting and grouping rules.
 - `network/telegram/`: Telegram Bot API client and protocol models.
 - `sync/`: CSV codecs, merge/conflict logic, publication journal, and synchronization orchestration.
-- `pdf/`: Classic table PDF and Cards/elegant PDF exporters.
+- `pdf/`: Shared non-splitting row renderer used by Classic and Elegant Row PDF styles.
 - `ui/`: Compose screens, navigation, themes, dialogs, and ViewModels.
 - `migration/`: legacy import functionality; excluded from routine review unless explicitly requested.
 
@@ -72,7 +73,7 @@ The encrypted Room database contains patients, doctors, shifts, settings, synchr
 
 Current patient mutation behavior:
 
-- Edit, delete, restore, priority, and warning changes compare the caller's expected revision inside a Room transaction.
+- Edit (including custom badge changes), delete, restore, and priority changes compare the caller's expected revision inside a Room transaction.
 - Successful patient mutations increment the revision.
 - Shift doctor and sort changes use revision-checked DAO updates.
 - Guided rollover refuses to insert when the target shift is no longer empty, preventing duplicate local application.
@@ -112,7 +113,13 @@ Telegram pinned metadata is still a shared pointer without atomic compare-and-sw
 
 `ReportBuilder` reads the current shift, current non-deleted patients, doctors, and sort specification each time a preview, save, share, or send operation begins. Both PDF styles therefore render a fresh repository snapshot.
 
-The ward FAB shows a readiness count derived from shared `ReportReadiness` rules plus unresolved merge conflicts. Opening it leads to review and confirmation rather than immediate publication. Current readiness checks cover missing resident, supervisor, diagnosis, and treatment; structured acuity, tasks, contingencies, and receiver acknowledgment remain planned work.
+Both PDF styles now use compact row layouts with multiple patients per page. A patient row is measured before drawing; when the remaining page space is insufficient, the complete row moves to the next page. Exceptionally large rows are fitted without discarding clinical text. Classic uses only restrained header and zebra colors, while Elegant Row uses white patient rows and slightly more generous typography to keep exported files print-friendly and smaller than the former card output.
+
+Administrators can export and import a versioned UTF-8 doctor-registry CSV through Android's document picker. The file carries every portable doctor field, including stable ID, names, gender, clinical role, supervisor group, Telegram identity, title, rank, permanent-admin state, portable options, and timestamps. Import validates the complete file before writing, previews active/admin/deleted counts, merges by stable ID/Telegram/name, preserves local PINs, protects the current and permanent administrators, records an audit entry, and publishes the resulting active registry. PIN hashes never enter the plaintext CSV; newly imported doctors establish a new PIN after their first verified Telegram login.
+
+The ward FAB shows a readiness count derived from shared `ReportReadiness` rules plus unresolved merge conflicts. Opening it presents an express sheet with patient count, freshness, and the correct review/send action rather than publishing immediately. Current readiness checks cover missing resident, supervisor, diagnosis, and treatment; structured acuity, tasks, contingencies, and receiver acknowledgment remain planned work.
+
+Ward cards support comfortable/compact density, individual expansion, session-local pinning, relative freshness, and consolidated accessibility summaries/actions. The list keeps its existing structured grouping and adds quick filter presets. Patient details keep the section navigator sticky, expose quick actions, and show patient-specific audit history when available. Patient forms show unsaved state, section completion, all validation failures together, field error states, IME-safe layout, paired compact fields, and tinted section headers. Patient status uses a free-text optional badge with an optional low/medium/high level; legacy fixed-warning data is converted on read through the existing persistence columns.
 
 ## Security boundaries
 
