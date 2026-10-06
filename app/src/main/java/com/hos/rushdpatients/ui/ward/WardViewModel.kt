@@ -9,6 +9,9 @@ import com.hos.rushdpatients.config.ProjectConfigStore
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.Shift
+import com.hos.rushdpatients.data.repository.StalePatientEditException
+import com.hos.rushdpatients.data.repository.StaleShiftEditException
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
@@ -494,8 +497,7 @@ class WardViewModel @Inject constructor(
             )
         }
         viewModelScope.launch {
-            // This is an explicit "bring remote data" action, so it is also the recovery path
-            // when a newer doctor registry makes a pending local registry unsafe to publish.
+            // Registry refresh merges with pending local edits and routes conflicts to admin review.
             val doctorsResult = syncService.refreshDoctorsFromRemote()
             if (doctorsResult.isFailure) {
                 _state.update {
@@ -559,11 +561,21 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun updatePatient(patient: Patient, onSuccess: () -> Unit = {}) {
+    fun updatePatient(
+        patient: Patient,
+        onStale: (Patient?) -> Unit = {},
+        onSuccess: () -> Unit = {}
+    ) {
         val shiftId = editableShiftId() ?: return
         viewModelScope.launch {
             if (!validateForSave(patient)) return@launch
-            saveAction(onSuccess) {
+            saveAction(onSuccess, onStale = { error ->
+                if (error !is StalePatientEditException) false else {
+                    val latest = patientRepository.getById(patient.id)
+                    onStale(latest?.takeIf { patientRepository.getShiftId(it.id) == shiftId })
+                    true
+                }
+            }) {
                 requireEditableShift(shiftId)
                 wardMutations.updatePatient(patient, shiftId, sessionManager.current())
             }
@@ -626,7 +638,12 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun setShiftDoctors(ids: List<String>, onSuccess: () -> Unit = {}) {
+    fun setShiftDoctors(
+        ids: List<String>,
+        expectedRevision: Long,
+        onStale: (Shift?) -> Unit,
+        onSuccess: () -> Unit = {}
+    ) {
         val shiftId = editableShiftId() ?: return
         val shift = _state.value.shift?.takeIf { it.id == shiftId } ?: return
         val activeIds = _state.value.doctors.filterNot { it.isDeleted }.mapTo(mutableSetOf()) { it.id }
@@ -641,32 +658,44 @@ class WardViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            saveAction(onSuccess) {
+            saveAction(onSuccess, onStale = { error ->
+                if (error !is StaleShiftEditException) false else {
+                    onStale(shiftRepository.getById(shiftId))
+                    true
+                }
+            }) {
                 requireEditableShift(shiftId)
                 wardMutations.setShiftDoctors(
                     shiftId = shift.id,
                     doctorIds = ids,
-                    expectedRevision = shift.revision,
+                    expectedRevision = expectedRevision,
                     actor = sessionManager.current()
                 )
             }
         }
     }
 
-    fun applySort(spec: SortSpec) {
+    fun applySort(
+        spec: SortSpec,
+        expectedRevision: Long,
+        onStale: (Shift?) -> Unit,
+        onSuccess: () -> Unit = {}
+    ) {
         val shiftId = editableShiftId() ?: return
-        val shift = _state.value.shift?.takeIf { it.id == shiftId } ?: return
         viewModelScope.launch {
-            try {
+            saveAction(onSuccess, onStale = { error ->
+                if (error !is StaleShiftEditException) false else {
+                    onStale(shiftRepository.getById(shiftId))
+                    true
+                }
+            }) {
                 requireEditableShift(shiftId)
                 wardMutations.setShiftSort(
-                    shiftId = shift.id,
+                    shiftId = shiftId,
                     sortSpecJson = SortSpecCodec.encode(spec),
-                    expectedRevision = shift.revision,
+                    expectedRevision = expectedRevision,
                     actor = sessionManager.current()
                 )
-            } catch (e: Exception) {
-                showError(e.message ?: "تعذر حفظ الترتيب")
             }
         }
     }
@@ -713,14 +742,28 @@ class WardViewModel @Inject constructor(
         return true
     }
 
-    private suspend fun saveAction(onSuccess: () -> Unit, action: suspend () -> Unit) {
+    private suspend fun saveAction(
+        onSuccess: () -> Unit,
+        onStale: suspend (Exception) -> Boolean = { false },
+        action: suspend () -> Unit
+    ) {
         _state.update { it.copy(saving = true) }
         try {
             action()
             _state.update { it.copy(saving = false) }
             onSuccess()
+        } catch (e: CancellationException) {
+            _state.update { it.copy(saving = false) }
+            throw e
         } catch (e: Exception) {
-            _state.update { it.copy(saving = false, snackbar = e.message ?: "تعذر حفظ التغييرات") }
+            _state.update { it.copy(saving = false) }
+            try {
+                if (!onStale(e)) showError(e.message ?: "تعذر حفظ التغييرات")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (reloadError: Exception) {
+                showError(reloadError.message ?: "تعذر تحميل أحدث نسخة؛ المسودة باقية")
+            }
         }
     }
 

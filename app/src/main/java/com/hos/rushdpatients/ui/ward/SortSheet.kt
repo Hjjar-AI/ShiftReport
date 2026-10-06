@@ -21,6 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.hos.rushdpatients.data.model.Shift
+import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.domain.sort.SortDirection
 import com.hos.rushdpatients.domain.sort.SortField
 import com.hos.rushdpatients.domain.sort.SortLevel
@@ -30,14 +32,28 @@ import com.hos.rushdpatients.domain.sort.SortSpec
 @Composable
 fun SortSheet(
     initial: SortSpec,
-    onApply: (SortSpec) -> Unit,
+    initialRevision: Long,
+    saving: Boolean = false,
+    onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
-    var levels by remember { mutableStateOf(initial.levels.ifEmpty { listOf(SortLevel(SortField.NAME)) }) }
+    var levels by remember { mutableStateOf(initial.levels) }
+
+    var revision by remember { mutableStateOf(initialRevision) }
+    var rejected by remember { mutableStateOf<SortSpec?>(null) }
+    var latest by remember { mutableStateOf<Shift?>(null) }
+    var reviewing by remember { mutableStateOf(false) }
+    fun apply(spec: SortSpec) {
+        onApply(spec, revision) { saved ->
+            rejected = spec
+            latest = saved
+            reviewing = true
+        }
+    }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!saving) onDismiss() },
         sheetState = sheetState
     ) {
         Column(
@@ -48,6 +64,11 @@ fun SortSheet(
         ) {
             Text("ترتيب المرضى", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
 
+            if (rejected != null) {
+                TextButton(onClick = { reviewing = true }, enabled = !saving) {
+                    Text("مراجعة الترتيب المرفوض")
+                }
+            }
             levels.forEachIndexed { index, level ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -87,19 +108,46 @@ fun SortSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = { onApply(SortSpec(levels)) },
+                    onClick = { apply(SortSpec(levels)) },
+                    enabled = !saving,
                     modifier = Modifier.weight(1f)
                 ) { Text("تطبيق") }
                 OutlinedButton(
-                    onClick = { onApply(SortSpec.DEFAULT) },
+                    onClick = { apply(SortSpec.DEFAULT) },
+                    enabled = !saving,
                     modifier = Modifier.weight(1f)
                 ) { Text("افتراضي") }
             }
             TextButton(
-                onClick = { onApply(SortSpec.EMPTY) },
+                onClick = { apply(SortSpec.EMPTY) },
+                enabled = !saving,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("الترتيب الأصلي") }
         }
+    }
+    if (reviewing) {
+        val saved = latest
+        val draft = rejected ?: SortSpec.EMPTY
+        val savedSpec = SortSpecCodec.decode(saved?.sortSpecJson)
+        StaleEditReviewDialog(
+            differences = listOf(Triple("ترتيب المرضى", sortReviewLabel(draft), sortReviewLabel(savedSpec))),
+            available = saved != null,
+            onKeepDraft = {
+                if (saved != null) {
+                    levels = draft.levels
+                    revision = saved.revision
+                    reviewing = false
+                }
+            },
+            onUseSaved = {
+                if (saved != null) {
+                    levels = savedSpec.levels
+                    revision = saved.revision
+                    reviewing = false
+                }
+            },
+            onDismiss = { reviewing = false }
+        )
     }
 }
 
@@ -156,3 +204,8 @@ private fun fieldLabel(f: SortField): String = when (f) {
     SortField.DAYS_OF_ADMITTANCE -> "أيام الدخول"
     SortField.SUPERVISOR -> "الاختصاصي"
 }
+
+private fun sortReviewLabel(spec: SortSpec): String =
+    if (spec.levels.isEmpty()) "الترتيب الأصلي" else spec.levels.joinToString(" ← ") {
+        "${fieldLabel(it.field)} (${if (it.direction == SortDirection.ASC) "تصاعدي" else "تنازلي"})"
+    }

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.data.repository
 
+import androidx.room.withTransaction
+import com.hos.rushdpatients.data.db.AppDatabase
+import com.hos.rushdpatients.sync.DoctorsRegistryCodec
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.db.dao.DoctorDao
 import com.hos.rushdpatients.data.mapper.DoctorMapper
@@ -15,6 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class DoctorRepository @Inject constructor(
     private val dao: DoctorDao,
+    private val database: AppDatabase,
     private val settingsRepository: SettingsRepository,
     private val dispatchers: DispatcherProvider
 ) {
@@ -62,55 +66,132 @@ class DoctorRepository @Inject constructor(
 
     suspend fun countAll(): Int = withContext(dispatchers.io) { dao.countAll() }
 
-    suspend fun upsert(doctor: Doctor) = withContext(dispatchers.io) {
-        markLocalChangesPending()
-        dao.upsert(DoctorMapper.toEntity(doctor.copy(updatedAt = Instant.now())))
+    private suspend fun <T> mutate(block: suspend () -> T): T = withContext(dispatchers.io) {
+        database.withTransaction {
+            val result = block()
+            markLocalChangesPending()
+            result
+        }
     }
 
-    suspend fun upsertAll(doctors: List<Doctor>) = withContext(dispatchers.io) {
-        markLocalChangesPending()
+    private fun invalidateUnchangedPin(doctor: Doctor, previous: Doctor?): Doctor = doctor.copy(
+        extraOptions = doctor.extraOptions.filterNot {
+            it.startsWith("pin:") && previous != null && previous.telegramId != doctor.telegramId &&
+                it in previous.extraOptions
+        }.toSet()
+    )
+
+    suspend fun upsert(doctor: Doctor) = mutate {
+        val previous = dao.getById(doctor.id)?.let(DoctorMapper::fromEntity)
+        val safe = invalidateUnchangedPin(doctor, previous)
+        dao.upsert(DoctorMapper.toEntity(safe.copy(updatedAt = Instant.now())))
+    }
+
+    suspend fun upsertAll(doctors: List<Doctor>) = mutate {
         val now = Instant.now()
-        dao.upsertAll(doctors.map { DoctorMapper.toEntity(it.copy(updatedAt = now)) })
+        val previous = getAllIncludingDeleted().associateBy { it.id }
+        dao.upsertAll(doctors.map {
+            DoctorMapper.toEntity(invalidateUnchangedPin(it, previous[it.id]).copy(updatedAt = now))
+        })
     }
 
-    suspend fun softDelete(id: String) = withContext(dispatchers.io) {
-        markLocalChangesPending()
+    suspend fun softDelete(id: String) = mutate {
         dao.softDelete(id, Instant.now().toEpochMilli())
     }
 
-    suspend fun replaceAll(doctors: List<Doctor>) = withContext(dispatchers.io) {
-        val local = dao.getAllIncludingDeleted().map(DoctorMapper::fromEntity)
-        val merged = doctors.map { remote ->
-            val existing = local.firstOrNull { candidate ->
-                candidate.id == remote.id ||
-                        (remote.telegramId != null && candidate.telegramId == remote.telegramId) ||
-                        candidate.fullName == remote.fullName
+    /** Map previously recorded wire aliases back to stable local IDs; never match by a changed name. */
+    suspend fun normalizeRemoteRegistry(doctors: List<Doctor>): List<Doctor> = withContext(dispatchers.io) {
+        val local = getAllIncludingDeleted()
+        val normalized = doctors.map { remote ->
+            val matches = local.filter {
+                it.id == remote.id || "$syncAliasPrefix${remote.id}" in it.extraOptions
             }
-            if (existing == null) remote else remote.copy(
-                id = existing.id,
-                // PINs and other device-only secrets never travel through Telegram.
-                extraOptions = existing.extraOptions + if (remote.id != existing.id) {
-                    setOf("$syncAliasPrefix${remote.id}")
-                } else emptySet(),
-                updatedAt = Instant.now()
+            require(matches.size <= 1) { "هوية الطبيب المنشورة ترتبط بأكثر من سجل محلي" }
+            remote.copy(id = matches.singleOrNull()?.id ?: remote.id)
+        }
+        require(normalized.map { it.id }.distinct().size == normalized.size) {
+            "معرّفات السجل المنشور تتطابق مع سجل محلي واحد؛ يلزم مراجعة الهوية"
+        }
+        normalized
+    }
+
+    /** Caller must run this together with base/cursor/pending bookkeeping in a Room transaction. */
+    suspend fun applyMergedRegistry(doctors: List<Doctor>) = withContext(dispatchers.io) {
+        database.withTransaction {
+            val local = getAllIncludingDeleted()
+            val byId = doctors.associateBy { it.id }
+            local.filterNot { it.isDeleted }.forEach { current ->
+                val next = byId[current.id]
+                require(!current.isPermanentAdmin || next != null && next.isPermanentAdmin && next.rank > 0) {
+                    "لا يمكن حذف المدير الدائم أو إزالة صلاحياته عبر دمج السجل"
+                }
+                require(next != null || database.patientDao().countActiveReferencesToDoctor(current.id) == 0) {
+                    "لا يمكن حذف ${current.fullName} أثناء إسناد مرضى إليه؛ أعد الإسناد أولاً"
+                }
+            }
+            val now = Instant.now()
+            val merged = doctors.map { incoming ->
+                val existing = local.firstOrNull { it.id == incoming.id }
+                incoming.copy(
+                    // Identity changes invalidate the previous account's device-local PIN.
+                    extraOptions = existing?.extraOptions.orEmpty().filterNot {
+                        it.startsWith("pin:") && existing?.telegramId != incoming.telegramId
+                    }.toSet(),
+                    telegramUsername = existing?.telegramUsername.takeIf {
+                        existing?.telegramId == incoming.telegramId
+                    },
+                    updatedAt = now,
+                    deletedAt = null
+                )
+            }
+            dao.replaceActiveRegistry(
+                merged.map(DoctorMapper::toEntity), merged.map { it.id }, now.toEpochMilli()
             )
         }
-        val entities = merged.map(DoctorMapper::toEntity)
-        dao.replaceActiveRegistry(
-            doctors = entities,
-            retainedIds = entities.map { it.id },
-            updatedAtMillis = Instant.now().toEpochMilli()
-        )
+    }
+
+    suspend fun replaceAll(doctors: List<Doctor>) = withContext(dispatchers.io) {
+        database.withTransaction {
+            require(!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+                "توجد تغييرات محلية في سجل الأطباء؛ استخدم المزامنة ومراجعة التعارضات"
+            }
+            val local = dao.getAllIncludingDeleted().map(DoctorMapper::fromEntity)
+            val merged = doctors.map { remote ->
+                val existing = local.firstOrNull { candidate ->
+                    candidate.id == remote.id ||
+                            (remote.telegramId != null && candidate.telegramId == remote.telegramId) ||
+                            candidate.fullName == remote.fullName
+                }
+                if (existing == null) remote else remote.copy(
+                    id = existing.id,
+                    // PINs and other device-only secrets never travel through Telegram.
+                    extraOptions = existing.extraOptions.filterNot {
+                        it.startsWith("pin:") && existing.telegramId != remote.telegramId
+                    }.toSet() + if (remote.id != existing.id) {
+                        setOf("$syncAliasPrefix${remote.id}")
+                    } else emptySet(),
+                    updatedAt = Instant.now()
+                )
+            }
+            val entities = merged.map(DoctorMapper::toEntity)
+            dao.replaceActiveRegistry(
+                doctors = entities,
+                retainedIds = entities.map { it.id },
+                updatedAtMillis = Instant.now().toEpochMilli()
+            )
+            settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(merged))
+            settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
+        }
     }
 
     /**
      * Promote a doctor to admin by assigning the next available rank.
      * Idempotent: if already admin, returns the existing rank.
      */
-    suspend fun promoteToAdmin(id: String, customTitle: String?): Doctor? = withContext(dispatchers.io) {
-        val doctor = dao.getById(id) ?: return@withContext null
+    suspend fun promoteToAdmin(id: String, customTitle: String?): Doctor? = mutate {
+        val doctor = dao.getById(id) ?: return@mutate null
         if (doctor.rank > 0) {
-            return@withContext DoctorMapper.fromEntity(doctor)
+            return@mutate DoctorMapper.fromEntity(doctor)
         }
         val nextRank = dao.getMaxRank() + 1
         val updated = doctor.copy(
@@ -119,20 +200,18 @@ class DoctorRepository @Inject constructor(
             customTitle = customTitle,
             updatedAtEpochMillis = Instant.now().toEpochMilli()
         )
-        markLocalChangesPending()
         dao.upsert(updated)
         DoctorMapper.fromEntity(updated)
     }
 
-    suspend fun demoteFromAdmin(id: String): Doctor? = withContext(dispatchers.io) {
-        val doctor = dao.getById(id) ?: return@withContext null
-        if (doctor.isPermanentAdmin) return@withContext null
+    suspend fun demoteFromAdmin(id: String): Doctor? = mutate {
+        val doctor = dao.getById(id) ?: return@mutate null
+        if (doctor.isPermanentAdmin) return@mutate null
         val updated = doctor.copy(
             rank = 0,
             customTitle = null,
             updatedAtEpochMillis = Instant.now().toEpochMilli()
         )
-        markLocalChangesPending()
         dao.upsert(updated)
         DoctorMapper.fromEntity(updated)
     }

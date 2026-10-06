@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.sync
 
+import java.util.Locale
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.Gender
@@ -48,6 +49,9 @@ object DoctorsRegistryCodec {
     }
 
     private fun encodeRow(d: Doctor): String {
+        require(d.id.isNotBlank() && d.id.none { it in ",|@\n\r\"" }) {
+            "معرّف الطبيب غير صالح لصيغة سجل الأطباء"
+        }
         require(
             d.supervisorGroupChatId == null ||
                 (d.clinicalRole == ClinicalRole.SUPERVISOR && d.supervisorGroupChatId < 0L)
@@ -110,7 +114,7 @@ object DoctorsRegistryCodec {
         val rows = body.split(ROW_SEP).filter { it.isNotBlank() }
         if (rows.size < 2) return Decoded(emptyList(), lastId)
 
-        val header = rows.first().split(",").map { it.trim().lowercase() }
+        val header = rows.first().split(",").map { it.trim().lowercase(Locale.ROOT) }
         val nameIdx = header.indexOf("name")
         val uidIdx = header.indexOf("uid")
         val genderIdx = header.indexOf("gender")
@@ -125,20 +129,40 @@ object DoctorsRegistryCodec {
             "سجل الأطباء لا يحتوي جميع الأعمدة المطلوبة"
         }
 
-        val doctors = rows.drop(1).mapNotNull { row ->
+        require(header.distinct().size == header.size) { "سجل الأطباء يحتوي أعمدة مكررة" }
+        val doctors = rows.drop(1).map { row ->
             val cols = splitRow(row)
-            val name = cols.getOrNull(nameIdx)
-                ?.takeIf { it.isNotBlank() }
-                ?: return@mapNotNull null
-
-            val gender = Gender.fromCode(cols.getOrNull(genderIdx))
-            val telegramId = cols.getOrNull(idIdx)?.toLongOrNull()
+            require(cols.size == header.size) { "سجل الأطباء يحتوي صفاً ناقصاً أو غير صالح" }
+            val name = cols[nameIdx]
+            require(name.isNotBlank()) { "سجل الأطباء يحتوي اسماً فارغاً" }
+            val gender = when (cols[genderIdx].uppercase(Locale.ROOT)) {
+                "M", "MALE" -> Gender.MALE
+                "F", "FEMALE" -> Gender.FEMALE
+                else -> error("الجنس غير صالح في سجل الأطباء")
+            }
+            val telegramId = cols[idIdx].takeIf { it.isNotBlank() }?.toLongOrNull()
+            require(cols[idIdx].isBlank() || telegramId != null && telegramId > 0) {
+                "هوية تليجرام غير صالحة في سجل الأطباء"
+            }
             val title = cols.getOrNull(titleIdx)?.takeIf { it.isNotBlank() }
             val options = cols.getOrNull(optionsIdx).orEmpty()
             val rankText = cols.getOrNull(rankIdx).orEmpty()
 
+            require(options.isBlank() || Regex("[aA][1-9][0-9]*").matches(options)) {
+                "خيارات صلاحية المدير غير صالحة في سجل الأطباء"
+            }
             val parsedOptions = parseOptions(options)
             val parsedRank = rankText.toIntOrNull() ?: parsedOptions.rank
+            require((rankText.isBlank() || rankText.toIntOrNull() != null) && parsedRank >= 0 &&
+                (!parsedOptions.isPermanent || parsedRank > 0) &&
+                (options.isBlank() || parsedOptions.rank == parsedRank)) { "رتبة المدير غير صالحة" }
+            val clinicalRole = ClinicalRole.entries.firstOrNull {
+                it.code.equals(cols[clinicalRoleIdx], ignoreCase = true)
+            } ?: error("التصنيف السريري غير صالح في سجل الأطباء")
+            val supervisorGroup = cols[supervisorGroupChatIdIdx].takeIf { it.isNotBlank() }?.toLongOrNull()
+            require(cols[supervisorGroupChatIdIdx].isBlank() || supervisorGroup != null) {
+                "معرّف مجموعة المشرف غير صالح"
+            }
 
             val stableId = cols.getOrNull(uidIdx)?.takeIf { it.isNotBlank() }
                 ?: DoctorNaming.stableId(name)
@@ -149,9 +173,8 @@ object DoctorsRegistryCodec {
                 firstName = extractFirstName(name),
                 lastName = extractLastName(name),
                 gender = gender,
-                clinicalRole = ClinicalRole.fromCode(cols.getOrNull(clinicalRoleIdx)),
-                supervisorGroupChatId = cols.getOrNull(supervisorGroupChatIdIdx)
-                    ?.toLongOrNull(),
+                clinicalRole = clinicalRole,
+                supervisorGroupChatId = supervisorGroup,
                 telegramId = telegramId,
                 telegramUsername = null,
                 customTitle = title,
@@ -164,9 +187,11 @@ object DoctorsRegistryCodec {
         require(doctors.map { it.id }.distinct().size == doctors.size) {
             "سجل الأطباء يحتوي معرّفات مكررة"
         }
-        require(doctors.map { it.fullName }.distinct().size == doctors.size) {
+        require(doctors.map { it.fullName.lowercase(Locale.ROOT) }.distinct().size == doctors.size) {
             "سجل الأطباء يحتوي أسماء مكررة"
         }
+        val telegramIds = doctors.mapNotNull { it.telegramId }
+        require(telegramIds.distinct().size == telegramIds.size) { "سجل الأطباء يحتوي هويات تليجرام مكررة" }
         require(doctors.all {
             it.supervisorGroupChatId == null ||
                 (it.clinicalRole == ClinicalRole.SUPERVISOR && it.supervisorGroupChatId < 0L)

@@ -79,7 +79,8 @@ Current patient mutation behavior:
 - Guided rollover refuses to insert when the target shift is no longer empty, preventing duplicate local application.
 - `WardMutationRepository` commits ward patient add/edit (including badges and priority), delete/restore, rollover, and shift doctor/sort changes with the pending-sync marker and audit records in one Room transaction on the IO dispatcher. Stale or failed mutations roll back the entire operation.
 - Audit before-values are read within that transaction; new-patient ID collisions, capacity, and sort-order assignment are checked there as well. Current-shift editability is rechecked at this repository boundary.
-- The existing stale-edit message still requires the user to reopen the editor; a focused draft-preserving reload/review workflow remains active P0 work.
+- Stale saves in the patient editor, shift-doctor picker, and sort sheet open a draft/saved-value review. The rejected draft remains available during the open editor session, even after loading the saved values. Choosing a version returns to editing without saving; the next save uses the explicitly reviewed revision and can reject another intervening edit. Missing/deleted patients cannot be rebased for editing.
+- Shift controls capture their opening revision instead of using a newer observed revision with an older draft. The sort sheet remains open on save failure. These review drafts are session-local, not a new persisted clinical record.
 - This transaction boundary covers local ward mutations; remote synchronization, backup restore, and doctor-registry workflows retain their separate orchestration.
 
 ## Project configuration and onboarding
@@ -109,7 +110,11 @@ Telegram pinned metadata is still a shared pointer without atomic compare-and-sw
 - Local stale-write protection is strong on one device.
 - Patient three-way merge reduces cross-device loss.
 - Simultaneous remote publication can still race at the pinned-pointer boundary.
-- Doctor registry synchronization rejects stale whole-registry publication but does not yet offer a complete three-way registry merge.
+- Doctor registry synchronization persists a PIN-free base snapshot in encrypted Room settings and merges additions, deletions, and each field supported by the existing Telegram wire format. The name, gender, clinical role/supervisor-group pair, Telegram ID, title, and admin rank/permanent pair participate in the merge. Telegram username, portable extra options, and local PIN/alias options are not sent by that legacy format and remain local or CSV-export data.
+- Conflicting fields, duplicate names/Telegram IDs, competing admin-rank assignments, and protected doctor deletions appear in the doctor-registry screen for explicit admin choices. Existing installations with pending changes and no saved base require conservative review of differences. No local registry replacement occurs while conflicts remain.
+- Merge application rechecks the full local snapshot and saved base, protects permanent admins and assigned-patient references, and atomically records the registry, remote base, sync cursor, pending marker, and audit before/after values. Explicit resolution requires live local admin authority plus active admin status in the reviewed remote registry, and respects higher-rank/permanent-admin restrictions.
+- Doctor mutation/pending writes share a transaction. An unchanged device-local PIN is invalidated when a doctor is linked to a different Telegram identity; fresh explicitly supplied PINs are retained. Edits made during registry upload remain pending. Conflict-review state is session-local; after process death, synchronization reconstructs it from the persisted base and local registry.
+- The full doctor pointer is checked before publication and again during pinned-state update, but this remains best-effort detection rather than an atomic cross-device transaction.
 - A transactional authoritative service is the required long-term fix; Telegram should then remain delivery/archive infrastructure.
 
 ## Reports and handoff
@@ -137,11 +142,10 @@ Ward cards support comfortable/compact density, individual expansion, session-lo
 ## Known high-priority limitations
 
 1. Telegram cannot be the final authoritative multi-writer database.
-2. Stale ward edits are rejected safely but still need a focused draft-preserving reload/review experience.
-3. Doctor registry changes need a last-synced base and explicit three-way conflict workflow.
-4. Provisioning files are encrypted but reusable rather than server-issued, signed, one-time, and expiring.
-5. Structured I-PASS fields, tasks, receiver synthesis, and closed-loop critical acknowledgments do not yet exist in the core model.
-6. Large-screen patient browsing still needs a simultaneous list-detail layout.
+2. The new doctor merge and review workflow still needs build/device validation and the remaining high-risk multi-device scenarios before release.
+3. Provisioning files are encrypted but reusable rather than server-issued, signed, one-time, and expiring.
+4. Structured I-PASS fields, tasks, receiver synthesis, and closed-loop critical acknowledgments do not yet exist in the core model.
+5. Large-screen patient browsing still needs a simultaneous list-detail layout.
 
 ## Documentation discipline
 

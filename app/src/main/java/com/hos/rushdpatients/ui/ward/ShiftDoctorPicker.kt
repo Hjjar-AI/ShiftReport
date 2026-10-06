@@ -24,18 +24,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.data.model.Doctor
 
 @Composable
 fun ShiftDoctorPicker(
     allDoctors: List<Doctor>,
     initialSelected: List<String>,
+    initialRevision: Long,
     max: Int = 3,
     saving: Boolean = false,
-    onConfirm: (List<String>) -> Unit,
+    onConfirm: (List<String>, Long, (Shift?) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selected by remember { mutableStateOf(initialSelected.toList()) }
+    var revision by remember { mutableStateOf(initialRevision) }
+    var rejected by remember { mutableStateOf<List<String>?>(null) }
+    var latest by remember { mutableStateOf<Shift?>(null) }
+    var reviewing by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
@@ -53,6 +59,11 @@ fun ShiftDoctorPicker(
                     style = MaterialTheme.typography.bodySmall
                 )
 
+                if (rejected != null) {
+                    TextButton(onClick = { reviewing = true }, enabled = !saving) {
+                        Text("مراجعة الاختيار المرفوض")
+                    }
+                }
                 allDoctors.filterNot { it.isDeleted }.forEach { doctor ->
                     val isSelected = doctor.id in selected
                     val canSelect = selected.size < max || isSelected
@@ -73,7 +84,7 @@ fun ShiftDoctorPicker(
                         ) {
                             Checkbox(
                                 checked = isSelected,
-                                enabled = canSelect,
+                                enabled = canSelect && !saving,
                                 onCheckedChange = { checked ->
                                     selected = if (checked) {
                                         selected + doctor.id
@@ -95,7 +106,14 @@ fun ShiftDoctorPicker(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(selected) },
+                onClick = {
+                    val draft = selected.toList()
+                    onConfirm(draft, revision) { saved ->
+                        rejected = draft
+                        latest = saved
+                        reviewing = true
+                    }
+                },
                 enabled = selected.isNotEmpty() && !saving
             ) { Text(if (saving) "جار الحفظ…" else "حفظ") }
         },
@@ -103,4 +121,30 @@ fun ShiftDoctorPicker(
             TextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
         }
     )
+    if (reviewing) {
+        val saved = latest
+        val draft = rejected.orEmpty()
+        fun names(ids: List<String>) = ids.joinToString("، ") { id ->
+            allDoctors.firstOrNull { it.id == id }?.fullName ?: id
+        }
+        StaleEditReviewDialog(
+            differences = listOf(Triple("أطباء المناوبة", names(draft), names(saved?.doctorIds.orEmpty()))),
+            available = saved != null,
+            onKeepDraft = {
+                if (saved != null) {
+                    selected = draft
+                    revision = saved.revision
+                    reviewing = false
+                }
+            },
+            onUseSaved = {
+                if (saved != null) {
+                    selected = saved.doctorIds
+                    revision = saved.revision
+                    reviewing = false
+                }
+            },
+            onDismiss = { reviewing = false }
+        )
+    }
 }

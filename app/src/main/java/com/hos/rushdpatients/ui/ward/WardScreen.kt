@@ -1325,8 +1325,8 @@ fun WardScreen(
             patient = p,
             doctors = state.doctors,
             saving = state.saving,
-            onConfirm = {
-                viewModel.updatePatient(it) {
+            onConfirm = { draft, onStale ->
+                viewModel.updatePatient(draft, onStale) {
                     viewModel.consumeRolloverReview(p.id)
                     editTarget = null
                 }
@@ -1375,9 +1375,10 @@ fun WardScreen(
     if (showSort) {
         SortSheet(
             initial = state.sortSpec,
-            onApply = {
-                viewModel.applySort(it)
-                showSort = false
+            initialRevision = state.shift?.revision ?: 0,
+            saving = state.saving,
+            onApply = { spec, revision, onStale ->
+                viewModel.applySort(spec, revision, onStale) { showSort = false }
             },
             onDismiss = { showSort = false }
         )
@@ -1430,10 +1431,11 @@ fun WardScreen(
         ShiftDoctorPicker(
             allDoctors = state.doctors,
             initialSelected = state.shift?.doctorIds ?: emptyList(),
+            initialRevision = state.shift?.revision ?: 0,
             max = 3,
             saving = state.saving,
-            onConfirm = {
-                viewModel.setShiftDoctors(it) { showShiftDoctors = false }
+            onConfirm = { ids, revision, onStale ->
+                viewModel.setShiftDoctors(ids, revision, onStale) { showShiftDoctors = false }
             },
             onDismiss = { showShiftDoctors = false }
         )

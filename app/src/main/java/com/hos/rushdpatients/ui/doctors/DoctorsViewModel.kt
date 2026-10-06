@@ -17,7 +17,8 @@ import com.hos.rushdpatients.domain.doctor.DoctorValidationResult
 import com.hos.rushdpatients.domain.doctor.DoctorValidator
 import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
-import com.hos.rushdpatients.sync.DoctorsRegistryCodec
+import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
+import kotlinx.coroutines.CancellationException
 import com.hos.rushdpatients.sync.SyncService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -45,7 +46,30 @@ class DoctorsViewModel @Inject constructor(
     val state: StateFlow<DoctorsUiState> = _state.asStateFlow()
     private var pendingImportDoctors: List<Doctor>? = null
 
-    init { observe() }
+    init {
+        observe()
+        viewModelScope.launch {
+            syncService.doctorConflicts.collect { conflicts ->
+                _state.update { it.copy(mergeConflicts = conflicts) }
+            }
+        }
+    }
+
+    fun resolveRegistryConflicts(choices: Map<String, DoctorMergeChoice>) {
+        if (_state.value.saving || _state.value.importing) return
+        _state.update { it.copy(saving = true) }
+        viewModelScope.launch {
+            try {
+                syncService.resolveDoctorConflicts(choices).fold(
+                    onSuccess = { _state.update { it.copy(saving = false, snackbar = "تم دمج سجل الأطباء ومزامنته") } },
+                    onFailure = { error -> fail(error.message ?: "تعذر تطبيق دمج سجل الأطباء") }
+                )
+            } catch (e: CancellationException) {
+                _state.update { it.copy(saving = false) }
+                throw e
+            }
+        }
+    }
 
     private fun observe() {
         viewModelScope.launch {
@@ -426,7 +450,6 @@ class DoctorsViewModel @Inject constructor(
     }
 
     private suspend fun uploadRegistry(): Result<Unit> {
-        val all = doctorRepository.getAll()
-        return syncService.uploadDoctors(DoctorsRegistryCodec.encode(all))
+        return syncService.uploadCurrentDoctors()
     }
 }

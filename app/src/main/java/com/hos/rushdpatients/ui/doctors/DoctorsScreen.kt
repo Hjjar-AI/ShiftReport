@@ -66,6 +66,7 @@ fun DoctorsScreen(
     val snackbar = remember { SnackbarHostState() }
 
     var showAdd by remember { mutableStateOf(false) }
+    var showMergeReview by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Doctor?>(null) }
     var deleteTarget by remember { mutableStateOf<Doctor?>(null) }
     var query by remember { mutableStateOf("") }
@@ -98,6 +99,15 @@ fun DoctorsScreen(
             snackbar.showSnackbar(it)
             viewModel.dismissSnackbar()
         }
+    }
+
+    if (showMergeReview && state.mergeConflicts.isNotEmpty()) {
+        DoctorConflictReviewDialog(
+            conflicts = state.mergeConflicts,
+            saving = state.saving,
+            onConfirm = viewModel::resolveRegistryConflicts,
+            onDismiss = { showMergeReview = false }
+        )
     }
 
     Scaffold(
@@ -146,6 +156,19 @@ fun DoctorsScreen(
                         .padding(horizontal = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (state.mergeConflicts.isNotEmpty()) {
+                        item {
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text("تعارضات سجل الأطباء: ${state.mergeConflicts.size}")
+                                    Text("لم تُستبدل التعديلات المحلية. راجع القيم المتعارضة قبل المزامنة.")
+                                    TextButton(onClick = { showMergeReview = true }, enabled = !state.saving) {
+                                        Text("مراجعة التعارضات")
+                                    }
+                                }
+                            }
+                        }
+                    }
                     item {
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(

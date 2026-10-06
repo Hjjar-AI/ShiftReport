@@ -137,9 +137,11 @@ fun CopyPatientDialog(
 internal fun PatientFormDialog(
     title: String,
     initial: Patient?,
+    savedBaseline: Patient? = initial,
     restoredDraft: PatientDraft? = null,
     doctors: List<Doctor>,
     saving: Boolean,
+    reviewAction: @Composable () -> Unit = {},
     onDraftChanged: (PatientDraft) -> Unit = {},
     onConfirm: (Patient) -> Unit,
     onDismiss: () -> Unit
@@ -230,18 +232,18 @@ internal fun PatientFormDialog(
     val formScrollState = rememberScrollState()
     val formScope = rememberCoroutineScope()
     val changedFieldCount = listOf(
-        admittanceNumber != initial?.admittanceNumber.orEmpty(),
-        name != initial?.name.orEmpty(),
-        birthYearText != initial?.birthDate?.year?.toString().orEmpty(),
-        initialDiagnosis != initial?.initialDiagnosis.orEmpty(),
-        treatmentItems.joinToString("\n") != initial?.treatmentPlan.orEmpty(),
-        followUpItems.joinToString("\n") != initial?.followUp.orEmpty(),
-        labItems.joinToString("\n") != initial?.labs.orEmpty(),
-        residentId != initial?.responsibleResidentId,
-        specialistId != initial?.responsibleSpecialistId,
-        badges != initial?.badges.orEmpty(),
+        admittanceNumber != savedBaseline?.admittanceNumber.orEmpty(),
+        name != savedBaseline?.name.orEmpty(),
+        birthYearText != savedBaseline?.birthDate?.year?.toString().orEmpty(),
+        initialDiagnosis != savedBaseline?.initialDiagnosis.orEmpty(),
+        treatmentItems.joinToString("\n") != savedBaseline?.treatmentPlan.orEmpty(),
+        followUpItems.joinToString("\n") != savedBaseline?.followUp.orEmpty(),
+        labItems.joinToString("\n") != savedBaseline?.labs.orEmpty(),
+        residentId != savedBaseline?.responsibleResidentId,
+        specialistId != savedBaseline?.responsibleSpecialistId,
+        badges != savedBaseline?.badges.orEmpty(),
         badgeDraftText.isNotBlank(),
-        isPriority != (initial?.isPriority ?: false)
+        isPriority != (savedBaseline?.isPriority ?: false)
     ).count { it }
 
     val admissionIdentityContent: @Composable () -> Unit = {
@@ -415,6 +417,7 @@ internal fun PatientFormDialog(
         title = {
             Column {
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
+                reviewAction()
                 if (changedFieldCount > 0) {
                     Text(
                         "توجد تغييرات غير محفوظة",

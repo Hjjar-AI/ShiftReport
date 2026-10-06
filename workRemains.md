@@ -9,21 +9,16 @@ This file contains only remaining work. Completed items are tracked in [workDone
    - Use a small authoritative service/database with row versions or transactions for shifts, patients, doctors, and publication ownership.
    - Keep Telegram as the delivery/archive channel after the authoritative transaction commits.
 
-2. Add a focused reload/review experience after a stale-edit rejection.
-   - Preserve the rejected draft while showing the latest patient or shift settings for deliberate review.
-   - Keep expected-revision checks when the user retries; never silently overwrite the newer version.
-
-3. Add a real doctor-registry merge workflow.
-   - Persist a last-synced base registry.
-   - Three-way merge additions, edits, deletions, admin rank, and Telegram identity.
-   - Present conflicts for explicit review instead of requiring the admin to accept the entire remote registry.
-
-4. Manually verify the high-risk concurrency scenarios before release.
+2. Manually verify the high-risk concurrency scenarios before release.
    - Two devices edit different fields of the same patient.
    - Two devices edit the same field and resolve the conflict both ways.
    - Delete versus edit, add versus add, simultaneous publish, and interrupted publish.
    - Doctor edit versus doctor edit and doctor deletion while assigned to an active patient.
    - Patient publish concurrent with doctor-registry or announcement updates.
+   - Doctor merge with no saved base, duplicate Telegram/name additions, and concurrent admin-rank assignments.
+   - Local or remote registry changes while conflict review is open, edits during upload, and retry after interrupted merge publication.
+   - Re-linking a Telegram identity invalidates the old device-local PIN; permanent-admin and assigned-patient deletion protections still hold.
+   - Recreate a pending doctor review after process death by synchronizing again from the persisted base and unchanged local registry.
 
 ## P1 — structured, closed-loop handoff
 

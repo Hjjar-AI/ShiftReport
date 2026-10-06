@@ -60,6 +60,7 @@ object AppConstants {
     const val SETTING_SYNC_WIFI_ONLY = "sync_wifi_only"
     const val SETTING_AUTO_LOCK_MINUTES = "auto_lock_minutes"
     const val SETTING_BIOMETRIC_ENABLED = "biometric_enabled"
+    const val SETTING_DOCTORS_BASE_REGISTRY = "doctors_base_registry"
     const val SETTING_DOCTORS_SYNC_PENDING = "doctors_sync_pending"
     const val SETTING_PATIENTS_SYNC_PENDING = "patients_sync_pending"
     const val SETTING_PATIENT_DRAFT = "patient_draft"

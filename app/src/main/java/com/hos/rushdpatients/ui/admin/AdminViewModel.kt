@@ -7,7 +7,6 @@ import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.usecase.DemoteAdminUseCase
 import com.hos.rushdpatients.domain.usecase.PromoteAdminUseCase
 import com.hos.rushdpatients.domain.usecase.PromoteResult
-import com.hos.rushdpatients.sync.DoctorsRegistryCodec
 import com.hos.rushdpatients.sync.SyncService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,8 +98,6 @@ class AdminViewModel @Inject constructor(
     }
 
     private suspend fun uploadRegistry(): Result<Unit> {
-        val all = doctorRepository.getAll()
-        val text = DoctorsRegistryCodec.encode(all)
-        return syncService.uploadDoctors(text)
+        return syncService.uploadCurrentDoctors()
     }
 }
