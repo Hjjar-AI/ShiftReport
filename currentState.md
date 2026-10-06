@@ -6,7 +6,7 @@ This document describes the implementation as it exists now. Future work belongs
 
 ## Product shape
 
-ShiftReport is a single-module, Arabic-first, RTL Android ward and shift-handoff application. It is hospital-agnostic and configured on-device during first launch. Telegram currently provides transport, report delivery, immutable document storage, and shared pointers; local Room data remains the working clinical store on each device.
+ShiftReport is a single-module, Arabic-first, RTL Android ward and shift-handoff application. It is hospital-agnostic and configured on-device during first launch. Telegram provides transport, report delivery, immutable document storage, and shared pointers; local Room data remains the working clinical store on each device. The intended workflow is retrieve, edit, and publish, with last-write-wins at the shared pinned-state boundary. Guaranteed concurrent collaboration is outside the required scope, and a separate backend is not required.
 
 The app supports API 23 through target/compile SDK 34. It uses Java 17, Kotlin 1.9.0, Android Gradle Plugin 8.5.0, and Jetpack Compose with the 2023.10.01 BOM. Do not infer that these versions should be upgraded merely because newer versions exist.
 
@@ -31,7 +31,7 @@ MainActivity
           -> About
 ```
 
-The compact ward uses bottom navigation for Patients, Dashboard, and Activity. Expanded layouts use a navigation rail. The side drawer keeps secondary actions in accordion submenus and groups clinician/role/shift context with a data-health panel for freshness, connectivity, synchronization, and conflicts. The default patient header stays focused on patient count and compact filter presets. The ward FAB opens a compact readiness sheet before report review/send; adding a patient remains available from the top bar.
+The compact ward uses bottom navigation for Patients, Dashboard, and Activity. Expanded layouts use a navigation rail. The side drawer keeps secondary actions in accordion submenus and groups clinician/role/shift context with a data-health panel for freshness, connectivity, synchronization, and conflicts. Connectivity uses validated Android network callbacks exposed by the ward ViewModel and collected with the screen lifecycle; callbacks are released when collection stops. Connectivity does not establish that clinical data is verified or current. The default patient header stays focused on patient count and compact filter presets. The ward FAB opens a compact readiness sheet before report review/send; adding a patient remains available from the top bar.
 
 ## Main technology
 
@@ -81,7 +81,8 @@ Current patient mutation behavior:
 - Audit before-values are read within that transaction; new-patient ID collisions, capacity, and sort-order assignment are checked there as well. Current-shift editability is rechecked at this repository boundary.
 - Stale saves in the patient editor, shift-doctor picker, and sort sheet open a draft/saved-value review. The rejected draft remains available during the open editor session, even after loading the saved values. Choosing a version returns to editing without saving; the next save uses the explicitly reviewed revision and can reject another intervening edit. Missing/deleted patients cannot be rebased for editing.
 - Shift controls capture their opening revision instead of using a newer observed revision with an older draft. The sort sheet remains open on save failure. These review drafts are session-local, not a new persisted clinical record.
-- This transaction boundary covers local ward mutations; remote synchronization, backup restore, and doctor-registry workflows retain their separate orchestration.
+- `DoctorMutationRepository` similarly commits basic doctor add/edit/delete, live admin authorization, full expected-row checks, pending state, and audit together. New doctors are checked for capacity and identity collisions inside the transaction. Clinical-role changes with active patient references are refused; deletion protects active references and the current shift roster. Stale doctor edits offer session-local draft/saved review, with a separate subsequent save and no PIN display or draft persistence.
+- These boundaries cover local ward mutations and basic doctor edits; remote synchronization and backup restore retain separate orchestration. Doctor CSV import and admin-rank changes still need guarded atomic mutation/audit orchestration, and supervisor-group changes need expected-snapshot protection.
 
 ## Project configuration and onboarding
 
@@ -90,7 +91,7 @@ Current patient mutation behavior:
 - Demo creates no database patients and starts no background synchronization.
 - Join is the default path. It accepts manual settings or an AES-GCM/PBKDF2 encrypted `.srjoin` file exported by an administrator.
 - Create validates the Telegram bot/group, creates the initial administrator registry, and initializes the project.
-- The join-file passphrase is never stored or embedded. The current file is reusable; server-issued one-time expiry remains future work.
+- The join-file passphrase is never stored or embedded. The current file is reusable; server-enforced one-time expiry is an optional future capability, not a prerequisite for the Telegram-based app.
 
 ## Authentication and authorization
 
@@ -105,21 +106,26 @@ Current patient mutation behavior:
 
 Patient synchronization uses CSV snapshots, a saved base snapshot, three-way field merging, explicit conflict choices, immutable uploads, recovery snapshots, and a publication journal. Patient and doctor synchronization are serialized per channel on one device. Pending local edits are uploaded before a background pull can replace them.
 
-Telegram pinned metadata is still a shared pointer without atomic compare-and-swap. Consequently:
+Telegram pinned metadata is a shared pointer without atomic compare-and-swap. The owner accepts last-write-wins for competing remote publications. Existing merge and stale-pointer checks remain implemented; this scope decision does not replace them with unconditional overwrites. Consequently:
 
 - Local stale-write protection is strong on one device.
 - Patient three-way merge reduces cross-device loss.
-- Simultaneous remote publication can still race at the pinned-pointer boundary.
+- Simultaneous remote publication can still race at the pinned-pointer boundary; the last successful pointer write wins. Preserving every competing publication is outside the required scope.
 - Doctor registry synchronization persists a PIN-free base snapshot in encrypted Room settings and merges additions, deletions, and each field supported by the existing Telegram wire format. The name, gender, clinical role/supervisor-group pair, Telegram ID, title, and admin rank/permanent pair participate in the merge. Telegram username, portable extra options, and local PIN/alias options are not sent by that legacy format and remain local or CSV-export data.
 - Conflicting fields, duplicate names/Telegram IDs, competing admin-rank assignments, and protected doctor deletions appear in the doctor-registry screen for explicit admin choices. Existing installations with pending changes and no saved base require conservative review of differences. No local registry replacement occurs while conflicts remain.
-- Merge application rechecks the full local snapshot and saved base, protects permanent admins and assigned-patient references, and atomically records the registry, remote base, sync cursor, pending marker, and audit before/after values. Explicit resolution requires live local admin authority plus active admin status in the reviewed remote registry, and respects higher-rank/permanent-admin restrictions.
+- Merge application rechecks the full local snapshot and saved base, protects permanent admins, assigned-patient references, and the current shift roster, and atomically records the registry, remote base, sync cursor, pending marker, and audit before/after values. Explicit resolution requires live local admin authority plus active admin status in the reviewed remote registry, and respects higher-rank/permanent-admin restrictions.
 - Doctor mutation/pending writes share a transaction. An unchanged device-local PIN is invalidated when a doctor is linked to a different Telegram identity; fresh explicitly supplied PINs are retained. Edits made during registry upload remain pending. Conflict-review state is session-local; after process death, synchronization reconstructs it from the persisted base and local registry.
+- Unchanged merged doctor rows keep their existing timestamps and local name components, avoiding timestamp-only stale-editor failures after an unchanged pull.
 - The full doctor pointer is checked before publication and again during pinned-state update, but this remains best-effort detection rather than an atomic cross-device transaction.
-- A transactional authoritative service is the required long-term fix; Telegram should then remain delivery/archive infrastructure.
+- No authoritative service is required for the accepted retrieve/edit/publish workflow. Stronger concurrent-write guarantees would be a separate future requirement.
 
 ## Reports and handoff
 
-`ReportBuilder` reads the current shift, current non-deleted patients, doctors, and sort specification each time a preview, save, share, or send operation begins. The report preview places the selected shift doctors in its first summary section. Both PDF styles therefore render a fresh repository snapshot.
+`ReportBuilder` reads the current shift, non-deleted patients, doctor registry, and sort specification together in a Room transaction on the IO dispatcher. The report preview places selected shift doctors in its first summary section.
+
+Text/PDF sending retains the preview snapshot. `ReportReview` compares clinical content and relevant doctor/delivery fields before synchronization, after doctor synchronization, and after patient publication. A mismatch refreshes the preview and requires another explicit confirmation before report delivery. Delivery, including supervisor PDFs and destinations, uses the accepted snapshot rather than rereading individual doctor rows. Supervisor sends synchronize before delivery; a partial failure reports how many recipients were reached and requires deliberate recipient review instead of offering the combined-report retry.
+
+These checks preserve review intent but do not create a transaction across synchronization and Telegram delivery. CSV synchronization may publish before a later mismatch stops text/PDF delivery; competing remote publications follow the accepted last-write-wins policy, while interrupted/partial delivery still needs manual recovery validation. Local preview/save/share continue to assemble a fresh snapshot on request.
 
 Both PDF styles now use compact row layouts with multiple patients per page. A patient row is measured before drawing; when the remaining page space is insufficient, the complete row moves to the next page. Exceptionally large rows are fitted without discarding clinical text. Classic uses only restrained header and zebra colors, while Elegant Row uses white patient rows and slightly more generous typography to keep exported files print-friendly and smaller than the former card output.
 
@@ -137,13 +143,13 @@ Ward cards support comfortable/compact density, individual expansion, session-lo
 - Backup and project-join exports use authenticated AES-GCM encryption with PBKDF2-derived keys.
 - Credentials and signing material are ignored by Git and must remain local.
 - The release build currently references the debug signing configuration. Production distribution requires a protected release keystore and a deliberate signing setup.
-- Ordinary clients still hold a broadly privileged reusable Telegram bot token. Removing it from client devices depends on the future authoritative service.
+- Ordinary clients still hold a broadly privileged reusable Telegram bot token. Removing it from client devices would require an optional token-proxy service; it is not a prerequisite for the current Telegram-based design.
 
 ## Known high-priority limitations
 
-1. Telegram cannot be the final authoritative multi-writer database.
-2. The new doctor merge and review workflow still needs build/device validation and the remaining high-risk multi-device scenarios before release.
-3. Provisioning files are encrypted but reusable rather than server-issued, signed, one-time, and expiring.
+1. Doctor merge/edit review and reviewed-report sending still need build/device validation and the intended sequential retrieve/edit/publish and interrupted-delivery scenarios before release.
+2. Remaining administrative import/rank/destination workflows need atomic stale-write protection, and production signing still needs configuration.
+3. Provisioning files are encrypted but reusable; credential rotation and safe project reconnection remain unfinished. Server-enforced one-time expiry is optional.
 4. Structured I-PASS fields, tasks, receiver synthesis, and closed-loop critical acknowledgments do not yet exist in the core model.
 5. Large-screen patient browsing still needs a simultaneous list-detail layout.
 

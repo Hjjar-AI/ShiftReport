@@ -257,8 +257,8 @@ fun DoctorsScreen(
         AddEditDoctorDialog(
             existing = null,
             saving = state.saving,
-            onConfirm = { fn, ln, g, role, pin, ct, tid ->
-                viewModel.addDoctor(fn, ln, g, role, pin, ct, tid) { showAdd = false }
+            onConfirm = { _, input, _ ->
+                viewModel.addDoctor(input) { showAdd = false }
             },
             onDismiss = { showAdd = false }
         )
@@ -268,8 +268,8 @@ fun DoctorsScreen(
         AddEditDoctorDialog(
             existing = d,
             saving = state.saving,
-            onConfirm = { fn, ln, g, role, pin, ct, tid ->
-                viewModel.editDoctor(d.id, fn, ln, g, role, pin, ct, tid) { editTarget = null }
+            onConfirm = { expected, input, onStale ->
+                if (expected != null) viewModel.editDoctor(expected, input, onStale) { editTarget = null }
             },
             onDismiss = { editTarget = null }
         )
@@ -280,7 +280,7 @@ fun DoctorsScreen(
             title = "حذف طبيب",
             message = "هل أنت متأكد من حذف ${d.fullName}؟",
             onConfirm = {
-                viewModel.deleteDoctor(d.id) { deleteTarget = null }
+                viewModel.deleteDoctor(d) { deleteTarget = null }
             },
             onDismiss = { deleteTarget = null }
         )

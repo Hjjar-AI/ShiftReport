@@ -40,6 +40,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -70,6 +72,9 @@ class WardViewModel @Inject constructor(
         WardUiState(hospitalName = projectConfigStore.current().hospitalName)
     )
     val state: StateFlow<WardUiState> = _state.asStateFlow()
+    val online: StateFlow<Boolean> = NetworkStatus.observe(context).stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(0), NetworkStatus.isOnline(context)
+    )
     private var observationJob: Job? = null
     private var draftSaveJob: Job? = null
 

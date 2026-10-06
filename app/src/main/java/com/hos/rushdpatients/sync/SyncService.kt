@@ -994,10 +994,9 @@ class SyncService @Inject constructor(
             val baseKnown = baseData != null || !pending
             val base = baseData?.let { DoctorsRegistryCodec.decode(it).doctors } ?: local
             val remoteIds = remote.mapTo(mutableSetOf()) { it.id }
-            val protectedDeletionIds = localSnapshot.filter {
-                !it.isDeleted && it.id !in remoteIds &&
-                    (it.isPermanentAdmin || patientRepository.countActiveReferencesToDoctor(it.id) > 0)
-            }.mapTo(mutableSetOf()) { it.id }
+            val protectedDeletionIds = doctorRepository.protectedDeletionIds(
+                local.mapTo(mutableSetOf()) { it.id } - remoteIds
+            )
             val review = PendingDoctorMerge(
                 state, baseData, base, localSnapshot, local, remote, baseKnown, protectedDeletionIds
             )

@@ -120,7 +120,6 @@ import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.sync.ConflictChoice
 import com.hos.rushdpatients.ui.theme.LocalClinicalColors
-import com.hos.rushdpatients.util.NetworkStatus
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -139,6 +138,7 @@ fun WardScreen(
     viewModel: WardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val online by viewModel.online.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -384,7 +384,7 @@ fun WardScreen(
                             ),
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
-                        if (!NetworkStatus.isOnline(context)) {
+                        if (!online) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)

@@ -7,6 +7,7 @@ import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.db.dao.DoctorDao
 import com.hos.rushdpatients.data.mapper.DoctorMapper
 import com.hos.rushdpatients.data.model.Doctor
+import com.hos.rushdpatients.util.ShiftDate
 import com.hos.rushdpatients.util.DispatcherProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -115,6 +116,24 @@ class DoctorRepository @Inject constructor(
         normalized
     }
 
+    suspend fun requireNoClinicalReferences(id: String) = withContext(dispatchers.io) {
+        require(database.patientDao().countActiveReferencesToDoctor(id) == 0) {
+            "لا يمكن حذف طبيب مسؤول عن مرضى حاليين؛ أعد الإسناد أولاً"
+        }
+        val roster = database.shiftDao().getByDate(ShiftDate.current().toEpochDay())
+            ?.doctorIdsCsv?.split(',').orEmpty()
+        require(id !in roster) { "أزل الطبيب من أطباء المناوبة الحالية قبل حذفه" }
+    }
+
+    suspend fun protectedDeletionIds(candidateIds: Set<String>): Set<String> = withContext(dispatchers.io) {
+        val roster = database.shiftDao().getByDate(ShiftDate.current().toEpochDay())
+            ?.doctorIdsCsv?.split(',').orEmpty()
+        getAll().filter {
+            it.id in candidateIds && (it.isPermanentAdmin || it.id in roster ||
+                database.patientDao().countActiveReferencesToDoctor(it.id) > 0)
+        }.mapTo(mutableSetOf()) { it.id }
+    }
+
     /** Caller must run this together with base/cursor/pending bookkeeping in a Room transaction. */
     suspend fun applyMergedRegistry(doctors: List<Doctor>) = withContext(dispatchers.io) {
         database.withTransaction {
@@ -125,14 +144,18 @@ class DoctorRepository @Inject constructor(
                 require(!current.isPermanentAdmin || next != null && next.isPermanentAdmin && next.rank > 0) {
                     "لا يمكن حذف المدير الدائم أو إزالة صلاحياته عبر دمج السجل"
                 }
-                require(next != null || database.patientDao().countActiveReferencesToDoctor(current.id) == 0) {
-                    "لا يمكن حذف ${current.fullName} أثناء إسناد مرضى إليه؛ أعد الإسناد أولاً"
+                if (next == null) requireNoClinicalReferences(current.id)
+                require(next == null || next.clinicalRole == current.clinicalRole ||
+                    database.patientDao().countActiveReferencesToDoctor(current.id) == 0) {
+                    "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب ${current.fullName}"
                 }
             }
             val now = Instant.now()
             val merged = doctors.map { incoming ->
                 val existing = local.firstOrNull { it.id == incoming.id }
-                incoming.copy(
+                val candidate = incoming.copy(
+                    firstName = existing?.takeIf { it.fullName == incoming.fullName }?.firstName ?: incoming.firstName,
+                    lastName = existing?.takeIf { it.fullName == incoming.fullName }?.lastName ?: incoming.lastName,
                     // Identity changes invalidate the previous account's device-local PIN.
                     extraOptions = existing?.extraOptions.orEmpty().filterNot {
                         it.startsWith("pin:") && existing?.telegramId != incoming.telegramId
@@ -140,13 +163,16 @@ class DoctorRepository @Inject constructor(
                     telegramUsername = existing?.telegramUsername.takeIf {
                         existing?.telegramId == incoming.telegramId
                     },
-                    updatedAt = now,
+                    updatedAt = existing?.updatedAt ?: now,
                     deletedAt = null
                 )
+                if (candidate == existing) candidate else candidate.copy(updatedAt = now)
             }
-            dao.replaceActiveRegistry(
-                merged.map(DoctorMapper::toEntity), merged.map { it.id }, now.toEpochMilli()
-            )
+            // An unchanged pull must not manufacture a stale editor by changing every row's timestamp.
+            val existingById = local.associateBy { it.id }
+            val changed = merged.filter { it != existingById[it.id] }
+            if (changed.isNotEmpty()) dao.upsertAll(changed.map(DoctorMapper::toEntity))
+            dao.softDeleteMissing(merged.map { it.id }, now.toEpochMilli())
         }
     }
 

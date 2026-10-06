@@ -5,17 +5,13 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
-import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.Doctor
-import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
-import com.hos.rushdpatients.data.repository.PatientRepository
-import com.hos.rushdpatients.domain.doctor.DoctorNaming
+import com.hos.rushdpatients.data.repository.DoctorMutationRepository
+import com.hos.rushdpatients.data.repository.StaleDoctorEditException
+import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.domain.doctor.DoctorCsvCodec
-import com.hos.rushdpatients.domain.doctor.DoctorValidationResult
-import com.hos.rushdpatients.domain.doctor.DoctorValidator
-import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
 import kotlinx.coroutines.CancellationException
@@ -35,10 +31,9 @@ import javax.inject.Inject
 class DoctorsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val doctorRepository: DoctorRepository,
-    private val patientRepository: PatientRepository,
+    private val doctorMutations: DoctorMutationRepository,
     private val auditRepository: AuditRepository,
     private val syncService: SyncService,
-    private val passwordHasher: PasswordHasher,
     private val adminAuthorizer: AdminAuthorizer
 ) : ViewModel() {
 
@@ -79,55 +74,16 @@ class DoctorsViewModel @Inject constructor(
         }
     }
 
-    fun addDoctor(
-        firstName: String,
-        lastName: String,
-        gender: Gender,
-        clinicalRole: ClinicalRole,
-        pin: String?,
-        customTitle: String?,
-        telegramId: Long?,
-        onSuccess: () -> Unit = {}
-    ) {
-        if (!isValid(firstName, lastName, customTitle)) return
-        if (pin == null || !pin.all(Char::isDigit) ||
-            pin.length !in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH
-        ) {
-            fail("الرقم السري مطلوب ويجب أن يكون من 4 إلى 8 أرقام")
-            return
-        }
+    fun addDoctor(input: DoctorEditInput, onSuccess: () -> Unit = {}) {
+        if (_state.value.saving || _state.value.importing) return
+        _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            _state.update { it.copy(saving = true) }
             try {
-                val actor = adminAuthorizer.requireAdmin()
-                if (doctorRepository.count() >= AppConstants.MAX_DOCTORS) {
-                    fail("تم الوصول إلى الحد الأقصى لعدد الأطباء")
-                    return@launch
-                }
-                val fullName = DoctorNaming.formatName(firstName, lastName)
-                if (doctorRepository.getByFullName(fullName) != null) {
-                    fail("الاسم موجود مسبقاً")
-                    return@launch
-                }
-                if (telegramId != null && doctorRepository.getByTelegramId(telegramId) != null) {
-                    fail("حساب تليجرام مرتبط بمستخدم آخر")
-                    return@launch
-                }
-                doctorRepository.upsert(
-                    Doctor(
-                        id = DoctorNaming.stableId(fullName),
-                        fullName = fullName,
-                        firstName = firstName.trim(),
-                        lastName = lastName.trim(),
-                        gender = gender,
-                        clinicalRole = clinicalRole,
-                        telegramId = telegramId,
-                        customTitle = customTitle?.takeIf { it.isNotBlank() },
-                        extraOptions = setOf("pin:${passwordHasher.hash(pin)}")
-                    )
-                )
-                auditRepository.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_ADDED, fullName)
+                doctorMutations.add(input)
                 finishWithSync("تم إضافة الطبيب", onSuccess)
+            } catch (e: CancellationException) {
+                _state.update { it.copy(saving = false) }
+                throw e
             } catch (e: Exception) {
                 fail(e.message ?: "تعذر إضافة الطبيب")
             }
@@ -135,75 +91,46 @@ class DoctorsViewModel @Inject constructor(
     }
 
     fun editDoctor(
-        id: String,
-        firstName: String,
-        lastName: String,
-        gender: Gender,
-        clinicalRole: ClinicalRole,
-        pin: String?,
-        customTitle: String?,
-        telegramId: Long?,
+        expected: Doctor, input: DoctorEditInput,
+        onStale: (Doctor?) -> Unit,
         onSuccess: () -> Unit = {}
     ) {
-        if (!isValid(firstName, lastName, customTitle)) return
-        if (pin != null && (!pin.all(Char::isDigit) ||
-                    pin.length !in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH)
-        ) {
-            fail("الرقم السري الجديد يجب أن يكون من 4 إلى 8 أرقام")
-            return
-        }
+        if (_state.value.saving || _state.value.importing) return
+        _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            _state.update { it.copy(saving = true) }
             try {
-                val actor = adminAuthorizer.requireAdmin()
-                val existing = doctorRepository.getById(id) ?: return@launch fail("الطبيب غير موجود")
-                val fullName = DoctorNaming.formatName(firstName, lastName)
-                val conflict = doctorRepository.getByFullName(fullName)
-                if (conflict != null && conflict.id != id) return@launch fail("الاسم موجود مسبقاً")
-                val tgConflict = telegramId?.let { doctorRepository.getByTelegramId(it) }
-                if (tgConflict != null && tgConflict.id != id) {
-                    return@launch fail("حساب تليجرام مرتبط بمستخدم آخر")
-                }
-                doctorRepository.upsert(
-                    existing.copy(
-                        fullName = fullName,
-                        firstName = firstName.trim(),
-                        lastName = lastName.trim(),
-                        gender = gender,
-                        clinicalRole = clinicalRole,
-                        supervisorGroupChatId = existing.supervisorGroupChatId
-                            .takeIf { clinicalRole == ClinicalRole.SUPERVISOR },
-                        telegramId = telegramId,
-                        customTitle = customTitle?.takeIf { it.isNotBlank() },
-                        extraOptions = if (pin == null) existing.extraOptions else {
-                            existing.extraOptions.filterNot { it.startsWith("pin:") }.toSet() +
-                                    "pin:${passwordHasher.hash(pin)}"
-                        }
-                    )
-                )
-                auditRepository.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_EDITED, fullName)
+                doctorMutations.edit(expected, input)
                 finishWithSync("تم تحديث الطبيب", onSuccess)
+            } catch (e: CancellationException) {
+                _state.update { it.copy(saving = false) }
+                throw e
+            } catch (e: StaleDoctorEditException) {
+                try {
+                    val latest = doctorRepository.getById(expected.id)
+                    _state.update { it.copy(saving = false) }
+                    onStale(latest)
+                } catch (cancelled: CancellationException) {
+                    _state.update { it.copy(saving = false) }
+                    throw cancelled
+                } catch (reloadError: Exception) {
+                    fail(reloadError.message ?: "تعذر تحميل أحدث سجل؛ المسودة باقية")
+                }
             } catch (e: Exception) {
                 fail(e.message ?: "تعذر تحديث الطبيب")
             }
         }
     }
 
-    fun deleteDoctor(id: String, onSuccess: () -> Unit = {}) {
+    fun deleteDoctor(expected: Doctor, onSuccess: () -> Unit = {}) {
+        if (_state.value.saving || _state.value.importing) return
+        _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            _state.update { it.copy(saving = true) }
             try {
-                val actor = adminAuthorizer.requireAdmin()
-                val doctor = doctorRepository.getById(id) ?: return@launch fail("الطبيب غير موجود")
-                if (doctor.isAdmin) {
-                    return@launch fail("أزل صلاحية المدير قبل حذف الطبيب")
-                }
-                if (patientRepository.countActiveReferencesToDoctor(id) > 0) {
-                    return@launch fail("لا يمكن حذف طبيب مسؤول عن مرضى حاليين")
-                }
-                doctorRepository.softDelete(id)
-                auditRepository.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_DELETED, doctor.fullName)
+                doctorMutations.delete(expected)
                 finishWithSync("تم حذف الطبيب", onSuccess)
+            } catch (e: CancellationException) {
+                _state.update { it.copy(saving = false) }
+                throw e
             } catch (e: Exception) {
                 fail(e.message ?: "تعذر حذف الطبيب")
             }
@@ -420,15 +347,6 @@ class DoctorsViewModel @Inject constructor(
             }
             result.toString()
         }
-    }
-
-    private fun isValid(firstName: String, lastName: String, customTitle: String?): Boolean {
-        val validation = DoctorValidator.validate(firstName, lastName, customTitle)
-        if (validation is DoctorValidationResult.Invalid) {
-            _state.update { it.copy(snackbar = "بيانات غير صحيحة") }
-            return false
-        }
-        return true
     }
 
     private suspend fun finishWithSync(localMessage: String, onSuccess: () -> Unit) {
