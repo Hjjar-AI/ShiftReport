@@ -75,11 +75,10 @@ class TextReportBuilder @Inject constructor() {
         }
         append('\n')
         append(Markdown.escape("نوع التشخيص: ${patient.diagnosisType.arabicLabel}"))
-        if (patient.badgeText.isNotBlank()) {
+        if (patient.badges.isNotEmpty()) {
             append('\n')
-            append(Markdown.bold(buildString {
-                append("⚠ ").append(patient.badgeText)
-                patient.badgePriority?.let { append(" · ").append(it.arabicLabel) }
+            append(Markdown.bold("⚠ " + patient.badges.joinToString(" • ") { badge ->
+                badge.priority?.let { "${badge.text} (${it.arabicLabel})" } ?: badge.text
             }))
         }
         if (patient.initialDiagnosis.isNotBlank()) {

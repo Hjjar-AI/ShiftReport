@@ -704,8 +704,9 @@ class WardViewModel @Inject constructor(
         append(";labs=").append(patient.labs)
         append(";resident=").append(patient.responsibleResidentId.orEmpty())
         append(";supervisor=").append(patient.responsibleSpecialistId.orEmpty())
-        append(";badge=").append(patient.badgeText)
-        append(";badgePriority=").append(patient.badgePriority?.code.orEmpty())
+        append(";badges=").append(patient.badges.joinToString("|") { badge ->
+            "${badge.priority?.code.orEmpty()}:${badge.text}"
+        })
         append(";priority=").append(patient.isPriority)
         append(";revision=").append(patient.revision)
     }

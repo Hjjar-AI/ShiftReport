@@ -540,10 +540,12 @@ class PdfReportExporter @Inject constructor() {
 
     private fun buildDiagnosisCell(patient: Patient): String = buildString {
         append(patient.diagnosisType.arabicLabel)
-        if (patient.badgeText.isNotBlank()) {
+        if (patient.badges.isNotEmpty()) {
             append('\n')
-            append("⚠ ").append(patient.badgeText)
-            patient.badgePriority?.let { append(" · ").append(it.arabicLabel) }
+            append(patient.badges.joinToString("\n") { badge ->
+                val level = badge.priority?.let { " · ${it.arabicLabel}" }.orEmpty()
+                "⚠ ${badge.text}$level"
+            })
         }
         if (patient.initialDiagnosis.isNotBlank()) {
             append('\n')

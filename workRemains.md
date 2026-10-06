@@ -131,3 +131,17 @@ This file contains only remaining work. Completed items are tracked in [workDone
 - NHS warning guidance: concise, specific warnings reserved for significant or time-critical information.
 - WCAG 2.2: visible focus, target size, programmatic status messages, and interaction that does not rely on color alone.
 - Coolors palette exploration: distinct olive, oceanic, navy/gold, and muted-violet families, adjusted where required for readable foreground contrast.
+
+
+
+
+
+also there are still some generic app icon(android icon) instead of my app icoon
+
+also معاينة التقرير should contains doctors selections for the shift  in the first top section
+
+also the patiints page (the default page is too crowded on the top) especially the sync state (move it to the side nav
+also make the filter button more compact and small tet so they fit in the top ( with compact paddings 
+
+
+then update the workdone and workremains to be consistent

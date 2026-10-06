@@ -2,11 +2,14 @@ package com.hos.rushdpatients.ui.ward
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -69,6 +72,7 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 fun PatientCard(
     patient: Patient,
     expanded: Boolean,
@@ -76,6 +80,7 @@ fun PatientCard(
     doctorNames: Map<String, String>,
     readOnly: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = onClick,
     onDelete: () -> Unit,
     onCopy: () -> Unit = {},
     onPriorityChange: (Boolean) -> Unit = {},
@@ -107,12 +112,14 @@ fun PatientCard(
                     patient.responsibleResidentId?.let { id ->
                         doctorNames[id]?.let { append("، المقيم ").append(it) }
                     }
-                    if (patient.badgeText.isNotBlank()) append("، شارة: ").append(patient.badgeText)
+                    if (patient.badges.isNotEmpty()) {
+                        append("، ").append(patient.badges.size).append(" شارات")
+                    }
                     if (pinned) append("، مثبت مؤقتاً")
                     append("، ").append(relativeFreshness(patient.updatedAt))
                 }
                 stateDescription = buildString {
-                    append(if (patient.badgeText.isBlank()) "دون شارة" else "شارة فعالة")
+                    append(if (patient.badges.isEmpty()) "دون شارات" else "شارات فعالة")
                     if (patient.isPriority) append("، أولوية")
                     append(if (expanded) "، التفاصيل موسعة" else "، التفاصيل مطوية")
                 }
@@ -124,21 +131,25 @@ fun PatientCard(
                     CustomAccessibilityAction(
                         label = if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت",
                         action = { onPinToggle(); true }
+                    ),
+                    CustomAccessibilityAction(
+                        label = "فتح تفاصيل المريض",
+                        action = { onLongClick(); true }
                     )
                 )
             }
-            .clickable(onClick = onClick),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
-            width = if (patient.badgeText.isNotBlank()) 2.dp else 1.dp,
-            color = when (patient.badgePriority) {
-                PatientBadgePriority.HIGH -> clinicalColors.urgent
-                PatientBadgePriority.MEDIUM -> clinicalColors.warning
-                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.tertiary
-                null -> if (patient.badgeText.isNotBlank()) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outlineVariant
+            width = if (patient.badges.isNotEmpty()) 2.dp else 1.dp,
+            color = when {
+                patient.badges.any { it.priority == PatientBadgePriority.HIGH } -> clinicalColors.urgent
+                patient.badges.any { it.priority == PatientBadgePriority.MEDIUM } -> clinicalColors.warning
+                patient.badges.any { it.priority == PatientBadgePriority.LOW } -> MaterialTheme.colorScheme.tertiary
+                patient.badges.isNotEmpty() -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.outlineVariant
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -202,22 +213,32 @@ fun PatientCard(
                 }
             }
 
-            if (patient.badgeText.isNotBlank()) {
-                Row(
+            if (patient.badges.isNotEmpty()) {
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val isUrgent = patient.badgePriority == PatientBadgePriority.HIGH
-                    SmallChip(
-                        text = buildString {
-                            append(patient.badgeText)
-                            patient.badgePriority?.let { append(" · ").append(it.arabicLabel) }
-                        },
-                        container = if (isUrgent) clinicalColors.urgentContainer
-                            else clinicalColors.warningContainer,
-                        content = if (isUrgent) clinicalColors.onUrgentContainer
-                            else clinicalColors.onWarningContainer
-                    )
+                    patient.badges.forEach { badge ->
+                        SmallChip(
+                            text = buildString {
+                                append(badge.text)
+                                badge.priority?.let { append(" · ").append(it.arabicLabel) }
+                            },
+                            container = when (badge.priority) {
+                                PatientBadgePriority.HIGH -> clinicalColors.urgentContainer
+                                PatientBadgePriority.MEDIUM -> clinicalColors.warningContainer
+                                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.tertiaryContainer
+                                null -> MaterialTheme.colorScheme.secondaryContainer
+                            },
+                            content = when (badge.priority) {
+                                PatientBadgePriority.HIGH -> clinicalColors.onUrgentContainer
+                                PatientBadgePriority.MEDIUM -> clinicalColors.onWarningContainer
+                                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.onTertiaryContainer
+                                null -> MaterialTheme.colorScheme.onSecondaryContainer
+                            }
+                        )
+                    }
                 }
             }
 

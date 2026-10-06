@@ -64,6 +64,7 @@ import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.PatientBadge
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import java.time.Instant
 import java.time.LocalDate
@@ -174,13 +175,19 @@ internal fun PatientFormDialog(
     var isPriority by remember(initial, restoredDraft) {
         mutableStateOf(initial?.isPriority ?: restoredDraft?.isPriority ?: false)
     }
-    var badgeText by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.badgeText ?: restoredDraft?.badgeText.orEmpty())
-    }
-    var badgePriority by remember(initial, restoredDraft) {
+    var badges by remember(initial, restoredDraft) {
         mutableStateOf(
-            initial?.badgePriority ?: restoredDraft?.badgePriority
-                ?.let { PatientBadgePriority.fromCode(it) }
+            initial?.badges ?: restoredDraft?.badges.orEmpty().map { badge ->
+                PatientBadge(badge.text, badge.priority?.let { PatientBadgePriority.fromCode(it) })
+            }
+        )
+    }
+    var badgeDraftText by remember(initial, restoredDraft) {
+        mutableStateOf(restoredDraft?.badgeDraftText.orEmpty())
+    }
+    var badgeDraftPriority by remember(initial, restoredDraft) {
+        mutableStateOf(
+            restoredDraft?.badgeDraftPriority?.let { PatientBadgePriority.fromCode(it) }
         )
     }
     var diagnosisType by remember(initial) {
@@ -232,16 +239,135 @@ internal fun PatientFormDialog(
         labItems.joinToString("\n") != initial?.labs.orEmpty(),
         residentId != initial?.responsibleResidentId,
         specialistId != initial?.responsibleSpecialistId,
-        badgeText != initial?.badgeText.orEmpty(),
-        badgePriority != initial?.badgePriority,
+        badges != initial?.badges.orEmpty(),
+        badgeDraftText.isNotBlank(),
         isPriority != (initial?.isPriority ?: false)
     ).count { it }
+
+    val admissionIdentityContent: @Composable () -> Unit = {
+        SectionTitle(
+            "بيانات الدخول",
+            complete = admittanceNumber.isNotBlank() && admittanceDate != null
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            OutlinedTextField(
+                value = admittanceNumber,
+                onValueChange = { admittanceNumber = it; validationMessages = emptyList() },
+                label = { Text("رقم القبول الحالي *") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = autoStyle,
+                isError = validationMessages.any { it.contains("رقم القبول") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
+            DateField(
+                value = admittanceDate,
+                onValueChange = { admittanceDate = it; validationMessages = emptyList() },
+                label = "تاريخ الدخول *",
+                supportingText = admissionDays?.let { "مدة الإقامة: $it يوم" },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        SectionTitle(
+            "البيانات الشخصية",
+            complete = name.isNotBlank() && birthYear != null && age != null
+        )
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it; validationMessages = emptyList() },
+            label = { Text("اسم المريض *") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            textStyle = autoStyle,
+            isError = validationMessages.any { it.contains("اسم المريض") },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            OutlinedTextField(
+                value = birthYearText,
+                onValueChange = { value ->
+                    val cleaned = value.filter(Char::isDigit).take(4)
+                    birthYearText = cleaned
+                    ageText = cleaned.toIntOrNull()
+                        ?.let { currentYear - it }
+                        ?.takeIf { it in 0..120 }
+                        ?.toString()
+                        .orEmpty()
+                    validationMessages = emptyList()
+                },
+                label = { Text("سنة الميلاد *") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = autoStyle,
+                isError = validationMessages.any { it.contains("سنة الميلاد") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next
+                )
+            )
+            OutlinedTextField(
+                value = ageText,
+                onValueChange = { value ->
+                    val cleaned = value.filter(Char::isDigit).take(3)
+                    ageText = cleaned
+                    birthYearText = cleaned.toIntOrNull()
+                        ?.takeIf { it in 0..120 }
+                        ?.let { currentYear - it }
+                        ?.toString()
+                        .orEmpty()
+                    validationMessages = emptyList()
+                },
+                label = { Text("العمر *") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = autoStyle,
+                isError = validationMessages.any { it.contains("العمر") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next
+                )
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text("الجنس", style = MaterialTheme.typography.labelMedium)
+            FilterChip(
+                selected = gender == Gender.MALE,
+                onClick = { gender = Gender.MALE },
+                label = { Text("ذكر") }
+            )
+            FilterChip(
+                selected = gender == Gender.FEMALE,
+                onClick = { gender = Gender.FEMALE },
+                label = { Text("أنثى") }
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("يوجد مرافق", style = MaterialTheme.typography.labelMedium)
+            Switch(checked = hasCompanion, onCheckedChange = { hasCompanion = it })
+        }
+    }
 
     LaunchedEffect(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
         hasCompanion, diagnosisType, initialDiagnosis, treatmentItems, treatmentDraft,
         followUpItems, followUpDraft, labItems, labDraft, residentId, specialistId,
-        badgeText, badgePriority, isPriority
+        badges, badgeDraftText, badgeDraftPriority, isPriority
     ) {
         if (initial == null) {
             onDraftChanged(
@@ -263,8 +389,9 @@ internal fun PatientFormDialog(
                     labDraft = labDraft,
                     residentId = residentId,
                     specialistId = specialistId,
-                    badgeText = badgeText,
-                    badgePriority = badgePriority?.code,
+                    badges = badges.map { PatientBadgeDraft(it.text, it.priority?.code) },
+                    badgeDraftText = badgeDraftText,
+                    badgeDraftPriority = badgeDraftPriority?.code,
                     isPriority = isPriority
                 )
             )
@@ -339,125 +466,7 @@ internal fun PatientFormDialog(
                         }
                     }
                 }
-                SectionTitle(
-                    "بيانات الدخول",
-                    complete = admittanceNumber.isNotBlank() && admittanceDate != null
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    OutlinedTextField(
-                        value = admittanceNumber,
-                        onValueChange = { admittanceNumber = it; validationMessages = emptyList() },
-                        label = { Text("رقم القبول الحالي *") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        textStyle = autoStyle,
-                        isError = validationMessages.any { it.contains("رقم القبول") },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-                    )
-                    DateField(
-                        value = admittanceDate,
-                        onValueChange = { admittanceDate = it; validationMessages = emptyList() },
-                        label = "تاريخ الدخول *",
-                        supportingText = admissionDays?.let { "مدة الإقامة: $it يوم" },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                SectionTitle(
-                    "البيانات الشخصية",
-                    complete = name.isNotBlank() && birthYear != null && age != null
-                )
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it; validationMessages = emptyList() },
-                    label = { Text("اسم المريض *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    textStyle = autoStyle,
-                    isError = validationMessages.any { it.contains("اسم المريض") },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    OutlinedTextField(
-                        value = birthYearText,
-                        onValueChange = { value ->
-                            val cleaned = value.filter(Char::isDigit).take(4)
-                            birthYearText = cleaned
-                            ageText = cleaned.toIntOrNull()
-                                ?.let { currentYear - it }
-                                ?.takeIf { it in 0..120 }
-                                ?.toString()
-                                .orEmpty()
-                            validationMessages = emptyList()
-                        },
-                        label = { Text("سنة الميلاد *") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        textStyle = autoStyle,
-                        isError = validationMessages.any { it.contains("سنة الميلاد") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-                    OutlinedTextField(
-                        value = ageText,
-                        onValueChange = { value ->
-                            val cleaned = value.filter(Char::isDigit).take(3)
-                            ageText = cleaned
-                            birthYearText = cleaned.toIntOrNull()
-                                ?.takeIf { it in 0..120 }
-                                ?.let { currentYear - it }
-                                ?.toString()
-                                .orEmpty()
-                            validationMessages = emptyList()
-                        },
-                        label = { Text("العمر *") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        textStyle = autoStyle,
-                        isError = validationMessages.any { it.contains("العمر") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text("الجنس", style = MaterialTheme.typography.labelMedium)
-                    FilterChip(
-                        selected = gender == Gender.MALE,
-                        onClick = { gender = Gender.MALE },
-                        label = { Text("ذكر") }
-                    )
-                    FilterChip(
-                        selected = gender == Gender.FEMALE,
-                        onClick = { gender = Gender.FEMALE },
-                        label = { Text("أنثى") }
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("يوجد مرافق", style = MaterialTheme.typography.labelMedium)
-                    Switch(
-                        checked = hasCompanion,
-                        onCheckedChange = { hasCompanion = it }
-                    )
-                }
+                if (initial == null) admissionIdentityContent()
 
                 SectionTitle("تنبيهات سريعة", complete = true)
                 Row(
@@ -468,9 +477,45 @@ internal fun PatientFormDialog(
                     Text("تثبيت كمريض ذي أولوية", style = MaterialTheme.typography.labelMedium)
                     Switch(checked = isPriority, onCheckedChange = { isPriority = it })
                 }
+                badges.forEachIndexed { index, badge ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = when (badge.priority) {
+                            PatientBadgePriority.HIGH -> MaterialTheme.colorScheme.errorContainer
+                            PatientBadgePriority.MEDIUM -> MaterialTheme.colorScheme.tertiaryContainer
+                            PatientBadgePriority.LOW -> MaterialTheme.colorScheme.secondaryContainer
+                            null -> MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        contentColor = when (badge.priority) {
+                            PatientBadgePriority.HIGH -> MaterialTheme.colorScheme.onErrorContainer
+                            PatientBadgePriority.MEDIUM -> MaterialTheme.colorScheme.onTertiaryContainer
+                            PatientBadgePriority.LOW -> MaterialTheme.colorScheme.onSecondaryContainer
+                            null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, top = 4.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                buildString {
+                                    append(badge.text)
+                                    badge.priority?.let { append(" · ").append(it.arabicLabel) }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { badges = badges.filterIndexed { i, _ -> i != index } }) {
+                                Icon(Icons.Filled.Close, contentDescription = "حذف الشارة")
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(
-                    value = badgeText,
-                    onValueChange = { badgeText = it.take(80) },
+                    value = badgeDraftText,
+                    onValueChange = { badgeDraftText = it.take(80) },
                     label = { Text("نص الشارة (اختياري)") },
                     supportingText = { Text("مثال: تحسس دوائي، يحتاج مراجعة، خطر سقوط") },
                     modifier = Modifier.fillMaxWidth(),
@@ -480,18 +525,30 @@ internal fun PatientFormDialog(
                 Text("مستوى الشارة (اختياري)", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilterChip(
-                        selected = badgePriority == null,
-                        onClick = { badgePriority = null },
+                        selected = badgeDraftPriority == null,
+                        onClick = { badgeDraftPriority = null },
                         label = { Text("بدون مستوى") }
                     )
                     PatientBadgePriority.entries.forEach { level ->
                         FilterChip(
-                            selected = badgePriority == level,
-                            onClick = { badgePriority = level },
+                            selected = badgeDraftPriority == level,
+                            onClick = { badgeDraftPriority = level },
                             label = { Text(level.arabicLabel) }
                         )
                     }
                 }
+                OutlinedButton(
+                    onClick = {
+                        val text = badgeDraftText.trim()
+                        if (text.isNotEmpty()) {
+                            badges = badges + PatientBadge(text, badgeDraftPriority)
+                            badgeDraftText = ""
+                            badgeDraftPriority = null
+                        }
+                    },
+                    enabled = badgeDraftText.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("إضافة الشارة") }
 
                 SectionTitle(
                     "التشخيص والعلاج",
@@ -667,6 +724,8 @@ internal fun PatientFormDialog(
                     )
                 }
 
+                if (initial != null) admissionIdentityContent()
+
             }
         },
         confirmButton = {
@@ -723,6 +782,11 @@ internal fun PatientFormDialog(
 
                 val resolvedBirthDate = birthYear?.let { LocalDate.of(it, 1, 1) }
 
+                val resolvedBadges = badges + badgeDraftText.trim()
+                    .takeIf(String::isNotBlank)
+                    ?.let { listOf(PatientBadge(it, badgeDraftPriority)) }
+                    .orEmpty()
+
                 val patient = initial?.copy(
                     admittanceNumber = admittanceNumber.trim(),
                     admittanceDate = admittanceDate,
@@ -737,8 +801,7 @@ internal fun PatientFormDialog(
                     labs = labs.trim(),
                     responsibleResidentId = residentId,
                     responsibleSpecialistId = specialistId,
-                    badgeText = badgeText.trim(),
-                    badgePriority = badgePriority.takeIf { badgeText.isNotBlank() },
+                    badges = resolvedBadges,
                     isPriority = isPriority
                 ) ?: Patient(
                     admittanceNumber = admittanceNumber.trim(),
@@ -754,8 +817,7 @@ internal fun PatientFormDialog(
                     labs = labs.trim(),
                     responsibleResidentId = residentId,
                     responsibleSpecialistId = specialistId,
-                    badgeText = badgeText.trim(),
-                    badgePriority = badgePriority.takeIf { badgeText.isNotBlank() },
+                    badges = resolvedBadges,
                     isPriority = isPriority
                 )
                 onConfirm(patient)

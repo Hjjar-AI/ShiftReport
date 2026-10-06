@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.PatientBadge
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.ui.ward.PatientCard
 import java.time.LocalDate
@@ -110,8 +111,9 @@ private fun demoPatients(): List<Patient> {
             treatmentPlan = "خطة تجريبية غير طبية — للعرض فقط",
             followUp = "☐ مهمة تجريبية للمناوبة القادمة",
             labs = "Demo = ${index + 1}",
-            badgeText = if (index == 1) "خطر سقوط" else "",
-            badgePriority = if (index == 1) PatientBadgePriority.HIGH else null,
+            badges = if (index == 1) {
+                listOf(PatientBadge("خطر سقوط", PatientBadgePriority.HIGH))
+            } else emptyList(),
             isPriority = index == 2,
             sortOrder = index + 1,
             lastEditedByName = "مستخدم تجريبي"

@@ -46,6 +46,7 @@
 /.idea/httpRequests/
 
 # Diagnostics and OS metadata
+/local-debug/
 *.log
 *.hprof
 .DS_Store

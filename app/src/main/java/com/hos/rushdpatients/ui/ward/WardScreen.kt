@@ -209,10 +209,10 @@ fun WardScreen(
                 patient.responsibleResidentId == currentDoctorId ||
                 patient.responsibleSpecialistId == currentDoctorId
             matchesOwner && (!priorityOnly || patient.isPriority) &&
-                (!warningsOnly || patient.badgeText.isNotBlank()) &&
+                (!warningsOnly || patient.badges.isNotEmpty()) &&
                 (!unassignedOnly || patient.responsibleResidentId == null || patient.responsibleSpecialistId == null) &&
                 (!urgentOnly || patient.isPriority ||
-                    patient.badgePriority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH) &&
+                    patient.badges.any { it.priority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH }) &&
                 (!newAdmissionsOnly || patient.admittanceDays == 0) &&
                 ArabicSearchNormalizer.matches(
                 searchQuery,
@@ -552,7 +552,7 @@ fun WardScreen(
                 )
             },
             floatingActionButton = {
-                state.shift?.let { shift ->
+                state.shift?.let {
                     ExtendedFloatingActionButton(
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -911,6 +911,15 @@ fun WardScreen(
                                         doctorNames = doctorNames,
                                         readOnly = state.isReadOnly,
                                         onClick = {
+                                            if (state.isReadOnly) {
+                                                viewModel.loadRecentActivity()
+                                                detailsTargetId = patient.id
+                                            } else {
+                                                editTarget = patient
+                                            }
+                                        },
+                                        onLongClick = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                             viewModel.loadRecentActivity()
                                             detailsTargetId = patient.id
                                         },
@@ -942,6 +951,15 @@ fun WardScreen(
                                     doctorNames = doctorNames,
                                     readOnly = state.isReadOnly,
                                     onClick = {
+                                        if (state.isReadOnly) {
+                                            viewModel.loadRecentActivity()
+                                            detailsTargetId = patient.id
+                                        } else {
+                                            editTarget = patient
+                                        }
+                                    },
+                                    onLongClick = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                         viewModel.loadRecentActivity()
                                         detailsTargetId = patient.id
                                     },
@@ -1588,9 +1606,11 @@ private fun HandoverDashboard(
         it.responsibleResidentId == currentDoctorId || it.responsibleSpecialistId == currentDoctorId
     }
     val urgent = patients.count {
-        it.isPriority || it.badgePriority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH
+        it.isPriority || it.badges.any { badge ->
+            badge.priority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH
+        }
     }
-    val warnings = patients.count { it.badgeText.isNotBlank() }
+    val warnings = patients.count { it.badges.isNotEmpty() }
     val unassigned = patients.count {
         it.responsibleResidentId == null || it.responsibleSpecialistId == null
     }

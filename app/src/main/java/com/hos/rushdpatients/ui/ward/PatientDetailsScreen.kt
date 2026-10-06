@@ -105,7 +105,7 @@ fun PatientDetailsScreen(
                                 PatientDetailSection.entries.forEach { option ->
                                     val count = when (option) {
                                         PatientDetailSection.TASKS -> patient.followUp.lineSequence().count { it.isNotBlank() }
-                                        PatientDetailSection.WARNINGS -> if (patient.badgeText.isBlank()) 0 else 1
+                                        PatientDetailSection.WARNINGS -> patient.badges.size
                                         PatientDetailSection.HISTORY -> activity.size.coerceAtLeast(1)
                                         else -> 0
                                     }
@@ -166,9 +166,10 @@ fun PatientDetailsScreen(
                         )
                         PatientDetailSection.WARNINGS -> DetailTextSection(
                             title = "شارة المريض",
-                            content = patient.badgeText.takeIf(String::isNotBlank)?.let { text ->
-                                patient.badgePriority?.let { "$text · أولوية ${it.arabicLabel}" } ?: text
-                            } ?: "لا توجد شارة"
+                            content = patient.badges.joinToString("\n") { badge ->
+                                val level = badge.priority?.let { " · أولوية ${it.arabicLabel}" }.orEmpty()
+                                "• ${badge.text}$level"
+                            }.ifBlank { "لا توجد شارات" }
                         )
                         PatientDetailSection.HISTORY -> DetailTextSection(
                             title = "السجل الزمني المهم",
@@ -224,7 +225,10 @@ private fun meaningfulTimeline(patient: Patient, activity: List<AuditEntryEntity
         append("\n")
         append(formatter.format(patient.updatedAt.atZone(ZoneId.systemDefault())))
         if (patient.isPriority) append("\nالمريض محدد كأولوية")
-        if (patient.badgeText.isNotBlank()) append("\nشارة: ${patient.badgeText}")
+        if (patient.badges.isNotEmpty()) {
+            append("\nشارات: ")
+            append(patient.badges.joinToString("، ") { it.text })
+        }
     }
 }
 

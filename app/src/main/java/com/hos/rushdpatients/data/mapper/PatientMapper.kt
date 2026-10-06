@@ -4,11 +4,9 @@ import com.hos.rushdpatients.data.db.entity.PatientEntity
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.model.PatientBadgePriority
-import com.hos.rushdpatients.data.model.PatientWarningFlag
+import com.hos.rushdpatients.data.model.PatientBadgeCodec
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Base64
 
 object PatientMapper {
 
@@ -30,8 +28,8 @@ object PatientMapper {
         responsibleSpecialistId = patient.responsibleSpecialistId,
         // Existing columns are intentionally reused so a fresh database does not need
         // another schema solely for the free-text badge feature.
-        warningFlagsCsv = patient.badgePriority?.code.orEmpty(),
-        warningDetailsEncoded = encodeBadgeText(patient.badgeText),
+        warningFlagsCsv = patient.badges.mapNotNull { it.priority?.code }.joinToString("|"),
+        warningDetailsEncoded = PatientBadgeCodec.encode(patient.badges),
         isPriority = patient.isPriority,
         lastEditedByDoctorId = patient.lastEditedByDoctorId,
         lastEditedByName = patient.lastEditedByName,
@@ -57,8 +55,7 @@ object PatientMapper {
         labs = entity.labs,
         responsibleResidentId = entity.responsibleResidentId,
         responsibleSpecialistId = entity.responsibleSpecialistId,
-        badgeText = decodeBadgeText(entity.warningDetailsEncoded, entity.warningFlagsCsv),
-        badgePriority = decodeBadgePriority(entity.warningFlagsCsv),
+        badges = PatientBadgeCodec.decode(entity.warningDetailsEncoded, entity.warningFlagsCsv),
         isPriority = entity.isPriority,
         lastEditedByDoctorId = entity.lastEditedByDoctorId,
         lastEditedByName = entity.lastEditedByName,
@@ -69,39 +66,4 @@ object PatientMapper {
         )
     }
 
-    private fun encodeBadgeText(text: String): String = if (text.isBlank()) "" else {
-        "badge:" + Base64.getUrlEncoder().withoutPadding()
-            .encodeToString(text.trim().toByteArray(Charsets.UTF_8))
-    }
-
-    private fun decodeBadgePriority(value: String): PatientBadgePriority? {
-        PatientBadgePriority.fromCode(value)?.let { return it }
-        val legacy = value.split(',').mapNotNull(PatientWarningFlag::fromCode)
-        return when {
-            PatientWarningFlag.URGENT_REVIEW in legacy -> PatientBadgePriority.HIGH
-            legacy.isNotEmpty() -> PatientBadgePriority.MEDIUM
-            else -> null
-        }
-    }
-
-    private fun decodeBadgeText(encoded: String, legacyFlags: String): String {
-        if (encoded.startsWith("badge:")) {
-            return runCatching {
-                String(
-                    Base64.getUrlDecoder().decode(encoded.removePrefix("badge:")),
-                    Charsets.UTF_8
-                )
-            }.getOrDefault("")
-        }
-        val legacyDetails = encoded.split(';').firstNotNullOfOrNull { item ->
-            val separator = item.indexOf(':')
-            if (separator <= 0) return@firstNotNullOfOrNull null
-            runCatching {
-                String(Base64.getUrlDecoder().decode(item.substring(separator + 1)), Charsets.UTF_8)
-            }.getOrNull()?.takeIf(String::isNotBlank)
-        }
-        if (legacyDetails != null) return legacyDetails
-        return legacyFlags.split(',').mapNotNull(PatientWarningFlag::fromCode)
-            .firstOrNull()?.arabicLabel.orEmpty()
-    }
 }

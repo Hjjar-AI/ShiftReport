@@ -686,8 +686,11 @@ class SyncService @Inject constructor(
                 labs = field("labs", "التحاليل", before.labs, ours.labs, theirs.labs),
                 responsibleResidentId = field("resident", "المقيم", before.responsibleResidentId, ours.responsibleResidentId, theirs.responsibleResidentId),
                 responsibleSpecialistId = field("specialist", "الاختصاصي", before.responsibleSpecialistId, ours.responsibleSpecialistId, theirs.responsibleSpecialistId),
-                badgeText = field("badgeText", "نص الشارة", before.badgeText, ours.badgeText, theirs.badgeText),
-                badgePriority = field("badgePriority", "مستوى الشارة", before.badgePriority, ours.badgePriority, theirs.badgePriority) { it?.arabicLabel.orEmpty() },
+                badges = field("badges", "الشارات", before.badges, ours.badges, theirs.badges) { badges ->
+                    badges.joinToString("، ") { badge ->
+                        badge.priority?.let { "${badge.text} (${it.arabicLabel})" } ?: badge.text
+                    }
+                },
                 isPriority = field("priority", "الأولوية", before.isPriority, ours.isPriority, theirs.isPriority),
                 lastEditedByDoctorId = if (localRecordChanged) ours.lastEditedByDoctorId else theirs.lastEditedByDoctorId,
                 lastEditedByName = if (localRecordChanged) ours.lastEditedByName else theirs.lastEditedByName,

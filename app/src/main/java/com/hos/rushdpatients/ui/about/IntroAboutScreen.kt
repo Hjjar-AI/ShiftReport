@@ -67,7 +67,7 @@ fun IntroAboutScreen(
                 shadowElevation = 6.dp
             ) {
                 Image(
-                    painter = painterResource(R.drawable.department_emblem),
+                    painter = painterResource(R.drawable.app_emblem_transparent),
                     contentDescription = "شعار شعبة الطب النفسي",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.padding(14.dp)
