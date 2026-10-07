@@ -475,6 +475,8 @@ process. Confirm the PID is non-empty and belongs to this package before using i
 
 ## App state and lifecycle
 
+Signing out preserves the configured project and local doctor/PIN records. On the same device, select the previously enrolled doctor and enter the existing PIN; no join file or Telegram connection is required. Five failed PIN attempts block this login path for five minutes, including after app restarts. Telegram verification remains available for first enrollment or a forgotten PIN. An authenticated administrator can then use the existing same-bot token replacement flow if needed. Clearing app data or moving to another device still requires the protected join file; this path does not recover an erased database.
+
 Start the launcher activity:
 
 ```bash

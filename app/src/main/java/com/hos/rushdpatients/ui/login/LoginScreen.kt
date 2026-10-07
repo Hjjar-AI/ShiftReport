@@ -69,6 +69,15 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                     error = state.error,
                     onPick = viewModel::pickDoctor
                 )
+                is LoginStep.EnterPin -> LocalPinLoginScreen(
+                    doctorId = step.doctor.id,
+                    doctorName = step.doctor.fullName,
+                    busy = state.busy,
+                    error = state.error,
+                    onLogin = viewModel::loginWithPin,
+                    onTelegram = { viewModel.verifyViaTelegram(step.doctor) },
+                    onBack = viewModel::backToDoctors
+                )
                 is LoginStep.Verifying -> VerifyingView(step, viewModel::cancelVerification)
                 is LoginStep.VerifyFailed -> VerifyFailedView(
                     step,
@@ -119,6 +128,10 @@ private fun PickDoctorList(
             )
         }
         Text("اختر اسمك", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "المشروع محفوظ. اختر اسمك للدخول مجدداً؛ ملف الانضمام مطلوب لإعداد جهاز جديد.",
+            style = MaterialTheme.typography.bodySmall
+        )
         error?.let {
             Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
         }
@@ -134,6 +147,7 @@ private fun PickDoctorList(
             ) {
                 items(doctors, key = { it.id }) { doctor ->
                     val enabled = doctor.telegramId != null
+                    val hasPin = doctor.extraOptions.any { it.startsWith("pin:") }
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -142,8 +156,11 @@ private fun PickDoctorList(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                text = if (enabled) "اضغط للتحقق عبر تليجرام"
-                                else "لم يتم ربط حساب تليجرام — تواصل مع المدير",
+                                text = when {
+                                    !enabled -> "لم يتم ربط حساب تليجرام — تواصل مع المدير"
+                                    hasPin -> "اضغط للدخول برقمك السري على هذا الجهاز"
+                                    else -> "اضغط للتحقق عبر تليجرام"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (enabled) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.error
