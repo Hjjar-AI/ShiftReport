@@ -54,14 +54,7 @@ class ReportBuilder @Inject constructor(
             val sortSpec = SortSpecCodec.decode(shift.sortSpecJson)
             val unsortedPatients = patientRepository.getForShift(shiftId)
                 .filterNot { it.isDeleted }
-            val orderedPatients = if (sortSpec.levels.isEmpty()) {
-                unsortedPatients.sortedBy { it.sortOrder }
-            } else {
-                unsortedPatients.sortedWith(PatientComparators.forSpec(sortSpec, residentNames))
-            }
-            val patients = orderedPatients.mapIndexed { index, patient ->
-                patient.copy(sortOrder = index + 1)
-            }
+            val patients = PatientComparators.ordered(unsortedPatients, sortSpec, residentNames)
 
             val summary = ReportSummary(
                 patientCount = patients.size,

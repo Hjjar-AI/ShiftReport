@@ -4,7 +4,7 @@ enum class AppThemePreset(val arabicLabel: String) {
     SYSTEM("فيروزي (افتراضي)"),
     SAGE("زيتوني"),
     COASTAL("أزرق"),
-    SUNSET("كحلي"),
+    SUNSET("ذهبي"),
     FUCHSIA("بنفسجي");
 
     companion object {

@@ -12,7 +12,6 @@ object AppConstants {
 
     // Shift
     const val MIN_SHIFT_DOCTORS = 1
-    const val MAX_SHIFT_DOCTORS = 3
 
     // Report
     const val TELEGRAM_SAFE_CHARS = 3500

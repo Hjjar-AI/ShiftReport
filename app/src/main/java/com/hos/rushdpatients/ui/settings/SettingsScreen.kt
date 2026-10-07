@@ -736,7 +736,7 @@ private fun SettingsSection(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(vertical = UiSpacing.tiny).semantics { heading() }
             )
             content()

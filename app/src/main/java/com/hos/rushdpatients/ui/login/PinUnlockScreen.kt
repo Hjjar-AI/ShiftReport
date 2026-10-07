@@ -14,6 +14,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.ui.components.LoadingButton
@@ -40,7 +42,8 @@ fun PinUnlockScreen(
         PasswordField(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(8) },
-            label = "الرقم السري"
+            label = "الرقم السري",
+            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done, enabled = !busy
         )
         error?.let {
             Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp))

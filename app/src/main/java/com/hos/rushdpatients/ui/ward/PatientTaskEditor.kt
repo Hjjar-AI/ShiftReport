@@ -17,6 +17,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.app.TimePickerDialog
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -115,7 +118,8 @@ private fun TaskDraftDialog(
     }) }
     val due = initial?.dueAtEpochMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()) }
     var date by remember(initial) { mutableStateOf(initial?.dueShiftDate?.let(LocalDate::parse) ?: due?.toLocalDate() ?: ShiftDate.current()) }
-    var time by remember(initial) { mutableStateOf(due?.toLocalTime()?.withSecond(0)?.withNano(0)?.toString() ?: "18:00") }
+    var time by remember(initial) { mutableStateOf(due?.toLocalTime()?.withSecond(0)?.withNano(0) ?: LocalTime.of(18, 0)) }
+    val context = LocalContext.current
     var error by remember(initial) { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = { if (enabled) onDismiss() },
@@ -145,30 +149,30 @@ private fun TaskDraftDialog(
                         if (deadline == TaskDeadline.SHIFT) "نهاية المناوبة الساعة 08:30 في اليوم التالي" else null)
                 }
                 if (deadline == TaskDeadline.TIME) {
-                    OutlinedTextField(time, { time = it; error = null }, label = { Text("الوقت (HH:mm، بنظام 24 ساعة)") },
-                        singleLine = true, enabled = enabled, modifier = Modifier.fillMaxWidth())
+                    OutlinedButton(onClick = {
+                        TimePickerDialog(context, { _, hour, minute ->
+                            time = LocalTime.of(hour, minute)
+                            error = null
+                        }, time.hour, time.minute, true).show()
+                    }, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text("وقت الاستحقاق: $time · اختيار الوقت")
+                    }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {
             TextButton(enabled = enabled && description.isNotBlank(), onClick = {
-                val normalizedTime = time.map { it.digitToIntOrNull()?.digitToChar() ?: it }.joinToString("")
-                val parsedTime = runCatching { LocalTime.parse(normalizedTime) }.getOrNull()
-                if (deadline == TaskDeadline.TIME && parsedTime == null) {
-                    error = "أدخل وقتاً صالحاً مثل 18:30"
-                } else {
-                    val dueAt = when (deadline) {
-                        TaskDeadline.NONE -> null
-                        TaskDeadline.SHIFT -> ShiftDate.endOf(date).toEpochMilli()
-                        TaskDeadline.TIME -> date.atTime(requireNotNull(parsedTime)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    }
-                    onConfirm((initial ?: PatientTask(UUID.randomUUID().toString(), description.trim())).copy(
-                        description = description.trim(), ownerDoctorId = owner,
-                        ownerName = doctors.firstOrNull { it.id == owner }?.fullName, priority = priority,
-                        dueAtEpochMillis = dueAt, dueShiftDate = date.toString().takeIf { deadline == TaskDeadline.SHIFT }
-                    ))
+                val dueAt = when (deadline) {
+                    TaskDeadline.NONE -> null
+                    TaskDeadline.SHIFT -> ShiftDate.endOf(date).toEpochMilli()
+                    TaskDeadline.TIME -> date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 }
+                onConfirm((initial ?: PatientTask(UUID.randomUUID().toString(), description.trim())).copy(
+                    description = description.trim(), ownerDoctorId = owner,
+                    ownerName = doctors.firstOrNull { it.id == owner }?.fullName, priority = priority,
+                    dueAtEpochMillis = dueAt, dueShiftDate = date.toString().takeIf { deadline == TaskDeadline.SHIFT }
+                ))
             }) { Text("اعتماد في المسودة") }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = enabled) { Text("إلغاء") } }

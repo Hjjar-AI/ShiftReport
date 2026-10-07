@@ -76,7 +76,19 @@ fun DoctorsScreen(
     var filter by remember { mutableStateOf(DoctorListFilter.ALL) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
-    ) { uri -> uri?.let(viewModel::exportDoctors) }
+    ) { uri -> viewModel.exportDoctors(uri) }
+    LaunchedEffect(state.exportReady) {
+        if (state.exportReady) {
+            viewModel.doctorExportPickerLaunched()
+            try {
+                exportLauncher.launch(DoctorCsvCodec.FILE_NAME)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                viewModel.doctorExportPickerFailed()
+            }
+        }
+    }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let(viewModel::prepareDoctorImport) }
@@ -202,7 +214,7 @@ fun DoctorsScreen(
                                         Text("استيراد CSV", Modifier.padding(start = 6.dp))
                                     }
                                     OutlinedButton(
-                                        onClick = { exportLauncher.launch(DoctorCsvCodec.FILE_NAME) },
+                                        onClick = viewModel::prepareDoctorExport,
                                         enabled = !state.saving && !state.importing && !state.exporting,
                                         modifier = Modifier.weight(1f)
                                     ) {

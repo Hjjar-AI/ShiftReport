@@ -32,7 +32,6 @@ fun ShiftDoctorPicker(
     allDoctors: List<Doctor>,
     initialSelected: List<String>,
     initialRevision: Long,
-    max: Int = 3,
     saving: Boolean = false,
     onConfirm: (List<String>, Long, (Shift?) -> Unit) -> Unit,
     onDismiss: () -> Unit
@@ -55,7 +54,7 @@ fun ShiftDoctorPicker(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    "اختر حتى $max أطباء",
+                    "اختر أطباء المناوبة دون حد أقصى",
                     style = MaterialTheme.typography.bodySmall
                 )
 
@@ -66,7 +65,6 @@ fun ShiftDoctorPicker(
                 }
                 allDoctors.filterNot { it.isDeleted }.forEach { doctor ->
                     val isSelected = doctor.id in selected
-                    val canSelect = selected.size < max || isSelected
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -84,7 +82,7 @@ fun ShiftDoctorPicker(
                         ) {
                             Checkbox(
                                 checked = isSelected,
-                                enabled = canSelect && !saving,
+                                enabled = !saving,
                                 onCheckedChange = { checked ->
                                     selected = if (checked) {
                                         selected + doctor.id

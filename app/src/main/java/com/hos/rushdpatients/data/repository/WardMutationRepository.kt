@@ -6,6 +6,8 @@ import androidx.room.withTransaction
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.domain.sort.PatientComparators
+import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.util.DispatcherProvider
 import com.hos.rushdpatients.util.ShiftDate
@@ -111,6 +113,10 @@ class WardMutationRepository @Inject constructor(
         expectedRevision: Long,
         actor: Session?
     ) = mutate(shiftId) {
+        require(doctorIds.isNotEmpty() && doctorIds.distinct().size == doctorIds.size) {
+            "اختر طبيباً واحداً على الأقل دون تكرار"
+        }
+        doctorIds.forEach { require(doctors.getActiveById(it) != null) { "أحد الأطباء لم يعد نشطاً" } }
         val before = requireNotNull(shifts.getById(shiftId))
         shifts.updateDoctorIds(shiftId, doctorIds, expectedRevision)
         audit.record(
@@ -128,6 +134,15 @@ class WardMutationRepository @Inject constructor(
     ) = mutate(shiftId) {
         val before = requireNotNull(shifts.getById(shiftId))
         shifts.updateSortSpec(shiftId, sortSpecJson, expectedRevision)
+        val current = patients.getForShift(shiftId)
+        val ordered = PatientComparators.ordered(
+            current, SortSpecCodec.decode(sortSpecJson),
+            doctors.getAllIncludingDeleted().associate { it.id to it.fullName }
+        )
+        val previousOrders = current.associate { it.id to it.sortOrder }
+        ordered.filter { previousOrders[it.id] != it.sortOrder }.forEach { patient ->
+            patients.updateOptimistically(patient, shiftId, patient.revision)
+        }
         audit.record(
             actor?.doctorId, actor?.doctorName, "shift_sort_edited", shiftId,
             beforeValue = before.sortSpecJson,

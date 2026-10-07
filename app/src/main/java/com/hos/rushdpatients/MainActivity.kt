@@ -8,6 +8,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -35,20 +36,31 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             var showingSplash by rememberSaveable { mutableStateOf(true) }
             val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 10_000L) }
-            LaunchedEffect(showingSplash) {
-                if (showingSplash) {
-                    delay((splashDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L))
-                    showingSplash = false
+            var splashSecondsRemaining by remember(splashDeadline) {
+                mutableIntStateOf(((splashDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+                    .let { (it + 999L) / 1_000L }).toInt())
+            }
+            LaunchedEffect(showingSplash, splashDeadline) {
+                while (showingSplash) {
+                    val remaining = (splashDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+                    splashSecondsRemaining = ((remaining + 999L) / 1_000L).toInt()
+                    if (remaining == 0L) {
+                        showingSplash = false
+                        break
+                    }
+                    // Re-read the clock instead of accumulating tick delays; retain the saved deadline.
+                    delay(minOf(remaining, 250L))
                 }
             }
             if (showingSplash) {
                 RushdPatientsTheme(darkTheme = false) {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        IntroAboutScreen(splash = true, onBack = { showingSplash = false })
+                        IntroAboutScreen(splash = true, onBack = { showingSplash = false }, remainingSeconds = splashSecondsRemaining)
                     }
                 }
                 return@setContent

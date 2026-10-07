@@ -29,6 +29,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -55,6 +56,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hos.rushdpatients.ui.ward.ShiftDoctorPicker
 import com.hos.rushdpatients.ui.components.LoadingButton
 import com.hos.rushdpatients.sync.ConflictChoice
 
@@ -69,6 +71,7 @@ fun ReportPreviewScreen(
     val context = LocalContext.current
     var supervisorMenuOpen by remember { mutableStateOf(false) }
     var selectedSupervisorIds by remember { mutableStateOf(emptySet<String>()) }
+    var showShiftDoctors by remember { mutableStateOf(false) }
     var confirmSend by remember { mutableStateOf(false) }
     var conflictChoices by remember { mutableStateOf(emptyMap<String, ConflictChoice>()) }
 
@@ -118,6 +121,19 @@ fun ReportPreviewScreen(
         }
     }
 
+    if (showShiftDoctors) {
+        ShiftDoctorPicker(
+            allDoctors = state.availableDoctors,
+            initialSelected = state.shift?.doctorIds.orEmpty(),
+            initialRevision = state.shift?.revision ?: 0L,
+            saving = state.savingDoctors,
+            onConfirm = { ids, revision, onStale ->
+                viewModel.setShiftDoctors(ids, revision, onStale) { showShiftDoctors = false }
+            },
+            onDismiss = { showShiftDoctors = false }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -153,23 +169,24 @@ fun ReportPreviewScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                state.summary?.let { summary ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                "أطباء المناوبة",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            summary.doctors.forEach { doctor ->
-                                Text("• ${doctor.fullName}")
-                            }
-                            if (summary.doctors.isEmpty()) Text("لم يُحدد أطباء المناوبة")
-                        }
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("أطباء المناوبة", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        state.doctors.forEach { Text("• ${it.fullName}") }
+                        if (state.doctors.isEmpty()) Text("اختر أطباء المناوبة من الزر أدناه")
+                        if (!state.isReadOnly) OutlinedButton(
+                            onClick = { confirmSend = false; showShiftDoctors = true },
+                            enabled = state.shift != null && !state.savingDoctors && !state.sending &&
+                                !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf &&
+                                !state.resolvingConflicts,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (state.doctors.isEmpty()) "اختيار أطباء المناوبة" else "تعديل أطباء المناوبة") }
                     }
+                }
+                state.summary?.let { summary ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("ملخص المناوبة", style = MaterialTheme.typography.titleMedium)
@@ -239,7 +256,7 @@ fun ReportPreviewScreen(
                     Switch(
                         checked = state.reportAsPdf,
                         onCheckedChange = viewModel::setReportAsPdf,
-                        enabled = !state.sending && !state.previewingPdf &&
+                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf &&
                             !state.exportingLocalPdf && !state.sharingPdf
                     )
                 }
@@ -258,21 +275,21 @@ fun ReportPreviewScreen(
                         loading = state.previewingPdf,
                         onClick = viewModel::previewPdf,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.sending && !state.exportingLocalPdf && !state.sharingPdf
+                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
                     )
                     LoadingButton(
                         text = "حفظ PDF محلياً",
                         loading = state.exportingLocalPdf,
                         onClick = viewModel::exportLocally,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.sending && !state.previewingPdf && !state.sharingPdf
+                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf && !state.sharingPdf
                     )
                     LoadingButton(
                         text = "مشاركة PDF",
                         loading = state.sharingPdf,
                         onClick = viewModel::sharePdf,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.sending && !state.previewingPdf &&
+                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf &&
                             !state.exportingLocalPdf
                     )
                 }
@@ -330,9 +347,9 @@ fun ReportPreviewScreen(
                             supervisorMenuOpen = true
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.previewingPdf && !state.exportingLocalPdf &&
+                        enabled = !state.savingDoctors && !state.previewingPdf && !state.exportingLocalPdf &&
                             !state.sharingPdf &&
-                            state.shift != null && !state.isReadOnly
+                            state.summary != null && !state.isReadOnly
                     )
                     DropdownMenu(
                         expanded = supervisorMenuOpen,

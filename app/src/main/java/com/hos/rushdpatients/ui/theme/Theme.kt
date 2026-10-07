@@ -20,13 +20,13 @@ private data class Accent(
     val darkPrimary: Color, val darkContainer: Color
 )
 
-// One quiet surface family across presets; only the primary accent changes.
+// Keep white/charcoal surfaces stable; apply a distinct accent to controls and section containers.
 private fun accent(preset: AppThemePreset) = when (preset) {
-    AppThemePreset.SYSTEM -> Accent(Color(0xFF0B6265), Color(0xFFD5EEED), Color(0xFF123B3C), Color(0xFF94D5D2), Color(0xFF174C4D))
-    AppThemePreset.SAGE -> Accent(Color(0xFF52643D), Color(0xFFE0EAD2), Color(0xFF293A1B), Color(0xFFBDCEA5), Color(0xFF364A27))
-    AppThemePreset.COASTAL -> Accent(Color(0xFF285F82), Color(0xFFDCEAF4), Color(0xFF183B53), Color(0xFFA2CAE6), Color(0xFF23475F))
-    AppThemePreset.SUNSET -> Accent(Color(0xFF445A77), Color(0xFFE0E7F2), Color(0xFF24364E), Color(0xFFB3C7E4), Color(0xFF304460))
-    AppThemePreset.FUCHSIA -> Accent(Color(0xFF69557C), Color(0xFFECE3F2), Color(0xFF3D2F4B), Color(0xFFD0BDE3), Color(0xFF4C3B5E))
+    AppThemePreset.SYSTEM -> Accent(Color(0xFF006B68), Color(0xFFC2F0E8), Color(0xFF003D3A), Color(0xFF75DDD1), Color(0xFF00504A))
+    AppThemePreset.SAGE -> Accent(Color(0xFF37662F), Color(0xFFD5F2BD), Color(0xFF163C12), Color(0xFFA2DB8C), Color(0xFF285022))
+    AppThemePreset.COASTAL -> Accent(Color(0xFF1E55B3), Color(0xFFD8E5FF), Color(0xFF073379), Color(0xFF9FC4FF), Color(0xFF163F82))
+    AppThemePreset.SUNSET -> Accent(Color(0xFF865600), Color(0xFFFFE2A0), Color(0xFF432B00), Color(0xFFFFD273), Color(0xFF594000))
+    AppThemePreset.FUCHSIA -> Accent(Color(0xFF7F36A1), Color(0xFFF1D9FF), Color(0xFF4D1469), Color(0xFFE1B2FF), Color(0xFF622280))
 }
 
 private val AppShapes = Shapes(
@@ -54,10 +54,10 @@ fun RushdPatientsTheme(
     } else if (dark) darkColorScheme(
         primary = a.darkPrimary, onPrimary = Color(0xFF172125),
         primaryContainer = a.darkContainer, onPrimaryContainer = a.container,
-        secondary = Color(0xFFBBCAD0), onSecondary = Color(0xFF253238),
-        secondaryContainer = Color(0xFF34434A), onSecondaryContainer = Color(0xFFDCE6EA),
-        tertiary = Color(0xFFBBCAD0), onTertiary = Color(0xFF253238),
-        tertiaryContainer = Color(0xFF34434A), onTertiaryContainer = Color(0xFFDCE6EA),
+        secondary = a.darkPrimary, onSecondary = Color(0xFF172125),
+        secondaryContainer = a.darkContainer, onSecondaryContainer = a.container,
+        tertiary = a.darkPrimary, onTertiary = Color(0xFF172125),
+        tertiaryContainer = a.darkContainer, onTertiaryContainer = a.container,
         background = Color(0xFF111719), onBackground = Color(0xFFE3EBEE),
         surface = Color(0xFF192124), onSurface = Color(0xFFE3EBEE),
         surfaceVariant = Color(0xFF2C363B), onSurfaceVariant = Color(0xFFC0CCD1),
@@ -70,10 +70,10 @@ fun RushdPatientsTheme(
     ) else lightColorScheme(
         primary = a.primary, onPrimary = Color.White,
         primaryContainer = a.container, onPrimaryContainer = a.onContainer,
-        secondary = Color(0xFF485D66), onSecondary = Color.White,
-        secondaryContainer = Color(0xFFE4EBEE), onSecondaryContainer = Color(0xFF293A42),
-        tertiary = Color(0xFF485D66), onTertiary = Color.White,
-        tertiaryContainer = Color(0xFFE4EBEE), onTertiaryContainer = Color(0xFF293A42),
+        secondary = a.primary, onSecondary = Color.White,
+        secondaryContainer = a.container, onSecondaryContainer = a.onContainer,
+        tertiary = a.primary, onTertiary = Color.White,
+        tertiaryContainer = a.container, onTertiaryContainer = a.onContainer,
         background = Color(0xFFF5F7F8), onBackground = Color(0xFF202B30),
         surface = Color.White, onSurface = Color(0xFF202B30),
         surfaceVariant = Color(0xFFEBF0F2), onSurfaceVariant = Color(0xFF4A5B63),

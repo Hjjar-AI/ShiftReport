@@ -44,15 +44,18 @@ These instructions apply to the entire repository. Before work, check for additi
 - When changing shared patient data, follow its existing model, persistence, sync/backup, conflict-review, count/filter, and text/PDF paths. Keep the representation consistent; schema changes still need explicit authorization.
 - Prefer one source of truth for shared rules: report readiness is shared through `domain/report/ReportReadiness.kt`, and task counts, deadlines, validation, and carry-forward rules through `domain/task/PatientTasks.kt`.
 - Tasks are explicit structured records, never inferred from follow-up text. Overdue is a subset of pending. Preserve task persistence, synchronization, backup/report output, expected-revision review, repository-stamped completion identity/time, and unfinished-task rollover. New tasks start unassigned; assigning a doctor is optional. No user acknowledgment workflow is required.
-- Keep demo patients in memory only; demo mode must not write to Room or synchronize.
+- Keep demo clinical data/settings in memory only; demo mode must not write to Room or synchronize. Reuse real offline forms/cards where practical. The owner permits explicit local PDF export of dummy demo data; label every exported page as a demo. Use hot-beverage patient names and tree-named doctors.
 
 ## Product and interface preferences
 
+- Keep Activity Center visible only to admins across drawer, tabs, dashboard, and supporting panes. Keep the report action labelled «إرسال تقرير» and bottom navigation compact while preserving 48dp targets and report review. Patient sorting must update stored positions and agree across exported formats.
+- Keep drawer rows compact with 48dp minimum targets, and arrange hospital/app and user/shift details in a short two-column header.
 - Optimize frequent actions for quick access. Group secondary drawer/settings actions logically; avoid crowding forms or adding wide vertical gaps. Preserve useful details through compact sections and optional expansion.
-- Keep patient editing full-screen with clinical/task sections first and demographic/personal fields last; new-patient entry starts with demographic/personal fields. General and Advanced modes must preserve the same draft, with fixed keyboard-safe Save/Cancel controls.
+- Keep patient forms RTL from their first native/Compose layout. Use numeric keyboards for admission numbers and numeric PINs, «أو» between birth year and age, type-specific diagnosis placeholders, and a picker for task times. PDF output omits unassigned/routine-priority labels and patient last-edit metadata without dropping tasks or clinical content.
+- Keep patient editing full-screen with clinical/task sections first and demographic/personal fields last; new-patient entry starts with demographic/personal fields. General and Advanced modes must both expose labs and preserve the same draft, with fixed keyboard-safe Save/Cancel controls.
 - Use shared theme typography, shapes, and `UiSpacing`; keep appearance independent of accent and badge severity mapping shared through `patientBadgeColors`. Diagnosis categories must not use error colors. Keep individual card expansion brief and bulk expansion immediate; retain uncommon PDF options under Advanced. Collapsed summaries may omit zero counts and routine metadata, but full saved clinical content must remain available when expanded.
 - Keep per-patient task counts on cards and ward totals on the dashboard. Optional task ownership must not become a required save or report-readiness condition.
-- Preserve top-bar expand/collapse-all and individual card expansion, plus shift doctors as the first report-preview section.
+- Preserve top-bar expand/collapse-all and individual card expansion, plus an actionable shift-doctor selector as the first report-preview section, available before the roster is set. Do not restore a fixed maximum roster size in the picker, sync, or reports; retain active-doctor validation and stale-edit protection.
 - Preserve Arabic user-facing text, RTL layout, labelled 48dp targets, readable wrapping at large font sizes, semantic states, and adaptive/fold-safe placement.
 - Keep the splash responsive and dismissible by any tap or after 10 seconds, including across Activity recreation. Preserve the white-field emblem and existing About/credit content unless explicitly asked to change them.
 

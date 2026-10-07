@@ -3,6 +3,8 @@ package com.hos.rushdpatients.sync
 import com.hos.rushdpatients.domain.task.PatientTasks
 import android.content.Context
 import androidx.room.withTransaction
+import com.hos.rushdpatients.domain.sort.PatientComparators
+import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.config.Topic
 import com.hos.rushdpatients.config.Topics
@@ -352,8 +354,7 @@ class SyncService @Inject constructor(
         require(normalizedDoctorIds.all { id -> activeDoctors.any { it.id == id } }) {
             "قائمة أطباء مناوبة ${parsed.shiftDate} تحتوي معرّفات غير معروفة"
         }
-        require(normalizedDoctorIds.distinct().size in
-            AppConstants.MIN_SHIFT_DOCTORS..AppConstants.MAX_SHIFT_DOCTORS
+        require(normalizedDoctorIds.distinct().size >= AppConstants.MIN_SHIFT_DOCTORS
         ) { "عدد أطباء مناوبة ${parsed.shiftDate} غير صالح" }
         return PreparedShift(parsed, normalizedPatients, normalizedDoctorIds.distinct())
     }
@@ -463,8 +464,7 @@ class SyncService @Inject constructor(
                 revision = maxOf(shift.revision, remoteShift?.shiftRevision ?: 0L) + 1,
                 publishedByDeviceId = publishingDeviceId
             )
-            require(shift.doctorIds.distinct().size in
-                    AppConstants.MIN_SHIFT_DOCTORS..AppConstants.MAX_SHIFT_DOCTORS) {
+            require(shift.doctorIds.distinct().size >= AppConstants.MIN_SHIFT_DOCTORS) {
                 "حدد أطباء المناوبة قبل الرفع"
             }
             val invalidPatient = patients.firstOrNull {
@@ -481,15 +481,17 @@ class SyncService @Inject constructor(
                 .distinctBy { it.id }
                 .sortedByDescending { it.date }
                 .take(AppConstants.CSV_BUNDLE_SHIFT_COUNT)
+            val doctorNames = doctorRepository.getAllIncludingDeleted().associate { it.id to it.fullName }
             val csv = CsvBundleCodec.encode(
                 bundledShifts.map { bundledShift ->
                     ShiftCsvSnapshot(
                         shift = bundledShift,
-                        patients = if (bundledShift.id == shift.id) {
-                            patients
-                        } else {
-                            patientRepository.getForShift(bundledShift.id)
-                        }
+                        patients = PatientComparators.ordered(
+                            if (bundledShift.id == shift.id) patients
+                            else patientRepository.getForShift(bundledShift.id),
+                            SortSpecCodec.decode(bundledShift.sortSpecJson),
+                            doctorNames
+                        )
                     )
                 }
             )

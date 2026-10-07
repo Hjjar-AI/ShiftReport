@@ -128,12 +128,13 @@ network/system messages.
 
 ## Appearance and card behavior
 
-- Settings → App interface separates System/Light/Dark appearance from the accent palette. Teal is the default. A saved accent does not force light/dark mode; wallpaper colors are disabled by default. Inspect `AppAppearance`, `AppThemePreset`, and `ThemeViewModel` when diagnosing preferences.
+- Settings → App interface separates System/Light/Dark appearance from the accent palette. Teal is the default, with distinct green/blue/gold/purple alternatives applied across controls and headings. A saved accent does not force light/dark mode; wallpaper colors are disabled by default. Inspect `AppAppearance`, `AppThemePreset`, and `ThemeViewModel` when diagnosing preferences.
 - Badge editing and cards share `patientBadgeColors`: high is red, medium is amber, and low/unclassified badges are neutral. Diagnosis categories are neutral, not error states.
 - Collapsed cards keep admission/identity, clinician labels, a two-line diagnosis summary, warning/unclassified badges, and nonzero task counts. Low-level badges show an additional-badge count. Expand for full text, all badges, completed tasks, and last-edit information; collapsed summaries do not remove stored data.
 - Individual expansion/collapse uses 160/130ms transitions. Bulk expansion is deliberately immediate. Report readiness remains on the FAB; Activity has its own primary tab.
+- General and Advanced patient editing both expose labs using one draft. Report preview has a top roster selector even with no doctors selected; there is no fixed maximum, and at least one active doctor is required. The latest form/roster/accent changes have not been rebuilt.
 - PDF orientation, paper, colors, dark output, and per-supervisor output are under Settings → Report → Advanced PDF options. These controls are hidden until expanded, not removed.
-- The latest supplied build failed on missing Material opt-ins in `PatientTaskEditor.kt`. The source now opts into `ExperimentalMaterial3Api`; a later build result has not been supplied. Static accent contrast checks do not establish rendered readability or smoothness.
+- The missing Material opt-ins in `PatientTaskEditor.kt` are fixed; the owner supplied a successful debug build on 2026-10-07. The remaining deprecated-API note names generated `RushdApplication_MembersInjector.java`; do not edit generated output to suppress it. Build success and static accent contrast checks do not establish rendered readability or smoothness.
 
 ## ADB setup
 
@@ -499,6 +500,8 @@ adb shell dumpsys activity exit-info com.hos.rushdpatients
 ```
 
 ## File picker and storage access
+
+Doctor export prepares UTF-8/BOM bytes before `CreateDocument`, then verifies the saved contents by reading them back. If the export session is lost after a process restart, the app reports a retry instruction; an empty or mismatched file must not be reported as successful. Picker cancellation clears the pending snapshot. These changes passed source checks and the authorized 2026-10-07 debug build; document-provider/device behavior remains unverified.
 
 The doctors importer uses Android's Storage Access Framework through `OpenDocument`.
 It reads a content URI supplied by the chosen document provider; it does not require

@@ -27,12 +27,23 @@ class TextReportBuilder @Inject constructor() {
         residentNames: Map<String, String>,
         supervisorNames: Map<String, String>
     ): List<String> {
-        val title = buildTitle(shift, doctors)
+        // Split long rosters between doctors so Markdown links remain intact.
+        val titles = mutableListOf<String>()
+        val roster = mutableListOf<Doctor>()
+        doctors.forEach { doctor ->
+            if (roster.isNotEmpty() && buildTitle(shift, roster + doctor).length >
+                com.hos.rushdpatients.config.AppConstants.TELEGRAM_SAFE_CHARS) {
+                titles += buildTitle(shift, roster)
+                roster.clear()
+            }
+            roster += doctor
+        }
+        titles += buildTitle(shift, roster)
         val patientBlocks = patients.map {
             buildPatientBlock(it, residentNames, supervisorNames)
         }
         val summaryBlock = buildSummary(summary)
-        return ReportChunking.chunk(title, patientBlocks, summaryBlock)
+        return titles.dropLast(1) + ReportChunking.chunk(titles.last(), patientBlocks, summaryBlock)
     }
 
     fun buildTitle(shift: Shift, doctors: List<Doctor>): String {

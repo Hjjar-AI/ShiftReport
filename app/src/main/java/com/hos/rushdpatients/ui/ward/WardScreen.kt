@@ -2,6 +2,11 @@ package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +74,6 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -79,10 +83,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
@@ -111,6 +112,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -160,7 +162,8 @@ fun WardScreen(
     var showSupportingSheet by rememberSaveable { mutableStateOf(false) }
     val expandedWindow = LocalConfiguration.current.screenWidthDp >= 600
     val topBarHeight = 64.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val bottomBarHeight = 80.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val compactNavigationHeight = 48.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
+    val bottomBarHeight = compactNavigationHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val clinicalColors = LocalClinicalColors.current
     val freshnessLabel = remember(state.lastBackedUpAt, state.syncStatus) {
         val lastBackup = state.lastBackedUpAt?.let { epochMillis ->
@@ -218,9 +221,12 @@ fun WardScreen(
     var animatedPatientId by remember { mutableStateOf<String?>(null) }
     fun toggleAllCards() {
         animatedPatientId = null
-        expandedPatientIds = emptyList()
-        collapsedPatientIds = emptyList()
-        viewModel.setPatientDetailsExpanded(!anyCardsExpanded)
+        val expand = !anyCardsExpanded
+        val ids = state.patients.map { it.id }
+        // Both override sets express the target immediately, even before preference IO completes.
+        expandedPatientIds = if (expand) ids else emptyList()
+        collapsedPatientIds = if (expand) emptyList() else ids
+        viewModel.setPatientDetailsExpanded(expand)
     }
     fun toggleCard(id: String) {
         animatedPatientId = id
@@ -299,8 +305,10 @@ fun WardScreen(
     BackHandler(enabled = patientDestination && detailsTargetId != null && editTarget == null && copyTarget == null) {
         detailsTargetId = null
     }
-    LaunchedEffect(viewMode) {
-        if (viewMode == WardViewMode.ACTIVITY) viewModel.loadRecentActivity()
+    LaunchedEffect(viewMode, isAdmin) {
+        if (viewMode == WardViewMode.ACTIVITY) {
+            if (isAdmin) viewModel.loadRecentActivity() else viewMode = WardViewMode.ALL
+        }
     }
     LaunchedEffect(detailsTargetId, state.patients.map { it.revision }) { viewModel.loadLocalActivity() }
     LaunchedEffect(state.loading, state.shift?.id, state.patients.map { it.id }) {
@@ -374,64 +382,63 @@ fun WardScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = state.hospitalName.ifBlank { stringResource(R.string.app_name) },
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    if (state.hospitalName.isNotBlank()) {
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Text(
-                        text = buildString {
-                            append(doctorNames[currentDoctorId] ?: "مستخدم غير محدد")
-                            append(if (isAdmin) " · مدير" else " · عضو الفريق")
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "${state.shift?.date ?: "—"} · ${state.patients.size} مريض",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TextButton(onClick = {
+                Surface(
+                    onClick = {
                         dataMenuExpanded = true
                         wardMenuExpanded = false
                         appMenuExpanded = false
-                    }, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                    },
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }
+                ) {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                            Column(Modifier.weight(1f)) {
+                                Text(state.hospitalName.ifBlank { stringResource(R.string.app_name) },
+                                    style = MaterialTheme.typography.titleMedium, maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                if (state.hospitalName.isNotBlank()) Text(stringResource(R.string.app_name),
+                                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                Text(doctorNames[currentDoctorId] ?: "مستخدم غير محدد",
+                                    style = MaterialTheme.typography.bodyMedium, maxLines = 2,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                Text("${if (isAdmin) "مدير" else "عضو الفريق"} · ${state.patients.size} مريض",
+                                    style = MaterialTheme.typography.labelSmall)
+                                Text("${state.shift?.date ?: "—"}", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                         Text(buildString {
                             append(if (online) state.syncStatus.arabicLabel else "غير متصل · بيانات محلية")
                             if (state.mergeConflicts.isNotEmpty()) append(" · ${state.mergeConflicts.size} تعارض")
-                        }, style = MaterialTheme.typography.labelMedium)
+                        }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
-                NavigationDrawerItem(
+                CompactDrawerItem(
                         icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
                         label = { Text("جميع المرضى") },
                         selected = viewMode == WardViewMode.ALL &&
                             !priorityOnly && !warningsOnly && !unassignedOnly &&
                             !urgentOnly && !newAdmissionsOnly && taskFilter == null && searchQuery.isBlank(),
                         onClick = { closeDrawer { applyDashboardFilter(DashboardFilter.ALL) } },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
-                NavigationDrawerItem(
+                CompactDrawerItem(
                         icon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
                         label = { Text("معاينة وإرسال التقرير") },
                         selected = false,
                         onClick = {
-                            val id = state.shift?.id ?: return@NavigationDrawerItem
+                            val id = state.shift?.id ?: return@CompactDrawerItem
                             closeDrawer { onOpenReport(id) }
                         },
-                        modifier = Modifier.padding(horizontal = 22.dp),
-                        colors = disabledDrawerColors(state.shift == null)
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        enabled = state.shift != null
                     )
-                NavigationDrawerItem(
+                if (isAdmin) CompactDrawerItem(
                         icon = { Icon(Icons.Filled.History, contentDescription = null) },
                         label = { Text("مركز النشاط والسجل") },
                         selected = false,
@@ -440,14 +447,14 @@ fun WardScreen(
                                 viewMode = WardViewMode.ACTIVITY
                             }
                         },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
-                NavigationDrawerItem(
+                CompactDrawerItem(
                         icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         label = { Text("الإعدادات") },
                         selected = false,
                         onClick = { closeDrawer { onOpenSettings() } },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 Divider()
                 DrawerSubmenuHeader(
@@ -463,50 +470,50 @@ fun WardScreen(
                 )
                 if (wardMenuExpanded) {
 
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
                         label = { Text("لوحة تسليم المناوبة") },
                         selected = viewMode == WardViewMode.DASHBOARD,
                         onClick = { closeDrawer { viewMode = WardViewMode.DASHBOARD } },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.Person, contentDescription = null) },
                         label = { Text("مرضاي") },
                         selected = viewMode == WardViewMode.MINE,
                         onClick = { closeDrawer { viewMode = WardViewMode.MINE } },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.FilterList, contentDescription = null) },
                         label = { Text("بحث وتصفية وترتيب") },
                         selected = priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
                             newAdmissionsOnly || searchQuery.isNotBlank(),
                         onClick = { closeDrawer { showFilters = true } },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
                         label = { Text("ترتيب المرضى") },
                         selected = false,
                         onClick = { if (!state.isReadOnly) closeDrawer { showSort = true } },
-                        modifier = Modifier.padding(horizontal = 22.dp),
-                        colors = disabledDrawerColors(state.isReadOnly)
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        enabled = !state.isReadOnly
                     )
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
                         label = { Text("تجميع المرضى") },
                         selected = state.groupByMode != GroupByMode.NONE,
                         onClick = { closeDrawer { showGroupBy = true } },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.Groups, contentDescription = null) },
                         label = { Text("أطباء المناوبة") },
                         selected = false,
                         onClick = { if (!state.isReadOnly) closeDrawer { showShiftDoctors = true } },
-                        modifier = Modifier.padding(horizontal = 22.dp),
-                        colors = disabledDrawerColors(state.isReadOnly)
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        enabled = !state.isReadOnly
                     )
                 }
 
@@ -637,15 +644,15 @@ fun WardScreen(
                         }
                     }
 
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
                         label = { Text("حفظ بيانات المرضى CSV") },
                         selected = false,
                         onClick = { closeDrawer { viewModel.exportCsv() } },
-                        modifier = Modifier.padding(horizontal = 22.dp),
-                        colors = disabledDrawerColors(state.exportingCsv)
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        enabled = !state.exportingCsv
                     )
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.Recycling, contentDescription = null) },
                         label = { Text("سلة المحذوفات") },
                         selected = false,
@@ -655,7 +662,7 @@ fun WardScreen(
                                 showRecycleBin = true
                             }
                         },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
 
@@ -673,28 +680,28 @@ fun WardScreen(
                 )
                 if (appMenuExpanded) {
                     if (isAdmin) {
-                        NavigationDrawerItem(
+                        CompactDrawerItem(
                             icon = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null) },
                             label = { Text("لوحة المدير") },
                             selected = false,
                             onClick = { closeDrawer { onOpenAdmin() } },
-                            modifier = Modifier.padding(horizontal = 22.dp)
+                            modifier = Modifier.padding(horizontal = 12.dp)
                         )
-                        NavigationDrawerItem(
+                        CompactDrawerItem(
                             icon = { Icon(Icons.Filled.FileUpload, contentDescription = null) },
                             label = { Text("استيراد بيانات من ملف") },
                             selected = false,
                             onClick = { closeDrawer { onOpenVbaImport() } },
-                            modifier = Modifier.padding(horizontal = 22.dp)
+                            modifier = Modifier.padding(horizontal = 12.dp)
                         )
                     }
 
-                    NavigationDrawerItem(
+                    CompactDrawerItem(
                         icon = { Icon(Icons.Filled.Info, contentDescription = null) },
                         label = { Text("حول التطبيق") },
                         selected = false,
                         onClick = { closeDrawer { onOpenAbout() } },
-                        modifier = Modifier.padding(horizontal = 22.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
             }
@@ -751,43 +758,26 @@ fun WardScreen(
             },
             floatingActionButton = {
                 state.shift?.takeIf { !patientDestination || selectedPatient == null }?.let {
-                    ExtendedFloatingActionButton(
+                    Button(
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             showReportSheet = true
                         },
-                        icon = { Icon(Icons.Filled.Send, contentDescription = null) },
-                        text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    if (reportReadinessIssueCount == 0) {
-                                        "التقرير جاهز للإرسال"
-                                    } else {
-                                        "مراجعة وإرسال التقرير"
-                                    }
-                                )
-                                if (reportReadinessIssueCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.error,
-                                        contentColor = MaterialTheme.colorScheme.onError
-                                    ) { Text(reportReadinessIssueCount.toString()) }
-                                }
-                            }
-                        },
-                        expanded = true,
-                        modifier = Modifier.semantics {
-                            stateDescription = if (reportReadinessIssueCount == 0) {
-                                "التقرير جاهز"
-                            } else {
-                                "$reportReadinessIssueCount ملاحظات جاهزية"
-                            }
-                        },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.heightIn(min = 48.dp).semantics {
+                            stateDescription = if (reportReadinessIssueCount == 0) "التقرير جاهز"
+                                else "$reportReadinessIssueCount ملاحظات جاهزية"
+                        }
+                    ) {
+                        Icon(Icons.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("إرسال تقرير", Modifier.padding(start = 6.dp))
+                        if (reportReadinessIssueCount > 0) {
+                            Badge(modifier = Modifier.padding(start = 6.dp),
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ) { Text(reportReadinessIssueCount.toString()) }
+                        }
+                    }
                 }
             },
             bottomBar = {
@@ -797,6 +787,7 @@ fun WardScreen(
                         modifier = Modifier.fillMaxWidth().height(bottomBarHeight), primaryTitle = "التنقل الرئيسي", primary = {
                         PrimaryNavigationBar(
                             viewMode = viewMode,
+                            isAdmin = isAdmin,
                             onPatients = { viewMode = WardViewMode.ALL },
                             onDashboard = { viewMode = WardViewMode.DASHBOARD },
                             onActivity = {
@@ -819,6 +810,7 @@ fun WardScreen(
                         modifier = Modifier.width(80.dp).fillMaxHeight(), primaryTitle = "التنقل الرئيسي", primary = {
                         PrimaryNavigationRail(
                             viewMode = viewMode,
+                            isAdmin = isAdmin,
                             onPatients = { viewMode = WardViewMode.ALL },
                             onDashboard = { viewMode = WardViewMode.DASHBOARD },
                             onActivity = {
@@ -838,7 +830,7 @@ fun WardScreen(
                     supportingTitle = if (selectedPatient == null) "جاهزية التقرير والنشاط" else "ملف المريض",
                     supporting = {
                         if (selectedPatient != null && editTarget == null && copyTarget == null) detailContent(true)
-                        else WardSupportingPane(state, freshnessLabel, online,
+                        else WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
                             onReviewReport = { showReportSheet = true },
                             onActivity = { viewMode = WardViewMode.ACTIVITY })
                     },
@@ -852,7 +844,7 @@ fun WardScreen(
                                 title = "تعذر تحميل بيانات الوردية",
                                 subtitle = state.error.orEmpty()
                             )
-                        } else if (viewMode == WardViewMode.ACTIVITY) {
+                        } else if (viewMode == WardViewMode.ACTIVITY && isAdmin) {
                             WardActivityScreen(
                                 activity = state.recentActivity, publications = state.publications,
                                 patientNames = state.patients.associate { it.id to it.name },
@@ -864,6 +856,7 @@ fun WardScreen(
                             )
                         } else if (viewMode == WardViewMode.DASHBOARD) {
                             HandoverDashboard(
+                                isAdmin = isAdmin,
                                 patients = state.patients,
                                 currentDoctorId = currentDoctorId,
                                 syncStatus = state.syncStatus,
@@ -1148,7 +1141,7 @@ fun WardScreen(
             WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
                 listFraction = .42f, onListFractionChange = {},
                 modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp), primary = {
-                WardSupportingPane(state, freshnessLabel, online,
+                WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
                     onReviewReport = { showSupportingSheet = false; showReportSheet = true },
                     onActivity = { showSupportingSheet = false; viewMode = WardViewMode.ACTIVITY },
                     modifier = Modifier.fillMaxSize())
@@ -1495,7 +1488,6 @@ fun WardScreen(
             allDoctors = state.doctors,
             initialSelected = state.shift?.doctorIds ?: emptyList(),
             initialRevision = state.shift?.revision ?: 0,
-            max = 3,
             saving = state.saving,
             onConfirm = { ids, revision, onStale ->
                 viewModel.setShiftDoctors(ids, revision, onStale) { showShiftDoctors = false }
@@ -1578,35 +1570,47 @@ private fun ActiveFilterChip(label: String, onRemove: () -> Unit) {
 @Composable
 private fun PrimaryNavigationBar(
     viewMode: WardViewMode,
+    isAdmin: Boolean,
     onPatients: () -> Unit,
     onDashboard: () -> Unit,
     onActivity: () -> Unit
 ) {
-    NavigationBar {
-        NavigationBarItem(
-            selected = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE,
-            onClick = onPatients,
-            icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-            label = { Text("المرضى") }
-        )
-        NavigationBarItem(
-            selected = viewMode == WardViewMode.DASHBOARD,
-            onClick = onDashboard,
-            icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-            label = { Text("اللوحة") }
-        )
-        NavigationBarItem(
-            selected = viewMode == WardViewMode.ACTIVITY,
-            onClick = onActivity,
-            icon = { Icon(Icons.Filled.History, contentDescription = null) },
-            label = { Text("النشاط") }
-        )
+    val items = listOf(
+        Triple("المرضى", Icons.Filled.ViewAgenda, onPatients),
+        Triple("اللوحة", Icons.Filled.Dashboard, onDashboard)
+    ) + if (isAdmin) listOf(Triple("النشاط", Icons.Filled.History, onActivity)) else emptyList()
+    Surface(color = MaterialTheme.colorScheme.surface) {
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().selectableGroup()) {
+            items.forEachIndexed { index, (label, icon, action) ->
+                val selected = when (index) {
+                    0 -> viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE
+                    1 -> viewMode == WardViewMode.DASHBOARD
+                    else -> viewMode == WardViewMode.ACTIVITY
+                }
+                Row(
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                        .selectable(selected = selected, role = Role.Tab, onClick = action)
+                        .background(if (selected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+                    Text(label, Modifier.padding(start = 6.dp), color = color,
+                        style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
     }
 }
 
 @Composable
 private fun PrimaryNavigationRail(
     viewMode: WardViewMode,
+    isAdmin: Boolean,
     onPatients: () -> Unit,
     onDashboard: () -> Unit,
     onActivity: () -> Unit
@@ -1624,7 +1628,7 @@ private fun PrimaryNavigationRail(
             icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
             label = { Text("اللوحة") }
         )
-        NavigationRailItem(
+        if (isAdmin) NavigationRailItem(
             selected = viewMode == WardViewMode.ACTIVITY,
             onClick = onActivity,
             icon = { Icon(Icons.Filled.History, contentDescription = null) },
@@ -1667,7 +1671,7 @@ private fun DrawerSubmenuHeader(
     expanded: Boolean,
     onClick: () -> Unit
 ) {
-    NavigationDrawerItem(
+    CompactDrawerItem(
         label = { Text(label, fontWeight = FontWeight.SemiBold) },
         selected = false,
         onClick = onClick,
@@ -1681,22 +1685,42 @@ private fun DrawerSubmenuHeader(
     )
 }
 
+/** Compact visual row with a full 48dp minimum touch target and wrapping text. */
 @Composable
-private fun disabledDrawerColors(disabled: Boolean) =
-    if (disabled) {
-        NavigationDrawerItemDefaults.colors(
-            unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-            unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-        )
-    } else {
-        NavigationDrawerItemDefaults.colors()
+private fun CompactDrawerItem(
+    label: @Composable () -> Unit,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
+    badge: (@Composable () -> Unit)? = null,
+    enabled: Boolean = true
+) {
+    val contentColor = (if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+        else MaterialTheme.colorScheme.onSurface).let { if (enabled) it else it.copy(alpha = 0.38f) }
+    Surface(onClick = onClick, enabled = enabled,
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { this.selected = selected },
+        shape = MaterialTheme.shapes.small,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        contentColor = contentColor
+    ) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            icon?.invoke()
+            ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
+                Box(Modifier.weight(1f)) { label() }
+            }
+            badge?.invoke()
+        }
     }
+}
 
 private enum class WardViewMode { DASHBOARD, ALL, MINE, ACTIVITY }
 private enum class DashboardFilter { ALL, MINE, URGENT, WARNINGS, UNASSIGNED, NEW_ADMISSIONS, TASK_PENDING, TASK_OVERDUE, TASK_UNASSIGNED }
 
 @Composable
 private fun HandoverDashboard(
+    isAdmin: Boolean,
     patients: List<Patient>,
     currentDoctorId: String,
     syncStatus: PatientSyncStatus,
@@ -1735,7 +1759,7 @@ private fun HandoverDashboard(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onSync) { Text("مزامنة") }
-            TextButton(onClick = onActivity) { Text("مركز النشاط") }
+            if (isAdmin) TextButton(onClick = onActivity) { Text("مركز النشاط") }
             TextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
         }
         DashboardMetric("إجمالي المرضى", patients.size, MaterialTheme.colorScheme.primaryContainer) { onFilter(DashboardFilter.ALL) }
@@ -1753,7 +1777,7 @@ private fun HandoverDashboard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("مركز النشاط", style = MaterialTheme.typography.titleMedium)
+                Text("حالة المناوبة", style = MaterialTheme.typography.titleMedium)
                 Text("حالة البيانات: ${syncStatus.arabicLabel}")
                 Text("استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر")
             }

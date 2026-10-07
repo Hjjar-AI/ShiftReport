@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,35 +37,46 @@ internal fun WardFormDialog(
     dismissButton: @Composable () -> Unit
 ) {
     val fold = rememberWardFoldingFeature()
-    Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(
-        usePlatformDefaultWidth = false,
-        decorFitsSystemWindows = false,
-        dismissOnClickOutside = false
-    )) {
-        Surface(Modifier.fillMaxSize()) {
-            WardAdaptivePanes(
-                enableSplit = false, foldingFeature = fold,
-                listFraction = .42f, onListFractionChange = {},
-                modifier = Modifier.fillMaxSize(), primaryTitle = "تحرير المريض",
-                primary = {
-                    Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
-                        Column(Modifier.widthIn(max = 840.dp).fillMaxWidth().fillMaxHeight()) {
-                            Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { title() }
-                            Divider()
-                            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { text() }
-                            Divider()
-                            Row(
-                                Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
-                                horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(Modifier.weight(1f)) { confirmButton() }
-                                dismissButton()
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnClickOutside = false
+        )) {
+            val view = LocalView.current
+            DisposableEffect(view) {
+                // Set native direction before the first layout, matching the Compose content.
+                view.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
+                (view.parent as? DialogWindowProvider)?.window?.decorView?.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
+                onDispose { }
+            }
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Surface(Modifier.fillMaxSize()) {
+                    WardAdaptivePanes(
+                        enableSplit = false, foldingFeature = fold,
+                        listFraction = .42f, onListFractionChange = {},
+                        modifier = Modifier.fillMaxSize(), primaryTitle = "تحرير المريض",
+                        primary = {
+                            Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
+                                Column(Modifier.widthIn(max = 840.dp).fillMaxWidth().fillMaxHeight()) {
+                                    Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { title() }
+                                    Divider()
+                                    Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { text() }
+                                    Divider()
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
+                                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(Modifier.weight(1f)) { confirmButton() }
+                                        dismissButton()
+                                    }
+                                }
                             }
                         }
-                    }
+                    )
                 }
-            )
+            }
         }
     }
 }

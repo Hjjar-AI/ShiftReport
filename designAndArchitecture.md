@@ -13,7 +13,7 @@ Telegram remains the shared storage and delivery channel. Users retrieve publish
 - Optional Telegram-data encryption is selected at creation. Encrypt application records before upload and decrypt locally; keep PDFs deliberately readable, and do not imply that Telegram metadata is encrypted. Retain the project key during same-project credential replacement. Reject different-project/key/topic files before changing credentials; cross-project switching is blocked to protect local clinical records.
 - Store structured tasks separately from narrative follow-up. Pending includes overdue; card counts are per patient, dashboard totals are ward-wide, and completion records retain actor/time. New tasks start unassigned; assignment is optional and no user acknowledgment is required.
 - Preserve reviewed report snapshots and explicit send confirmation. Template ideas must not change report inclusion rules or existing clinical content automatically.
-- Use one neutral surface/typography/spacing system across screens. Appearance and accent are independent; badge severity colors are shared, and diagnosis categories do not imply errors. Simplify collapsed content without removing saved clinical detail; animate individual expansion briefly and apply bulk changes immediately.
+- Use one neutral surface/typography/spacing system across screens, with distinct accents applied to controls and headings. Appearance and accent are independent; badge severity colors are shared, and diagnosis categories do not imply errors. Simplify collapsed content without removing saved clinical detail; animate individual expansion briefly and apply bulk changes immediately.
 - Keep patient editing full-screen with clinical/task sections before demographics. New-patient entry begins with demographics. Preserve RTL, labelled controls, 48dp interaction targets, and direct access to frequent navigation actions.
 
 ## Scope and deferred ideas
@@ -29,4 +29,8 @@ The owner generally starts fresh projects after edits. Do not treat historical-p
 - I-PASS / structured handoff guidance: acuity, summary, actions, contingency planning, and receiver synthesis.
 - NHS warning guidance: concise, specific warnings reserved for significant or time-critical information.
 - WCAG 2.2: visible focus, target size, programmatic status messages, and interaction that does not rely on color alone.
-- Earlier Coolors exploration informed the accent choices. Current palettes use teal, olive, blue, navy, and muted violet on shared neutral surfaces; the former navy/gold mix was replaced. Appearance is independent of accent, and clinical severity uses separate shared colors.
+- Earlier Coolors exploration informed the accent choices. Current palettes use teal, green, blue, gold, and purple on shared neutral surfaces; the former navy/gold mix was replaced. Appearance is independent of accent, and clinical severity uses separate shared colors.
+
+## Offline demonstration
+
+Demo is an isolated in-memory workspace using the real offline patient forms, cards, task controls, roster picker, sorting, and PDF renderer. It has no clinical repository or Telegram dependency. Local PDF export is explicitly available for demonstrating reports, with a demo label on every page; exit/reset discards the temporary session. Drawer density preserves 48dp targets while using a two-column context header and compact wrapping rows.

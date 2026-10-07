@@ -24,6 +24,11 @@ object PatientComparators {
         }
     }
 
+    /** Shared ward/report/export order, with consecutive patient numbers. */
+    fun ordered(patients: List<Patient>, spec: SortSpec, doctorNames: Map<String, String>): List<Patient> =
+        patients.sortedWith(compareByDescending<Patient> { it.isPriority }.then(forSpec(spec, doctorNames)))
+            .mapIndexed { index, patient -> patient.copy(sortOrder = index + 1) }
+
     private fun compareLevel(
         a: Patient,
         b: Patient,

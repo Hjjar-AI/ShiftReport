@@ -19,6 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Doctor
@@ -116,6 +118,7 @@ fun AddEditDoctorDialog(
                     }
                 }
                 PasswordField(
+                    keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next,
                     value = pin,
                     onValueChange = { pin = it.filter(Char::isDigit).take(8) },
                     label = if (existing == null) "الرقم السري (4-8 أرقام)"

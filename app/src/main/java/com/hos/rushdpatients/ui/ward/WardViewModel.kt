@@ -21,6 +21,7 @@ import com.hos.rushdpatients.data.repository.SyncStateRepository
 import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.WardMutationRepository
 import com.hos.rushdpatients.data.model.SyncChannel
+import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.domain.patient.PatientValidationError
@@ -65,6 +66,7 @@ class WardViewModel @Inject constructor(
     private val syncStateRepository: SyncStateRepository,
     private val sessionManager: SessionManager,
     private val auditRepository: AuditRepository,
+    private val adminAuthorizer: AdminAuthorizer,
     private val json: Json,
     projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
@@ -324,6 +326,15 @@ class WardViewModel @Inject constructor(
     fun loadRecentActivity() {
         if (activityJob?.isActive == true) return
         activityJob = viewModelScope.launch {
+            try {
+                adminAuthorizer.requireAdmin()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(recentActivity = emptyList(), publications = emptyList(),
+                    activityLoading = false, activityError = e.message) }
+                return@launch
+            }
             _state.update { it.copy(activityLoading = true, activityError = null) }
             try {
                 val activity = auditRepository.getRecent()
@@ -684,8 +695,8 @@ class WardViewModel @Inject constructor(
         val shift = _state.value.shift?.takeIf { it.id == shiftId } ?: return
         val activeIds = _state.value.doctors.filterNot { it.isDeleted }.mapTo(mutableSetOf()) { it.id }
         when {
-            ids.size !in AppConstants.MIN_SHIFT_DOCTORS..AppConstants.MAX_SHIFT_DOCTORS -> {
-                showError("اختر من ${AppConstants.MIN_SHIFT_DOCTORS} إلى ${AppConstants.MAX_SHIFT_DOCTORS} أطباء")
+            ids.size < AppConstants.MIN_SHIFT_DOCTORS -> {
+                showError("اختر طبيباً واحداً على الأقل")
                 return
             }
             ids.distinct().size != ids.size || ids.any { it !in activeIds } -> {
@@ -810,14 +821,7 @@ class WardViewModel @Inject constructor(
         doctors: List<Doctor>,
         spec: SortSpec
     ): List<Patient> {
-        if (spec.levels.isEmpty()) return patients.sortedWith(
-            compareByDescending<Patient> { it.isPriority }.thenBy { it.sortOrder }
-        )
-        val names = doctors.associate { it.id to it.fullName }
-        return patients.sortedWith(
-            compareByDescending<Patient> { it.isPriority }
-                .then(PatientComparators.forSpec(spec, names))
-        )
+        return PatientComparators.ordered(patients, spec, doctors.associate { it.id to it.fullName })
     }
 
     private fun groupPatients(

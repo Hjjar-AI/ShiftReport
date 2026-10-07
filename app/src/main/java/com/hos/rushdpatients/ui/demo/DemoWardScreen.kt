@@ -1,122 +1,291 @@
 package com.hos.rushdpatients.ui.demo
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.hos.rushdpatients.data.model.DiagnosisType
-import com.hos.rushdpatients.data.model.Gender
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.model.PatientBadge
-import com.hos.rushdpatients.data.model.PatientBadgePriority
+import com.hos.rushdpatients.domain.report.ReportReadiness
+import com.hos.rushdpatients.domain.task.PatientTasks
+import com.hos.rushdpatients.pdf.PdfColorPreset
+import com.hos.rushdpatients.pdf.PdfExportOptions
+import com.hos.rushdpatients.pdf.PdfOrientation
+import com.hos.rushdpatients.ui.components.ConfirmDialog
+import com.hos.rushdpatients.ui.theme.AppAppearance
+import com.hos.rushdpatients.ui.theme.AppThemePreset
+import com.hos.rushdpatients.ui.theme.RushdPatientsTheme
+import com.hos.rushdpatients.ui.ward.AddPatientDialog
+import com.hos.rushdpatients.ui.ward.CopyPatientDialog
+import com.hos.rushdpatients.ui.ward.EditPatientDialog
 import com.hos.rushdpatients.ui.ward.PatientCard
-import java.time.LocalDate
+import com.hos.rushdpatients.ui.ward.PatientDetailsScreen
+import com.hos.rushdpatients.ui.ward.ShiftDoctorPicker
+import com.hos.rushdpatients.ui.ward.SortSheet
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class DemoTab(val label: String) { PATIENTS("المرضى"), DASHBOARD("اللوحة"), TEAM("الفريق"), REPORT("التقرير") }
+private enum class DemoFilter(val label: String) { ALL("الكل"), MINE("مرضاي"), PRIORITY("أولوية"), PENDING("مهام معلقة"), OVERDUE("مهام متأخرة") }
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun DemoWardScreen(onExit: () -> Unit) {
-    val patients = remember { demoPatients() }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
+fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    var tab by rememberSaveable { mutableStateOf(DemoTab.PATIENTS) }
+    var filter by rememberSaveable { mutableStateOf(DemoFilter.ALL) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expandedIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var animatedId by remember { mutableStateOf<String?>(null) }
+    var pinnedIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var compact by rememberSaveable { mutableStateOf(false) }
+    var showAdd by remember { mutableStateOf(false) }
+    var edit by remember { mutableStateOf<Patient?>(null) }
+    var copy by remember { mutableStateOf<Patient?>(null) }
+    var deleting by remember { mutableStateOf<Patient?>(null) }
+    var detailId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showSort by remember { mutableStateOf(false) }
+    var showDoctors by remember { mutableStateOf(false) }
+    var showRecycle by remember { mutableStateOf(false) }
+    var showReset by remember { mutableStateOf(false) }
+    var appearance by rememberSaveable { mutableStateOf(AppAppearance.SYSTEM) }
+    var accent by rememberSaveable { mutableStateOf(AppThemePreset.SYSTEM) }
+    var elegant by rememberSaveable { mutableStateOf(false) }
+    var landscape by rememberSaveable { mutableStateOf(false) }
+    var pdfColor by rememberSaveable { mutableStateOf(PdfColorPreset.TEAL) }
+    val options = PdfExportOptions(orientation = if (landscape) PdfOrientation.LANDSCAPE else PdfOrientation.PORTRAIT,
+        colorPreset = pdfColor)
+    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        viewModel.exportPdf(uri, options, elegant)
+    }
+    LaunchedEffect(state.message) {
+        state.message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
+    }
+    BackHandler(enabled = tab != DemoTab.PATIENTS && detailId == null) { tab = DemoTab.PATIENTS }
+    val now = System.currentTimeMillis()
+    val actorId = state.doctors.first().id
+    val visible = state.ordered.filter { patient ->
+        (query.isBlank() || patient.name.contains(query.trim(), true) ||
+            patient.initialDiagnosis.contains(query.trim(), true) || patient.admittanceNumber.contains(query.trim())) &&
+            when (filter) {
+                DemoFilter.ALL -> true
+                DemoFilter.MINE -> patient.responsibleResidentId == actorId || patient.responsibleSpecialistId == actorId ||
+                    patient.tasks.any { !it.done && it.ownerDoctorId == actorId }
+                DemoFilter.PRIORITY -> patient.isPriority
+                DemoFilter.PENDING -> patient.tasks.any { !it.done }
+                DemoFilter.OVERDUE -> patient.tasks.any { PatientTasks.overdue(it, now) }
+            }
+    }.sortedByDescending { it.id in pinnedIds }
+    RushdPatientsTheme(preset = accent, appearance = appearance) {
+        Scaffold(
+            topBar = {
+                TopAppBar(title = {
                     Column {
-                        Text("الوضع التجريبي")
-                        Text(
-                            "بيانات وهمية · لا اتصال بتليجرام",
-                            style = MaterialTheme.typography.labelSmall
-                        )
+                        Text("المناوبة التجريبية", style = MaterialTheme.typography.titleLarge)
+                        Text("${state.date} · ${state.patients.size} مريض · دون إنترنت", style = MaterialTheme.typography.labelSmall)
                     }
-                },
-                actions = {
-                    IconButton(onClick = onExit) {
-                        Icon(Icons.Filled.ExitToApp, contentDescription = "إنهاء العرض التجريبي")
+                }, actions = {
+                    if (tab == DemoTab.PATIENTS) {
+                        IconButton(onClick = { expanded = !expanded; expandedIds = emptyList(); animatedId = null }) {
+                            Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                contentDescription = if (expanded) "طي جميع البطاقات" else "توسيع جميع البطاقات")
+                        }
+                        IconButton(onClick = { showSort = true }) { Icon(Icons.Filled.Sort, "ترتيب المرضى") }
+                        IconButton(onClick = { showAdd = true }) { Icon(Icons.Filled.Add, "إضافة مريض تجريبي") }
+                    }
+                    IconButton(onClick = { viewModel.endSession(); onExit() }, enabled = !state.exporting) { Icon(Icons.Filled.ExitToApp, "إنهاء العرض التجريبي") }
+                })
+            },
+            bottomBar = {
+                Surface {
+                    Row(Modifier.fillMaxWidth().navigationBarsPadding()) {
+                        DemoTab.entries.forEach { destination ->
+                            TextButton(onClick = { tab = destination }, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                colors = ButtonDefaults.textButtonColors(contentColor = if (tab == destination)
+                                    MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)) {
+                                Text(destination.label)
+                            }
+                        }
                     }
                 }
-            )
+            },
+            snackbarHost = { SnackbarHost(snackbar) }
+        ) { padding ->
+            LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+                item {
+                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small) {
+                        Text("بيانات وهمية للتجربة. التعديلات مؤقتة؛ لا حفظ في قاعدة المرضى ولا رفع. تصدير PDF محلي متاح.",
+                            Modifier.padding(10.dp), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                when (tab) {
+                    DemoTab.PATIENTS -> {
+                        item {
+                            OutlinedTextField(query, { query = it }, label = { Text("بحث بالاسم أو التشخيص أو رقم القبول") },
+                                singleLine = true, modifier = Modifier.fillMaxWidth())
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                DemoFilter.entries.forEach { value -> FilterChip(selected = filter == value,
+                                    onClick = { filter = value }, label = { Text(value.label) }) }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TextButton(onClick = { compact = !compact }) { Text(if (compact) "بطاقات مريحة" else "بطاقات مدمجة") }
+                                TextButton(onClick = { showRecycle = true }) { Text("المحذوفات (${state.deleted.size})") }
+                            }
+                        }
+                        if (visible.isEmpty()) item { Text("لا توجد نتائج. غيّر التصفية أو أضف مريضاً تجريبياً.") }
+                        items(visible, key = { it.id }) { patient ->
+                            PatientCard(patient = patient, expanded = if (expanded) patient.id !in expandedIds else patient.id in expandedIds,
+                                twoColumn = false, doctorNames = state.names, compact = compact,
+                                animateExpansion = animatedId == patient.id, taskNowEpochMillis = now,
+                                pinned = patient.id in pinnedIds,
+                                onPinToggle = { pinnedIds = if (patient.id in pinnedIds) pinnedIds - patient.id else pinnedIds + patient.id },
+                                onClick = { edit = patient }, onLongClick = { detailId = patient.id }, onEdit = { edit = patient },
+                                onCopy = { copy = patient }, onDelete = { deleting = patient },
+                                onPriorityChange = { viewModel.save(patient.copy(isPriority = it)) },
+                                onExpandToggle = {
+                                    animatedId = patient.id
+                                    expandedIds = if (patient.id in expandedIds) expandedIds - patient.id else expandedIds + patient.id
+                                })
+                        }
+                    }
+                    DemoTab.DASHBOARD -> {
+                        val counts = PatientTasks.counts(state.patients.flatMap { it.tasks }, now)
+                        item { Text("لوحة تسليم المناوبة", style = MaterialTheme.typography.titleLarge) }
+                        item { DemoMetric("المرضى", state.patients.size) { filter = DemoFilter.ALL; tab = DemoTab.PATIENTS } }
+                        item { DemoMetric("المهام المعلقة", counts.pending) { filter = DemoFilter.PENDING; tab = DemoTab.PATIENTS } }
+                        item { DemoMetric("المتأخرة — ضمن المعلقة", counts.overdue) { filter = DemoFilter.OVERDUE; tab = DemoTab.PATIENTS } }
+                        item { Text("مهام معلقة غير معيّنة: ${counts.unassigned} · شارات: ${state.patients.sumOf { it.badges.size }}") }
+                        item { Text("تجربة المظهر — لا تغيّر إعدادات المشروع", style = MaterialTheme.typography.titleMedium) }
+                        item {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                AppAppearance.entries.forEach { value -> FilterChip(selected = appearance == value,
+                                    onClick = { appearance = value }, label = { Text(value.arabicLabel) }) }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                AppThemePreset.entries.forEach { value -> FilterChip(selected = accent == value,
+                                    onClick = { accent = value }, label = { Text(value.arabicLabel) }) }
+                            }
+                        }
+                        item { TextButton(onClick = { showReset = true }, enabled = !state.exporting) { Text("إعادة ضبط التجربة") } }
+                    }
+                    DemoTab.TEAM -> {
+                        item { Text("فريق بأسماء الأشجار", style = MaterialTheme.typography.titleLarge) }
+                        item { Text("أطباء وهميون بلا حسابات أو رموز دخول. «مرضاي» يعرض مرضى ومهام ${state.doctors.first().fullName}.") }
+                        item { OutlinedButton(onClick = { showDoctors = true }) { Text("اختيار أطباء المناوبة") } }
+                        items(state.doctors, key = { it.id }) { doctor ->
+                            Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceVariant) {
+                                Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                                    Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
+                                    Text(doctor.clinicalRole.arabicLabel + if (doctor.id in state.shiftDoctorIds) " · ضمن المناوبة" else "")
+                                }
+                            }
+                        }
+                    }
+                    DemoTab.REPORT -> {
+                        item {
+                            Text("أطباء المناوبة", style = MaterialTheme.typography.titleLarge)
+                            Text(state.shiftDoctors.joinToString("، ") { it.fullName })
+                            OutlinedButton(onClick = { showDoctors = true }) { Text("تعديل أطباء المناوبة") }
+                        }
+                        item { Text("${state.date} · ${state.summary.patientCount} مريض · ${state.summary.escortCount} مرافق") }
+                        item {
+                            Text("خيارات PDF", style = MaterialTheme.typography.titleMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FilterChip(selected = !elegant, onClick = { elegant = false }, label = { Text("جدول كلاسيكي") })
+                                FilterChip(selected = elegant, onClick = { elegant = true }, label = { Text("صفوف أنيقة") })
+                                FilterChip(selected = landscape, onClick = { landscape = !landscape }, label = { Text("أفقي") })
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                PdfColorPreset.entries.forEach { value -> FilterChip(selected = pdfColor == value,
+                                    onClick = { pdfColor = value }, label = { Text(value.arabicLabel) }) }
+                            }
+                            Button(onClick = {
+                                try { export.launch("ShiftReport_DEMO_${state.date}.pdf") }
+                                catch (e: Exception) { viewModel.message("تعذر فتح مكان الحفظ") }
+                            }, enabled = !state.exporting && state.patients.isNotEmpty() && state.shiftDoctorIds.isNotEmpty()) {
+                                Text(if (state.exporting) "جارٍ إنشاء PDF…" else "تصدير PDF تجريبي")
+                            }
+                            Text("الملف يحمل علامة «عرض تجريبي». لا إرسال أو اتصال بتليجرام.", style = MaterialTheme.typography.bodySmall)
+                        }
+                        item {
+                            val warnings = ReportReadiness.warnings(state.patients)
+                            Text(if (warnings.isEmpty()) "لا توجد ملاحظات اكتمال" else warnings.joinToString("\n"),
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        items(state.ordered, key = { "report-${it.id}" }) { patient ->
+                            Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
+                                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text("${patient.sortOrder}. ${patient.name}", style = MaterialTheme.typography.titleMedium)
+                                    Text(patient.initialDiagnosis)
+                                    Text("الخطة: ${patient.treatmentPlan}")
+                                    Text("المتابعة: ${patient.followUp}")
+                                    Text("التحاليل: ${patient.labs}")
+                                    Text(PatientTasks.summary(patient.tasks, state.names), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            item {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    AssistChip(onClick = {}, label = { Text("عرض فقط") })
-                    Text(
-                        "جرّب شكل قائمة المرضى والبطاقات. الأسماء نباتات وفواكه عشوائية ولا تُحفظ أي بيانات.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+        if (showAdd) AddPatientDialog(doctors = state.doctors, onConfirm = {
+            if (viewModel.save(it)) showAdd = false
+        }, onDismiss = { showAdd = false })
+        edit?.let { patient -> EditPatientDialog(patient, state.doctors,
+            onConfirm = { updated, stale -> if (viewModel.save(updated, stale)) edit = null }, onDismiss = { edit = null }) }
+        copy?.let { patient -> CopyPatientDialog(patient, state.doctors,
+            onConfirm = { if (viewModel.save(it)) copy = null }, onDismiss = { copy = null }) }
+        deleting?.let { patient -> ConfirmDialog("حذف تجريبي", "نقل ${patient.name} إلى المحذوفات؟",
+            onConfirm = { viewModel.delete(patient); deleting = null }, onDismiss = { deleting = null }) }
+        if (showSort) SortSheet(initial = state.sort, initialRevision = 0,
+            onApply = { spec, _, _ -> viewModel.sort(spec); showSort = false }, onDismiss = { showSort = false })
+        if (showDoctors) ShiftDoctorPicker(allDoctors = state.doctors, initialSelected = state.shiftDoctorIds, initialRevision = 0,
+            onConfirm = { ids, _, _ -> viewModel.selectDoctors(ids); showDoctors = false }, onDismiss = { showDoctors = false })
+        if (showReset) ConfirmDialog("إعادة ضبط التجربة", "إلغاء التعديلات المؤقتة واستعادة الأمثلة؟",
+            onConfirm = { viewModel.reset(); expandedIds = emptyList(); pinnedIds = emptyList(); detailId = null; showReset = false },
+            onDismiss = { showReset = false })
+        if (showRecycle) AlertDialog(onDismissRequest = { showRecycle = false }, title = { Text("المحذوفات التجريبية") },
+            text = {
+                Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                    if (state.deleted.isEmpty()) Text("المحذوفات فارغة")
+                    state.deleted.forEach { patient ->
+                        TextButton(onClick = { viewModel.restore(patient) }) { Text("استعادة ${patient.name}") }
+                    }
                 }
-            }
-            items(patients, key = { it.id }) { patient ->
-                PatientCard(
-                    patient = patient,
-                    expanded = true,
-                    twoColumn = false,
-                    doctorNames = emptyMap(),
-                    readOnly = true,
-                    onClick = {},
-                    onDelete = {}
-                )
-            }
+            }, confirmButton = { TextButton(onClick = { showRecycle = false }) { Text("إغلاق") } })
+        state.patients.find { it.id == detailId }?.let { patient ->
+            if (edit == null && copy == null) PatientDetailsScreen(patient = patient, doctorNames = state.names, activity = emptyList(), readOnly = false,
+                onEdit = { edit = patient }, onCopy = { copy = patient },
+                onPriorityChange = { viewModel.save(patient.copy(isPriority = it)) }, onDismiss = { detailId = null })
         }
     }
 }
 
-private fun demoPatients(): List<Patient> {
-    val names = listOf("ياسمين", "زيتون", "رمان", "تفاح", "ورد", "ريحان", "مشمش", "لوز")
-        .shuffled()
-        .take(4)
-    return names.mapIndexed { index, name ->
-        Patient(
-            id = "demo-$index-$name",
-            admittanceNumber = "D-${100 + index}",
-            admittanceDate = LocalDate.now().minusDays(index.toLong()),
-            gender = if (index % 2 == 0) Gender.FEMALE else Gender.MALE,
-            name = name,
-            birthDate = LocalDate.of(1985 + index * 5, 1, 1),
-            diagnosisType = DiagnosisType.entries[index % DiagnosisType.entries.size],
-            initialDiagnosis = listOf(
-                "مثال تعليمي لحالة مستقرة",
-                "مثال لمراجعة الخطة العلاجية",
-                "مثال لتسليم متابعة المناوبة",
-                "مثال لحالة تحتاج تنسيق الفريق"
-            )[index],
-            treatmentPlan = "خطة تجريبية غير طبية — للعرض فقط",
-            followUp = "☐ مهمة تجريبية للمناوبة القادمة",
-            labs = "Demo = ${index + 1}",
-            badges = if (index == 1) {
-                listOf(PatientBadge("خطر سقوط", PatientBadgePriority.HIGH))
-            } else emptyList(),
-            isPriority = index == 2,
-            sortOrder = index + 1,
-            lastEditedByName = "مستخدم تجريبي"
-        )
+@Composable
+private fun DemoMetric(label: String, count: Int, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label)
+            Text(count.toString(), style = MaterialTheme.typography.titleMedium)
+        }
     }
 }

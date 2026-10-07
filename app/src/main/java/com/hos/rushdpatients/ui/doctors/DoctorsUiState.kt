@@ -15,6 +15,7 @@ data class DoctorsUiState(
     val doctors: List<Doctor> = emptyList(),
     val saving: Boolean = false,
     val exporting: Boolean = false,
+    val exportReady: Boolean = false,
     val importing: Boolean = false,
     val importPreview: DoctorImportPreview? = null,
     val mergeConflicts: List<DoctorRegistryConflict> = emptyList(),

@@ -265,7 +265,7 @@ internal fun PatientFormDialog(
                 singleLine = true,
                 textStyle = autoStyle,
                 isError = validationMessages.any { it.contains("رقم القبول") },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
             )
             DateField(
                 value = admittanceDate,
@@ -316,6 +316,7 @@ internal fun PatientFormDialog(
                     imeAction = ImeAction.Next
                 )
             )
+            Text("أو", modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium)
             OutlinedTextField(
                 value = ageText,
                 onValueChange = { value ->
@@ -460,7 +461,12 @@ internal fun PatientFormDialog(
                     { initialDiagnosis = it; validationMessages = emptyList() },
                     "التشخيص الأولي",
                     autoStyle,
-                    isError = validationMessages.any { it.contains("التشخيص الأولي") }
+                    isError = validationMessages.any { it.contains("التشخيص الأولي") },
+                    placeholder = when (diagnosisType) {
+                        DiagnosisType.PSYCHIATRIC -> "مثال: Psychosis، Bipolar II disorder"
+                        DiagnosisType.ADDICTION -> "مثال: Drug-induced psychosis، Stimulant use disorder"
+                        DiagnosisType.DUAL -> "مثال: Schizophrenia + Alcohol use disorder"
+                    }
                 )
 
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -501,6 +507,17 @@ internal fun PatientFormDialog(
                         label = "المتابعة",
                         textStyle = autoStyle,
                         isError = validationMessages.any { it == "المتابعة مطلوبة" }
+                    )
+                    MultilineField(
+                        value = (labItems + labDraft).filter(String::isNotBlank).joinToString("\n"),
+                        onValueChange = {
+                            labItems = parseFieldItems(it)
+                            labDraft = ""
+                            validationMessages = emptyList()
+                        },
+                        label = "التحاليل",
+                        textStyle = autoStyle,
+                        isError = false
                     )
                 } else {
                 MultiValueEditor(
@@ -819,8 +836,8 @@ private fun SectionTitle(text: String, complete: Boolean? = null) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shape = MaterialTheme.shapes.small
     ) {
         Text(
@@ -890,12 +907,14 @@ private fun MultilineField(
     onValueChange: (String) -> Unit,
     label: String,
     textStyle: TextStyle,
-    isError: Boolean = false
+    isError: Boolean = false,
+    placeholder: String? = null
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = { if (placeholder != null) Text(placeholder) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 1,
         maxLines = 4,

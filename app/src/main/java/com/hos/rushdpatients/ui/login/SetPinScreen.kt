@@ -14,6 +14,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,12 +53,14 @@ fun SetPinScreen(
         PasswordField(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(8) },
-            label = "الرقم السري (4-8 أرقام)"
+            label = "الرقم السري (4-8 أرقام)",
+            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next, enabled = !busy
         )
         PasswordField(
             value = confirm,
             onValueChange = { confirm = it.filter(Char::isDigit).take(8) },
             label = "تأكيد الرقم السري",
+            keyboardType = KeyboardType.NumberPassword, enabled = !busy,
             modifier = Modifier.padding(top = 12.dp)
         )
         error?.let {

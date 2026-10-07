@@ -22,6 +22,8 @@ data class ReportUiState(
     val isReadOnly: Boolean = false,
     val patients: List<Patient> = emptyList(),
     val doctors: List<Doctor> = emptyList(),
+    val availableDoctors: List<Doctor> = emptyList(),
+    val savingDoctors: Boolean = false,
     val supervisorTargets: List<SupervisorReportTarget> = emptyList(),
     val summary: ReportSummary? = null,
     val previewMarkdown: String = "",

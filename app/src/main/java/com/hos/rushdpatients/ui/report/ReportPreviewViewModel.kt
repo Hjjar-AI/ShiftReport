@@ -7,6 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.DiagnosisType
+import com.hos.rushdpatients.data.model.Shift
+import com.hos.rushdpatients.data.repository.ShiftRepository
+import com.hos.rushdpatients.data.repository.WardMutationRepository
+import com.hos.rushdpatients.data.repository.StaleShiftEditException
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.SessionManager
@@ -59,6 +63,8 @@ class ReportPreviewViewModel @Inject constructor(
     private val mediaStoreSaver: MediaStoreSaver,
     private val settingsRepository: SettingsRepository,
     private val doctorRepository: DoctorRepository,
+    private val shiftRepository: ShiftRepository,
+    private val wardMutations: WardMutationRepository,
     private val sessionManager: SessionManager,
     private val syncService: SyncService
 ) : ViewModel() {
@@ -103,12 +109,22 @@ class ReportPreviewViewModel @Inject constructor(
     fun dismissMergeConflicts() = syncService.dismissPatientConflicts()
 
     fun load(reviewNotice: String? = null) {
-        if (_state.value.sending) return
+        if (_state.value.sending || _state.value.savingDoctors) return
         reviewedReport = null
         viewModelScope.launch {
-            _state.update { it.copy(loading = true, error = reviewNotice) }
+            _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
             try {
                 check(shiftId.isNotBlank()) { "معرف الوردية غير موجود" }
+                // Keep the selector available even when an empty roster prevents report building.
+                val shift = requireNotNull(shiftRepository.getById(shiftId)) { "المناوبة غير موجودة" }
+                val available = doctorRepository.getAll().filterNot { it.isDeleted }
+                _state.update { it.copy(shift = shift, availableDoctors = available,
+                    doctors = available.filter { doctor -> doctor.id in shift.doctorIds },
+                    isReadOnly = shift.date != ShiftDate.current()) }
+                if (_state.value.doctors.isEmpty()) {
+                    _state.update { it.copy(loading = false, previewMarkdown = "", error = null) }
+                    return@launch
+                }
                 val built = reportBuilder.build(shiftId)
                 val asPdf = settingsRepository.isReportAsPdf()
                 val supervisorTargets = buildSupervisorTargets(built)
@@ -136,10 +152,41 @@ class ReportPreviewViewModel @Inject constructor(
                         reportAsPdf = asPdf
                     )
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _state.update {
                     it.copy(loading = false, error = e.message ?: "خطأ في بناء التقرير")
                 }
+            }
+        }
+    }
+
+    fun setShiftDoctors(
+        ids: List<String>, expectedRevision: Long,
+        onStale: (Shift?) -> Unit, onSuccess: () -> Unit
+    ) {
+        val current = _state.value
+        if (current.loading || current.savingDoctors || current.sending || current.previewingPdf ||
+            current.exportingLocalPdf || current.sharingPdf || current.resolvingConflicts) return
+        if (current.isReadOnly || current.shift == null) return
+        _state.update { it.copy(savingDoctors = true, error = null) }
+        viewModelScope.launch {
+            try {
+                activeSendingActor()
+                wardMutations.setShiftDoctors(shiftId, ids, expectedRevision, sessionManager.current())
+                reviewedReport = null
+                _state.update { it.copy(savingDoctors = false) }
+                onSuccess()
+                load()
+            } catch (e: StaleShiftEditException) {
+                onStale(shiftRepository.getById(shiftId))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = e.message ?: "تعذر حفظ أطباء المناوبة") }
+            } finally {
+                _state.update { it.copy(savingDoctors = false) }
             }
         }
     }
@@ -183,7 +230,7 @@ class ReportPreviewViewModel @Inject constructor(
     fun sendSupervisorReports(supervisorIds: Set<String>) {
         val current = _state.value
         val reviewed = reviewedReport ?: return
-        if (current.loading || current.sending || current.previewingPdf || current.exportingLocalPdf ||
+        if (current.loading || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
             current.sharingPdf || current.shift == null) return
         if (current.isReadOnly) {
             _state.update { it.copy(error = "لا يمكن إرسال أو نشر تقرير مناوبة محفوظة") }
@@ -236,7 +283,7 @@ class ReportPreviewViewModel @Inject constructor(
     fun send() {
         val current = _state.value
         val reviewed = reviewedReport ?: return
-        if (current.loading || current.sending || current.previewingPdf || current.exportingLocalPdf ||
+        if (current.loading || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
             current.sharingPdf || current.shift == null) return
         if (current.isReadOnly) {
             _state.update { it.copy(error = "لا يمكن إرسال أو نشر تقرير مناوبة محفوظة") }
@@ -269,7 +316,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun previewPdf() {
         val current = _state.value
-        if (current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
+        if (current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(previewingPdf = true, error = null, retryAction = null) }
         viewModelScope.launch {
             try {
@@ -311,7 +358,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun sharePdf() {
         val current = _state.value
-        if (current.sharingPdf || current.exportingLocalPdf || current.previewingPdf ||
+        if (current.savingDoctors || current.sharingPdf || current.exportingLocalPdf || current.previewingPdf ||
             current.sending || current.shift == null
         ) return
         _state.update { it.copy(sharingPdf = true, error = null, retryAction = null) }
@@ -369,7 +416,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun exportLocally() {
         val current = _state.value
-        if (current.exportingLocalPdf || current.previewingPdf || current.sharingPdf || current.sending || current.shift == null) return
+        if (current.savingDoctors || current.exportingLocalPdf || current.previewingPdf || current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(exportingLocalPdf = true, error = null, retryAction = null) }
         viewModelScope.launch {
             try {
@@ -450,7 +497,7 @@ class ReportPreviewViewModel @Inject constructor(
                     checkNotNull(savedUri) { "تعذر حفظ ملف PDF" }
                 }
 
-                val caption = textReportBuilder.buildTitle(built.shift, built.doctors)
+                val caption = Markdown.escape("تقرير المناوبة: ${built.shift.date} · ${built.doctors.size} أطباء؛ الأسماء داخل الملف")
                 reportSender.sendPdfReport(
                     shift = built.shift,
                     pdfFile = tmp,

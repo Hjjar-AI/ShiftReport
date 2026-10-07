@@ -24,6 +24,7 @@ internal fun WardSupportingPane(
     state: WardUiState,
     freshnessLabel: String,
     online: Boolean,
+    isAdmin: Boolean,
     onReviewReport: () -> Unit,
     onActivity: () -> Unit,
     modifier: Modifier = Modifier
@@ -31,7 +32,7 @@ internal fun WardSupportingPane(
     val warnings = ReportReadiness.warnings(state.patients)
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("جاهزية التقرير والنشاط", style = MaterialTheme.typography.headlineSmall,
+        Text(if (isAdmin) "جاهزية التقرير والنشاط" else "جاهزية التقرير", style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() })
         Text("${state.patients.size} مريض · $freshnessLabel")
         if (!online) Text("غير متصل — تعرض البيانات المحلية", color = MaterialTheme.colorScheme.error)
@@ -43,17 +44,19 @@ internal fun WardSupportingPane(
         Button(onClick = onReviewReport, enabled = state.shift != null, modifier = Modifier.fillMaxWidth()) {
             Text("مراجعة التقرير")
         }
-        Divider()
-        Text("النشاط المحلي الأخير", style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() })
-        state.activityError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        val recent = state.recentActivity.filter { it.patientId != null }.take(5)
-        if (recent.isEmpty()) Text("لا توجد تغييرات محلية مسجلة")
-        recent.forEach { entry ->
-            ActivityEntry(entry, state.patients.firstOrNull { it.id == entry.patientId }?.name)
+        if (isAdmin) {
             Divider()
+            Text("النشاط المحلي الأخير", style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() })
+            state.activityError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            val recent = state.recentActivity.filter { it.patientId != null }.take(5)
+            if (recent.isEmpty()) Text("لا توجد تغييرات محلية مسجلة")
+            recent.forEach { entry ->
+                ActivityEntry(entry, state.patients.firstOrNull { it.id == entry.patientId }?.name)
+                Divider()
+            }
+            TextButton(onClick = onActivity) { Text("فتح مركز النشاط") }
         }
-        TextButton(onClick = onActivity) { Text("فتح مركز النشاط") }
         Text("اختر مريضاً من القائمة لعرض ملفه هنا.", style = MaterialTheme.typography.bodySmall)
     }
 }

@@ -44,12 +44,21 @@ object PatientTasks {
         }
     }
 
-    fun summary(tasks: List<PatientTask>, names: Map<String, String> = emptyMap()): String =
+    fun summary(
+        tasks: List<PatientTask>,
+        names: Map<String, String> = emptyMap(),
+        includeUnassigned: Boolean = true,
+        includeRoutinePriority: Boolean = true
+    ): String =
         tasks.joinToString("\n") { task ->
             buildString {
                 append(if (task.done) "✓ مكتملة: " else "☐ معلقة: ").append(task.description)
-                append(" · أولوية ").append(task.priority.arabicLabel)
-                append(" · ").append(task.ownerDoctorId?.let { names[it] ?: task.ownerName ?: "طبيب غير متاح" } ?: "غير معيّنة")
+                if (includeRoutinePriority || task.priority == com.hos.rushdpatients.data.model.TaskPriority.HIGH) {
+                    append(" · أولوية ").append(task.priority.arabicLabel)
+                }
+                if (includeUnassigned || task.ownerDoctorId != null) {
+                    append(" · ").append(task.ownerDoctorId?.let { names[it] ?: task.ownerName ?: "طبيب غير متاح" } ?: "غير معيّنة")
+                }
                 task.dueAtEpochMillis?.let { due ->
                     append(" · الموعد ").append(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                         .format(Instant.ofEpochMilli(due).atZone(ZoneId.systemDefault())))

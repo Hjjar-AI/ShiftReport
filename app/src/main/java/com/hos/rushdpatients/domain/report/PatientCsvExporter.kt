@@ -2,6 +2,9 @@ package com.hos.rushdpatients.domain.export
 
 import android.content.Context
 import android.net.Uri
+import com.hos.rushdpatients.data.repository.DoctorRepository
+import com.hos.rushdpatients.domain.sort.PatientComparators
+import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.pdf.MediaStoreSaver
@@ -31,6 +34,7 @@ class PatientCsvExporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val shiftRepository: ShiftRepository,
     private val patientRepository: PatientRepository,
+    private val doctorRepository: DoctorRepository,
     private val mediaStoreSaver: MediaStoreSaver,
     private val dispatchers: DispatcherProvider
 ) {
@@ -57,7 +61,10 @@ class PatientCsvExporter @Inject constructor(
         val shift = shiftRepository.getById(shiftId)
             ?: return@withContext Result.Failure("الوردية غير موجودة")
 
-        val patients = patientRepository.getForShift(shift.id)
+        val patients = PatientComparators.ordered(
+            patientRepository.getForShift(shift.id), SortSpecCodec.decode(shift.sortSpecJson),
+            doctorRepository.getAllIncludingDeleted().associate { it.id to it.fullName }
+        )
         if (patients.isEmpty()) {
             return@withContext Result.Failure("لا يوجد مرضى في هذه الوردية")
         }

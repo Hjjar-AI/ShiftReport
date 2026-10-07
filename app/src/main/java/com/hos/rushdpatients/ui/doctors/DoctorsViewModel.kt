@@ -42,6 +42,9 @@ class DoctorsViewModel @Inject constructor(
     private val _state = MutableStateFlow(DoctorsUiState())
     val state: StateFlow<DoctorsUiState> = _state.asStateFlow()
     private var pendingImportPlan: DoctorImportPlan? = null
+    // Prepared before opening the system picker; never put registry bytes in saved UI state.
+    private var pendingExport: ByteArray? = null
+    private var pendingExportCount = 0
 
     init {
         observe()
@@ -161,37 +164,91 @@ class DoctorsViewModel @Inject constructor(
 
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
 
-    fun exportDoctors(uri: Uri) {
+    fun prepareDoctorExport() {
         if (_state.value.saving || _state.value.exporting || _state.value.importing) return
-        _state.update { it.copy(exporting = true) }
+        _state.update { it.copy(exporting = true, snackbar = null) }
+        viewModelScope.launch {
+            try {
+                adminAuthorizer.requireAdmin()
+                val doctors = doctorRepository.getAllIncludingDeleted()
+                require(doctors.isNotEmpty()) { "لا يوجد أطباء للتصدير" }
+                pendingExport = withContext(Dispatchers.IO) {
+                    ("\uFEFF" + DoctorCsvCodec.encode(doctors)).toByteArray(Charsets.UTF_8)
+                }
+                pendingExportCount = doctors.size
+                _state.update { it.copy(exportReady = true) }
+            } catch (e: CancellationException) {
+                cancelDoctorExport()
+                throw e
+            } catch (e: Exception) {
+                cancelDoctorExport()
+                _state.update { it.copy(snackbar = e.message ?: "تعذر تجهيز سجل الأطباء") }
+            }
+        }
+    }
+
+    fun doctorExportPickerLaunched() = _state.update { it.copy(exportReady = false) }
+
+    fun cancelDoctorExport() {
+        pendingExport?.fill(0)
+        pendingExport = null
+        pendingExportCount = 0
+        _state.update { it.copy(exporting = false, exportReady = false) }
+    }
+
+    fun doctorExportPickerFailed() {
+        cancelDoctorExport()
+        _state.update { it.copy(snackbar = "تعذر فتح مكان الحفظ؛ أعد تصدير سجل الأطباء") }
+    }
+
+    fun exportDoctors(uri: Uri?) {
+        if (uri == null) {
+            cancelDoctorExport()
+            return
+        }
+        val bytes = pendingExport
+        val count = pendingExportCount
+        pendingExport = null
+        pendingExportCount = 0
+        if (bytes == null) {
+            _state.update { it.copy(exporting = false, exportReady = false,
+                snackbar = "انتهت جلسة التصدير؛ احذف الملف الفارغ وأعد تصدير سجل الأطباء") }
+            return
+        }
+        _state.update { it.copy(exporting = true, exportReady = false) }
         viewModelScope.launch {
             try {
                 val actor = adminAuthorizer.requireAdmin()
-                val doctors = doctorRepository.getAllIncludingDeleted()
-                val csv = DoctorCsvCodec.encode(doctors)
                 withContext(Dispatchers.IO) {
-                    val stream = context.contentResolver.openOutputStream(uri, "wt")
-                        ?: error("تعذر فتح ملف التصدير")
-                    stream.bufferedWriter(Charsets.UTF_8).use { writer ->
-                        writer.write("\uFEFF")
-                        writer.write(csv)
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { stream ->
+                        stream.write(bytes)
+                        stream.flush()
+                    } ?: error("تعذر فتح ملف التصدير")
+                    val saved = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: error("تعذر التحقق من ملف الأطباء")
+                    try {
+                        check(saved.contentEquals(bytes)) { "لم يُحفظ ملف الأطباء كاملاً؛ أعد التصدير" }
+                    } finally {
+                        saved.fill(0)
                     }
                 }
-                auditRepository.record(
-                    actor.id,
-                    actor.fullName,
-                    AppConstants.AUDIT_DOCTORS_EXPORTED,
-                    "export_csv:${doctors.size}"
-                )
-                _state.update {
-                    it.copy(exporting = false, snackbar = "تم تصدير ${doctors.size} سجل طبيب إلى CSV")
-                }
+                auditRepository.record(actor.id, actor.fullName,
+                    AppConstants.AUDIT_DOCTORS_EXPORTED, "export_csv:$count")
+                _state.update { it.copy(snackbar = "تم تصدير $count سجل طبيب والتحقق من الملف") }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(exporting = false, snackbar = e.message ?: "تعذر تصدير سجل الأطباء")
-                }
+                _state.update { it.copy(snackbar = e.message ?: "تعذر تصدير سجل الأطباء") }
+            } finally {
+                bytes.fill(0)
+                _state.update { it.copy(exporting = false) }
             }
         }
+    }
+
+    override fun onCleared() {
+        pendingExport?.fill(0)
+        super.onCleared()
     }
 
     fun prepareDoctorImport(uri: Uri) {

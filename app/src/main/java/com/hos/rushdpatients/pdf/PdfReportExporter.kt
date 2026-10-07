@@ -17,7 +17,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.FileOutputStream
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
@@ -27,6 +26,7 @@ import javax.inject.Singleton
 class PdfReportExporter @Inject constructor() {
 
     private val exportMutex = Mutex()
+    private var documentLabel: String? = null
 
     private var pageWidth = 595f
     private var pageHeight = 842f
@@ -55,8 +55,6 @@ class PdfReportExporter @Inject constructor() {
 
     private val dateFmt: DateTimeFormatter =
         DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale("ar"))
-    private val editTimeFmt: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale("ar"))
 
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
@@ -107,10 +105,12 @@ class PdfReportExporter @Inject constructor() {
         supervisorNames: Map<String, String>,
         options: PdfExportOptions = PdfExportOptions(),
         elegant: Boolean = false,
-        outputFile: File
+        outputFile: File,
+        documentLabel: String? = null
     ): File = exportMutex.withLock {
         withContext(Dispatchers.IO) {
             configure(options, elegant)
+            this@PdfReportExporter.documentLabel = documentLabel
             val document = PdfDocument()
             try {
                 var pageNumber = 1
@@ -126,8 +126,24 @@ class PdfReportExporter @Inject constructor() {
 
                 var y = marginTop
 
-                drawTitleBand(canvas, y, doctors)
-                y += titleBandHeight
+                val rosterTitle = "${PdfStrings.REPORT_TITLE_PREFIX} " + doctors.joinToString(" + ") { it.fullName }
+                val titleLines = PdfTextWrapper.wrap(rosterTitle, titlePaint, contentWidth - 2 * cellPadding)
+                val titleLineHeight = PdfTextWrapper.lineHeight(titlePaint)
+                val titleLinesPerPage = ((pageHeight - marginTop - marginBottom -
+                    2 * summaryBandHeight - headerMinHeight - 4 * cellPadding) / titleLineHeight)
+                    .toInt().coerceAtLeast(1)
+                titleLines.chunked(titleLinesPerPage).forEachIndexed { index, lines ->
+                    if (index > 0) {
+                        document.finishPage(page)
+                        pageNumber++
+                        page = document.startPage(PdfDocument.PageInfo.Builder(
+                            pageWidth.toInt(), pageHeight.toInt(), pageNumber).create())
+                        canvas = page.canvas
+                        drawPageBackground(canvas)
+                        y = marginTop
+                    }
+                    y += drawTitleBand(canvas, y, lines)
+                }
 
                 drawSummaryBand(canvas, y, summary)
                 y += summaryBandHeight
@@ -242,30 +258,26 @@ class PdfReportExporter @Inject constructor() {
     private fun drawPageBackground(canvas: Canvas) {
         // Elegant rows are always print-friendly; Classic retains its explicit dark option.
         canvas.drawColor(if (elegantRows) Color.WHITE else palette.pageBackground)
+        documentLabel?.let { label ->
+            val paint = Paint(bodyPaint).apply { textSize = 8f; textAlign = Paint.Align.CENTER }
+            canvas.drawText(bidiFormatter.unicodeWrap(label), pageWidth / 2f, pageHeight - 3f, paint)
+        }
     }
 
-    private fun drawTitleBand(
-        canvas: Canvas,
-        y: Float,
-        doctors: List<Doctor>
-    ) {
+    private fun drawTitleBand(canvas: Canvas, y: Float, lines: List<String>): Float {
+        val lineHeight = PdfTextWrapper.lineHeight(titlePaint)
+        val height = maxOf(titleBandHeight, lines.size * lineHeight + 2 * cellPadding)
         fillPaint.color = palette.titleHeader
-        canvas.drawRect(contentLeft, y, contentRight, y + titleBandHeight, fillPaint)
-
-        val doctorsLabel = doctors.joinToString(" + ") { it.fullName }
-        val text = "${PdfStrings.REPORT_TITLE_PREFIX} $doctorsLabel"
-        val baseline = y + titleBandHeight / 2f -
-                (titlePaint.fontMetrics.ascent + titlePaint.fontMetrics.descent) / 2f
-        drawCenteredFittedText(
-            canvas = canvas,
-            text = text,
-            centerX = contentLeft + contentWidth / 2f,
-            baseline = baseline,
-            paint = titlePaint,
-            maxWidth = contentWidth - 2 * cellPadding
-        )
-
-        canvas.drawRect(contentLeft, y, contentRight, y + titleBandHeight, mediumBorderPaint)
+        canvas.drawRect(contentLeft, y, contentRight, y + height, fillPaint)
+        lines.forEachIndexed { index, line ->
+            drawCenteredFittedText(
+                canvas = canvas, text = line, centerX = contentLeft + contentWidth / 2f,
+                baseline = y + cellPadding - titlePaint.fontMetrics.ascent + index * lineHeight,
+                paint = titlePaint, maxWidth = contentWidth - 2 * cellPadding
+            )
+        }
+        canvas.drawRect(contentLeft, y, contentRight, y + height, mediumBorderPaint)
+        return height
     }
 
     private fun drawSummaryBand(
@@ -503,19 +515,10 @@ class PdfReportExporter @Inject constructor() {
         residentNames: Map<String, String>,
         supervisorNames: Map<String, String>
     ): String {
-        val supervisor = patient.responsibleSpecialistId
-            ?.let { supervisorNames[it] }
-            ?: "اختصاصي غير محدد"
-        val resident = patient.responsibleResidentId
-            ?.let { residentNames[it] }
-            ?: "مقيم غير محدد"
-        return buildString {
-            append(supervisor)
-            append('\n')
-            append(PdfStrings.SEPARATOR)
-            append('\n')
-            append(resident)
-        }
+        return listOfNotNull(
+            patient.responsibleSpecialistId?.let(supervisorNames::get)?.takeIf(String::isNotBlank),
+            patient.responsibleResidentId?.let(residentNames::get)?.takeIf(String::isNotBlank)
+        ).joinToString("\n${PdfStrings.SEPARATOR}\n")
     }
 
     private fun buildNotesCell(patient: Patient, doctorNames: Map<String, String>): String {
@@ -526,19 +529,12 @@ class PdfReportExporter @Inject constructor() {
         }
         if (patient.tasks.isNotEmpty()) {
             if (sb.isNotEmpty()) sb.append('\n')
-            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks, doctorNames))
+            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks, doctorNames, includeUnassigned = false, includeRoutinePriority = false))
         }
         if (patient.labs.isNotBlank()) {
             if (sb.isNotEmpty()) sb.append('\n')
             sb.append("التحاليل: ")
             sb.append(patient.labs)
-        }
-        patient.lastEditedByName?.takeIf(String::isNotBlank)?.let { editor ->
-            if (sb.isNotEmpty()) sb.append('\n')
-            sb.append("آخر تعديل: ")
-            sb.append(editor)
-            sb.append(" · ")
-            sb.append(editTimeFmt.format(patient.updatedAt.atZone(ZoneId.systemDefault())))
         }
         return sb.toString()
     }
@@ -548,7 +544,8 @@ class PdfReportExporter @Inject constructor() {
         if (patient.badges.isNotEmpty()) {
             append('\n')
             append(patient.badges.joinToString("\n") { badge ->
-                val level = badge.priority?.let { " · ${it.arabicLabel}" }.orEmpty()
+                val level = badge.priority?.takeIf { it == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH }
+                    ?.let { " · ${it.arabicLabel}" }.orEmpty()
                 "⚠ ${badge.text}$level"
             })
         }

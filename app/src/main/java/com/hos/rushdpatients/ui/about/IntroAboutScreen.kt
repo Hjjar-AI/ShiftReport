@@ -15,8 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,13 +38,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.BuildConfig
+import com.hos.rushdpatients.util.ArabicNumbers
 import com.hos.rushdpatients.R
 
-private val technicalContributors = listOf("د. أيهم شيخة", "محمد زاهر شقير")
+private val technicalContributors = listOf("أيهم شيخة", "محمد زاهر شقير")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IntroAboutScreen(splash: Boolean, onBack: (() -> Unit)? = null) {
+fun IntroAboutScreen(splash: Boolean, onBack: (() -> Unit)? = null, remainingSeconds: Int = 10) {
     if (splash) {
         Surface(Modifier.fillMaxSize()) {
             Box(
@@ -60,14 +59,9 @@ fun IntroAboutScreen(splash: Boolean, onBack: (() -> Unit)? = null) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    AppIdentity(compact = true)
-                    Text("إشراف وتطوير", style = MaterialTheme.typography.labelMedium)
-                    Text("محمد علي حجار", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                    Text("مساهمة تقنية", style = MaterialTheme.typography.labelMedium)
-                    technicalContributors.forEach { name ->
-                        Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                    }
-                    Text("اضغط في أي مكان للمتابعة · تُغلق المقدمة بعد ١٠ ثوانٍ",
+                    IntroCredits(compact = true)
+                    AppVersion()
+                    Text("اضغط في أي مكان للتخطي · المتبقي: ${ArabicNumbers.toArabicDigits(remainingSeconds.coerceAtLeast(0).toString())} ث",
                         textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary)
                 }
@@ -89,40 +83,34 @@ fun IntroAboutScreen(splash: Boolean, onBack: (() -> Unit)? = null) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                AppIdentity(compact = false)
-                Text("تنظيم بيانات المرضى وتسليم المناوبات وإعداد التقارير عبر تليجرام.",
-                    textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        CreditBlock("إشراف وتطوير", "محمد علي حجار", prominent = true)
-                        Text("بواسطة الذكاء الاصطناعي", style = MaterialTheme.typography.bodySmall)
-                        Divider()
-                        CreditBlock("مساهمة تقنية", technicalContributors.joinToString("\n"), prominent = true)
-                        Divider()
-                        CreditBlock("الفكرة الأولية وبنية التقرير الأساسي", "د. نديم العباس")
-                    }
-                }
-                Text("الإصدار ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                IntroCredits(compact = false)
+                AppVersion()
             }
         }
     }
 }
 
 @Composable
-private fun AppIdentity(compact: Boolean) {
+private fun AppVersion() {
+    Text("الإصدار ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun IntroCredits(compact: Boolean) {
+    Text("تقرير المناوبة", style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+        color = MaterialTheme.colorScheme.primary, modifier = Modifier.semantics { heading() })
+    Text("(للطب النفسي)", style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    CreditBlock("إشراف وتطوير", "الطبيب محمد علي حجار", prominent = true)
     Surface(color = Color.White, shape = MaterialTheme.shapes.large) {
         Image(painterResource(R.drawable.app_emblem_transparent),
             contentDescription = "شعار شعبة الطب النفسي", contentScale = ContentScale.Fit,
             modifier = Modifier.size(if (compact) 128.dp else 180.dp).padding(8.dp))
     }
-    Text("تقرير المناوبة", style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.primary, modifier = Modifier.semantics { heading() })
-    Text("شعبة الطب النفسي", style = MaterialTheme.typography.titleMedium,
-        textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    CreditBlock("مساهمة تقنية", "الأطباء:\n" + technicalContributors.joinToString("\n"), prominent = true)
+    CreditBlock("فكرة Excel الأولية وبنية التقرير الأساسي", "الطبيب الاختصاصي نديم العباس")
 }
 
 @Composable
