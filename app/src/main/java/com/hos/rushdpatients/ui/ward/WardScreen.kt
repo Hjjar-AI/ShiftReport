@@ -2,13 +2,7 @@ package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -29,50 +23,24 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Recycling
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material.icons.filled.ViewAgenda
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Badge
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,11 +49,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -111,18 +75,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.R
-import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
@@ -130,7 +89,6 @@ import com.hos.rushdpatients.domain.report.ReportReadiness
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.sync.ConflictChoice
-import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -164,7 +122,6 @@ fun WardScreen(
     val topBarHeight = 64.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val compactNavigationHeight = 48.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
     val bottomBarHeight = compactNavigationHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val clinicalColors = LocalClinicalColors.current
     val freshnessLabel = remember(state.lastBackedUpAt, state.syncStatus) {
         val lastBackup = state.lastBackedUpAt?.let { epochMillis ->
             val time = DateTimeFormatter.ofPattern("HH:mm")
@@ -199,9 +156,6 @@ fun WardScreen(
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showRecycleBin by remember { mutableStateOf(false) }
-    var wardMenuExpanded by rememberSaveable { mutableStateOf(false) }
-    var dataMenuExpanded by rememberSaveable { mutableStateOf(false) }
-    var appMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var viewMode by rememberSaveable { mutableStateOf(WardViewMode.ALL) }
     var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
     var showFilters by remember { mutableStateOf(false) }
@@ -381,330 +335,52 @@ fun WardScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Surface(
-                    onClick = {
-                        dataMenuExpanded = true
-                        wardMenuExpanded = false
-                        appMenuExpanded = false
-                    },
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }
-                ) {
-                    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                            Column(Modifier.weight(1f)) {
-                                Text(state.hospitalName.ifBlank { stringResource(R.string.app_name) },
-                                    style = MaterialTheme.typography.titleMedium, maxLines = 2,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                if (state.hospitalName.isNotBlank()) Text(stringResource(R.string.app_name),
-                                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                                Text(doctorNames[currentDoctorId] ?: "مستخدم غير محدد",
-                                    style = MaterialTheme.typography.bodyMedium, maxLines = 2,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                Text("${if (isAdmin) "مدير" else "عضو الفريق"} · ${state.patients.size} مريض",
-                                    style = MaterialTheme.typography.labelSmall)
-                                Text("${state.shift?.date ?: "—"}", style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+            WardDrawer(
+                state = state,
+                currentDoctorName = doctorNames[currentDoctorId],
+                isAdmin = isAdmin,
+                online = online,
+                freshnessLabel = freshnessLabel,
+                viewMode = viewMode,
+                allPatientsSelected = viewMode == WardViewMode.ALL &&
+                    !priorityOnly && !warningsOnly && !unassignedOnly && !urgentOnly &&
+                    !newAdmissionsOnly && taskFilter == null && searchQuery.isBlank(),
+                filtersSelected = priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
+                    newAdmissionsOnly || searchQuery.isNotBlank(),
+                onAction = { action ->
+                    when (action) {
+                        WardDrawerAction.SYNC_DETAILS -> scope.launch {
+                            snackbarHost.showSnackbar(state.lastOperation ?: state.syncStatus.arabicLabel)
                         }
-                        Text(buildString {
-                            append(if (online) state.syncStatus.arabicLabel else "غير متصل · بيانات محلية")
-                            if (state.mergeConflicts.isNotEmpty()) append(" · ${state.mergeConflicts.size} تعارض")
-                        }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-
-                CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-                        label = { Text("جميع المرضى") },
-                        selected = viewMode == WardViewMode.ALL &&
-                            !priorityOnly && !warningsOnly && !unassignedOnly &&
-                            !urgentOnly && !newAdmissionsOnly && taskFilter == null && searchQuery.isBlank(),
-                        onClick = { closeDrawer { applyDashboardFilter(DashboardFilter.ALL) } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
-                        label = { Text("معاينة وإرسال التقرير") },
-                        selected = false,
-                        onClick = {
-                            val id = state.shift?.id ?: return@CompactDrawerItem
-                            closeDrawer { onOpenReport(id) }
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        enabled = state.shift != null
-                    )
-                if (isAdmin) CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.History, contentDescription = null) },
-                        label = { Text("مركز النشاط والسجل") },
-                        selected = false,
-                        onClick = {
-                            closeDrawer {
-                                viewMode = WardViewMode.ACTIVITY
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        label = { Text("الإعدادات") },
-                        selected = false,
-                        onClick = { closeDrawer { onOpenSettings() } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                Divider()
-                DrawerSubmenuHeader(
-                    label = "المناوبة والمرضى",
-                    expanded = wardMenuExpanded,
-                    onClick = {
-                        wardMenuExpanded = !wardMenuExpanded
-                        if (wardMenuExpanded) {
-                            dataMenuExpanded = false
-                            appMenuExpanded = false
-                        }
-                    }
-                )
-                if (wardMenuExpanded) {
-
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-                        label = { Text("لوحة تسليم المناوبة") },
-                        selected = viewMode == WardViewMode.DASHBOARD,
-                        onClick = { closeDrawer { viewMode = WardViewMode.DASHBOARD } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                        label = { Text("مرضاي") },
-                        selected = viewMode == WardViewMode.MINE,
-                        onClick = { closeDrawer { viewMode = WardViewMode.MINE } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.FilterList, contentDescription = null) },
-                        label = { Text("بحث وتصفية وترتيب") },
-                        selected = priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
-                            newAdmissionsOnly || searchQuery.isNotBlank(),
-                        onClick = { closeDrawer { showFilters = true } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
-                        label = { Text("ترتيب المرضى") },
-                        selected = false,
-                        onClick = { if (!state.isReadOnly) closeDrawer { showSort = true } },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        enabled = !state.isReadOnly
-                    )
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-                        label = { Text("تجميع المرضى") },
-                        selected = state.groupByMode != GroupByMode.NONE,
-                        onClick = { closeDrawer { showGroupBy = true } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.Groups, contentDescription = null) },
-                        label = { Text("أطباء المناوبة") },
-                        selected = false,
-                        onClick = { if (!state.isReadOnly) closeDrawer { showShiftDoctors = true } },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        enabled = !state.isReadOnly
-                    )
-                }
-
-                Divider(modifier = Modifier.padding(vertical = 4.dp))
-                DrawerSubmenuHeader(
-                    label = "البيانات والمزامنة",
-                    expanded = dataMenuExpanded,
-                    onClick = {
-                        dataMenuExpanded = !dataMenuExpanded
-                        if (dataMenuExpanded) {
-                            wardMenuExpanded = false
-                            appMenuExpanded = false
-                        }
-                    }
-                )
-                if (dataMenuExpanded) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("حالة البيانات", style = MaterialTheme.typography.titleSmall)
-                                if (state.syncing) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp
-                                    )
+                        WardDrawerAction.DISMISS_SYNC_HINT -> viewModel.dismissSyncHint()
+                        else -> closeDrawer {
+                            when (action) {
+                                WardDrawerAction.ALL_PATIENTS -> applyDashboardFilter(DashboardFilter.ALL)
+                                WardDrawerAction.REPORT -> state.shift?.id?.let(onOpenReport)
+                                WardDrawerAction.ACTIVITY -> viewMode = WardViewMode.ACTIVITY
+                                WardDrawerAction.SETTINGS -> onOpenSettings()
+                                WardDrawerAction.DASHBOARD -> viewMode = WardViewMode.DASHBOARD
+                                WardDrawerAction.MY_PATIENTS -> viewMode = WardViewMode.MINE
+                                WardDrawerAction.FILTERS -> showFilters = true
+                                WardDrawerAction.SORT -> if (!state.isReadOnly) showSort = true
+                                WardDrawerAction.GROUP -> showGroupBy = true
+                                WardDrawerAction.SHIFT_DOCTORS -> if (!state.isReadOnly) showShiftDoctors = true
+                                WardDrawerAction.SYNC -> confirmLatest = true
+                                WardDrawerAction.PREVIOUS -> confirmPrevious = true
+                                WardDrawerAction.EXPORT_CSV -> viewModel.exportCsv()
+                                WardDrawerAction.RECYCLE_BIN -> {
+                                    viewModel.loadRecycleBin()
+                                    showRecycleBin = true
                                 }
-                            }
-                            val syncColors = when (state.syncStatus) {
-                                PatientSyncStatus.LOCAL -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-                                PatientSyncStatus.PENDING -> clinicalColors.pendingContainer to clinicalColors.onPendingContainer
-                                PatientSyncStatus.BACKED_UP -> clinicalColors.successContainer to clinicalColors.onSuccessContainer
-                                PatientSyncStatus.SYNCING -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurface
-                                PatientSyncStatus.CONFLICT -> clinicalColors.urgentContainer to clinicalColors.onUrgentContainer
-                            }
-                            AssistChip(
-                                onClick = {
-                                    scope.launch {
-                                        snackbarHost.showSnackbar(
-                                            state.lastOperation ?: state.syncStatus.arabicLabel
-                                        )
-                                    }
-                                },
-                                label = { Text(freshnessLabel, style = MaterialTheme.typography.labelSmall) },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = when (state.syncStatus) {
-                                            PatientSyncStatus.LOCAL -> Icons.Filled.Save
-                                            PatientSyncStatus.PENDING -> Icons.Filled.CloudUpload
-                                            PatientSyncStatus.BACKED_UP -> Icons.Filled.CloudDone
-                                            PatientSyncStatus.SYNCING -> Icons.Filled.Sync
-                                            PatientSyncStatus.CONFLICT -> Icons.Filled.Warning
-                                        },
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = syncColors.first,
-                                    labelColor = syncColors.second,
-                                    leadingIconContentColor = syncColors.second
-                                ),
-                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-                            )
-                            if (!online) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Filled.WifiOff,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                    Text(
-                                        "غير متصل · تُعرض البيانات المحلية",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
-                            state.lastOperation?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (state.mergeConflicts.isNotEmpty()) {
-                                Text(
-                                    "${state.mergeConflicts.size} تعارض يحتاج إجراء",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                TextButton(
-                                    onClick = { closeDrawer { confirmLatest = true } },
-                                    enabled = !state.syncing
-                                ) { Text("مزامنة", style = MaterialTheme.typography.labelSmall) }
-                                TextButton(
-                                    onClick = { closeDrawer { confirmPrevious = true } },
-                                    enabled = !state.syncing
-                                ) { Text("نسخة سابقة", style = MaterialTheme.typography.labelSmall) }
-                            }
-                            if (state.showSyncHint) {
-                                Text(
-                                    "يمكن اختيار واحدة من آخر ثلاث مناوبات عند جلب نسخة سابقة.",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                                TextButton(onClick = viewModel::dismissSyncHint) {
-                                    Text("فهمت", style = MaterialTheme.typography.labelSmall)
-                                }
+                                WardDrawerAction.ADMIN -> onOpenAdmin()
+                                WardDrawerAction.IMPORT -> onOpenVbaImport()
+                                WardDrawerAction.ABOUT -> onOpenAbout()
+                                WardDrawerAction.SYNC_DETAILS, WardDrawerAction.DISMISS_SYNC_HINT -> Unit
                             }
                         }
                     }
-
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
-                        label = { Text("حفظ بيانات المرضى CSV") },
-                        selected = false,
-                        onClick = { closeDrawer { viewModel.exportCsv() } },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        enabled = !state.exportingCsv
-                    )
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.Recycling, contentDescription = null) },
-                        label = { Text("سلة المحذوفات") },
-                        selected = false,
-                        onClick = {
-                            closeDrawer {
-                                viewModel.loadRecycleBin()
-                                showRecycleBin = true
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
                 }
-
-                Divider(modifier = Modifier.padding(vertical = 4.dp))
-                DrawerSubmenuHeader(
-                    label = "الإدارة وحول التطبيق",
-                    expanded = appMenuExpanded,
-                    onClick = {
-                        appMenuExpanded = !appMenuExpanded
-                        if (appMenuExpanded) {
-                            wardMenuExpanded = false
-                            dataMenuExpanded = false
-                        }
-                    }
-                )
-                if (appMenuExpanded) {
-                    if (isAdmin) {
-                        CompactDrawerItem(
-                            icon = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null) },
-                            label = { Text("لوحة المدير") },
-                            selected = false,
-                            onClick = { closeDrawer { onOpenAdmin() } },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                        CompactDrawerItem(
-                            icon = { Icon(Icons.Filled.FileUpload, contentDescription = null) },
-                            label = { Text("استيراد بيانات من ملف") },
-                            selected = false,
-                            onClick = { closeDrawer { onOpenVbaImport() } },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                    }
-
-                    CompactDrawerItem(
-                        icon = { Icon(Icons.Filled.Info, contentDescription = null) },
-                        label = { Text("حول التطبيق") },
-                        selected = false,
-                        onClick = { closeDrawer { onOpenAbout() } },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                }
-            }
+            )
         }
     ) {
         Scaffold(
@@ -1150,69 +826,20 @@ fun WardScreen(
     }
 
     if (showReportSheet) {
-        ModalBottomSheet(onDismissRequest = { showReportSheet = false }) {
-            WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
-                listFraction = .42f, onListFractionChange = {},
-                modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp), primary = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("إرسال تقرير المناوبة", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        "${state.patients.size} مريض · $freshnessLabel",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = if (reportReadinessIssueCount == 0) {
-                            clinicalColors.successContainer
-                        } else {
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        },
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(
-                            if (reportReadinessIssueCount == 0) {
-                                "التقرير جاهز للمراجعة والإرسال"
-                            } else {
-                                "$reportReadinessIssueCount ملاحظات تحتاج المراجعة قبل الإرسال"
-                            },
-                            modifier = Modifier.padding(14.dp),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                    if (state.mergeConflicts.isNotEmpty()) {
-                        Text(
-                            "يتضمن العدد تعارضات مزامنة يجب حسمها داخل شاشة التقرير.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            val shiftId = state.shift?.id ?: return@Button
-                            showReportSheet = false
-                            onOpenReport(shiftId)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Filled.Send, contentDescription = null)
-                        Text(
-                            if (reportReadinessIssueCount == 0) "متابعة سريعة للإرسال" else "مراجعة الملاحظات",
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-                    TextButton(
-                        onClick = { showReportSheet = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("إغلاق") }
+        WardReportSheet(
+            patientCount = state.patients.size,
+            freshnessLabel = freshnessLabel,
+            issueCount = reportReadinessIssueCount,
+            hasMergeConflicts = state.mergeConflicts.isNotEmpty(),
+            foldingFeature = foldingFeature,
+            onReviewReport = {
+                state.shift?.id?.let { shiftId ->
+                    showReportSheet = false
+                    onOpenReport(shiftId)
                 }
-            })
-        }
+            },
+            onDismiss = { showReportSheet = false }
+        )
     }
 
     if (showAdd) {
@@ -1229,99 +856,23 @@ fun WardScreen(
     }
 
     if (state.rolloverPatients.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = viewModel::dismissRollover,
-            title = { Text("ترحيل مرضى المناوبة السابقة") },
-            text = {
-                LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
-                    items(state.rolloverPatients, key = { it.id }) { patient ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(patient.name)
-                                Text(patient.followUp, style = MaterialTheme.typography.bodySmall)
-                                val pendingTasks = patient.tasks.count { !it.done }
-                                if (pendingTasks > 0) Text("ستُرحّل $pendingTasks مهمة معلقة مع مواعيدها؛ المهام المكتملة تبقى في المناوبة السابقة.",
-                                    style = MaterialTheme.typography.bodySmall)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    RolloverDecision.entries.forEach { decision ->
-                                        FilterChip(
-                                            selected = rolloverDecisions[patient.id] == decision,
-                                            onClick = {
-                                                rolloverDecisions = rolloverDecisions + (patient.id to decision)
-                                            },
-                                            label = { Text(decision.arabicLabel) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.applyRollover(rolloverDecisions) }) {
-                    val count = rolloverDecisions.values.count {
-                        it in setOf(RolloverDecision.CONTINUE, RolloverDecision.CONTINUE_AND_EDIT, RolloverDecision.REASSIGN)
-                    }
-                    Text("تنفيذ القرارات ($count مستمر)")
-                }
-            },
-            dismissButton = { TextButton(onClick = viewModel::dismissRollover) { Text("تخطي") } }
+        RolloverReviewDialog(
+            patients = state.rolloverPatients,
+            decisions = rolloverDecisions,
+            onDecision = { id, decision -> rolloverDecisions = rolloverDecisions + (id to decision) },
+            onConfirm = { viewModel.applyRollover(rolloverDecisions) },
+            onDismiss = viewModel::dismissRollover
         )
     }
 
     if (state.mergeConflicts.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = viewModel::dismissMergeConflicts,
-            title = { Text("حل تعارضات المزامنة") },
-            text = {
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 520.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(state.mergeConflicts, key = { it.key }) { conflict ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Column(
-                                Modifier.padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Text(conflict.patientName, style = MaterialTheme.typography.titleSmall)
-                                Text(conflict.fieldLabel, style = MaterialTheme.typography.labelLarge)
-                                Text("هذا الجهاز: ${conflict.localValue}")
-                                Text("النسخة المنشورة: ${conflict.remoteValue}")
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FilterChip(
-                                        selected = conflictChoices[conflict.key] == ConflictChoice.LOCAL,
-                                        onClick = { conflictChoices = conflictChoices + (conflict.key to ConflictChoice.LOCAL) },
-                                        label = { Text("استخدام المحلي") }
-                                    )
-                                    FilterChip(
-                                        selected = conflictChoices[conflict.key] == ConflictChoice.REMOTE,
-                                        onClick = { conflictChoices = conflictChoices + (conflict.key to ConflictChoice.REMOTE) },
-                                        label = { Text("استخدام المنشور") }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { viewModel.resolveMergeConflicts(conflictChoices) },
-                    enabled = !state.resolvingConflicts &&
-                        state.mergeConflicts.all { it.key in conflictChoices }
-                ) { Text(if (state.resolvingConflicts) "جارٍ الدمج…" else "دمج ونشر") }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::dismissMergeConflicts) { Text("إلغاء") }
-            }
+        PatientConflictDialog(
+            conflicts = state.mergeConflicts,
+            choices = conflictChoices,
+            resolving = state.resolvingConflicts,
+            onChoice = { key, choice -> conflictChoices = conflictChoices + (key to choice) },
+            onConfirm = { viewModel.resolveMergeConflicts(conflictChoices) },
+            onDismiss = viewModel::dismissMergeConflicts
         )
     }
 
@@ -1350,29 +901,10 @@ fun WardScreen(
     }
 
     if (state.showSnapshotPicker) {
-        AlertDialog(
-            onDismissRequest = viewModel::dismissSnapshotPicker,
-            title = { Text("اختيار مناوبة محفوظة") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("المناوبات الموجودة في آخر ملف CSV تم تنزيله:")
-                    state.snapshotChoices.forEachIndexed { index, option ->
-                        TextButton(
-                            onClick = { viewModel.selectDownloadedSnapshot(option.shiftId) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                "${index + 1}. ${option.date} — ${option.patientCount} مريض",
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = viewModel::dismissSnapshotPicker) { Text("إلغاء") }
-            }
+        ShiftSnapshotPickerDialog(
+            options = state.snapshotChoices,
+            onSelect = viewModel::selectDownloadedSnapshot,
+            onDismiss = viewModel::dismissSnapshotPicker
         )
     }
 
@@ -1497,316 +1029,12 @@ fun WardScreen(
     }
 
     if (showRecycleBin) {
-        AlertDialog(
-            onDismissRequest = { showRecycleBin = false },
-            title = { Text("سلة المحذوفات") },
-            text = {
-                if (state.deletedPatients.isEmpty()) {
-                    Text("لا يوجد مرضى محذوفون في هذه المناوبة")
-                } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(state.deletedPatients, key = { it.id }) { patient ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(patient.name, style = MaterialTheme.typography.bodyMedium)
-                                    Text(
-                                        patient.admittanceNumber,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                                if (!state.isReadOnly) {
-                                    TextButton(onClick = { viewModel.restorePatient(patient) }) {
-                                        Text("استعادة")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showRecycleBin = false }) { Text("إغلاق") }
-            }
+        PatientRecycleBinDialog(
+            patients = state.deletedPatients,
+            readOnly = state.isReadOnly,
+            onRestore = viewModel::restorePatient,
+            onDismiss = { showRecycleBin = false }
         )
     }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CompactFilterChip(
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: String
-) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1
-            )
-        },
-        modifier = Modifier.heightIn(min = 48.dp)
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ActiveFilterChip(label: String, onRemove: () -> Unit) {
-    FilterChip(
-        selected = true,
-        onClick = onRemove,
-        label = { Text("$label ×", style = MaterialTheme.typography.labelSmall) },
-        modifier = Modifier.heightIn(min = 48.dp)
-    )
-}
-
-@Composable
-private fun PrimaryNavigationBar(
-    viewMode: WardViewMode,
-    isAdmin: Boolean,
-    onPatients: () -> Unit,
-    onDashboard: () -> Unit,
-    onActivity: () -> Unit
-) {
-    val items = listOf(
-        Triple("المرضى", Icons.Filled.ViewAgenda, onPatients),
-        Triple("اللوحة", Icons.Filled.Dashboard, onDashboard)
-    ) + if (isAdmin) listOf(Triple("النشاط", Icons.Filled.History, onActivity)) else emptyList()
-    Surface(color = MaterialTheme.colorScheme.surface) {
-        Row(Modifier.fillMaxWidth().navigationBarsPadding().selectableGroup()) {
-            items.forEachIndexed { index, (label, icon, action) ->
-                val selected = when (index) {
-                    0 -> viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE
-                    1 -> viewMode == WardViewMode.DASHBOARD
-                    else -> viewMode == WardViewMode.ACTIVITY
-                }
-                Row(
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                        .selectable(selected = selected, role = Role.Tab, onClick = action)
-                        .background(if (selected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-                    Text(label, Modifier.padding(start = 6.dp), color = color,
-                        style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PrimaryNavigationRail(
-    viewMode: WardViewMode,
-    isAdmin: Boolean,
-    onPatients: () -> Unit,
-    onDashboard: () -> Unit,
-    onActivity: () -> Unit
-) {
-    NavigationRail {
-        NavigationRailItem(
-            selected = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE,
-            onClick = onPatients,
-            icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-            label = { Text("المرضى") }
-        )
-        NavigationRailItem(
-            selected = viewMode == WardViewMode.DASHBOARD,
-            onClick = onDashboard,
-            icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-            label = { Text("اللوحة") }
-        )
-        if (isAdmin) NavigationRailItem(
-            selected = viewMode == WardViewMode.ACTIVITY,
-            onClick = onActivity,
-            icon = { Icon(Icons.Filled.History, contentDescription = null) },
-            label = { Text("النشاط") }
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun GroupHeader(name: String, count: Int, collapsed: Boolean, onToggle: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .combinedClickable(onClick = onToggle, onLongClick = onToggle)
-            .padding(horizontal = 4.dp, vertical = 6.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                if (collapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "$name · $count",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-}
-
-@Composable
-private fun DrawerSubmenuHeader(
-    label: String,
-    expanded: Boolean,
-    onClick: () -> Unit
-) {
-    CompactDrawerItem(
-        label = { Text(label, fontWeight = FontWeight.SemiBold) },
-        selected = false,
-        onClick = onClick,
-        badge = {
-            Icon(
-                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = if (expanded) "طي $label" else "فتح $label"
-            )
-        },
-        modifier = Modifier.padding(horizontal = 8.dp)
-    )
-}
-
-/** Compact visual row with a full 48dp minimum touch target and wrapping text. */
-@Composable
-private fun CompactDrawerItem(
-    label: @Composable () -> Unit,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: (@Composable () -> Unit)? = null,
-    badge: (@Composable () -> Unit)? = null,
-    enabled: Boolean = true
-) {
-    val contentColor = (if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onSurface).let { if (enabled) it else it.copy(alpha = 0.38f) }
-    Surface(onClick = onClick, enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { this.selected = selected },
-        shape = MaterialTheme.shapes.small,
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        contentColor = contentColor
-    ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            icon?.invoke()
-            ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                Box(Modifier.weight(1f)) { label() }
-            }
-            badge?.invoke()
-        }
-    }
-}
-
-private enum class WardViewMode { DASHBOARD, ALL, MINE, ACTIVITY }
-private enum class DashboardFilter { ALL, MINE, URGENT, WARNINGS, UNASSIGNED, NEW_ADMISSIONS, TASK_PENDING, TASK_OVERDUE, TASK_UNASSIGNED }
-
-@Composable
-private fun HandoverDashboard(
-    isAdmin: Boolean,
-    patients: List<Patient>,
-    currentDoctorId: String,
-    syncStatus: PatientSyncStatus,
-    nowEpochMillis: Long,
-    onFilter: (DashboardFilter) -> Unit,
-    onSync: () -> Unit,
-    onActivity: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val mine = patients.count {
-        it.responsibleResidentId == currentDoctorId || it.responsibleSpecialistId == currentDoctorId ||
-            it.tasks.any { task -> !task.done && task.ownerDoctorId == currentDoctorId }
-    }
-    val taskCounts = PatientTasks.counts(patients.flatMap { it.tasks }, nowEpochMillis)
-    val urgent = patients.count {
-        it.isPriority || it.badges.any { badge ->
-            badge.priority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH
-        }
-    }
-    val warnings = patients.count { it.badges.isNotEmpty() }
-    val unassigned = patients.count {
-        it.responsibleResidentId == null || it.responsibleSpecialistId == null
-    }
-    val newAdmissions = patients.count { it.admittanceDays == 0 }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text("لوحة تسليم المناوبة", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "ملخص سريع قبل مراجعة المرضى أو نشر التقرير",
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onSync) { Text("مزامنة") }
-            if (isAdmin) TextButton(onClick = onActivity) { Text("مركز النشاط") }
-            TextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
-        }
-        DashboardMetric("إجمالي المرضى", patients.size, MaterialTheme.colorScheme.primaryContainer) { onFilter(DashboardFilter.ALL) }
-        DashboardMetric("مرضاي", mine, MaterialTheme.colorScheme.secondaryContainer) { onFilter(DashboardFilter.MINE) }
-        DashboardMetric("عاجل أو أولوية", urgent, MaterialTheme.colorScheme.errorContainer) { onFilter(DashboardFilter.URGENT) }
-        DashboardMetric("شارات فعالة", warnings, MaterialTheme.colorScheme.tertiaryContainer) { onFilter(DashboardFilter.WARNINGS) }
-        DashboardMetric("بحاجة إلى تعيين طبيب", unassigned, MaterialTheme.colorScheme.surfaceVariant) { onFilter(DashboardFilter.UNASSIGNED) }
-        DashboardMetric("المهام المعلقة", taskCounts.pending, MaterialTheme.colorScheme.secondaryContainer) { onFilter(DashboardFilter.TASK_PENDING) }
-        DashboardMetric("المهام المتأخرة (ضمن المعلقة)", taskCounts.overdue, MaterialTheme.colorScheme.errorContainer) { onFilter(DashboardFilter.TASK_OVERDUE) }
-        DashboardMetric("مهام معلقة غير معيّنة", taskCounts.unassigned, MaterialTheme.colorScheme.surfaceVariant) { onFilter(DashboardFilter.TASK_UNASSIGNED) }
-        DashboardMetric("دخول اليوم", newAdmissions, MaterialTheme.colorScheme.primaryContainer) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("حالة المناوبة", style = MaterialTheme.typography.titleMedium)
-                Text("حالة البيانات: ${syncStatus.arabicLabel}")
-                Text("استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر")
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun DashboardMetric(
-    label: String,
-    count: Int,
-    color: androidx.compose.ui.graphics.Color,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        color = color
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(label, style = MaterialTheme.typography.titleMedium)
-            Text(count.toString(), style = MaterialTheme.typography.headlineSmall)
-        }
-    }
 }

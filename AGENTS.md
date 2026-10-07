@@ -24,7 +24,7 @@ These instructions apply to the entire repository. Before work, check for additi
 ## Security and clinical-safety invariants
 
 - Never hardcode or commit bot tokens, chat IDs, signing keys, PINs, passphrases, or hospital credentials.
-- `legacy-hardcoded-credentials.local.properties`, `GITHUB-GUIDE.local.md`, signing files, and other `*.local.properties` files are intentionally local and ignored.
+- `GITHUB-GUIDE.local.md`, signing files, and `*.local.properties` files are intentionally local and ignored. The obsolete legacy Telegram properties file was removed; connection credentials belong in runtime project configuration.
 - Do not replace encryption with encoding, obfuscation, dummy lines, or reversible presentation tricks.
 - Do not silently overwrite stale patient or shift data. Preserve expected-revision checks and explicit conflict handling.
 - Keep admin authorization below the UI/navigation layer for every privileged mutation.
@@ -38,6 +38,7 @@ These instructions apply to the entire repository. Before work, check for additi
 ## Architecture conventions
 
 - UI is Jetpack Compose under `ui/`; screens delegate state and mutations to Hilt ViewModels.
+- Keep ward navigation, dashboard, review dialogs, and reusable patient fields in their dedicated files. Doctor synchronization belongs in `DoctorSyncCoordinator`; patient/doctor pinned-state updates share the singleton `RemoteSyncStateStore` and its mutex.
 - Domain rules belong under `domain/`, persistence behind repositories under `data/repository/`, Telegram access under `network/telegram/`, and synchronization orchestration under `sync/`.
 - Keep blocking database, file, cryptographic, and network work off the main thread.
 - Keep credentials and passphrases out of logs, UI saved state, clinical exports, and draft/conflict summaries. Handle coroutine cancellation separately from ordinary failures.

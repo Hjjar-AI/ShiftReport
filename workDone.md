@@ -40,6 +40,8 @@ Completed features only. Technical details and verification limits: [currentStat
 
 ## Documentation and verification
 
+- Split ward UI, patient form fields, doctor synchronization, pinned-state IO, and pure merge/snapshot rules into focused files. Corrected the CSV exporter directory; removed the unused catalog, duplicate legacy Telegram properties, and redundant source-package ignore file. Static checks only for this refactor.
+
 - Application version is `1.1.1.20261007` (code 2); debug automatically adds `-debug`, release has no suffix.
 - Added an Arabic Telegram token/ID/topic setup guide. Updated project docs and agent rules; preserved README build commands and ignored private/export files. Fixed reported Kotlin errors, task-editor Material opt-ins, and redundant-safe-call/unused-variable warnings.
-- Authorized `assembleDebug` passed on **2026-10-07** in 2m 55s (43 tasks: 21 executed, 22 up-to-date), covering current changes. APK metadata confirms `1.1.1.20261007-debug`, code 2. Gradle reports deprecated-feature usage. Release/device behavior remain unverified; detail is in [currentState.md](currentState.md).
+- Authorized `assembleDebug` passed on **2026-10-07** in 2m 55s (43 tasks: 21 executed, 22 up-to-date), covering changes at that point; the later source/configuration refactor was checked statically. APK metadata confirms `1.1.1.20261007-debug`, code 2. Gradle reports deprecated-feature usage. Release/device behavior remain unverified; detail is in [currentState.md](currentState.md).

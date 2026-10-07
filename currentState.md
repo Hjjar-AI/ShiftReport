@@ -88,13 +88,16 @@ The intro is rendered in MainActivity before theme/root ViewModel construction. 
 - `domain/patient/`: patient validation and card-related domain rules.
 - `domain/doctor/`: doctor naming/validation plus the versioned UTF-8 CSV interchange codec.
 - `domain/report/`: report assembly, readiness checks, and text generation.
+- `domain/export/`: patient CSV export; the source directory matches its declared package.
 - `domain/sort/`: stable patient sorting and grouping rules.
 - `domain/task/`: structured task validation, pending/overdue/unassigned counts, carry-forward rules, and human-readable summaries.
 - `network/telegram/`: Telegram Bot API client and protocol models.
-- `sync/`: CSV codecs, merge/conflict logic, publication journal, and synchronization orchestration.
+- `sync/`: CSV codecs, merge/conflict logic, publication journal, and synchronization orchestration. `SyncService` retains the public API and patient workflows; `DoctorSyncCoordinator` owns doctor workflows and review state. Both use the singleton `RemoteSyncStateStore` for pinned-state IO and serialized updates. Pure patient merging and CSV snapshot rules are separate helpers.
 - `pdf/`: Shared non-splitting row renderer used by Classic and Elegant Row PDF styles.
-- `ui/`: Compose screens, navigation, themes, dialogs, and ViewModels.
+- `ui/`: Compose screens, navigation, themes, dialogs, and ViewModels. Ward drawer, dashboard, report sheet, navigation/filter components, and review dialogs are extracted from `WardScreen`; add/copy entrypoints delegate to `PatientFormDialog`, with reusable controls in `PatientFormFields`.
 - `migration/`: legacy import functionality; excluded from routine review unless explicitly requested.
+
+The unused version catalog and redundant source-package `.gitignore` were removed. Active dependency versions remain in the existing Gradle scripts. Obsolete build-time Telegram keys were removed from `local.properties`, preserving `sdk.dir`; the duplicate legacy credentials file was removed. Telegram credentials continue to come from runtime project configuration. The source/configuration refactor received static checks only; the earlier successful debug build predates it.
 
 ## Data model and persistence
 

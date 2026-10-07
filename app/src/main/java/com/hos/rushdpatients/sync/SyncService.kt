@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.sync
 
-import com.hos.rushdpatients.domain.task.PatientTasks
 import android.content.Context
 import androidx.room.withTransaction
 import com.hos.rushdpatients.domain.sort.PatientComparators
@@ -19,14 +18,11 @@ import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
-import com.hos.rushdpatients.domain.auth.AdminAuthorizer
-import com.hos.rushdpatients.domain.doctor.DoctorRegistryMerge
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryConflict
 import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
 import com.hos.rushdpatients.domain.patient.PatientValidationResult
 import com.hos.rushdpatients.domain.patient.PatientValidator
 import com.hos.rushdpatients.network.telegram.TelegramClient
-import com.hos.rushdpatients.network.telegram.TelegramException
 import com.hos.rushdpatients.util.DispatcherProvider
 import com.hos.rushdpatients.util.Logging
 import com.hos.rushdpatients.util.ShiftDate
@@ -38,10 +34,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.UUID
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -54,13 +48,6 @@ data class HandoverChangeSummary(
 ) {
     val isEmpty: Boolean get() = added.isEmpty() && changed.isEmpty() && removed.isEmpty()
 }
-
-private data class CsvSnapshot(
-    val fileId: String,
-    val messageId: Long,
-    val date: String?,
-    val updatedAt: Long
-)
 
 private data class PreparedShift(
     val parsed: ParsedShift,
@@ -75,11 +62,6 @@ private data class AppliedShift(
     val updated: Int
 )
 
-private data class PatientMergeResult(
-    val patients: List<Patient>,
-    val conflicts: List<PatientFieldConflict>
-)
-
 private data class PendingPatientMerge(
     val shiftId: String,
     val remote: ParsedShift,
@@ -87,27 +69,11 @@ private data class PendingPatientMerge(
     val local: List<Patient>
 )
 
-private data class PendingDoctorMerge(
-    val remoteState: SyncState,
-    val baseData: String?,
-    val base: List<Doctor>,
-    val localSnapshot: List<Doctor>,
-    val local: List<Doctor>,
-    val remote: List<Doctor>,
-    val baseKnown: Boolean,
-    val protectedDeletionIds: Set<String>
-)
-
-class DoctorRegistryConflictsException : IllegalStateException(
-    "توجد تعارضات في سجل الأطباء؛ افتح سجل الأطباء وراجع كل حقل قبل المزامنة"
-)
-
 @Singleton
 class SyncService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val telegram: TelegramClient,
     private val topics: Topics,
-    private val json: Json,
     private val shiftRepository: ShiftRepository,
     private val patientRepository: PatientRepository,
     private val doctorRepository: DoctorRepository,
@@ -115,20 +81,25 @@ class SyncService @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val database: AppDatabase,
     private val auditRepository: AuditRepository,
-    private val adminAuthorizer: AdminAuthorizer,
-    private val dispatchers: DispatcherProvider
+    private val dispatchers: DispatcherProvider,
+    private val remoteState: RemoteSyncStateStore,
+    private val doctorSync: DoctorSyncCoordinator
 ) {
 
-    private val remoteStateMutex = Mutex()
     private val patientSyncMutex = Mutex()
-    private val doctorSyncMutex = Mutex()
     private val _patientConflicts = MutableStateFlow<List<PatientFieldConflict>>(emptyList())
     val patientConflicts: StateFlow<List<PatientFieldConflict>> = _patientConflicts.asStateFlow()
     private var pendingPatientMerge: PendingPatientMerge? = null
-    private val _doctorConflicts = MutableStateFlow<List<DoctorRegistryConflict>>(emptyList())
-    val doctorConflicts: StateFlow<List<DoctorRegistryConflict>> = _doctorConflicts.asStateFlow()
-    private var pendingDoctorMerge: PendingDoctorMerge? = null
-    private var pendingDoctorChoices: Map<String, DoctorMergeChoice> = emptyMap()
+    val doctorConflicts: StateFlow<List<DoctorRegistryConflict>> get() = doctorSync.doctorConflicts
+
+    suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSync.uploadDoctors(registryData)
+    suspend fun uploadCurrentDoctors(): Result<Unit> = doctorSync.uploadCurrentDoctors()
+    suspend fun synchronizeDoctors(): Result<Unit> = doctorSync.synchronizeDoctors()
+    suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSync.refreshDoctorsFromRemote()
+    suspend fun fetchLatestDoctors(): Result<String> = doctorSync.fetchLatestDoctors()
+    suspend fun fetchAndApplyLatestDoctors(): Result<Int> = doctorSync.fetchAndApplyLatestDoctors()
+    suspend fun resolveDoctorConflicts(choices: Map<String, DoctorMergeChoice>): Result<Unit> =
+        doctorSync.resolveDoctorConflicts(choices)
 
     suspend fun fetchLatestCsv(): Result<CsvFetchResult> = patientSyncMutex.withLock {
         fetchCsv(previous = false)
@@ -184,7 +155,7 @@ class SyncService @Inject constructor(
                         "توجد تعديلات محلية غير منشورة؛ ارفعها أولاً كي لا تُستبدل بأحدث نسخة"
                     }
                 }
-                val state = readState()
+                val state = remoteState.readState()
                     ?: return@withContext Result.failure(IllegalStateException("لا يوجد ملف منشور بعد"))
                 val snapshot = if (previous) {
                     state.previousCsvSnapshot()
@@ -426,7 +397,7 @@ class SyncService @Inject constructor(
 
             var patients = patientRepository.getForShift(shiftId)
             val publishingDeviceId = getOrCreateDeviceId()
-            val remoteStateBeforeMerge = readState()
+            val remoteStateBeforeMerge = remoteState.readState()
             val remoteSnapshotBeforeMerge = remoteStateBeforeMerge?.currentCsvSnapshot()
             val remoteShift = if (forceCurrent) null else remoteSnapshotBeforeMerge?.let { downloadSnapshot(it) }
                 ?.firstOrNull { it.shiftDate == shift.date }
@@ -523,7 +494,7 @@ class SyncService @Inject constructor(
                 date = shift.date.toString(),
                 updatedAt = uploadedAt
             )
-            val newState = updateState { current ->
+            val newState = remoteState.updateState { current ->
                 if (!forceCurrent) {
                     require(current.currentCsvSnapshot()?.messageId == remoteSnapshotBeforeMerge?.messageId) {
                         "وصلت نسخة أحدث أثناء الرفع؛ أعد المحاولة ليتم دمجها"
@@ -626,121 +597,6 @@ class SyncService @Inject constructor(
         }
     }
 
-    private fun mergePatients(
-        basePatients: List<Patient>,
-        localPatients: List<Patient>,
-        remotePatients: List<Patient>,
-        resolutions: Map<String, ConflictChoice> = emptyMap()
-    ): PatientMergeResult {
-        val base = basePatients.associateBy(Patient::id)
-        val local = localPatients.associateBy(Patient::id)
-        val remote = remotePatients.associateBy(Patient::id)
-        val merged = mutableListOf<Patient>()
-        val conflicts = mutableListOf<PatientFieldConflict>()
-
-        (base.keys + local.keys + remote.keys).forEach { id ->
-            val before = base[id]
-            val ours = local[id]
-            val theirs = remote[id]
-
-            if (before == null || ours == null || theirs == null) {
-                val localChanged = !samePatientContent(ours, before)
-                val remoteChanged = !samePatientContent(theirs, before)
-                val key = "$id:record"
-                val selected = when {
-                    localChanged && remoteChanged && samePatientContent(ours, theirs) -> ours
-                    localChanged && remoteChanged -> when (resolutions[key]) {
-                        ConflictChoice.LOCAL -> ours
-                        ConflictChoice.REMOTE -> theirs
-                        null -> {
-                            conflicts += PatientFieldConflict(
-                                id,
-                                ours?.name ?: theirs?.name ?: before?.name ?: id,
-                                "record",
-                                "السجل الكامل / الحذف",
-                                ours?.name ?: "محذوف محلياً",
-                                theirs?.name ?: "محذوف عن بعد"
-                            )
-                            null
-                        }
-                    }
-                    localChanged -> ours
-                    remoteChanged -> theirs
-                    else -> ours ?: theirs
-                }
-                selected?.let(merged::add)
-                return@forEach
-            }
-            val localRecordChanged = !samePatientContent(ours, before)
-
-            fun <T> field(
-                name: String,
-                label: String,
-                baseValue: T,
-                localValue: T,
-                remoteValue: T,
-                display: (T) -> String = { it.toString() }
-            ): T {
-                val localChanged = localValue != baseValue
-                val remoteChanged = remoteValue != baseValue
-                if (!localChanged) return remoteValue
-                if (!remoteChanged || localValue == remoteValue) return localValue
-                val key = "$id:$name"
-                return when (resolutions[key]) {
-                    ConflictChoice.LOCAL -> localValue
-                    ConflictChoice.REMOTE -> remoteValue
-                    null -> {
-                        conflicts += PatientFieldConflict(
-                            patientId = id,
-                            patientName = ours.name.ifBlank { theirs.name },
-                            field = name,
-                            fieldLabel = label,
-                            localValue = display(localValue),
-                            remoteValue = display(remoteValue)
-                        )
-                        localValue
-                    }
-                }
-            }
-
-            merged += before.copy(
-                admittanceNumber = field("admittanceNumber", "رقم القبول الحالي", before.admittanceNumber, ours.admittanceNumber, theirs.admittanceNumber),
-                admittanceDate = field("admittanceDate", "تاريخ الدخول", before.admittanceDate, ours.admittanceDate, theirs.admittanceDate),
-                gender = field("gender", "الجنس", before.gender, ours.gender, theirs.gender) {
-                    if (it == com.hos.rushdpatients.data.model.Gender.MALE) "ذكر" else "أنثى"
-                },
-                name = field("name", "الاسم", before.name, ours.name, theirs.name),
-                birthDate = field("birthDate", "تاريخ الميلاد", before.birthDate, ours.birthDate, theirs.birthDate),
-                hasCompanion = field("hasCompanion", "المرافق", before.hasCompanion, ours.hasCompanion, theirs.hasCompanion),
-                diagnosisType = field("diagnosisType", "نوع التشخيص", before.diagnosisType, ours.diagnosisType, theirs.diagnosisType) { it.arabicLabel },
-                initialDiagnosis = field("initialDiagnosis", "التشخيص الأولي", before.initialDiagnosis, ours.initialDiagnosis, theirs.initialDiagnosis),
-                treatmentPlan = field("treatmentPlan", "الخطة العلاجية", before.treatmentPlan, ours.treatmentPlan, theirs.treatmentPlan),
-                followUp = field("followUp", "المتابعة", before.followUp, ours.followUp, theirs.followUp),
-                tasks = field("tasks", "المهام", before.tasks, ours.tasks, theirs.tasks) {
-                    PatientTasks.summary(it)
-                },
-                labs = field("labs", "التحاليل", before.labs, ours.labs, theirs.labs),
-                responsibleResidentId = field("resident", "المقيم", before.responsibleResidentId, ours.responsibleResidentId, theirs.responsibleResidentId),
-                responsibleSpecialistId = field("specialist", "الاختصاصي", before.responsibleSpecialistId, ours.responsibleSpecialistId, theirs.responsibleSpecialistId),
-                badges = field("badges", "الشارات", before.badges, ours.badges, theirs.badges) { badges ->
-                    badges.joinToString("، ") { badge ->
-                        badge.priority?.let { "${badge.text} (${it.arabicLabel})" } ?: badge.text
-                    }
-                },
-                isPriority = field("priority", "الأولوية", before.isPriority, ours.isPriority, theirs.isPriority),
-                lastEditedByDoctorId = if (localRecordChanged) ours.lastEditedByDoctorId else theirs.lastEditedByDoctorId,
-                lastEditedByName = if (localRecordChanged) ours.lastEditedByName else theirs.lastEditedByName,
-                revision = maxOf(ours.revision, theirs.revision) + 1,
-                updatedAt = java.time.Instant.now(),
-                sortOrder = ours.sortOrder
-            )
-        }
-        return PatientMergeResult(
-            patients = merged.sortedWith(compareBy<Patient> { it.sortOrder }.thenBy { it.name }),
-            conflicts = conflicts
-        )
-    }
-
     suspend fun resolvePatientConflicts(
         resolutions: Map<String, ConflictChoice>
     ): Result<CsvUploadResult> = patientSyncMutex.withLock {
@@ -791,13 +647,7 @@ class SyncService @Inject constructor(
     }
 
     suspend fun getPublicationJournal(): List<PublicationJournalEntry> =
-        readState()?.publicationJournal.orEmpty().sortedByDescending { it.messageId }
-
-    private fun samePatientContent(left: Patient?, right: Patient?): Boolean {
-        if (left == null || right == null) return left == right
-        return left.copy(updatedAt = java.time.Instant.EPOCH, revision = 0, sortOrder = 0) ==
-            right.copy(updatedAt = java.time.Instant.EPOCH, revision = 0, sortOrder = 0)
-    }
+        remoteState.readState()?.publicationJournal.orEmpty().sortedByDescending { it.messageId }
 
     private fun samePublishedPatients(left: List<Patient>, right: List<Patient>): Boolean {
         fun Patient.withoutLocalMetadata() = copy(
@@ -817,334 +667,8 @@ class SyncService @Inject constructor(
             left.sortSpecJson == right.sortSpecJson
     }
 
-    suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSyncMutex.withLock {
-        withContext(dispatchers.io) {
-            try {
-                require(this@SyncService.registryData(DoctorsRegistryCodec.decode(registryData).doctors) ==
-                    this@SyncService.registryData(doctorRepository.getAll())) {
-                    "تغيّر سجل الأطباء المحلي قبل المزامنة؛ أعد المحاولة بأحدث نسخة"
-                }
-                uploadCurrentDoctorsInternal()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
-        }
-    }
-
-    private fun registryData(doctors: List<Doctor>): String = DoctorsRegistryCodec.encode(doctors.sortedBy { it.id })
-
-    private fun portableDoctors(doctors: List<Doctor>): List<Doctor> =
-        DoctorsRegistryCodec.decode(registryData(doctors)).doctors
-
-    private fun sameDoctorPointer(a: SyncState?, b: SyncState?): Boolean =
-        a?.doctorsMessageId == b?.doctorsMessageId && a?.doctorsFileId == b?.doctorsFileId &&
-            a?.doctorsUpdatedAt == b?.doctorsUpdatedAt && a?.doctorsData == b?.doctorsData
-
-    private suspend fun uploadDoctorsInternal(
-        registryData: String
-    ): Result<Unit> = withContext(dispatchers.io) {
-        try {
-            val remoteStateBeforeUpload = readState()
-            val remoteMessageIdBeforeUpload = remoteStateBeforeUpload?.doctorsMessageId
-            val known = syncStateRepository.get(SyncChannel.DOCTORS)
-            val hasRemoteRegistry = remoteStateBeforeUpload?.let {
-                it.doctorsFileId != null || it.doctorsData != null
-            } == true
-            require(!hasRemoteRegistry || known != null &&
-                remoteMessageIdBeforeUpload == known.lastMessageId &&
-                remoteStateBeforeUpload?.doctorsFileId == known.lastFileId &&
-                remoteStateBeforeUpload?.doctorsUpdatedAt == known.lastOffset) {
-                "وصل سجل أطباء أحدث من جهاز آخر؛ اجلبه قبل إعادة تطبيق تعديلاتك"
-            }
-            val file = File.createTempFile("doctors_registry_", ".csv", context.cacheDir)
-            file.writeText(registryData, Charsets.UTF_8)
-            val message = try {
-                telegram.sendDocument(
-                    chatId = topics.chatId,
-                    file = file,
-                    caption = "سجل الأطباء",
-                    parseMode = null,
-                    disableNotification = true,
-                    messageThreadId = topics.threadId(Topic.DOCTORS)
-                )
-            } finally {
-                file.delete()
-            }
-            val uploadedFileId = requireNotNull(message.document?.fileId) {
-                "لم يعُد تليجرام بمعرّف ملف سجل الأطباء"
-            }
-
-            val newState = updateState { current ->
-                require(sameDoctorPointer(current, remoteStateBeforeUpload ?: SyncState())) {
-                    "وصل سجل أطباء أحدث أثناء الرفع؛ اجلبه قبل إعادة تطبيق تعديلاتك"
-                }
-                current.copy(
-                    doctorsData = null,
-                    doctorsFileId = uploadedFileId,
-                    doctorsMessageId = message.messageId,
-                    doctorsUpdatedAt = System.currentTimeMillis()
-                )
-            }
-            check(newState.doctorsMessageId == message.messageId) {
-                "وصل نشر أحدث لسجل الأطباء بالتزامن؛ اجلبه قبل إعادة تطبيق تعديلاتك"
-            }
-            database.withTransaction {
-                syncStateRepository.update(
-                    channel = SyncChannel.DOCTORS,
-                    offset = newState.doctorsUpdatedAt,
-                    messageId = message.messageId,
-                    fileId = uploadedFileId
-                )
-                settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData)
-                // A local edit made during the network upload must remain pending.
-                settingsRepository.putBoolean(
-                    AppConstants.SETTING_DOCTORS_SYNC_PENDING,
-                    this@SyncService.registryData(doctorRepository.getAll()) != registryData
-                )
-                auditRepository.record(
-                    actorDoctorId = null, actorName = null,
-                    action = AppConstants.AUDIT_DOCTORS_SYNCED,
-                    detail = "published:${message.messageId}"
-                )
-            }
-
-            Result.success(Unit)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            runCatching {
-                settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, true)
-            }
-            Result.failure(e)
-        }
-    }
-
-    suspend fun uploadCurrentDoctors(): Result<Unit> = doctorSyncMutex.withLock {
-        uploadCurrentDoctorsInternal()
-    }
-
-    private suspend fun uploadCurrentDoctorsInternal(): Result<Unit> = withContext(dispatchers.io) {
-        try {
-            val fetched = fetchAndApplyLatestDoctorsInternal()
-            val error = fetched.exceptionOrNull()
-            if (error != null && !isMissingDoctorRegistry(error)) return@withContext Result.failure(error)
-            val doctors = doctorRepository.getAll()
-            if (error == null && !settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                return@withContext Result.success(Unit)
-            }
-            validateDoctorRegistry(doctors)
-            uploadDoctorsInternal(registryData(doctors))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun synchronizeDoctors(): Result<Unit> = doctorSyncMutex.withLock {
-        withContext(dispatchers.io) {
-            if (settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                uploadCurrentDoctorsInternal()
-            } else {
-                val fetched = fetchAndApplyLatestDoctorsInternal()
-                if (isMissingDoctorRegistry(fetched.exceptionOrNull()) && doctorRepository.getAll().isNotEmpty()) {
-                    uploadCurrentDoctorsInternal()
-                } else fetched.map { Unit }
-            }
-        }
-    }
-
-    /** Pull and merge; pending local changes and unresolved fields are never discarded. */
-    suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSyncMutex.withLock {
-        val fetched = fetchAndApplyLatestDoctorsInternal()
-        if (isMissingDoctorRegistry(fetched.exceptionOrNull()) && doctorRepository.getAll().isNotEmpty()) {
-            uploadCurrentDoctorsInternal()
-        } else fetched.map { Unit }
-    }
-
-    private fun isMissingDoctorRegistry(error: Throwable?): Boolean =
-        error is IllegalStateException && error.message == "لا يوجد سجل أطباء بعد"
-
-    suspend fun fetchLatestDoctors(): Result<String> = doctorSyncMutex.withLock {
-        fetchLatestDoctorsInternal()
-    }
-
-    private suspend fun fetchLatestDoctorsInternal(): Result<String> = withContext(dispatchers.io) {
-        try {
-            val state = readState()
-                ?: return@withContext Result.failure(IllegalStateException("لا يوجد سجل أطباء بعد"))
-            Result.success(downloadDoctorsData(state))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun fetchAndApplyLatestDoctors(): Result<Int> = doctorSyncMutex.withLock {
-        fetchAndApplyLatestDoctorsInternal()
-    }
-
-    private suspend fun fetchAndApplyLatestDoctorsInternal(): Result<Int> = withContext(dispatchers.io) {
-        try {
-            val localSnapshot = doctorRepository.getAllIncludingDeleted()
-            val baseData = settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)
-            val local = portableDoctors(localSnapshot)
-            val pending = settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
-            val state = readState()
-                ?: return@withContext Result.failure(IllegalStateException("لا يوجد سجل أطباء بعد"))
-            val remote = doctorRepository.normalizeRemoteRegistry(
-                DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors
-            )
-            validateDoctorRegistry(remote)
-            check(sameDoctorPointer(readState(), state)) {
-                "تغيّر سجل الأطباء أثناء التنزيل؛ أعد المزامنة للحصول على أحدث نسخة"
-            }
-            val baseKnown = baseData != null || !pending
-            val base = baseData?.let { DoctorsRegistryCodec.decode(it).doctors } ?: local
-            val remoteIds = remote.mapTo(mutableSetOf()) { it.id }
-            val protectedDeletionIds = doctorRepository.protectedDeletionIds(
-                local.mapTo(mutableSetOf()) { it.id } - remoteIds
-            )
-            val review = PendingDoctorMerge(
-                state, baseData, base, localSnapshot, local, remote, baseKnown, protectedDeletionIds
-            )
-            val merged = DoctorRegistryMerge.merge(
-                base, local, remote, baseKnown, protectedDeletionIds = protectedDeletionIds
-            )
-            if (merged.conflicts.isNotEmpty()) {
-                pendingDoctorMerge = review
-                pendingDoctorChoices = emptyMap()
-                _doctorConflicts.value = merged.conflicts
-                return@withContext Result.failure(DoctorRegistryConflictsException())
-            }
-            applyDoctorMerge(review, merged.doctors)
-            pendingDoctorMerge = null
-            pendingDoctorChoices = emptyMap()
-            _doctorConflicts.value = emptyList()
-            Result.success(merged.doctors.size)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun resolveDoctorConflicts(choices: Map<String, DoctorMergeChoice>): Result<Unit> =
-        doctorSyncMutex.withLock {
-            withContext(dispatchers.io) {
-                try {
-                    val review = pendingDoctorMerge ?: error("أعد المزامنة لتحميل التعارضات الحالية")
-                    val actor = adminAuthorizer.requireAdmin()
-                    val remoteActor = review.remote.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
-                    require(remoteActor != null) {
-                        "صلاحية المدير الحالية غير موجودة في السجل المنشور؛ يلزم مدير مخوّل لمراجعة التعارضات"
-                    }
-                    require(choices.keys == _doctorConflicts.value.mapTo(mutableSetOf()) { it.key }) {
-                        "اختر قيمة لكل تعارض حالي فقط قبل تطبيق الدمج"
-                    }
-                    if (!sameDoctorPointer(readState(), review.remoteState) ||
-                        doctorRepository.getAllIncludingDeleted() != review.localSnapshot ||
-                        settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY) != review.baseData
-                    ) {
-                        // Regenerate review; never apply choices to a different local or remote snapshot.
-                        fetchAndApplyLatestDoctorsInternal().getOrThrow()
-                        error("تغيّر السجل منذ فتح المراجعة؛ راجع أحدث نسخة قبل تطبيق اختياراتك")
-                    }
-                    val combinedChoices = pendingDoctorChoices + choices
-                    val merged = DoctorRegistryMerge.merge(
-                        review.base, review.local, review.remote, review.baseKnown, combinedChoices,
-                        review.protectedDeletionIds
-                    )
-                    if (merged.conflicts.isNotEmpty()) {
-                        pendingDoctorChoices = combinedChoices
-                        _doctorConflicts.value = merged.conflicts
-                        throw DoctorRegistryConflictsException()
-                    }
-                    if (!remoteActor.isPermanentAdmin) {
-                        review.remote.filter { it.isAdmin }.forEach { target ->
-                            val next = merged.doctors.firstOrNull { it.id == target.id }
-                            val permissionChanged = next == null || next.rank != target.rank ||
-                                next.isPermanentAdmin != target.isPermanentAdmin
-                            require(!permissionChanged || remoteActor.rank > target.rank && !target.isPermanentAdmin) {
-                                "لا يمكنك تغيير صلاحية مدير أعلى رتبة أو مدير دائم عبر الدمج"
-                            }
-                        }
-                    }
-                    applyDoctorMerge(review, merged.doctors, actor)
-                    pendingDoctorMerge = null
-                    pendingDoctorChoices = emptyMap()
-                    _doctorConflicts.value = emptyList()
-                    // Publication is a separate retryable step after the atomic local merge commits.
-                    if (settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                        uploadDoctorsInternal(registryData(doctorRepository.getAll()))
-                    } else Result.success(Unit)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Result.failure(e)
-                }
-            }
-        }
-
-    private suspend fun applyDoctorMerge(
-        review: PendingDoctorMerge,
-        doctors: List<Doctor>,
-        resolvingActor: Doctor? = null
-    ) {
-        validateDoctorRegistry(doctors)
-        database.withTransaction {
-            check(doctorRepository.getAllIncludingDeleted() == review.localSnapshot &&
-                settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY) == review.baseData) {
-                "تغيّر سجل الأطباء المحلي أثناء الدمج؛ أعد المزامنة وراجع أحدث نسخة"
-            }
-            if (resolvingActor != null) {
-                check(adminAuthorizer.requireAdmin().id == resolvingActor.id) { "تغيّرت صلاحية المدير" }
-            }
-            doctorRepository.applyMergedRegistry(doctors)
-            settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData(review.remote))
-            settingsRepository.putBoolean(
-                AppConstants.SETTING_DOCTORS_SYNC_PENDING,
-                registryData(doctors) != registryData(review.remote)
-            )
-            syncStateRepository.update(
-                SyncChannel.DOCTORS, review.remoteState.doctorsUpdatedAt,
-                review.remoteState.doctorsMessageId, review.remoteState.doctorsFileId
-            )
-            auditRepository.record(
-                resolvingActor?.id, resolvingActor?.fullName, AppConstants.AUDIT_DOCTORS_SYNCED,
-                if (resolvingActor == null) "merged:${doctors.size}" else "conflicts_resolved:${doctors.size}",
-                beforeValue = registryData(review.local),
-                afterValue = registryData(doctors)
-            )
-        }
-    }
-
-    private fun validateDoctorRegistry(doctors: List<Doctor>) {
-        require(doctors.isNotEmpty() && doctors.size <= AppConstants.MAX_DOCTORS) {
-            "عدد سجلات الأطباء غير صالح"
-        }
-        require(doctors.any { it.isAdmin && !it.isDeleted }) { "يجب إبقاء مدير نشط في سجل الأطباء" }
-        require(doctors.map { it.id }.distinct().size == doctors.size &&
-            doctors.map { it.fullName.lowercase(Locale.ROOT) }.distinct().size == doctors.size) {
-            "سجل الأطباء يحتوي معرّفات أو أسماء مكررة؛ راجع السجلات المتعارضة"
-        }
-        val telegramIds = doctors.mapNotNull { it.telegramId }
-        require(telegramIds.distinct().size == telegramIds.size && telegramIds.all { it > 0 }) {
-            "سجل الأطباء يحتوي هويات تليجرام مكررة أو غير صالحة"
-        }
-        require(doctors.all { it.rank >= 0 && (!it.isPermanentAdmin || it.rank > 0) }) {
-            "رتبة المدير أو الصلاحية الدائمة غير صالحة"
-        }
-        val ranks = doctors.filter { it.rank > 0 }.map { it.rank }
-        require(ranks.distinct().size == ranks.size) { "رتب المديرين مكررة؛ راجع تعارض إسناد الرتبة" }
-        DoctorsRegistryCodec.encode(doctors) // Also validates clinical role/group invariants.
-    }
-
     suspend fun recordAnnouncement(messageId: Long) = withContext(dispatchers.io) {
-        updateState { current ->
+        remoteState.updateState { current ->
             current.copy(
                 announcementMessageId = messageId,
                 announcementUpdatedAt = System.currentTimeMillis()
@@ -1153,155 +677,7 @@ class SyncService @Inject constructor(
     }
 
     suspend fun announcementMessageId(): Long? = withContext(dispatchers.io) {
-        readState()?.announcementMessageId
+        remoteState.readState()?.announcementMessageId
     }
 
-    // --------------- internal ---------------
-
-    private suspend fun downloadDoctorsData(state: SyncState): String {
-        state.doctorsData?.let { return it }
-        val fileId = state.doctorsFileId
-            ?: throw IllegalStateException("لا يوجد سجل أطباء بعد")
-        val path = telegram.getFile(fileId).filePath
-            ?: throw IllegalStateException("تعذر الحصول على سجل الأطباء")
-        val local = File.createTempFile("remote_doctors_", ".txt", context.cacheDir)
-        return try {
-            telegram.downloadFile(path, local)
-            local.readText(Charsets.UTF_8)
-        } finally {
-            local.delete()
-        }
-    }
-
-    private suspend fun updateState(transform: (SyncState) -> SyncState): SyncState =
-        remoteStateMutex.withLock {
-            val updated = transform(readState() ?: SyncState()).copy(v = SyncState.CURRENT_VERSION)
-            writeState(updated)
-            readState() ?: updated
-        }
-
-    private fun SyncState.currentCsvSnapshot(): CsvSnapshot? {
-        val fileId = csvFileId ?: return null
-        val messageId = csvMessageId ?: return null
-        return CsvSnapshot(fileId, messageId, csvDate, csvUpdatedAt)
-    }
-
-    private fun SyncState.previousCsvSnapshot(): CsvSnapshot? {
-        val fileId = previousCsvFileId ?: return null
-        val messageId = previousCsvMessageId ?: return null
-        return CsvSnapshot(fileId, messageId, previousCsvDate, previousCsvUpdatedAt)
-    }
-
-    /**
-     * Telegram documents are immutable. The current pointer can advance repeatedly during the
-     * 10-hour editing window while the previous recovery version remains fixed.
-     */
-    private fun SyncState.withPublishedCsv(
-        uploaded: CsvSnapshot,
-        rotateRecovery: Boolean
-    ): SyncState {
-        if (!rotateRecovery && currentCsvSnapshot() != null) {
-            return copy(
-                csvFileId = uploaded.fileId,
-                csvMessageId = uploaded.messageId,
-                csvDate = uploaded.date,
-                csvUpdatedAt = uploaded.updatedAt
-            )
-        }
-        val snapshots = listOfNotNull(currentCsvSnapshot(), previousCsvSnapshot(), uploaded)
-            .distinctBy { it.messageId }
-            .sortedByDescending { it.messageId }
-        val latest = snapshots.first()
-        val previous = snapshots.getOrNull(1)
-        return copy(
-            csvFileId = latest.fileId,
-            csvMessageId = latest.messageId,
-            csvDate = latest.date,
-            csvUpdatedAt = latest.updatedAt,
-            previousCsvFileId = previous?.fileId,
-            previousCsvMessageId = previous?.messageId,
-            previousCsvDate = previous?.date,
-            previousCsvUpdatedAt = previous?.updatedAt ?: 0L
-        )
-    }
-
-    private suspend fun readState(): SyncState? {
-        val chat = telegram.getChat(topics.chatId)
-        val pinned = chat.pinnedMessage ?: return null
-        val text = pinned.text ?: return null
-        return runCatching { json.decodeFromString<SyncState>(text) }
-            .getOrNull()
-            ?.takeIf { it.isRecognized }
-    }
-
-    private suspend fun writeState(state: SyncState) {
-        val chat = telegram.getChat(topics.chatId)
-        val existing = chat.pinnedMessage?.takeIf { message ->
-            val text = message.text ?: return@takeIf false
-            runCatching { json.decodeFromString<SyncState>(text) }
-                .getOrNull()
-                ?.isRecognized == true
-        }
-
-        val existingState = existing?.text?.let { text ->
-            runCatching { json.decodeFromString<SyncState>(text) }.getOrNull()
-        }
-        val stateToWrite = if (existingState == null) state else {
-            val snapshots = listOfNotNull(
-                state.currentCsvSnapshot(), state.previousCsvSnapshot(),
-                existingState.currentCsvSnapshot(), existingState.previousCsvSnapshot()
-            ).distinctBy { it.messageId }.sortedByDescending { it.messageId }
-            val latest = snapshots.firstOrNull()
-            val previous = snapshots.getOrNull(1)
-            val doctorsState = listOf(state, existingState).maxWithOrNull(
-                compareBy<SyncState> { it.doctorsMessageId ?: Long.MIN_VALUE }
-                    .thenBy { it.doctorsUpdatedAt }
-            ) ?: state
-            val announcementState = listOf(state, existingState).maxWithOrNull(
-                compareBy<SyncState> { it.announcementUpdatedAt }
-                    .thenBy { it.announcementMessageId ?: Long.MIN_VALUE }
-            ) ?: state
-            state.copy(
-                csvFileId = latest?.fileId,
-                csvMessageId = latest?.messageId,
-                csvDate = latest?.date,
-                csvUpdatedAt = latest?.updatedAt ?: 0L,
-                previousCsvFileId = previous?.fileId,
-                previousCsvMessageId = previous?.messageId,
-                previousCsvDate = previous?.date,
-                previousCsvUpdatedAt = previous?.updatedAt ?: 0L,
-                publicationJournal = (state.publicationJournal + existingState.publicationJournal)
-                    .distinctBy { it.messageId }
-                    .sortedByDescending { it.messageId }
-                    .take(12),
-                doctorsData = doctorsState.doctorsData,
-                doctorsFileId = doctorsState.doctorsFileId,
-                doctorsMessageId = doctorsState.doctorsMessageId,
-                doctorsUpdatedAt = doctorsState.doctorsUpdatedAt,
-                announcementMessageId = announcementState.announcementMessageId,
-                announcementUpdatedAt = announcementState.announcementUpdatedAt
-            )
-        }
-        val encoded = json.encodeToString(SyncState.serializer(), stateToWrite)
-        if (existing == null) {
-            val msg = telegram.sendMessage(
-                chatId = topics.chatId,
-                text = encoded,
-                parseMode = null,
-                disableNotification = true
-            )
-            telegram.pinMessage(topics.chatId, msg.messageId, disableNotification = true)
-        } else {
-            try {
-                telegram.editMessageText(
-                    chatId = topics.chatId,
-                    messageId = existing.messageId,
-                    text = encoded,
-                    parseMode = null
-                )
-            } catch (e: TelegramException) {
-                if (!e.message.contains("not modified", ignoreCase = true)) throw e
-            }
-        }
-    }
 }
