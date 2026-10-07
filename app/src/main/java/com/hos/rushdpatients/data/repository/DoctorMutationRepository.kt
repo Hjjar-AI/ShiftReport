@@ -174,14 +174,15 @@ class DoctorMutationRepository @Inject constructor(
                 }
             }
             val permissionChanged = local?.rank != result.rank ||
-                local?.isPermanentAdmin != result.isPermanentAdmin
+                local.isPermanentAdmin != result.isPermanentAdmin
             if (permissionChanged && !actor.isPermanentAdmin) {
                 require(local?.isPermanentAdmin != true && (local?.rank ?: 0) < actor.rank &&
                     !result.isPermanentAdmin && result.rank < actor.rank) {
                     "لا يمكن للاستيراد تغيير صلاحيات مدير أعلى رتبة أو منح صلاحية أعلى من المنفذ"
                 }
             }
-            require(result.telegramId == null || result.telegramId > 0) { "معرّف تليجرام غير صالح" }
+            val telegramId = result.telegramId
+            require(telegramId == null || telegramId > 0) { "معرّف تليجرام غير صالح" }
             result
         }
         require(merged.map { it.id }.distinct().size == merged.size) {

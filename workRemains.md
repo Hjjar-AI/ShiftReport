@@ -55,7 +55,6 @@ Telegram remains the shared storage and delivery channel. Users retrieve publish
    - Check navigation, list/detail panes, resizing, patient forms, and report/support sheets.
    - Check Activity search, filters, and saved scroll position.
    - Verify launcher and system-screen emblem rendering.
-   - Build/compile verification remains pending until explicitly authorized.
 
 ## Later — optional differentiators
 

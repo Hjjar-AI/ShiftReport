@@ -35,7 +35,7 @@ The ward uses persistent Patients, Dashboard, and Activity tabs with saved selec
 
 Patient browsing uses a simultaneous list-detail layout when the ward content has at least 760dp width and 360dp height, after navigation space. The list is a single patient column in panes. A 48dp divider retains its width fraction during the session, clamps to readable minimums after resizing, and supports RTL-aware dragging, keyboard adjustment/reset, visible focus, and accessibility resizing. Without a selected patient, the second pane displays existing report readiness and recent local activity. Tall medium content can show that support below the list; compact/short layouts use a supporting sheet and full-screen detail. Phone card taps continue to edit; pane card taps select detail.
 
-Jetpack WindowManager 1.2.0 is newly added for lifecycle-observed separating/occluding folds. Shared ward layout code translates window hinge bounds into local physical coordinates, reserves margins, and positions suitable list/detail regions on opposite sides of vertical or horizontal folds. Small regions fall back to the larger safe region. Ward bars/navigation, patient details, report/support sheets, and the add/edit/copy form container use this geometry. Selected patient, detail section/scroll, and list state are retained across presentation changes; deletion or switching to a shift without that patient clears selection. Build and real-device folding/keyboard/accessibility validation remain pending.
+Jetpack WindowManager 1.2.0 is newly added for lifecycle-observed separating/occluding folds. Shared ward layout code translates window hinge bounds into local physical coordinates, reserves margins, and positions suitable list/detail regions on opposite sides of vertical or horizontal folds. Small regions fall back to the larger safe region. Ward bars/navigation, patient details, report/support sheets, and the add/edit/copy form container use this geometry. Selected patient, detail section/scroll, and list state are retained across presentation changes; deletion or switching to a shift without that patient clears selection. The owner confirmed a successful debug build on 2026-10-06; real-device folding/keyboard/accessibility validation remains pending. Subsequent warning cleanup has source-level verification only.
 
 ## Main technology
 
@@ -151,11 +151,11 @@ Ward cards support comfortable/compact density, individual expansion, session-lo
 
 ## Known high-priority limitations
 
-1. Doctor merge/edit review and reviewed-report sending still need build/device validation and the intended sequential retrieve/edit/publish and interrupted-delivery scenarios before release.
+1. Doctor merge/edit review and reviewed-report sending still need device validation and the intended sequential retrieve/edit/publish and interrupted-delivery scenarios before release.
 2. Production signing still needs configuration; administrative import/rank/destination transactions need runtime failure/cancellation validation.
 3. Provisioning files are encrypted but reusable; credential rotation and safe project reconnection remain unfinished. Server-enforced one-time expiry is optional.
 4. Structured patient tasks and closed-loop critical acknowledgments do not yet exist in the core model.
-5. Adaptive panes, fold handling, Activity restoration, forms, icon direction, and accessibility actions need build and hands-on device validation. Structured task counts on cards remain dependent on the P1 task model.
+5. Adaptive panes, fold handling, Activity restoration, forms, icon direction, and accessibility actions need hands-on device validation. Structured task counts on cards remain dependent on the P1 task model.
 
 ## Documentation discipline
 

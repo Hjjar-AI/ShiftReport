@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryConflict
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DoctorConflictReviewDialog(
     conflicts: List<DoctorRegistryConflict>,

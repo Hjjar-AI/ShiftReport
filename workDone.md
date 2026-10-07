@@ -2,6 +2,8 @@
 
 Completed and removed from the active backlog. The remaining roadmap is in [workRemains.md](workRemains.md).
 
+- Corrected the Kotlin compilation errors from the supplied debug-build log: doctor import validates a stable local Telegram ID value, doctor conflict and Activity chips explicitly opt into the installed experimental Material 3 API, and the ward adaptive-pane content is passed as the named `primary` lambda. Source/whitespace checks completed; a fresh build remains unverified.
+
 - Patient sync has three-way field merging, explicit conflict review, immutable uploaded CSV files, recovery snapshots, and a publication journal.
 - The ward screen exposes persistent local/pending/uploading/published/conflict sync states.
 - Concurrent sync operations on one device are serialized per patient and doctor channel.
@@ -68,3 +70,5 @@ Completed and removed from the active backlog. The remaining roadmap is in [work
 - Splash and About technical credits now list د. أيهم شيخة and محمد زاهر شقير together. Contributor names use larger bold text on the splash and a prominent heading size in About; existing artwork and other credits are preserved. Source/whitespace checks completed; rendered validation remains pending.
 
 - P3 source review improved patient-card readability at narrow widths and large fonts: clinician/diagnosis chips wrap, chip labels keep their full text, and view controls use a narrow vertical column. Unavailable card menus are hidden. Patient-form reorder controls are now labelled 48dp buttons that open by tap or keyboard activation. Activity filters have explicit 48dp minimum height and wrapped spacing, and loading/errors expose polite accessibility announcements. Manifest/adaptive and legacy launcher resource references and Activity saved-state wiring were inspected. Source checks completed; build and hands-on device/accessibility validation remain pending.
+
+- Owner-provided `./gradlew assembleDebug` output confirms debug compilation and packaging succeeded on 2026-10-06 (43 actionable tasks). Removed the two redundant Kotlin safe calls and unused ward context reported by that build; these subsequent cleanup edits have source/whitespace verification only. Hands-on UI and workflow validation and production signing remain unfinished.

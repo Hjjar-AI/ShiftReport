@@ -184,7 +184,7 @@ fun AddEditDoctorDialog(
                     if (draftValues[index] != savedValues[index]) add(Triple(labels[index], draftValues[index], savedValues[index]))
                 }
                 val previous = rejectedBaseline
-                if (previous?.rank != it.rank || previous?.isPermanentAdmin != it.isPermanentAdmin) {
+                if (previous?.rank != it.rank || previous.isPermanentAdmin != it.isPermanentAdmin) {
                     add(Triple("صلاحيات المدير (تُحفظ الصلاحيات الأحدث)", doctorPermissionLabel(previous), doctorPermissionLabel(it)))
                 }
                 if (draft.pin != null) add(Triple("الرقم السري", "تعيين رقم جديد؛ لا يُعرض هنا", "الرقم الحالي لا يُعرض هنا"))

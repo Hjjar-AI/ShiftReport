@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -37,7 +38,7 @@ internal enum class ActivityFilter(val arabicLabel: String) {
     ALL("الكل"), PATIENTS("المرضى"), SYNC("المزامنة والتقارير"), ACCESS("الدخول"), PUBLICATIONS("المنشورات")
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun WardActivityScreen(
     activity: List<AuditEntryEntity>,

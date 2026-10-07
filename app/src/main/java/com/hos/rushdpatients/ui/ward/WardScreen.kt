@@ -106,7 +106,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
@@ -151,7 +150,6 @@ fun WardScreen(
     val snackbarHost = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
     val foldingFeature = rememberWardFoldingFeature()
     val detailStateHolder = rememberSaveableStateHolder()
@@ -794,8 +792,8 @@ fun WardScreen(
                             onReviewReport = { showReportSheet = true },
                             onActivity = { viewMode = WardViewMode.ACTIVITY })
                     },
-                    compactOverlay = { if (patientDestination) detailContent(false) }
-                ) { dualPane ->
+                    compactOverlay = { if (patientDestination) detailContent(false) },
+                    primary = { dualPane ->
                     Box(Modifier.fillMaxSize()) {
                         if (state.loading) {
                             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -1089,7 +1087,8 @@ fun WardScreen(
                             }
                         }
                     }
-                }
+                    }
+                )
             }
         }
     }
