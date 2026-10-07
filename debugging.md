@@ -82,7 +82,7 @@ If it is not ignored, do not add or commit the capture.
 | Local clinical database | SQLCipher-encrypted Room, schema 5; tasks stored in the patient row |
 | Patient snapshots/backups | Patient CSV schema 7, including `tasksJson`; encrypted backups wrap this content |
 | Doctor spreadsheet import/export | Doctor-registry CSV schema 1, exact 16-column header shown below |
-| Project joining | Password-protected `.srjoin` file containing connection settings, topics, and any shared data key |
+| Project joining | Password-protected `.srjoin.json` file containing connection settings, topics, and any shared data key |
 | Encrypted Telegram documents | Generic `project-data.srdata` filename; the app decrypts downloaded records before parsing |
 | Encrypted Telegram text | `SRMSG1:` envelope used for application-published text/pinned state |
 | PDF reports | Readable documents by design, including in encrypted projects |
@@ -96,7 +96,9 @@ Doctor import validates the full proposed merge and rechecks authorization and t
 ### File-only joining and export
 
 - Joining requires the administrator's protected file and its passphrase. Connection values and topic IDs are imported automatically; there is no manual joining form.
-- Export prepares ciphertext before the file picker, retains it through Activity recreation, and reads the written file back before reporting success. If a process/session restart loses the pending export, use the displayed recreate-file instruction; an empty picker-created file is not a valid join file.
+- New exports use `.srjoin.json` / `application/json`. Its visible JSON contains only a format label and encrypted payload, never readable connection credentials. Import also recognizes existing binary join files.
+- Export stages ciphertext in private non-backed-up storage before the picker and restores its random file ID through `SavedStateHandle`. Saved bytes are read back before success; cancelled/failed exports clear the staged payload and attempt to remove failed destinations. If the session expired, sign in as an administrator and create a new export. Android providers/process recreation still need device validation; source checks are not a build.
+- If a file is still empty, use the error shown in Settings and retry saving to local Downloads. An empty file is not a valid join file; never paste credentials into it manually.
 - A wrong passphrase or damaged join file should display an import error. Keep the passphrase, bot token, and project key out of logs, screenshots, and issue reports.
 
 ### Optional Telegram encryption

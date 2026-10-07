@@ -2,6 +2,7 @@ package com.hos.rushdpatients.ui.settings
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
@@ -36,6 +37,8 @@ import com.hos.rushdpatients.util.NetworkStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,14 +66,19 @@ class SettingsViewModel @Inject constructor(
     private val encryptedBackupManager: EncryptedBackupManager,
     private val projectConfigStore: ProjectConfigStore,
     private val provisioningManager: ProjectProvisioningManager,
-    private val adminAuthorizer: AdminAuthorizer
+    private val adminAuthorizer: AdminAuthorizer,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SettingsUiState())
+    private val _state = MutableStateFlow(SettingsUiState(
+        provisioningBusy = savedStateHandle.get<String>(PENDING_PROVISIONING_ID) != null
+    ))
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
-    // Encrypted bytes only: survive Activity recreation without saving the passphrase.
-    private var pendingProvisioning: ByteArray? = null
+    // Only a random private-file ID survives process recreation; never the password or credentials.
+    private companion object {
+        const val PENDING_PROVISIONING_ID = "pending_provisioning_id"
+    }
 
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
@@ -567,7 +575,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 adminAuthorizer.requireAdmin()
-                pendingProvisioning = provisioningManager.prepareExport(projectConfigStore.current(), password)
+                val encrypted = provisioningManager.prepareExport(projectConfigStore.current(), password)
+                try {
+                    savedStateHandle[PENDING_PROVISIONING_ID] = provisioningManager.stageExport(encrypted)
+                } finally {
+                    encrypted.fill(0)
+                }
                 _state.update { it.copy(provisioningReady = true) }
             } catch (e: CancellationException) {
                 clearPendingProvisioning()
@@ -590,56 +603,45 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun provisioningPickerFailed() {
-        clearPendingProvisioning()
-        _state.update {
-            it.copy(provisioningBusy = false, provisioningReady = false,
-                snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء ملف الانضمام")
+        viewModelScope.launch {
+            clearPendingProvisioning()
+            _state.update {
+                it.copy(provisioningBusy = false, provisioningReady = false,
+                    snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء ملف الانضمام")
+            }
         }
     }
 
     fun exportProjectProvisioning(uri: Uri?) {
-        val encrypted = pendingProvisioning
-        pendingProvisioning = null
-        _state.update { it.copy(provisioningReady = false) }
-        if (uri == null) {
-            encrypted?.fill(0)
-            _state.update { it.copy(provisioningBusy = false) }
-            return
-        }
-        if (encrypted == null) {
-            _state.update {
-                it.copy(provisioningBusy = false,
-                    snackbar = "انتهت جلسة التصدير قبل الحفظ. احذف الملف الفارغ وأعد إنشاء ملف الانضمام.")
-            }
-            return
-        }
-        _state.update { it.copy(provisioningBusy = true, snackbar = null) }
+        val exportId = savedStateHandle.get<String>(PENDING_PROVISIONING_ID)
+        _state.update { it.copy(provisioningReady = false, provisioningBusy = true, snackbar = null) }
         viewModelScope.launch {
             try {
+                if (uri == null) return@launch
+                check(exportId != null) { "انتهت جلسة التصدير؛ أعد إنشاء ملف الانضمام" }
                 adminAuthorizer.requireAdmin()
-                provisioningManager.writeExport(uri, encrypted)
+                provisioningManager.writeStagedExport(uri, exportId)
                 _state.update {
                     it.copy(snackbar = "تم حفظ ملف الانضمام المشفر والتحقق منه. شارك عبارة المرور عبر قناة منفصلة.")
                 }
             } catch (e: CancellationException) {
+                withContext(NonCancellable) {
+                    if (uri != null) provisioningManager.discardFailedDestination(uri)
+                }
                 throw e
             } catch (e: Exception) {
+                if (uri != null) provisioningManager.discardFailedDestination(uri)
                 _state.update { it.copy(snackbar = e.message ?: "فشل حفظ ملف الانضمام") }
             } finally {
-                encrypted.fill(0)
+                clearPendingProvisioning()
                 _state.update { it.copy(provisioningBusy = false) }
             }
         }
     }
 
-    private fun clearPendingProvisioning() {
-        pendingProvisioning?.fill(0)
-        pendingProvisioning = null
-    }
-
-    override fun onCleared() {
-        clearPendingProvisioning()
-        super.onCleared()
+    private suspend fun clearPendingProvisioning() = withContext(NonCancellable) {
+        val id = savedStateHandle.remove<String>(PENDING_PROVISIONING_ID)
+        if (id != null) provisioningManager.discardStagedExport(id)
     }
 
     fun restoreEncryptedBackup(uri: Uri, password: String) {

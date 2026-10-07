@@ -66,6 +66,7 @@ import android.net.Uri
 import java.time.LocalDate
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hos.rushdpatients.config.ProjectProvisioningManager
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
@@ -124,7 +125,7 @@ fun SettingsScreen(
         }
     }
     val createProvisioning = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/octet-stream")
+        ActivityResultContracts.CreateDocument(ProjectProvisioningManager.EXPORT_MIME_TYPE)
     ) { uri ->
         viewModel.exportProjectProvisioning(uri)
     }
@@ -133,7 +134,7 @@ fun SettingsScreen(
         if (state.provisioningReady) {
             viewModel.provisioningPickerLaunched()
             try {
-                createProvisioning.launch("ShiftReport_Join_${LocalDate.now()}.srjoin")
+                createProvisioning.launch("ShiftReport_Join_${LocalDate.now()}.${ProjectProvisioningManager.EXPORT_EXTENSION}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -615,7 +616,7 @@ fun SettingsScreen(
             title = { Text("حماية ملف الانضمام") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("اختر عبارة قوية من 10 محارف على الأقل. لا تُحفظ العبارة داخل الملف.")
+                    Text("سيُحفظ ملف .srjoin.json مشفر. اختر عبارة قوية من 10 محارف على الأقل؛ لا تُحفظ العبارة داخل الملف.")
                     OutlinedTextField(
                         value = provisioningPassphrase,
                         onValueChange = { provisioningPassphrase = it },

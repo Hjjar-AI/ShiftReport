@@ -116,7 +116,7 @@ fun ProjectSetupScreen(
                             enabled = !state.busy
                         )
                         Button(
-                            onClick = { openProvisioning.launch(arrayOf("application/octet-stream", "*/*")) },
+                            onClick = { openProvisioning.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
                             enabled = !state.busy && state.provisioningPassphrase.length >= 10,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text(if (state.importedProvisioning) "اختيار ملف انضمام آخر" else "اختيار ملف الانضمام") }

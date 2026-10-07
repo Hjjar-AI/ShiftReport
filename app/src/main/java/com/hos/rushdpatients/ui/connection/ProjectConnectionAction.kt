@@ -97,12 +97,12 @@ fun ProjectConnectionAction(
                                 OutlinedButton(onClick = {
                                     pickerError = null
                                     try {
-                                        picker.launch(arrayOf("application/octet-stream", "*/*"))
+                                        picker.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
                                     } catch (_: Exception) {
                                         pickerError = "تعذر فتح منتقي الملفات؛ أعد المحاولة"
                                     }
                                 }, enabled = !state.busy) {
-                                    Text(if (selectedFile == null) "اختيار ملف .srjoin" else "تغيير الملف المختار")
+                                    Text(if (selectedFile == null) "اختيار ملف .srjoin.json" else "تغيير الملف المختار")
                                 }
                                 if (selectedFile != null) Text("تم اختيار الملف")
                             }
