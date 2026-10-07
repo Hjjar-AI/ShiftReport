@@ -93,6 +93,12 @@ Doctor import validates the full proposed merge and rechecks authorization and t
 
 ## Project joining, encryption, and task diagnostics
 
+### Non-PDF export checks
+
+- Backup (`.rpb`) and doctor CSV prepare before the picker and retain encrypted temporary contents in private non-backed-up storage. Activity/process recreation restores only their random file ID and count. Success requires an exact read-back comparison; failed destinations are deleted when the provider permits it. The backup password is not needed after preparation. Doctor export still requires current admin authority at save time.
+- Patient CSV validates its output stream and saved contents before publishing to Downloads; older Android file copies are verified as well. Failed or incomplete CSV saves must report failure.
+- These paths have static source checks only. If a provider rejects saving or verification, capture the displayed error without sharing clinical contents, and retry a fresh export to local Downloads.
+
 ### File-only joining and export
 
 - Joining requires the administrator's protected file and its passphrase. Connection values and topic IDs are imported automatically; there is no manual joining form.

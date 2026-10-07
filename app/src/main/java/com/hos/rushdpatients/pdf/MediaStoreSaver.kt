@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -36,16 +37,21 @@ class MediaStoreSaver @Inject constructor() {
         context = context,
         sourceFile = sourceFile,
         displayName = displayName,
-        mimeType = "text/csv"
+        mimeType = "text/csv",
+        verifyContents = true
     )
 
     private suspend fun saveFile(
         context: Context,
         sourceFile: File,
         displayName: String,
-        mimeType: String
+        mimeType: String,
+        verifyContents: Boolean = false
     ): Uri? = withContext(Dispatchers.IO) {
 
+        if (verifyContents && (!sourceFile.isFile || sourceFile.length() == 0L)) {
+            return@withContext null
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
             val values = ContentValues().apply {
@@ -58,15 +64,28 @@ class MediaStoreSaver @Inject constructor() {
             val resolver = context.contentResolver
             val uri = resolver.insert(collection, values) ?: return@withContext null
             try {
-                resolver.openOutputStream(uri)?.use { output ->
+                val stream = resolver.openOutputStream(uri)
+                if (verifyContents && stream == null) error("تعذر فتح ملف CSV")
+                stream?.use { output ->
                     sourceFile.inputStream().use { input -> input.copyTo(output) }
+                    if (verifyContents) output.flush()
+                }
+                if (verifyContents) {
+                    verifyCopy(sourceFile, resolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: error("تعذر التحقق من حفظ CSV"))
                 }
                 values.clear()
                 values.put(MediaStore.MediaColumns.IS_PENDING, 0)
-                resolver.update(uri, values, null, null)
+                val published = resolver.update(uri, values, null, null)
+                if (verifyContents) check(published > 0) { "تعذر إكمال حفظ CSV" }
                 uri
             } catch (e: Exception) {
-                resolver.delete(uri, null, null)
+                if (verifyContents) {
+                    runCatching { resolver.delete(uri, null, null) }
+                    if (e is CancellationException) throw e
+                } else {
+                    resolver.delete(uri, null, null)
+                }
                 null
             }
         } else {
@@ -75,8 +94,34 @@ class MediaStoreSaver @Inject constructor() {
                 ?: context.filesDir
             val target = File(dir, "$subFolder/$displayName")
             target.parentFile?.mkdirs()
-            sourceFile.copyTo(target, overwrite = true)
-            Uri.fromFile(target)
+            if (verifyContents) {
+                try {
+                    sourceFile.copyTo(target, overwrite = true)
+                    verifyCopy(sourceFile, target.readBytes())
+                    Uri.fromFile(target)
+                } catch (e: Exception) {
+                    target.delete()
+                    if (e is CancellationException) throw e
+                    null
+                }
+            } else {
+                sourceFile.copyTo(target, overwrite = true)
+                Uri.fromFile(target)
+            }
         }
     }
+
+    private fun verifyCopy(source: File, saved: ByteArray) {
+        var expected: ByteArray? = null
+        try {
+            expected = source.readBytes()
+            check(expected.isNotEmpty() && saved.contentEquals(expected)) {
+                "لم يُحفظ ملف CSV كاملاً"
+            }
+        } finally {
+            expected?.fill(0)
+            saved.fill(0)
+        }
+    }
+
 }

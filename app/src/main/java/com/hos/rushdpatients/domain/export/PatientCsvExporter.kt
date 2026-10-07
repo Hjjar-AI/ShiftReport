@@ -12,6 +12,7 @@ import com.hos.rushdpatients.sync.CsvCodec
 import com.hos.rushdpatients.util.DispatcherProvider
 import com.hos.rushdpatients.util.ShiftDate
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDate
@@ -84,6 +85,8 @@ class PatientCsvExporter @Inject constructor(
             } else {
                 Result.Success(uri, fileName, patients.size)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.Failure(e.message ?: "فشل تصدير CSV")
         } finally {

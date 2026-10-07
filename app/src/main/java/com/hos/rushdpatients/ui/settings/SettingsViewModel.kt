@@ -21,6 +21,7 @@ import com.hos.rushdpatients.domain.auth.BiometricHelper
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.backup.EncryptedBackupManager
 import com.hos.rushdpatients.domain.auth.SessionManager
+import com.hos.rushdpatients.domain.export.PendingExportStore
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
@@ -67,16 +68,20 @@ class SettingsViewModel @Inject constructor(
     private val projectConfigStore: ProjectConfigStore,
     private val provisioningManager: ProjectProvisioningManager,
     private val adminAuthorizer: AdminAuthorizer,
+    private val pendingExports: PendingExportStore,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState(
+        backupBusy = savedStateHandle.get<String>(PENDING_BACKUP_ID) != null,
         provisioningBusy = savedStateHandle.get<String>(PENDING_PROVISIONING_ID) != null
     ))
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
     // Only a random private-file ID survives process recreation; never the password or credentials.
     private companion object {
+        const val PENDING_BACKUP_ID = "pending_backup_id"
+        const val PENDING_BACKUP_COUNT = "pending_backup_count"
         const val PENDING_PROVISIONING_ID = "pending_provisioning_id"
     }
 
@@ -545,27 +550,74 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun exportEncryptedBackup(uri: Uri, password: String) {
+    fun prepareEncryptedBackup(passphrase: String) {
         if (_state.value.backupBusy) return
-        _state.update { it.copy(backupBusy = true, snackbar = null) }
+        _state.update { it.copy(backupBusy = true, backupReady = false, snackbar = null) }
+        val password = passphrase.toCharArray()
         viewModelScope.launch {
-            runCatching { encryptedBackupManager.exportCurrent(uri, password.toCharArray()) }
-                .onSuccess { count ->
-                    settingsRepository.putLong(
-                        AppConstants.SETTING_LAST_ENCRYPTED_BACKUP_AT,
-                        Instant.now().toEpochMilli()
-                    )
-                    _state.update {
-                        it.copy(backupBusy = false, snackbar = "تم حفظ نسخة مشفرة لـ$count مريض")
-                    }
-                    refreshStorageHealth()
+            try {
+                val prepared = encryptedBackupManager.prepareExport(password)
+                try {
+                    savedStateHandle[PENDING_BACKUP_ID] = pendingExports.stage(prepared.bytes)
+                    savedStateHandle[PENDING_BACKUP_COUNT] = prepared.patientCount
+                } finally {
+                    prepared.bytes.fill(0)
                 }
-                .onFailure { error ->
-                    _state.update {
-                        it.copy(backupBusy = false, snackbar = error.message ?: "فشل إنشاء النسخة المشفرة")
-                    }
-                }
+                _state.update { it.copy(backupReady = true) }
+            } catch (e: CancellationException) {
+                clearPendingBackup()
+                _state.update { it.copy(backupBusy = false, backupReady = false) }
+                throw e
+            } catch (e: Exception) {
+                clearPendingBackup()
+                _state.update { it.copy(backupBusy = false, backupReady = false,
+                    snackbar = e.message ?: "فشل تجهيز النسخة المشفرة") }
+            } finally {
+                password.fill('\u0000')
+            }
         }
+    }
+
+    fun backupPickerLaunched() = _state.update { it.copy(backupReady = false) }
+
+    fun backupPickerFailed() {
+        viewModelScope.launch {
+            clearPendingBackup()
+            _state.update { it.copy(backupBusy = false, backupReady = false,
+                snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء النسخة المشفرة") }
+        }
+    }
+
+    fun exportEncryptedBackup(uri: Uri?) {
+        val id = savedStateHandle.get<String>(PENDING_BACKUP_ID)
+        val count = savedStateHandle.get<Int>(PENDING_BACKUP_COUNT) ?: 0
+        _state.update { it.copy(backupBusy = true, backupReady = false, snackbar = null) }
+        viewModelScope.launch {
+            try {
+                if (uri == null) return@launch
+                check(id != null) { "انتهت جلسة التصدير؛ أعد إنشاء النسخة المشفرة" }
+                pendingExports.write(uri, id)
+                settingsRepository.putLong(AppConstants.SETTING_LAST_ENCRYPTED_BACKUP_AT,
+                    Instant.now().toEpochMilli())
+                _state.update { it.copy(snackbar = "تم حفظ نسخة مشفرة لـ$count مريض والتحقق منها") }
+                refreshStorageHealth()
+            } catch (e: CancellationException) {
+                if (uri != null) pendingExports.discardDestination(uri)
+                throw e
+            } catch (e: Exception) {
+                if (uri != null) pendingExports.discardDestination(uri)
+                _state.update { it.copy(snackbar = e.message ?: "فشل إنشاء النسخة المشفرة") }
+            } finally {
+                clearPendingBackup()
+                _state.update { it.copy(backupBusy = false) }
+            }
+        }
+    }
+
+    private suspend fun clearPendingBackup() = withContext(NonCancellable) {
+        val id = savedStateHandle.remove<String>(PENDING_BACKUP_ID)
+        savedStateHandle.remove<Int>(PENDING_BACKUP_COUNT)
+        if (id != null) pendingExports.discard(id)
     }
 
     fun prepareProjectProvisioning(passphrase: String) {

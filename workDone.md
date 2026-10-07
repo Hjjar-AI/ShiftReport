@@ -28,8 +28,9 @@ Completed features only. Technical details and verification limits: [currentStat
 ## Data correctness and synchronization
 
 - Repository transactions combine patient/doctor mutations, pending-sync state, and actor audit. Stale edits retain drafts for explicit review and a separate Save.
-- Live admin authorization protects privileged operations. Doctor CSV import previews/rechecks changes, excludes PINs, and preserves protected identities and clinical references. CSV export now prepares before the picker and verifies saved bytes.
+- Live admin authorization protects privileged operations. Doctor CSV import previews/rechecks changes, excludes PINs, and preserves protected identities and clinical references. Doctor CSV export stages an encrypted snapshot before the picker, restores its random ID after recreation, verifies saved bytes, and cleans up failures.
 - Patient/doctor three-way merging, explicit conflicts, recovery snapshots, publication journal, and protection of unsent/in-flight edits. Doctor identity changes invalidate old local PINs.
+- Encrypted backups prepare before the picker without retaining its password; backup/doctor exports use private encrypted staging and verified writes. Patient CSV validates streams, verifies saved bytes before publication, and removes failed files. Static checks only for this export hardening.
 - Lifecycle-aware connectivity and persistent sync states. Telegram last-write-wins remains the accepted remote-publication model.
 
 ## Reports and presentation

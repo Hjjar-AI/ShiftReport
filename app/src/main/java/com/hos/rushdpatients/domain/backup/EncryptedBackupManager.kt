@@ -35,16 +35,23 @@ class EncryptedBackupManager @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val dispatchers: DispatcherProvider
 ) {
-    suspend fun exportCurrent(uri: Uri, password: CharArray): Int = withContext(dispatchers.io) {
-        require(password.size >= 8) { "كلمة مرور النسخة الاحتياطية يجب ألا تقل عن 8 محارف" }
-        val shift = shiftRepository.getByDate(ShiftDate.current())
-            ?: error("لا توجد وردية لإنشاء نسخة احتياطية")
-        val patients = patientRepository.getForShift(shift.id)
-        val plain = CsvCodec.encode(shift, patients).toByteArray(Charsets.UTF_8)
-        val encrypted = encrypt(plain, password)
-        context.contentResolver.openOutputStream(uri, "w")?.use { it.write(encrypted) }
-            ?: error("تعذر فتح ملف النسخة الاحتياطية")
-        patients.size
+    data class PreparedBackup(val bytes: ByteArray, val patientCount: Int)
+
+    suspend fun prepareExport(password: CharArray): PreparedBackup = withContext(dispatchers.io) {
+        try {
+            require(password.size >= 8) { "كلمة مرور النسخة الاحتياطية يجب ألا تقل عن 8 محارف" }
+            val shift = shiftRepository.getByDate(ShiftDate.current())
+                ?: error("لا توجد وردية لإنشاء نسخة احتياطية")
+            val patients = patientRepository.getForShift(shift.id)
+            val plain = CsvCodec.encode(shift, patients).toByteArray(Charsets.UTF_8)
+            try {
+                PreparedBackup(encrypt(plain, password), patients.size)
+            } finally {
+                plain.fill(0)
+            }
+        } finally {
+            password.fill('\u0000')
+        }
     }
 
     suspend fun restore(uri: Uri, password: CharArray): Int = withContext(dispatchers.io) {

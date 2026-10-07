@@ -97,7 +97,6 @@ fun SettingsScreen(
     val settingsScope = rememberCoroutineScope()
     var backupDialogMode by remember { mutableStateOf<String?>(null) }
     var backupPassword by remember { mutableStateOf("") }
-    var pendingExportPassword by remember { mutableStateOf("") }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var pendingRestorePassword by remember { mutableStateOf("") }
     var confirmBackupRestore by remember { mutableStateOf(false) }
@@ -109,11 +108,18 @@ fun SettingsScreen(
 
     val createBackup = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream")
-    ) { uri ->
-        if (uri != null && pendingExportPassword.isNotEmpty()) {
-            viewModel.exportEncryptedBackup(uri, pendingExportPassword)
+    ) { uri -> viewModel.exportEncryptedBackup(uri) }
+    LaunchedEffect(state.backupReady) {
+        if (state.backupReady) {
+            viewModel.backupPickerLaunched()
+            try {
+                createBackup.launch("Rushd_Backup_${LocalDate.now()}.rpb")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                viewModel.backupPickerFailed()
+            }
         }
-        pendingExportPassword = ""
     }
     val openBackup = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -586,8 +592,7 @@ fun SettingsScreen(
                     enabled = backupPassword.length >= 8,
                     onClick = {
                         if (mode == "export") {
-                            pendingExportPassword = backupPassword
-                            createBackup.launch("Rushd_Backup_${LocalDate.now()}.rpb")
+                            viewModel.prepareEncryptedBackup(backupPassword)
                         } else {
                             pendingRestorePassword = backupPassword
                             confirmBackupRestore = true

@@ -206,8 +206,10 @@ Tasks use one serialized JSON representation in the encrypted Room patient row a
 
 ## Latest export/navigation refinements
 
-- Doctor CSV export prepares a nonempty UTF-8/BOM snapshot before opening the document picker, retains it in the ViewModel across Activity recreation, and consumes the picker result without the former busy-state early return. It writes/closes the byte stream and reads it back before success; cancellation, picker failures, and lost export sessions reset state or give an explicit retry message. PINs remain excluded and live admin authorization is retained.
-- The doctor-export, persisted sorting, Activity access, and compact navigation changes passed source checks and the latest authorized debug build. Device/document-provider validation remains unperformed.
+- Doctor CSV and encrypted backup exports prepare their bytes before opening the document picker. `PendingExportStore` stages them under app-private `noBackupFilesDir`, encrypted with an Android Keystore AES-GCM key. `SavedStateHandle` retains only random file IDs and record counts across process recreation; no password or registry/clinical bytes enter saved UI state. Doctor CSV keeps its UTF-8/BOM format and live admin recheck. Backup `.rpb` encryption and payload format remain unchanged, and its passphrase is cleared after preparation.
+- Both picker-based exports close the stream and compare the saved bytes before success. Cancellation, picker failure, and completion discard the staged file; write failures attempt to remove the newly created destination. Abandoned staged files older than 24 hours are pruned on the next staged export.
+- Patient CSV rejects an absent/empty source or null output stream, reads back and verifies bytes before publishing its MediaStore row, checks publication success, and removes failed rows. The pre-Android-10 file-copy path also verifies output and removes incomplete files. PDF saving does not opt into these CSV-specific changes.
+- The non-PDF export hardening passed source-level delimiter/import, wiring, crypto-preservation, and whitespace checks only. No build or device/provider/process-recreation check was run for these changes. Earlier authorized builds cover only their earlier snapshots.
 
 ## Latest demo and drawer refinements
 
