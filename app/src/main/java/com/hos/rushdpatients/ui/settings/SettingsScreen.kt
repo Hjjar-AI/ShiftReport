@@ -55,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
+import android.content.ClipData
+import android.content.Intent
 import java.time.LocalDate
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -91,6 +94,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val settingsScroll = rememberScrollState()
     val sectionOffsets = remember { mutableMapOf<String, Int>() }
@@ -146,6 +150,24 @@ fun SettingsScreen(
             } catch (e: Exception) {
                 viewModel.provisioningPickerFailed()
             }
+        }
+    }
+
+    LaunchedEffect(state.provisioningShareUri) {
+        val uri = state.provisioningShareUri ?: return@LaunchedEffect
+        try {
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = ProjectProvisioningManager.EXPORT_MIME_TYPE
+                putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = ClipData.newUri(context.contentResolver, "ملف الانضمام", uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "مشاركة ملف الانضمام المشفر"))
+            viewModel.provisioningShareHandled(failed = false)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            viewModel.provisioningShareHandled(failed = true)
         }
     }
 
@@ -515,7 +537,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         LoadingButton(
-                            text = "تصدير ملف انضمام مشفر",
+                            text = "إنشاء ملف انضمام مشفر",
                             loading = state.provisioningBusy,
                             onClick = {
                                 provisioningPassphrase = ""
@@ -629,17 +651,28 @@ fun SettingsScreen(
                         visualTransformation = PasswordVisualTransformation(),
                         singleLine = true
                     )
+                    Text("يمكن مشاركة الملف الجاهز مباشرة أو اختيار مكان لحفظه.",
+                        style = MaterialTheme.typography.bodySmall)
+                    TextButton(
+                        enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
+                        onClick = {
+                            viewModel.prepareProjectProvisioning(provisioningPassphrase)
+                            provisioningPassphrase = ""
+                            provisioningDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    ) { Text("اختيار مكان الحفظ") }
                 }
             },
             confirmButton = {
                 TextButton(
                     enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
                     onClick = {
-                        viewModel.prepareProjectProvisioning(provisioningPassphrase)
+                        viewModel.prepareProjectProvisioning(provisioningPassphrase, share = true)
                         provisioningPassphrase = ""
                         provisioningDialog = false
                     }
-                ) { Text("إنشاء") }
+                ) { Text("مشاركة الملف") }
             },
             dismissButton = {
                 TextButton(onClick = {

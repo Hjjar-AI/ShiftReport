@@ -13,6 +13,7 @@ import com.hos.rushdpatients.domain.auth.BootstrapManager
 import com.hos.rushdpatients.domain.auth.BootstrapResult
 import com.hos.rushdpatients.domain.auth.BootstrapSeeder
 import com.hos.rushdpatients.domain.auth.LoginVerificationResult
+import com.hos.rushdpatients.domain.auth.LocalPinLoginManager
 import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.domain.auth.SessionManager
@@ -21,6 +22,7 @@ import com.hos.rushdpatients.sync.AutoSyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +39,7 @@ class LoginViewModel @Inject constructor(
     private val bootstrapManager: BootstrapManager,
     private val bootstrapSeeder: BootstrapSeeder,
     private val loginManager: TelegramLoginManager,
+    private val localPinLogin: LocalPinLoginManager,
     private val hasher: PasswordHasher,
     private val auditRepository: AuditRepository,
     private val settingsRepository: SettingsRepository,
@@ -125,6 +128,38 @@ class LoginViewModel @Inject constructor(
     }
 
     fun pickDoctor(doctor: Doctor) {
+        if (_state.value.busy) return
+        verifyJob?.cancel()
+        if (doctor.telegramId != null && doctor.extraOptions.any { it.startsWith("pin:") }) {
+            _state.update { it.copy(step = LoginStep.EnterPin(doctor), busy = false, error = null) }
+        } else {
+            verifyViaTelegram(doctor)
+        }
+    }
+
+    fun loginWithPin(pin: String) {
+        if (_state.value.busy) return
+        val step = _state.value.step as? LoginStep.EnterPin ?: return
+        _state.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val doctor = localPinLogin.verify(step.doctor.id, pin)
+                startSession(doctor, checkNotNull(doctor.telegramId))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(error = if (e is IllegalArgumentException || e is IllegalStateException)
+                        e.message ?: "تعذر تسجيل الدخول" else "تعذر تسجيل الدخول؛ أعد المحاولة")
+                }
+            } finally {
+                _state.update { it.copy(busy = false) }
+            }
+        }
+    }
+
+    fun verifyViaTelegram(doctor: Doctor) {
+        if (_state.value.busy) return
         val telegramId = doctor.telegramId
         if (telegramId == null) {
             _state.update { it.copy(error = "لم يتم ربط حساب تليجرام لهذا الطبيب") }
@@ -188,7 +223,7 @@ class LoginViewModel @Inject constructor(
         backToDoctors()
     }
 
-    fun retryVerify(doctor: Doctor) = pickDoctor(doctor)
+    fun retryVerify(doctor: Doctor) = verifyViaTelegram(doctor)
 
     fun backToDoctors() {
         viewModelScope.launch {

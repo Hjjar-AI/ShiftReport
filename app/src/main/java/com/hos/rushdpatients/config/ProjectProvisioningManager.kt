@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Base64
+import androidx.core.content.FileProvider
 import com.hos.rushdpatients.util.DispatcherProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.withContext
@@ -55,7 +56,7 @@ class ProjectProvisioningManager @Inject constructor(
 
     /** Only encrypted bytes go to private storage; saved UI state holds the random file ID. */
     suspend fun stageExport(encrypted: ByteArray): String = withContext(dispatchers.io) {
-        validateEncrypted(encrypted)
+        val document = exportDocument(encrypted)
         val directory = pendingDirectory().also { check(it.isDirectory || it.mkdirs()) }
         directory.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > PENDING_MAX_AGE_MS }
             ?.forEach { it.delete() }
@@ -63,10 +64,10 @@ class ProjectProvisioningManager @Inject constructor(
         val file = pendingFile(id)
         try {
             file.outputStream().use { stream ->
-                stream.write(encrypted)
+                stream.write(document)
                 stream.flush()
             }
-            check(file.length() == encrypted.size.toLong()) { "تعذر تجهيز ملف الانضمام" }
+            check(file.readBytes().contentEquals(document)) { "تعذر تجهيز ملف الانضمام" }
             id
         } catch (e: Exception) {
             file.delete()
@@ -77,11 +78,32 @@ class ProjectProvisioningManager @Inject constructor(
     suspend fun writeStagedExport(uri: Uri, id: String) = withContext(dispatchers.io) {
         val file = pendingFile(id)
         check(file.isFile) { "انتهت جلسة التصدير؛ أعد إنشاء ملف الانضمام" }
-        val encrypted = file.readBytes()
+        val document = file.readBytes()
+        validateEncrypted(encryptedPayload(document))
+        writeDocument(uri, document)
+    }
+
+    /** Share a complete, verified encrypted document rather than an empty picker destination. */
+    suspend fun shareStagedExport(id: String): Uri = withContext(dispatchers.io) {
+        val source = pendingFile(id)
+        check(source.isFile) { "انتهت جلسة التصدير؛ أعد إنشاء ملف الانضمام" }
+        val document = source.readBytes()
+        validateEncrypted(encryptedPayload(document))
+        val directory = File(context.cacheDir, "shared_join_exports")
+            .also { check(it.isDirectory || it.mkdirs()) }
+        directory.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > PENDING_MAX_AGE_MS }
+            ?.forEach { it.delete() }
+        val file = File(directory, "ShiftReport_Join_${UUID.randomUUID()}.$EXPORT_EXTENSION")
         try {
-            writeExport(uri, encrypted)
-        } finally {
-            encrypted.fill(0)
+            file.outputStream().use { stream ->
+                stream.write(document)
+                stream.flush()
+            }
+            check(file.readBytes().contentEquals(document)) { "تعذر تجهيز ملف الانضمام للمشاركة" }
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        } catch (e: Exception) {
+            file.delete()
+            throw e
         }
     }
 
@@ -98,21 +120,29 @@ class ProjectProvisioningManager @Inject constructor(
 
     suspend fun writeExport(uri: Uri, encrypted: ByteArray) =
         withContext(dispatchers.io) {
-            validateEncrypted(encrypted)
-            // Base64 transports authenticated ciphertext inside a commonly supported file type.
-            val document = JSONObject()
-                .put("format", ENVELOPE_FORMAT)
-                .put("encryptedPayload", Base64.encodeToString(encrypted, Base64.NO_WRAP))
-                .toString(2)
-                .toByteArray(Charsets.UTF_8)
-            context.contentResolver.openOutputStream(uri, "wt")?.use {
-                it.write(document)
-                it.flush()
-            } ?: error("تعذر إنشاء ملف الانضمام")
-            val saved = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: error("تعذر التحقق من حفظ ملف الانضمام")
-            check(saved.contentEquals(document)) { "لم يُحفظ ملف الانضمام كاملاً؛ أعد التصدير" }
+            writeDocument(uri, exportDocument(encrypted))
         }
+
+    private fun exportDocument(encrypted: ByteArray): ByteArray {
+        validateEncrypted(encrypted)
+        // Base64 transports authenticated ciphertext inside a commonly supported file type.
+        return JSONObject()
+            .put("format", ENVELOPE_FORMAT)
+            .put("encryptedPayload", Base64.encodeToString(encrypted, Base64.NO_WRAP))
+            .toString(2)
+            .toByteArray(Charsets.UTF_8)
+    }
+
+    private fun writeDocument(uri: Uri, document: ByteArray) {
+        // CreateDocument returns a new file; providers need only support plain write mode.
+        context.contentResolver.openOutputStream(uri, "w")?.use {
+            it.write(document)
+            it.flush()
+        } ?: error("تعذر إنشاء ملف الانضمام")
+        val saved = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: error("تعذر التحقق من حفظ ملف الانضمام")
+        check(saved.contentEquals(document)) { "لم يُحفظ ملف الانضمام كاملاً؛ أعد التصدير" }
+    }
 
     private fun validateEncrypted(encrypted: ByteArray) {
         require(encrypted.size > MAGIC.size + SALT_BYTES + IV_BYTES + 16 &&

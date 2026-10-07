@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import android.net.Uri
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
@@ -45,6 +46,7 @@ data class SettingsUiState(
     val backupReady: Boolean = false,
     val provisioningBusy: Boolean = false,
     val provisioningReady: Boolean = false,
+    val provisioningShareUri: Uri? = null,
     val databaseSize: String = "—",
     val totalStoredPatients: Int = 0,
     val deletedPatients: Int = 0,

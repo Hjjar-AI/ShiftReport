@@ -620,7 +620,7 @@ class SettingsViewModel @Inject constructor(
         if (id != null) pendingExports.discard(id)
     }
 
-    fun prepareProjectProvisioning(passphrase: String) {
+    fun prepareProjectProvisioning(passphrase: String, share: Boolean = false) {
         if (_state.value.provisioningBusy) return
         _state.update { it.copy(provisioningBusy = true, provisioningReady = false, snackbar = null) }
         val password = passphrase.toCharArray()
@@ -633,7 +633,15 @@ class SettingsViewModel @Inject constructor(
                 } finally {
                     encrypted.fill(0)
                 }
-                _state.update { it.copy(provisioningReady = true) }
+                if (share) {
+                    adminAuthorizer.requireAdmin()
+                    val id = checkNotNull(savedStateHandle.get<String>(PENDING_PROVISIONING_ID))
+                    val uri = provisioningManager.shareStagedExport(id)
+                    clearPendingProvisioning()
+                    _state.update { it.copy(provisioningBusy = false, provisioningShareUri = uri) }
+                } else {
+                    _state.update { it.copy(provisioningReady = true) }
+                }
             } catch (e: CancellationException) {
                 clearPendingProvisioning()
                 _state.update { it.copy(provisioningBusy = false, provisioningReady = false) }
@@ -652,6 +660,14 @@ class SettingsViewModel @Inject constructor(
 
     fun provisioningPickerLaunched() {
         _state.update { it.copy(provisioningReady = false) }
+    }
+
+    fun provisioningShareHandled(failed: Boolean) {
+        _state.update {
+            it.copy(provisioningShareUri = null,
+                snackbar = if (failed) "تعذر فتح المشاركة؛ جرّب حفظ الملف من نافذة إنشاء ملف الانضمام"
+                else "ملف الانضمام المشفر جاهز. شارك عبارة المرور عبر قناة منفصلة.")
+        }
     }
 
     fun provisioningPickerFailed() {

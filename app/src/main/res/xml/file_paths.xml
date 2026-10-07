@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path
+        name="shared_join_exports"
+        path="shared_join_exports/" />
+    <cache-path
         name="pdf_previews"
         path="pdf_previews/" />
     <cache-path

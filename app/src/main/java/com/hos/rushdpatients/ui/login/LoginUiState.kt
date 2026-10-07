@@ -6,6 +6,7 @@ sealed interface LoginStep {
     data object Bootstrapping : LoginStep
     data class BootstrapFailed(val message: String) : LoginStep
     data class PickDoctor(val doctors: List<Doctor>) : LoginStep
+    data class EnterPin(val doctor: Doctor) : LoginStep
     data class Verifying(
         val doctor: Doctor,
         val nonce: String,

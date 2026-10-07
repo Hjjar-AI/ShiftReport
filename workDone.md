@@ -5,7 +5,7 @@ Completed features only. Technical details and verification limits: [currentStat
 ## Setup and protection
 
 - Hospital-independent configuration with Demo, Join, and Create flows. Interactive offline demo uses hot-beverage patients/tree-named doctors, shared editing/tasks/cards/sorting, dashboard, roster and appearance previews, and clearly labelled local PDF export; demo clinical data stays in memory.
-- File-only joining through password-protected `.srjoin.json`, importing connection settings, topics, and the optional data key. Join export now uses an encrypted JSON wrapper, private staged ciphertext with a saved random ID, failed-file cleanup, and byte-for-byte write verification (static checks only).
+- File-only joining through password-protected `.srjoin.json`, importing connection settings, topics, and the optional data key. Join export prepares/verifies the complete encrypted JSON before the picker, retains a saved random staging ID, cleans up failed destinations, and verifies saved bytes. Direct FileProvider sharing offers a verified complete-file alternative to the reported empty picker export; save uses plain write mode. Static checks only; device-specific cause remains unconfirmed.
 - P2: administrator token replacement with BotFather revocation guidance; file-based reconnect in Settings and login. Candidate credentials are verified before saving; project/key/topic changes are blocked to protect local data. Updated credentials are shared through new join files.
 - Optional AES-GCM Telegram-data encryption with a random shared key stored in protected settings/join files. Records decrypt locally; text reports use encrypted documents. PDFs remain readable.
 

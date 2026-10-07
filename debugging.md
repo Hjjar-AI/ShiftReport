@@ -509,6 +509,8 @@ adb shell dumpsys activity exit-info com.hos.rushdpatients
 
 ## File picker and storage access
 
+Join-file creation offers «مشاركة الملف» to share a completed, locally verified password-encrypted `.srjoin.json` directly, and «اختيار مكان الحفظ» for the document picker. Both paths keep the same encrypted payload. The save path uses plain write mode for its newly created destination and compares saved bytes before success. If an empty file persists, record the exact snackbar, Android version, and provider (phone storage/SD/cloud); try direct sharing to separate document-provider writing from file preparation. The cause of the reported empty join export remains unconfirmed on a device. No build/device check was run for this update.
+
 Doctor export prepares UTF-8/BOM bytes before `CreateDocument`, then verifies the saved contents by reading them back. If the export session is lost after a process restart, the app reports a retry instruction; an empty or mismatched file must not be reported as successful. Picker cancellation clears the pending snapshot. These changes passed source checks and the authorized 2026-10-07 debug build; document-provider/device behavior remains unverified.
 
 The doctors importer uses Android's Storage Access Framework through `OpenDocument`.
