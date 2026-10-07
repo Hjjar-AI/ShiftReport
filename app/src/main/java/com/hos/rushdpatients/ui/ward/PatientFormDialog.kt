@@ -58,6 +58,7 @@ import com.hos.rushdpatients.data.model.PatientBadgePriority
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
+import com.hos.rushdpatients.ui.components.ConfirmDialog
 
 private enum class PatientFormField {
     ADMISSION_NUMBER, ADMISSION_DATE, NAME, BIRTH_YEAR, AGE, DIAGNOSIS, TREATMENT, FOLLOW_UP, TEAM
@@ -176,21 +177,33 @@ internal fun PatientFormDialog(
     val autoStyle = autoDirTextStyle()
     val formScrollState = rememberScrollState()
     val formScope = rememberCoroutineScope()
-    val changedFieldCount = listOf(
-        admittanceNumber != savedBaseline?.admittanceNumber.orEmpty(),
-        name != savedBaseline?.name.orEmpty(),
-        birthYearText != savedBaseline?.birthDate?.year?.toString().orEmpty(),
-        initialDiagnosis != savedBaseline?.initialDiagnosis.orEmpty(),
-        treatmentItems.joinToString("\n") != savedBaseline?.treatmentPlan.orEmpty(),
-        followUpItems.joinToString("\n") != savedBaseline?.followUp.orEmpty(),
-        labItems.joinToString("\n") != savedBaseline?.labs.orEmpty(),
-        residentId != savedBaseline?.responsibleResidentId,
-        specialistId != savedBaseline?.responsibleSpecialistId,
-        badges != savedBaseline?.badges.orEmpty(),
-        tasks != savedBaseline?.tasks.orEmpty(),
-        badgeDraftText.isNotBlank(),
-        isPriority != (savedBaseline?.isPriority ?: false)
-    ).count { it }
+    // Compare the complete editable form, including text not yet added to clinical lists.
+    val formValues = listOf(
+        admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
+        hasCompanion, diagnosisType, initialDiagnosis, treatmentItems, treatmentDraft,
+        followUpItems, followUpDraft, labItems, labDraft, residentId, specialistId,
+        badges, tasks, badgeDraftText, badgeDraftPriority, isPriority
+    )
+    val savedValues = remember(savedBaseline) {
+        listOf(
+            savedBaseline?.admittanceNumber.orEmpty(), savedBaseline?.admittanceDate ?: today,
+            savedBaseline?.gender ?: Gender.fromCode(""), savedBaseline?.name.orEmpty(),
+            savedBaseline?.birthDate?.year?.toString().orEmpty(), savedBaseline?.age?.toString().orEmpty(),
+            savedBaseline?.hasCompanion ?: false, savedBaseline?.diagnosisType ?: DiagnosisType.fromCode(""),
+            savedBaseline?.initialDiagnosis.orEmpty(), parseFieldItems(savedBaseline?.treatmentPlan), "",
+            parseFieldItems(savedBaseline?.followUp), "", parseFieldItems(savedBaseline?.labs), "",
+            savedBaseline?.responsibleResidentId, savedBaseline?.responsibleSpecialistId,
+            savedBaseline?.badges.orEmpty(), savedBaseline?.tasks.orEmpty(), "", null,
+            savedBaseline?.isPriority ?: false
+        )
+    }
+    val hasUnsavedChanges = formValues != savedValues
+    var confirmDiscard by remember(initial) { mutableStateOf(false) }
+    val requestDismiss = {
+        if (!saving) {
+            if (hasUnsavedChanges) confirmDiscard = true else onDismiss()
+        }
+    }
 
     val admissionIdentityContent: @Composable () -> Unit = {
         SectionTitle(
@@ -349,12 +362,12 @@ internal fun PatientFormDialog(
     }
 
     WardFormDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
+        onDismissRequest = requestDismiss,
         title = {
             Column {
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 reviewAction()
-                if (changedFieldCount > 0) {
+                if (hasUnsavedChanges) {
                     Text(
                         "توجد تغييرات غير محفوظة",
                         style = MaterialTheme.typography.labelSmall,
@@ -782,9 +795,23 @@ internal fun PatientFormDialog(
             }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
+            TextButton(onClick = requestDismiss, enabled = !saving) { Text("إلغاء") }
         }
     )
+    if (confirmDiscard && !saving) {
+        ConfirmDialog(
+            title = "تجاهل التغييرات؟",
+            message = "توجد تغييرات غير محفوظة. هل تريد تجاهلها وإغلاق النموذج؟",
+            confirmText = "تجاهل التغييرات",
+            dismissText = "متابعة التعديل",
+            onConfirm = {
+                confirmDiscard = false
+                if (initial == null) onDraftChanged(PatientDraft())
+                onDismiss()
+            },
+            onDismiss = { confirmDiscard = false }
+        )
+    }
 }
 
 private enum class PatientFormMode { GENERAL, ADVANCED }

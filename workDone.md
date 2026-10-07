@@ -19,6 +19,7 @@ Completed features only. Technical details and verification limits: [currentStat
 
 ## Navigation and accessibility
 
+- Patient-form Back/Cancel dismissal confirms discarding changed fields/tasks and unadded text. Unchanged forms close immediately; explicit new-patient discard clears the retained draft. Save/stale-edit handling is preserved. Source checks only.
 - Login/shift-doctor searches have labelled clear buttons; clearing preserves roster selections. Source checks passed. Joining-export/re-login runtime verification remains unavailable because ADB reported no connected devices; [procedure and limits](debugging.md#joining-export-and-administrator-re-login).
 - Patient-list task filters have removable chips; clearing filters from empty results also clears the task filter. Source checks only.
 - Login doctor selection supports Arabic name search in a keyboard-aware scrollable list. Sorting options scroll above fixed apply controls and label level precedence. Authentication routes and sort revision/conflict handling are preserved; source/static checks only.
