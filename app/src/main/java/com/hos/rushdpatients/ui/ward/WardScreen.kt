@@ -215,12 +215,15 @@ fun WardScreen(
     val anyCardsExpanded = state.patients.any { patient ->
         if (state.patientDetailsExpanded) patient.id !in collapsedPatientIds else patient.id in expandedPatientIds
     }
+    var animatedPatientId by remember { mutableStateOf<String?>(null) }
     fun toggleAllCards() {
+        animatedPatientId = null
         expandedPatientIds = emptyList()
         collapsedPatientIds = emptyList()
         viewModel.setPatientDetailsExpanded(!anyCardsExpanded)
     }
     fun toggleCard(id: String) {
+        animatedPatientId = id
         if (state.patientDetailsExpanded) {
             collapsedPatientIds = if (id in collapsedPatientIds) collapsedPatientIds - id else collapsedPatientIds + id
         } else {
@@ -731,9 +734,6 @@ fun WardScreen(
                                             contentDescription = if (anyCardsExpanded) "طي جميع بطاقات المرضى" else "توسيع جميع بطاقات المرضى")
                                     }
                                 }
-                                IconButton(onClick = { viewModel.loadRecentActivity(); showSupportingSheet = true }) {
-                                    Icon(Icons.Filled.Info, contentDescription = "جاهزية التقرير والنشاط")
-                                }
                                 if (!state.isReadOnly) {
                                     IconButton(onClick = { showAdd = true }) {
                                         Icon(Icons.Filled.Add, contentDescription = "إضافة مريض")
@@ -1059,6 +1059,7 @@ fun WardScreen(
                                             PatientCard(
                                                 patient = patient,
                                                 expanded = if (state.patientDetailsExpanded) patient.id !in collapsedPatientIds else patient.id in expandedPatientIds,
+                                                animateExpansion = animatedPatientId == patient.id,
                                                 twoColumn = state.twoColumn,
                                                 doctorNames = doctorNames,
                                                 readOnly = state.isReadOnly,
@@ -1098,6 +1099,7 @@ fun WardScreen(
                                         PatientCard(
                                             patient = patient,
                                             expanded = if (state.patientDetailsExpanded) patient.id !in collapsedPatientIds else patient.id in expandedPatientIds,
+                                            animateExpansion = animatedPatientId == patient.id,
                                             twoColumn = state.twoColumn,
                                             doctorNames = doctorNames,
                                             readOnly = state.isReadOnly,

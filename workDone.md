@@ -18,10 +18,12 @@ Completed features only. Technical details and verification limits: [currentStat
 
 ## Navigation and accessibility
 
+- Unified neutral light/dark themes with independent appearance/accent settings, shared typography/spacing/shapes, consistent badge severity colors, and neutral diagnosis categories.
+- Simplified collapsed cards and Settings decoration; moved uncommon PDF options under Advanced. Individual card expansion has brief transitions; bulk expansion remains immediate.
 - Patients-first navigation with Dashboard/Activity tabs, organized drawer/settings, unified search/filter/sort controls, and live data-health status.
 - Compact/comfortable cards, pins, individual/global expansion, direct editing, and tabbed patient details/history. Activity retains search, filters, scroll positions, and cached results.
 - Adaptive list/detail panes, resizable dividers, fold-safe layouts, and retained selection/scroll state.
-- RTL navigation, wrapping labels, 48dp controls, TalkBack actions, accessible status announcements, and stable clinical colors. Theme pairs received a historical static contrast audit.
+- RTL navigation, wrapping labels, 48dp controls, TalkBack actions, accessible status announcements, and stable clinical colors. New accent text pairs passed a static contrast check (minimum 6.46:1); rendered accessibility remains unverified.
 
 ## Data correctness and synchronization
 
@@ -38,5 +40,5 @@ Completed features only. Technical details and verification limits: [currentStat
 
 ## Documentation and verification
 
-- Updated project docs and agent rules; preserved README build commands and ignored private/export files. Fixed reported Kotlin errors and redundant-safe-call/unused-variable warnings.
-- Owner-supplied debug build succeeded on **2026-10-06**. Later changes have source/static checks only; build/device behavior is unverified. Detailed evidence is in [currentState.md](currentState.md).
+- Updated project docs and agent rules; preserved README build commands and ignored private/export files. Fixed reported Kotlin errors, task-editor Material opt-ins, and redundant-safe-call/unused-variable warnings.
+- Owner-supplied debug build succeeded on **2026-10-06**; the later supplied build failed on task-editor Material opt-ins. The source fix and design changes have static checks only, with no subsequent build/device result. Detailed evidence is in [currentState.md](currentState.md).

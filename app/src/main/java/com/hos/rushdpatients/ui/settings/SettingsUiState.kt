@@ -7,6 +7,7 @@ import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.ui.theme.AppFontScale
+import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.AppThemePreset
 
 enum class SettingsRetryAction { FETCH, UPLOAD, FORCE_UPLOAD, EXPORT }
@@ -24,6 +25,7 @@ data class SettingsUiState(
     val pdfColorPreset: PdfColorPreset = PdfColorPreset.TEAL,
     val pdfDarkMode: Boolean = false,
     val pdfSeparateBySupervisor: Boolean = false,
+    val appearance: AppAppearance = AppAppearance.SYSTEM,
     val appTheme: AppThemePreset = AppThemePreset.SYSTEM,
     val fontScale: AppFontScale = AppFontScale.NORMAL,
     val patientDetailsExpanded: Boolean = false,

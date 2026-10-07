@@ -50,6 +50,7 @@ These instructions apply to the entire repository. Before work, check for additi
 
 - Optimize frequent actions for quick access. Group secondary drawer/settings actions logically; avoid crowding forms or adding wide vertical gaps. Preserve useful details through compact sections and optional expansion.
 - Keep patient editing full-screen with clinical/task sections first and demographic/personal fields last; new-patient entry starts with demographic/personal fields. General and Advanced modes must preserve the same draft, with fixed keyboard-safe Save/Cancel controls.
+- Use shared theme typography, shapes, and `UiSpacing`; keep appearance independent of accent and badge severity mapping shared through `patientBadgeColors`. Diagnosis categories must not use error colors. Keep individual card expansion brief and bulk expansion immediate; retain uncommon PDF options under Advanced. Collapsed summaries may omit zero counts and routine metadata, but full saved clinical content must remain available when expanded.
 - Keep per-patient task counts on cards and ward totals on the dashboard. Optional task ownership must not become a required save or report-readiness condition.
 - Preserve top-bar expand/collapse-all and individual card expansion, plus shift doctors as the first report-preview section.
 - Preserve Arabic user-facing text, RTL layout, labelled 48dp targets, readable wrapping at large font sizes, semantic states, and adaptive/fold-safe placement.

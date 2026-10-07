@@ -55,6 +55,7 @@ class MainActivity : FragmentActivity() {
             }
             val themeViewModel: ThemeViewModel = hiltViewModel()
             val themePreset by themeViewModel.preset.collectAsStateWithLifecycle()
+            val appearance by themeViewModel.appearance.collectAsStateWithLifecycle()
             val fontScale by themeViewModel.fontScale.collectAsStateWithLifecycle()
 
             val baseDensity = LocalDensity.current
@@ -68,7 +69,7 @@ class MainActivity : FragmentActivity() {
                 )
             }
 
-            RushdPatientsTheme(preset = themePreset) {
+            RushdPatientsTheme(preset = themePreset, appearance = appearance) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides LayoutDirection.Rtl,
                     LocalDensity provides scaledDensity

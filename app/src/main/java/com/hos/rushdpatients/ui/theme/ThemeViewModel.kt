@@ -21,6 +21,11 @@ class ThemeViewModel @Inject constructor(
         .map(AppThemePreset::fromSetting)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppThemePreset.SYSTEM)
 
+    val appearance: StateFlow<AppAppearance> = settingsRepository
+        .observe(AppConstants.SETTING_APP_APPEARANCE)
+        .map(AppAppearance::fromSetting)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppAppearance.SYSTEM)
+
     val fontScale: StateFlow<AppFontScale> = settingsRepository
         .observe(AppConstants.SETTING_FONT_SCALE)
         .map(AppFontScale::fromSetting)

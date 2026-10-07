@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -41,9 +42,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import kotlin.math.roundToInt
@@ -71,6 +74,8 @@ import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.ui.connection.ProjectConnectionAction
 import com.hos.rushdpatients.ui.components.LoadingButton
 import com.hos.rushdpatients.ui.theme.AppFontScale
+import com.hos.rushdpatients.ui.theme.AppAppearance
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.theme.AppThemePreset
 import com.hos.rushdpatients.sync.CsvSchema
 import kotlinx.coroutines.CancellationException
@@ -97,6 +102,7 @@ fun SettingsScreen(
     var confirmBackupRestore by remember { mutableStateOf(false) }
     var confirmForceUpload by remember { mutableStateOf(false) }
     var forceConfirmationText by remember { mutableStateOf("") }
+    var advancedPdf by rememberSaveable { mutableStateOf(false) }
     var provisioningDialog by remember { mutableStateOf(false) }
     var provisioningPassphrase by remember { mutableStateOf("") }
 
@@ -180,9 +186,9 @@ fun SettingsScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)
                     .verticalScroll(settingsScroll),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -193,7 +199,7 @@ fun SettingsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(UiSpacing.medium),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text(
@@ -225,7 +231,7 @@ fun SettingsScreen(
                     )
 
                     Text("نمط PDF", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         PdfStyle.entries.forEach { option ->
                             FilterChip(
                                 selected = state.pdfStyle == option,
@@ -242,61 +248,76 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text("اتجاه الصفحة", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        PdfOrientation.entries.forEach { option ->
-                            FilterChip(
-                                selected = state.pdfOrientation == option,
-                                onClick = { viewModel.setPdfOrientation(option) },
-                                label = { Text(option.arabicLabel) }
+                    TextButton(onClick = { advancedPdf = !advancedPdf },
+                        modifier = Modifier.heightIn(min = UiSpacing.touchTarget).semantics {
+                            stateDescription = if (advancedPdf) "موسع" else "مطوي"
+                        }) { Text(if (advancedPdf) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة") }
+                    if (advancedPdf) {
+                        Text("اتجاه الصفحة", style = MaterialTheme.typography.labelMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                            PdfOrientation.entries.forEach { option ->
+                                FilterChip(
+                                    selected = state.pdfOrientation == option,
+                                    onClick = { viewModel.setPdfOrientation(option) },
+                                    label = { Text(option.arabicLabel) }
+                                )
+                            }
+                        }
+
+                        Text("حجم الورق", style = MaterialTheme.typography.labelMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                            PdfPaperSize.entries.forEach { option ->
+                                FilterChip(
+                                    selected = state.pdfPaperSize == option,
+                                    onClick = { viewModel.setPdfPaperSize(option) },
+                                    label = { Text(option.arabicLabel) }
+                                )
+                            }
+                        }
+
+                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                        SettingsSubheading("ألوان وتوزيع الملف")
+                        Text("ألوان العنوان والجدول", style = MaterialTheme.typography.labelMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                            PdfColorPreset.entries.forEach { option ->
+                                FilterChip(
+                                    selected = state.pdfColorPreset == option,
+                                    onClick = { viewModel.setPdfColorPreset(option) },
+                                    label = { Text(option.arabicLabel) }
+                                )
+                            }
+                        }
+
+                        if (state.pdfStyle == PdfStyle.CLASSIC) {
+                            ToggleRow(
+                                title = "PDF داكن",
+                                subtitle = "خلفية داكنة ونص فاتح",
+                                checked = state.pdfDarkMode,
+                                onCheckedChange = viewModel::setPdfDarkMode
                             )
                         }
-                    }
-
-                    Text("حجم الورق", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        PdfPaperSize.entries.forEach { option ->
-                            FilterChip(
-                                selected = state.pdfPaperSize == option,
-                                onClick = { viewModel.setPdfPaperSize(option) },
-                                label = { Text(option.arabicLabel) }
-                            )
-                        }
-                    }
-
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SettingsSubheading("ألوان وتوزيع الملف")
-                    Text("ألوان العنوان والجدول", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        PdfColorPreset.entries.forEach { option ->
-                            FilterChip(
-                                selected = state.pdfColorPreset == option,
-                                onClick = { viewModel.setPdfColorPreset(option) },
-                                label = { Text(option.arabicLabel) }
-                            )
-                        }
-                    }
-
-                    if (state.pdfStyle == PdfStyle.CLASSIC) {
                         ToggleRow(
-                            title = "PDF داكن",
-                            subtitle = "خلفية داكنة ونص فاتح",
-                            checked = state.pdfDarkMode,
-                            onCheckedChange = viewModel::setPdfDarkMode
+                            title = "ملف PDF لكل مشرف",
+                            subtitle = "عند الحفظ المحلي",
+                            checked = state.pdfSeparateBySupervisor,
+                            onCheckedChange = viewModel::setPdfSeparateBySupervisor
                         )
                     }
-                    ToggleRow(
-                        title = "ملف PDF لكل مشرف",
-                        subtitle = "عند الحفظ المحلي",
-                        checked = state.pdfSeparateBySupervisor,
-                        onCheckedChange = viewModel::setPdfSeparateBySupervisor
-                    )
                 }
 
                 SettingsSection(title = "واجهة التطبيق", onPositioned = { sectionOffsets["واجهة التطبيق"] = it }) {
                     SettingsSubheading("الألوان والخط")
-                    Text("ألوان التطبيق", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("المظهر", style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                        verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                        AppAppearance.entries.forEach { option ->
+                            FilterChip(selected = state.appearance == option,
+                                onClick = { viewModel.setAppearance(option) },
+                                label = { Text(option.arabicLabel) })
+                        }
+                    }
+                    Text("اللون الأساسي", style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         AppThemePreset.entries.forEach { option ->
                             FilterChip(
                                 selected = state.appTheme == option,
@@ -306,7 +327,7 @@ fun SettingsScreen(
                         }
                     }
                     Text("حجم الخط", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         AppFontScale.entries.forEach { option ->
                             FilterChip(
                                 selected = state.fontScale == option,
@@ -416,7 +437,7 @@ fun SettingsScreen(
                     )
 
                     Text("القفل التلقائي", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         listOf(1, 5, 15, 30).forEach { minutes ->
                             FilterChip(
                                 selected = state.autoLockMinutes == minutes,
@@ -703,33 +724,21 @@ private fun SettingsSection(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(UiSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                        .semantics { heading() }
-                )
-            }
-            Divider(color = MaterialTheme.colorScheme.outlineVariant)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(vertical = UiSpacing.tiny).semantics { heading() }
+            )
             content()
         }
     }

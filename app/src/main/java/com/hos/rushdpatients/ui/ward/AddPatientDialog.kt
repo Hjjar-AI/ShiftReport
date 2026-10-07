@@ -59,6 +59,8 @@ import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientBadge
+import com.hos.rushdpatients.ui.theme.patientBadgeColors
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import java.time.Instant
 import java.time.LocalDate
@@ -636,20 +638,11 @@ internal fun PatientFormDialog(
                 }
                 if (showBadgeEditor) {
                     badges.forEachIndexed { index, badge ->
+                        val badgeColors = patientBadgeColors(badge.priority)
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            color = when (badge.priority) {
-                                PatientBadgePriority.HIGH -> MaterialTheme.colorScheme.errorContainer
-                                PatientBadgePriority.MEDIUM -> MaterialTheme.colorScheme.tertiaryContainer
-                                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.secondaryContainer
-                                null -> MaterialTheme.colorScheme.surfaceVariant
-                            },
-                            contentColor = when (badge.priority) {
-                                PatientBadgePriority.HIGH -> MaterialTheme.colorScheme.onErrorContainer
-                                PatientBadgePriority.MEDIUM -> MaterialTheme.colorScheme.onTertiaryContainer
-                                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.onSecondaryContainer
-                                null -> MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            color = badgeColors.container,
+                            contentColor = badgeColors.content,
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Row(
@@ -826,9 +819,9 @@ private fun SectionTitle(text: String, complete: Boolean? = null) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        shape = RoundedCornerShape(10.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.small
     ) {
         Text(
             text = buildString {
@@ -841,7 +834,7 @@ private fun SectionTitle(text: String, complete: Boolean? = null) {
             },
             style = MaterialTheme.typography.titleSmall,
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp).semantics { heading() }
+            modifier = Modifier.padding(horizontal = UiSpacing.small, vertical = UiSpacing.tiny).semantics { heading() }
         )
     }
 }

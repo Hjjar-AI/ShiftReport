@@ -2,165 +2,89 @@ package com.hos.rushdpatients.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 
-private val DarkColorScheme = darkColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF90E0EF),
-    onPrimary = androidx.compose.ui.graphics.Color(0xFF003544),
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFF004E68),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFFCAF0F8),
-    secondary = androidx.compose.ui.graphics.Color(0xFFADB5BD),
-    onSecondary = androidx.compose.ui.graphics.Color(0xFF212529),
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFF343A40),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFFE9ECEF),
-    tertiary = androidx.compose.ui.graphics.Color(0xFFFFC857),
-    onTertiary = androidx.compose.ui.graphics.Color(0xFF392A00),
-    background = androidx.compose.ui.graphics.Color(0xFF101418),
-    surface = androidx.compose.ui.graphics.Color(0xFF1B2025),
-    onBackground = androidx.compose.ui.graphics.Color(0xFFF8F9FA),
-    onSurface = androidx.compose.ui.graphics.Color(0xFFF8F9FA),
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF343A40),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFDEE2E6),
-    outline = androidx.compose.ui.graphics.Color(0xFFADB5BD)
+private data class Accent(
+    val primary: Color, val container: Color, val onContainer: Color,
+    val darkPrimary: Color, val darkContainer: Color
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF0B5266),
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFFCDEBF2),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF07333E),
-    secondary = androidx.compose.ui.graphics.Color(0xFF42636A),
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    tertiary = androidx.compose.ui.graphics.Color(0xFF5B5F86),
-    onTertiary = androidx.compose.ui.graphics.Color.White,
-    background = androidx.compose.ui.graphics.Color(0xFFF6FAFB),
-    surface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
-    onBackground = androidx.compose.ui.graphics.Color(0xFF172023),
-    onSurface = androidx.compose.ui.graphics.Color(0xFF172023),
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFDFE9EB),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF3F494C),
-    outline = androidx.compose.ui.graphics.Color(0xFF6F797C)
-)
+// One quiet surface family across presets; only the primary accent changes.
+private fun accent(preset: AppThemePreset) = when (preset) {
+    AppThemePreset.SYSTEM -> Accent(Color(0xFF0B6265), Color(0xFFD5EEED), Color(0xFF123B3C), Color(0xFF94D5D2), Color(0xFF174C4D))
+    AppThemePreset.SAGE -> Accent(Color(0xFF52643D), Color(0xFFE0EAD2), Color(0xFF293A1B), Color(0xFFBDCEA5), Color(0xFF364A27))
+    AppThemePreset.COASTAL -> Accent(Color(0xFF285F82), Color(0xFFDCEAF4), Color(0xFF183B53), Color(0xFFA2CAE6), Color(0xFF23475F))
+    AppThemePreset.SUNSET -> Accent(Color(0xFF445A77), Color(0xFFE0E7F2), Color(0xFF24364E), Color(0xFFB3C7E4), Color(0xFF304460))
+    AppThemePreset.FUCHSIA -> Accent(Color(0xFF69557C), Color(0xFFECE3F2), Color(0xFF3D2F4B), Color(0xFFD0BDE3), Color(0xFF4C3B5E))
+}
 
-private val SageColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF4F6527),
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFFE4E8C7),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF283618),
-    secondary = androidx.compose.ui.graphics.Color(0xFF82501B),
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFFF3D8B5),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF42280B),
-    tertiary = androidx.compose.ui.graphics.Color(0xFF944513),
-    onTertiary = androidx.compose.ui.graphics.Color.White,
-    tertiaryContainer = androidx.compose.ui.graphics.Color(0xFFFFDCBE),
-    onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFF512400),
-    background = androidx.compose.ui.graphics.Color(0xFFFEFAE0),
-    surface = androidx.compose.ui.graphics.Color(0xFFFFFDF1),
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFE9E6D0),
-    onBackground = androidx.compose.ui.graphics.Color(0xFF202313),
-    onSurface = androidx.compose.ui.graphics.Color(0xFF202313),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF4A4C3C),
-    outline = androidx.compose.ui.graphics.Color(0xFF777867)
-)
-
-private val CoastalColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF006A9E),
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFFCAF0F8),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF023E8A),
-    secondary = androidx.compose.ui.graphics.Color(0xFF007F98),
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFFADE8F4),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF004C5A),
-    tertiary = androidx.compose.ui.graphics.Color(0xFF435A94),
-    onTertiary = androidx.compose.ui.graphics.Color.White,
-    background = androidx.compose.ui.graphics.Color(0xFFF5FCFE),
-    surface = androidx.compose.ui.graphics.Color.White,
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFDDEFF3),
-    onBackground = androidx.compose.ui.graphics.Color(0xFF102126),
-    onSurface = androidx.compose.ui.graphics.Color(0xFF102126),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF3C4B50),
-    outline = androidx.compose.ui.graphics.Color(0xFF6B7A7F)
-)
-
-private val SunsetColorScheme = darkColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFFFFD900),
-    onPrimary = androidx.compose.ui.graphics.Color(0xFF332B00),
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFF594B00),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFFFFE980),
-    secondary = androidx.compose.ui.graphics.Color(0xFF83E4F5),
-    onSecondary = androidx.compose.ui.graphics.Color(0xFF00363F),
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFF004D5A),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFFCAF0F8),
-    tertiary = androidx.compose.ui.graphics.Color(0xFFFFBF00),
-    onTertiary = androidx.compose.ui.graphics.Color(0xFF352A00),
-    background = androidx.compose.ui.graphics.Color(0xFF000814),
-    surface = androidx.compose.ui.graphics.Color(0xFF00152C),
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF003566),
-    onBackground = androidx.compose.ui.graphics.Color(0xFFF4F7FA),
-    onSurface = androidx.compose.ui.graphics.Color(0xFFF4F7FA),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFCAE6F5),
-    outline = androidx.compose.ui.graphics.Color(0xFF90B7CD)
-)
-
-private val FuchsiaColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF714D88),
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFFE9DDF1),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF342640),
-    secondary = androidx.compose.ui.graphics.Color(0xFF94496F),
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFFF4D7E7),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF4B2338),
-    tertiary = androidx.compose.ui.graphics.Color(0xFF454B73),
-    onTertiary = androidx.compose.ui.graphics.Color.White,
-    background = androidx.compose.ui.graphics.Color(0xFFFCF8FC),
-    surface = androidx.compose.ui.graphics.Color.White,
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFF0E6EF),
-    onBackground = androidx.compose.ui.graphics.Color(0xFF24202A),
-    onSurface = androidx.compose.ui.graphics.Color(0xFF24202A),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF514A55),
-    outline = androidx.compose.ui.graphics.Color(0xFF7D747F)
+private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp), small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp), large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 @Composable
 fun RushdPatientsTheme(
     preset: AppThemePreset = AppThemePreset.SYSTEM,
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    appearance: AppAppearance = AppAppearance.SYSTEM,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when (preset) {
-        AppThemePreset.SAGE -> SageColorScheme
-        AppThemePreset.COASTAL -> CoastalColorScheme
-        AppThemePreset.SUNSET -> SunsetColorScheme
-        AppThemePreset.FUCHSIA -> FuchsiaColorScheme
-        AppThemePreset.SYSTEM -> if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context)
-            else dynamicLightColorScheme(context)
-        } else if (darkTheme) DarkColorScheme else LightColorScheme
+    val dark = when (appearance) {
+        AppAppearance.SYSTEM -> darkTheme
+        AppAppearance.LIGHT -> false
+        AppAppearance.DARK -> true
     }
-
-    val clinicalColors = when (preset) {
-        AppThemePreset.SUNSET -> DarkClinicalColors
-        AppThemePreset.SYSTEM -> if (darkTheme) DarkClinicalColors else LightClinicalColors
-        else -> LightClinicalColors
-    }
-
-    CompositionLocalProvider(LocalClinicalColors provides clinicalColors) {
-        MaterialTheme(
-            colorScheme = colorScheme,
-            typography = Typography,
-            content = content
-        )
+    val a = accent(preset)
+    val scheme = if (dynamicColor && preset == AppThemePreset.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (dark) dynamicDarkColorScheme(LocalContext.current) else dynamicLightColorScheme(LocalContext.current)
+    } else if (dark) darkColorScheme(
+        primary = a.darkPrimary, onPrimary = Color(0xFF172125),
+        primaryContainer = a.darkContainer, onPrimaryContainer = a.container,
+        secondary = Color(0xFFBBCAD0), onSecondary = Color(0xFF253238),
+        secondaryContainer = Color(0xFF34434A), onSecondaryContainer = Color(0xFFDCE6EA),
+        tertiary = Color(0xFFBBCAD0), onTertiary = Color(0xFF253238),
+        tertiaryContainer = Color(0xFF34434A), onTertiaryContainer = Color(0xFFDCE6EA),
+        background = Color(0xFF111719), onBackground = Color(0xFFE3EBEE),
+        surface = Color(0xFF192124), onSurface = Color(0xFFE3EBEE),
+        surfaceVariant = Color(0xFF2C363B), onSurfaceVariant = Color(0xFFC0CCD1),
+        outline = Color(0xFF8B999F), outlineVariant = Color(0xFF465359),
+        inverseSurface = Color(0xFFE3EBEE), inverseOnSurface = Color(0xFF253238),
+        inversePrimary = a.primary, surfaceTint = a.darkPrimary,
+        error = Color(0xFFFFB4AB), onError = Color(0xFF690005),
+        errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
+        scrim = Color.Black
+    ) else lightColorScheme(
+        primary = a.primary, onPrimary = Color.White,
+        primaryContainer = a.container, onPrimaryContainer = a.onContainer,
+        secondary = Color(0xFF485D66), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFE4EBEE), onSecondaryContainer = Color(0xFF293A42),
+        tertiary = Color(0xFF485D66), onTertiary = Color.White,
+        tertiaryContainer = Color(0xFFE4EBEE), onTertiaryContainer = Color(0xFF293A42),
+        background = Color(0xFFF5F7F8), onBackground = Color(0xFF202B30),
+        surface = Color.White, onSurface = Color(0xFF202B30),
+        surfaceVariant = Color(0xFFEBF0F2), onSurfaceVariant = Color(0xFF4A5B63),
+        outline = Color(0xFF72838B), outlineVariant = Color(0xFFD0DADD),
+        inverseSurface = Color(0xFF29353B), inverseOnSurface = Color(0xFFF0F5F7),
+        inversePrimary = a.darkPrimary, surfaceTint = a.primary,
+        error = Color(0xFFB3261E), onError = Color.White,
+        errorContainer = Color(0xFFFFDAD6), onErrorContainer = Color(0xFF410002),
+        scrim = Color.Black
+    )
+    CompositionLocalProvider(LocalClinicalColors provides if (dark) DarkClinicalColors else LightClinicalColors) {
+        MaterialTheme(colorScheme = scheme, typography = Typography, shapes = AppShapes, content = content)
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
@@ -43,13 +44,13 @@ internal fun WardFormDialog(
                 primary = {
                     Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
                         Column(Modifier.widthIn(max = 840.dp).fillMaxWidth().fillMaxHeight()) {
-                            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) { title() }
+                            Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { title() }
                             Divider()
-                            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) { text() }
+                            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { text() }
                             Divider()
                             Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
+                                horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(Modifier.weight(1f)) { confirmButton() }

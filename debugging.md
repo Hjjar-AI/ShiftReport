@@ -1,7 +1,7 @@
 # ShiftReport debugging guide
 
 This guide covers device connection, ADB, Logcat, crashes, freezes, file imports,
-network and Telegram failures, file-only joining, encryption, structured tasks, background synchronization, storage, and safe evidence
+network and Telegram failures, file-only joining, encryption, structured tasks, appearance, background synchronization, storage, and safe evidence
 collection. Commands assume the Android application ID is
 `com.hos.rushdpatients`.
 
@@ -17,6 +17,7 @@ Current implementation and verification limitations are recorded in [currentStat
 - [Fastest workflow](#fastest-workflow)
 - [Current formats and import behavior](#current-formats-and-import-behavior)
 - [Project joining, encryption, and task diagnostics](#project-joining-encryption-and-task-diagnostics)
+- [Appearance and card behavior](#appearance-and-card-behavior)
 - [ADB setup](#adb-setup)
 - [Connect and identify a device](#connect-and-identify-a-device)
 - [Capture a focused Logcat session](#capture-a-focused-logcat-session)
@@ -109,7 +110,7 @@ Doctor import validates the full proposed merge and rechecks authorization and t
 ### Structured tasks and counts
 
 - Tasks are edited in **Patient → Edit → مهام المريض** and commit when the patient is saved. New tasks start unassigned and can be saved without an owner; assigning a doctor is optional. Closing/canceling the form does not publish draft task changes.
-- Collapsed cards show that patient's pending and overdue tasks. Dashboard metrics are ward totals. Overdue is included in pending, so the counts must not be added together.
+- Collapsed cards show that patient's nonzero pending and overdue counts; zero-count chips are omitted. Dashboard metrics are ward totals. Overdue is included in pending, so the counts must not be added together.
 - Only unfinished tasks with a reached deadline are overdue; tasks without a deadline are not overdue. Counts refresh through the existing minute timer. A shift-end deadline uses 08:30 local time on the following calendar day.
 - Completion actor/time is assigned by the repository at save. Reopening clears completion metadata. No user acknowledgment is required.
 - My patients includes patients with unfinished tasks assigned to the signed-in doctor. Dashboard filters cover pending, overdue, and unassigned tasks.
@@ -124,6 +125,15 @@ message in a snackbar. It does not currently send that exception to the app's
 Capture the snackbar with a screenshot or UI dump. Logcat is still useful for
 uncaught crashes, document-provider errors, permission failures, Room failures, and
 network/system messages.
+
+## Appearance and card behavior
+
+- Settings → App interface separates System/Light/Dark appearance from the accent palette. Teal is the default. A saved accent does not force light/dark mode; wallpaper colors are disabled by default. Inspect `AppAppearance`, `AppThemePreset`, and `ThemeViewModel` when diagnosing preferences.
+- Badge editing and cards share `patientBadgeColors`: high is red, medium is amber, and low/unclassified badges are neutral. Diagnosis categories are neutral, not error states.
+- Collapsed cards keep admission/identity, clinician labels, a two-line diagnosis summary, warning/unclassified badges, and nonzero task counts. Low-level badges show an additional-badge count. Expand for full text, all badges, completed tasks, and last-edit information; collapsed summaries do not remove stored data.
+- Individual expansion/collapse uses 160/130ms transitions. Bulk expansion is deliberately immediate. Report readiness remains on the FAB; Activity has its own primary tab.
+- PDF orientation, paper, colors, dark output, and per-supervisor output are under Settings → Report → Advanced PDF options. These controls are hidden until expanded, not removed.
+- The latest supplied build failed on missing Material opt-ins in `PatientTaskEditor.kt`. The source now opts into `ExperimentalMaterial3Api`; a later build result has not been supplied. Static accent contrast checks do not establish rendered readability or smoothness.
 
 ## ADB setup
 

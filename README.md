@@ -17,7 +17,7 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 - Encrypted local database, encrypted project preferences, PIN/biometric access, encrypted backups, and verified admin authorization for core privileged actions.
 - Hospital/project setup with Demo, file-only Join, and Create paths, plus optional encryption of Telegram project data.
 - A splash that dismisses on tap or after 10 seconds; Splash and About use the white-field emblem and current credits.
-- Accessible semantic states and configurable themes, typography, card density, PDF layout, and palettes.
+- Unified neutral surfaces with independent System/Light/Dark appearance and accent choices, readable typography, consistent status colors, compact cards, and advanced PDF settings. Individual expansion animates briefly; bulk expansion is immediate.
 
 ## First launch
 
@@ -43,11 +43,13 @@ Admin-only operations are checked against the live local doctor registry below t
 
 Telegram remains the shared synchronization and delivery channel. The accepted workflow is retrieve, edit, and publish; the last successful pinned-state write wins. Telegram pinned state is not an atomic multi-writer database. Guaranteed simultaneous collaboration is outside scope, and no authoritative backend is required. Existing revision checks, merges, conflict review, and report confirmation remain in place. See [designAndArchitecture.md](designAndArchitecture.md).
 
+Appearance and accent are configured separately under **Settings → App interface**. Teal is the default accent; every accent supports light and dark appearance. Uncommon report options are under **Settings → Report → Advanced PDF options**. Collapsed cards summarize clinical content; expand a card for full details.
+
 ## Implementation status
 
 Structured tasks and per-patient counts are implemented. Remaining near-term work is production signing. Safe same-project credential replacement/reconnect is implemented. User acknowledgment is not required. Voice dictation is a far-future proposal; specialty templates are a far-far-future proposal.
 
-The latest changes have source/static checks only. The earlier successful debug build recorded in the project history does not validate all subsequent changes. Database schema is 5, patient CSV schema is 7, and doctor-registry CSV schema is 1. Application version remains 1.0 (code 1); toolchain/dependency versions are unchanged.
+The latest changes have source/static checks only. The most recent supplied build failed on experimental Material API usage in `PatientTaskEditor.kt`; opt-ins are now corrected in source, without a subsequent build. The earlier successful debug build does not validate these changes. Database schema is 5, patient CSV schema is 7, and doctor-registry CSV schema is 1. Application version remains 1.0 (code 1); toolchain/dependency versions are unchanged.
 
 ## Project documentation
 

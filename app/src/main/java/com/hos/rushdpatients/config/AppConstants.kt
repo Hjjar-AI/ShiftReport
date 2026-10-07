@@ -49,6 +49,7 @@ object AppConstants {
     const val SETTING_PDF_SEPARATE_BY_SUPERVISOR = "pdf_separate_by_supervisor"
     const val SETTING_PDF_STYLE = "pdf_style"
     const val SETTING_PDF_PATIENT_CARD_STYLE = "pdf_patient_card_style"
+    const val SETTING_APP_APPEARANCE = "app_appearance"
     const val SETTING_APP_THEME = "app_theme"
     const val SETTING_APP_PATIENT_CARD_STYLE = "app_patient_card_style"
     const val SETTING_FONT_SCALE = "font_scale"

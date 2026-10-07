@@ -6,44 +6,28 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+private fun textStyle(size: Int, height: Int, weight: FontWeight = FontWeight.Normal) = TextStyle(
+    fontFamily = FontFamily.Default,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = height.sp,
+    letterSpacing = 0.sp
+)
+
 val Typography = Typography(
-    headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        lineHeight = 24.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 21.sp,
-        letterSpacing = 0.sp
-    ),
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.sp
-    )
+    displayLarge = textStyle(40, 52, FontWeight.Bold),
+    displayMedium = textStyle(34, 44, FontWeight.Bold),
+    displaySmall = textStyle(30, 40, FontWeight.Bold),
+    headlineLarge = textStyle(28, 38, FontWeight.Bold),
+    headlineMedium = textStyle(26, 36, FontWeight.Bold),
+    headlineSmall = textStyle(24, 32, FontWeight.Bold),
+    titleLarge = textStyle(22, 30, FontWeight.SemiBold),
+    titleMedium = textStyle(16, 24, FontWeight.SemiBold),
+    titleSmall = textStyle(14, 22, FontWeight.SemiBold),
+    bodyLarge = textStyle(16, 26),
+    bodyMedium = textStyle(15, 24),
+    bodySmall = textStyle(14, 22),
+    labelLarge = textStyle(14, 22, FontWeight.SemiBold),
+    labelMedium = textStyle(13, 20, FontWeight.Medium),
+    labelSmall = textStyle(12, 18, FontWeight.Medium)
 )

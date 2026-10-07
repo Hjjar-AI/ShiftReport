@@ -29,6 +29,7 @@ import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.sync.AutoSyncScheduler
 import com.hos.rushdpatients.sync.SyncService
 import com.hos.rushdpatients.ui.theme.AppFontScale
+import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.AppThemePreset
 import com.hos.rushdpatients.util.ShiftDate
 import com.hos.rushdpatients.util.NetworkStatus
@@ -131,6 +132,7 @@ class SettingsViewModel @Inject constructor(
                             AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR,
                             false
                         ),
+                        appearance = AppAppearance.fromSetting(settingsRepository.get(AppConstants.SETTING_APP_APPEARANCE)),
                         appTheme = AppThemePreset.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_APP_THEME)
                         ),
@@ -253,6 +255,11 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.putBoolean(AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR, value)
             _state.update { it.copy(pdfSeparateBySupervisor = value) }
         }
+    }
+
+    fun setAppearance(value: AppAppearance) {
+        _state.update { it.copy(appearance = value) }
+        viewModelScope.launch { settingsRepository.put(AppConstants.SETTING_APP_APPEARANCE, value.name) }
     }
 
     fun setAppTheme(value: AppThemePreset) {

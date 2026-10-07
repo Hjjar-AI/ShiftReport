@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -37,7 +38,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.util.UUID
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun PatientTaskEditor(
     tasks: List<PatientTask>, doctors: List<Doctor>, enabled: Boolean,
@@ -98,7 +99,7 @@ internal fun PatientTaskEditor(
 
 private enum class TaskDeadline(val label: String) { NONE("بلا موعد"), TIME("تاريخ ووقت"), SHIFT("نهاية مناوبة") }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskDraftDialog(
     initial: PatientTask?, doctors: List<Doctor>, enabled: Boolean,

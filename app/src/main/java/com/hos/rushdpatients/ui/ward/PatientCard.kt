@@ -1,6 +1,12 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.domain.task.PatientTasks
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -65,6 +71,8 @@ import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
+import com.hos.rushdpatients.ui.theme.patientBadgeColors
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 import com.hos.rushdpatients.util.ArabicNumbers
 import java.time.ZoneId
@@ -93,6 +101,7 @@ fun PatientCard(
     onExpandToggle: () -> Unit = {},
     showViewControls: Boolean = true,
     compact: Boolean = false,
+    animateExpansion: Boolean = false,
     taskNowEpochMillis: Long = System.currentTimeMillis(),
     modifier: Modifier = Modifier
 ) {
@@ -101,6 +110,7 @@ fun PatientCard(
     val effectiveStyle = PatientCardStyle.BADGE_HEADER
     val taskCounts = PatientTasks.counts(patient.tasks, taskNowEpochMillis)
     val clinicalColors = LocalClinicalColors.current
+    val visibleBadges = if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
     val admissionCount = remember(patient.admittanceNumber) {
         patient.admittanceNumber.toIntOrNull() ?: 0
     }
@@ -151,22 +161,16 @@ fun PatientCard(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
-            width = if (selected || patient.badges.isNotEmpty()) 2.dp else 1.dp,
-            color = when {
-                patient.badges.any { it.priority == PatientBadgePriority.HIGH } -> clinicalColors.urgent
-                patient.badges.any { it.priority == PatientBadgePriority.MEDIUM } -> clinicalColors.warning
-                patient.badges.any { it.priority == PatientBadgePriority.LOW } -> MaterialTheme.colorScheme.tertiary
-                patient.badges.isNotEmpty() -> MaterialTheme.colorScheme.primary
-                else -> MaterialTheme.colorScheme.outlineVariant
-            }
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 3.dp else 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(if (compact) 6.dp else 10.dp),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 3.dp else 6.dp)
+                .padding(if (compact) UiSpacing.small else UiSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(if (compact) UiSpacing.tiny else UiSpacing.small)
         ) {
             PatientIdentityHeader(
                 patient = patient,
@@ -187,7 +191,7 @@ fun PatientCard(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     DiagnosisChip(patient.diagnosisType)
-                    if (patient.hasCompanion) {
+                    if (expanded && patient.hasCompanion) {
                         SmallChip(
                             text = "مرافق",
                             container = MaterialTheme.colorScheme.surface,
@@ -206,91 +210,85 @@ fun PatientCard(
                 ) {
                     supervisorName?.let {
                         SmallChip(
-                            text = it,
-                            container = MaterialTheme.colorScheme.primaryContainer,
-                            content = MaterialTheme.colorScheme.onPrimaryContainer
+                            text = "مشرف: $it",
+                            container = MaterialTheme.colorScheme.surfaceVariant,
+                            content = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     residentName?.let {
                         SmallChip(
-                            text = it,
-                            container = MaterialTheme.colorScheme.secondaryContainer,
-                            content = MaterialTheme.colorScheme.onSecondaryContainer
+                            text = "مقيم: $it",
+                            container = MaterialTheme.colorScheme.surfaceVariant,
+                            content = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
 
-            if (patient.badges.isNotEmpty()) {
+            if (visibleBadges.isNotEmpty() || (!expanded && patient.badges.isNotEmpty())) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    patient.badges.forEach { badge ->
+                    visibleBadges.forEach { badge ->
+                        val badgeColors = patientBadgeColors(badge.priority)
                         SmallChip(
                             text = buildString {
                                 append(badge.text)
                                 badge.priority?.let { append(" · ").append(it.arabicLabel) }
                             },
-                            container = when (badge.priority) {
-                                PatientBadgePriority.HIGH -> clinicalColors.urgentContainer
-                                PatientBadgePriority.MEDIUM -> clinicalColors.warningContainer
-                                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.tertiaryContainer
-                                null -> MaterialTheme.colorScheme.secondaryContainer
-                            },
-                            content = when (badge.priority) {
-                                PatientBadgePriority.HIGH -> clinicalColors.onUrgentContainer
-                                PatientBadgePriority.MEDIUM -> clinicalColors.onWarningContainer
-                                PatientBadgePriority.LOW -> MaterialTheme.colorScheme.onTertiaryContainer
-                                null -> MaterialTheme.colorScheme.onSecondaryContainer
-                            }
+                            container = badgeColors.container,
+                            content = badgeColors.content
                         )
                     }
+                    if (!expanded && visibleBadges.size < patient.badges.size) SmallChip(
+                        "${patient.badges.size - visibleBadges.size} شارات أخرى",
+                        MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             if (patient.initialDiagnosis.isNotBlank()) {
-                StyledField(
-                    style = effectiveStyle,
-                    code = "Dx",
-                    monogram = "ت",
-                    title = "التشخيص",
-                    body = patient.initialDiagnosis,
-                    accent = MaterialTheme.colorScheme.primary,
-                    onAccent = MaterialTheme.colorScheme.onPrimary
-                )
+                SectionBlock("التشخيص", patient.initialDiagnosis,
+                    maxLines = if (expanded) Int.MAX_VALUE else 2)
             }
 
-            if (patient.tasks.isNotEmpty()) {
+            if (taskCounts.pending > 0) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     SmallChip("${taskCounts.pending} مهمة معلقة", MaterialTheme.colorScheme.secondaryContainer,
                         MaterialTheme.colorScheme.onSecondaryContainer)
-                    SmallChip("${taskCounts.overdue} متأخرة", if (taskCounts.overdue > 0) clinicalColors.urgentContainer else MaterialTheme.colorScheme.surfaceVariant,
-                        if (taskCounts.overdue > 0) clinicalColors.onUrgentContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (taskCounts.overdue > 0) SmallChip("${taskCounts.overdue} متأخرة",
+                        clinicalColors.urgentContainer, clinicalColors.onUrgentContainer)
                 }
             }
 
             // -------- Expanded detail --------
-            if (expanded) {
-                if (patient.tasks.isNotEmpty()) SectionBlock("المهام",
-                    PatientTasks.summary(patient.tasks, doctorNames))
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                if (effectiveStyle == PatientCardStyle.ICON_ROWS ||
-                    effectiveStyle == PatientCardStyle.FIELD_MONOGRAMS
-                ) {
-                    StyledExpandedDetail(
-                        patient = patient,
-                        style = effectiveStyle,
-                        twoColumn = twoColumn
-                    )
-                } else if (twoColumn) {
-                    TwoColumnDetail(patient = patient)
-                } else {
-                    SingleColumnDetail(patient = patient)
+            AnimatedVisibility(
+                visible = expanded,
+                enter = if (animateExpansion) expandVertically(animationSpec = tween(160)) else EnterTransition.None,
+                exit = if (animateExpansion) shrinkVertically(animationSpec = tween(130)) else ExitTransition.None
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    if (patient.tasks.isNotEmpty()) SectionBlock("المهام",
+                        PatientTasks.summary(patient.tasks, doctorNames))
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    if (effectiveStyle == PatientCardStyle.ICON_ROWS ||
+                        effectiveStyle == PatientCardStyle.FIELD_MONOGRAMS
+                    ) {
+                        StyledExpandedDetail(
+                            patient = patient,
+                            style = effectiveStyle,
+                            twoColumn = twoColumn
+                        )
+                    } else if (twoColumn) {
+                        TwoColumnDetail(patient = patient)
+                    } else {
+                        SingleColumnDetail(patient = patient)
+                    }
                 }
             }
-            patient.lastEditedByName?.let { editor ->
+            if (expanded) patient.lastEditedByName?.let { editor ->
                 val time = remember(patient.updatedAt) {
                     DateTimeFormatter.ofPattern("MM-dd HH:mm")
                         .format(patient.updatedAt.atZone(ZoneId.systemDefault()))
@@ -323,9 +321,9 @@ private fun PatientIdentityHeader(
     onDelete: () -> Unit
 ) {
     val initial = patient.name.trim().firstOrNull()?.toString() ?: "م"
-    val meta = listOf(metaLine(patient), admitLine(patient))
-        .filter(String::isNotBlank)
-        .joinToString(" · ")
+    val meta = if (expanded) listOf(metaLine(patient), admitLine(patient))
+        .filter(String::isNotBlank).joinToString(" · ")
+    else "رقم القبول الحالي: ${ArabicNumbers.toArabicDigits(patient.admittanceNumber)}"
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -368,7 +366,7 @@ private fun PatientIdentityHeader(
                         .width(8.dp)
                         .height(62.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(diagnosisAccent(patient.diagnosisType))
+                        .background(diagnosisAccent())
                 )
                 IdentityText(patient.name, meta, Modifier.weight(1f))
             }
@@ -412,12 +410,12 @@ private fun PatientIdentityHeader(
                     color = if (style == PatientCardStyle.INITIALS) {
                         MaterialTheme.colorScheme.tertiary
                     } else {
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.primaryContainer
                     },
                     contentColor = if (style == PatientCardStyle.INITIALS) {
                         MaterialTheme.colorScheme.onTertiary
                     } else {
-                        MaterialTheme.colorScheme.onPrimary
+                        MaterialTheme.colorScheme.onPrimaryContainer
                     },
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.size(if (style == PatientCardStyle.BADGE_HEADER) 40.dp else 50.dp)
@@ -634,11 +632,7 @@ private fun StyledField(
 }
 
 @Composable
-private fun diagnosisAccent(type: DiagnosisType): Color = when (type) {
-    DiagnosisType.PSYCHIATRIC -> MaterialTheme.colorScheme.tertiary
-    DiagnosisType.ADDICTION -> MaterialTheme.colorScheme.error
-    DiagnosisType.DUAL -> MaterialTheme.colorScheme.primary
-}
+private fun diagnosisAccent(): Color = MaterialTheme.colorScheme.onSurfaceVariant
 
 @Composable
 private fun SingleColumnDetail(patient: Patient) {
@@ -757,7 +751,7 @@ private fun PatientMenu(
 private fun OrderBadge(order: Int, admissionCount: Int) {
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(if (admissionCount > 1) 48.dp else 32.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center
@@ -774,7 +768,7 @@ private fun OrderBadge(order: Int, admissionCount: Int) {
                 text = ArabicNumbers.toArabicDigits("$admissionCount"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontSize = 6.sp,
+                    fontSize = 12.sp,
                     textAlign = TextAlign.Center
                 )
             }
@@ -784,17 +778,8 @@ private fun OrderBadge(order: Int, admissionCount: Int) {
 
 @Composable
 private fun DiagnosisChip(type: DiagnosisType) {
-    val container = when (type) {
-        DiagnosisType.PSYCHIATRIC -> MaterialTheme.colorScheme.tertiaryContainer
-        DiagnosisType.ADDICTION -> MaterialTheme.colorScheme.secondaryContainer
-        DiagnosisType.DUAL -> MaterialTheme.colorScheme.errorContainer
-    }
-    val content = when (type) {
-        DiagnosisType.PSYCHIATRIC -> MaterialTheme.colorScheme.onTertiaryContainer
-        DiagnosisType.ADDICTION -> MaterialTheme.colorScheme.onSecondaryContainer
-        DiagnosisType.DUAL -> MaterialTheme.colorScheme.onErrorContainer
-    }
-    SmallChip(text = type.arabicLabel, container = container, content = content)
+    SmallChip(text = type.arabicLabel, container = MaterialTheme.colorScheme.surfaceVariant,
+        content = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -814,7 +799,7 @@ private fun SmallChip(text: String, container: Color, content: Color) {
 }
 
 @Composable
-private fun SectionBlock(title: String, content: String) {
+private fun SectionBlock(title: String, content: String, maxLines: Int = Int.MAX_VALUE) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = title,
@@ -824,7 +809,9 @@ private fun SectionBlock(title: String, content: String) {
         )
         Text(
             text = content,
-            style = MaterialTheme.typography.bodySmall.copy(
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium.copy(
                 textDirection = if (title == "التحاليل") {
                     TextDirection.ContentOrLtr
                 } else {
