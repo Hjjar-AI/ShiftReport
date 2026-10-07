@@ -68,6 +68,7 @@ import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
+import com.hos.rushdpatients.ui.connection.ProjectConnectionAction
 import com.hos.rushdpatients.ui.components.LoadingButton
 import com.hos.rushdpatients.ui.theme.AppFontScale
 import com.hos.rushdpatients.ui.theme.AppThemePreset
@@ -405,6 +406,7 @@ fun SettingsScreen(
                 }
 
                 SettingsSection(title = "الأمان والخصوصية", onPositioned = { sectionOffsets["الأمان والخصوصية"] = it }) {
+                    ProjectConnectionAction(isAdmin = isAdmin)
                     ToggleRow(
                         title = "التحقق بالبصمة",
                         subtitle = if (state.biometricAvailable) "استخدم بصمتك لفتح التطبيق"

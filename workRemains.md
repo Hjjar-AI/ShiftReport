@@ -1,26 +1,11 @@
 # ShiftReport remaining work
 
-This file contains only remaining work. Completed items are tracked in [workDone.md](workDone.md). Design and architecture basis are documented in [designAndArchitecture.md](designAndArchitecture.md).
+This file contains only unfinished implementation work and explicitly deferred proposals. Verification evidence and limitations are recorded in [currentState.md](currentState.md). Completed items are tracked in [workDone.md](workDone.md). Design and architecture basis are documented in [designAndArchitecture.md](designAndArchitecture.md).
 
 ## P0 — production signing
 
 1. Configure production signing before distribution.
    - Release currently uses the debug signing configuration. Configure a protected release keystore through local/CI secrets without committing keys or passwords.
-
-## P1 — critical-change acknowledgment
-
-1. Add closed-loop critical-change acknowledgment.
-   - Build on the implemented structured task model. Store owner, recipients, successful delivery time, and explicit acknowledgment actor/time in synchronized records.
-   - Record seen time only from an authenticated in-app viewing action; downloading data or sending a Telegram message does not establish that a recipient read it.
-   - Use the existing optional encryption for clinical notification content. Keep the accepted last-write-wins scope; guaranteed preservation of competing acknowledgments is outside scope.
-   - Never use color alone; show a label, icon, and timestamp.
-
-## P2 — setup and access
-
-1. Add bot-token rotation/revocation and safe reconnect.
-   - Distribute updated connection settings through password-protected join files; joining remains file-only.
-   - Preserve the existing data-encryption key when replacing credentials for the same project. Bot-token replacement must not generate a new data key or imply re-encryption of existing Telegram records.
-   - Distinguish reconnecting to the same project from switching projects. A switch must explicitly protect or clear local clinical data before using the new project's credentials and key.
 
 ## Far future — optional voice dictation
 

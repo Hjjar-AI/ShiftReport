@@ -1,9 +1,11 @@
 # ShiftReport debugging guide
 
 This guide covers device connection, ADB, Logcat, crashes, freezes, file imports,
-network and Telegram failures, background synchronization, storage, and safe evidence
+network and Telegram failures, file-only joining, encryption, structured tasks, background synchronization, storage, and safe evidence
 collection. Commands assume the Android application ID is
 `com.hos.rushdpatients`.
+
+Current implementation and verification limitations are recorded in [currentState.md](currentState.md). Follow [AGENTS.md](AGENTS.md): these diagnostic examples do not authorize an agent to run builds, compilation, packaging, test suites, migrations, or destructive device commands. Small source-inspection/debugging scripts are allowed. Use an already installed, authorized development app for device captures.
 
 > Clinical privacy: logs, screenshots, UI dumps, bug reports, and app databases can
 > contain patient or staff information. Keep captures local, redact them before
@@ -13,7 +15,8 @@ collection. Commands assume the Android application ID is
 ## Table of contents
 
 - [Fastest workflow](#fastest-workflow)
-- [Current doctors CSV finding](#current-doctors-csv-finding)
+- [Current formats and import behavior](#current-formats-and-import-behavior)
+- [Project joining, encryption, and task diagnostics](#project-joining-encryption-and-task-diagnostics)
 - [ADB setup](#adb-setup)
 - [Connect and identify a device](#connect-and-identify-a-device)
 - [Capture a focused Logcat session](#capture-a-focused-logcat-session)
@@ -34,7 +37,7 @@ collection. Commands assume the Android application ID is
 
 ## Fastest workflow
 
-For the current doctors CSV failure, connect the phone, open the app, and run this
+For a reported doctors CSV failure, connect the phone, open the app, and run this
 from the project root:
 
 ```bash
@@ -71,34 +74,47 @@ git check-ignore -v local-debug/doctors-import-logcat.txt
 
 If it is not ignored, do not add or commit the capture.
 
-## Current doctors CSV finding
+## Current formats and import behavior
 
-The repository-local `doctors-import.local.csv` was checked without printing its
-full contents. At the time of this review it has:
+| Data | Current representation |
+|---|---|
+| Local clinical database | SQLCipher-encrypted Room, schema 5; tasks stored in the patient row |
+| Patient snapshots/backups | Patient CSV schema 7, including `tasksJson`; encrypted backups wrap this content |
+| Doctor spreadsheet import/export | Doctor-registry CSV schema 1, exact 16-column header shown below |
+| Project joining | Password-protected `.srjoin` file containing connection settings, topics, and any shared data key |
+| Encrypted Telegram documents | Generic `project-data.srdata` filename; the app decrypts downloaded records before parsing |
+| Encrypted Telegram text | `SRMSG1:` envelope used for application-published text/pinned state |
+| PDF reports | Readable documents by design, including in encrypted projects |
 
-- UTF-8 CSV encoding;
-- the exact 16 columns required by `DoctorCsvCodec`;
-- 33 data rows;
-- supported schema version, gender values, clinical roles, rank values, and admin
-  flags;
-- no blank required name or ID fields;
-- no duplicate doctor IDs, full names, or non-empty Telegram IDs;
-- no characters rejected by `DoctorValidator`.
+An earlier local doctor-CSV inspection was a historical sample, not proof that a currently selected device file is valid. Do not assume its row count or contents remain unchanged. Use an untouched export from the current app as a format reference, and inspect only file facts needed for the reported failure.
 
-This means a failure on the device is more likely to be one of the following:
+Doctor import validates the full proposed merge and rechecks authorization and the reviewed registry at commit. A failed preparation/confirmation does not establish that any rows were saved. If the UI explicitly reports that import succeeded locally but Telegram synchronization failed, the local import committed; investigate synchronization rather than repeating the import.
 
-1. A different file was selected in Android's document picker.
-2. The selected copy was modified by spreadsheet software or saved with a different
-   header/encoding.
-3. The current session is not authorized as an administrator.
-4. An imported row matches more than one existing local doctor by ID, Telegram ID,
-   or full name.
-5. Merging would duplicate an active name, Telegram ID, or administrator rank.
-6. The document provider did not grant/read the selected URI correctly.
-7. The local import succeeded, but the subsequent Telegram registry upload failed.
+## Project joining, encryption, and task diagnostics
 
-The last case should show an Arabic message saying the import completed locally but
-Telegram synchronization failed. It is not a rollback of the local import.
+### File-only joining and export
+
+- Joining requires the administrator's protected file and its passphrase. Connection values and topic IDs are imported automatically; there is no manual joining form.
+- Export prepares ciphertext before the file picker, retains it through Activity recreation, and reads the written file back before reporting success. If a process/session restart loses the pending export, use the displayed recreate-file instruction; an empty picker-created file is not a valid join file.
+- A wrong passphrase or damaged join file should display an import error. Keep the passphrase, bot token, and project key out of logs, screenshots, and issue reports.
+
+### Optional Telegram encryption
+
+- Record whether encryption was selected when the project was created and whether the joining device used that project's protected file. Existing projects without a key retain their original storage mode.
+- Ciphertext on Telegram is expected in encrypted projects. Text reports are protected documents; PDFs and their captions remain readable, and Telegram metadata remains visible.
+- Wrong/missing data keys, altered ciphertext, or plaintext clinical records in an encrypted project cause explicit errors before parsing/import. Recover the correct project file; generating a new random key will not decrypt existing records.
+- Bot-token replacement and data-key replacement are separate operations. Administrators revoke/regenerate the same bot token through BotFather, apply it in Settings → Security and privacy → Reconnect project, and export a fresh join file. Other devices reconnect by that file in Settings or login. The app verifies candidates before saving and preserves the local database/key. Different-project/key/topic files are deliberately rejected. A failed probe leaves the live token unchanged; confirm network access and bot admin/pinning permissions.
+- Plain local previews and explicit local exports retain their existing formats. Never print decrypted records or key material to demonstrate that decryption worked.
+
+### Structured tasks and counts
+
+- Tasks are edited in **Patient → Edit → مهام المريض** and commit when the patient is saved. New tasks start unassigned and can be saved without an owner; assigning a doctor is optional. Closing/canceling the form does not publish draft task changes.
+- Collapsed cards show that patient's pending and overdue tasks. Dashboard metrics are ward totals. Overdue is included in pending, so the counts must not be added together.
+- Only unfinished tasks with a reached deadline are overdue; tasks without a deadline are not overdue. Counts refresh through the existing minute timer. A shift-end deadline uses 08:30 local time on the following calendar day.
+- Completion actor/time is assigned by the repository at save. Reopening clears completion metadata. No user acknowledgment is required.
+- My patients includes patients with unfinished tasks assigned to the signed-in doctor. Dashboard filters cover pending, overdue, and unassigned tasks.
+- Rollover carries unfinished tasks with their original deadlines; completed tasks remain in the source shift. Reassignment clears task ownership. Copying a patient starts with no tasks.
+- Task records travel in snapshots/backups and appear in text/PDF reports. A stale patient save or conflicting task-list publication requires the existing explicit review. Narrative follow-up lines and checkbox text are never counted as structured tasks.
 
 ### Important observability limitation
 
@@ -739,7 +755,9 @@ For a useful and privacy-safe report, collect:
 - focused Logcat covering one reproduction;
 - screenshot or UI dump when the failure is UI-only;
 - whether internet was available and whether other Telegram operations worked;
-- whether the failure reproduces after force-stop/reopen without clearing data.
+- whether the failure reproduces after force-stop/reopen without clearing data;
+- for joining/encryption failures, which stage failed and whether encryption is enabled, without including keys or passphrases;
+- for task-count issues, whether the patient was saved, which list/card/dashboard was shown, and the task status/deadline using a disposable sample.
 
 ## Issue report template
 

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.data.model.Doctor
+import com.hos.rushdpatients.ui.connection.ProjectConnectionAction
 import com.hos.rushdpatients.ui.components.LongPressTriggerButton
 
 /** Seconds the retry button must be held to fire the hidden seed. */
@@ -38,49 +39,57 @@ private const val HIDDEN_SEED_HOLD_MS = 15_000L
 @Composable
 fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    when (val step = state.step) {
-        is LoginStep.Bootstrapping -> Centered { CircularProgressIndicator() }
-        is LoginStep.BootstrapFailed -> Centered {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("تعذر تحميل سجل الأطباء", style = MaterialTheme.typography.titleLarge)
-                Text(
-                    step.message,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(16.dp)
-                )
-                if (state.seeding) {
-                    CircularProgressIndicator()
-                } else {
-                    LongPressTriggerButton(
-                        text = "إعادة المحاولة",
-                        holdDurationMs = HIDDEN_SEED_HOLD_MS,
-                        onClick = viewModel::boot,
-                        onHoldTriggered = viewModel::seedBootstrap
-                    )
+    Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        Box(Modifier.weight(1f)) {
+            when (val step = state.step) {
+                is LoginStep.Bootstrapping -> Centered { CircularProgressIndicator() }
+                is LoginStep.BootstrapFailed -> Centered {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("تعذر تحميل سجل الأطباء", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            step.message,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        if (state.seeding) {
+                            CircularProgressIndicator()
+                        } else {
+                            LongPressTriggerButton(
+                                text = "إعادة المحاولة",
+                                holdDurationMs = HIDDEN_SEED_HOLD_MS,
+                                onClick = viewModel::boot,
+                                onHoldTriggered = viewModel::seedBootstrap
+                            )
+                        }
+                    }
                 }
+                is LoginStep.PickDoctor -> PickDoctorList(
+                    projectName = state.projectName,
+                    doctors = step.doctors,
+                    error = state.error,
+                    onPick = viewModel::pickDoctor
+                )
+                is LoginStep.Verifying -> VerifyingView(step, viewModel::cancelVerification)
+                is LoginStep.VerifyFailed -> VerifyFailedView(
+                    step,
+                    viewModel::retryVerify,
+                    viewModel::backToDoctors
+                )
+                is LoginStep.SetPin -> SetPinScreen(
+                    doctor = step.doctor,
+                    error = state.error,
+                    busy = state.busy,
+                    onConfirm = { pin, confirm ->
+                        viewModel.setPin(step.doctor, step.telegramId, pin, confirm)
+                    },
+                    onCancel = viewModel::backToDoctors
+                )
             }
         }
-        is LoginStep.PickDoctor -> PickDoctorList(
-            projectName = state.projectName,
-            doctors = step.doctors,
-            error = state.error,
-            onPick = viewModel::pickDoctor
-        )
-        is LoginStep.Verifying -> VerifyingView(step, viewModel::cancelVerification)
-        is LoginStep.VerifyFailed -> VerifyFailedView(
-            step,
-            viewModel::retryVerify,
-            viewModel::backToDoctors
-        )
-        is LoginStep.SetPin -> SetPinScreen(
-            doctor = step.doctor,
-            error = state.error,
-            busy = state.busy,
-            onConfirm = { pin, confirm ->
-                viewModel.setPin(step.doctor, step.telegramId, pin, confirm)
-            },
-            onCancel = viewModel::backToDoctors
-        )
+        // Recovery must remain reachable when a revoked token prevents login/bootstrap.
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            ProjectConnectionAction(onApplied = viewModel::boot)
+        }
     }
 }
 

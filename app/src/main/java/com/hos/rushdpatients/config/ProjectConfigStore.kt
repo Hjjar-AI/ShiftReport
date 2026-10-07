@@ -55,6 +55,14 @@ class ProjectConfigStore @Inject constructor(
         write(draft)
     }
 
+    /** Compare-and-set only the token: clinical scope, topics, and encryption key stay intact. */
+    @Synchronized
+    internal fun replaceBotToken(expected: ProjectConfig, token: String) {
+        check(_config.value == expected) { "تغيرت إعدادات المشروع؛ أعد فتح ملف الاتصال" }
+        check(prefs.edit().putString(KEY_BOT_TOKEN, token).commit()) { "تعذر حفظ رمز البوت" }
+        _config.value = expected.copy(botToken = token)
+    }
+
     fun markInitialized() {
         write(_config.value.copy(initialized = true))
     }

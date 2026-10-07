@@ -49,6 +49,31 @@ class TelegramClient @Inject constructor(
         body = FormBody.Builder().build()
     )
 
+    /** Probe replacement credentials without changing the live token or publishing anything. */
+    suspend fun validateReplacementToken(candidate: String, chatId: Long, expectedBotId: Long) {
+        val bot: TgUser = callAndUnwrap(
+            "getMe", 0L, FormBody.Builder().build(), explicitToken = candidate
+        )
+        require(bot.isBot && bot.id == expectedBotId) { "الرمز يعود إلى بوت آخر؛ لم تتغير إعدادات المشروع" }
+        val chat: TgChat = callAndUnwrap(
+            "getChat", chatId, FormBody.Builder().add("chat_id", chatId.toString()).build(),
+            explicitToken = candidate
+        )
+        require(chat.id == chatId && chat.type in setOf("group", "supergroup")) {
+            "تعذر التحقق من مجموعة المشروع"
+        }
+        val member: TgChatMember = callAndUnwrap(
+            "getChatMember", chatId, FormBody.Builder()
+                .add("chat_id", chatId.toString()).add("user_id", bot.id.toString()).build(),
+            explicitToken = candidate
+        )
+        require(member.isAdmin && (member.isCreator || member.canPinMessages == true)) {
+            "يجب أن يكون البوت مديراً في المجموعة مع صلاحية تثبيت الرسائل"
+        }
+        // Uses the unchanged local data key; no clinical records are imported by this probe.
+        chat.pinnedMessage?.text?.let { dataCipher.decodeText(it, requireEncrypted = true) }
+    }
+
     // ---------------- Messages ----------------
 
     suspend fun sendMessage(
@@ -358,9 +383,10 @@ class TelegramClient @Inject constructor(
         method: String,
         chatId: Long,
         body: RequestBody,
-        needsUpload: Boolean = false
+        needsUpload: Boolean = false,
+        explicitToken: String? = null
     ): T {
-        val env = callAndUnwrapEnvelope<T>(method, chatId, body, needsUpload)
+        val env = callAndUnwrapEnvelope<T>(method, chatId, body, needsUpload, explicitToken)
         return env.result
             ?: throw TelegramException(code = -1, message = "Empty result for $method")
     }
@@ -369,12 +395,13 @@ class TelegramClient @Inject constructor(
         method: String,
         chatId: Long,
         body: RequestBody,
-        needsUpload: Boolean = false
+        needsUpload: Boolean = false,
+        explicitToken: String? = null
     ): TgEnvelope<T> {
         return rateLimiter.withRateLimit(chatId) {
             val safeToRetryServerFailure = method !in setOf("sendMessage", "sendDocument")
             TelegramRetry.withRetry(allowServerRetry = safeToRetryServerFailure) {
-                val raw = executeRequest(method, body, needsUpload)
+                val raw = executeRequest(method, body, needsUpload, explicitToken)
                 val envelope: TgEnvelope<T> = try {
                     json.decodeFromString<TgEnvelope<T>>(raw)
                 } catch (e: Exception) {
@@ -399,12 +426,14 @@ class TelegramClient @Inject constructor(
     private suspend fun executeRequest(
         method: String,
         body: RequestBody,
-        needsUpload: Boolean
+        needsUpload: Boolean,
+        explicitToken: String? = null
     ): String = withContext(dispatchers.io) {
-        if (token.isBlank()) {
+        val requestToken = explicitToken ?: token
+        if (requestToken.isBlank()) {
             throw TelegramException(code = 401, message = "Telegram bot token is not configured")
         }
-        val url = "${TelegramConfig.BASE_URL}/bot$token/$method"
+        val url = "${TelegramConfig.BASE_URL}/bot$requestToken/$method"
         val request = Request.Builder().url(url).post(body).build()
         val client = if (needsUpload) {
             http.newBuilder()
