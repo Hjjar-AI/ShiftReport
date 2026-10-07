@@ -7,6 +7,7 @@ import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.sync.DoctorsRegistryCodec
 import com.hos.rushdpatients.sync.SyncState
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -38,7 +39,7 @@ class BootstrapManager @Inject constructor(
             // Case A — pinned document IS the registry (bootstrap.txt)
             pinned.document?.let { doc ->
                 val local = downloadToCache(doc.fileId, "bootstrap_registry.txt")
-                val text = local.readText(Charsets.UTF_8)
+                val text = try { local.readText(Charsets.UTF_8) } finally { local.delete() }
                 val decoded = runCatching { DoctorsRegistryCodec.decode(text) }.getOrNull()
                 if (decoded != null && decoded.doctors.isNotEmpty()) {
                     doctorRepository.replaceAll(decoded.doctors)
@@ -55,7 +56,8 @@ class BootstrapManager @Inject constructor(
                             "لم يتم نشر سجل الأطباء بعد. اطلب من المدير المزامنة أولاً."
                         )
                     val local = downloadToCache(fileId, "bootstrap_registry.txt")
-                    val decoded = DoctorsRegistryCodec.decode(local.readText(Charsets.UTF_8))
+                    val registryText = try { local.readText(Charsets.UTF_8) } finally { local.delete() }
+                    val decoded = DoctorsRegistryCodec.decode(registryText)
                     if (decoded.doctors.isNotEmpty()) {
                         doctorRepository.replaceAll(decoded.doctors)
                         return@withContext BootstrapResult.Success(decoded.doctors.size)
@@ -64,6 +66,8 @@ class BootstrapManager @Inject constructor(
             }
 
             BootstrapResult.UnrecognizedPin
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             BootstrapResult.Failed(e.message ?: "فشل الاتصال بتليجرام")
         }
@@ -73,7 +77,12 @@ class BootstrapManager @Inject constructor(
         val remote = telegram.getFile(fileId)
         val path = remote.filePath ?: error("تعذر الحصول على مسار الملف")
         val local = File(context.cacheDir, name)
-        telegram.downloadFile(path, local)
-        return local
+        try {
+            telegram.downloadFile(path, local)
+            return local
+        } catch (e: Exception) {
+            local.delete()
+            throw e
+        }
     }
 }

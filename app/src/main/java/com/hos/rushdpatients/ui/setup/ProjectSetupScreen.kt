@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,8 +24,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,193 +50,217 @@ fun ProjectSetupScreen(
     viewModel: ProjectSetupViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showTopics by rememberSaveable(state.mode) { mutableStateOf(false) }
+    var showInstructions by rememberSaveable(state.mode) { mutableStateOf(state.mode != ProjectSetupMode.JOIN) }
     val openProvisioning = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let(viewModel::importProvisioning) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            "تهيئة ShiftReport",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            "اختر طريقة البدء. الانضمام هو الخيار المعتاد للأجهزة الجديدة، ولا يتطلب إنشاء بوت جديد.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.fillMaxWidth()
+    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                "١. تجربة: بيانات وهمية بلا إعدادات أو حفظ.\n٢. انضمام: لمستشفى مهيأ مسبقاً (الخيار الافتراضي).\n٣. إنشاء: للمسؤول الذي يجهز مشروع مستشفى جديداً فقط.",
-                Modifier.padding(14.dp)
+                "تهيئة ShiftReport",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
             )
-        }
-
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = state.mode == ProjectSetupMode.DEMO,
-                onClick = { viewModel.setMode(ProjectSetupMode.DEMO) },
-                label = { Text("تجربة") },
-                enabled = !state.busy
-            )
-            FilterChip(
-                selected = state.mode == ProjectSetupMode.JOIN,
-                onClick = { viewModel.setMode(ProjectSetupMode.JOIN) },
-                label = { Text("انضمام") },
-                enabled = !state.busy
-            )
-            FilterChip(
-                selected = state.mode == ProjectSetupMode.CREATE,
-                onClick = { viewModel.setMode(ProjectSetupMode.CREATE) },
-                label = { Text("إنشاء") },
-                enabled = !state.busy
-            )
-        }
-
-        InstructionCard(state.mode)
-
-        if (state.mode != ProjectSetupMode.DEMO) {
-            if (state.mode == ProjectSetupMode.JOIN) {
-                Text("ملف الانضمام المشفر", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "اطلب الملف من المدير وعبارة مروره عبر قناة منفصلة. لا تُرسل العبارة مع الملف.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                PasswordField(
-                    value = state.provisioningPassphrase,
-                    onValueChange = viewModel::setProvisioningPassphrase,
-                    label = "عبارة مرور الملف (10 محارف على الأقل)",
-                    enabled = !state.busy
-                )
-                Button(
-                    onClick = { openProvisioning.launch(arrayOf("application/octet-stream", "*/*")) },
-                    enabled = !state.busy && state.provisioningPassphrase.length >= 10,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(if (state.importedProvisioning) "اختيار ملف انضمام آخر" else "اختيار ملف الانضمام") }
-                Text(
-                    "أو أدخل البيانات يدوياً:",
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
-
-            OutlinedTextField(
-                value = state.hospitalName,
-                onValueChange = viewModel::setHospitalName,
-                label = { Text("اسم المستشفى أو المشروع") },
-                singleLine = true,
-                enabled = !state.busy,
-                modifier = Modifier.fillMaxWidth()
-            )
-            PasswordField(
-                value = state.botToken,
-                onValueChange = viewModel::setBotToken,
-                label = "رمز البوت من BotFather",
-                enabled = !state.busy
-            )
-            NumberField(
-                value = state.chatId,
-                onValueChange = viewModel::setChatId,
-                label = "معرف المجموعة الرئيسي (رقم سالب)",
-                signed = true,
-                enabled = !state.busy
-            )
-
-            Text("معرفات المواضيع", style = MaterialTheme.typography.titleMedium)
             Text(
-                "اختيارية. اترك الحقل فارغاً للنشر في General.",
-                style = MaterialTheme.typography.bodySmall,
+                "اختر طريقة البدء. الانضمام هو الخيار المعتاد للأجهزة الجديدة، ولا يتطلب إنشاء بوت جديد.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, "موضوع التقارير", enabled = !state.busy)
-            NumberField(state.announcementsTopicId, viewModel::setAnnouncementsTopicId, "موضوع الإعلانات", enabled = !state.busy)
-            NumberField(state.csvTopicId, viewModel::setCsvTopicId, "موضوع بيانات المناوبات", enabled = !state.busy)
-            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, "موضوع سجل الأطباء", enabled = !state.busy)
-        }
 
-        if (state.mode == ProjectSetupMode.CREATE) {
-            Text("المدير الأول", style = MaterialTheme.typography.titleMedium)
-            OutlinedTextField(
-                value = state.adminName,
-                onValueChange = viewModel::setAdminName,
-                label = { Text("الاسم الكامل") },
-                singleLine = true,
-                enabled = !state.busy,
-                modifier = Modifier.fillMaxWidth()
-            )
-            NumberField(
-                state.adminTelegramId,
-                viewModel::setAdminTelegramId,
-                "معرف مستخدم تليجرام",
-                enabled = !state.busy
-            )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
-                    selected = state.adminGenderCode == "M",
-                    onClick = { viewModel.setAdminGender("M") },
-                    label = { Text("ذكر") },
+                    selected = state.mode == ProjectSetupMode.DEMO,
+                    onClick = { viewModel.setMode(ProjectSetupMode.DEMO) },
+                    label = { Text("تجربة") },
                     enabled = !state.busy
                 )
                 FilterChip(
-                    selected = state.adminGenderCode == "F",
-                    onClick = { viewModel.setAdminGender("F") },
-                    label = { Text("أنثى") },
+                    selected = state.mode == ProjectSetupMode.JOIN,
+                    onClick = { viewModel.setMode(ProjectSetupMode.JOIN) },
+                    label = { Text("انضمام") },
                     enabled = !state.busy
                 )
                 FilterChip(
-                    selected = state.adminClinicalRoleCode == "RESIDENT",
-                    onClick = { viewModel.setAdminClinicalRole("RESIDENT") },
-                    label = { Text("مقيم") },
-                    enabled = !state.busy
-                )
-                FilterChip(
-                    selected = state.adminClinicalRoleCode == "SUPERVISOR",
-                    onClick = { viewModel.setAdminClinicalRole("SUPERVISOR") },
-                    label = { Text("مشرف") },
+                    selected = state.mode == ProjectSetupMode.CREATE,
+                    onClick = { viewModel.setMode(ProjectSetupMode.CREATE) },
+                    label = { Text("إنشاء") },
                     enabled = !state.busy
                 )
             }
-        }
 
-        state.error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
-        }
-        state.status?.let {
-            Text(it, color = MaterialTheme.colorScheme.primary)
-        }
-
-        Button(
-            onClick = viewModel::initialize,
-            enabled = !state.busy,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (state.busy) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .padding(end = 10.dp)
-                        .size(20.dp),
-                    strokeWidth = 2.dp
-                )
+            TextButton(onClick = { showInstructions = !showInstructions }) {
+                Text(if (showInstructions) "إخفاء خطوات الإعداد" else "خطوات الإعداد والمساعدة")
             }
-            Text(
-                when (state.mode) {
-                    ProjectSetupMode.DEMO -> "بدء التجربة"
-                    ProjectSetupMode.JOIN -> "التحقق والانضمام"
-                    ProjectSetupMode.CREATE -> "إنشاء وتهيئة المشروع"
+            if (showInstructions) InstructionCard(state.mode)
+
+            if (state.mode != ProjectSetupMode.DEMO) {
+                if (state.mode == ProjectSetupMode.JOIN) {
+                    SetupSection("١. ملف الانضمام من المدير") {
+                        Text(
+                            "اطلب الملف من المدير وعبارة مروره عبر قناة منفصلة. لا تُرسل العبارة مع الملف.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        PasswordField(
+                            value = state.provisioningPassphrase,
+                            onValueChange = viewModel::setProvisioningPassphrase,
+                            label = "عبارة مرور الملف (10 محارف على الأقل)",
+                            enabled = !state.busy
+                        )
+                        Button(
+                            onClick = { openProvisioning.launch(arrayOf("application/octet-stream", "*/*")) },
+                            enabled = !state.busy && state.provisioningPassphrase.length >= 10,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (state.importedProvisioning) "اختيار ملف انضمام آخر" else "اختيار ملف الانضمام") }
+                    }
+                    if (state.importedProvisioning) {
+                        SetupSection("٢. مراجعة المشروع") {
+                            Text(state.hospitalName, fontWeight = FontWeight.Bold)
+                            Text("المجموعة: ${state.chatId}")
+                            Text(if (state.encryptTelegram) "تشفير بيانات تليجرام: مفعّل" else "تشفير بيانات تليجرام: غير مفعّل")
+                            Text("تم استيراد إعدادات الاتصال والمواضيع تلقائياً؛ لا يلزم إدخال معرّفات المواضيع.",
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
-            )
+
+                if (state.mode == ProjectSetupMode.CREATE) {
+                    SetupSection("بيانات الاتصال بالمشروع") {
+                        OutlinedTextField(
+                            value = state.hospitalName,
+                            onValueChange = viewModel::setHospitalName,
+                            label = { Text("اسم المستشفى أو المشروع") },
+                            singleLine = true,
+                            enabled = !state.busy,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        PasswordField(
+                            value = state.botToken,
+                            onValueChange = viewModel::setBotToken,
+                            label = "رمز البوت من BotFather",
+                            enabled = !state.busy
+                        )
+                        NumberField(
+                            value = state.chatId,
+                            onValueChange = viewModel::setChatId,
+                            label = "معرف المجموعة الرئيسي (رقم سالب)",
+                            signed = true,
+                            enabled = !state.busy
+                        )
+
+                        TextButton(onClick = { showTopics = !showTopics }) {
+                            Text(if (showTopics) "إخفاء إعدادات المواضيع" else "إعدادات المواضيع المتقدمة (اختياري)")
+                        }
+                        if (showTopics) {
+                            Text(
+                                "اختيارية. اترك الحقول فارغة للنشر في General.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, "موضوع التقارير", enabled = !state.busy)
+                            NumberField(state.announcementsTopicId, viewModel::setAnnouncementsTopicId, "موضوع الإعلانات", enabled = !state.busy)
+                            NumberField(state.csvTopicId, viewModel::setCsvTopicId, "موضوع بيانات المناوبات", enabled = !state.busy)
+                            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, "موضوع سجل الأطباء", enabled = !state.busy)
+                        }
+                    }
+                }
+            }
+
+            if (state.mode == ProjectSetupMode.CREATE) {
+                SetupSection("حماية بيانات تليجرام") {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("تشفير البيانات بمفتاح عشوائي", modifier = Modifier.weight(1f))
+                        Switch(checked = state.encryptTelegram, onCheckedChange = viewModel::setEncryptTelegram,
+                            enabled = !state.busy)
+                    }
+                    Text("اختياري عند إنشاء المشروع. يُنشأ مفتاح عشوائي ويُنقل للأعضاء داخل ملف الانضمام المحمي. يفك التطبيق البيانات محلياً؛ التقارير النصية تُرسل كملفات مشفرة. استخدم PDF للقراءة في تليجرام.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("احتفظ بملف الانضمام وعبارة مروره؛ استعادة البيانات المشفرة تحتاج مفتاح المشروع.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                SetupSection("المدير الأول") {
+                    OutlinedTextField(
+                        value = state.adminName,
+                        onValueChange = viewModel::setAdminName,
+                        label = { Text("الاسم الكامل") },
+                        singleLine = true,
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    NumberField(
+                        state.adminTelegramId,
+                        viewModel::setAdminTelegramId,
+                        "معرف مستخدم تليجرام",
+                        enabled = !state.busy
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = state.adminGenderCode == "M",
+                            onClick = { viewModel.setAdminGender("M") },
+                            label = { Text("ذكر") },
+                            enabled = !state.busy
+                        )
+                        FilterChip(
+                            selected = state.adminGenderCode == "F",
+                            onClick = { viewModel.setAdminGender("F") },
+                            label = { Text("أنثى") },
+                            enabled = !state.busy
+                        )
+                        FilterChip(
+                            selected = state.adminClinicalRoleCode == "RESIDENT",
+                            onClick = { viewModel.setAdminClinicalRole("RESIDENT") },
+                            label = { Text("مقيم") },
+                            enabled = !state.busy
+                        )
+                        FilterChip(
+                            selected = state.adminClinicalRoleCode == "SUPERVISOR",
+                            onClick = { viewModel.setAdminClinicalRole("SUPERVISOR") },
+                            label = { Text("مشرف") },
+                            enabled = !state.busy
+                        )
+                    }
+                }
+
+            }
+        }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            state.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+            }
+            state.status?.let {
+                Text(it, color = MaterialTheme.colorScheme.primary)
+            }
+
+            Button(
+                onClick = viewModel::initialize,
+                enabled = !state.busy && (state.mode != ProjectSetupMode.JOIN || state.importedProvisioning),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (state.busy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .padding(end = 10.dp)
+                            .size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+                Text(
+                    when (state.mode) {
+                        ProjectSetupMode.DEMO -> "بدء التجربة"
+                        ProjectSetupMode.JOIN -> "التحقق والانضمام"
+                        ProjectSetupMode.CREATE -> "إنشاء وتهيئة المشروع"
+                    }
+                )
+            }
         }
     }
 }
@@ -236,7 +271,7 @@ private fun InstructionCard(mode: ProjectSetupMode) {
         ProjectSetupMode.DEMO ->
             "شاهد التطبيق فوراً بأسماء زهور وفواكه ومرضى وهميين. لا يحتاج رمز بوت، ولا يحفظ أو يزامن أي بيانات. يمكنك الخروج والعودة للتهيئة الحقيقية في أي وقت."
         ProjectSetupMode.JOIN ->
-            "انضم بعد دخولك مجموعة تليجرام الخاصة بالمستشفى. استخدم ملف الانضمام المشفر من المدير لتعبئة الإعدادات، أو أدخلها يدوياً. يتحقق التطبيق من البوت والمجموعة ثم ينزل سجل المشروع المثبّت."
+            "اطلب ملف الانضمام من المدير وعبارة مروره عبر قناة منفصلة. يستورد الملف بيانات الاتصال والمواضيع ومفتاح المشروع إن كان التشفير مفعلاً. راجع اسم المشروع ثم اضغط التحقق والانضمام."
         ProjectSetupMode.CREATE ->
             "١. أنشئ بوتاً عبر BotFather.\n٢. أنشئ مجموعة Supergroup وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل.\n٣. أنشئ المواضيع المطلوبة إن رغبت، ثم أدخل المعرفات أدناه.\n٤. استخدم مجموعة جديدة لا تحتوي رسالة مشروع مثبّتة.\n٥. بعد التهيئة، صدّر ملف انضمام مشفراً للأعضاء من إعدادات المدير."
     }
@@ -269,4 +304,16 @@ private fun NumberField(
         ),
         modifier = Modifier.fillMaxWidth()
     )
+}
+
+@Composable
+private fun SetupSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() })
+            content()
+        }
+        }
 }

@@ -41,6 +41,7 @@ data class SettingsUiState(
     val exportingCsv: Boolean = false,
     val backupBusy: Boolean = false,
     val provisioningBusy: Boolean = false,
+    val provisioningReady: Boolean = false,
     val databaseSize: String = "—",
     val totalStoredPatients: Int = 0,
     val deletedPatients: Int = 0,

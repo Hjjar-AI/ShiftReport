@@ -18,6 +18,7 @@ data class Patient(
     val treatmentPlan: String = "",
     val followUp: String = "",
     val labs: String = "",
+    val tasks: List<PatientTask> = emptyList(),
     val responsibleResidentId: String? = null,
     val responsibleSpecialistId: String? = null,
     val badges: List<PatientBadge> = emptyList(),

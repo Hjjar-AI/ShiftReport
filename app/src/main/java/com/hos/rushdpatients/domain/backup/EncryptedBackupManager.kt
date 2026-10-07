@@ -69,6 +69,10 @@ class EncryptedBackupManager @Inject constructor(
             patient.responsibleSpecialistId == null || doctors.containsKey(patient.responsibleSpecialistId)
         }) { "تحتوي النسخة على اختصاصي غير موجود" }
 
+        require(parsed.patients.all { patient ->
+            patient.tasks.all { it.done || it.ownerDoctorId == null || doctors.containsKey(it.ownerDoctorId) }
+        }) { "تحتوي النسخة على مسؤول مهمة غير موجود" }
+
         if (parsed.shiftDate == ShiftDate.current()) {
             // Publish the intent before mutating patient data so background fetch cannot observe
             // changed rows while the pending marker is still false.

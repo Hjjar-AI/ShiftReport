@@ -13,6 +13,8 @@ data class ProjectSetupUiState(
     val doctorsTopicId: String = "",
     val provisioningPassphrase: String = "",
     val importedProvisioning: Boolean = false,
+    val encryptTelegram: Boolean = false,
+    val telegramDataKey: String = "",
     val adminName: String = "",
     val adminTelegramId: String = "",
     val adminGenderCode: String = "M",

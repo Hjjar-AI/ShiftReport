@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.domain.task.PatientTasks
 import android.content.Context
 import androidx.room.withTransaction
 import com.hos.rushdpatients.config.AppConstants
@@ -316,7 +317,10 @@ class SyncService @Inject constructor(
                 responsibleResidentId = patient.responsibleResidentId
                     ?.let { doctorsById[it]?.id ?: it },
                 responsibleSpecialistId = patient.responsibleSpecialistId
-                    ?.let { doctorsById[it]?.id ?: it }
+                    ?.let { doctorsById[it]?.id ?: it },
+                tasks = patient.tasks.map { task ->
+                    task.copy(ownerDoctorId = task.ownerDoctorId?.let { doctorsById[it]?.id ?: it })
+                }
             )
         }
         val normalizedDoctorIds = parsed.doctorIds.map { doctorsById[it]?.id ?: it }
@@ -329,6 +333,8 @@ class SyncService @Inject constructor(
                         "المقيم المسؤول غير موجود للمريض ${patient.name}"
                     !patient.responsibleSpecialistId.isNullOrBlank() && specialist == null ->
                         "الاختصاصي المسؤول غير موجود للمريض ${patient.name}"
+                    patient.tasks.any { !it.done && it.ownerDoctorId != null && doctorsById[it.ownerDoctorId] == null } ->
+                        "مسؤول مهمة غير موجود للمريض ${patient.name}"
                     resident != null && !resident.clinicalRole.canBeResident() ->
                         "تصنيف المقيم غير صالح للمريض ${patient.name}"
                     specialist != null && !specialist.clinicalRole.canBeSupervisor() ->
@@ -708,6 +714,9 @@ class SyncService @Inject constructor(
                 initialDiagnosis = field("initialDiagnosis", "التشخيص الأولي", before.initialDiagnosis, ours.initialDiagnosis, theirs.initialDiagnosis),
                 treatmentPlan = field("treatmentPlan", "الخطة العلاجية", before.treatmentPlan, ours.treatmentPlan, theirs.treatmentPlan),
                 followUp = field("followUp", "المتابعة", before.followUp, ours.followUp, theirs.followUp),
+                tasks = field("tasks", "المهام", before.tasks, ours.tasks, theirs.tasks) {
+                    PatientTasks.summary(it)
+                },
                 labs = field("labs", "التحاليل", before.labs, ours.labs, theirs.labs),
                 responsibleResidentId = field("resident", "المقيم", before.responsibleResidentId, ours.responsibleResidentId, theirs.responsibleResidentId),
                 responsibleSpecialistId = field("specialist", "الاختصاصي", before.responsibleSpecialistId, ours.responsibleSpecialistId, theirs.responsibleSpecialistId),

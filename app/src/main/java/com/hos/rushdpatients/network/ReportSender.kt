@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.network
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.hos.rushdpatients.config.ProjectDataCipher
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.config.Topic
 import com.hos.rushdpatients.config.Topics
@@ -26,6 +29,8 @@ data class SendResult(
 
 @Singleton
 class ReportSender @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val dataCipher: ProjectDataCipher,
     private val telegram: TelegramClient,
     private val topics: Topics,
     private val shiftRepository: ShiftRepository,
@@ -42,16 +47,30 @@ class ReportSender @Inject constructor(
         val messageIds = mutableListOf<Long>()
 
         try {
-            for (chunk in chunks) {
-                val msg = telegram.sendMessage(
-                    chatId = topics.chatId,
-                    text = chunk,
-                    parseMode = ParseMode.MARKDOWN_V2,
-                    replyToMessageId = null,
-                    disableNotification = true,
-                    messageThreadId = topics.threadId(Topic.REPORTS)
-                )
-                messageIds += msg.messageId
+            if (dataCipher.enabled) {
+                val file = File.createTempFile("text_report_", ".txt", context.cacheDir)
+                try {
+                    file.writeText(chunks.joinToString("\n\n"), Charsets.UTF_8)
+                    val msg = telegram.sendDocument(
+                        chatId = topics.chatId, file = file,
+                        messageThreadId = topics.threadId(Topic.REPORTS)
+                    )
+                    messageIds += msg.messageId
+                } finally {
+                    file.delete()
+                }
+            } else {
+                for (chunk in chunks) {
+                    val msg = telegram.sendMessage(
+                        chatId = topics.chatId,
+                        text = chunk,
+                        parseMode = ParseMode.MARKDOWN_V2,
+                        replyToMessageId = null,
+                        disableNotification = true,
+                        messageThreadId = topics.threadId(Topic.REPORTS)
+                    )
+                    messageIds += msg.messageId
+                }
             }
         } catch (e: CancellationException) {
             throw e
@@ -73,7 +92,7 @@ class ReportSender @Inject constructor(
             reportMessageId = messageIds.first(),
             pdfMessageId = null,
             actor = actor,
-            detail = "text; ${chunks.size} message(s)"
+            detail = if (dataCipher.enabled) "encrypted-text; 1 document" else "text; ${chunks.size} message(s)"
         )
 
         SendResult(messageIds, messageIds.first(), sentAt)

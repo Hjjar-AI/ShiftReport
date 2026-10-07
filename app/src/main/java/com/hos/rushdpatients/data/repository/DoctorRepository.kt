@@ -19,6 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class DoctorRepository @Inject constructor(
     private val dao: DoctorDao,
+    private val patients: PatientRepository,
     private val database: AppDatabase,
     private val settingsRepository: SettingsRepository,
     private val dispatchers: DispatcherProvider
@@ -117,8 +118,8 @@ class DoctorRepository @Inject constructor(
     }
 
     suspend fun requireNoClinicalReferences(id: String) = withContext(dispatchers.io) {
-        require(database.patientDao().countActiveReferencesToDoctor(id) == 0) {
-            "لا يمكن حذف طبيب مسؤول عن مرضى حاليين؛ أعد الإسناد أولاً"
+        require(patients.countActiveReferencesToDoctor(id) == 0) {
+            "لا يمكن حذف طبيب مسؤول عن مرضى أو مهام معلقة؛ أعد الإسناد أولاً"
         }
         val roster = database.shiftDao().getByDate(ShiftDate.current().toEpochDay())
             ?.doctorIdsCsv?.split(',').orEmpty()
@@ -130,7 +131,7 @@ class DoctorRepository @Inject constructor(
             ?.doctorIdsCsv?.split(',').orEmpty()
         getAll().filter {
             it.id in candidateIds && (it.isPermanentAdmin || it.id in roster ||
-                database.patientDao().countActiveReferencesToDoctor(it.id) > 0)
+                patients.countActiveReferencesToDoctor(it.id) > 0)
         }.mapTo(mutableSetOf()) { it.id }
     }
 
@@ -146,7 +147,7 @@ class DoctorRepository @Inject constructor(
                 }
                 if (next == null) requireNoClinicalReferences(current.id)
                 require(next == null || next.clinicalRole == current.clinicalRole ||
-                    database.patientDao().countActiveReferencesToDoctor(current.id) == 0) {
+                    patients.countActiveReferencesToDoctor(current.id) == 0) {
                     "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب ${current.fullName}"
                 }
             }

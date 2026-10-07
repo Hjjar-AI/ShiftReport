@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -106,6 +107,7 @@ private fun patientDifferences(
         compare("الخطة العلاجية", { it.treatmentPlan })
         compare("المتابعة", { it.followUp })
         compare("التحاليل", { it.labs })
+        compare("المهام", { it.tasks }) { PatientTasks.summary(it, names) }
         compare("المقيم", { it.responsibleResidentId }) { id -> id?.let { names[it] ?: it }.orEmpty() }
         compare("الاختصاصي", { it.responsibleSpecialistId }) { id -> id?.let { names[it] ?: it }.orEmpty() }
         compare("الشارات", { it.badges }) { badges ->

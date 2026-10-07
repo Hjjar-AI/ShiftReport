@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.InitialAdminConfig
 import com.hos.rushdpatients.config.ProjectConfig
+import com.hos.rushdpatients.config.ProjectDataCipher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.hos.rushdpatients.config.ProjectConfigStore
 import com.hos.rushdpatients.config.ProjectProvisioningManager
 import com.hos.rushdpatients.domain.auth.BootstrapManager
@@ -39,7 +42,13 @@ class ProjectSetupViewModel @Inject constructor(
     private val _state = MutableStateFlow(ProjectSetupUiState())
     val state: StateFlow<ProjectSetupUiState> = _state.asStateFlow()
 
-    fun setMode(value: ProjectSetupMode) = update { copy(mode = value, error = null) }
+    fun setMode(value: ProjectSetupMode) = update {
+        if (mode == value || busy) this else copy(mode = value, error = null, status = null,
+            importedProvisioning = false, telegramDataKey = "", encryptTelegram = false)
+    }
+    fun setEncryptTelegram(value: Boolean) = update {
+        if (mode == ProjectSetupMode.CREATE && !busy) copy(encryptTelegram = value, error = null) else this
+    }
     fun setHospitalName(value: String) = update { copy(hospitalName = value, error = null) }
     fun setBotToken(value: String) = update { copy(botToken = value.trim(), error = null) }
     fun setChatId(value: String) = update { copy(chatId = numeric(value, signed = true), error = null) }
@@ -76,6 +85,8 @@ class ProjectSetupViewModel @Inject constructor(
                             doctorsTopicId = config.doctorsTopicId.takeIf { id -> id > 0 }?.toString().orEmpty(),
                             provisioningPassphrase = "",
                             importedProvisioning = true,
+                            encryptTelegram = config.telegramDataKey.isNotEmpty(),
+                            telegramDataKey = config.telegramDataKey,
                             busy = false,
                             status = "تم تحميل إعدادات المشروع. اضغط التحقق والانضمام.",
                             error = null
@@ -83,6 +94,7 @@ class ProjectSetupViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
+                    if (error is CancellationException) throw error
                     _state.update {
                         it.copy(
                             provisioningPassphrase = "",
@@ -103,6 +115,10 @@ class ProjectSetupViewModel @Inject constructor(
             projectConfigStore.enterDemo()
             return
         }
+        if (input.mode == ProjectSetupMode.JOIN && !input.importedProvisioning) {
+            _state.update { it.copy(error = "استورد ملف الانضمام المشفر من المدير أولاً") }
+            return
+        }
         val config = runCatching { validate(input) }.getOrElse { error ->
             _state.update { it.copy(error = error.message ?: "تحقق من البيانات") }
             return
@@ -110,7 +126,13 @@ class ProjectSetupViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(busy = true, status = "جارٍ التحقق من البوت والمجموعة…", error = null) }
             try {
-                projectConfigStore.saveDraft(config)
+                val configured = if (input.mode == ProjectSetupMode.CREATE && input.encryptTelegram) {
+                    val key = input.telegramDataKey.takeIf { ProjectDataCipher.validKey(it) }
+                        ?: withContext(Dispatchers.IO) { ProjectDataCipher.generateKey() }
+                    _state.update { it.copy(telegramDataKey = key) }
+                    config.copy(telegramDataKey = key)
+                } else config
+                projectConfigStore.saveDraft(configured)
                 val bot = telegram.getMe()
                 require(bot.isBot) { "الرمز لا يعود إلى بوت تليجرام" }
                 val chat = telegram.getChat(config.chatId)
@@ -184,6 +206,7 @@ class ProjectSetupViewModel @Inject constructor(
         return ProjectConfig(
             hospitalName = hospitalName,
             botToken = token,
+            telegramDataKey = if (input.mode == ProjectSetupMode.JOIN || input.encryptTelegram) input.telegramDataKey else "",
             chatId = chatId,
             reportsTopicId = topic(input.reportsTopicId, "التقارير"),
             announcementsTopicId = topic(input.announcementsTopicId, "الإعلانات"),

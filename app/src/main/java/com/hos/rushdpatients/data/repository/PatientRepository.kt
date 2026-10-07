@@ -8,6 +8,7 @@ import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.util.DispatcherProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import javax.inject.Inject
@@ -21,7 +22,7 @@ class PatientRepository @Inject constructor(
 ) {
 
     fun observeForShift(shiftId: String): Flow<List<Patient>> =
-        dao.observeForShift(shiftId).map { list -> list.map(PatientMapper::fromEntity) }
+        dao.observeForShift(shiftId).map { list -> list.map(PatientMapper::fromEntity) }.flowOn(dispatchers.io)
 
     suspend fun getForShift(shiftId: String): List<Patient> = withContext(dispatchers.io) {
         dao.getForShift(shiftId).map(PatientMapper::fromEntity)
@@ -36,7 +37,10 @@ class PatientRepository @Inject constructor(
     }
 
     suspend fun countActiveReferencesToDoctor(doctorId: String): Int = withContext(dispatchers.io) {
-        dao.countActiveReferencesToDoctor(doctorId)
+        dao.countActiveReferencesToDoctor(doctorId) + dao.getAll().count { entity ->
+            entity.deletedAtEpochMillis == null &&
+                PatientMapper.fromEntity(entity).tasks.any { !it.done && it.ownerDoctorId == doctorId }
+        }
     }
 
     suspend fun countForShift(shiftId: String): Int = withContext(dispatchers.io) {

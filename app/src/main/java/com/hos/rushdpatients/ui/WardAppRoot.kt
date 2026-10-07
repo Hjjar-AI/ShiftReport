@@ -35,7 +35,6 @@ import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.ui.login.LoginScreen
-import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import com.hos.rushdpatients.ui.login.PinUnlockScreen
 import com.hos.rushdpatients.ui.navigation.WardNavHost
 import com.hos.rushdpatients.ui.setup.ProjectSetupScreen
@@ -50,7 +49,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
-import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @HiltViewModel
@@ -162,7 +160,6 @@ fun WardAppRoot(
     val projectConfig by viewModel.projectConfig.collectAsStateWithLifecycle()
 
     var needsUnlock by remember { mutableStateOf(false) }
-    var showingSplash by remember { mutableStateOf(true) }
     var foregroundTick by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -190,16 +187,6 @@ fun WardAppRoot(
             return@LaunchedEffect
         }
         needsUnlock = viewModel.shouldPromptUnlock()
-    }
-
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        delay(12_000)
-        showingSplash = false
-    }
-
-    if (showingSplash) {
-        IntroAboutScreen(splash = true, onBack = { showingSplash = false })
-        return
     }
 
     val current = session

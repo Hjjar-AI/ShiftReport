@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.network.telegram
 
+import com.hos.rushdpatients.config.ProjectDataCipher
 import com.hos.rushdpatients.config.BotTokenProvider
 import com.hos.rushdpatients.network.telegram.dto.TgChat
 import com.hos.rushdpatients.network.telegram.dto.TgChatMember
@@ -27,6 +28,7 @@ import javax.inject.Singleton
 @Singleton
 class TelegramClient @Inject constructor(
     private val tokenProvider: BotTokenProvider,
+    private val dataCipher: ProjectDataCipher,
     private val json: Json,
     private val dispatchers: DispatcherProvider,
     private val rateLimiter: TelegramRateLimiter,
@@ -58,11 +60,13 @@ class TelegramClient @Inject constructor(
         disableWebPagePreview: Boolean = false,
         messageThreadId: Long? = null
     ): TgMessage {
+        val wireText = dataCipher.encodeText(text)
+        val wireParseMode = if (dataCipher.enabled) null else parseMode
         val body = FormBody.Builder()
             .add("chat_id", chatId.toString())
-            .add("text", text)
+            .add("text", wireText)
             .apply {
-                parseMode?.let { add("parse_mode", it.wire) }
+                wireParseMode?.let { add("parse_mode", it.wire) }
                 replyToMessageId?.let {
                     add("reply_to_message_id", it.toString())
                     add("allow_sending_without_reply", "true")
@@ -81,11 +85,13 @@ class TelegramClient @Inject constructor(
         text: String,
         parseMode: ParseMode? = ParseMode.MARKDOWN_V2
     ): TgMessage {
+        val wireText = dataCipher.encodeText(text)
+        val wireParseMode = if (dataCipher.enabled) null else parseMode
         val body = FormBody.Builder()
             .add("chat_id", chatId.toString())
             .add("message_id", messageId.toString())
-            .add("text", text)
-            .apply { parseMode?.let { add("parse_mode", it.wire) } }
+            .add("text", wireText)
+            .apply { wireParseMode?.let { add("parse_mode", it.wire) } }
             .build()
         return callAndUnwrap("editMessageText", chatId, body)
     }
@@ -96,11 +102,13 @@ class TelegramClient @Inject constructor(
         caption: String,
         parseMode: ParseMode? = ParseMode.MARKDOWN_V2
     ): TgMessage {
+        val wireCaption = dataCipher.encodeText(caption)
+        val wireParseMode = if (dataCipher.enabled) null else parseMode
         val body = FormBody.Builder()
             .add("chat_id", chatId.toString())
             .add("message_id", messageId.toString())
-            .add("caption", caption)
-            .apply { parseMode?.let { add("parse_mode", it.wire) } }
+            .add("caption", wireCaption)
+            .apply { wireParseMode?.let { add("parse_mode", it.wire) } }
             .build()
         return callAndUnwrap("editMessageCaption", chatId, body)
     }
@@ -173,23 +181,30 @@ class TelegramClient @Inject constructor(
         disableNotification: Boolean = true,
         messageThreadId: Long? = null
     ): TgMessage {
-        val builder = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("chat_id", chatId.toString())
-            .addFormDataPart(
-                "document",
-                file.name,
-                file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
-            )
-        caption?.let { builder.addFormDataPart("caption", it) }
-        parseMode?.let { builder.addFormDataPart("parse_mode", it.wire) }
-        replyToMessageId?.let {
-            builder.addFormDataPart("reply_to_message_id", it.toString())
-            builder.addFormDataPart("allow_sending_without_reply", "true")
+        val encrypted = dataCipher.encryptedDocument(file)
+        try {
+            val upload = encrypted ?: file
+            val builder = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("chat_id", chatId.toString())
+                .addFormDataPart(
+                    "document",
+                    if (encrypted != null) "project-data.srdata" else file.name,
+                    upload.asRequestBody("application/octet-stream".toMediaTypeOrNull())
+                )
+            val wireCaption = if (encrypted != null) "بيانات مشروع مشفرة" else caption
+            wireCaption?.let { builder.addFormDataPart("caption", it) }
+            if (encrypted == null) parseMode?.let { builder.addFormDataPart("parse_mode", it.wire) }
+            replyToMessageId?.let {
+                builder.addFormDataPart("reply_to_message_id", it.toString())
+                builder.addFormDataPart("allow_sending_without_reply", "true")
+            }
+            if (disableNotification) builder.addFormDataPart("disable_notification", "true")
+            messageThreadId?.let { builder.addFormDataPart("message_thread_id", it.toString()) }
+            return callAndUnwrap("sendDocument", chatId, builder.build(), needsUpload = true)
+        } finally {
+            encrypted?.delete()
         }
-        if (disableNotification) builder.addFormDataPart("disable_notification", "true")
-        messageThreadId?.let { builder.addFormDataPart("message_thread_id", it.toString()) }
-        return callAndUnwrap("sendDocument", chatId, builder.build(), needsUpload = true)
     }
 
     suspend fun getFile(fileId: String): TgFile {
@@ -228,6 +243,12 @@ class TelegramClient @Inject constructor(
                     cause = e
                 )
             }
+            try {
+                dataCipher.decryptDocument(destination)
+            } catch (e: Exception) {
+                destination.delete()
+                throw e
+            }
             destination
         }
     }
@@ -236,7 +257,12 @@ class TelegramClient @Inject constructor(
 
     suspend fun getChat(chatId: Long): TgChat {
         val body = FormBody.Builder().add("chat_id", chatId.toString()).build()
-        return callAndUnwrap("getChat", chatId, body)
+        val chat: TgChat = callAndUnwrap("getChat", chatId, body)
+        val pinned = chat.pinnedMessage ?: return chat
+        return chat.copy(pinnedMessage = pinned.copy(
+            text = dataCipher.decodeText(pinned.text, requireEncrypted = true),
+            caption = dataCipher.decodeText(pinned.caption)
+        ))
     }
 
     suspend fun getChatAdministrators(chatId: Long): List<TgChatMember> {

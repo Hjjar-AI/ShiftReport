@@ -51,6 +51,7 @@ data class PatientEntity(
     val treatmentPlan: String,
     val followUp: String,
     val labs: String,
+    @androidx.room.ColumnInfo(defaultValue = "'[]'") val tasksJson: String = "[]",
     val responsibleResidentId: String?,
     val responsibleSpecialistId: String?,
     val warningFlagsCsv: String,

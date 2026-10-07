@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.domain.patient
 
+import com.hos.rushdpatients.domain.task.PatientTasks
 import com.hos.rushdpatients.data.model.Patient
 
 sealed interface PatientValidationResult {
@@ -15,7 +16,8 @@ enum class PatientValidationError {
     INITIAL_DIAGNOSIS_EMPTY,
     TREATMENT_PLAN_EMPTY,
     FOLLOW_UP_EMPTY,
-    RESIDENT_EQUALS_SUPERVISOR
+    RESIDENT_EQUALS_SUPERVISOR,
+    TASKS_INVALID
 }
 
 object PatientValidator {
@@ -49,6 +51,10 @@ object PatientValidator {
         ) {
             errors += PatientValidationError.RESIDENT_EQUALS_SUPERVISOR
         }
+
+        if (runCatching {
+                PatientTasks.requireValid(patient.tasks, requireCompletion = false)
+            }.isFailure) errors += PatientValidationError.TASKS_INVALID
 
         return if (errors.isEmpty()) {
             PatientValidationResult.Valid

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.data.model.PatientTaskCodec
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
@@ -110,6 +111,8 @@ object CsvCodec {
         append(p.updatedAt.toEpochMilli())
         append(',')
         append(p.revision)
+        append(',')
+        append(escape(PatientTaskCodec.encode(p.tasks)))
     }
 
     private fun escape(value: String): String {
@@ -168,7 +171,8 @@ object CsvCodec {
 
         val header = rows[1].map { it.trim() }
         val indexOf = header.withIndex().associate { (i, name) -> name to i }
-        val requiredColumns = CsvSchema.COLUMNS.take(14)
+        val requiredColumns = CsvSchema.COLUMNS.take(14) +
+            if (version != null && version >= 7) listOf(CsvSchema.COL_TASKS) else emptyList()
         val missingColumns = requiredColumns.filterNot(indexOf::containsKey)
         require(missingColumns.isEmpty()) {
             "أعمدة CSV مفقودة: ${missingColumns.joinToString()}"
@@ -276,6 +280,7 @@ object CsvCodec {
             treatmentPlan = field(CsvSchema.COL_TREATMENT_PLAN),
             followUp = field(CsvSchema.COL_FOLLOW_UP),
             labs = field(CsvSchema.COL_LABS),
+            tasks = PatientTaskCodec.decode(field(CsvSchema.COL_TASKS)),
             responsibleResidentId = residentId,
             responsibleSpecialistId = specialistId,
             badges = badges,

@@ -4,7 +4,7 @@ object AppConstants {
 
     // Database
     const val DATABASE_NAME = "rushd_patients.db"
-    const val DATABASE_VERSION = 4
+    const val DATABASE_VERSION = 5
 
     // Table limits
     const val MAX_PATIENTS_PER_SHIFT = 200

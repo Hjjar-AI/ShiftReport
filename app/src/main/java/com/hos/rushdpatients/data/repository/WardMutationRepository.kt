@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.data.repository
 
+import com.hos.rushdpatients.data.model.PatientTaskCodec
+import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.room.withTransaction
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.db.AppDatabase
@@ -16,6 +18,7 @@ import javax.inject.Singleton
 class WardMutationRepository @Inject constructor(
     private val database: AppDatabase,
     private val patients: PatientRepository,
+    private val doctors: DoctorRepository,
     private val shifts: ShiftRepository,
     private val settings: SettingsRepository,
     private val audit: AuditRepository,
@@ -42,7 +45,8 @@ class WardMutationRepository @Inject constructor(
                 "تم الوصول إلى الحد الأقصى لعدد المرضى"
             }
             val order = (patients.getForShift(shiftId).maxOfOrNull { it.sortOrder } ?: 0) + 1
-            val added = patient.copy(
+            val prepared = prepareTasks(patient, null, actor)
+            val added = prepared.copy(
                 sortOrder = order,
                 revision = 1,
                 lastEditedByDoctorId = actor?.doctorId,
@@ -59,7 +63,7 @@ class WardMutationRepository @Inject constructor(
         mutate(shiftId) {
             val before = patients.getById(patient.id)
             val updated = patients.updateOptimistically(
-                patient.copy(
+                prepareTasks(patient, before, actor).copy(
                     lastEditedByDoctorId = actor?.doctorId,
                     lastEditedByName = actor?.doctorName
                 ),
@@ -131,6 +135,34 @@ class WardMutationRepository @Inject constructor(
         )
     }
 
+    private suspend fun prepareTasks(patient: Patient, before: Patient?, actor: Session?): Patient {
+        PatientTasks.requireValid(patient.tasks, requireCompletion = false)
+        val previous = before?.tasks.orEmpty().associateBy { it.id }
+        val tasks = patient.tasks.map { draft ->
+            val old = previous[draft.id]
+            val owner = draft.ownerDoctorId?.let { doctors.getById(it) }
+            if (draft.ownerDoctorId != null && (!draft.done || old?.ownerDoctorId != draft.ownerDoctorId)) {
+                require(owner != null && !owner.isDeleted) { "مسؤول المهمة غير موجود أو غير فعال" }
+            }
+            val task = draft.copy(ownerName = if (draft.ownerDoctorId == null) null else owner?.fullName ?: old?.ownerName)
+            when {
+                !task.done -> task.copy(description = task.description.trim(), completedByDoctorId = null,
+                    completedByName = null, completedAtEpochMillis = null)
+                old?.done == true -> task.copy(description = task.description.trim(),
+                    completedByDoctorId = old.completedByDoctorId, completedByName = old.completedByName,
+                    completedAtEpochMillis = old.completedAtEpochMillis)
+                else -> {
+                    val completer = actor?.doctorId?.let { doctors.getById(it) }
+                    require(completer != null && !completer.isDeleted) { "سجّل الدخول لإتمام المهمة" }
+                    task.copy(description = task.description.trim(), completedByDoctorId = completer.id,
+                        completedByName = completer.fullName, completedAtEpochMillis = java.time.Instant.now().toEpochMilli())
+                }
+            }
+        }
+        PatientTasks.requireValid(tasks)
+        return patient.copy(tasks = tasks)
+    }
+
     private suspend fun recordPatientChange(
         actor: Session?, action: String, before: Patient?, after: Patient?
     ) {
@@ -151,6 +183,7 @@ class WardMutationRepository @Inject constructor(
         append(";plan=").append(patient.treatmentPlan)
         append(";followUp=").append(patient.followUp)
         append(";labs=").append(patient.labs)
+        append(";tasks=").append(PatientTaskCodec.encode(patient.tasks))
         append(";resident=").append(patient.responsibleResidentId.orEmpty())
         append(";supervisor=").append(patient.responsibleSpecialistId.orEmpty())
         append(";badges=").append(patient.badges.joinToString("|") { badge ->

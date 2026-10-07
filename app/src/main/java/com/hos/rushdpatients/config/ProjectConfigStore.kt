@@ -27,6 +27,7 @@ data class ProjectConfig(
     val announcementsTopicId: Long = 0L,
     val csvTopicId: Long = 0L,
     val doctorsTopicId: Long = 0L,
+    val telegramDataKey: String = "",
     val initialAdmin: InitialAdminConfig = InitialAdminConfig()
 )
 
@@ -79,6 +80,7 @@ class ProjectConfigStore @Inject constructor(
             .putBoolean(KEY_DEMO_MODE, config.demoMode)
             .putString(KEY_HOSPITAL_NAME, config.hospitalName)
             .putString(KEY_BOT_TOKEN, config.botToken)
+            .putString(KEY_TELEGRAM_DATA_KEY, config.telegramDataKey)
             .putLong(KEY_CHAT_ID, config.chatId)
             .putLong(KEY_REPORTS_TOPIC, config.reportsTopicId)
             .putLong(KEY_ANNOUNCEMENTS_TOPIC, config.announcementsTopicId)
@@ -97,6 +99,7 @@ class ProjectConfigStore @Inject constructor(
         demoMode = prefs.getBoolean(KEY_DEMO_MODE, false),
         hospitalName = prefs.getString(KEY_HOSPITAL_NAME, "").orEmpty(),
         botToken = prefs.getString(KEY_BOT_TOKEN, "").orEmpty(),
+        telegramDataKey = prefs.getString(KEY_TELEGRAM_DATA_KEY, "").orEmpty(),
         chatId = prefs.getLong(KEY_CHAT_ID, 0L),
         reportsTopicId = prefs.getLong(KEY_REPORTS_TOPIC, 0L),
         announcementsTopicId = prefs.getLong(KEY_ANNOUNCEMENTS_TOPIC, 0L),
@@ -116,6 +119,7 @@ class ProjectConfigStore @Inject constructor(
         const val KEY_DEMO_MODE = "demo_mode"
         const val KEY_HOSPITAL_NAME = "hospital_name"
         const val KEY_BOT_TOKEN = "bot_token"
+        const val KEY_TELEGRAM_DATA_KEY = "telegram_data_key"
         const val KEY_CHAT_ID = "chat_id"
         const val KEY_REPORTS_TOPIC = "reports_topic"
         const val KEY_ANNOUNCEMENTS_TOPIC = "announcements_topic"

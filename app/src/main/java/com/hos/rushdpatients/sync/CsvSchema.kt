@@ -3,7 +3,7 @@ package com.hos.rushdpatients.sync
 object CsvSchema {
 
     const val META_PREFIX = "#"
-    const val CURRENT_VERSION = 6
+    const val CURRENT_VERSION = 7
     val SUPPORTED_VERSIONS = 3..CURRENT_VERSION
 
     // Column order — this is the on-wire format.
@@ -28,7 +28,8 @@ object CsvSchema {
         "lastEditedByDoctorId",
         "lastEditedBy",
         "updatedAt",
-        "revision"
+        "revision",
+        "tasksJson"
     )
 
     const val COL_EXTERNAL_ID = "externalId"
@@ -52,6 +53,7 @@ object CsvSchema {
     const val COL_LAST_EDITED_BY = "lastEditedBy"
     const val COL_UPDATED_AT = "updatedAt"
     const val COL_REVISION = "revision"
+    const val COL_TASKS = "tasksJson"
 
     const val META_SHIFT_DATE = "shiftDate"
     const val META_SHIFT_ID = "shiftId"

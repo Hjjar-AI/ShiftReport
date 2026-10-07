@@ -1,73 +1,59 @@
 # ShiftReport remaining work
 
-This file contains only remaining work. Completed items are tracked in [workDone.md](workDone.md).
+This file contains only remaining work. Completed items are tracked in [workDone.md](workDone.md). Design and architecture basis are documented in [designAndArchitecture.md](designAndArchitecture.md).
 
-## Accepted synchronization scope
+## P0 — production signing
 
-Telegram remains the shared storage and delivery channel. Users retrieve published data and publish updates; the last successful pinned-state write wins. Simultaneous collaborative editing and guaranteed preservation of competing remote publications are outside the required scope. Telegram pinned state is not an atomic multi-writer database; this limitation is accepted, not a release blocker. A separate authoritative service is not required. Existing local stale-edit checks, merge/conflict handling, authorization, and report confirmation remain in place.
-
-## P0 — local correctness and release safety
-
-1. Verify the main retrieve/edit/publish workflow before release.
-   - Retrieve the published shift and doctor registry, edit local data, and publish updates.
-   - Verify doctor import, administrator permissions, and supervisor-group settings.
-   - Confirm that report review and sending work as expected.
-
-2. Configure production signing before distribution.
+1. Configure production signing before distribution.
    - Release currently uses the debug signing configuration. Configure a protected release keystore through local/CI secrets without committing keys or passwords.
-   - Verify the signed release only when build/package work is explicitly authorized.
 
-## P1 — patient tasks, acknowledgment, and downtime
+## P1 — critical-change acknowledgment
 
-1. Promote structured patient tasks into the core model.
-   - Description, owner, due time or shift, priority, pending/done state, completion actor, and completion timestamp.
-   - Overdue and unassigned tasks appear in the shift dashboard and “My patients.”
-   - Pending tasks carry forward explicitly during rollover rather than being hidden in follow-up text.
-
-2. Add closed-loop critical-change acknowledgment.
-   - Use structured tasks with explicit recipient and acknowledgment records and Telegram-compatible delivery. Record owner, recipients, sent time, seen time, and acknowledged time.
-   - Record observation and acknowledgment explicitly in the app; Telegram delivery alone does not establish either.
-   - Keep unacknowledged critical items pinned above routine activity.
-   - Escalate by age and severity without repeatedly alerting for low-value updates.
+1. Add closed-loop critical-change acknowledgment.
+   - Build on the implemented structured task model. Store owner, recipients, successful delivery time, and explicit acknowledgment actor/time in synchronized records.
+   - Record seen time only from an authenticated in-app viewing action; downloading data or sending a Telegram message does not establish that a recipient read it.
+   - Use the existing optional encryption for clinical notification content. Keep the accepted last-write-wins scope; guaranteed preservation of competing acknowledgments is outside scope.
    - Never use color alone; show a label, icon, and timestamp.
-
-3. Add a verified downtime view.
-   - Store the last verified handoff separately with its verification time.
-   - Connect the live connectivity indicator to snapshot age and a prominent stale-data banner, preserving pending local changes separately.
-   - Provide a compact printable/exportable downtime sheet and record later reconciliation.
 
 ## P2 — setup and access
 
-1. Complete secure multi-device provisioning and credential lifecycle.
-   - Retain encrypted join-file provisioning for the Telegram-based app; verify the intended project identity before import and never place a raw reusable bot token in a QR code.
-   - Add bot-token rotation/revocation and reconnect with explicit protection for local project data.
+1. Add bot-token rotation/revocation and safe reconnect.
+   - Distribute updated connection settings through password-protected join files; joining remains file-only.
+   - Preserve the existing data-encryption key when replacing credentials for the same project. Bot-token replacement must not generate a new data key or imply re-encryption of existing Telegram records.
+   - Distinguish reconnecting to the same project from switching projects. A switch must explicitly protect or clear local clinical data before using the new project's credentials and key.
 
-2. Enforce authorization inside the legacy VBA importer itself, in addition to its navigation guard, when importer/migration files are explicitly in scope for review.
+## Far future — optional voice dictation
 
-## P3 — remaining UI model dependencies and device validation
+1. Start with field-by-field dictation for diagnosis, treatment, and follow-up.
+   - Suggested first approach: Android's explicit on-device `SpeechRecognizer`, checking device/language availability and keeping ordinary typing available.
+   - For an app-managed offline engine, consider multilingual Whisper through `whisper.cpp`, or Sherpa-ONNX with a suitable Arabic-capable model. Account for model storage, native integration, and phone processing requirements.
+   - Cloud recognition, such as Google Cloud Speech-to-Text, is an alternative only if external audio processing is deliberately chosen; it requires connectivity, service credentials, and usage costs.
+   - Prefer local audio processing. Insert speech results as editable drafts and require visual review and explicit Save.
 
-1. Show task counts in collapsed cards after the structured task model in P1 exists.
-   - Show overdue and pending task counts using the stored task state.
-   - Do not infer these clinical states from free-form follow-up text.
+2. Consider guided section-by-section dictation, followed later by whole-handoff field suggestions.
+   - Whole-handoff assignment could use Arabic section labels or a separate language model to propose field mappings; retain user review before applying them.
+   - Model choice should account for Syrian Arabic, mixed Arabic/English speech, medication names, and doses.
 
-2. Validate the UI on representative phones, tablets, and foldables.
-   - Check light/dark contrast, large fonts, keyboard use, TalkBack, and 48dp interaction targets.
-   - Check navigation, list/detail panes, resizing, patient forms, and report/support sheets.
-   - Check Activity search, filters, and saved scroll position.
-   - Verify launcher and system-screen emblem rendering.
+Technology references: [Android SpeechRecognizer](https://developer.android.com/reference/android/speech/SpeechRecognizer), [whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Sherpa-ONNX](https://k2-fsa.github.io/sherpa/onnx/index.html), and [Google Cloud Speech-to-Text languages](https://docs.cloud.google.com/speech-to-text/docs/speech-to-text-supported-languages).
 
-## Later — optional differentiators
+## Far far future — optional specialty templates
 
-- On-device voice capture that fills a draft handoff but always requires visual confirmation before saving.
-- A privacy-safe shift quality view showing handoff completeness and acknowledgment delays, never clinician “scores.”
-- Saved ward rounds with a deliberate patient order, progress indicator, and pause/resume across devices.
-- Configurable specialty templates built on the same core handoff fields rather than separate incompatible schemas.
+These are design suggestions, not implemented features or near-term requirements.
 
-## External design basis
+1. Adapt form presentation to a department while retaining the existing patient fields.
+   - Suggested starting point: a configurable psychiatry template with prompts for mental state, sleep, behavior, medication response, and observation needs.
+   - Other possible templates: internal medicine (active problems, investigations, treatment response), surgery (procedure/date, wound/drains, diet, mobility), and pediatrics (weight, feeding, hydration).
+   - Let administrators configure field order, section emphasis, prompts, text outlines, suggested badges, and report headings, with a preview before publication.
+   - Keep diagnosis, treatment, follow-up, and laboratory storage/report mappings fixed. Templates must not automatically assign findings, prescribe treatment, or remove saved clinical content.
 
-- Android adaptive canonical layouts: list-detail for patient browsing and detail, plus adaptive navigation for bar/rail switching.
-- Android Compose accessibility: 48dp interactive targets, meaningful semantics, headings, and live-region announcements.
-- I-PASS / structured handoff guidance: acuity, summary, actions, contingency planning, and receiver synthesis.
-- NHS warning guidance: concise, specific warnings reserved for significant or time-critical information.
-- WCAG 2.2: visible focus, target size, programmatic status messages, and interaction that does not rely on color alone.
-- Coolors palette exploration: distinct olive, oceanic, navy/gold, and muted-violet families, adjusted where required for readable foreground contrast.
+2. Share template configuration through the existing Telegram project.
+   - Publish a template file containing stable template IDs, names, and presentation settings; add a reference to it in pinned synchronization state.
+   - Cache templates locally for offline use and retrieve updates during ordinary synchronization. Admin publication follows the accepted last-successful-write-wins behavior.
+   - Encrypt the template file with the existing shared project key when project encryption is enabled.
+   - Store a project-default template selection. Compatibility handling is needed for clients that do not understand template settings.
+
+3. Keep patient entry and reports stable across template updates.
+   - New form sessions use the current template; open editors retain their layout until closed.
+   - Template changes must not rewrite existing patient data. Missing or unsupported templates fall back to the standard form.
+   - Reports must retain saved clinical content even when a template hides a field in the editor; template headings cannot override report inclusion rules.
+   - Searchable custom measurements or new clinical fields would require separate model, persistence, synchronization, and reporting work beyond presentation templates.

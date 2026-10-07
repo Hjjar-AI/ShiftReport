@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.data.mapper
 
+import com.hos.rushdpatients.data.model.PatientTaskCodec
 import com.hos.rushdpatients.data.db.entity.PatientEntity
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
@@ -24,6 +25,7 @@ object PatientMapper {
         treatmentPlan = patient.treatmentPlan,
         followUp = patient.followUp,
         labs = patient.labs,
+        tasksJson = PatientTaskCodec.encode(patient.tasks),
         responsibleResidentId = patient.responsibleResidentId,
         responsibleSpecialistId = patient.responsibleSpecialistId,
         // Existing columns are intentionally reused so a fresh database does not need
@@ -53,6 +55,7 @@ object PatientMapper {
         treatmentPlan = entity.treatmentPlan,
         followUp = entity.followUp,
         labs = entity.labs,
+        tasks = PatientTaskCodec.decode(entity.tasksJson),
         responsibleResidentId = entity.responsibleResidentId,
         responsibleSpecialistId = entity.responsibleSpecialistId,
         badges = PatientBadgeCodec.decode(entity.warningDetailsEncoded, entity.warningFlagsCsv),

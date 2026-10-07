@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.domain.report
 
+import com.hos.rushdpatients.domain.task.PatientTasks
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Shift
@@ -118,6 +119,13 @@ class TextReportBuilder @Inject constructor() {
             append(Markdown.escape(":"))
             append('\n')
             append(Markdown.escape(patient.followUp))
+        }
+        if (patient.tasks.isNotEmpty()) {
+            append('\n')
+            append(Markdown.underline("المهام"))
+            append('\n')
+            append(Markdown.escape(PatientTasks.summary(
+                patient.tasks, residentNames + supervisorNames)))
         }
         if (patient.labs.isNotBlank()) {
             append('\n')

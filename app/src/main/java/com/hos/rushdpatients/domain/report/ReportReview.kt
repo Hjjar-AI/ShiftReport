@@ -27,7 +27,7 @@ object ReportReview {
 
     private fun relevantDoctors(report: BuiltReport): List<Doctor> {
         val ids = report.shift.doctorIds.toSet() + report.patients.flatMap {
-            listOfNotNull(it.responsibleResidentId, it.responsibleSpecialistId)
+            listOfNotNull(it.responsibleResidentId, it.responsibleSpecialistId) + it.tasks.mapNotNull { task -> task.ownerDoctorId }
         }
         return report.registryDoctors.filter { it.id in ids }.sortedBy { it.id }.map {
             it.copy(updatedAt = Instant.EPOCH, extraOptions = emptySet(), telegramUsername = null)

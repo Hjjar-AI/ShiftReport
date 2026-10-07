@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -101,7 +102,7 @@ fun PatientDetailsScreen(
                         ) {
                             PatientDetailSection.entries.forEach { option ->
                                 val count = when (option) {
-                                    PatientDetailSection.TASKS -> patient.followUp.lineSequence().count { it.isNotBlank() }
+                                    PatientDetailSection.TASKS -> patient.tasks.count { !it.done }
                                     PatientDetailSection.WARNINGS -> patient.badges.size
                                     PatientDetailSection.HISTORY -> activity.size.coerceAtLeast(1)
                                     else -> 0
@@ -155,11 +156,9 @@ fun PatientDetailsScreen(
                         onDelete = {}
                     )
                     PatientDetailSection.TASKS -> DetailTextSection(
-                        title = "مهام ومتابعة المناوبة",
-                        content = patient.followUp.lineSequence()
-                            .filter { it.isNotBlank() }
-                            .joinToString("\n")
-                            .ifBlank { "لا توجد مهام أو متابعة مسجلة" }
+                        title = "مهام المريض",
+                        content = PatientTasks.summary(patient.tasks, doctorNames)
+                            .ifBlank { "لا توجد مهام مسجلة" }
                     )
                     PatientDetailSection.WARNINGS -> DetailTextSection(
                         title = "شارة المريض",

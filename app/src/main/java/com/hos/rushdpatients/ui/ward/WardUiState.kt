@@ -46,6 +46,7 @@ data class WardUiState(
     val shift: Shift? = null,
     val isReadOnly: Boolean = false,
     val patients: List<Patient> = emptyList(),
+    val taskNowEpochMillis: Long = System.currentTimeMillis(),
     val deletedPatients: List<Patient> = emptyList(),
     val patientDraft: PatientDraft? = null,
     val rolloverPatients: List<Patient> = emptyList(),

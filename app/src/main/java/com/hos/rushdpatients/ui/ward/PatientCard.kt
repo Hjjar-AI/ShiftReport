@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -92,11 +93,13 @@ fun PatientCard(
     onExpandToggle: () -> Unit = {},
     showViewControls: Boolean = true,
     compact: Boolean = false,
+    taskNowEpochMillis: Long = System.currentTimeMillis(),
     modifier: Modifier = Modifier
 ) {
     // The live ward uses one predictable clinical hierarchy. Legacy style values are
     // retained only so older stored preferences continue to decode safely.
     val effectiveStyle = PatientCardStyle.BADGE_HEADER
+    val taskCounts = PatientTasks.counts(patient.tasks, taskNowEpochMillis)
     val clinicalColors = LocalClinicalColors.current
     val admissionCount = remember(patient.admittanceNumber) {
         patient.admittanceNumber.toIntOrNull() ?: 0
@@ -119,6 +122,7 @@ fun PatientCard(
                     if (patient.badges.isNotEmpty()) {
                         append("، ").append(patient.badges.size).append(" شارات")
                     }
+                    if (patient.tasks.isNotEmpty()) append("، مهام معلقة ${taskCounts.pending}، منها متأخرة ${taskCounts.overdue}")
                     if (pinned) append("، مثبت مؤقتاً")
                     append("، ").append(relativeFreshness(patient.updatedAt))
                 }
@@ -258,8 +262,19 @@ fun PatientCard(
                 )
             }
 
+            if (patient.tasks.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SmallChip("${taskCounts.pending} مهمة معلقة", MaterialTheme.colorScheme.secondaryContainer,
+                        MaterialTheme.colorScheme.onSecondaryContainer)
+                    SmallChip("${taskCounts.overdue} متأخرة", if (taskCounts.overdue > 0) clinicalColors.urgentContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        if (taskCounts.overdue > 0) clinicalColors.onUrgentContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
             // -------- Expanded detail --------
             if (expanded) {
+                if (patient.tasks.isNotEmpty()) SectionBlock("المهام",
+                    PatientTasks.summary(patient.tasks, doctorNames))
                 Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 if (effectiveStyle == PatientCardStyle.ICON_ROWS ||
                     effectiveStyle == PatientCardStyle.FIELD_MONOGRAMS

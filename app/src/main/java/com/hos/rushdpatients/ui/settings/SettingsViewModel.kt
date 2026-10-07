@@ -68,6 +68,9 @@ class SettingsViewModel @Inject constructor(
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
+    // Encrypted bytes only: survive Activity recreation without saving the passphrase.
+    private var pendingProvisioning: ByteArray? = null
+
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
     init {
@@ -550,29 +553,86 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun exportProjectProvisioning(uri: Uri, passphrase: String) {
+    fun prepareProjectProvisioning(passphrase: String) {
         if (_state.value.provisioningBusy) return
-        _state.update { it.copy(provisioningBusy = true, snackbar = null) }
+        _state.update { it.copy(provisioningBusy = true, provisioningReady = false, snackbar = null) }
+        val password = passphrase.toCharArray()
         viewModelScope.launch {
-            runCatching {
+            try {
                 adminAuthorizer.requireAdmin()
-                provisioningManager.export(uri, projectConfigStore.current(), passphrase.toCharArray())
-            }.onSuccess {
+                pendingProvisioning = provisioningManager.prepareExport(projectConfigStore.current(), password)
+                _state.update { it.copy(provisioningReady = true) }
+            } catch (e: CancellationException) {
+                clearPendingProvisioning()
+                _state.update { it.copy(provisioningBusy = false, provisioningReady = false) }
+                throw e
+            } catch (e: Exception) {
+                clearPendingProvisioning()
                 _state.update {
-                    it.copy(
-                        provisioningBusy = false,
-                        snackbar = "تم إنشاء ملف الانضمام المشفر. شارك عبارة المرور عبر قناة منفصلة."
-                    )
+                    it.copy(provisioningBusy = false, provisioningReady = false,
+                        snackbar = e.message ?: "فشل تجهيز ملف الانضمام")
                 }
-            }.onFailure { error ->
-                _state.update {
-                    it.copy(
-                        provisioningBusy = false,
-                        snackbar = error.message ?: "فشل إنشاء ملف الانضمام"
-                    )
-                }
+            } finally {
+                password.fill('\u0000')
             }
         }
+    }
+
+    fun provisioningPickerLaunched() {
+        _state.update { it.copy(provisioningReady = false) }
+    }
+
+    fun provisioningPickerFailed() {
+        clearPendingProvisioning()
+        _state.update {
+            it.copy(provisioningBusy = false, provisioningReady = false,
+                snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء ملف الانضمام")
+        }
+    }
+
+    fun exportProjectProvisioning(uri: Uri?) {
+        val encrypted = pendingProvisioning
+        pendingProvisioning = null
+        _state.update { it.copy(provisioningReady = false) }
+        if (uri == null) {
+            encrypted?.fill(0)
+            _state.update { it.copy(provisioningBusy = false) }
+            return
+        }
+        if (encrypted == null) {
+            _state.update {
+                it.copy(provisioningBusy = false,
+                    snackbar = "انتهت جلسة التصدير قبل الحفظ. احذف الملف الفارغ وأعد إنشاء ملف الانضمام.")
+            }
+            return
+        }
+        _state.update { it.copy(provisioningBusy = true, snackbar = null) }
+        viewModelScope.launch {
+            try {
+                adminAuthorizer.requireAdmin()
+                provisioningManager.writeExport(uri, encrypted)
+                _state.update {
+                    it.copy(snackbar = "تم حفظ ملف الانضمام المشفر والتحقق منه. شارك عبارة المرور عبر قناة منفصلة.")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = e.message ?: "فشل حفظ ملف الانضمام") }
+            } finally {
+                encrypted.fill(0)
+                _state.update { it.copy(provisioningBusy = false) }
+            }
+        }
+    }
+
+    private fun clearPendingProvisioning() {
+        pendingProvisioning?.fill(0)
+        pendingProvisioning = null
+    }
+
+    override fun onCleared() {
+        clearPendingProvisioning()
+        super.onCleared()
     }
 
     fun restoreEncryptedBackup(uri: Uri, password: String) {

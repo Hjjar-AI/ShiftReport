@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.data.model.PatientTask
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -27,6 +28,7 @@ data class PatientDraft(
     val labDraft: String = "",
     val residentId: String? = null,
     val specialistId: String? = null,
+    val tasks: List<PatientTask> = emptyList(),
     val badges: List<PatientBadgeDraft> = emptyList(),
     val badgeDraftText: String = "",
     val badgeDraftPriority: String? = null,
@@ -36,5 +38,5 @@ data class PatientDraft(
         get() = admittanceNumber.isBlank() && name.isBlank() && initialDiagnosis.isBlank() &&
             treatmentItems.isEmpty() && treatmentDraft.isBlank() && followUpItems.isEmpty() &&
             followUpDraft.isBlank() && labItems.isEmpty() && labDraft.isBlank() && badges.isEmpty() &&
-            badgeDraftText.isBlank()
+            badgeDraftText.isBlank() && tasks.isEmpty()
 }

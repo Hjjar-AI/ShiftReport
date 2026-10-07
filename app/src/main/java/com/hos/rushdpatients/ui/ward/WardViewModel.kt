@@ -1,7 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
-import android.content.Context
+import com.hos.rushdpatients.domain.task.PatientTasks
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
@@ -139,7 +140,8 @@ class WardViewModel @Inject constructor(
                 delay(60_000L)
                 _state.update { current ->
                     current.copy(
-                        isReadOnly = current.shift?.date?.let { it != ShiftDate.current() } ?: false
+                        isReadOnly = current.shift?.date?.let { it != ShiftDate.current() } ?: false,
+                        taskNowEpochMillis = System.currentTimeMillis()
                     )
                 }
             }
@@ -355,6 +357,8 @@ class WardViewModel @Inject constructor(
                     val decision = decisions[patient.id] ?: RolloverDecision.SKIP
                     patient.copy(
                         id = UUID.randomUUID().toString(),
+                        tasks = PatientTasks.carryForward(
+                            patient.tasks, clearOwners = decision == RolloverDecision.REASSIGN),
                         sortOrder = index + 1,
                         revision = 1,
                         updatedAt = Instant.now(),
@@ -438,8 +442,9 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun togglePatientDetails() {
-        val expanded = !_state.value.patientDetailsExpanded
+    fun togglePatientDetails() = setPatientDetailsExpanded(!_state.value.patientDetailsExpanded)
+
+    fun setPatientDetailsExpanded(expanded: Boolean) {
         _state.update { it.copy(patientDetailsExpanded = expanded) }
         viewModelScope.launch {
             settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED, expanded)
@@ -895,6 +900,7 @@ class WardViewModel @Inject constructor(
             PatientValidationError.INITIAL_DIAGNOSIS_EMPTY -> "التشخيص الأولي مطلوب"
             PatientValidationError.TREATMENT_PLAN_EMPTY -> "الخطة العلاجية مطلوبة"
             PatientValidationError.FOLLOW_UP_EMPTY -> "المتابعة مطلوبة"
+            PatientValidationError.TASKS_INVALID -> "بيانات المهام غير صالحة"
             PatientValidationError.RESIDENT_EQUALS_SUPERVISOR -> "المقيم والاختصاصي يجب أن يكونا مختلفين"
             null -> "بيانات المريض غير صحيحة"
         }

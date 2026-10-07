@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.pdf
 
+import com.hos.rushdpatients.domain.task.PatientTasks
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -410,7 +411,7 @@ class PdfReportExporter @Inject constructor() {
             buildAdmitCell(patient) to bodyCenterPaint,
             buildSupervisorResidentCell(patient, residentNames, supervisorNames) to bodyCenterPaint,
             patient.treatmentPlan to bodyCenterPaint,
-            buildNotesCell(patient) to bodyCenterPaint
+            buildNotesCell(patient, residentNames + supervisorNames) to bodyCenterPaint
         ).asReversed()
         return cells.mapIndexed { index, (text, paint) ->
             val maxWidth = colWidths[index] - 2 * cellPadding
@@ -517,11 +518,15 @@ class PdfReportExporter @Inject constructor() {
         }
     }
 
-    private fun buildNotesCell(patient: Patient): String {
+    private fun buildNotesCell(patient: Patient, doctorNames: Map<String, String>): String {
         val sb = StringBuilder()
         if (patient.followUp.isNotBlank()) {
             sb.append("المتابعة: ")
             sb.append(patient.followUp)
+        }
+        if (patient.tasks.isNotEmpty()) {
+            if (sb.isNotEmpty()) sb.append('\n')
+            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks, doctorNames))
         }
         if (patient.labs.isNotBlank()) {
             if (sb.isNotEmpty()) sb.append('\n')
