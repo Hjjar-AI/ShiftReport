@@ -40,6 +40,7 @@ fun ProjectConnectionAction(
     var open by remember { mutableStateOf(false) }
     var manual by remember { mutableStateOf(false) }
     var selectedFile by remember { mutableStateOf<Uri?>(null) }
+    var selectedFileName by remember(selectedFile) { mutableStateOf<String?>(null) }
     var secret by remember { mutableStateOf("") }
     var pickerError by remember { mutableStateOf<String?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -49,6 +50,9 @@ fun ProjectConnectionAction(
         }
     }
     LaunchedEffect(state.applied) { if (state.applied) onApplied() }
+    LaunchedEffect(selectedFile) {
+        selectedFileName = selectedFile?.let { viewModel.readDisplayName(it) }
+    }
 
     OutlinedButton(onClick = {
         viewModel.reset()
@@ -104,7 +108,11 @@ fun ProjectConnectionAction(
                                 }, enabled = !state.busy) {
                                     Text(if (selectedFile == null) "اختيار ملف .srjoin.json" else "تغيير الملف المختار")
                                 }
-                                if (selectedFile != null) Text("تم اختيار الملف")
+                                if (selectedFile != null) Text(
+                                    "الملف المختار: ${selectedFileName ?: "اسم الملف غير متاح"}",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                             OutlinedTextField(
                                 value = secret,

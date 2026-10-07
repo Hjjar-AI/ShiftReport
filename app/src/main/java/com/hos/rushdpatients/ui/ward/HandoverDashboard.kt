@@ -1,15 +1,16 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.domain.task.PatientTasks
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -19,12 +20,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal enum class DashboardFilter { ALL, MINE, URGENT, WARNINGS, UNASSIGNED, NEW_ADMISSIONS, TASK_PENDING, TASK_OVERDUE, TASK_UNASSIGNED }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 internal fun HandoverDashboard(
     isAdmin: Boolean,
     patients: List<Patient>,
@@ -56,33 +59,38 @@ internal fun HandoverDashboard(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
         Text("لوحة تسليم المناوبة", style = MaterialTheme.typography.headlineSmall)
         Text(
             "ملخص سريع قبل مراجعة المرضى أو نشر التقرير",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             TextButton(onClick = onSync) { Text("مزامنة") }
             if (isAdmin) TextButton(onClick = onActivity) { Text("مركز النشاط") }
             TextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
         }
-        DashboardMetric("إجمالي المرضى", patients.size, MaterialTheme.colorScheme.primaryContainer) { onFilter(DashboardFilter.ALL) }
-        DashboardMetric("مرضاي", mine, MaterialTheme.colorScheme.secondaryContainer) { onFilter(DashboardFilter.MINE) }
         DashboardMetric("عاجل أو أولوية", urgent, MaterialTheme.colorScheme.errorContainer) { onFilter(DashboardFilter.URGENT) }
-        DashboardMetric("شارات فعالة", warnings, MaterialTheme.colorScheme.tertiaryContainer) { onFilter(DashboardFilter.WARNINGS) }
-        DashboardMetric("بحاجة إلى تعيين طبيب", unassigned, MaterialTheme.colorScheme.surfaceVariant) { onFilter(DashboardFilter.UNASSIGNED) }
-        DashboardMetric("المهام المعلقة", taskCounts.pending, MaterialTheme.colorScheme.secondaryContainer) { onFilter(DashboardFilter.TASK_PENDING) }
         DashboardMetric("المهام المتأخرة (ضمن المعلقة)", taskCounts.overdue, MaterialTheme.colorScheme.errorContainer) { onFilter(DashboardFilter.TASK_OVERDUE) }
-        DashboardMetric("مهام معلقة غير معيّنة", taskCounts.unassigned, MaterialTheme.colorScheme.surfaceVariant) { onFilter(DashboardFilter.TASK_UNASSIGNED) }
-        DashboardMetric("دخول اليوم", newAdmissions, MaterialTheme.colorScheme.primaryContainer) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
+        Text("ملخص المرضى والمهام", style = MaterialTheme.typography.titleSmall)
+        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+            Column(Modifier.fillMaxWidth().padding(UiSpacing.tiny)) {
+                DashboardMetric("إجمالي المرضى", patients.size, MaterialTheme.colorScheme.surfaceVariant, compact = true) { onFilter(DashboardFilter.ALL) }
+                DashboardMetric("مرضاي", mine, MaterialTheme.colorScheme.surfaceVariant, compact = true) { onFilter(DashboardFilter.MINE) }
+                DashboardMetric("المهام المعلقة", taskCounts.pending, MaterialTheme.colorScheme.surfaceVariant, compact = true) { onFilter(DashboardFilter.TASK_PENDING) }
+                DashboardMetric("شارات فعالة", warnings, MaterialTheme.colorScheme.surfaceVariant, compact = true) { onFilter(DashboardFilter.WARNINGS) }
+                DashboardMetric("بحاجة إلى تعيين طبيب", unassigned, MaterialTheme.colorScheme.surfaceVariant, compact = true) { onFilter(DashboardFilter.UNASSIGNED) }
+                DashboardMetric("مهام معلقة غير معيّنة", taskCounts.unassigned, MaterialTheme.colorScheme.surfaceVariant, compact = true) { onFilter(DashboardFilter.TASK_UNASSIGNED) }
+                DashboardMetric("دخول اليوم", newAdmissions, MaterialTheme.colorScheme.surfaceVariant, compact = true) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
+            }
+        }
         Surface(
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.padding(UiSpacing.medium), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Text("حالة المناوبة", style = MaterialTheme.typography.titleMedium)
                 Text("حالة البيانات: ${syncStatus.arabicLabel}")
                 Text("استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر")
@@ -91,28 +99,32 @@ internal fun HandoverDashboard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DashboardMetric(
     label: String,
     count: Int,
     color: androidx.compose.ui.graphics.Color,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onClick),
+            .heightIn(min = UiSpacing.touchTarget)
+            .clickable(role = Role.Button, onClickLabel = "عرض $label", onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         color = color
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.padding(horizontal = UiSpacing.medium,
+                vertical = if (compact) UiSpacing.small else UiSpacing.medium),
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, style = MaterialTheme.typography.titleMedium)
-            Text(count.toString(), style = MaterialTheme.typography.headlineSmall)
+            Text(label, modifier = Modifier.weight(1f), style = if (compact)
+                MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium)
+            Text(count.toString(), style = if (compact)
+                MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall)
         }
     }
 }

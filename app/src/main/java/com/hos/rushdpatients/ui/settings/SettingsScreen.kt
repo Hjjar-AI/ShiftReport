@@ -2,6 +2,9 @@ package com.hos.rushdpatients.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -42,6 +45,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -56,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -84,7 +90,7 @@ import com.hos.rushdpatients.ui.theme.AppThemePreset
 import com.hos.rushdpatients.sync.CsvSchema
 import kotlinx.coroutines.CancellationException
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     isAdmin: Boolean,
@@ -97,7 +103,29 @@ fun SettingsScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val settingsScroll = rememberScrollState()
-    val sectionOffsets = remember { mutableMapOf<String, Int>() }
+    val sectionOffsets = remember { mutableStateMapOf<String, Int>() }
+    val sectionTitles = remember(isAdmin) {
+        listOf("التقرير", "واجهة التطبيق", "البيانات والمزامنة", "الأمان والخصوصية", "النسخ الاحتياطي والاستعادة") +
+            (if (isAdmin) listOf("إدارة التطبيق") else emptyList()) + listOf("حالة التخزين")
+    }
+    val sectionRequests = remember(sectionTitles) {
+        sectionTitles.associateWith { BringIntoViewRequester() }
+    }
+    val sectionThreshold = with(LocalDensity.current) { UiSpacing.medium.roundToPx() }
+    val activeSection by remember(sectionTitles, sectionThreshold) {
+        derivedStateOf {
+            if (settingsScroll.maxValue > 0 && settingsScroll.value >= settingsScroll.maxValue) {
+                sectionTitles.last()
+            } else {
+                sectionTitles.lastOrNull { title ->
+                    sectionOffsets[title]?.let { it <= settingsScroll.value + sectionThreshold } == true
+                } ?: sectionTitles.first()
+            }
+        }
+    }
+    LaunchedEffect(activeSection) {
+        sectionRequests.getValue(activeSection).bringIntoView()
+    }
     val settingsScope = rememberCoroutineScope()
     var backupDialogMode by remember { mutableStateOf<String?>(null) }
     var backupPassword by remember { mutableStateOf("") }
@@ -204,11 +232,18 @@ fun SettingsScreen(
         Column(Modifier.fillMaxSize().padding(padding)) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                (listOf("التقرير", "واجهة التطبيق", "البيانات والمزامنة", "الأمان والخصوصية", "النسخ الاحتياطي والاستعادة") +
-                    (if (isAdmin) listOf("إدارة التطبيق") else emptyList()) + listOf("حالة التخزين")).forEach { title ->
-                    OutlinedButton(onClick = {
-                        sectionOffsets[title]?.let { offset -> settingsScope.launch { settingsScroll.animateScrollTo(offset) } }
-                    }) { Text(title, maxLines = 1) }
+                sectionTitles.forEach { title ->
+                    FilterChip(
+                        selected = title == activeSection,
+                        onClick = {
+                            sectionOffsets[title]?.let { offset ->
+                                settingsScope.launch { settingsScroll.animateScrollTo(offset) }
+                            }
+                        },
+                        modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
+                            .bringIntoViewRequester(sectionRequests.getValue(title)),
+                        label = { Text(title, maxLines = 1) }
+                    )
                 }
             }
             Column(

@@ -124,14 +124,15 @@ internal fun MultilineField(
     label: String,
     textStyle: TextStyle,
     isError: Boolean = false,
-    placeholder: String? = null
+    placeholder: String? = null,
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
         placeholder = { if (placeholder != null) Text(placeholder) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         minLines = 1,
         maxLines = 4,
         textStyle = textStyle,
@@ -179,11 +180,12 @@ internal fun MultiValueEditor(
     onAddSeparator: () -> Unit,
     onAddDate: ((LocalDate) -> Unit)?,
     textStyle: TextStyle,
-    isError: Boolean = false
+    isError: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             "$label${if (label == "التحاليل") "" else " *"}",
             style = MaterialTheme.typography.labelMedium

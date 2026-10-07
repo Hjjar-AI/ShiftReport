@@ -1,16 +1,21 @@
 package com.hos.rushdpatients.ui.connection
 
 import android.net.Uri
+import android.content.Context
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.ConnectionChange
 import com.hos.rushdpatients.config.ProjectConnectionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.hos.rushdpatients.util.DispatcherProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class ProjectConnectionUiState(
@@ -22,12 +27,30 @@ data class ProjectConnectionUiState(
 
 @HiltViewModel
 class ProjectConnectionViewModel @Inject constructor(
-    private val connections: ProjectConnectionManager
+    private val connections: ProjectConnectionManager,
+    @ApplicationContext private val context: Context,
+    private val dispatchers: DispatcherProvider
 ) : ViewModel() {
     private val _state = MutableStateFlow(ProjectConnectionUiState())
     val state = _state.asStateFlow()
     // In memory only; neither tokens nor passphrases enter SavedStateHandle.
     private var pending: ConnectionChange? = null
+
+    /** Optional provider metadata only; do not expose URI paths or read connection contents. */
+    suspend fun readDisplayName(uri: Uri): String? = withContext(dispatchers.io) {
+        try {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { cursor ->
+                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (index >= 0 && cursor.moveToFirst()) cursor.getString(index)?.takeIf { it.isNotBlank() }
+                    else null
+                }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     fun importFile(uri: Uri, password: String) = prepare {
         connections.prepareFile(uri, password.toCharArray())

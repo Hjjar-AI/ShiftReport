@@ -3,6 +3,9 @@ package com.hos.rushdpatients.ui.ward
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -20,6 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.sort.SortSpecCodec
@@ -37,7 +42,8 @@ fun SortSheet(
     onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val maximumHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
     var levels by remember { mutableStateOf(initial.levels) }
 
     var revision by remember { mutableStateOf(initialRevision) }
@@ -59,48 +65,61 @@ fun SortSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .heightIn(max = maximumHeight)
+                .padding(UiSpacing.screen),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
             Text("ترتيب المرضى", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
 
-            if (rejected != null) {
-                TextButton(onClick = { reviewing = true }, enabled = !saving) {
-                    Text("مراجعة الترتيب المرفوض")
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+            ) {
+                if (rejected != null) {
+                    TextButton(onClick = { reviewing = true }, enabled = !saving) {
+                        Text("مراجعة الترتيب المرفوض")
+                    }
                 }
-            }
-            levels.forEachIndexed { index, level ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FieldDropdown(
-                        selected = level.field,
-                        onSelected = { f ->
-                            levels = levels.toMutableList().also { it[index] = level.copy(field = f) }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                    DirectionDropdown(
-                        selected = level.direction,
-                        onSelected = { d ->
-                            levels = levels.toMutableList().also { it[index] = level.copy(direction = d) }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(onClick = {
-                        levels = levels.toMutableList().also { it.removeAt(index) }
-                    }) { Text("حذف") }
+                levels.forEachIndexed { index, level ->
+                    Text("المستوى " + when (index) {
+                        0 -> "الأول"
+                        1 -> "الثاني"
+                        2 -> "الثالث"
+                        else -> "الرابع"
+                    }, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FieldDropdown(
+                            selected = level.field,
+                            onSelected = { f ->
+                                levels = levels.toMutableList().also { it[index] = level.copy(field = f) }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        DirectionDropdown(
+                            selected = level.direction,
+                            onSelected = { d ->
+                                levels = levels.toMutableList().also { it[index] = level.copy(direction = d) }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = {
+                            levels = levels.toMutableList().also { it.removeAt(index) }
+                        }) { Text("حذف") }
+                    }
                 }
-            }
 
-            if (levels.size < 4) {
-                OutlinedButton(
-                    onClick = {
-                        levels = levels + SortLevel(SortField.NAME, SortDirection.ASC)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("إضافة مستوى") }
+                if (levels.size < 4) {
+                    OutlinedButton(
+                        onClick = {
+                            levels = levels + SortLevel(SortField.NAME, SortDirection.ASC)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("إضافة مستوى") }
+                }
             }
 
             Row(

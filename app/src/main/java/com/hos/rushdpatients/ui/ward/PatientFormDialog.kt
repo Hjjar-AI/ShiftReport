@@ -1,6 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -49,10 +53,17 @@ import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientBadge
 import com.hos.rushdpatients.ui.theme.patientBadgeColors
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
+
+private enum class PatientFormField {
+    ADMISSION_NUMBER, ADMISSION_DATE, NAME, BIRTH_YEAR, AGE, DIAGNOSIS, TREATMENT, FOLLOW_UP, TEAM
+}
+
+private data class PatientFormError(val field: PatientFormField, val message: String)
 
 @Composable
 private fun autoDirTextStyle(): TextStyle =
@@ -61,7 +72,7 @@ private fun autoDirTextStyle(): TextStyle =
     )
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 internal fun PatientFormDialog(
     title: String,
     initial: Patient?,
@@ -150,7 +161,10 @@ internal fun PatientFormDialog(
     var specialistId by remember(initial, restoredDraft) {
         mutableStateOf(initial?.responsibleSpecialistId ?: restoredDraft?.specialistId)
     }
-    var validationMessages by remember(initial) { mutableStateOf(emptyList<String>()) }
+    var validationMessages by remember(initial) { mutableStateOf(emptyList<PatientFormError>()) }
+    val fieldRequests = remember(initial) {
+        PatientFormField.entries.associateWith { BringIntoViewRequester() }
+    }
 
     val birthYear = birthYearText.trim().toIntOrNull()
     val age = birthYear?.let { (currentYear - it).takeIf { a -> a in 0..120 } }
@@ -192,10 +206,10 @@ internal fun PatientFormDialog(
                 value = admittanceNumber,
                 onValueChange = { admittanceNumber = it; validationMessages = emptyList() },
                 label = { Text("رقم القبول الحالي *") },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
                 singleLine = true,
                 textStyle = autoStyle,
-                isError = validationMessages.any { it.contains("رقم القبول") },
+                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_NUMBER },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
             )
             DateField(
@@ -203,7 +217,7 @@ internal fun PatientFormDialog(
                 onValueChange = { admittanceDate = it; validationMessages = emptyList() },
                 label = "تاريخ الدخول *",
                 supportingText = admissionDays?.let { "مدة الإقامة: $it يوم" },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
             )
         }
 
@@ -215,10 +229,10 @@ internal fun PatientFormDialog(
             value = name,
             onValueChange = { name = it; validationMessages = emptyList() },
             label = { Text("اسم المريض *") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.NAME)),
             singleLine = true,
             textStyle = autoStyle,
-            isError = validationMessages.any { it.contains("اسم المريض") },
+            isError = validationMessages.any { it.field == PatientFormField.NAME },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
         Row(
@@ -238,10 +252,10 @@ internal fun PatientFormDialog(
                     validationMessages = emptyList()
                 },
                 label = { Text("سنة الميلاد *") },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).bringIntoViewRequester(fieldRequests.getValue(PatientFormField.BIRTH_YEAR)),
                 singleLine = true,
                 textStyle = autoStyle,
-                isError = validationMessages.any { it.contains("سنة الميلاد") },
+                isError = validationMessages.any { it.field == PatientFormField.BIRTH_YEAR },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -261,10 +275,10 @@ internal fun PatientFormDialog(
                     validationMessages = emptyList()
                 },
                 label = { Text("العمر *") },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).bringIntoViewRequester(fieldRequests.getValue(PatientFormField.AGE)),
                 singleLine = true,
                 textStyle = autoStyle,
-                isError = validationMessages.any { it.contains("العمر") },
+                isError = validationMessages.any { it.field == PatientFormField.AGE },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -365,7 +379,17 @@ internal fun PatientFormDialog(
                     ) {
                         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text("راجع الحقول التالية", style = MaterialTheme.typography.titleSmall)
-                            validationMessages.forEach { Text("• $it") }
+                            validationMessages.forEach { error ->
+                                TextButton(
+                                    onClick = {
+                                        formScope.launch { fieldRequests.getValue(error.field).bringIntoView() }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
+                                ) {
+                                    Text(error.message, modifier = Modifier.fillMaxWidth(),
+                                        color = MaterialTheme.colorScheme.onErrorContainer)
+                                }
+                            }
                         }
                     }
                 }
@@ -392,7 +416,8 @@ internal fun PatientFormDialog(
                     { initialDiagnosis = it; validationMessages = emptyList() },
                     "التشخيص الأولي",
                     autoStyle,
-                    isError = validationMessages.any { it.contains("التشخيص الأولي") },
+                    isError = validationMessages.any { it.field == PatientFormField.DIAGNOSIS },
+                    modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.DIAGNOSIS)),
                     placeholder = when (diagnosisType) {
                         DiagnosisType.PSYCHIATRIC -> "مثال: Psychosis، Bipolar II disorder"
                         DiagnosisType.ADDICTION -> "مثال: Drug-induced psychosis، Stimulant use disorder"
@@ -424,7 +449,8 @@ internal fun PatientFormDialog(
                         },
                         label = "الخطة العلاجية",
                         textStyle = autoStyle,
-                        isError = validationMessages.any { it.contains("الخطة العلاجية") }
+                        isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
+                        modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
                     )
                     MultilineField(
                         value = (followUpItems + followUpDraft)
@@ -437,7 +463,8 @@ internal fun PatientFormDialog(
                         },
                         label = "المتابعة",
                         textStyle = autoStyle,
-                        isError = validationMessages.any { it == "المتابعة مطلوبة" }
+                        isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
+                        modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
                     )
                     MultilineField(
                         value = (labItems + labDraft).filter(String::isNotBlank).joinToString("\n"),
@@ -476,7 +503,8 @@ internal fun PatientFormDialog(
                     onAddSeparator = { treatmentItems = treatmentItems + FIELD_SEPARATOR },
                     onAddDate = null,
                     textStyle = autoStyle,
-                    isError = validationMessages.any { it.contains("الخطة العلاجية") }
+                    isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
+                    modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
                 )
                 MultiValueEditor(
                     label = "المتابعة",
@@ -502,7 +530,8 @@ internal fun PatientFormDialog(
                     onAddSeparator = { followUpItems = followUpItems + FIELD_SEPARATOR },
                     onAddDate = null,
                     textStyle = autoStyle,
-                    isError = validationMessages.any { it == "المتابعة مطلوبة" }
+                    isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
+                    modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
                 )
                 MultiValueEditor(
                     label = "التحاليل",
@@ -542,7 +571,8 @@ internal fun PatientFormDialog(
                     complete = residentId != null && specialistId != null && residentId != specialistId
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
+                        .bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.Top
                 ) {
@@ -675,29 +705,29 @@ internal fun PatientFormDialog(
                     .joinToString("\n")
 
                 val errors = buildList {
-                    if (admittanceNumber.isBlank()) add("رقم القبول الحالي مطلوب")
-                    if (admittanceDate == null) add("اختر تاريخ الدخول")
+                    if (admittanceNumber.isBlank()) add(PatientFormError(PatientFormField.ADMISSION_NUMBER, "رقم القبول الحالي مطلوب"))
+                    if (admittanceDate == null) add(PatientFormError(PatientFormField.ADMISSION_DATE, "اختر تاريخ الدخول"))
                     if (admittanceDate?.isAfter(today) == true) {
-                        add("تاريخ الدخول لا يمكن أن يكون في المستقبل")
+                        add(PatientFormError(PatientFormField.ADMISSION_DATE, "تاريخ الدخول لا يمكن أن يكون في المستقبل"))
                     }
-                    if (name.isBlank()) add("اسم المريض مطلوب")
+                    if (name.isBlank()) add(PatientFormError(PatientFormField.NAME, "اسم المريض مطلوب"))
                     if (ageText.toIntOrNull()?.let { it !in 0..120 } == true) {
-                        add("العمر يجب أن يكون بين 0 و120 سنة")
+                        add(PatientFormError(PatientFormField.AGE, "العمر يجب أن يكون بين 0 و120 سنة"))
                     }
-                    if (birthYear == null) add("أدخل سنة الميلاد أو العمر")
+                    if (birthYear == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "أدخل سنة الميلاد أو العمر"))
                     if (birthYear != null && birthYear > currentYear) {
-                        add("سنة الميلاد لا يمكن أن تكون في المستقبل")
+                        add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد لا يمكن أن تكون في المستقبل"))
                     }
-                    if (birthYear != null && age == null) add("سنة الميلاد تنتج عمراً غير صحيح")
-                    if (initialDiagnosis.isBlank()) add("التشخيص الأولي مطلوب")
+                    if (birthYear != null && age == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد تنتج عمراً غير صحيح"))
+                    if (initialDiagnosis.isBlank()) add(PatientFormError(PatientFormField.DIAGNOSIS, "التشخيص الأولي مطلوب"))
                     if (resolvedTreatments.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-                        add("الخطة العلاجية مطلوبة")
+                        add(PatientFormError(PatientFormField.TREATMENT, "الخطة العلاجية مطلوبة"))
                     }
                     if (resolvedFollowUp.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-                        add("المتابعة مطلوبة")
+                        add(PatientFormError(PatientFormField.FOLLOW_UP, "المتابعة مطلوبة"))
                     }
                     if (residentId != null && residentId == specialistId) {
-                        add("يجب اختيار طبيبين مختلفين للمقيم والاختصاصي")
+                        add(PatientFormError(PatientFormField.TEAM, "يجب اختيار طبيبين مختلفين للمقيم والاختصاصي"))
                     }
                 }
                 if (errors.isNotEmpty()) {
@@ -758,4 +788,3 @@ internal fun PatientFormDialog(
 }
 
 private enum class PatientFormMode { GENERAL, ADVANCED }
-

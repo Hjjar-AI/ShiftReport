@@ -29,12 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.PatientTask
 import com.hos.rushdpatients.data.model.TaskPriority
 import com.hos.rushdpatients.domain.task.PatientTasks
 import com.hos.rushdpatients.util.ShiftDate
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -50,6 +52,8 @@ internal fun PatientTaskEditor(
     var expanded by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<PatientTask?>(null) }
     var adding by remember { mutableStateOf(false) }
+    var completedExpanded by remember { mutableStateOf(false) }
+    val completed = tasks.filter { it.done }
     val names = doctors.associate { it.id to it.fullName }
     val pending = tasks.count { !it.done }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -61,7 +65,7 @@ internal fun PatientTaskEditor(
                 Text("إضافة مهمة")
             }
         }
-        if (expanded) tasks.forEach { task ->
+        val taskCard: @Composable (PatientTask) -> Unit = { task ->
             Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small,
                 color = MaterialTheme.colorScheme.surfaceVariant) {
                 Column(Modifier.padding(8.dp)) {
@@ -85,6 +89,18 @@ internal fun PatientTaskEditor(
                 }
             }
         }
+        if (expanded) {
+            tasks.filterNot { it.done }.forEach { taskCard(it) }
+            if (completed.isNotEmpty()) {
+                TextButton(
+                    onClick = { completedExpanded = !completedExpanded },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).semantics {
+                        stateDescription = if (completedExpanded) "موسّعة" else "مطوية"
+                    }
+                ) { Text("المكتملة (${completed.size}) · " + if (completedExpanded) "طي" else "عرض") }
+                if (completedExpanded) completed.forEach { taskCard(it) }
+            }
+        }
         Text("تُحفظ تغييرات المهام مع حفظ المريض؛ يسجل التطبيق منفّذ الإتمام ووقته عند الحفظ.",
             style = MaterialTheme.typography.bodySmall)
     }
@@ -96,6 +112,7 @@ internal fun PatientTaskEditor(
             adding = false
             editing = null
             expanded = true
+            if (task.done) completedExpanded = true
         }
     )
 }

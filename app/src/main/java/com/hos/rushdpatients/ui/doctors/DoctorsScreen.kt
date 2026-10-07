@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,9 +19,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,6 +56,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.data.model.Doctor
@@ -69,6 +76,7 @@ fun DoctorsScreen(
     val snackbar = remember { SnackbarHostState() }
 
     var showAdd by remember { mutableStateOf(false) }
+    var transferExpanded by rememberSaveable { mutableStateOf(false) }
     var showMergeReview by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Doctor?>(null) }
     var deleteTarget by remember { mutableStateOf<Doctor?>(null) }
@@ -163,9 +171,18 @@ fun DoctorsScreen(
                 .padding(padding)
         ) {
             when {
-                state.loading || state.importing || state.exporting -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                state.loading || state.importing || state.exporting -> Column(
+                    modifier = Modifier.align(Alignment.Center).padding(UiSpacing.screen),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
+                ) {
+                    CircularProgressIndicator()
+                    Text(when {
+                        state.importing -> "جار استيراد سجل الأطباء…"
+                        state.exporting -> "جار تصدير سجل الأطباء…"
+                        else -> "جار تحميل سجل الأطباء…"
+                    })
+                }
                 else -> LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -180,46 +197,6 @@ fun DoctorsScreen(
                                     Text("لم تُستبدل التعديلات المحلية. راجع القيم المتعارضة قبل المزامنة.")
                                     TextButton(onClick = { showMergeReview = true }, enabled = !state.saving) {
                                         Text("مراجعة التعارضات")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    item {
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    "نقل سجل الأطباء",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    "الاستيراد يقرأ ملفاً من الجهاز، والتصدير يحفظ نسخة قابلة لإعادة الاستخدام.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { importLauncher.launch(arrayOf("*/*")) },
-                                        enabled = !state.saving && !state.importing && !state.exporting,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(Icons.Default.FileDownload, contentDescription = null)
-                                        Text("استيراد CSV", Modifier.padding(start = 6.dp))
-                                    }
-                                    OutlinedButton(
-                                        onClick = viewModel::prepareDoctorExport,
-                                        enabled = !state.saving && !state.importing && !state.exporting,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(Icons.Default.FileUpload, contentDescription = null)
-                                        Text("تصدير CSV", Modifier.padding(start = 6.dp))
                                     }
                                 }
                             }
@@ -242,6 +219,54 @@ fun DoctorsScreen(
                                     onClick = { filter = option },
                                     label = { Text(option.label) }
                                 )
+                            }
+                        }
+                    }
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                TextButton(
+                                    onClick = { transferExpanded = !transferExpanded },
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
+                                        .semantics { stateDescription = if (transferExpanded) "موسّعة" else "مطوية" }
+                                ) {
+                                    Text("نقل سجل الأطباء", modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold)
+                                    Icon(if (transferExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = null)
+                                }
+                                if (transferExpanded) {
+                                    Text(
+                                        "الاستيراد يقرأ ملفاً من الجهاز، والتصدير يحفظ نسخة قابلة لإعادة الاستخدام.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { importLauncher.launch(arrayOf("*/*")) },
+                                            enabled = !state.saving && !state.importing && !state.exporting,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(Icons.Default.FolderOpen, contentDescription = null)
+                                            Text("استيراد CSV", Modifier.padding(start = 6.dp))
+                                        }
+                                        OutlinedButton(
+                                            onClick = viewModel::prepareDoctorExport,
+                                            enabled = !state.saving && !state.importing && !state.exporting,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(Icons.Default.Save, contentDescription = null)
+                                            Text("تصدير CSV", Modifier.padding(start = 6.dp))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

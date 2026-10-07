@@ -511,6 +511,20 @@ adb shell dumpsys activity exit-info com.hos.rushdpatients
 
 ## File picker and storage access
 
+### Joining export and administrator re-login
+
+The latest ADB device query succeeded but listed no connected devices. These workflows have source checks only; no runtime result or new build is claimed.
+
+On a device running a build containing the recent changes, use a disposable project/profile with an enrolled administrator and known existing PIN:
+
+1. Create a password-protected joining file with «اختيار مكان الحفظ». Confirm the success message and a nonzero file size. Open it as JSON locally: it should contain the format marker and encrypted payload, with no readable connection credentials. Keep the file and passphrase private.
+2. Repeat using «مشاركة الملف» and save the received attachment locally. Verify it is nonempty. On a separate disposable device/profile, import that file and confirm the project review appears with the correct passphrase; an incorrect passphrase must fail. Stop at review to avoid initialization/publication of a clinical project.
+3. On the original device, sign out without importing any file. Disable connectivity, select the administrator, and log back in with the existing PIN. Confirm administrator tools and existing local data remain available. Restore connectivity afterward.
+4. Confirm a wrong PIN does not establish a session. To verify throttling on the disposable profile, submit five wrong PINs, restart the app, and confirm the five-minute block remains; wait for it to expire and retry the correct PIN. Do not perform this lockout check on a clinician's working account.
+5. Search for a doctor in login and clear the query. In the shift picker, select a doctor, search for another name, then clear: the previous selection/count must remain. Cancel the picker without saving.
+
+Record app build/version, Android version, document provider, file byte sizes, and redacted result messages. Do not include tokens, keys, PINs, passphrases, joining-file contents, or clinical records in diagnostic output. Device setup/data clearing, Telegram publication, and a new build are not part of these checks.
+
 Join-file creation offers «مشاركة الملف» to share a completed, locally verified password-encrypted `.srjoin.json` directly, and «اختيار مكان الحفظ» for the document picker. Both paths keep the same encrypted payload. The save path uses plain write mode for its newly created destination and compares saved bytes before success. If an empty file persists, record the exact snackbar, Android version, and provider (phone storage/SD/cloud); try direct sharing to separate document-provider writing from file preparation. The cause of the reported empty join export remains unconfirmed on a device. No build/device check was run for this update.
 
 Doctor export prepares UTF-8/BOM bytes before `CreateDocument`, then verifies the saved contents by reading them back. If the export session is lost after a process restart, the app reports a retry instruction; an empty or mismatched file must not be reported as successful. Picker cancellation clears the pending snapshot. These changes passed source checks and the authorized 2026-10-07 debug build; document-provider/device behavior remains unverified.

@@ -73,6 +73,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -112,6 +113,7 @@ fun WardScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
     val foldingFeature = rememberWardFoldingFeature()
     val detailStateHolder = rememberSaveableStateHolder()
     val activityScroll = rememberLazyListState()
@@ -153,7 +155,8 @@ fun WardScreen(
     var showShiftDoctors by remember { mutableStateOf(false) }
     var confirmLatest by remember { mutableStateOf(false) }
     var confirmPrevious by remember { mutableStateOf(false) }
-    var showSearch by remember { mutableStateOf(false) }
+    var showSearch by rememberSaveable { mutableStateOf(false) }
+    var requestSearchFocus by remember { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showRecycleBin by remember { mutableStateOf(false) }
     var viewMode by rememberSaveable { mutableStateOf(WardViewMode.ALL) }
@@ -422,7 +425,18 @@ fun WardScreen(
                                         Icon(Icons.Filled.Add, contentDescription = "إضافة مريض")
                                     }
                                 }
-                                IconButton(onClick = { showSearch = !showSearch }) {
+                                IconButton(onClick = {
+                                    if (patientDestination && showSearch && searchQuery.isBlank()) {
+                                        showSearch = false
+                                        requestSearchFocus = false
+                                        focusManager.clearFocus()
+                                    } else {
+                                        if (!patientDestination) viewMode = WardViewMode.ALL
+                                        showSearch = true
+                                        requestSearchFocus = true
+                                        scope.launch { patientGridState.animateScrollToItem(0) }
+                                    }
+                                }) {
                                     Icon(Icons.Filled.Search, contentDescription = "بحث عن مريض")
                                 }
                             },
@@ -656,17 +670,16 @@ fun WardScreen(
                                                 }
                                             }
                                         }
-                                        if (showSearch) {
-                                            OutlinedTextField(
-                                                value = searchQuery,
-                                                onValueChange = { searchQuery = it },
-                                                label = { Text("بحث بالاسم أو رقم القبول الحالي أو المحتوى الطبي") },
-                                                singleLine = true,
-                                                modifier = Modifier.fillMaxWidth()
+                                        if (showSearch || searchQuery.isNotBlank()) {
+                                            WardPatientSearchField(
+                                                query = searchQuery,
+                                                onQueryChange = { searchQuery = it },
+                                                requestFocus = requestSearchFocus,
+                                                onFocusRequested = { requestSearchFocus = false }
                                             )
                                         }
                                         if (priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
-                                            newAdmissionsOnly || searchQuery.isNotBlank()
+                                            newAdmissionsOnly || taskFilter != null || searchQuery.isNotBlank()
                                         ) {
                                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                 if (searchQuery.isNotBlank()) FilterChip(
@@ -679,6 +692,15 @@ fun WardScreen(
                                                 if (unassignedOnly) ActiveFilterChip("غير معيّن", { unassignedOnly = false })
                                                 if (urgentOnly) ActiveFilterChip("عاجل", { urgentOnly = false })
                                                 if (newAdmissionsOnly) ActiveFilterChip("دخول اليوم", { newAdmissionsOnly = false })
+                                                val taskFilterLabel = when (taskFilter) {
+                                                    DashboardFilter.TASK_PENDING -> "مهام معلقة"
+                                                    DashboardFilter.TASK_OVERDUE -> "مهام متأخرة"
+                                                    DashboardFilter.TASK_UNASSIGNED -> "مهام غير معيّنة"
+                                                    else -> null
+                                                }
+                                                taskFilterLabel?.let { label ->
+                                                    ActiveFilterChip(label, { taskFilter = null })
+                                                }
                                             }
                                         }
                                     }
@@ -697,6 +719,7 @@ fun WardScreen(
                                                 unassignedOnly = false
                                                 urgentOnly = false
                                                 newAdmissionsOnly = false
+                                                taskFilter = null
                                             }
                                         )
                                     }

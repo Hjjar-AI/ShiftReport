@@ -8,12 +8,19 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,11 +30,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.data.model.Doctor
+import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
+import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ShiftDoctorPicker(
     allDoctors: List<Doctor>,
     initialSelected: List<String>,
@@ -41,6 +52,9 @@ fun ShiftDoctorPicker(
     var rejected by remember { mutableStateOf<List<String>?>(null) }
     var latest by remember { mutableStateOf<Shift?>(null) }
     var reviewing by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val activeDoctors = allDoctors.filterNot { it.isDeleted }
+    val matchingDoctors = activeDoctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
@@ -49,13 +63,27 @@ fun ShiftDoctorPicker(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 400.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .heightIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 Text(
-                    "اختر أطباء المناوبة دون حد أقصى",
+                    "المختارون: ${selected.size} · دون حد أقصى",
                     style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("بحث باسم الطبيب") },
+                    singleLine = true,
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }, enabled = !saving) {
+                                Icon(Icons.Filled.Close, contentDescription = "مسح البحث")
+                            }
+                        }
+                    },
+                    enabled = !saving,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 if (rejected != null) {
@@ -63,40 +91,47 @@ fun ShiftDoctorPicker(
                         Text("مراجعة الاختيار المرفوض")
                     }
                 }
-                allDoctors.filterNot { it.isDeleted }.forEach { doctor ->
-                    val isSelected = doctor.id in selected
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+                ) {
+                    if (matchingDoctors.isEmpty()) {
+                        Text(if (activeDoctors.isEmpty()) "لا يوجد أطباء متاحون" else "لا توجد أسماء مطابقة")
+                    }
+                    matchingDoctors.forEach { doctor ->
+                        val isSelected = doctor.id in selected
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            )
                         ) {
-                            Checkbox(
-                                checked = isSelected,
-                                enabled = !saving,
-                                onCheckedChange = { checked ->
-                                    selected = if (checked) {
-                                        selected + doctor.id
-                                    } else {
-                                        selected - doctor.id
-                                    }
-                                }
-                            )
-                            Text(
-                                doctor.fullName,
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 4.dp)
-                            )
+                                    .fillMaxWidth()
+                                    .heightIn(min = UiSpacing.touchTarget)
+                                    .toggleable(value = isSelected, enabled = !saving, role = Role.Checkbox) { checked ->
+                                        selected = if (checked) selected + doctor.id else selected - doctor.id
+                                    }
+                                    .padding(UiSpacing.small),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isSelected,
+                                    enabled = !saving,
+                                    onCheckedChange = null
+                                )
+                                Text(
+                                    doctor.fullName,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = UiSpacing.tiny)
+                                )
+                            }
                         }
                     }
                 }

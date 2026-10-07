@@ -84,7 +84,7 @@ internal fun WardReportSheet(
                 ) {
                     Icon(Icons.Filled.Send, contentDescription = null)
                     Text(
-                        if (issueCount == 0) "متابعة سريعة للإرسال" else "مراجعة الملاحظات",
+                        "مراجعة التقرير",
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
