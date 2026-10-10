@@ -548,9 +548,13 @@ fun WardScreen(
                         if (state.loading) {
                             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                         } else if (state.error != null) {
-                            EmptyState(
-                                title = "تعذر تحميل بيانات الوردية",
-                                subtitle = state.error.orEmpty()
+                            AppNotice(
+                                message = "تعذر تحميل بيانات الوردية\n${state.error.orEmpty()}",
+                                kind = NoticeKind.ERROR,
+                                modifier = Modifier.align(Alignment.Center).padding(UiPadding.content),
+                                actionLabel = if (state.retryAction != null) "إعادة المحاولة" else null,
+                                onAction = if (state.retryAction != null) viewModel::retryLastAction else null,
+                                actionEnabled = !state.syncing && !state.saving
                             )
                         } else if (viewMode == WardViewMode.ACTIVITY && isAdmin) {
                             WardActivityScreen(

@@ -7,15 +7,6 @@ This file contains only unfinished implementation work and explicitly deferred p
 1. Configure production signing before distribution.
    - Release currently uses the debug signing configuration. Configure a protected release keystore through local/CI secrets without committing keys or passwords.
 
-## UI harmonization — authorized
-
-- Unify editable/date/doctor/time field presentation and states.
-- Clarify primary and secondary actions in patient editing/details.
-- Share section headers across forms and Settings.
-- Compact task rows with direct completion and an edit/delete menu.
-- Share compact actionable status notices.
-- Add filtered-order patient rounds navigation with existing draft guards.
-
 ## Far future — optional voice dictation
 
 1. Start with field-by-field dictation for diagnosis, treatment, and follow-up.
