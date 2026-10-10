@@ -113,9 +113,11 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 DemoFilter.OVERDUE -> patient.tasks.any { PatientTasks.overdue(it, now) }
             }
     }.sortedByDescending { it.id in pinnedIds }
-    LaunchedEffect(returnTarget, state.patients, visible) {
+    LaunchedEffect(returnTarget, state.patients, visible, tab) {
         val target = returnTarget ?: return@LaunchedEffect
+        if (tab != DemoTab.PATIENTS) return@LaunchedEffect
         val saved = state.patients.firstOrNull { it.id == target.id } ?: return@LaunchedEffect
+        if (saved.revision <= target.previousRevision) return@LaunchedEffect
         val index = visible.indexOfFirst { it.id == target.id }
         if (index < 0) {
             returnTarget = null
@@ -123,7 +125,9 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
             return@LaunchedEffect
         }
         withFrameNanos { }
-        patientListState.scrollToItem(index + 2) // Demo notice and search/filter header.
+        if (patientListState.layoutInfo.visibleItemsInfo.none { it.key == target.id }) {
+            patientListState.scrollToItem(index + 2) // Demo notice and search/filter header.
+        }
         recentlyEditedId = target.id
         returnTarget = null
     }

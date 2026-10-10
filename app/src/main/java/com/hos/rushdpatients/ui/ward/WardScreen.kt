@@ -259,9 +259,9 @@ fun WardScreen(
     } else visiblePatients
     val roundsNavigation = detailsTargetId?.let { patientRoundsNavigation(roundsPatients.map { it.id }, it) }
 
-    LaunchedEffect(returnTarget, state.patients, state.groupedPatients, visiblePatients, state.loading, state.saving) {
+    LaunchedEffect(returnTarget, state.patients, state.groupedPatients, visiblePatients, state.loading, state.saving, state.error, patientDestination) {
         val target = returnTarget ?: return@LaunchedEffect
-        if (state.loading || state.saving) return@LaunchedEffect
+        if (!patientDestination || state.loading || state.saving || state.error != null) return@LaunchedEffect
         val saved = state.patients.firstOrNull { it.id == target.id } ?: return@LaunchedEffect
         // Repository flow can arrive after the success callback. Reveal the saved revision.
         if (saved.revision <= target.previousRevision) return@LaunchedEffect
@@ -280,7 +280,9 @@ fun WardScreen(
         val index = patientGridReturnIndex(target.id, visiblePatients.map { it.id }, groups, expandedGroups)
             ?: return@LaunchedEffect
         withFrameNanos { } // Let group expansion update the item provider before scrolling.
-        patientGridState.scrollToItem(index)
+        if (patientGridState.layoutInfo.visibleItemsInfo.none { it.key == target.id }) {
+            patientGridState.scrollToItem(index)
+        }
         recentlyEditedId = target.id
         returnTarget = null
     }
@@ -834,7 +836,7 @@ fun WardScreen(
                                             doctorNames = doctorNames,
                                             readOnly = state.isReadOnly,
                                             selected = detailsTargetId == patient.id,
-                                                recentlyEdited = recentlyEditedId == patient.id,
+                                            recentlyEdited = recentlyEditedId == patient.id,
                                             onEdit = { editTarget = patient },
                                             onClick = {
                                                 if (dualPane || state.isReadOnly) {
