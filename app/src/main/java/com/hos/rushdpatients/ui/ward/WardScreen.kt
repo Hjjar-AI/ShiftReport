@@ -95,6 +95,8 @@ import com.hos.rushdpatients.domain.report.ReportReadiness
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.sync.ConflictChoice
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -153,6 +155,8 @@ fun WardScreen(
     var showAdd by remember { mutableStateOf(false) }
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var editTarget by remember { mutableStateOf<Patient?>(null) }
+    var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
+    var recentlyEditedId by remember { mutableStateOf<String?>(null) }
     var copyTarget by remember { mutableStateOf<Patient?>(null) }
     var deleteTarget by remember { mutableStateOf<Patient?>(null) }
     var showSort by remember { mutableStateOf(false) }
@@ -254,6 +258,38 @@ fun WardScreen(
         }.distinctBy { it.id }
     } else visiblePatients
     val roundsNavigation = detailsTargetId?.let { patientRoundsNavigation(roundsPatients.map { it.id }, it) }
+
+    LaunchedEffect(returnTarget, state.patients, state.groupedPatients, visiblePatients, state.loading, state.saving) {
+        val target = returnTarget ?: return@LaunchedEffect
+        if (state.loading || state.saving) return@LaunchedEffect
+        val saved = state.patients.firstOrNull { it.id == target.id } ?: return@LaunchedEffect
+        // Repository flow can arrive after the success callback. Reveal the saved revision.
+        if (saved.revision <= target.previousRevision) return@LaunchedEffect
+        if (visiblePatients.none { it.id == target.id }) {
+            returnTarget = null
+            scope.launch { snackbarHost.showSnackbar("تم حفظ ${saved.name}؛ لا يطابق التصفية الحالية") }
+            return@LaunchedEffect
+        }
+        val groups = if (state.groupByMode == GroupByMode.NONE) emptyList() else state.groupedPatients.map { group ->
+            (group.key ?: "none") to group.patients.filter { it in visiblePatients }
+                .sortedByDescending { it.id in pinnedPatientIds }.map { it.id }
+        }
+        val groupKey = groups.firstOrNull { target.id in it.second }?.first
+        val expandedGroups = if (groupKey == null) collapsedGroups else collapsedGroups - groupKey
+        collapsedGroups = expandedGroups
+        val index = patientGridReturnIndex(target.id, visiblePatients.map { it.id }, groups, expandedGroups)
+            ?: return@LaunchedEffect
+        withFrameNanos { } // Let group expansion update the item provider before scrolling.
+        patientGridState.scrollToItem(index)
+        recentlyEditedId = target.id
+        returnTarget = null
+    }
+    LaunchedEffect(recentlyEditedId) {
+        if (recentlyEditedId != null) {
+            delay(1800)
+            recentlyEditedId = null
+        }
+    }
     val detailContent: @Composable (Boolean) -> Unit = { embedded ->
         if (selectedPatient != null && editTarget == null && copyTarget == null) {
             detailStateHolder.SaveableStateProvider(selectedPatient.id) {
@@ -757,6 +793,7 @@ fun WardScreen(
                                                 doctorNames = doctorNames,
                                                 readOnly = state.isReadOnly,
                                                 selected = detailsTargetId == patient.id,
+                                                recentlyEdited = recentlyEditedId == patient.id,
                                                 onEdit = { editTarget = patient },
                                                 onClick = {
                                                     if (dualPane || state.isReadOnly) {
@@ -797,6 +834,7 @@ fun WardScreen(
                                             doctorNames = doctorNames,
                                             readOnly = state.isReadOnly,
                                             selected = detailsTargetId == patient.id,
+                                                recentlyEdited = recentlyEditedId == patient.id,
                                             onEdit = { editTarget = patient },
                                             onClick = {
                                                 if (dualPane || state.isReadOnly) {
@@ -940,6 +978,7 @@ fun WardScreen(
             onConfirm = { draft, onStale ->
                 viewModel.updatePatient(draft, onStale) {
                     viewModel.consumeRolloverReview(p.id)
+                    returnTarget = PatientReturnTarget(draft.id, draft.revision)
                     editTarget = null
                 }
             },

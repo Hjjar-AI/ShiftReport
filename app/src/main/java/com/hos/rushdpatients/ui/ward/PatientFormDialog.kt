@@ -38,6 +38,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -177,6 +183,25 @@ internal fun PatientFormDialog(
     val autoStyle = autoDirTextStyle()
     val formScrollState = rememberScrollState()
     val formScope = rememberCoroutineScope()
+    val sectionOffsets = remember(initial) { mutableStateMapOf<PatientFormSection, Int>() }
+    val sectionOrder = remember(initial == null) {
+        if (initial == null) listOf(PatientFormSection.PERSONAL, PatientFormSection.CLINICAL,
+            PatientFormSection.LABS, PatientFormSection.TASKS)
+        else PatientFormSection.entries.toList()
+    }
+    val sectionThreshold = with(LocalDensity.current) { UiSpacing.medium.roundToPx() }
+    val activeSection by remember(sectionOrder, sectionOffsets, sectionThreshold) {
+        derivedStateOf {
+            if (formScrollState.maxValue > 0 && formScrollState.value >= formScrollState.maxValue) {
+                sectionOrder.last()
+            } else sectionOrder.lastOrNull {
+                (sectionOffsets[it] ?: Int.MAX_VALUE) <= formScrollState.value + sectionThreshold
+            } ?: sectionOrder.first()
+        }
+    }
+    fun sectionAnchor(section: PatientFormSection) = Modifier.onGloballyPositioned {
+        sectionOffsets[section] = it.positionInParent().y.roundToInt()
+    }
     // Compare the complete editable form, including text not yet added to clinical lists.
     val formValues = listOf(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
@@ -208,7 +233,8 @@ internal fun PatientFormDialog(
     val admissionIdentityContent: @Composable () -> Unit = {
         SectionTitle(
             "بيانات الدخول",
-            complete = admittanceNumber.isNotBlank() && admittanceDate != null
+            complete = admittanceNumber.isNotBlank() && admittanceDate != null,
+            modifier = sectionAnchor(PatientFormSection.PERSONAL)
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -370,6 +396,9 @@ internal fun PatientFormDialog(
             title = {
                 Column {
                     Text(text = title, style = MaterialTheme.typography.titleMedium)
+                    savedBaseline?.name?.takeIf(String::isNotBlank)?.let {
+                        Text(it, style = MaterialTheme.typography.bodyLarge)
+                    }
                     reviewAction()
                     if (hasUnsavedChanges) {
                         Text(
@@ -377,6 +406,11 @@ internal fun PatientFormDialog(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
+                    }
+                    PatientFormSectionNavigation(sectionOrder, activeSection, enabled = !saving) { section ->
+                        sectionOffsets[section]?.let { offset ->
+                            formScope.launch { formScrollState.animateScrollTo(offset.coerceIn(0, formScrollState.maxValue)) }
+                        }
                     }
                 }
             },
@@ -416,7 +450,8 @@ internal fun PatientFormDialog(
                         "التشخيص والعلاج",
                         complete = initialDiagnosis.isNotBlank() &&
                             (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
-                            (followUpItems + followUpDraft).any(String::isNotBlank)
+                            (followUpItems + followUpDraft).any(String::isNotBlank),
+                        modifier = sectionAnchor(PatientFormSection.CLINICAL)
                     )
                     Text("نوع التشخيص", style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
@@ -495,7 +530,8 @@ internal fun PatientFormDialog(
                             },
                             label = "التحاليل",
                             textStyle = autoStyle,
-                            isError = false
+                            isError = false,
+                            modifier = sectionAnchor(PatientFormSection.LABS)
                         )
                     } else {
                     MultiValueEditor(
@@ -579,11 +615,12 @@ internal fun PatientFormDialog(
                             labItems = labItems + dateMarkerFrom(date)
                         },
                         textStyle = autoStyle,
-                        isError = false
+                        isError = false,
+                        modifier = sectionAnchor(PatientFormSection.LABS)
                     )
                     }
 
-                    PatientTaskEditor(tasks, doctors, !saving) { tasks = it }
+                    PatientTaskEditor(tasks, doctors, !saving, modifier = sectionAnchor(PatientFormSection.TASKS)) { tasks = it }
 
                     SectionTitle(
                         "الفريق المسؤول",

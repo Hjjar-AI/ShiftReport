@@ -10,6 +10,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -90,6 +91,7 @@ fun PatientCard(
     doctorNames: Map<String, String>,
     readOnly: Boolean = false,
     selected: Boolean = false,
+    recentlyEdited: Boolean = false,
     onClick: () -> Unit,
     onLongClick: () -> Unit = onClick,
     onEdit: () -> Unit = onClick,
@@ -118,6 +120,10 @@ fun PatientCard(
     val residentName = patient.responsibleResidentId?.let(doctorNames::get)
     val supervisorName = patient.responsibleSpecialistId?.let(doctorNames::get)
 
+    val cardColor by animateColorAsState(
+        targetValue = if (recentlyEdited) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        animationSpec = tween(220), label = "patientReturnHighlight"
+    )
     AppCard(
         modifier = modifier
             .fillMaxWidth()
@@ -158,9 +164,10 @@ fun PatientCard(
                 }
             }
             .combinedClickable(enabled = showViewControls, onClick = onClick, onLongClick = onLongClick),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = cardColor),
         border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+            if (selected || recentlyEdited) 2.dp else 1.dp,
+            if (selected || recentlyEdited) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
         )
     ) {
         Column(

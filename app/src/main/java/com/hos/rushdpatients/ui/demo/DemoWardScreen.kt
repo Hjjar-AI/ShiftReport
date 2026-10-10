@@ -37,12 +37,18 @@ import com.hos.rushdpatients.pdf.PdfExportOptions
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.theme.AppAppearance
+import com.hos.rushdpatients.ui.components.AppPalettePicker
 import com.hos.rushdpatients.ui.theme.AppThemePreset
 import com.hos.rushdpatients.ui.theme.RushdPatientsTheme
 import com.hos.rushdpatients.ui.ward.AddPatientDialog
 import com.hos.rushdpatients.ui.ward.CopyPatientDialog
 import com.hos.rushdpatients.ui.ward.EditPatientDialog
 import com.hos.rushdpatients.ui.ward.PatientCard
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.hos.rushdpatients.ui.ward.PatientReturnTarget
 import com.hos.rushdpatients.ui.ward.PatientDetailsScreen
 import com.hos.rushdpatients.ui.ward.patientRoundsNavigation
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -67,6 +73,10 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     var compact by rememberSaveable { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
     var edit by remember { mutableStateOf<Patient?>(null) }
+    var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
+    var recentlyEditedId by remember { mutableStateOf<String?>(null) }
+    val patientListState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     var copy by remember { mutableStateOf<Patient?>(null) }
     var deleting by remember { mutableStateOf<Patient?>(null) }
     var detailId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -103,6 +113,26 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 DemoFilter.OVERDUE -> patient.tasks.any { PatientTasks.overdue(it, now) }
             }
     }.sortedByDescending { it.id in pinnedIds }
+    LaunchedEffect(returnTarget, state.patients, visible) {
+        val target = returnTarget ?: return@LaunchedEffect
+        val saved = state.patients.firstOrNull { it.id == target.id } ?: return@LaunchedEffect
+        val index = visible.indexOfFirst { it.id == target.id }
+        if (index < 0) {
+            returnTarget = null
+            scope.launch { snackbar.showSnackbar("تم حفظ ${saved.name}؛ لا يطابق التصفية الحالية") }
+            return@LaunchedEffect
+        }
+        withFrameNanos { }
+        patientListState.scrollToItem(index + 2) // Demo notice and search/filter header.
+        recentlyEditedId = target.id
+        returnTarget = null
+    }
+    LaunchedEffect(recentlyEditedId) {
+        if (recentlyEditedId != null) {
+            delay(1800)
+            recentlyEditedId = null
+        }
+    }
     RushdPatientsTheme(preset = accent, appearance = appearance) {
         Scaffold(
             topBar = {
@@ -138,7 +168,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
             },
             snackbarHost = { SnackbarHost(snackbar) }
         ) { padding ->
-            LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = UiSpacing.medium),
+            LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = UiSpacing.medium), state = patientListState,
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small), contentPadding = PaddingValues(vertical = UiSpacing.small)) {
                 item {
                     AppNotice("بيانات وهمية للتجربة. التعديلات مؤقتة؛ لا حفظ في قاعدة المرضى ولا رفع. تصدير PDF محلي متاح.")
@@ -162,6 +192,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                             PatientCard(patient = patient, expanded = if (expanded) patient.id !in expandedIds else patient.id in expandedIds,
                                 twoColumn = false, doctorNames = state.names, compact = compact,
                                 animateExpansion = animatedId == patient.id, taskNowEpochMillis = now,
+                                recentlyEdited = recentlyEditedId == patient.id,
                                 pinned = patient.id in pinnedIds,
                                 onPinToggle = { pinnedIds = if (patient.id in pinnedIds) pinnedIds - patient.id else pinnedIds + patient.id },
                                 onClick = { edit = patient }, onLongClick = { detailId = patient.id }, onEdit = { edit = patient },
@@ -186,10 +217,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                                 AppAppearance.entries.forEach { value -> FilterChip(selected = appearance == value,
                                     onClick = { appearance = value }, label = { Text(value.arabicLabel) }) }
                             }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                AppThemePreset.entries.forEach { value -> FilterChip(selected = accent == value,
-                                    onClick = { accent = value }, label = { Text(value.arabicLabel) }) }
-                            }
+                            AppPalettePicker(selected = accent, onSelected = { accent = it })
                         }
                         item { AppTextButton(onClick = { showReset = true }, enabled = !state.exporting) { Text("إعادة ضبط التجربة") } }
                     }
@@ -257,7 +285,12 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
             if (viewModel.save(it)) showAdd = false
         }, onDismiss = { showAdd = false })
         edit?.let { patient -> EditPatientDialog(patient, state.doctors,
-            onConfirm = { updated, stale -> if (viewModel.save(updated, stale)) edit = null }, onDismiss = { edit = null }) }
+            onConfirm = { updated, stale ->
+                if (viewModel.save(updated, stale)) {
+                    returnTarget = PatientReturnTarget(updated.id, updated.revision)
+                    edit = null
+                }
+            }, onDismiss = { edit = null }) }
         copy?.let { patient -> CopyPatientDialog(patient, state.doctors,
             onConfirm = { if (viewModel.save(it)) copy = null }, onDismiss = { copy = null }) }
         deleting?.let { patient -> ConfirmDialog("حذف تجريبي", "نقل ${patient.name} إلى المحذوفات؟",

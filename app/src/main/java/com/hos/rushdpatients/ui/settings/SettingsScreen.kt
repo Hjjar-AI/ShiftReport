@@ -87,7 +87,7 @@ import com.hos.rushdpatients.ui.components.LoadingButton
 import com.hos.rushdpatients.ui.theme.AppFontScale
 import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import com.hos.rushdpatients.ui.theme.AppThemePreset
+import com.hos.rushdpatients.ui.components.AppPalettePicker
 import com.hos.rushdpatients.sync.CsvSchema
 import kotlinx.coroutines.CancellationException
 
@@ -382,15 +382,7 @@ fun SettingsScreen(
                         }
                     }
                     Text("اللون الأساسي", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                        AppThemePreset.entries.forEach { option ->
-                            FilterChip(
-                                selected = state.appTheme == option,
-                                onClick = { viewModel.setAppTheme(option) },
-                                label = { Text(option.arabicLabel) }
-                            )
-                        }
-                    }
+                    AppPalettePicker(selected = state.appTheme, onSelected = viewModel::setAppTheme)
                     Text("حجم الخط", style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         AppFontScale.entries.forEach { option ->

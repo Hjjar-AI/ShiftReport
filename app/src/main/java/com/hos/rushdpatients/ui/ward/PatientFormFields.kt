@@ -53,9 +53,9 @@ import java.time.ZoneOffset
 // ---------------- Section + field helpers ----------------
 
 @Composable
-internal fun SectionTitle(text: String, complete: Boolean? = null) {
+internal fun SectionTitle(text: String, complete: Boolean? = null, modifier: Modifier = Modifier) {
     AppSectionHeader(title = text, complete = complete,
-        modifier = Modifier.padding(top = UiSpacing.tiny))
+        modifier = modifier.padding(top = UiSpacing.tiny))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

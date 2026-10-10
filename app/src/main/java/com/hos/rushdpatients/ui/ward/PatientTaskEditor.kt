@@ -64,6 +64,7 @@ import java.util.UUID
 @Composable
 internal fun PatientTaskEditor(
     tasks: List<PatientTask>, doctors: List<Doctor>, enabled: Boolean,
+    modifier: Modifier = Modifier,
     onChange: (List<PatientTask>) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -73,7 +74,7 @@ internal fun PatientTaskEditor(
     val completed = tasks.filter { it.done }
     val names = doctors.associate { it.id to it.fullName }
     val pending = tasks.count { !it.done }
-    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AppSectionHeader(title = "مهام المريض · $pending معلقة", count = tasks.size,
                 expanded = expanded, onToggle = { expanded = !expanded }, modifier = Modifier.weight(1f))
