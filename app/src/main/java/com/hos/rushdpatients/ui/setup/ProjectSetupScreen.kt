@@ -1,5 +1,14 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.components.AppSection
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -16,22 +25,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -39,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.ui.components.PasswordField
@@ -62,8 +67,8 @@ fun ProjectSetupScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
             Text(
                 "تهيئة ShiftReport",
@@ -75,7 +80,7 @@ fun ProjectSetupScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 FilterChip(
                     selected = state.mode == ProjectSetupMode.DEMO,
                     onClick = { viewModel.setMode(ProjectSetupMode.DEMO) },
@@ -96,7 +101,7 @@ fun ProjectSetupScreen(
                 )
             }
 
-            TextButton(onClick = { showInstructions = !showInstructions }) {
+            AppTextButton(onClick = { showInstructions = !showInstructions }) {
                 Text(if (showInstructions) "إخفاء خطوات الإعداد" else "خطوات الإعداد والمساعدة")
             }
             if (showInstructions) InstructionCard(state.mode)
@@ -115,7 +120,7 @@ fun ProjectSetupScreen(
                             label = "عبارة مرور الملف (10 محارف على الأقل)",
                             enabled = !state.busy
                         )
-                        Button(
+                        AppButton(
                             onClick = { openProvisioning.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
                             enabled = !state.busy && state.provisioningPassphrase.length >= 10,
                             modifier = Modifier.fillMaxWidth()
@@ -134,7 +139,7 @@ fun ProjectSetupScreen(
 
                 if (state.mode == ProjectSetupMode.CREATE) {
                     SetupSection("بيانات الاتصال بالمشروع") {
-                        OutlinedTextField(
+                        AppTextField(
                             value = state.hospitalName,
                             onValueChange = viewModel::setHospitalName,
                             label = { Text("اسم المستشفى أو المشروع") },
@@ -156,7 +161,7 @@ fun ProjectSetupScreen(
                             enabled = !state.busy
                         )
 
-                        TextButton(onClick = { showTopics = !showTopics }) {
+                        AppTextButton(onClick = { showTopics = !showTopics }) {
                             Text(if (showTopics) "إخفاء إعدادات المواضيع" else "إعدادات المواضيع المتقدمة (اختياري)")
                         }
                         if (showTopics) {
@@ -187,7 +192,7 @@ fun ProjectSetupScreen(
                         style = MaterialTheme.typography.bodySmall)
                 }
                 SetupSection("المدير الأول") {
-                    OutlinedTextField(
+                    AppTextField(
                         value = state.adminName,
                         onValueChange = viewModel::setAdminName,
                         label = { Text("الاسم الكامل") },
@@ -201,7 +206,7 @@ fun ProjectSetupScreen(
                         "معرف مستخدم تليجرام",
                         enabled = !state.busy
                     )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         FilterChip(
                             selected = state.adminGenderCode == "M",
                             onClick = { viewModel.setAdminGender("M") },
@@ -231,16 +236,16 @@ fun ProjectSetupScreen(
 
             }
         }
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             state.error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                AppNotice(it, kind = NoticeKind.ERROR)
             }
             state.status?.let {
-                Text(it, color = MaterialTheme.colorScheme.primary)
+                AppNotice(it)
             }
 
-            Button(
+            AppButton(
                 onClick = viewModel::initialize,
                 enabled = !state.busy && (state.mode != ProjectSetupMode.JOIN || state.importedProvisioning),
                 modifier = Modifier.fillMaxWidth()
@@ -248,9 +253,9 @@ fun ProjectSetupScreen(
                 if (state.busy) {
                     CircularProgressIndicator(
                         modifier = Modifier
-                            .padding(end = 10.dp)
-                            .size(20.dp),
-                        strokeWidth = 2.dp
+                            .padding(end = UiSpacing.medium)
+                            .size(UiSize.iconMedium),
+                        strokeWidth = UiSize.progressStroke
                     )
                 }
                 Text(
@@ -281,7 +286,7 @@ private fun InstructionCard(mode: ProjectSetupMode) {
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(text, Modifier.padding(14.dp), textAlign = TextAlign.Start)
+        Text(text, Modifier.padding(UiPadding.content), textAlign = TextAlign.Start)
     }
 }
 
@@ -293,7 +298,7 @@ private fun NumberField(
     signed: Boolean = false,
     enabled: Boolean
 ) {
-    OutlinedTextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -308,12 +313,5 @@ private fun NumberField(
 
 @Composable
 private fun SetupSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() })
-            content()
-        }
-        }
+    AppSection(title = title, content = content)
 }

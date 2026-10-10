@@ -1,5 +1,12 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,7 +25,6 @@ import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +44,8 @@ import com.hos.rushdpatients.ui.ward.CopyPatientDialog
 import com.hos.rushdpatients.ui.ward.EditPatientDialog
 import com.hos.rushdpatients.ui.ward.PatientCard
 import com.hos.rushdpatients.ui.ward.PatientDetailsScreen
+import com.hos.rushdpatients.ui.ward.patientRoundsNavigation
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import com.hos.rushdpatients.ui.ward.ShiftDoctorPicker
 import com.hos.rushdpatients.ui.ward.SortSheet
 
@@ -80,6 +88,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
         state.message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
     }
     BackHandler(enabled = tab != DemoTab.PATIENTS && detailId == null) { tab = DemoTab.PATIENTS }
+    val detailStateHolder = rememberSaveableStateHolder()
     val now = System.currentTimeMillis()
     val actorId = state.doctors.first().id
     val visible = state.ordered.filter { patient ->
@@ -118,7 +127,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 Surface {
                     Row(Modifier.fillMaxWidth().navigationBarsPadding()) {
                         DemoTab.entries.forEach { destination ->
-                            TextButton(onClick = { tab = destination }, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                            AppTextButton(onClick = { tab = destination }, modifier = Modifier.weight(1f).heightIn(min = UiSpacing.touchTarget),
                                 colors = ButtonDefaults.textButtonColors(contentColor = if (tab == destination)
                                     MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)) {
                                 Text(destination.label)
@@ -129,26 +138,23 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
             },
             snackbarHost = { SnackbarHost(snackbar) }
         ) { padding ->
-            LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+            LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = UiSpacing.medium),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small), contentPadding = PaddingValues(vertical = UiSpacing.small)) {
                 item {
-                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small) {
-                        Text("بيانات وهمية للتجربة. التعديلات مؤقتة؛ لا حفظ في قاعدة المرضى ولا رفع. تصدير PDF محلي متاح.",
-                            Modifier.padding(10.dp), style = MaterialTheme.typography.bodySmall)
-                    }
+                    AppNotice("بيانات وهمية للتجربة. التعديلات مؤقتة؛ لا حفظ في قاعدة المرضى ولا رفع. تصدير PDF محلي متاح.")
                 }
                 when (tab) {
                     DemoTab.PATIENTS -> {
                         item {
-                            OutlinedTextField(query, { query = it }, label = { Text("بحث بالاسم أو التشخيص أو رقم القبول") },
+                            AppTextField(query, { query = it }, label = { Text("بحث بالاسم أو التشخيص أو رقم القبول") },
                                 singleLine = true, modifier = Modifier.fillMaxWidth())
-                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 DemoFilter.entries.forEach { value -> FilterChip(selected = filter == value,
                                     onClick = { filter = value }, label = { Text(value.label) }) }
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TextButton(onClick = { compact = !compact }) { Text(if (compact) "بطاقات مريحة" else "بطاقات مدمجة") }
-                                TextButton(onClick = { showRecycle = true }) { Text("المحذوفات (${state.deleted.size})") }
+                            Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                                AppTextButton(onClick = { compact = !compact }) { Text(if (compact) "بطاقات مريحة" else "بطاقات مدمجة") }
+                                AppTextButton(onClick = { showRecycle = true }) { Text("المحذوفات (${state.deleted.size})") }
                             }
                         }
                         if (visible.isEmpty()) item { Text("لا توجد نتائج. غيّر التصفية أو أضف مريضاً تجريبياً.") }
@@ -176,24 +182,24 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                         item { Text("مهام معلقة غير معيّنة: ${counts.unassigned} · شارات: ${state.patients.sumOf { it.badges.size }}") }
                         item { Text("تجربة المظهر — لا تغيّر إعدادات المشروع", style = MaterialTheme.typography.titleMedium) }
                         item {
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 AppAppearance.entries.forEach { value -> FilterChip(selected = appearance == value,
                                     onClick = { appearance = value }, label = { Text(value.arabicLabel) }) }
                             }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 AppThemePreset.entries.forEach { value -> FilterChip(selected = accent == value,
                                     onClick = { accent = value }, label = { Text(value.arabicLabel) }) }
                             }
                         }
-                        item { TextButton(onClick = { showReset = true }, enabled = !state.exporting) { Text("إعادة ضبط التجربة") } }
+                        item { AppTextButton(onClick = { showReset = true }, enabled = !state.exporting) { Text("إعادة ضبط التجربة") } }
                     }
                     DemoTab.TEAM -> {
                         item { Text("فريق بأسماء الأشجار", style = MaterialTheme.typography.titleLarge) }
                         item { Text("أطباء وهميون بلا حسابات أو رموز دخول. «مرضاي» يعرض مرضى ومهام ${state.doctors.first().fullName}.") }
-                        item { OutlinedButton(onClick = { showDoctors = true }) { Text("اختيار أطباء المناوبة") } }
+                        item { AppOutlinedButton(onClick = { showDoctors = true }) { Text("اختيار أطباء المناوبة") } }
                         items(state.doctors, key = { it.id }) { doctor ->
                             Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceVariant) {
-                                Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(UiPadding.content)) {
                                     Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
                                     Text(doctor.clinicalRole.arabicLabel + if (doctor.id in state.shiftDoctorIds) " · ضمن المناوبة" else "")
                                 }
@@ -204,21 +210,21 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                         item {
                             Text("أطباء المناوبة", style = MaterialTheme.typography.titleLarge)
                             Text(state.shiftDoctors.joinToString("، ") { it.fullName })
-                            OutlinedButton(onClick = { showDoctors = true }) { Text("تعديل أطباء المناوبة") }
+                            AppOutlinedButton(onClick = { showDoctors = true }) { Text("تعديل أطباء المناوبة") }
                         }
                         item { Text("${state.date} · ${state.summary.patientCount} مريض · ${state.summary.escortCount} مرافق") }
                         item {
                             Text("خيارات PDF", style = MaterialTheme.typography.titleMedium)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 FilterChip(selected = !elegant, onClick = { elegant = false }, label = { Text("جدول كلاسيكي") })
                                 FilterChip(selected = elegant, onClick = { elegant = true }, label = { Text("صفوف أنيقة") })
                                 FilterChip(selected = landscape, onClick = { landscape = !landscape }, label = { Text("أفقي") })
                             }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 PdfColorPreset.entries.forEach { value -> FilterChip(selected = pdfColor == value,
                                     onClick = { pdfColor = value }, label = { Text(value.arabicLabel) }) }
                             }
-                            Button(onClick = {
+                            AppButton(onClick = {
                                 try { export.launch("ShiftReport_DEMO_${state.date}.pdf") }
                                 catch (e: Exception) { viewModel.message("تعذر فتح مكان الحفظ") }
                             }, enabled = !state.exporting && state.patients.isNotEmpty() && state.shiftDoctorIds.isNotEmpty()) {
@@ -233,7 +239,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                         }
                         items(state.ordered, key = { "report-${it.id}" }) { patient ->
                             Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
-                                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Column(Modifier.fillMaxWidth().padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                     Text("${patient.sortOrder}. ${patient.name}", style = MaterialTheme.typography.titleMedium)
                                     Text(patient.initialDiagnosis)
                                     Text("الخطة: ${patient.treatmentPlan}")
@@ -268,14 +274,21 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
                     if (state.deleted.isEmpty()) Text("المحذوفات فارغة")
                     state.deleted.forEach { patient ->
-                        TextButton(onClick = { viewModel.restore(patient) }) { Text("استعادة ${patient.name}") }
+                        AppTextButton(onClick = { viewModel.restore(patient) }) { Text("استعادة ${patient.name}") }
                     }
                 }
-            }, confirmButton = { TextButton(onClick = { showRecycle = false }) { Text("إغلاق") } })
+            }, confirmButton = { AppTextButton(onClick = { showRecycle = false }) { Text("إغلاق") } })
         state.patients.find { it.id == detailId }?.let { patient ->
-            if (edit == null && copy == null) PatientDetailsScreen(patient = patient, doctorNames = state.names, activity = emptyList(), readOnly = false,
-                onEdit = { edit = patient }, onCopy = { copy = patient },
-                onPriorityChange = { viewModel.save(patient.copy(isPriority = it)) }, onDismiss = { detailId = null })
+            if (edit == null && copy == null) detailStateHolder.SaveableStateProvider(patient.id) {
+                PatientDetailsScreen(patient = patient, doctorNames = state.names, activity = emptyList(), readOnly = false,
+                    onEdit = { edit = patient }, onCopy = { copy = patient },
+                    onPriorityChange = { viewModel.save(patient.copy(isPriority = it)) }, onDismiss = { detailId = null },
+                    roundsNavigation = patientRoundsNavigation(visible.map { it.id }, patient.id),
+                    navigationEnabled = !showAdd,
+                    onNavigateToPatient = { id ->
+                        if (!showAdd && edit == null && copy == null && visible.any { it.id == id }) detailId = id
+                    })
+            }
         }
     }
 }
@@ -283,7 +296,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
 @Composable
 private fun DemoMetric(label: String, count: Int, onClick: () -> Unit) {
     Surface(onClick = onClick, color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).padding(UiPadding.content), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label)
             Text(count.toString(), style = MaterialTheme.typography.titleMedium)
         }

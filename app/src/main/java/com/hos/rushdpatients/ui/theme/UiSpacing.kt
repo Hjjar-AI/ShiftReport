@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.dp
 
 /** Shared rhythm; compact layouts reduce spacing, never text size or touch targets. */
 object UiSpacing {
+    val micro = 2.dp
     val tiny = 4.dp
     val small = 8.dp
     val medium = 12.dp

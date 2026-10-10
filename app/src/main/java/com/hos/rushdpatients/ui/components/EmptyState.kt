@@ -1,17 +1,16 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun EmptyState(
@@ -24,9 +23,9 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .padding(UiSpacing.section),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
         Text(
             text = title,
@@ -42,7 +41,7 @@ fun EmptyState(
             )
         }
         if (actionLabel != null && onAction != null) {
-            Button(onClick = onAction) { Text(actionLabel) }
+            AppButton(onClick = onAction) { Text(actionLabel) }
         }
     }
 }

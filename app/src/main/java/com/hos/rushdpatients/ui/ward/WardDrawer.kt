@@ -1,5 +1,11 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -41,11 +47,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +59,6 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.ui.theme.LocalClinicalColors
@@ -93,8 +97,8 @@ internal fun WardDrawer(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }
         ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium), verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f)) {
                         Text(state.hospitalName.ifBlank { stringResource(R.string.app_name) },
                             style = MaterialTheme.typography.titleMedium, maxLines = 2,
@@ -125,14 +129,14 @@ internal fun WardDrawer(
                 label = { Text("جميع المرضى") },
                 selected = allPatientsSelected,
                 onClick = { onAction(WardDrawerAction.ALL_PATIENTS) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
         CompactDrawerItem(
                 icon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
                 label = { Text("معاينة وإرسال التقرير") },
                 selected = false,
                 onClick = { onAction(WardDrawerAction.REPORT) },
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(horizontal = UiSpacing.medium),
                 enabled = state.shift != null
             )
         if (isAdmin) CompactDrawerItem(
@@ -140,14 +144,14 @@ internal fun WardDrawer(
                 label = { Text("مركز النشاط والسجل") },
                 selected = false,
                 onClick = { onAction(WardDrawerAction.ACTIVITY) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
         CompactDrawerItem(
                 icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                 label = { Text("الإعدادات") },
                 selected = false,
                 onClick = { onAction(WardDrawerAction.SETTINGS) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
         Divider()
         DrawerSubmenuHeader(
@@ -168,28 +172,28 @@ internal fun WardDrawer(
                 label = { Text("لوحة تسليم المناوبة") },
                 selected = viewMode == WardViewMode.DASHBOARD,
                 onClick = { onAction(WardDrawerAction.DASHBOARD) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
             CompactDrawerItem(
                 icon = { Icon(Icons.Filled.Person, contentDescription = null) },
                 label = { Text("مرضاي") },
                 selected = viewMode == WardViewMode.MINE,
                 onClick = { onAction(WardDrawerAction.MY_PATIENTS) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
             CompactDrawerItem(
                 icon = { Icon(Icons.Filled.FilterList, contentDescription = null) },
                 label = { Text("بحث وتصفية وترتيب") },
                 selected = filtersSelected,
                 onClick = { onAction(WardDrawerAction.FILTERS) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
             CompactDrawerItem(
                 icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
                 label = { Text("ترتيب المرضى") },
                 selected = false,
                 onClick = { if (!state.isReadOnly) onAction(WardDrawerAction.SORT) },
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(horizontal = UiSpacing.medium),
                 enabled = !state.isReadOnly
             )
             CompactDrawerItem(
@@ -197,19 +201,19 @@ internal fun WardDrawer(
                 label = { Text("تجميع المرضى") },
                 selected = state.groupByMode != GroupByMode.NONE,
                 onClick = { onAction(WardDrawerAction.GROUP) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
             CompactDrawerItem(
                 icon = { Icon(Icons.Filled.Groups, contentDescription = null) },
                 label = { Text("أطباء المناوبة") },
                 selected = false,
                 onClick = { if (!state.isReadOnly) onAction(WardDrawerAction.SHIFT_DOCTORS) },
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(horizontal = UiSpacing.medium),
                 enabled = !state.isReadOnly
             )
         }
 
-        Divider(modifier = Modifier.padding(vertical = 4.dp))
+        Divider(modifier = Modifier.padding(vertical = UiSpacing.tiny))
         DrawerSubmenuHeader(
             label = "البيانات والمزامنة",
             expanded = dataMenuExpanded,
@@ -225,13 +229,13 @@ internal fun WardDrawer(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(horizontal = UiSpacing.medium, vertical = UiSpacing.small),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.padding(UiPadding.content),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -241,79 +245,21 @@ internal fun WardDrawer(
                         Text("حالة البيانات", style = MaterialTheme.typography.titleSmall)
                         if (state.syncing) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp
+                                modifier = Modifier.size(UiSize.iconMedium),
+                                strokeWidth = UiSize.progressStroke
                             )
                         }
                     }
-                    val syncColors = when (state.syncStatus) {
-                        PatientSyncStatus.LOCAL -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-                        PatientSyncStatus.PENDING -> clinicalColors.pendingContainer to clinicalColors.onPendingContainer
-                        PatientSyncStatus.BACKED_UP -> clinicalColors.successContainer to clinicalColors.onSuccessContainer
-                        PatientSyncStatus.SYNCING -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurface
-                        PatientSyncStatus.CONFLICT -> clinicalColors.urgentContainer to clinicalColors.onUrgentContainer
-                    }
-                    AssistChip(
-                        onClick = { onAction(WardDrawerAction.SYNC_DETAILS) },
-                        label = { Text(freshnessLabel, style = MaterialTheme.typography.labelSmall) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = when (state.syncStatus) {
-                                    PatientSyncStatus.LOCAL -> Icons.Filled.Save
-                                    PatientSyncStatus.PENDING -> Icons.Filled.CloudUpload
-                                    PatientSyncStatus.BACKED_UP -> Icons.Filled.CloudDone
-                                    PatientSyncStatus.SYNCING -> Icons.Filled.Sync
-                                    PatientSyncStatus.CONFLICT -> Icons.Filled.Warning
-                                },
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = syncColors.first,
-                            labelColor = syncColors.second,
-                            leadingIconContentColor = syncColors.second
-                        ),
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-                    )
-                    if (!online) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.WifiOff,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Text(
-                                "غير متصل · تُعرض البيانات المحلية",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                    state.lastOperation?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (state.mergeConflicts.isNotEmpty()) {
-                        Text(
-                            "${state.mergeConflicts.size} تعارض يحتاج إجراء",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        TextButton(
+                    PatientSyncNotice(status = state.syncStatus, freshnessLabel = freshnessLabel,
+                        online = online, conflictCount = state.mergeConflicts.size,
+                        onDetails = { onAction(WardDrawerAction.SYNC_DETAILS) })
+                    state.lastOperation?.let { AppNotice(it) }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)) {
+                        AppTextButton(
                             onClick = { onAction(WardDrawerAction.SYNC) },
                             enabled = !state.syncing
                         ) { Text("مزامنة", style = MaterialTheme.typography.labelSmall) }
-                        TextButton(
+                        AppTextButton(
                             onClick = { onAction(WardDrawerAction.PREVIOUS) },
                             enabled = !state.syncing
                         ) { Text("نسخة سابقة", style = MaterialTheme.typography.labelSmall) }
@@ -323,7 +269,7 @@ internal fun WardDrawer(
                             "يمكن اختيار واحدة من آخر ثلاث مناوبات عند جلب نسخة سابقة.",
                             style = MaterialTheme.typography.labelSmall
                         )
-                        TextButton(onClick = { onAction(WardDrawerAction.DISMISS_SYNC_HINT) }) {
+                        AppTextButton(onClick = { onAction(WardDrawerAction.DISMISS_SYNC_HINT) }) {
                             Text("فهمت", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -335,7 +281,7 @@ internal fun WardDrawer(
                 label = { Text("حفظ بيانات المرضى CSV") },
                 selected = false,
                 onClick = { onAction(WardDrawerAction.EXPORT_CSV) },
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(horizontal = UiSpacing.medium),
                 enabled = !state.exportingCsv
             )
             CompactDrawerItem(
@@ -343,11 +289,11 @@ internal fun WardDrawer(
                 label = { Text("سلة المحذوفات") },
                 selected = false,
                 onClick = { onAction(WardDrawerAction.RECYCLE_BIN) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
         }
 
-        Divider(modifier = Modifier.padding(vertical = 4.dp))
+        Divider(modifier = Modifier.padding(vertical = UiSpacing.tiny))
         DrawerSubmenuHeader(
             label = "الإدارة وحول التطبيق",
             expanded = appMenuExpanded,
@@ -366,14 +312,14 @@ internal fun WardDrawer(
                     label = { Text("لوحة المدير") },
                     selected = false,
                     onClick = { onAction(WardDrawerAction.ADMIN) },
-                    modifier = Modifier.padding(horizontal = 12.dp)
+                    modifier = Modifier.padding(horizontal = UiSpacing.medium)
                 )
                 CompactDrawerItem(
                     icon = { Icon(Icons.Filled.FileUpload, contentDescription = null) },
                     label = { Text("استيراد بيانات من ملف") },
                     selected = false,
                     onClick = { onAction(WardDrawerAction.IMPORT) },
-                    modifier = Modifier.padding(horizontal = 12.dp)
+                    modifier = Modifier.padding(horizontal = UiSpacing.medium)
                 )
             }
 
@@ -382,7 +328,7 @@ internal fun WardDrawer(
                 label = { Text("حول التطبيق") },
                 selected = false,
                 onClick = { onAction(WardDrawerAction.ABOUT) },
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
         }
     }

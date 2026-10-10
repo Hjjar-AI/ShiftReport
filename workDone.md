@@ -19,6 +19,7 @@ Completed features only. Technical details and verification limits: [currentStat
 
 ## Navigation and accessibility
 
+- UI consistency audit: shared app fields/buttons/cards and picker/authentication layouts, common radius/spacing/size tokens, minimal shared internal padding (8dp/4dp; compact 4dp/2dp), theme-based patient input, and consistent loading/custom action presentation across production and demo screens. Source checks only; [implementation and limits](currentState.md#visual-design-system).
 - Patient-form Back/Cancel dismissal confirms discarding changed fields/tasks and unadded text. Unchanged forms close immediately; explicit new-patient discard clears the retained draft. Save/stale-edit handling is preserved. Source checks only.
 - Login/shift-doctor searches have labelled clear buttons; clearing preserves roster selections. Source checks passed. Joining-export/re-login runtime verification remains unavailable because ADB reported no connected devices; [procedure and limits](debugging.md#joining-export-and-administrator-re-login).
 - Patient-list task filters have removable chips; clearing filters from empty results also clears the task filter. Source checks only.

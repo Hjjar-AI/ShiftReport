@@ -1,5 +1,14 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppPickerField
+import com.hos.rushdpatients.ui.components.AppButton
+import com.hos.rushdpatients.ui.components.AppSectionHeader
+import com.hos.rushdpatients.ui.components.LocalFieldEnabled
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,11 +16,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
@@ -21,23 +30,20 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextDirection
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import java.time.Instant
@@ -48,28 +54,8 @@ import java.time.ZoneOffset
 
 @Composable
 internal fun SectionTitle(text: String, complete: Boolean? = null) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 4.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = buildString {
-                append(text)
-                when (complete) {
-                    true -> append("  ✓")
-                    false -> Unit
-                    null -> Unit
-                }
-            },
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = UiSpacing.small, vertical = UiSpacing.tiny).semantics { heading() }
-        )
-    }
+    AppSectionHeader(title = text, complete = complete,
+        modifier = Modifier.padding(top = UiSpacing.tiny))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,31 +65,25 @@ internal fun DateField(
     onValueChange: (LocalDate) -> Unit,
     label: String,
     supportingText: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = LocalFieldEnabled.current,
+    isError: Boolean = false
 ) {
     var open by remember { mutableStateOf(false) }
-    OutlinedButton(
-        onClick = { open = true },
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "$label: ${value?.toString() ?: "اختر"}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            supportingText?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-    if (open) {
+    AppPickerField(
+        value = value?.toString().orEmpty(), label = label,
+        placeholder = "اختر التاريخ", icon = Icons.Filled.CalendarMonth, valueTextDirection = TextDirection.Ltr,
+        onClick = { open = true }, modifier = modifier,
+        supportingText = supportingText, enabled = enabled, isError = isError
+    )
+    if (open && enabled) {
         val state = rememberDatePickerState(
             initialSelectedDateMillis = value?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
         )
         DatePickerDialog(
             onDismissRequest = { open = false },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     state.selectedDateMillis?.let { millis ->
                         onValueChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
                     }
@@ -111,7 +91,7 @@ internal fun DateField(
                 }) { Text("اختيار") }
             },
             dismissButton = {
-                TextButton(onClick = { open = false }) { Text("إلغاء") }
+                AppTextButton(onClick = { open = false }) { Text("إلغاء") }
             }
         ) { DatePicker(state = state) }
     }
@@ -127,7 +107,7 @@ internal fun MultilineField(
     placeholder: String? = null,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -184,8 +164,10 @@ internal fun MultiValueEditor(
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
+    var insertMenu by remember { mutableStateOf(false) }
+    val enabled = LocalFieldEnabled.current
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         Text(
             "$label${if (label == "التحاليل") "" else " *"}",
             style = MaterialTheme.typography.labelMedium
@@ -218,7 +200,7 @@ internal fun MultiValueEditor(
             }
         }
 
-        OutlinedTextField(
+        AppTextField(
             value = draft,
             onValueChange = onDraftChange,
             label = { Text("إضافة إلى $label") },
@@ -229,30 +211,26 @@ internal fun MultiValueEditor(
             isError = isError
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            OutlinedButton(
-                onClick = onAdd,
-                enabled = draft.isNotBlank(),
-                modifier = Modifier.weight(1f)
-            ) { Text("إضافة") }
-            OutlinedButton(
-                onClick = onAddSeparator,
-                enabled = items.isNotEmpty() && items.last() != FIELD_SEPARATOR,
-                modifier = Modifier.weight(1f)
-            ) { Text("فاصل") }
-            if (onAddDate != null) {
-                OutlinedButton(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.weight(1f)
-                ) { Text("تاريخ") }
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+            AppButton(onClick = onAdd, enabled = enabled && draft.isNotBlank(),
+                modifier = Modifier.weight(1f)) { Text("إضافة") }
+            Box {
+                IconButton(onClick = { insertMenu = true }, enabled = enabled) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "خيارات الإضافة إلى $label")
+                }
+                DropdownMenu(expanded = insertMenu && enabled, onDismissRequest = { insertMenu = false }) {
+                    DropdownMenuItem(text = { Text("إضافة فاصل") },
+                        enabled = items.isNotEmpty() && items.last() != FIELD_SEPARATOR,
+                        onClick = { insertMenu = false; onAddSeparator() })
+                    if (onAddDate != null) DropdownMenuItem(text = { Text("إضافة تاريخ") },
+                        onClick = { insertMenu = false; showDatePicker = true })
+                }
             }
         }
     }
 
-    if (showDatePicker && onAddDate != null) {
+    if (showDatePicker && enabled && onAddDate != null) {
         val state = rememberDatePickerState(
             initialSelectedDateMillis = LocalDate.now()
                 .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
@@ -260,7 +238,7 @@ internal fun MultiValueEditor(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     state.selectedDateMillis?.let { millis ->
                         val date = Instant.ofEpochMilli(millis)
                             .atZone(ZoneOffset.UTC).toLocalDate()
@@ -270,7 +248,7 @@ internal fun MultiValueEditor(
                 }) { Text("اختيار") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("إلغاء") }
+                AppTextButton(onClick = { showDatePicker = false }) { Text("إلغاء") }
             }
         ) { DatePicker(state = state) }
     }
@@ -285,8 +263,9 @@ private fun DragHandleButton(
     onMove: (Int, Int) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val enabled = LocalFieldEnabled.current
     Box {
-        IconButton(onClick = { expanded = true }, modifier = Modifier.size(48.dp)) {
+        IconButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.size(UiSpacing.touchTarget)) {
             Icon(
                 Icons.Filled.DragHandle,
                 contentDescription = "إعادة ترتيب العنصر ${index + 1}",
@@ -294,7 +273,7 @@ private fun DragHandleButton(
             )
         }
         DropdownMenu(
-            expanded = expanded,
+            expanded = expanded && enabled,
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
@@ -338,10 +317,10 @@ private fun TextItemRow(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)
     ) {
         DragHandleButton(index = index, itemCount = itemCount, onMove = onMove)
-        OutlinedTextField(
+        AppTextField(
             value = item,
             onValueChange = { newValue -> onEditItem(index, newValue) },
             modifier = Modifier.weight(1f),
@@ -349,7 +328,7 @@ private fun TextItemRow(
             maxLines = 3,
             textStyle = textStyle
         )
-        IconButton(onClick = { onRemove(index) }) {
+        IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
             Icon(Icons.Default.Close, contentDescription = "حذف العنصر")
         }
     }
@@ -365,11 +344,11 @@ private fun SeparatorRow(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)
     ) {
         DragHandleButton(index = index, itemCount = itemCount, onMove = onMove)
         Divider(modifier = Modifier.weight(1f))
-        IconButton(onClick = { onRemove(index) }) {
+        IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
             Icon(Icons.Default.Close, contentDescription = "حذف الفاصل")
         }
     }
@@ -386,23 +365,23 @@ private fun DateMarkerRow(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)
     ) {
         DragHandleButton(index = index, itemCount = itemCount, onMove = onMove)
         Surface(
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.tertiaryContainer,
-            shape = RoundedCornerShape(6.dp)
+            shape = MaterialTheme.shapes.small
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                modifier = Modifier.padding(UiPadding.content),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 Icon(
                     Icons.Filled.CalendarMonth,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(UiSize.iconSmall),
                     tint = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Text(
@@ -412,7 +391,7 @@ private fun DateMarkerRow(
                 )
             }
         }
-        IconButton(onClick = { onRemove(index) }) {
+        IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
             Icon(Icons.Default.Close, contentDescription = "حذف التاريخ")
         }
     }
@@ -427,21 +406,20 @@ internal fun DoctorDropdown(
     selectedId: String?,
     doctors: List<Doctor>,
     onSelected: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = LocalFieldEnabled.current,
+    isError: Boolean = false,
+    supportingText: String? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedName = doctors.firstOrNull { it.id == selectedId }?.fullName
     Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = selectedName?.let { "$label: $it" } ?: undefinedLabel,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        AppPickerField(
+            value = selectedName.orEmpty(), label = label, placeholder = undefinedLabel,
+            onClick = { expanded = true }, modifier = Modifier.fillMaxWidth(),
+            enabled = enabled, isError = isError, supportingText = supportingText
+        )
+        DropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text(undefinedLabel) },
                 onClick = { onSelected(null); expanded = false }

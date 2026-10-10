@@ -1,5 +1,11 @@
 package com.hos.rushdpatients.ui.connection
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,20 +17,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -54,7 +56,7 @@ fun ProjectConnectionAction(
         selectedFileName = selectedFile?.let { viewModel.readDisplayName(it) }
     }
 
-    OutlinedButton(onClick = {
+    AppOutlinedButton(onClick = {
         viewModel.reset()
         manual = false
         selectedFile = null
@@ -78,7 +80,7 @@ fun ProjectConnectionAction(
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     when {
                         state.reviewProject != null -> {
@@ -90,7 +92,7 @@ fun ProjectConnectionAction(
                             Text("استخدم ملف الانضمام المحدّث من المدير. يُرفض ملف مشروع آخر أو مفتاح مختلف لحماية البيانات المحلية.")
                             if (manual) {
                                 Text("ألغِ الرمز القديم وأنشئ بديلاً للبوت نفسه عبر BotFather، ثم أدخله هنا. بعد الحفظ صدّر ملف انضمام جديداً ووزّعه على الأجهزة. إلغاء الرمز يوقف اتصال الأجهزة التي تستخدمه.")
-                                TextButton(onClick = {
+                                AppTextButton(onClick = {
                                     try {
                                         uriHandler.openUri("https://t.me/BotFather")
                                     } catch (_: Exception) {
@@ -98,7 +100,7 @@ fun ProjectConnectionAction(
                                     }
                                 }, enabled = !state.busy) { Text("فتح BotFather") }
                             } else {
-                                OutlinedButton(onClick = {
+                                AppOutlinedButton(onClick = {
                                     pickerError = null
                                     try {
                                         picker.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
@@ -114,7 +116,7 @@ fun ProjectConnectionAction(
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
-                            OutlinedTextField(
+                            AppTextField(
                                 value = secret,
                                 onValueChange = { secret = it },
                                 label = { Text(if (manual) "الرمز الجديد" else "عبارة مرور الملف") },
@@ -123,7 +125,7 @@ fun ProjectConnectionAction(
                                 enabled = !state.busy,
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            if (isAdmin) TextButton(onClick = {
+                            if (isAdmin) AppTextButton(onClick = {
                                 manual = !manual
                                 selectedFile = null
                                 secret = ""
@@ -136,13 +138,12 @@ fun ProjectConnectionAction(
                     }
                     if (state.busy) CircularProgressIndicator()
                     (state.message ?: pickerError)?.let {
-                        Text(it, color = if (state.applied) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.error)
+                        AppNotice(it, kind = if (state.applied) NoticeKind.SUCCESS else NoticeKind.ERROR)
                     }
                 }
             },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     enabled = !state.busy && (state.applied || state.reviewProject != null ||
                         (manual && secret.isNotBlank()) ||
                         (!manual && selectedFile != null && secret.length >= 10)),
@@ -163,7 +164,7 @@ fun ProjectConnectionAction(
                 }
             },
             dismissButton = {
-                if (!state.applied) TextButton(onClick = dismiss, enabled = !state.busy) { Text("إلغاء") }
+                if (!state.applied) AppTextButton(onClick = dismiss, enabled = !state.busy) { Text("إلغاء") }
             }
         )
     }

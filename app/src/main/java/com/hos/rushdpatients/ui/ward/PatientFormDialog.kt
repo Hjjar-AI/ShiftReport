@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -13,31 +18,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import com.hos.rushdpatients.ui.components.LocalFieldEnabled
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
@@ -46,7 +47,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
@@ -68,7 +68,7 @@ private data class PatientFormError(val field: PatientFormField, val message: St
 
 @Composable
 private fun autoDirTextStyle(): TextStyle =
-    LocalTextStyle.current.copy(
+    MaterialTheme.typography.bodyLarge.copy(
         textDirection = TextDirection.ContentOrRtl
     )
 
@@ -212,10 +212,10 @@ internal fun PatientFormDialog(
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
             verticalAlignment = Alignment.Top
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = admittanceNumber,
                 onValueChange = { admittanceNumber = it; validationMessages = emptyList() },
                 label = { Text("رقم القبول الحالي *") },
@@ -229,6 +229,7 @@ internal fun PatientFormDialog(
                 value = admittanceDate,
                 onValueChange = { admittanceDate = it; validationMessages = emptyList() },
                 label = "تاريخ الدخول *",
+                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
                 supportingText = admissionDays?.let { "مدة الإقامة: $it يوم" },
                 modifier = Modifier.weight(1f).bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
             )
@@ -238,7 +239,7 @@ internal fun PatientFormDialog(
             "البيانات الشخصية",
             complete = name.isNotBlank() && birthYear != null && age != null
         )
-        OutlinedTextField(
+        AppTextField(
             value = name,
             onValueChange = { name = it; validationMessages = emptyList() },
             label = { Text("اسم المريض *") },
@@ -250,9 +251,9 @@ internal fun PatientFormDialog(
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = birthYearText,
                 onValueChange = { value ->
                     val cleaned = value.filter(Char::isDigit).take(4)
@@ -275,7 +276,7 @@ internal fun PatientFormDialog(
                 )
             )
             Text("أو", modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium)
-            OutlinedTextField(
+            AppTextField(
                 value = ageText,
                 onValueChange = { value ->
                     val cleaned = value.filter(Char::isDigit).take(3)
@@ -301,15 +302,17 @@ internal fun PatientFormDialog(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
             Text("الجنس", style = MaterialTheme.typography.labelMedium)
             FilterChip(
+                enabled = !saving,
                 selected = gender == Gender.MALE,
                 onClick = { gender = Gender.MALE },
                 label = { Text("ذكر") }
             )
             FilterChip(
+                enabled = !saving,
                 selected = gender == Gender.FEMALE,
                 onClick = { gender = Gender.FEMALE },
                 label = { Text("أنثى") }
@@ -321,7 +324,7 @@ internal fun PatientFormDialog(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("يوجد مرافق", style = MaterialTheme.typography.labelMedium)
-            Switch(checked = hasCompanion, onCheckedChange = { hasCompanion = it })
+            Switch(enabled = !saving, checked = hasCompanion, onCheckedChange = { hasCompanion = it })
         }
     }
 
@@ -361,443 +364,451 @@ internal fun PatientFormDialog(
         }
     }
 
-    WardFormDialog(
-        onDismissRequest = requestDismiss,
-        title = {
-            Column {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                reviewAction()
-                if (hasUnsavedChanges) {
-                    Text(
-                        "توجد تغييرات غير محفوظة",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
+    CompositionLocalProvider(LocalFieldEnabled provides !saving) {
+        WardFormDialog(
+            onDismissRequest = requestDismiss,
+            title = {
+                Column {
+                    Text(text = title, style = MaterialTheme.typography.titleMedium)
+                    reviewAction()
+                    if (hasUnsavedChanges) {
+                        Text(
+                            "توجد تغييرات غير محفوظة",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
                 }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(formScrollState),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                if (validationMessages.isNotEmpty()) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("راجع الحقول التالية", style = MaterialTheme.typography.titleSmall)
-                            validationMessages.forEach { error ->
-                                TextButton(
-                                    onClick = {
-                                        formScope.launch { fieldRequests.getValue(error.field).bringIntoView() }
-                                    },
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-                                ) {
-                                    Text(error.message, modifier = Modifier.fillMaxWidth(),
-                                        color = MaterialTheme.colorScheme.onErrorContainer)
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(formScrollState),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+                ) {
+                    if (validationMessages.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                                Text("راجع الحقول التالية", style = MaterialTheme.typography.titleSmall)
+                                validationMessages.forEach { error ->
+                                    AppTextButton(
+                                        onClick = {
+                                            formScope.launch { fieldRequests.getValue(error.field).bringIntoView() }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
+                                    ) {
+                                        Text(error.message, modifier = Modifier.fillMaxWidth(),
+                                            color = MaterialTheme.colorScheme.onErrorContainer)
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                if (initial == null) admissionIdentityContent()
+                    if (initial == null) admissionIdentityContent()
 
-                SectionTitle(
-                    "التشخيص والعلاج",
-                    complete = initialDiagnosis.isNotBlank() &&
-                        (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
-                        (followUpItems + followUpDraft).any(String::isNotBlank)
-                )
-                Text("نوع التشخيص", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    DiagnosisType.entries.forEach { type ->
+                    SectionTitle(
+                        "التشخيص والعلاج",
+                        complete = initialDiagnosis.isNotBlank() &&
+                            (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
+                            (followUpItems + followUpDraft).any(String::isNotBlank)
+                    )
+                    Text("نوع التشخيص", style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                        DiagnosisType.entries.forEach { type ->
+                            FilterChip(
+                                enabled = !saving,
+                                selected = diagnosisType == type,
+                                onClick = { diagnosisType = type },
+                                label = { Text(type.arabicLabel) }
+                            )
+                        }
+                    }
+                    MultilineField(
+                        initialDiagnosis,
+                        { initialDiagnosis = it; validationMessages = emptyList() },
+                        "التشخيص الأولي",
+                        autoStyle,
+                        isError = validationMessages.any { it.field == PatientFormField.DIAGNOSIS },
+                        modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.DIAGNOSIS)),
+                        placeholder = when (diagnosisType) {
+                            DiagnosisType.PSYCHIATRIC -> "مثال: Psychosis، Bipolar II disorder"
+                            DiagnosisType.ADDICTION -> "مثال: Drug-induced psychosis، Stimulant use disorder"
+                            DiagnosisType.DUAL -> "مثال: Schizophrenia + Alcohol use disorder"
+                        }
+                    )
+
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         FilterChip(
-                            selected = diagnosisType == type,
-                            onClick = { diagnosisType = type },
-                            label = { Text(type.arabicLabel) }
+                            enabled = !saving,
+                            selected = formMode == PatientFormMode.GENERAL,
+                            onClick = { formMode = PatientFormMode.GENERAL },
+                            label = { Text("عام") }
+                        )
+                        FilterChip(
+                            enabled = !saving,
+                            selected = formMode == PatientFormMode.ADVANCED,
+                            onClick = { formMode = PatientFormMode.ADVANCED },
+                            label = { Text("سريري متقدم") }
                         )
                     }
-                }
-                MultilineField(
-                    initialDiagnosis,
-                    { initialDiagnosis = it; validationMessages = emptyList() },
-                    "التشخيص الأولي",
-                    autoStyle,
-                    isError = validationMessages.any { it.field == PatientFormField.DIAGNOSIS },
-                    modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.DIAGNOSIS)),
-                    placeholder = when (diagnosisType) {
-                        DiagnosisType.PSYCHIATRIC -> "مثال: Psychosis، Bipolar II disorder"
-                        DiagnosisType.ADDICTION -> "مثال: Drug-induced psychosis، Stimulant use disorder"
-                        DiagnosisType.DUAL -> "مثال: Schizophrenia + Alcohol use disorder"
-                    }
-                )
-
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChip(
-                        selected = formMode == PatientFormMode.GENERAL,
-                        onClick = { formMode = PatientFormMode.GENERAL },
-                        label = { Text("عام") }
-                    )
-                    FilterChip(
-                        selected = formMode == PatientFormMode.ADVANCED,
-                        onClick = { formMode = PatientFormMode.ADVANCED },
-                        label = { Text("سريري متقدم") }
-                    )
-                }
-                if (formMode == PatientFormMode.GENERAL) {
-                    MultilineField(
-                        value = (treatmentItems + treatmentDraft)
-                            .filter(String::isNotBlank)
-                            .joinToString("\n"),
-                        onValueChange = {
-                            treatmentItems = parseFieldItems(it)
-                            treatmentDraft = ""
+                    if (formMode == PatientFormMode.GENERAL) {
+                        MultilineField(
+                            value = (treatmentItems + treatmentDraft)
+                                .filter(String::isNotBlank)
+                                .joinToString("\n"),
+                            onValueChange = {
+                                treatmentItems = parseFieldItems(it)
+                                treatmentDraft = ""
+                                validationMessages = emptyList()
+                            },
+                            label = "الخطة العلاجية",
+                            textStyle = autoStyle,
+                            isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
+                            modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
+                        )
+                        MultilineField(
+                            value = (followUpItems + followUpDraft)
+                                .filter(String::isNotBlank)
+                                .joinToString("\n"),
+                            onValueChange = {
+                                followUpItems = parseFieldItems(it)
+                                followUpDraft = ""
+                                validationMessages = emptyList()
+                            },
+                            label = "المتابعة",
+                            textStyle = autoStyle,
+                            isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
+                            modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
+                        )
+                        MultilineField(
+                            value = (labItems + labDraft).filter(String::isNotBlank).joinToString("\n"),
+                            onValueChange = {
+                                labItems = parseFieldItems(it)
+                                labDraft = ""
+                                validationMessages = emptyList()
+                            },
+                            label = "التحاليل",
+                            textStyle = autoStyle,
+                            isError = false
+                        )
+                    } else {
+                    MultiValueEditor(
+                        label = "الخطة العلاجية",
+                        items = treatmentItems,
+                        draft = treatmentDraft,
+                        onDraftChange = { treatmentDraft = it; validationMessages = emptyList() },
+                        onEditItem = { index, value ->
+                            treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
                             validationMessages = emptyList()
                         },
-                        label = "الخطة العلاجية",
+                        onMove = { from, to ->
+                            treatmentItems = reorder(treatmentItems, from, to)
+                        },
+                        onAdd = {
+                            val value = treatmentDraft.trim()
+                            if (value.isNotEmpty()) {
+                                treatmentItems = treatmentItems + value
+                                treatmentDraft = ""
+                            }
+                        },
+                        onRemove = { index ->
+                            treatmentItems = treatmentItems.filterIndexed { i, _ -> i != index }
+                        },
+                        onAddSeparator = { treatmentItems = treatmentItems + FIELD_SEPARATOR },
+                        onAddDate = null,
                         textStyle = autoStyle,
                         isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
                         modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
                     )
-                    MultilineField(
-                        value = (followUpItems + followUpDraft)
-                            .filter(String::isNotBlank)
-                            .joinToString("\n"),
-                        onValueChange = {
-                            followUpItems = parseFieldItems(it)
-                            followUpDraft = ""
+                    MultiValueEditor(
+                        label = "المتابعة",
+                        items = followUpItems,
+                        draft = followUpDraft,
+                        onDraftChange = { followUpDraft = it; validationMessages = emptyList() },
+                        onEditItem = { index, value ->
+                            followUpItems = followUpItems.toMutableList().also { it[index] = value }
                             validationMessages = emptyList()
                         },
-                        label = "المتابعة",
+                        onMove = { from, to ->
+                            followUpItems = reorder(followUpItems, from, to)
+                        },
+                        onAdd = {
+                            followUpDraft.trim().takeIf { it.isNotEmpty() }?.let {
+                                followUpItems = followUpItems + it
+                                followUpDraft = ""
+                            }
+                        },
+                        onRemove = { index ->
+                            followUpItems = followUpItems.filterIndexed { i, _ -> i != index }
+                        },
+                        onAddSeparator = { followUpItems = followUpItems + FIELD_SEPARATOR },
+                        onAddDate = null,
                         textStyle = autoStyle,
                         isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
                         modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
                     )
-                    MultilineField(
-                        value = (labItems + labDraft).filter(String::isNotBlank).joinToString("\n"),
-                        onValueChange = {
-                            labItems = parseFieldItems(it)
-                            labDraft = ""
+                    MultiValueEditor(
+                        label = "التحاليل",
+                        items = labItems,
+                        draft = labDraft,
+                        onDraftChange = { labDraft = it; validationMessages = emptyList() },
+                        onEditItem = { index, value ->
+                            labItems = labItems.toMutableList().also { it[index] = value }
                             validationMessages = emptyList()
                         },
-                        label = "التحاليل",
+                        onMove = { from, to ->
+                            labItems = reorder(labItems, from, to)
+                        },
+                        onAdd = {
+                            labDraft.trim().takeIf { it.isNotEmpty() }?.let {
+                                labItems = labItems + it
+                                labDraft = ""
+                            }
+                        },
+                        onRemove = { index ->
+                            labItems = labItems.filterIndexed { i, _ -> i != index }
+                        },
+                        onAddSeparator = { labItems = labItems + FIELD_SEPARATOR },
+                        onAddDate = { date ->
+                            labItems = labItems + dateMarkerFrom(date)
+                        },
                         textStyle = autoStyle,
                         isError = false
                     )
-                } else {
-                MultiValueEditor(
-                    label = "الخطة العلاجية",
-                    items = treatmentItems,
-                    draft = treatmentDraft,
-                    onDraftChange = { treatmentDraft = it; validationMessages = emptyList() },
-                    onEditItem = { index, value ->
-                        treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
-                        validationMessages = emptyList()
-                    },
-                    onMove = { from, to ->
-                        treatmentItems = reorder(treatmentItems, from, to)
-                    },
-                    onAdd = {
-                        val value = treatmentDraft.trim()
-                        if (value.isNotEmpty()) {
-                            treatmentItems = treatmentItems + value
-                            treatmentDraft = ""
-                        }
-                    },
-                    onRemove = { index ->
-                        treatmentItems = treatmentItems.filterIndexed { i, _ -> i != index }
-                    },
-                    onAddSeparator = { treatmentItems = treatmentItems + FIELD_SEPARATOR },
-                    onAddDate = null,
-                    textStyle = autoStyle,
-                    isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
-                    modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
-                )
-                MultiValueEditor(
-                    label = "المتابعة",
-                    items = followUpItems,
-                    draft = followUpDraft,
-                    onDraftChange = { followUpDraft = it; validationMessages = emptyList() },
-                    onEditItem = { index, value ->
-                        followUpItems = followUpItems.toMutableList().also { it[index] = value }
-                        validationMessages = emptyList()
-                    },
-                    onMove = { from, to ->
-                        followUpItems = reorder(followUpItems, from, to)
-                    },
-                    onAdd = {
-                        followUpDraft.trim().takeIf { it.isNotEmpty() }?.let {
-                            followUpItems = followUpItems + it
-                            followUpDraft = ""
-                        }
-                    },
-                    onRemove = { index ->
-                        followUpItems = followUpItems.filterIndexed { i, _ -> i != index }
-                    },
-                    onAddSeparator = { followUpItems = followUpItems + FIELD_SEPARATOR },
-                    onAddDate = null,
-                    textStyle = autoStyle,
-                    isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
-                    modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
-                )
-                MultiValueEditor(
-                    label = "التحاليل",
-                    items = labItems,
-                    draft = labDraft,
-                    onDraftChange = { labDraft = it; validationMessages = emptyList() },
-                    onEditItem = { index, value ->
-                        labItems = labItems.toMutableList().also { it[index] = value }
-                        validationMessages = emptyList()
-                    },
-                    onMove = { from, to ->
-                        labItems = reorder(labItems, from, to)
-                    },
-                    onAdd = {
-                        labDraft.trim().takeIf { it.isNotEmpty() }?.let {
-                            labItems = labItems + it
-                            labDraft = ""
-                        }
-                    },
-                    onRemove = { index ->
-                        labItems = labItems.filterIndexed { i, _ -> i != index }
-                    },
-                    onAddSeparator = { labItems = labItems + FIELD_SEPARATOR },
-                    onAddDate = { date ->
-                        labItems = labItems + dateMarkerFrom(date)
-                    },
-                    textStyle = autoStyle,
-                    isError = false
-                )
-                }
+                    }
 
-                SectionTitle("مهام المريض")
-                PatientTaskEditor(tasks, doctors, !saving) { tasks = it }
+                    PatientTaskEditor(tasks, doctors, !saving) { tasks = it }
 
-                SectionTitle(
-                    "الفريق المسؤول",
-                    complete = residentId != null && specialistId != null && residentId != specialistId
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    DoctorDropdown(
-                        label = "المقيم",
-                        undefinedLabel = "مقيم غير محدد",
-                        selectedId = residentId,
-                        doctors = residentDoctors,
-                        onSelected = { residentId = it; validationMessages = emptyList() },
-                        modifier = Modifier.weight(1f)
+                    SectionTitle(
+                        "الفريق المسؤول",
+                        complete = residentId != null && specialistId != null && residentId != specialistId
                     )
-                    DoctorDropdown(
-                        label = "الاختصاصي",
-                        undefinedLabel = "اختصاصي غير محدد",
-                        selectedId = specialistId,
-                        doctors = specialistDoctors,
-                        onSelected = { specialistId = it; validationMessages = emptyList() },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
+                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        DoctorDropdown(
+                            label = "المقيم",
+                            isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                            undefinedLabel = "مقيم غير محدد",
+                            selectedId = residentId,
+                            doctors = residentDoctors,
+                            onSelected = { residentId = it; validationMessages = emptyList() },
+                            modifier = Modifier.weight(1f)
+                        )
+                        DoctorDropdown(
+                            label = "الاختصاصي",
+                            isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                            undefinedLabel = "اختصاصي غير محدد",
+                            selectedId = specialistId,
+                            doctors = specialistDoctors,
+                            onSelected = { specialistId = it; validationMessages = emptyList() },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
-                SectionTitle("الأولوية والشارات")
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("تثبيت كمريض ذي أولوية", style = MaterialTheme.typography.labelMedium)
-                    Switch(checked = isPriority, onCheckedChange = { isPriority = it })
-                }
-                TextButton(onClick = { showBadgeEditor = !showBadgeEditor },
-                    modifier = Modifier.semantics { stateDescription = if (showBadgeEditor) "موسع" else "مطوي" }) {
-                    Text(if (showBadgeEditor) "إغلاق تحرير الشارات" else "تحرير الشارات (${badges.size})")
-                }
-                if (!showBadgeEditor && (badges.isNotEmpty() || badgeDraftText.isNotBlank())) {
-                    Text(
-                        (badges.map { it.text } + listOf(badgeDraftText).filter(String::isNotBlank)).joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (showBadgeEditor) {
-                    badges.forEachIndexed { index, badge ->
-                        val badgeColors = patientBadgeColors(badge.priority)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = badgeColors.container,
-                            contentColor = badgeColors.content,
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 12.dp, top = 4.dp, bottom = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                    SectionTitle("الأولوية والشارات")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("تثبيت كمريض ذي أولوية", style = MaterialTheme.typography.labelMedium)
+                        Switch(enabled = !saving, checked = isPriority, onCheckedChange = { isPriority = it })
+                    }
+                    AppTextButton(onClick = { showBadgeEditor = !showBadgeEditor },
+                        modifier = Modifier.semantics { stateDescription = if (showBadgeEditor) "موسع" else "مطوي" }) {
+                        Text(if (showBadgeEditor) "إغلاق تحرير الشارات" else "تحرير الشارات (${badges.size})")
+                    }
+                    if (!showBadgeEditor && (badges.isNotEmpty() || badgeDraftText.isNotBlank())) {
+                        Text(
+                            (badges.map { it.text } + listOf(badgeDraftText).filter(String::isNotBlank)).joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (showBadgeEditor) {
+                        badges.forEachIndexed { index, badge ->
+                            val badgeColors = patientBadgeColors(badge.priority)
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = badgeColors.container,
+                                contentColor = badgeColors.content,
+                                shape = MaterialTheme.shapes.small
                             ) {
-                                Text(
-                                    buildString {
-                                        append(badge.text)
-                                        badge.priority?.let { append(" · ").append(it.arabicLabel) }
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                IconButton(onClick = { badges = badges.filterIndexed { i, _ -> i != index } }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "حذف الشارة")
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = UiSpacing.small, top = UiSpacing.micro, bottom = UiSpacing.micro),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        buildString {
+                                            append(badge.text)
+                                            badge.priority?.let { append(" · ").append(it.arabicLabel) }
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(onClick = { badges = badges.filterIndexed { i, _ -> i != index } }, enabled = !saving) {
+                                        Icon(Icons.Filled.Close, contentDescription = "حذف الشارة")
+                                    }
                                 }
                             }
                         }
-                    }
-                    OutlinedTextField(
-                        value = badgeDraftText,
-                        onValueChange = { badgeDraftText = it.take(80) },
-                        label = { Text("نص الشارة (اختياري)") },
-                        supportingText = { Text("مثال: تحسس دوائي، يحتاج مراجعة، خطر سقوط") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        textStyle = autoStyle
-                    )
-                    Text("مستوى الشارة (اختياري)", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        FilterChip(
-                            selected = badgeDraftPriority == null,
-                            onClick = { badgeDraftPriority = null },
-                            label = { Text("بدون مستوى") }
+                        AppTextField(
+                            value = badgeDraftText,
+                            onValueChange = { badgeDraftText = it.take(80) },
+                            label = { Text("نص الشارة (اختياري)") },
+                            supportingText = { Text("مثال: تحسس دوائي، يحتاج مراجعة، خطر سقوط") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = autoStyle
                         )
-                        PatientBadgePriority.entries.forEach { level ->
+                        Text("مستوى الشارة (اختياري)", style = MaterialTheme.typography.labelMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                             FilterChip(
-                                selected = badgeDraftPriority == level,
-                                onClick = { badgeDraftPriority = level },
-                                label = { Text(level.arabicLabel) }
+                                enabled = !saving,
+                                selected = badgeDraftPriority == null,
+                                onClick = { badgeDraftPriority = null },
+                                label = { Text("بدون مستوى") }
                             )
+                            PatientBadgePriority.entries.forEach { level ->
+                                FilterChip(
+                                    enabled = !saving,
+                                    selected = badgeDraftPriority == level,
+                                    onClick = { badgeDraftPriority = level },
+                                    label = { Text(level.arabicLabel) }
+                                )
+                            }
+                        }
+                        AppOutlinedButton(
+                            onClick = {
+                                val text = badgeDraftText.trim()
+                                if (text.isNotEmpty()) {
+                                    badges = badges + PatientBadge(text, badgeDraftPriority)
+                                    badgeDraftText = ""
+                                    badgeDraftPriority = null
+                                }
+                            },
+                            enabled = badgeDraftText.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("إضافة الشارة") }
+
+                    }
+
+                    if (initial != null) admissionIdentityContent()
+                }
+            },
+            confirmButton = {
+                AppButton(modifier = Modifier.fillMaxWidth(), enabled = !saving, onClick = {
+                    val pendingTreatment = treatmentDraft.trim().takeIf { it.isNotEmpty() }
+                    val resolvedTreatments = treatmentItems + listOfNotNull(pendingTreatment)
+                    val treatmentPlan = resolvedTreatments
+                        .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
+                        .joinToString("\n")
+
+                    val pendingFollowUp = followUpDraft.trim().takeIf { it.isNotEmpty() }
+                    val resolvedFollowUp = followUpItems + listOfNotNull(pendingFollowUp)
+                    val followUp = resolvedFollowUp
+                        .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
+                        .joinToString("\n")
+
+                    val pendingLab = labDraft.trim().takeIf { it.isNotEmpty() }
+                    val resolvedLabs = labItems + listOfNotNull(pendingLab)
+                    val labs = resolvedLabs
+                        .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
+                        .joinToString("\n")
+
+                    val errors = buildList {
+                        if (admittanceNumber.isBlank()) add(PatientFormError(PatientFormField.ADMISSION_NUMBER, "رقم القبول الحالي مطلوب"))
+                        if (admittanceDate == null) add(PatientFormError(PatientFormField.ADMISSION_DATE, "اختر تاريخ الدخول"))
+                        if (admittanceDate?.isAfter(today) == true) {
+                            add(PatientFormError(PatientFormField.ADMISSION_DATE, "تاريخ الدخول لا يمكن أن يكون في المستقبل"))
+                        }
+                        if (name.isBlank()) add(PatientFormError(PatientFormField.NAME, "اسم المريض مطلوب"))
+                        if (ageText.toIntOrNull()?.let { it !in 0..120 } == true) {
+                            add(PatientFormError(PatientFormField.AGE, "العمر يجب أن يكون بين 0 و120 سنة"))
+                        }
+                        if (birthYear == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "أدخل سنة الميلاد أو العمر"))
+                        if (birthYear != null && birthYear > currentYear) {
+                            add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد لا يمكن أن تكون في المستقبل"))
+                        }
+                        if (birthYear != null && age == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد تنتج عمراً غير صحيح"))
+                        if (initialDiagnosis.isBlank()) add(PatientFormError(PatientFormField.DIAGNOSIS, "التشخيص الأولي مطلوب"))
+                        if (resolvedTreatments.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
+                            add(PatientFormError(PatientFormField.TREATMENT, "الخطة العلاجية مطلوبة"))
+                        }
+                        if (resolvedFollowUp.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
+                            add(PatientFormError(PatientFormField.FOLLOW_UP, "المتابعة مطلوبة"))
+                        }
+                        if (residentId != null && residentId == specialistId) {
+                            add(PatientFormError(PatientFormField.TEAM, "يجب اختيار طبيبين مختلفين للمقيم والاختصاصي"))
                         }
                     }
-                    OutlinedButton(
-                        onClick = {
-                            val text = badgeDraftText.trim()
-                            if (text.isNotEmpty()) {
-                                badges = badges + PatientBadge(text, badgeDraftPriority)
-                                badgeDraftText = ""
-                                badgeDraftPriority = null
-                            }
-                        },
-                        enabled = badgeDraftText.isNotBlank(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("إضافة الشارة") }
+                    if (errors.isNotEmpty()) {
+                        validationMessages = errors
+                        formScope.launch { formScrollState.animateScrollTo(0) }
+                        return@Button
+                    }
 
-                }
+                    val resolvedBirthDate = birthYear?.let { LocalDate.of(it, 1, 1) }
 
-                if (initial != null) admissionIdentityContent()
+                    val resolvedBadges = badges + badgeDraftText.trim()
+                        .takeIf(String::isNotBlank)
+                        ?.let { listOf(PatientBadge(it, badgeDraftPriority)) }
+                        .orEmpty()
+
+                    val patient = initial?.copy(
+                        admittanceNumber = admittanceNumber.trim(),
+                        admittanceDate = admittanceDate,
+                        gender = gender,
+                        name = name.trim(),
+                        birthDate = resolvedBirthDate,
+                        hasCompanion = hasCompanion,
+                        diagnosisType = diagnosisType,
+                        initialDiagnosis = initialDiagnosis.trim(),
+                        treatmentPlan = treatmentPlan.trim(),
+                        followUp = followUp.trim(),
+                        labs = labs.trim(),
+                        responsibleResidentId = residentId,
+                        responsibleSpecialistId = specialistId,
+                        badges = resolvedBadges,
+                        tasks = tasks,
+                        isPriority = isPriority
+                    ) ?: Patient(
+                        admittanceNumber = admittanceNumber.trim(),
+                        admittanceDate = admittanceDate,
+                        gender = gender,
+                        name = name.trim(),
+                        birthDate = resolvedBirthDate,
+                        hasCompanion = hasCompanion,
+                        diagnosisType = diagnosisType,
+                        initialDiagnosis = initialDiagnosis.trim(),
+                        treatmentPlan = treatmentPlan.trim(),
+                        followUp = followUp.trim(),
+                        labs = labs.trim(),
+                        responsibleResidentId = residentId,
+                        responsibleSpecialistId = specialistId,
+                        badges = resolvedBadges,
+                        tasks = tasks,
+                        isPriority = isPriority
+                    )
+                    onConfirm(patient)
+                }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
+            },
+            dismissButton = {
+                AppTextButton(onClick = requestDismiss, enabled = !saving) { Text("إلغاء") }
             }
-        },
-        confirmButton = {
-            Button(modifier = Modifier.fillMaxWidth(), enabled = !saving, onClick = {
-                val pendingTreatment = treatmentDraft.trim().takeIf { it.isNotEmpty() }
-                val resolvedTreatments = treatmentItems + listOfNotNull(pendingTreatment)
-                val treatmentPlan = resolvedTreatments
-                    .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
-                    .joinToString("\n")
-
-                val pendingFollowUp = followUpDraft.trim().takeIf { it.isNotEmpty() }
-                val resolvedFollowUp = followUpItems + listOfNotNull(pendingFollowUp)
-                val followUp = resolvedFollowUp
-                    .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
-                    .joinToString("\n")
-
-                val pendingLab = labDraft.trim().takeIf { it.isNotEmpty() }
-                val resolvedLabs = labItems + listOfNotNull(pendingLab)
-                val labs = resolvedLabs
-                    .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
-                    .joinToString("\n")
-
-                val errors = buildList {
-                    if (admittanceNumber.isBlank()) add(PatientFormError(PatientFormField.ADMISSION_NUMBER, "رقم القبول الحالي مطلوب"))
-                    if (admittanceDate == null) add(PatientFormError(PatientFormField.ADMISSION_DATE, "اختر تاريخ الدخول"))
-                    if (admittanceDate?.isAfter(today) == true) {
-                        add(PatientFormError(PatientFormField.ADMISSION_DATE, "تاريخ الدخول لا يمكن أن يكون في المستقبل"))
-                    }
-                    if (name.isBlank()) add(PatientFormError(PatientFormField.NAME, "اسم المريض مطلوب"))
-                    if (ageText.toIntOrNull()?.let { it !in 0..120 } == true) {
-                        add(PatientFormError(PatientFormField.AGE, "العمر يجب أن يكون بين 0 و120 سنة"))
-                    }
-                    if (birthYear == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "أدخل سنة الميلاد أو العمر"))
-                    if (birthYear != null && birthYear > currentYear) {
-                        add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد لا يمكن أن تكون في المستقبل"))
-                    }
-                    if (birthYear != null && age == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد تنتج عمراً غير صحيح"))
-                    if (initialDiagnosis.isBlank()) add(PatientFormError(PatientFormField.DIAGNOSIS, "التشخيص الأولي مطلوب"))
-                    if (resolvedTreatments.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-                        add(PatientFormError(PatientFormField.TREATMENT, "الخطة العلاجية مطلوبة"))
-                    }
-                    if (resolvedFollowUp.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-                        add(PatientFormError(PatientFormField.FOLLOW_UP, "المتابعة مطلوبة"))
-                    }
-                    if (residentId != null && residentId == specialistId) {
-                        add(PatientFormError(PatientFormField.TEAM, "يجب اختيار طبيبين مختلفين للمقيم والاختصاصي"))
-                    }
-                }
-                if (errors.isNotEmpty()) {
-                    validationMessages = errors
-                    formScope.launch { formScrollState.animateScrollTo(0) }
-                    return@Button
-                }
-
-                val resolvedBirthDate = birthYear?.let { LocalDate.of(it, 1, 1) }
-
-                val resolvedBadges = badges + badgeDraftText.trim()
-                    .takeIf(String::isNotBlank)
-                    ?.let { listOf(PatientBadge(it, badgeDraftPriority)) }
-                    .orEmpty()
-
-                val patient = initial?.copy(
-                    admittanceNumber = admittanceNumber.trim(),
-                    admittanceDate = admittanceDate,
-                    gender = gender,
-                    name = name.trim(),
-                    birthDate = resolvedBirthDate,
-                    hasCompanion = hasCompanion,
-                    diagnosisType = diagnosisType,
-                    initialDiagnosis = initialDiagnosis.trim(),
-                    treatmentPlan = treatmentPlan.trim(),
-                    followUp = followUp.trim(),
-                    labs = labs.trim(),
-                    responsibleResidentId = residentId,
-                    responsibleSpecialistId = specialistId,
-                    badges = resolvedBadges,
-                    tasks = tasks,
-                    isPriority = isPriority
-                ) ?: Patient(
-                    admittanceNumber = admittanceNumber.trim(),
-                    admittanceDate = admittanceDate,
-                    gender = gender,
-                    name = name.trim(),
-                    birthDate = resolvedBirthDate,
-                    hasCompanion = hasCompanion,
-                    diagnosisType = diagnosisType,
-                    initialDiagnosis = initialDiagnosis.trim(),
-                    treatmentPlan = treatmentPlan.trim(),
-                    followUp = followUp.trim(),
-                    labs = labs.trim(),
-                    responsibleResidentId = residentId,
-                    responsibleSpecialistId = specialistId,
-                    badges = resolvedBadges,
-                    tasks = tasks,
-                    isPriority = isPriority
-                )
-                onConfirm(patient)
-            }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
-        },
-        dismissButton = {
-            TextButton(onClick = requestDismiss, enabled = !saving) { Text("إلغاء") }
-        }
-    )
+        )
+    }
     if (confirmDiscard && !saving) {
         ConfirmDialog(
             title = "تجاهل التغييرات؟",

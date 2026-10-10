@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,21 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.Gender
@@ -71,21 +71,21 @@ fun AddEditDoctorDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 if (rejectedInput != null) {
-                    TextButton(onClick = { reviewing = true }, enabled = !saving) {
+                    AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
                         Text("مراجعة المسودة المرفوضة والنسخة المحفوظة")
                     }
                 }
-                OutlinedTextField(
+                AppTextField(
                     value = firstName,
                     onValueChange = { firstName = it },
                     label = { Text("الاسم الأول") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = lastName,
                     onValueChange = { lastName = it },
                     label = { Text("اسم العائلة") },
@@ -94,7 +94,7 @@ fun AddEditDoctorDialog(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     FilterChip(
                         selected = gender == Gender.MALE,
@@ -108,7 +108,7 @@ fun AddEditDoctorDialog(
                     )
                 }
                 Text("التصنيف السريري")
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     ClinicalRole.entries.forEach { role ->
                         FilterChip(
                             selected = clinicalRole == role,
@@ -124,14 +124,14 @@ fun AddEditDoctorDialog(
                     label = if (existing == null) "الرقم السري (4-8 أرقام)"
                     else "رقم سري جديد (اتركه فارغاً دون تغيير)"
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = customTitle,
                     onValueChange = { if (it.length <= 16) customTitle = it },
                     label = { Text("لقب مخصص (اختياري)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = telegramIdText,
                     onValueChange = { telegramIdText = it; telegramIdError = false },
                     label = { Text("معرف تليجرام (اختياري)") },
@@ -143,7 +143,7 @@ fun AddEditDoctorDialog(
             }
         },
         confirmButton = {
-            Button(
+            AppButton(
                 enabled = !saving,
                 onClick = {
                     val telegramId = ArabicNumbers.parseLongOrNull(telegramIdText)
@@ -163,11 +163,11 @@ fun AddEditDoctorDialog(
                         reviewing = true
                     }
                 },
-                modifier = Modifier.padding(horizontal = 4.dp)
+                modifier = Modifier.padding(horizontal = UiSpacing.tiny)
             ) { Text(if (saving) "جار الحفظ…" else "حفظ") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
+            AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
         }
     )
     if (reviewing) {

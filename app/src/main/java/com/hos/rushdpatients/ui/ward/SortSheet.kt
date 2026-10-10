@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,20 +11,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -77,7 +77,7 @@ fun SortSheet(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 if (rejected != null) {
-                    TextButton(onClick = { reviewing = true }, enabled = !saving) {
+                    AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
                         Text("مراجعة الترتيب المرفوض")
                     }
                 }
@@ -90,7 +90,7 @@ fun SortSheet(
                     }, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                     ) {
                         FieldDropdown(
                             selected = level.field,
@@ -106,14 +106,14 @@ fun SortSheet(
                             },
                             modifier = Modifier.weight(1f)
                         )
-                        TextButton(onClick = {
+                        AppTextButton(onClick = {
                             levels = levels.toMutableList().also { it.removeAt(index) }
                         }) { Text("حذف") }
                     }
                 }
 
                 if (levels.size < 4) {
-                    OutlinedButton(
+                    AppOutlinedButton(
                         onClick = {
                             levels = levels + SortLevel(SortField.NAME, SortDirection.ASC)
                         },
@@ -124,20 +124,20 @@ fun SortSheet(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
-                Button(
+                AppButton(
                     onClick = { apply(SortSpec(levels)) },
                     enabled = !saving,
                     modifier = Modifier.weight(1f)
                 ) { Text("تطبيق") }
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = { apply(SortSpec.DEFAULT) },
                     enabled = !saving,
                     modifier = Modifier.weight(1f)
                 ) { Text("افتراضي") }
             }
-            TextButton(
+            AppTextButton(
                 onClick = { apply(SortSpec.EMPTY) },
                 enabled = !saving,
                 modifier = Modifier.fillMaxWidth()
@@ -178,7 +178,7 @@ private fun FieldDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+        AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(fieldLabel(selected))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -200,7 +200,7 @@ private fun DirectionDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+        AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(if (selected == SortDirection.ASC) "تصاعدي" else "تنازلي")
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -35,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +56,7 @@ internal fun CompactFilterChip(
                 maxLines = 1
             )
         },
-        modifier = Modifier.heightIn(min = 48.dp)
+        modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
     )
 }
 
@@ -65,7 +67,7 @@ internal fun ActiveFilterChip(label: String, onRemove: () -> Unit) {
         selected = true,
         onClick = onRemove,
         label = { Text("$label ×", style = MaterialTheme.typography.labelSmall) },
-        modifier = Modifier.heightIn(min = 48.dp)
+        modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
     )
 }
 
@@ -90,18 +92,18 @@ internal fun PrimaryNavigationBar(
                     else -> viewMode == WardViewMode.ACTIVITY
                 }
                 Row(
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                    modifier = Modifier.weight(1f).heightIn(min = UiSpacing.touchTarget)
                         .selectable(selected = selected, role = Role.Tab, onClick = action)
                         .background(if (selected) MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                        .padding(horizontal = UiSpacing.tiny, vertical = UiSpacing.tiny),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
                         else MaterialTheme.colorScheme.onSurfaceVariant
-                    Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-                    Text(label, Modifier.padding(start = 6.dp), color = color,
+                    Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(UiSize.iconMedium))
+                    Text(label, Modifier.padding(start = UiSpacing.small), color = color,
                         style = MaterialTheme.typography.labelMedium)
                 }
             }
@@ -147,11 +149,11 @@ internal fun GroupHeader(name: String, count: Int, collapsed: Boolean, onToggle:
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .combinedClickable(onClick = onToggle, onLongClick = onToggle)
-            .padding(horizontal = 4.dp, vertical = 6.dp)
+            .padding(horizontal = UiSpacing.tiny, vertical = UiSpacing.small)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
             Icon(
                 if (collapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
@@ -183,7 +185,7 @@ internal fun DrawerSubmenuHeader(
                 contentDescription = if (expanded) "طي $label" else "فتح $label"
             )
         },
-        modifier = Modifier.padding(horizontal = 8.dp)
+        modifier = Modifier.padding(horizontal = UiSpacing.small)
     )
 }
 
@@ -201,13 +203,13 @@ internal fun CompactDrawerItem(
     val contentColor = (if (selected) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onSurface).let { if (enabled) it else it.copy(alpha = 0.38f) }
     Surface(onClick = onClick, enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { this.selected = selected },
+        modifier = modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).semantics { this.selected = selected },
         shape = MaterialTheme.shapes.small,
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         contentColor = contentColor
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium)) {
             icon?.invoke()
             ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
                 Box(Modifier.weight(1f)) { label() }

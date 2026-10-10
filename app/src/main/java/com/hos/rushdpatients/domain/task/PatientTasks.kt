@@ -49,28 +49,42 @@ object PatientTasks {
         names: Map<String, String> = emptyMap(),
         includeUnassigned: Boolean = true,
         includeRoutinePriority: Boolean = true
-    ): String =
-        tasks.joinToString("\n") { task ->
-            buildString {
-                append(if (task.done) "✓ مكتملة: " else "☐ معلقة: ").append(task.description)
-                if (includeRoutinePriority || task.priority == com.hos.rushdpatients.data.model.TaskPriority.HIGH) {
-                    append(" · أولوية ").append(task.priority.arabicLabel)
-                }
-                if (includeUnassigned || task.ownerDoctorId != null) {
-                    append(" · ").append(task.ownerDoctorId?.let { names[it] ?: task.ownerName ?: "طبيب غير متاح" } ?: "غير معيّنة")
-                }
-                task.dueAtEpochMillis?.let { due ->
-                    append(" · الموعد ").append(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(Instant.ofEpochMilli(due).atZone(ZoneId.systemDefault())))
-                }
-                task.dueShiftDate?.let { append(" (نهاية مناوبة ").append(it).append(')') }
-                if (task.done) {
-                    append(" · ").append(task.completedByName?.let { "أتمها $it" } ?: "إتمام بانتظار الحفظ")
-                    task.completedAtEpochMillis?.let { at ->
-                        append(" · ").append(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                            .format(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())))
-                    }
-                }
+    ): String = tasks.joinToString("\n") { task ->
+        (if (task.done) "✓ مكتملة: " else "☐ معلقة: ") + task.description +
+            metadataSuffix(task, names, includeUnassigned, includeRoutinePriority)
+    }
+
+    /** Shared doctor/deadline/priority/completion text for compact task rows and reports. */
+    fun metadata(
+        task: PatientTask,
+        names: Map<String, String> = emptyMap(),
+        includeUnassigned: Boolean = true,
+        includeRoutinePriority: Boolean = true
+    ): String = metadataSuffix(task, names, includeUnassigned, includeRoutinePriority).removePrefix(" · ")
+
+    private fun metadataSuffix(
+        task: PatientTask,
+        names: Map<String, String>,
+        includeUnassigned: Boolean,
+        includeRoutinePriority: Boolean
+    ): String = buildString {
+        if (includeRoutinePriority || task.priority == com.hos.rushdpatients.data.model.TaskPriority.HIGH) {
+            append(" · أولوية ").append(task.priority.arabicLabel)
+        }
+        if (includeUnassigned || task.ownerDoctorId != null) {
+            append(" · ").append(task.ownerDoctorId?.let { names[it] ?: task.ownerName ?: "طبيب غير متاح" } ?: "غير معيّنة")
+        }
+        task.dueAtEpochMillis?.let { due ->
+            append(" · الموعد ").append(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                .format(Instant.ofEpochMilli(due).atZone(ZoneId.systemDefault())))
+        }
+        task.dueShiftDate?.let { append(" (نهاية مناوبة ").append(it).append(')') }
+        if (task.done) {
+            append(" · ").append(task.completedByName?.let { "أتمها $it" } ?: "إتمام بانتظار الحفظ")
+            task.completedAtEpochMillis?.let { at ->
+                append(" · ").append(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                    .format(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault())))
             }
         }
+    }
 }

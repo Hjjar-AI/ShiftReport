@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,7 +19,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +52,7 @@ internal fun RolloverReviewDialog(
                             val pendingTasks = patient.tasks.count { !it.done }
                             if (pendingTasks > 0) Text("ستُرحّل $pendingTasks مهمة معلقة مع مواعيدها؛ المهام المكتملة تبقى في المناوبة السابقة.",
                                 style = MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 RolloverDecision.entries.forEach { decision ->
                                     FilterChip(
                                         selected = decisions[patient.id] == decision,
@@ -67,14 +69,14 @@ internal fun RolloverReviewDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            AppTextButton(onClick = onConfirm) {
                 val count = decisions.values.count {
                     it in setOf(RolloverDecision.CONTINUE, RolloverDecision.CONTINUE_AND_EDIT, RolloverDecision.REASSIGN)
                 }
                 Text("تنفيذ القرارات ($count مستمر)")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("تخطي") } }
+        dismissButton = { AppTextButton(onClick = onDismiss) { Text("تخطي") } }
     )
 }
 
@@ -94,7 +96,7 @@ internal fun PatientConflictDialog(
         text = {
             LazyColumn(
                 modifier = Modifier.heightIn(max = 520.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 items(conflicts, key = { it.key }) { conflict ->
                     Surface(
@@ -102,14 +104,14 @@ internal fun PatientConflictDialog(
                         shape = MaterialTheme.shapes.medium
                     ) {
                         Column(
-                            Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                            Modifier.padding(UiPadding.content),
+                            verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
                         ) {
                             Text(conflict.patientName, style = MaterialTheme.typography.titleSmall)
                             Text(conflict.fieldLabel, style = MaterialTheme.typography.labelLarge)
                             Text("هذا الجهاز: ${conflict.localValue}")
                             Text("النسخة المنشورة: ${conflict.remoteValue}")
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 FilterChip(
                                     selected = choices[conflict.key] == ConflictChoice.LOCAL,
                                     onClick = { onChoice(conflict.key, ConflictChoice.LOCAL) },
@@ -127,14 +129,14 @@ internal fun PatientConflictDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextButton(
                 onClick = onConfirm,
                 enabled = !resolving &&
                     conflicts.all { it.key in choices }
             ) { Text(if (resolving) "جارٍ الدمج…" else "دمج ونشر") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
+            AppTextButton(onClick = onDismiss) { Text("إلغاء") }
         }
     )
 }
@@ -154,7 +156,7 @@ internal fun PatientRecycleBinDialog(
             if (patients.isEmpty()) {
                 Text("لا يوجد مرضى محذوفون في هذه المناوبة")
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     items(patients, key = { it.id }) { patient ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -169,7 +171,7 @@ internal fun PatientRecycleBinDialog(
                                 )
                             }
                             if (!readOnly) {
-                                TextButton(onClick = { onRestore(patient) }) {
+                                AppTextButton(onClick = { onRestore(patient) }) {
                                     Text("استعادة")
                                 }
                             }
@@ -179,7 +181,7 @@ internal fun PatientRecycleBinDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("إغلاق") }
+            AppTextButton(onClick = onDismiss) { Text("إغلاق") }
         }
     )
 }
@@ -195,10 +197,10 @@ internal fun ShiftSnapshotPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text("اختيار مناوبة محفوظة") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Text("المناوبات الموجودة في آخر ملف CSV تم تنزيله:")
                 options.forEachIndexed { index, option ->
-                    TextButton(
+                    AppTextButton(
                         onClick = { onSelect(option.shiftId) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -212,7 +214,7 @@ internal fun ShiftSnapshotPickerDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
+            AppTextButton(onClick = onDismiss) { Text("إلغاء") }
         }
     )
 }

@@ -1,7 +1,13 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.components.AppSection
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppCard
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -21,7 +27,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Card
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -30,17 +35,15 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +59,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -66,7 +68,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
@@ -230,8 +231,8 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = UiSpacing.medium),
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 sectionTitles.forEach { title ->
                     FilterChip(
                         selected = title == activeSection,
@@ -254,7 +255,7 @@ fun SettingsScreen(
                     .verticalScroll(settingsScroll),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -263,8 +264,8 @@ fun SettingsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(UiSpacing.medium),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                            .padding(UiPadding.content),
+                        verticalArrangement = Arrangement.spacedBy(UiSpacing.micro)
                     ) {
                         Text(
                             text = state.doctorName.ifBlank { "—" },
@@ -282,7 +283,7 @@ fun SettingsScreen(
                     "اختر قسماً من الشريط للوصول مباشرة إلى إعداداته. تظهر أدوات الإدارة للمدير فقط.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = UiSpacing.tiny)
                 )
 
                 SettingsSection(title = "التقرير", onPositioned = { sectionOffsets["التقرير"] = it }) {
@@ -312,7 +313,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    TextButton(onClick = { advancedPdf = !advancedPdf },
+                    AppTextButton(onClick = { advancedPdf = !advancedPdf },
                         modifier = Modifier.heightIn(min = UiSpacing.touchTarget).semantics {
                             stateDescription = if (advancedPdf) "موسع" else "مطوي"
                         }) { Text(if (advancedPdf) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة") }
@@ -461,13 +462,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    state.lastOperation?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    state.lastOperation?.let { AppNotice(it) }
 
                     LoadingButton(
                         text = "جلب أحدث البيانات من تلجرام",
@@ -527,14 +522,14 @@ fun SettingsScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedButton(
+                    AppOutlinedButton(
                         onClick = { openBackup.launch(arrayOf("application/octet-stream", "*/*")) },
                         enabled = !state.backupBusy,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("استعادة نسخة مشفرة") }
                     Divider()
                     SettingsSubheading("استعادة بيانات تليجرام")
-                    OutlinedButton(
+                    AppOutlinedButton(
                         onClick = {
                             forceConfirmationText = ""
                             confirmForceUpload = true
@@ -607,19 +602,19 @@ fun SettingsScreen(
                             }
                         }
 
-                        OutlinedButton(
+                        AppOutlinedButton(
                             onClick = onOpenVbaImport,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("استيراد بيانات من الإكسل") }
                     }
                 }
 
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = onSignOut,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("تسجيل الخروج") }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(UiSpacing.small))
             }
         }
     }
@@ -636,7 +631,7 @@ fun SettingsScreen(
                 Text(if (mode == "export") "حماية النسخة الاحتياطية" else "فتح النسخة الاحتياطية")
             },
             text = {
-                OutlinedTextField(
+                AppTextField(
                     value = backupPassword,
                     onValueChange = { backupPassword = it },
                     label = { Text("كلمة المرور (8 محارف على الأقل)") },
@@ -645,7 +640,7 @@ fun SettingsScreen(
                 )
             },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     enabled = backupPassword.length >= 8,
                     onClick = {
                         if (mode == "export") {
@@ -660,7 +655,7 @@ fun SettingsScreen(
                 ) { Text(if (mode == "export") "إنشاء" else "استعادة") }
             },
             dismissButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     backupDialogMode = null
                     backupPassword = ""
                     if (mode == "restore") pendingImportUri = null
@@ -677,9 +672,9 @@ fun SettingsScreen(
             },
             title = { Text("حماية ملف الانضمام") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text("سيُحفظ ملف .srjoin.json مشفر. اختر عبارة قوية من 10 محارف على الأقل؛ لا تُحفظ العبارة داخل الملف.")
-                    OutlinedTextField(
+                    AppTextField(
                         value = provisioningPassphrase,
                         onValueChange = { provisioningPassphrase = it },
                         label = { Text("عبارة المرور") },
@@ -688,19 +683,19 @@ fun SettingsScreen(
                     )
                     Text("يمكن مشاركة الملف الجاهز مباشرة أو اختيار مكان لحفظه.",
                         style = MaterialTheme.typography.bodySmall)
-                    TextButton(
+                    AppTextButton(
                         enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
                         onClick = {
                             viewModel.prepareProjectProvisioning(provisioningPassphrase)
                             provisioningPassphrase = ""
                             provisioningDialog = false
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
                     ) { Text("اختيار مكان الحفظ") }
                 }
             },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
                     onClick = {
                         viewModel.prepareProjectProvisioning(provisioningPassphrase, share = true)
@@ -710,7 +705,7 @@ fun SettingsScreen(
                 ) { Text("مشاركة الملف") }
             },
             dismissButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     provisioningDialog = false
                     provisioningPassphrase = ""
                 }) { Text("إلغاء") }
@@ -726,9 +721,9 @@ fun SettingsScreen(
             },
             title = { Text("فرض النسخة المحلية؟") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text("سيتم حفظ مرجع النسخة المستبدلة ثم تجاوز الدمج. اكتب «فرض النسخة الحالية» للمتابعة.")
-                    OutlinedTextField(
+                    AppTextField(
                         value = forceConfirmationText,
                         onValueChange = { forceConfirmationText = it },
                         label = { Text("عبارة التأكيد") },
@@ -737,7 +732,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         confirmForceUpload = false
                         forceConfirmationText = ""
@@ -747,7 +742,7 @@ fun SettingsScreen(
                 ) { Text("فرض النسخة") }
             },
             dismissButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     confirmForceUpload = false
                     forceConfirmationText = ""
                 }) { Text("إلغاء") }
@@ -767,7 +762,7 @@ fun SettingsScreen(
                 Text("ستستبدل النسخة الاحتياطية البيانات المحلية الحالية. لا يمكن التراجع عن هذه العملية من داخل التطبيق.")
             },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     val uri = pendingImportUri
                     val password = pendingRestorePassword
                     confirmBackupRestore = false
@@ -777,7 +772,7 @@ fun SettingsScreen(
                 }) { Text("استعادة واستبدال") }
             },
             dismissButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     confirmBackupRestore = false
                     pendingRestorePassword = ""
                     pendingImportUri = null
@@ -793,29 +788,9 @@ private fun SettingsSection(
     onPositioned: (Int) -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
+    AppSection(title = title,
         modifier = Modifier.fillMaxWidth().onGloballyPositioned { onPositioned(it.positionInParent().y.roundToInt()) },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(UiSpacing.medium),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(vertical = UiSpacing.tiny).semantics { heading() }
-            )
-            content()
-        }
-    }
+        content = content)
 }
 
 @Composable
@@ -842,11 +817,11 @@ private fun SupervisorGroupEditor(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(vertical = UiSpacing.micro),
+        verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
     ) {
         Text(supervisor.fullName, style = MaterialTheme.typography.bodyMedium)
-        OutlinedTextField(
+        AppTextField(
             value = chatId,
             onValueChange = { value ->
                 chatId = value.filter { it.isDigit() || it == '-' }
@@ -859,7 +834,7 @@ private fun SupervisorGroupEditor(
         )
         if (supervisor != baseline) {
             Text("تغيّر سجل المشرف؛ راجع النسخة المحفوظة قبل الحفظ", color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = {
+            AppTextButton(onClick = {
                 baseline = supervisor
                 chatId = supervisor.supervisorGroupChatId?.toString().orEmpty()
             }, enabled = enabled) { Text("تحميل النسخة المحفوظة") }

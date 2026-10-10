@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppSectionHeader
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.components.AppCard
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -24,8 +28,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
@@ -33,8 +37,6 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,10 +46,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,7 +67,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
@@ -117,7 +118,7 @@ fun PatientCard(
     val residentName = patient.responsibleResidentId?.let(doctorNames::get)
     val supervisorName = patient.responsibleSpecialistId?.let(doctorNames::get)
 
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
@@ -157,19 +158,15 @@ fun PatientCard(
                 }
             }
             .combinedClickable(enabled = showViewControls, onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
         border = BorderStroke(
             if (selected) 2.dp else 1.dp,
             if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(if (compact) UiSpacing.small else UiSpacing.medium),
+                .padding(if (compact) UiPadding.compact else UiPadding.content),
             verticalArrangement = Arrangement.spacedBy(if (compact) UiSpacing.tiny else UiSpacing.small)
         ) {
             PatientIdentityHeader(
@@ -188,8 +185,8 @@ fun PatientCard(
             )
 
             if (effectiveStyle != PatientCardStyle.AVATAR_CHIPS) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     DiagnosisChip(patient.diagnosisType)
                     if (expanded && patient.hasCompanion) {
                         SmallChip(
@@ -205,8 +202,8 @@ fun PatientCard(
             if (supervisorName != null || residentName != null) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
                 ) {
                     supervisorName?.let {
                         SmallChip(
@@ -228,8 +225,8 @@ fun PatientCard(
             if (visibleBadges.isNotEmpty() || (!expanded && patient.badges.isNotEmpty())) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
                 ) {
                     visibleBadges.forEach { badge ->
                         val badgeColors = patientBadgeColors(badge.priority)
@@ -255,7 +252,7 @@ fun PatientCard(
             }
 
             if (taskCounts.pending > 0) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     SmallChip("${taskCounts.pending} مهمة معلقة", MaterialTheme.colorScheme.secondaryContainer,
                         MaterialTheme.colorScheme.onSecondaryContainer)
                     if (taskCounts.overdue > 0) SmallChip("${taskCounts.overdue} متأخرة",
@@ -328,16 +325,16 @@ private fun PatientIdentityHeader(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
         when (style) {
             PatientCardStyle.BANNER -> Surface(
                 modifier = Modifier.weight(1f),
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(8.dp)
+                shape = MaterialTheme.shapes.small
             ) {
-                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     IdentityName(patient.name)
                     Text(meta, style = MaterialTheme.typography.labelSmall)
                 }
@@ -347,9 +344,9 @@ private fun PatientIdentityHeader(
                 modifier = Modifier.weight(1f),
                 color = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                shape = RoundedCornerShape(8.dp)
+                shape = MaterialTheme.shapes.small
             ) {
-                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     Text(
                         patient.name,
                         style = MaterialTheme.typography.titleMedium,
@@ -365,7 +362,7 @@ private fun PatientIdentityHeader(
                     Modifier
                         .width(8.dp)
                         .height(62.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(MaterialTheme.shapes.small)
                         .background(diagnosisAccent())
                 )
                 IdentityText(patient.name, meta, Modifier.weight(1f))
@@ -375,12 +372,12 @@ private fun PatientIdentityHeader(
                 modifier = Modifier.weight(1f),
                 color = MaterialTheme.colorScheme.inverseSurface,
                 contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-                shape = RoundedCornerShape(10.dp)
+                shape = MaterialTheme.shapes.small
             ) {
                 Row(
-                    Modifier.padding(10.dp),
+                    Modifier.padding(UiPadding.content),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     Column(Modifier.weight(1f)) {
                         IdentityName(patient.name)
@@ -389,11 +386,11 @@ private fun PatientIdentityHeader(
                     Surface(
                         color = MaterialTheme.colorScheme.inverseOnSurface,
                         contentColor = MaterialTheme.colorScheme.inverseSurface,
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             patient.admittanceNumber.ifBlank { "#${patient.sortOrder}" },
-                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            Modifier.padding(UiPadding.compact),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -417,14 +414,15 @@ private fun PatientIdentityHeader(
                     } else {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     },
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.size(if (style == PatientCardStyle.BADGE_HEADER) 40.dp else 50.dp)
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
+                        .padding(UiSpacing.micro)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(badgeText, fontWeight = FontWeight.Bold)
                     }
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     IdentityName(patient.name)
                     Text(
                         meta,
@@ -432,7 +430,7 @@ private fun PatientIdentityHeader(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (style == PatientCardStyle.AVATAR_CHIPS) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                             DiagnosisChip(patient.diagnosisType)
                             if (patient.hasCompanion) {
                                 SmallChip(
@@ -482,7 +480,7 @@ private fun PatientIdentityHeader(
                     Icons.Filled.Star,
                     contentDescription = "مريض ذو أولوية",
                     tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(UiSize.iconMedium)
                 )
             }
             if (style != PatientCardStyle.BADGE_HEADER) {
@@ -516,7 +514,7 @@ private fun IdentityName(name: String) {
 
 @Composable
 private fun IdentityText(name: String, meta: String, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         IdentityName(name)
         Text(
             meta,
@@ -535,7 +533,7 @@ private fun StyledExpandedDetail(
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val useTwoColumns = twoColumn && maxWidth >= 440.dp
         if (!useTwoColumns) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 StyledTreatment(patient, style)
                 StyledFollowUp(patient, style)
             }
@@ -544,7 +542,7 @@ private fun StyledExpandedDetail(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 Column(Modifier.weight(1f)) { StyledTreatment(patient, style) }
                 Box(
@@ -555,7 +553,7 @@ private fun StyledExpandedDetail(
                 )
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) { StyledFollowUp(patient, style) }
             }
         }
@@ -591,7 +589,7 @@ private fun StyledField(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
             Surface(
                 color = if (style == PatientCardStyle.ICON_ROWS) {
@@ -600,7 +598,7 @@ private fun StyledField(
                 contentColor = if (style == PatientCardStyle.ICON_ROWS) {
                     MaterialTheme.colorScheme.onPrimaryContainer
                 } else onAccent,
-                shape = RoundedCornerShape(8.dp),
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -636,7 +634,7 @@ private fun diagnosisAccent(): Color = MaterialTheme.colorScheme.onSurfaceVarian
 
 @Composable
 private fun SingleColumnDetail(patient: Patient) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         if (patient.treatmentPlan.isNotBlank()) {
             SectionBlock("الخطة العلاجية", prettifyLabText(patient.treatmentPlan))
         }
@@ -660,11 +658,11 @@ private fun TwoColumnDetail(patient: Patient) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
             if (patient.treatmentPlan.isNotBlank()) {
                 SectionBlock("الخطة العلاجية", prettifyLabText(patient.treatmentPlan))
@@ -680,7 +678,7 @@ private fun TwoColumnDetail(patient: Patient) {
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
             if (patient.followUp.isNotBlank()) {
                 SectionBlock("المتابعة", prettifyLabText(patient.followUp))
@@ -713,12 +711,12 @@ private fun PatientMenu(
     Box {
         IconButton(
             onClick = { menu = true },
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(UiSpacing.touchTarget)
         ) {
             Icon(
                 Icons.Filled.MoreVert,
                 contentDescription = "خيارات المريض",
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(UiSize.iconMedium)
             )
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -751,9 +749,10 @@ private fun PatientMenu(
 private fun OrderBadge(order: Int, admissionCount: Int) {
     Box(
         modifier = Modifier
-            .size(if (admissionCount > 1) 48.dp else 32.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(UiSpacing.micro),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -765,10 +764,9 @@ private fun OrderBadge(order: Int, admissionCount: Int) {
             )
             if (admissionCount > 1) {
                 Text(
-                text = ArabicNumbers.toArabicDigits("$admissionCount"),
+                    text = ArabicNumbers.toArabicDigits("$admissionCount"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontSize = 12.sp,
                     textAlign = TextAlign.Center
                 )
             }
@@ -786,11 +784,11 @@ private fun DiagnosisChip(type: DiagnosisType) {
 private fun SmallChip(text: String, container: Color, content: Color) {
     Surface(
         color = container,
-        shape = RoundedCornerShape(6.dp)
+        shape = MaterialTheme.shapes.small
     ) {
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(UiPadding.compact),
             style = MaterialTheme.typography.labelSmall,
             color = content,
             textAlign = TextAlign.Center
@@ -800,13 +798,8 @@ private fun SmallChip(text: String, container: Color, content: Color) {
 
 @Composable
 private fun SectionBlock(title: String, content: String, maxLines: Int = Int.MAX_VALUE) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+        AppSectionHeader(title)
         Text(
             text = content,
             maxLines = maxLines,

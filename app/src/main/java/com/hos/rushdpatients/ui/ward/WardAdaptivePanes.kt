@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.UiSize
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -12,7 +14,6 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,11 +22,11 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -166,7 +167,7 @@ internal fun WardAdaptivePanes(
                 val direction = if (rtl) -1f else 1f
                 fun adjust(value: Float) = onListFractionChange(value.coerceIn(minimum, maximum))
                 Box(
-                    Modifier.absoluteOffset(x = dividerX.dp).width(48.dp).height(height.dp)
+                    Modifier.absoluteOffset(x = dividerX.dp).width(UiSpacing.touchTarget).height(height.dp)
                         .background(if (dividerFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
                         .border(if (dividerFocused) 2.dp else 1.dp,
                             if (dividerFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
@@ -198,7 +199,7 @@ internal fun WardAdaptivePanes(
                             orientation = Orientation.Horizontal
                         ),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Filled.DragHandle, contentDescription = null, modifier = Modifier.size(24.dp)) }
+                ) { Icon(Icons.Filled.DragHandle, contentDescription = null, modifier = Modifier.size(UiSize.icon)) }
             }
         } else compactOverlay()
     }

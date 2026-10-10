@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -15,9 +20,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -74,37 +77,37 @@ internal fun WardActivityScreen(
     }
     LazyColumn(
         state = if (filter == ActivityFilter.PUBLICATIONS) publicationScroll else activityScroll,
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = modifier.fillMaxSize().padding(horizontal = UiSpacing.screen),
+        verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
     ) {
         item(key = "activity-heading") {
             Text("مركز النشاط", style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(top = 12.dp).semantics { heading() })
-            TextButton(onClick = onRefresh, enabled = !loading,
+                modifier = Modifier.padding(top = UiSpacing.medium).semantics { heading() })
+            AppTextButton(onClick = onRefresh, enabled = !loading,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
                 Text(if (loading) "جار تحديث النشاط…" else "تحديث النشاط")
             }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
+            error?.let { AppNotice(it, kind = NoticeKind.ERROR, actionLabel = "إعادة المحاولة",
+                onAction = onRefresh, actionEnabled = !loading) }
         }
         item(key = "activity-search") {
-            OutlinedTextField(value = query, onValueChange = onQueryChange,
+            AppTextField(value = query, onValueChange = onQueryChange,
                 label = { Text("بحث بالمريض أو الطبيب أو العملية") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth())
         }
         item(key = "activity-filters") {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 ActivityFilter.entries.forEach { option ->
                     FilterChip(selected = filter == option, onClick = { onFilterChange(option) },
-                        label = { Text(option.arabicLabel) }, modifier = Modifier.heightIn(min = 48.dp))
+                        label = { Text(option.arabicLabel) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
                 }
             }
         }
         if (filter == ActivityFilter.PUBLICATIONS) {
             if (filteredPublications.isEmpty()) item { Text("لا توجد منشورات مطابقة") }
             items(filteredPublications, key = { "publication-${it.messageId}" }) { publication ->
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     Text(if (publication.forced) "نشر إجباري" else "نشر عادي", style = MaterialTheme.typography.titleSmall)
                     Text(activityTime(publication.at), style = MaterialTheme.typography.bodySmall)
                     Text("محفوظ في تليجرام", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -127,7 +130,7 @@ internal fun WardActivityScreen(
 
 @Composable
 internal fun ActivityEntry(entry: AuditEntryEntity, patientName: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         patientName?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
         Text(entry.actorName ?: "النظام", style = MaterialTheme.typography.labelLarge)
         Text(entry.detail.ifBlank { entry.action })

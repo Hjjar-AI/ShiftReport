@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppCard
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,14 +14,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -24,16 +25,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -78,18 +78,18 @@ fun AdminScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(UiSpacing.screen)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
             state.currentActor?.let { actor ->
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
                     colors = androidx.compose.material3.CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Column(modifier = Modifier.padding(UiPadding.content)) {
                         Text("المدير الحالي: ${actor.fullName}")
                         Text("الرتبة: ${actor.rank}")
                         Text(
@@ -101,10 +101,10 @@ fun AdminScreen(
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.padding(UiPadding.content),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
                 ) {
                     Text("ملخص الصلاحيات", style = MaterialTheme.typography.titleSmall)
                     Text("المديرون: ${state.admins.size} · الأطباء الآخرون: ${state.nonAdmins.size}")
@@ -126,10 +126,10 @@ fun AdminScreen(
                 onClick = onOpenAnnouncement
             )
 
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(UiPadding.content),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     Text("صلاحيات المديرين", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -137,12 +137,12 @@ fun AdminScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedButton(
+                    AppOutlinedButton(
                         onClick = { showAssignAdmin = true },
                         enabled = !state.saving,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("ترقية طبيب إلى مدير") }
-                    OutlinedButton(
+                    AppOutlinedButton(
                         onClick = { showRemoveAdmin = true },
                         enabled = !state.saving,
                         modifier = Modifier.fillMaxWidth()
@@ -189,10 +189,10 @@ private fun AdminActionCard(
     onClick: () -> Unit,
     primary: Boolean = false
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(UiPadding.content),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(
@@ -201,9 +201,9 @@ private fun AdminActionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (primary) {
-                Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
+                AppButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
             } else {
-                OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
+                AppOutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
             }
         }
     }

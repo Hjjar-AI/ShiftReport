@@ -1,10 +1,16 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.components.LongPressLoadingButton
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppCard
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Card
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -29,7 +34,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -39,20 +43,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -165,19 +166,19 @@ fun ReportPreviewScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
+                    .padding(UiSpacing.screen)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)
             ) {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                AppCard(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         Text("أطباء المناوبة", style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer)
                         state.doctors.forEach { Text("• ${it.fullName}") }
                         if (state.doctors.isEmpty()) Text("اختر أطباء المناوبة من الزر أدناه")
-                        if (!state.isReadOnly) OutlinedButton(
+                        if (!state.isReadOnly) AppOutlinedButton(
                             onClick = { confirmSend = false; showShiftDoctors = true },
                             enabled = state.shift != null && !state.savingDoctors && !state.sending &&
                                 !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf &&
@@ -187,8 +188,8 @@ fun ReportPreviewScreen(
                     }
                 }
                 state.summary?.let { summary ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                             Text("ملخص المناوبة", style = MaterialTheme.typography.titleMedium)
                             Text("عدد المرضى: ${summary.patientCount}")
                             if (summary.psychoCount > 0) {
@@ -201,15 +202,15 @@ fun ReportPreviewScreen(
                 }
 
                 if (state.readinessWarnings.isNotEmpty()) {
-                    Card(
+                    AppCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                            modifier = Modifier.padding(UiPadding.content),
+                            verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
                         ) {
                             Text(
                                 "ملاحظات جاهزية التقرير",
@@ -228,15 +229,15 @@ fun ReportPreviewScreen(
                     }
                 }
 
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                        modifier = Modifier.padding(UiPadding.content),
+                        verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
                     ) {
                         Text("ما الذي تغيّر منذ آخر نشر؟", style = MaterialTheme.typography.titleSmall)
                         if (state.changeBriefing.isEmpty()) {
@@ -262,10 +263,10 @@ fun ReportPreviewScreen(
                 }
 
                 if (!state.reportAsPdf) {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = state.previewMarkdown,
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(UiPadding.content),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -295,44 +296,14 @@ fun ReportPreviewScreen(
                 }
 
                 state.error?.let { err ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text(text = err, color = MaterialTheme.colorScheme.onErrorContainer)
-                            if (state.retryAction != null) {
-                                androidx.compose.material3.TextButton(
-                                    onClick = viewModel::retryLastAction
-                                ) { Text("إعادة المحاولة") }
-                            }
-                        }
-                    }
+                    AppNotice(err, kind = NoticeKind.ERROR,
+                        actionLabel = if (state.retryAction == null) null else "إعادة المحاولة",
+                        onAction = if (state.retryAction == null) null else viewModel::retryLastAction,
+                        actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf && !state.resolvingConflicts)
                 }
-
-                state.lastOperation?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
+                state.lastOperation?.let { AppNotice(it) }
                 if (state.isReadOnly) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
-                    ) {
-                        Text(
-                            text = "تقرير مناوبة محفوظة: المعاينة والحفظ المحلي متاحان، أما الإرسال والنشر فمتوقفان.",
-                            modifier = Modifier.padding(12.dp),
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
+                    AppNotice("تقرير مناوبة محفوظة: المعاينة والحفظ المحلي متاحان، أما الإرسال والنشر فمتوقفان.")
                 }
 
                 Box(modifier = Modifier.fillMaxWidth()) {
@@ -416,15 +387,15 @@ fun ReportPreviewScreen(
             text = {
                 Column(
                     modifier = Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
                 ) {
                     state.mergeConflicts.forEach { conflict ->
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        AppCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                            Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 Text("${conflict.patientName} — ${conflict.fieldLabel}")
                                 Text("محلي: ${conflict.localValue}")
                                 Text("منشور: ${conflict.remoteValue}")
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                     androidx.compose.material3.FilterChip(
                                         selected = conflictChoices[conflict.key] == ConflictChoice.LOCAL,
                                         onClick = { conflictChoices = conflictChoices + (conflict.key to ConflictChoice.LOCAL) },
@@ -442,13 +413,13 @@ fun ReportPreviewScreen(
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(
+                AppTextButton(
                     onClick = { viewModel.resolveMergeConflicts(conflictChoices) },
                     enabled = state.mergeConflicts.all { it.key in conflictChoices } && !state.resolvingConflicts
                 ) { Text(if (state.resolvingConflicts) "جارٍ الدمج…" else "دمج ونشر") }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = viewModel::dismissMergeConflicts) { Text("إلغاء") }
+                AppTextButton(onClick = viewModel::dismissMergeConflicts) { Text("إلغاء") }
             }
         )
     }
@@ -465,67 +436,16 @@ fun ReportPreviewScreen(
                 )
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
+                AppTextButton(onClick = {
                     confirmSend = false
                     viewModel.send()
                 }) { Text("إرسال") }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { confirmSend = false }) {
+                AppTextButton(onClick = { confirmSend = false }) {
                     Text("إلغاء")
                 }
             }
         )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LongPressLoadingButton(
-    text: String,
-    loading: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true
-) {
-    val active = enabled && !loading
-    val containerColor = if (active) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-    }
-    val contentColor = if (active) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-    }
-    Box(
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(containerColor)
-            .combinedClickable(
-                enabled = active,
-                role = Role.Button,
-                onClick = onClick,
-                onLongClick = onLongClick
-            )
-            .padding(horizontal = 24.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (loading) {
-                CircularProgressIndicator(
-                    color = contentColor,
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp
-                )
-            }
-            Text(text, color = contentColor)
-        }
     }
 }

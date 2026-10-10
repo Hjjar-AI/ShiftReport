@@ -1,5 +1,12 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppCard
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -25,37 +32,32 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -186,24 +188,19 @@ fun DoctorsScreen(
                 else -> LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = UiSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     if (state.mergeConflicts.isNotEmpty()) {
                         item {
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp)) {
-                                    Text("تعارضات سجل الأطباء: ${state.mergeConflicts.size}")
-                                    Text("لم تُستبدل التعديلات المحلية. راجع القيم المتعارضة قبل المزامنة.")
-                                    TextButton(onClick = { showMergeReview = true }, enabled = !state.saving) {
-                                        Text("مراجعة التعارضات")
-                                    }
-                                }
-                            }
+                            AppNotice("تعارضات سجل الأطباء: ${state.mergeConflicts.size}\n" +
+                                "لم تُستبدل التعديلات المحلية. راجع القيم المتعارضة قبل المزامنة.",
+                                kind = NoticeKind.ERROR, actionLabel = "مراجعة التعارضات",
+                                onAction = { showMergeReview = true }, actionEnabled = !state.saving)
                         }
                     }
                     item {
-                        OutlinedTextField(
+                        AppTextField(
                             value = query,
                             onValueChange = { query = it },
                             label = { Text("البحث بالاسم أو معرف تليجرام") },
@@ -212,7 +209,7 @@ fun DoctorsScreen(
                         )
                     }
                     item {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                             DoctorListFilter.entries.forEach { option ->
                                 FilterChip(
                                     selected = filter == option,
@@ -223,12 +220,12 @@ fun DoctorsScreen(
                         }
                     }
                     item {
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        AppCard(modifier = Modifier.fillMaxWidth()) {
                             Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier.padding(UiPadding.content),
+                                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                             ) {
-                                TextButton(
+                                AppTextButton(
                                     onClick = { transferExpanded = !transferExpanded },
                                     modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
                                         .semantics { stateDescription = if (transferExpanded) "موسّعة" else "مطوية" }
@@ -247,23 +244,23 @@ fun DoctorsScreen(
                                     )
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                                     ) {
-                                        OutlinedButton(
+                                        AppOutlinedButton(
                                             onClick = { importLauncher.launch(arrayOf("*/*")) },
                                             enabled = !state.saving && !state.importing && !state.exporting,
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Icon(Icons.Default.FolderOpen, contentDescription = null)
-                                            Text("استيراد CSV", Modifier.padding(start = 6.dp))
+                                            Text("استيراد CSV", Modifier.padding(start = UiSpacing.small))
                                         }
-                                        OutlinedButton(
+                                        AppOutlinedButton(
                                             onClick = viewModel::prepareDoctorExport,
                                             enabled = !state.saving && !state.importing && !state.exporting,
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Icon(Icons.Default.Save, contentDescription = null)
-                                            Text("تصدير CSV", Modifier.padding(start = 6.dp))
+                                            Text("تصدير CSV", Modifier.padding(start = UiSpacing.small))
                                         }
                                     }
                                 }
@@ -332,7 +329,7 @@ fun DoctorsScreen(
             onDismissRequest = viewModel::dismissDoctorImport,
             title = { Text("مراجعة استيراد سجل الأطباء") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text("الأطباء الفعّالون: ${preview.activeCount}")
                     Text("المديرون: ${preview.adminCount}")
                     Text("السجلات المحذوفة: ${preview.deletedCount}")
@@ -349,10 +346,10 @@ fun DoctorsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmDoctorImport) { Text("استيراد ومزامنة") }
+                AppTextButton(onClick = viewModel::confirmDoctorImport) { Text("استيراد ومزامنة") }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissDoctorImport) { Text("إلغاء") }
+                AppTextButton(onClick = viewModel::dismissDoctorImport) { Text("إلغاء") }
             }
         )
     }
@@ -364,11 +361,11 @@ private fun DoctorCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(UiPadding.content),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {

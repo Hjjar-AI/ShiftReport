@@ -1,5 +1,11 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
+import com.hos.rushdpatients.ui.components.AppSection
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppButton
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,7 +24,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -29,10 +34,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -50,7 +55,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun PatientDetailsScreen(
+internal fun PatientDetailsScreen(
     patient: Patient,
     doctorNames: Map<String, String>,
     activity: List<AuditEntryEntity> = emptyList(),
@@ -60,7 +65,10 @@ fun PatientDetailsScreen(
     onPriorityChange: (Boolean) -> Unit = {},
     onDismiss: () -> Unit,
     embedded: Boolean = false,
-    foldingFeature: FoldingFeature? = null
+    foldingFeature: FoldingFeature? = null,
+    roundsNavigation: PatientRoundsNavigation? = null,
+    navigationEnabled: Boolean = true,
+    onNavigateToPatient: (String) -> Unit = {}
 ) {
     val haptics = LocalHapticFeedback.current
     var section by rememberSaveable(patient.id, key = "patient-detail-section") {
@@ -93,12 +101,15 @@ fun PatientDetailsScreen(
                             }
                         }
                     )
+                    roundsNavigation?.let { navigation ->
+                        PatientRoundsBar(navigation, enabled = navigationEnabled, onNavigate = onNavigateToPatient)
+                    }
                     Surface(tonalElevation = 2.dp) {
                         FlowRow(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                .padding(UiPadding.content),
+                            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                         ) {
                             PatientDetailSection.entries.forEach { option ->
                                 val count = when (option) {
@@ -122,14 +133,14 @@ fun PatientDetailsScreen(
             bottomBar = {
                 if (!readOnly) {
                     Surface(tonalElevation = 3.dp) {
-                        Button(
+                        AppButton(
                             onClick = onEdit,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp)
+                                .padding(UiPadding.content)
                         ) {
                             Icon(Icons.Filled.Edit, contentDescription = null)
-                            Text("تعديل بيانات المريض", Modifier.padding(start = 8.dp))
+                            Text("تعديل بيانات المريض", Modifier.padding(start = UiSpacing.small))
                         }
                     }
                 }
@@ -140,8 +151,8 @@ fun PatientDetailsScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .verticalScroll(detailScroll)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(UiSpacing.screen),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 when (section) {
                     PatientDetailSection.OVERVIEW,
@@ -172,13 +183,13 @@ fun PatientDetailsScreen(
                         content = meaningfulTimeline(patient, activity)
                     )
                 }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onCopy) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    AppOutlinedButton(onClick = onCopy) {
                         Icon(Icons.Filled.ContentCopy, contentDescription = null)
-                        Text("نسخ", Modifier.padding(start = 6.dp))
+                        Text("نسخ", Modifier.padding(start = UiSpacing.small))
                     }
                     if (!readOnly) {
-                        Button(onClick = {
+                        AppButton(onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             onPriorityChange(!patient.isPriority)
                         }) {
@@ -188,7 +199,7 @@ fun PatientDetailsScreen(
                             )
                             Text(
                                 if (patient.isPriority) "إلغاء الأولوية" else "تحديد أولوية",
-                                Modifier.padding(start = 6.dp)
+                                Modifier.padding(start = UiSpacing.small)
                             )
                         }
                     }
@@ -251,19 +262,7 @@ private fun freshnessText(updatedAt: Instant): String {
 
 @Composable
 private fun DetailTextSection(title: String, content: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(content, style = MaterialTheme.typography.bodyLarge)
-        }
-    }
+    AppSection(title) { Text(content, style = MaterialTheme.typography.bodyLarge) }
 }
 
 private enum class PatientDetailSection(val arabicLabel: String) {

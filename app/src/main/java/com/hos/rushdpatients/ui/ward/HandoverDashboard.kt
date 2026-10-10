@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,9 +68,9 @@ internal fun HandoverDashboard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            TextButton(onClick = onSync) { Text("مزامنة") }
-            if (isAdmin) TextButton(onClick = onActivity) { Text("مركز النشاط") }
-            TextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
+            AppTextButton(onClick = onSync) { Text("مزامنة") }
+            if (isAdmin) AppTextButton(onClick = onActivity) { Text("مركز النشاط") }
+            AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
         }
         DashboardMetric("عاجل أو أولوية", urgent, MaterialTheme.colorScheme.errorContainer) { onFilter(DashboardFilter.URGENT) }
         DashboardMetric("المهام المتأخرة (ضمن المعلقة)", taskCounts.overdue, MaterialTheme.colorScheme.errorContainer) { onFilter(DashboardFilter.TASK_OVERDUE) }
@@ -90,7 +91,7 @@ internal fun HandoverDashboard(
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(Modifier.padding(UiSpacing.medium), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+            Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Text("حالة المناوبة", style = MaterialTheme.typography.titleMedium)
                 Text("حالة البيانات: ${syncStatus.arabicLabel}")
                 Text("استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر")
@@ -116,8 +117,7 @@ private fun DashboardMetric(
         color = color
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = UiSpacing.medium,
-                vertical = if (compact) UiSpacing.small else UiSpacing.medium),
+            modifier = Modifier.padding(UiPadding.content),
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -1,5 +1,24 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppButton
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.components.AppSectionHeader
+import com.hos.rushdpatients.ui.components.AppPickerField
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.Icons
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,19 +32,17 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import android.app.TimePickerDialog
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -56,48 +73,28 @@ internal fun PatientTaskEditor(
     val completed = tasks.filter { it.done }
     val names = doctors.associate { it.id to it.fullName }
     val pending = tasks.count { !it.done }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text("مهام المريض: $pending معلقة / ${tasks.size} إجمالي · " + if (expanded) "طي" else "عرض")
-            }
-            TextButton(onClick = { adding = true }, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text("إضافة مهمة")
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AppSectionHeader(title = "مهام المريض · $pending معلقة", count = tasks.size,
+                expanded = expanded, onToggle = { expanded = !expanded }, modifier = Modifier.weight(1f))
+            AppOutlinedButton(onClick = { adding = true }, enabled = enabled) { Text("إضافة مهمة") }
         }
         val taskCard: @Composable (PatientTask) -> Unit = { task ->
-            Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surfaceVariant) {
-                Column(Modifier.padding(8.dp)) {
-                    Text(PatientTasks.summary(listOf(task), names))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = { editing = task }, enabled = enabled,
-                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "تعديل المهمة: ${task.description}" }) { Text("تعديل") }
-                        TextButton(onClick = {
-                            onChange(tasks.map {
-                                if (it.id != task.id) it else it.copy(done = !it.done,
-                                    completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
-                            })
-                        }, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp).semantics {
-                            contentDescription = (if (task.done) "إعادة فتح المهمة: " else "تحديد كمكتملة: ") + task.description
-                        }) { Text(if (task.done) "إعادة فتح المهمة" else "تحديد كمكتملة") }
-                        TextButton(onClick = { onChange(tasks.filterNot { it.id == task.id }) }, enabled = enabled,
-                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "حذف المهمة: ${task.description}" }) {
-                            Text("حذف", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-            }
+            TaskDraftRow(task = task, names = names, enabled = enabled,
+                onEdit = { editing = task },
+                onToggleDone = {
+                    onChange(tasks.map {
+                        if (it.id != task.id) it else it.copy(done = !it.done,
+                            completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
+                    })
+                },
+                onDelete = { onChange(tasks.filterNot { it.id == task.id }) })
         }
         if (expanded) {
             tasks.filterNot { it.done }.forEach { taskCard(it) }
             if (completed.isNotEmpty()) {
-                TextButton(
-                    onClick = { completedExpanded = !completedExpanded },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).semantics {
-                        stateDescription = if (completedExpanded) "موسّعة" else "مطوية"
-                    }
-                ) { Text("المكتملة (${completed.size}) · " + if (completedExpanded) "طي" else "عرض") }
+                AppSectionHeader(title = "المكتملة", count = completed.size,
+                    expanded = completedExpanded, onToggle = { completedExpanded = !completedExpanded })
                 if (completedExpanded) completed.forEach { taskCard(it) }
             }
         }
@@ -115,6 +112,40 @@ internal fun PatientTaskEditor(
             if (task.done) completedExpanded = true
         }
     )
+}
+
+@Composable
+private fun TaskDraftRow(
+    task: PatientTask, names: Map<String, String>, enabled: Boolean,
+    onEdit: () -> Unit, onToggleDone: () -> Unit, onDelete: () -> Unit
+) {
+    var menu by remember(task.id) { mutableStateOf(false) }
+    Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant) {
+        Column(Modifier.padding(UiPadding.content)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(task.description, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                Box {
+                    IconButton(onClick = { menu = true }, enabled = enabled) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "خيارات المهمة: ${task.description}")
+                    }
+                    DropdownMenu(expanded = menu && enabled, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(text = { Text("تعديل") }, onClick = { menu = false; onEdit() })
+                        DropdownMenuItem(text = { Text("حذف", color = MaterialTheme.colorScheme.error) },
+                            onClick = { menu = false; onDelete() })
+                    }
+                }
+            }
+            val metadata = PatientTasks.metadata(task, names, includeUnassigned = false, includeRoutinePriority = false)
+            if (metadata.isNotBlank()) Text(metadata, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AppOutlinedButton(onClick = onToggleDone, enabled = enabled,
+                modifier = Modifier.semantics {
+                    contentDescription = (if (task.done) "إعادة فتح المهمة: " else "تحديد كمكتملة: ") + task.description
+                    stateDescription = if (task.done) "مكتملة" else "معلقة"
+                }) { Text(if (task.done) "إعادة فتح المهمة" else "تحديد كمكتملة") }
+        }
+    }
 }
 
 private enum class TaskDeadline(val label: String) { NONE("بلا موعد"), TIME("تاريخ ووقت"), SHIFT("نهاية مناوبة") }
@@ -142,20 +173,20 @@ private fun TaskDraftDialog(
         onDismissRequest = { if (enabled) onDismiss() },
         title = { Text(if (initial == null) "مهمة جديدة" else "تعديل المهمة", Modifier.semantics { heading() }) },
         text = {
-            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(description, { description = it; error = null }, label = { Text("وصف المهمة") },
-                    modifier = Modifier.fillMaxWidth(), enabled = enabled)
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                AppTextField(description, { description = it; error = null }, label = { Text("وصف المهمة") },
+                    modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = error != null)
                 DoctorDropdown(label = "مسؤول المهمة", undefinedLabel = "غير معيّنة", selectedId = owner,
-                    doctors = doctors, onSelected = { owner = it }, modifier = Modifier.fillMaxWidth())
+                    doctors = doctors, onSelected = { owner = it }, modifier = Modifier.fillMaxWidth(), enabled = enabled)
                 Text("الأولوية")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskPriority.entries.forEach { option ->
                         FilterChip(selected = priority == option, onClick = { priority = option },
                             label = { Text(option.arabicLabel) }, enabled = enabled)
                     }
                 }
                 Text("الاستحقاق")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskDeadline.entries.forEach { option ->
                         FilterChip(selected = deadline == option, onClick = { deadline = option; error = null },
                             label = { Text(option.label) }, enabled = enabled)
@@ -163,23 +194,22 @@ private fun TaskDraftDialog(
                 }
                 if (deadline != TaskDeadline.NONE) {
                     DateField(date, { date = it }, if (deadline == TaskDeadline.SHIFT) "تاريخ المناوبة" else "تاريخ الاستحقاق",
-                        if (deadline == TaskDeadline.SHIFT) "نهاية المناوبة الساعة 08:30 في اليوم التالي" else null)
+                        if (deadline == TaskDeadline.SHIFT) "نهاية المناوبة الساعة 08:30 في اليوم التالي" else null, enabled = enabled)
                 }
                 if (deadline == TaskDeadline.TIME) {
-                    OutlinedButton(onClick = {
+                    AppPickerField(value = time.toString(), label = "وقت الاستحقاق", icon = Icons.Filled.Schedule,
+                        valueTextDirection = TextDirection.Ltr, onClick = {
                         TimePickerDialog(context, { _, hour, minute ->
                             time = LocalTime.of(hour, minute)
                             error = null
                         }, time.hour, time.minute, true).show()
-                    }, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                        Text("وقت الاستحقاق: $time · اختيار الوقت")
-                    }
+                    }, enabled = enabled, modifier = Modifier.fillMaxWidth())
                 }
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
             }
         },
         confirmButton = {
-            TextButton(enabled = enabled && description.isNotBlank(), onClick = {
+            AppButton(enabled = enabled && description.isNotBlank(), onClick = {
                 val dueAt = when (deadline) {
                     TaskDeadline.NONE -> null
                     TaskDeadline.SHIFT -> ShiftDate.endOf(date).toEpochMilli()
@@ -192,6 +222,6 @@ private fun TaskDraftDialog(
                 ))
             }) { Text("اعتماد في المسودة") }
         },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = enabled) { Text("إلغاء") } }
+        dismissButton = { AppTextButton(onClick = onDismiss, enabled = enabled) { Text("إلغاء") } }
     )
 }

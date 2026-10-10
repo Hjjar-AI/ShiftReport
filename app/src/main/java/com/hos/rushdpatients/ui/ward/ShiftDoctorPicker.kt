@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppCard
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,24 +14,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -70,7 +70,7 @@ fun ShiftDoctorPicker(
                     "المختارون: ${selected.size} · دون حد أقصى",
                     style = MaterialTheme.typography.bodySmall
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = query,
                     onValueChange = { query = it },
                     label = { Text("بحث باسم الطبيب") },
@@ -87,7 +87,7 @@ fun ShiftDoctorPicker(
                 )
 
                 if (rejected != null) {
-                    TextButton(onClick = { reviewing = true }, enabled = !saving) {
+                    AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
                         Text("مراجعة الاختيار المرفوض")
                     }
                 }
@@ -101,7 +101,7 @@ fun ShiftDoctorPicker(
                     }
                     matchingDoctors.forEach { doctor ->
                         val isSelected = doctor.id in selected
-                        Card(
+                        AppCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected)
@@ -138,7 +138,7 @@ fun ShiftDoctorPicker(
             }
         },
         confirmButton = {
-            Button(
+            AppButton(
                 onClick = {
                     val draft = selected.toList()
                     onConfirm(draft, revision) { saved ->
@@ -151,7 +151,7 @@ fun ShiftDoctorPicker(
             ) { Text(if (saving) "جار الحفظ…" else "حفظ") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
+            AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
         }
     )
     if (reviewing) {

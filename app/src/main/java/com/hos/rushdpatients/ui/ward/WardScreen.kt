@@ -1,5 +1,13 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppButton
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.platform.LocalDensity
@@ -39,7 +47,6 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.FilterChip
@@ -48,24 +55,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.BackHandler
@@ -122,7 +127,7 @@ fun WardScreen(
     var showSupportingSheet by rememberSaveable { mutableStateOf(false) }
     val expandedWindow = LocalConfiguration.current.screenWidthDp >= 600
     val topBarHeight = 64.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val compactNavigationHeight = 48.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
+    val compactNavigationHeight = UiSpacing.touchTarget * LocalDensity.current.fontScale.coerceAtLeast(1f)
     val bottomBarHeight = compactNavigationHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val freshnessLabel = remember(state.lastBackedUpAt, state.syncStatus) {
         val lastBackup = state.lastBackedUpAt?.let { epochMillis ->
@@ -243,6 +248,12 @@ fun WardScreen(
 
     val patientDestination = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE
     val selectedPatient = state.patients.firstOrNull { it.id == detailsTargetId }
+    val roundsPatients = if (state.groupByMode != GroupByMode.NONE && state.groupedPatients.isNotEmpty()) {
+        state.groupedPatients.flatMap { group ->
+            group.patients.filter { it in visiblePatients }.sortedByDescending { it.id in pinnedPatientIds }
+        }.distinctBy { it.id }
+    } else visiblePatients
+    val roundsNavigation = detailsTargetId?.let { patientRoundsNavigation(roundsPatients.map { it.id }, it) }
     val detailContent: @Composable (Boolean) -> Unit = { embedded ->
         if (selectedPatient != null && editTarget == null && copyTarget == null) {
             detailStateHolder.SaveableStateProvider(selectedPatient.id) {
@@ -253,7 +264,14 @@ fun WardScreen(
                     onEdit = { editTarget = selectedPatient },
                     onCopy = { copyTarget = selectedPatient },
                     onPriorityChange = { viewModel.setPriority(selectedPatient, it) },
-                    onDismiss = { detailsTargetId = null }, embedded = embedded, foldingFeature = foldingFeature
+                    onDismiss = { detailsTargetId = null }, embedded = embedded, foldingFeature = foldingFeature,
+                    roundsNavigation = roundsNavigation,
+                    navigationEnabled = !state.saving && !showAdd,
+                    onNavigateToPatient = { id ->
+                        if (!state.saving && !showAdd && editTarget == null && copyTarget == null && roundsPatients.any { it.id == id }) {
+                            detailsTargetId = id
+                        }
+                    }
                 )
             }
         }
@@ -448,21 +466,21 @@ fun WardScreen(
             },
             floatingActionButton = {
                 state.shift?.takeIf { !patientDestination || selectedPatient == null }?.let {
-                    Button(
+                    AppButton(
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             showReportSheet = true
                         },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.heightIn(min = 48.dp).semantics {
+                        contentPadding = UiPadding.content,
+                        modifier = Modifier.heightIn(min = UiSpacing.touchTarget).semantics {
                             stateDescription = if (reportReadinessIssueCount == 0) "التقرير جاهز"
                                 else "$reportReadinessIssueCount ملاحظات جاهزية"
                         }
                     ) {
-                        Icon(Icons.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("إرسال تقرير", Modifier.padding(start = 6.dp))
+                        Icon(Icons.Filled.Send, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
+                        Text("إرسال تقرير", Modifier.padding(start = UiSpacing.small))
                         if (reportReadinessIssueCount > 0) {
-                            Badge(modifier = Modifier.padding(start = 6.dp),
+                            Badge(modifier = Modifier.padding(start = UiSpacing.small),
                                 containerColor = MaterialTheme.colorScheme.error,
                                 contentColor = MaterialTheme.colorScheme.onError
                             ) { Text(reportReadinessIssueCount.toString()) }
@@ -556,7 +574,7 @@ fun WardScreen(
                                 onActivity = {
                                     viewMode = WardViewMode.ACTIVITY
                                 },
-                                modifier = Modifier.padding(12.dp)
+                                modifier = Modifier.padding(UiPadding.content)
                             )
                         } else if (state.patients.isEmpty()) {
                             EmptyState(
@@ -576,36 +594,36 @@ fun WardScreen(
                                 contentPadding = PaddingValues(bottom = 104.dp),
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(horizontal = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(horizontal = UiSpacing.medium),
+                                verticalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                             ) {
                                 item(span = { GridItemSpan(maxLineSpan) }) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                         Text(
                                             text = "${visiblePatients.size} مريض • تاريخ المناوبة: " +
                                                     (state.shift?.date ?: ""),
-                                            modifier = Modifier.padding(top = 8.dp),
+                                            modifier = Modifier.padding(top = UiSpacing.small),
                                             style = MaterialTheme.typography.titleSmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         FlowRow(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)
                                         ) {
-                                            TextButton(
+                                            AppTextButton(
                                                 onClick = { showFilters = true },
-                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                                contentPadding = PaddingValues(horizontal = UiSpacing.small, vertical = 0.dp)
                                             ) {
                                                 Icon(
                                                     Icons.Filled.FilterList,
                                                     contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
+                                                    modifier = Modifier.size(UiSize.iconSmall)
                                                 )
                                                 Text("تصفية", style = MaterialTheme.typography.labelSmall)
                                             }
                                         }
-                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                             CompactFilterChip(
                                                 selected = viewMode == WardViewMode.ALL && !urgentOnly &&
                                                     !unassignedOnly && !warningsOnly && !priorityOnly &&
@@ -647,28 +665,7 @@ fun WardScreen(
                                             )
                                         }
                                         if (state.isReadOnly) {
-                                            Surface(
-                                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                                shape = MaterialTheme.shapes.small,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(10.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Lock,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                    Text(
-                                                        "نسخة محفوظة — للعرض والاستعادة فقط",
-                                                        style = MaterialTheme.typography.labelLarge
-                                                    )
-                                                }
-                                            }
+                                            AppNotice("نسخة محفوظة — للعرض والاستعادة فقط", icon = Icons.Filled.Lock)
                                         }
                                         if (showSearch || searchQuery.isNotBlank()) {
                                             WardPatientSearchField(
@@ -681,7 +678,7 @@ fun WardScreen(
                                         if (priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
                                             newAdmissionsOnly || taskFilter != null || searchQuery.isNotBlank()
                                         ) {
-                                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                                 if (searchQuery.isNotBlank()) FilterChip(
                                                     selected = true,
                                                     onClick = { searchQuery = "" },
@@ -1000,8 +997,8 @@ fun WardScreen(
             onDismissRequest = { showFilters = false },
             title = { Text("بحث وتصفية وترتيب") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    AppTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         label = { Text("بحث") },
@@ -1013,13 +1010,13 @@ fun WardScreen(
                     FilterChip(unassignedOnly, { unassignedOnly = !unassignedOnly }, { Text("غير معيّن") })
                     FilterChip(urgentOnly, { urgentOnly = !urgentOnly }, { Text("عاجل") })
                     FilterChip(newAdmissionsOnly, { newAdmissionsOnly = !newAdmissionsOnly }, { Text("دخول اليوم") })
-                    TextButton(onClick = { showFilters = false; showSort = true }) { Text("خيارات الترتيب") }
-                    TextButton(onClick = { showFilters = false; showGroupBy = true }) { Text("خيارات التجميع") }
+                    AppTextButton(onClick = { showFilters = false; showSort = true }) { Text("خيارات الترتيب") }
+                    AppTextButton(onClick = { showFilters = false; showGroupBy = true }) { Text("خيارات التجميع") }
                 }
             },
-            confirmButton = { TextButton(onClick = { showFilters = false; viewMode = WardViewMode.ALL }) { Text("تطبيق") } },
+            confirmButton = { AppTextButton(onClick = { showFilters = false; viewMode = WardViewMode.ALL }) { Text("تطبيق") } },
             dismissButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     searchQuery = ""; priorityOnly = false; warningsOnly = false; unassignedOnly = false
                     urgentOnly = false; newAdmissionsOnly = false; taskFilter = null
                 }) { Text("مسح") }

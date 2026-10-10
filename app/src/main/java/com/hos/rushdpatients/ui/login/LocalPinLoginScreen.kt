@@ -1,22 +1,19 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.ui.components.NoticeKind
+import com.hos.rushdpatients.ui.components.AppNotice
+import com.hos.rushdpatients.ui.components.AppCenteredContent
+import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -37,11 +34,8 @@ fun LocalPinLoginScreen(
 ) {
     // A submitted PIN never enters saved UI state or the ViewModel state.
     var pin by remember(doctorId) { mutableStateOf("") }
-    Column(
-        modifier = Modifier.fillMaxSize().imePadding()
-            .verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
-        verticalArrangement = Arrangement.spacedBy(UiSpacing.small, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally
+    AppCenteredContent(
+        verticalArrangement = Arrangement.spacedBy(UiSpacing.small, Alignment.CenterVertically)
     ) {
         Text(doctorName, style = MaterialTheme.typography.titleLarge)
         Text("الدخول بالرقم السري", style = MaterialTheme.typography.titleMedium)
@@ -56,7 +50,7 @@ fun LocalPinLoginScreen(
             keyboardType = KeyboardType.NumberPassword,
             enabled = !busy
         )
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
         LoadingButton(
             text = "تسجيل الدخول",
             loading = busy,
@@ -68,12 +62,12 @@ fun LocalPinLoginScreen(
             },
             modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
         )
-        TextButton(
+        AppTextButton(
             enabled = !busy,
             onClick = { pin = ""; onTelegram() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
         ) { Text("نسيت الرقم السري؟ تحقق عبر تليجرام") }
-        TextButton(
+        AppTextButton(
             enabled = !busy,
             onClick = { pin = ""; onBack() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)

@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,14 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -44,8 +46,8 @@ internal fun WardReportSheet(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.medium),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 Text("إرسال تقرير المناوبة", style = MaterialTheme.typography.headlineSmall)
                 Text(
@@ -67,7 +69,7 @@ internal fun WardReportSheet(
                         } else {
                             "$issueCount ملاحظات تحتاج المراجعة قبل الإرسال"
                         },
-                        modifier = Modifier.padding(14.dp),
+                        modifier = Modifier.padding(UiPadding.content),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -78,17 +80,17 @@ internal fun WardReportSheet(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-                Button(
+                AppButton(
                     onClick = onReviewReport,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Filled.Send, contentDescription = null)
                     Text(
                         "مراجعة التقرير",
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier.padding(start = UiSpacing.small)
                     )
                 }
-                TextButton(
+                AppTextButton(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("إغلاق") }

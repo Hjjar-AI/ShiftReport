@@ -6,13 +6,12 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,7 +31,7 @@ fun PasswordField(
 ) {
     var visible by remember { mutableStateOf(false) }
 
-    OutlinedTextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -43,7 +42,7 @@ fun PasswordField(
         visualTransformation = if (visible) VisualTransformation.None
         else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { visible = !visible }) {
+            IconButton(onClick = { visible = !visible }, enabled = enabled) {
                 Icon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff
                     else Icons.Filled.Visibility,

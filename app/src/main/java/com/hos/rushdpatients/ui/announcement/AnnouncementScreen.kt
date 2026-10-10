@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.announcement
 
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.AppCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,12 +14,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -23,8 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -72,9 +74,9 @@ fun AnnouncementScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(UiSpacing.screen)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
             Text(
                 "سيتم تثبيت الإعلان في المجموعة الرئيسية.",
@@ -85,7 +87,7 @@ fun AnnouncementScreen(
                 Text("الإعلان الحالي: ${it}", style = MaterialTheme.typography.bodySmall)
             }
 
-            OutlinedTextField(
+            AppTextField(
                 value = state.template,
                 onValueChange = viewModel::onTemplateChange,
                 label = { Text("النص (MarkdownV2)") },
@@ -96,10 +98,10 @@ fun AnnouncementScreen(
                 maxLines = 20
             )
 
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "ملاحظة: الرموز الخاصة ( _ * [ ] ( ) ~ ` > # + - = | { } . ! ) يجب أن تُهرب بـ \\ في MarkdownV2.",
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(UiPadding.content),
                     style = MaterialTheme.typography.bodySmall
                 )
             }

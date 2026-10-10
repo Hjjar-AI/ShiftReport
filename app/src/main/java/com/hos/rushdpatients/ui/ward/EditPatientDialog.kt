@@ -1,13 +1,13 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
@@ -34,7 +34,7 @@ fun EditPatientDialog(
         saving = saving,
         reviewAction = {
             if (rejected != null) {
-                TextButton(onClick = { reviewing = true }, enabled = !saving) {
+                AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
                     Text("مراجعة المسودة المرفوضة والنسخة المحفوظة")
                 }
             }
