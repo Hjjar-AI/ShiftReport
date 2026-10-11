@@ -4,11 +4,11 @@ import androidx.compose.ui.unit.dp
 
 /** Shared rhythm; compact layouts reduce spacing, never text size or touch targets. */
 object UiSpacing {
-    val micro = 2.dp
-    val tiny = 4.dp
-    val small = 8.dp
-    val medium = 12.dp
-    val screen = 16.dp
-    val section = 24.dp
+    val micro = 1.dp
+    val tiny = 2.dp
+    val small = 4.dp
+    val medium = 6.dp
+    val screen = 8.dp
+    val section = 12.dp
     val touchTarget = 48.dp
 }

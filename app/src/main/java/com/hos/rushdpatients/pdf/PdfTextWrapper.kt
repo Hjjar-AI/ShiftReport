@@ -63,6 +63,6 @@ object PdfTextWrapper {
         return lines.ifEmpty { listOf("") }
     }
 
-    fun lineHeight(paint: Paint, spacingMultiplier: Float = 1.15f): Float =
+    fun lineHeight(paint: Paint, spacingMultiplier: Float = 1f): Float =
         (paint.fontMetrics.bottom - paint.fontMetrics.top) * spacingMultiplier
 }

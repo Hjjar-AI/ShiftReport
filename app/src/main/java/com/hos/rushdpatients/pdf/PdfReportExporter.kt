@@ -32,8 +32,8 @@ class PdfReportExporter @Inject constructor() {
     private var pageHeight = 842f
     private val marginLeft = 8.5f
     private val marginRight = 8.5f
-    private val marginTop = 14f
-    private val marginBottom = 14f
+    private val marginTop = 8.5f
+    private val marginBottom = 8.5f
 
     private var contentLeft = marginLeft
     private var contentRight = pageWidth - marginRight
@@ -47,11 +47,13 @@ class PdfReportExporter @Inject constructor() {
     private var elegantRows = false
     private val bidiFormatter = BidiFormatter.getInstance()
 
-    private val titleBandHeight = 26f
-    private val summaryBandHeight = 22f
-    private val headerMinHeight = 30f
-    private val rowMinHeight = 22f
-    private val cellPadding = 3f
+    private val titleBandHeight = 20f
+    private val summaryBandHeight: Float
+        get() = PdfTextWrapper.lineHeight(summaryPaint) + 2 * cellPadding
+    private val headerMinHeight = 14f
+    private val rowMinHeight = 14f
+    // One PDF point clears even the outer table stroke while maximizing clinical text space.
+    private val cellPadding = 1f
 
     private val dateFmt: DateTimeFormatter =
         DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale("ar"))
@@ -272,7 +274,7 @@ class PdfReportExporter @Inject constructor() {
         lines.forEachIndexed { index, line ->
             drawCenteredFittedText(
                 canvas = canvas, text = line, centerX = contentLeft + contentWidth / 2f,
-                baseline = y + cellPadding - titlePaint.fontMetrics.ascent + index * lineHeight,
+                baseline = y + cellPadding - titlePaint.fontMetrics.top + index * lineHeight,
                 paint = titlePaint, maxWidth = contentWidth - 2 * cellPadding
             )
         }
@@ -342,7 +344,7 @@ class PdfReportExporter @Inject constructor() {
             PdfStrings.HEADER_NOTES
         ).reversedArray()
 
-        val lineHeight = PdfTextWrapper.lineHeight(headerPaint, 1.1f)
+        val lineHeight = PdfTextWrapper.lineHeight(headerPaint)
         val maxLines = headerTexts.maxOf { it.count { c -> c == '\n' } + 1 }
         val height = (maxLines * lineHeight + cellPadding * 2)
             .coerceAtLeast(headerMinHeight)
@@ -355,7 +357,7 @@ class PdfReportExporter @Inject constructor() {
             val xEnd = xStart + colWidths[i]
             val lines = headerTexts[i].split('\n')
             val totalTextHeight = lines.size * lineHeight
-            var baseline = y + (height - totalTextHeight) / 2f + lineHeight * 0.75f
+            var baseline = y + (height - totalTextHeight) / 2f - headerPaint.fontMetrics.top
             for (line in lines) {
                 drawCenteredFittedText(
                     canvas = canvas,
@@ -457,7 +459,7 @@ class PdfReportExporter @Inject constructor() {
                 cells[i].lines.drop(lineOffset).take(lineCount)
             }
             val totalHeight = lines.size * lineHeight
-            var baseline = y + (height - totalHeight) / 2f + lineHeight * 0.75f
+            var baseline = y + (height - totalHeight) / 2f - paint.fontMetrics.top
             val xAnchor = when (paint.textAlign) {
                 Paint.Align.CENTER -> (xStart + xEnd) / 2f
                 Paint.Align.RIGHT -> xEnd - cellPadding

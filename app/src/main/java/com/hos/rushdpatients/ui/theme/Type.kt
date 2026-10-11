@@ -15,19 +15,19 @@ private fun textStyle(size: Int, height: Int, weight: FontWeight = FontWeight.No
 )
 
 val Typography = Typography(
-    displayLarge = textStyle(40, 52, FontWeight.Bold),
-    displayMedium = textStyle(34, 44, FontWeight.Bold),
-    displaySmall = textStyle(30, 40, FontWeight.Bold),
-    headlineLarge = textStyle(28, 38, FontWeight.Bold),
-    headlineMedium = textStyle(26, 36, FontWeight.Bold),
-    headlineSmall = textStyle(24, 32, FontWeight.Bold),
-    titleLarge = textStyle(22, 30, FontWeight.SemiBold),
-    titleMedium = textStyle(16, 24, FontWeight.SemiBold),
-    titleSmall = textStyle(14, 22, FontWeight.SemiBold),
-    bodyLarge = textStyle(16, 26),
-    bodyMedium = textStyle(15, 24),
-    bodySmall = textStyle(14, 22),
-    labelLarge = textStyle(14, 22, FontWeight.SemiBold),
-    labelMedium = textStyle(13, 20, FontWeight.Medium),
-    labelSmall = textStyle(12, 18, FontWeight.Medium)
+    displayLarge = textStyle(40, 48, FontWeight.Bold),
+    displayMedium = textStyle(34, 42, FontWeight.Bold),
+    displaySmall = textStyle(30, 38, FontWeight.Bold),
+    headlineLarge = textStyle(28, 34, FontWeight.Bold),
+    headlineMedium = textStyle(26, 32, FontWeight.Bold),
+    headlineSmall = textStyle(24, 30, FontWeight.Bold),
+    titleLarge = textStyle(22, 28, FontWeight.SemiBold),
+    titleMedium = textStyle(16, 22, FontWeight.SemiBold),
+    titleSmall = textStyle(14, 18, FontWeight.SemiBold),
+    bodyLarge = textStyle(16, 22),
+    bodyMedium = textStyle(15, 20),
+    bodySmall = textStyle(14, 18),
+    labelLarge = textStyle(14, 18, FontWeight.SemiBold),
+    labelMedium = textStyle(13, 17, FontWeight.Medium),
+    labelSmall = textStyle(12, 16, FontWeight.Medium)
 )

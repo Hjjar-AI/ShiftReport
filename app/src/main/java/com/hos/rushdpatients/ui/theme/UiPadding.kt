@@ -6,6 +6,6 @@ import androidx.compose.foundation.layout.PaddingValues
 object UiPadding {
     val content = PaddingValues(horizontal = UiSpacing.small, vertical = UiSpacing.tiny)
     // Floating labels need slightly more room above the first line.
-    val field = PaddingValues(start = UiSpacing.small, top = UiSpacing.small, end = UiSpacing.small, bottom = UiSpacing.tiny)
+    val field = PaddingValues(start = UiSpacing.small, top = UiSize.fieldLabelInset, end = UiSpacing.small, bottom = UiSpacing.tiny)
     val compact = PaddingValues(horizontal = UiSpacing.tiny, vertical = UiSpacing.micro)
 }

@@ -23,7 +23,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSize
-import com.hos.rushdpatients.ui.theme.UiSpacing
 
 /** Form-local saving state; credentials/drafts never enter this context. */
 val LocalFieldEnabled = staticCompositionLocalOf { true }
@@ -74,7 +73,7 @@ fun AppTextField(
 internal fun Modifier.appFieldLayout(hasLabel: Boolean, isError: Boolean): Modifier =
     semantics(mergeDescendants = true) {
         if (isError) error("إدخال غير صالح")
-    }.padding(top = if (hasLabel) UiSpacing.small else 0.dp)
+    }.padding(top = if (hasLabel) UiSize.fieldLabelInset else 0.dp)
         .defaultMinSize(minHeight = UiSize.fieldMinHeight)
 
 /** Pickers and editors share label, outline, helper/error placement and icon space. */

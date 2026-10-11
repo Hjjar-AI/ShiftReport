@@ -12,10 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -32,7 +35,8 @@ fun AppSectionHeader(
     count: Int? = null,
     complete: Boolean? = null,
     expanded: Boolean? = null,
-    onToggle: (() -> Unit)? = null
+    onToggle: (() -> Unit)? = null,
+    titleColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val interaction = if (onToggle != null) Modifier.heightIn(min = UiSpacing.touchTarget)
         .clickable(role = Role.Button, onClick = onToggle) else Modifier
@@ -47,7 +51,7 @@ fun AppSectionHeader(
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
     ) {
         Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary)
+            color = titleColor)
         count?.let { Text(it.toString(), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (complete == true) Icon(Icons.Filled.Check, contentDescription = null,
@@ -61,12 +65,14 @@ fun AppSectionHeader(
 fun AppSection(
     title: String,
     modifier: Modifier = Modifier,
+    colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    titleColor: Color = MaterialTheme.colorScheme.primary,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    AppCard(modifier = modifier.fillMaxWidth(), colors = colors) {
         Column(Modifier.fillMaxWidth().padding(UiPadding.content),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppSectionHeader(title)
+            AppSectionHeader(title, titleColor = titleColor)
             content()
         }
     }

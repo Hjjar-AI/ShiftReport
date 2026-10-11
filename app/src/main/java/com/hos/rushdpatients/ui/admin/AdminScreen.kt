@@ -5,6 +5,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppCard
 import com.hos.rushdpatients.ui.components.AppButton
+import com.hos.rushdpatients.ui.components.AppSection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -101,14 +102,8 @@ fun AdminScreen(
                 }
             }
 
-            AppCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(UiPadding.content),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
-                ) {
-                    Text("ملخص الصلاحيات", style = MaterialTheme.typography.titleSmall)
-                    Text("المديرون: ${state.admins.size} · الأطباء الآخرون: ${state.nonAdmins.size}")
-                }
+            AppSection(title = "ملخص الصلاحيات") {
+                Text("المديرون: ${state.admins.size} · الأطباء الآخرون: ${state.nonAdmins.size}")
             }
 
             AdminActionCard(
@@ -126,28 +121,22 @@ fun AdminScreen(
                 onClick = onOpenAnnouncement
             )
 
-            AppCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(UiPadding.content),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                ) {
-                    Text("صلاحيات المديرين", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "الترقية تمنح أدوات الإدارة. أزل الصلاحية قبل حذف حساب مدير.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    AppOutlinedButton(
-                        onClick = { showAssignAdmin = true },
-                        enabled = !state.saving,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("ترقية طبيب إلى مدير") }
-                    AppOutlinedButton(
-                        onClick = { showRemoveAdmin = true },
-                        enabled = !state.saving,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("إزالة صلاحية مدير") }
-                }
+            AppSection(title = "صلاحيات المديرين") {
+                Text(
+                    "الترقية تمنح أدوات الإدارة. أزل الصلاحية قبل حذف حساب مدير.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                AppOutlinedButton(
+                    onClick = { showAssignAdmin = true },
+                    enabled = !state.saving,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("ترقية طبيب إلى مدير") }
+                AppOutlinedButton(
+                    onClick = { showRemoveAdmin = true },
+                    enabled = !state.saving,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("إزالة صلاحية مدير") }
             }
         }
     }
@@ -189,22 +178,16 @@ private fun AdminActionCard(
     onClick: () -> Unit,
     primary: Boolean = false
 ) {
-    AppCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(UiPadding.content),
-            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-        ) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (primary) {
-                AppButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
-            } else {
-                AppOutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
-            }
+    AppSection(title = title) {
+        Text(
+            description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (primary) {
+            AppButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
+        } else {
+            AppOutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
         }
     }
 }

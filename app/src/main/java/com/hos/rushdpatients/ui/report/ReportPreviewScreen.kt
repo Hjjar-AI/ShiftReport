@@ -8,6 +8,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppCard
+import com.hos.rushdpatients.ui.components.AppSection
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -168,83 +169,62 @@ fun ReportPreviewScreen(
                     .padding(padding)
                     .padding(UiSpacing.screen)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
-                AppCard(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                AppSection(title = "أطباء المناوبة", colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
-                )) {
-                    Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        Text("أطباء المناوبة", style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        state.doctors.forEach { Text("• ${it.fullName}") }
-                        if (state.doctors.isEmpty()) Text("اختر أطباء المناوبة من الزر أدناه")
-                        if (!state.isReadOnly) AppOutlinedButton(
-                            onClick = { confirmSend = false; showShiftDoctors = true },
-                            enabled = state.shift != null && !state.savingDoctors && !state.sending &&
-                                !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf &&
-                                !state.resolvingConflicts,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (state.doctors.isEmpty()) "اختيار أطباء المناوبة" else "تعديل أطباء المناوبة") }
-                    }
+                ), titleColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                    state.doctors.forEach { Text("• ${it.fullName}") }
+                    if (state.doctors.isEmpty()) Text("اختر أطباء المناوبة من الزر أدناه")
+                    if (!state.isReadOnly) AppOutlinedButton(
+                        onClick = { confirmSend = false; showShiftDoctors = true },
+                        enabled = state.shift != null && !state.savingDoctors && !state.sending &&
+                            !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf &&
+                            !state.resolvingConflicts,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (state.doctors.isEmpty()) "اختيار أطباء المناوبة" else "تعديل أطباء المناوبة") }
                 }
                 state.summary?.let { summary ->
-                    AppCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                            Text("ملخص المناوبة", style = MaterialTheme.typography.titleMedium)
-                            Text("عدد المرضى: ${summary.patientCount}")
-                            if (summary.psychoCount > 0) {
-                                Text("عدد الحالات النفسية: ${summary.psychoCount}")
-                            }
-                            Text("عدد المرافقين: ${summary.escortCount}")
-                            Text("تاريخ المناوبة: ${summary.shiftDate}")
+                    AppSection(title = "ملخص المناوبة") {
+                        Text("عدد المرضى: ${summary.patientCount}")
+                        if (summary.psychoCount > 0) {
+                            Text("عدد الحالات النفسية: ${summary.psychoCount}")
                         }
+                        Text("عدد المرافقين: ${summary.escortCount}")
+                        Text("تاريخ المناوبة: ${summary.shiftDate}")
                     }
                 }
 
                 if (state.readinessWarnings.isNotEmpty()) {
-                    AppCard(
-                        modifier = Modifier.fillMaxWidth(),
+                    AppSection(
+                        title = "ملاحظات جاهزية التقرير",
+                        titleColor = MaterialTheme.colorScheme.onTertiaryContainer,
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer
                         )
                     ) {
-                        Column(
-                            modifier = Modifier.padding(UiPadding.content),
-                            verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
-                        ) {
-                            Text(
-                                "ملاحظات جاهزية التقرير",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                            state.readinessWarnings.forEach { warning ->
-                                Text("• $warning", color = MaterialTheme.colorScheme.onTertiaryContainer)
-                            }
-                            Text(
-                                "يمكن المتابعة رغم هذه الملاحظات.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
+                        state.readinessWarnings.forEach { warning ->
+                            Text("• $warning", color = MaterialTheme.colorScheme.onTertiaryContainer)
                         }
+                        Text(
+                            "يمكن المتابعة رغم هذه الملاحظات.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
                     }
                 }
 
-                AppCard(
-                    modifier = Modifier.fillMaxWidth(),
+                AppSection(
+                    title = "ما الذي تغيّر منذ آخر نشر؟",
+                    titleColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(UiPadding.content),
-                        verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
-                    ) {
-                        Text("ما الذي تغيّر منذ آخر نشر؟", style = MaterialTheme.typography.titleSmall)
-                        if (state.changeBriefing.isEmpty()) {
-                            Text("لا توجد تغييرات محلية غير منشورة")
-                        } else {
-                            state.changeBriefing.forEach { Text("• $it") }
-                        }
+                    if (state.changeBriefing.isEmpty()) {
+                        Text("لا توجد تغييرات محلية غير منشورة")
+                    } else {
+                        state.changeBriefing.forEach { Text("• $it") }
                     }
                 }
 
