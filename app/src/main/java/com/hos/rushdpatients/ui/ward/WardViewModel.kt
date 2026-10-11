@@ -227,6 +227,11 @@ class WardViewModel @Inject constructor(
                 }
         }
         viewModelScope.launch {
+            settingsRepository.observe(AppConstants.SETTING_SAVE_AND_NEXT).collect { stored ->
+                _state.update { it.copy(saveAndNext = stored?.toBooleanStrictOrNull() ?: false) }
+            }
+        }
+        viewModelScope.launch {
             settingsRepository.observe(AppConstants.SETTING_GROUP_BY_MODE)
                 .collect { stored ->
                     val mode = GroupByMode.fromSetting(stored)

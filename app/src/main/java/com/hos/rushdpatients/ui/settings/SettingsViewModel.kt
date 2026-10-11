@@ -122,6 +122,8 @@ class SettingsViewModel @Inject constructor(
                         autoSync = settingsRepository.isAutoSyncEnabled(),
                         syncWifiOnly = settingsRepository.isSyncWifiOnly(),
                         reportAsPdf = settingsRepository.isReportAsPdf(),
+                        reportWardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
+                        saveAndNext = settingsRepository.getBoolean(AppConstants.SETTING_SAVE_AND_NEXT, false),
                         pdfStyle = PdfStyle.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_STYLE)
                         ),
@@ -307,6 +309,20 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, value)
             _state.update { it.copy(patientCompactDensity = value) }
+        }
+    }
+
+    fun setSaveAndNext(value: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.putBoolean(AppConstants.SETTING_SAVE_AND_NEXT, value)
+            _state.update { it.copy(saveAndNext = value) }
+        }
+    }
+
+    fun setReportWardName(value: String) {
+        viewModelScope.launch {
+            settingsRepository.put(AppConstants.SETTING_REPORT_WARD_NAME, value.trim())
+            _state.update { it.copy(reportWardName = value.trim(), snackbar = "حُفظ اسم الجناح للتقارير") }
         }
     }
 

@@ -295,6 +295,12 @@ fun SettingsScreen(
                         onCheckedChange = viewModel::setReportAsPdf
                     )
 
+                    var wardNameDraft by remember(state.reportWardName) { mutableStateOf(state.reportWardName) }
+                    AppTextField(value = wardNameDraft, onValueChange = { wardNameDraft = it },
+                        label = { Text("اسم الجناح في التقارير") }, modifier = Modifier.fillMaxWidth())
+                    AppTextButton(onClick = { viewModel.setReportWardName(wardNameDraft) },
+                        enabled = wardNameDraft.trim() != state.reportWardName) { Text("حفظ اسم الجناح") }
+
                     Text("نمط PDF", style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         PdfStyle.entries.forEach { option ->
@@ -417,6 +423,12 @@ fun SettingsScreen(
                         subtitle = "مسافات أصغر لعرض عدد أكبر من المرضى دون تصغير الخط",
                         checked = state.patientCompactDensity,
                         onCheckedChange = viewModel::setPatientCompactDensity
+                    )
+                    ToggleRow(
+                        title = "حفظ والتالي أثناء الجولة",
+                        subtitle = "يُظهر زرّاً اختيارياً يحفظ المريض ويفتح التالي حسب التصفية والترتيب الحالي؛ متوقف افتراضياً",
+                        checked = state.saveAndNext,
+                        onCheckedChange = viewModel::setSaveAndNext
                     )
                     ToggleRow(
                         title = "الترحيل الموجّه للمناوبة",

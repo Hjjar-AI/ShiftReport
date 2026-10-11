@@ -18,6 +18,7 @@ fun EditPatientDialog(
     doctors: List<Doctor>,
     saving: Boolean = false,
     onConfirm: (Patient, (Patient?) -> Unit) -> Unit,
+    onConfirmAndNext: ((Patient, (Patient?) -> Unit) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     var initial by remember(patient.id) { mutableStateOf(patient) }
@@ -25,6 +26,14 @@ fun EditPatientDialog(
     var rejected by remember(patient.id) { mutableStateOf<Patient?>(null) }
     var latest by remember(patient.id) { mutableStateOf<Patient?>(null) }
     var reviewing by remember(patient.id) { mutableStateOf(false) }
+    fun submit(draft: Patient, advance: Boolean) {
+        val onStale: (Patient?) -> Unit = { saved ->
+            rejected = draft
+            latest = saved
+            reviewing = true
+        }
+        if (advance) onConfirmAndNext?.invoke(draft, onStale) else onConfirm(draft, onStale)
+    }
     PatientFormDialog(
         title = "تعديل بيانات المريض",
         initial = initial,
@@ -40,13 +49,8 @@ fun EditPatientDialog(
             }
         },
         onDraftChanged = {},
-        onConfirm = { draft ->
-            onConfirm(draft) { saved ->
-                rejected = draft
-                latest = saved
-                reviewing = true
-            }
-        },
+        onConfirm = { submit(it, false) },
+        onConfirmAndNext = if (onConfirmAndNext == null) null else { draft -> submit(draft, true) },
         onDismiss = onDismiss
     )
     if (reviewing) {

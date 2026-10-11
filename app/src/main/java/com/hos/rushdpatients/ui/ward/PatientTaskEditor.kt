@@ -36,6 +36,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import android.app.TimePickerDialog
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -71,7 +73,11 @@ internal fun PatientTaskEditor(
     var editing by remember { mutableStateOf<PatientTask?>(null) }
     var adding by remember { mutableStateOf(false) }
     var completedExpanded by remember { mutableStateOf(false) }
-    val completed = tasks.filter { it.done }
+    val now by produceState(initialValue = System.currentTimeMillis()) {
+        while (true) { value = System.currentTimeMillis(); delay(60_000) }
+    }
+    val ordered = PatientTasks.orderedForDisplay(tasks, now)
+    val completed = ordered.filter { it.done }
     val names = doctors.associate { it.id to it.fullName }
     val pending = tasks.count { !it.done }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
@@ -81,7 +87,7 @@ internal fun PatientTaskEditor(
             AppOutlinedButton(onClick = { adding = true }, enabled = enabled) { Text("إضافة مهمة") }
         }
         val taskCard: @Composable (PatientTask) -> Unit = { task ->
-            TaskDraftRow(task = task, names = names, enabled = enabled,
+            TaskDraftRow(task = task, names = names, enabled = enabled, nowEpochMillis = now,
                 onEdit = { editing = task },
                 onToggleDone = {
                     onChange(tasks.map {
@@ -92,7 +98,7 @@ internal fun PatientTaskEditor(
                 onDelete = { onChange(tasks.filterNot { it.id == task.id }) })
         }
         if (expanded) {
-            tasks.filterNot { it.done }.forEach { taskCard(it) }
+            ordered.filterNot { it.done }.forEach { taskCard(it) }
             if (completed.isNotEmpty()) {
                 AppSectionHeader(title = "المكتملة", count = completed.size,
                     expanded = completedExpanded, onToggle = { completedExpanded = !completedExpanded })
@@ -117,7 +123,7 @@ internal fun PatientTaskEditor(
 
 @Composable
 private fun TaskDraftRow(
-    task: PatientTask, names: Map<String, String>, enabled: Boolean,
+    task: PatientTask, names: Map<String, String>, enabled: Boolean, nowEpochMillis: Long,
     onEdit: () -> Unit, onToggleDone: () -> Unit, onDelete: () -> Unit
 ) {
     var menu by remember(task.id) { mutableStateOf(false) }
@@ -137,6 +143,9 @@ private fun TaskDraftRow(
                     }
                 }
             }
+            Text(PatientTasks.statusLabel(task, nowEpochMillis), style = MaterialTheme.typography.labelMedium,
+                color = if (PatientTasks.overdue(task, nowEpochMillis)) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant)
             val metadata = PatientTasks.metadata(task, names, includeUnassigned = false, includeRoutinePriority = false)
             if (metadata.isNotBlank()) Text(metadata, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

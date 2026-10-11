@@ -10,6 +10,8 @@ import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.domain.task.PatientTasks
+import com.hos.rushdpatients.data.model.TaskPriority
 import com.hos.rushdpatients.domain.report.ReportSummary
 import kotlinx.coroutines.ensureActive
 import java.io.File
@@ -35,8 +37,11 @@ internal class PdfPatientCardsRenderer {
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val name = Paint(heading).apply { textSize = 15f; isUnderlineText = true }
+    private val navigation = Paint(heading).apply { textSize = 11f; textAlign = Paint.Align.CENTER }
+    private val urgentHeading = Paint(heading)
     private val footer = Paint(body).apply { textSize = 8f; textAlign = Paint.Align.CENTER }
-    private val bottom: Float get() = cardBottom - padding - PdfTextWrapper.lineHeight(footer) - gap
+    private val bottom: Float get() = cardBottom - padding - PdfTextWrapper.lineHeight(footer) - gap -
+        (if (isIndexPage) 0f else PdfTextWrapper.lineHeight(navigation) + 2 * padding + gap)
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -46,11 +51,14 @@ internal class PdfPatientCardsRenderer {
     private val document = PdfDocument()
     private var page: PdfDocument.Page? = null
     private var pageIndex = -1
+    private var isIndexPage = true
     private var y = margin
     private val canvas: Canvas get() = checkNotNull(page).canvas
 
     private data class Anchor(val page: Int, val top: Float)
     private data class IndexEntry(val page: Int, val rect: RectF)
+    private data class CardPage(val patientIndex: Int, val page: Int, val rects: List<RectF>)
+    private data class Section(val title: String, val text: String, val urgent: Boolean = false)
 
     suspend fun export(
         patients: List<Patient>, doctors: List<Doctor>, summary: ReportSummary,
@@ -60,15 +68,19 @@ internal class PdfPatientCardsRenderer {
         // A5 portrait is enforced here for every caller, independently of saved table options.
         palette = PdfPalette.resolve(options)
         body.color = palette.text
-        heading.color = palette.text
+        heading.color = if (options.darkMode) palette.text else palette.titleHeader
+        urgentHeading.color = if (options.darkMode) 0xFFFFB4AB.toInt() else 0xFF8B1E1E.toInt()
+        navigation.color = palette.text
         name.color = Color.WHITE
         outline.color = palette.border
         val entries = mutableListOf<IndexEntry>()
         val destinations = mutableListOf<Anchor>()
         val links = mutableListOf<PdfInternalLinks.Link>()
+        val cardPages = mutableListOf<CardPage>()
         try {
             newPage(documentLabel, index = true)
-            indexText("${PdfStrings.REPORT_TITLE_PREFIX} · ${summary.shiftDate}", heading, documentLabel)
+            indexText(PdfStrings.REPORT_TITLE_PREFIX, heading, documentLabel)
+            PdfReportContext.lines(options, summary).forEach { indexText(it, body, documentLabel) }
             indexText("${summary.patientCount} مريض · ${summary.psychoCount} حالة نفسية · ${summary.escortCount} مرافق", body, documentLabel)
             indexText("أطباء المناوبة", heading, documentLabel)
             doctors.forEach { indexText(it.fullName, body, documentLabel) }
@@ -80,8 +92,6 @@ internal class PdfPatientCardsRenderer {
                 if (y + rowHeight > bottom) newPage(documentLabel, index = true)
                 check(y + rowHeight <= bottom) { "اسم المريض أطول من مساحة صفحة الفهرس" }
                 val top = y
-                fill.color = palette.summary
-                canvas.drawRect(margin, top, width - margin, top + rowHeight, fill)
                 lines.forEach { drawLine(it, heading) }
                 y = top + rowHeight
                 entries += IndexEntry(pageIndex, RectF(margin, top, width - margin, y))
@@ -91,7 +101,7 @@ internal class PdfPatientCardsRenderer {
                 coroutineContext.ensureActive()
                 val entry = entries[index]
                 fun cardHeader() {
-                    val lines = PdfTextWrapper.wrap("${patient.sortOrder} · ${patient.name}", name, right - left)
+                    val lines = PdfTextWrapper.wrap(patient.name, name, right - left)
                     val h = lines.size * PdfTextWrapper.lineHeight(name) + 2 * padding
                     check(y + h + gap + 2 * PdfTextWrapper.lineHeight(heading) <= bottom) {
                         "اسم المريض أطول من مساحة البطاقة"
@@ -103,31 +113,42 @@ internal class PdfPatientCardsRenderer {
                     y = top + h
                     links += PdfInternalLinks.Link(pageIndex, RectF(margin, top, width - margin, y), entry.page, entry.rect.top)
                     y += gap
+                    cardPages += CardPage(index, pageIndex, drawNavigation(index, patients.size))
                 }
                 newPage(documentLabel, index = false)
                 destinations += Anchor(pageIndex, margin)
                 cardHeader()
                 val sections = listOf(
-                    "بيانات المريض" to PdfPatientContent.buildPatientCell(patient),
-                    "القبول" to PdfPatientContent.buildAdmitCell(patient),
-                    "الفريق المسؤول" to PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames),
-                    PdfStrings.HEADER_CONDITION to PdfPatientContent.buildDiagnosisCell(patient),
-                    PdfStrings.HEADER_TREATMENT to patient.treatmentPlan,
-                    "المتابعة / المهام / التحاليل" to PdfPatientContent.buildNotesCell(patient, residentNames + supervisorNames)
-                )
-                sections.filter { it.second.isNotBlank() }.forEach { (title, text) ->
+                    Section("بيانات المريض", PdfPatientContent.buildPatientCell(patient)),
+                    Section("القبول", PdfPatientContent.buildAdmitCell(patient)),
+                    Section("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames)),
+                    Section(PdfStrings.HEADER_CONDITION, PdfPatientContent.buildDiagnosisCell(patient)),
+                    Section(PdfStrings.HEADER_TREATMENT, patient.treatmentPlan),
+                    Section("المتابعة", patient.followUp)
+                ) + PatientTasks.orderedForDisplay(patient.tasks, options.generatedAtEpochMillis).map { task ->
+                    val metadata = PatientTasks.metadata(task, residentNames + supervisorNames,
+                        includeUnassigned = false, includeRoutinePriority = false)
+                    Section("المهام · ${PatientTasks.statusLabel(task, options.generatedAtEpochMillis)}",
+                        listOf(task.description, metadata).filter { it.isNotBlank() }.joinToString("\n"),
+                        urgent = PatientTasks.overdue(task, options.generatedAtEpochMillis) ||
+                            (!task.done && task.priority == TaskPriority.HIGH))
+                } + Section("التحاليل", patient.labs)
+                sections.filter { it.text.isNotBlank() }.forEach { section ->
+                    val title = section.title
+                    val text = section.text
+                    val titlePaint = if (section.urgent) urgentHeading else heading
                     val lines = PdfTextWrapper.wrap(text, body, right - left)
                     val labelHeight = PdfTextWrapper.lineHeight(heading)
                     if (y + labelHeight + PdfTextWrapper.lineHeight(body) > bottom) {
                         newPage(documentLabel, index = false)
                         cardHeader()
                     }
-                    drawLine(title, heading)
+                    drawLine(title, titlePaint)
                     lines.forEach { line ->
                         if (y + PdfTextWrapper.lineHeight(body) > bottom) {
                             newPage(documentLabel, index = false)
                             cardHeader()
-                            drawLine("$title (تابع)", heading)
+                            drawLine("$title (تابع)", titlePaint)
                         }
                         drawLine(line, body)
                     }
@@ -137,6 +158,14 @@ internal class PdfPatientCardsRenderer {
             entries.forEachIndexed { index, entry ->
                 val destination = destinations[index]
                 links += PdfInternalLinks.Link(entry.page, entry.rect, destination.page, destination.top)
+            }
+            cardPages.forEach { card ->
+                val indexEntry = entries[card.patientIndex]
+                val previous = destinations.getOrNull(card.patientIndex - 1)
+                val next = destinations.getOrNull(card.patientIndex + 1)
+                previous?.let { links += PdfInternalLinks.Link(card.page, card.rects[0], it.page, it.top) }
+                links += PdfInternalLinks.Link(card.page, card.rects[1], indexEntry.page, indexEntry.rect.top)
+                next?.let { links += PdfInternalLinks.Link(card.page, card.rects[2], it.page, it.top) }
             }
             finishPage()
             outputFile.parentFile?.mkdirs()
@@ -159,6 +188,7 @@ internal class PdfPatientCardsRenderer {
         coroutineContext.ensureActive()
         finishPage()
         pageIndex++
+        isIndexPage = index
         page = document.startPage(PdfDocument.PageInfo.Builder(width, height, pageIndex + 1).create())
         canvas.drawColor(if (palette.pageBackground == Color.WHITE) palette.cream else palette.pageBackground)
         fill.color = palette.cream
@@ -173,6 +203,23 @@ internal class PdfPatientCardsRenderer {
         footer.color = palette.text
         val label = documentLabel?.let { "$it · ${pageIndex + 1}" } ?: "${pageIndex + 1}"
         canvas.drawText(directed(label), width / 2f, cardBottom - padding - footer.fontMetrics.bottom, footer)
+    }
+
+    /** Same patient-to-patient destinations on the first and every continuation page. */
+    private fun drawNavigation(patientIndex: Int, total: Int): List<RectF> {
+        val navBottom = cardBottom - padding - PdfTextWrapper.lineHeight(footer) - gap
+        val navTop = navBottom - PdfTextWrapper.lineHeight(navigation) - 2 * padding
+        val cellWidth = (right - left) / 3f
+        val labels = listOf("السابق", "الفهرس", "التالي")
+        return labels.mapIndexed { index, label ->
+            val end = right - index * cellWidth
+            val rect = RectF(end - cellWidth, navTop, end, navBottom)
+            val active = when (index) { 0 -> patientIndex > 0; 2 -> patientIndex < total - 1; else -> true }
+            val paint = Paint(navigation).apply { isUnderlineText = active }
+            canvas.drawText(directed(if (active) label else "—"), rect.centerX(),
+                navTop + padding - paint.fontMetrics.top, paint)
+            rect
+        }
     }
 
     private suspend fun indexText(text: String, paint: Paint, documentLabel: String?) {

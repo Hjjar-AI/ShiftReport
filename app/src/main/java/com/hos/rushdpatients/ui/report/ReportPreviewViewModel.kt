@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.config.ProjectConfigStore
 import android.content.Context
 import androidx.core.content.FileProvider
 import androidx.lifecycle.SavedStateHandle
@@ -66,7 +67,8 @@ class ReportPreviewViewModel @Inject constructor(
     private val shiftRepository: ShiftRepository,
     private val wardMutations: WardMutationRepository,
     private val sessionManager: SessionManager,
-    private val syncService: SyncService
+    private val syncService: SyncService,
+    private val projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
 
     private val shiftId: String = savedStateHandle.get<String>("shiftId").orEmpty()
@@ -513,6 +515,8 @@ class ReportPreviewViewModel @Inject constructor(
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
 
     private suspend fun loadPdfOptions(): PdfExportOptions = PdfExportOptions(
+        hospitalName = projectConfigStore.current().hospitalName,
+        wardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
         orientation = PdfOrientation.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_ORIENTATION)
         ),

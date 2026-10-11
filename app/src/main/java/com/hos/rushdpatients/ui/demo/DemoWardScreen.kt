@@ -188,6 +188,9 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 AppTextButton(onClick = { compact = !compact }) { Text(if (compact) "بطاقات مريحة" else "بطاقات مدمجة") }
+                                FilterChip(selected = state.saveAndNext,
+                                    onClick = { viewModel.setSaveAndNext(!state.saveAndNext) },
+                                    label = { Text("حفظ والتالي") })
                                 AppTextButton(onClick = { showRecycle = true }) { Text("المحذوفات (${state.deleted.size})") }
                             }
                         }
@@ -290,13 +293,30 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
         if (showAdd) AddPatientDialog(doctors = state.doctors, onConfirm = {
             if (viewModel.save(it)) showAdd = false
         }, onDismiss = { showAdd = false })
-        edit?.let { patient -> EditPatientDialog(patient, state.doctors,
-            onConfirm = { updated, stale ->
+        edit?.let { patient ->
+            fun saveEdited(updated: Patient, stale: (Patient?) -> Unit, advance: Boolean) {
+                val nextId = if (advance) patientRoundsNavigation(visible.map { it.id }, patient.id)?.nextId else null
                 if (viewModel.save(updated, stale)) {
-                    returnTarget = PatientReturnTarget(updated.id, updated.revision)
-                    edit = null
+                    val next = nextId?.let { id -> viewModel.state.value.patients.firstOrNull { it.id == id } }
+                    if (next != null) {
+                        returnTarget = null
+                        edit = next
+                        if (detailId != null) detailId = next.id
+                    } else {
+                        returnTarget = PatientReturnTarget(updated.id, updated.revision)
+                        edit = null
+                    }
                 }
-            }, onDismiss = { edit = null }) }
+            }
+            key(patient.id) {
+                EditPatientDialog(patient, state.doctors,
+                    onConfirm = { updated, stale -> saveEdited(updated, stale, false) },
+                    onConfirmAndNext = if (state.saveAndNext &&
+                        patientRoundsNavigation(visible.map { it.id }, patient.id)?.nextId != null)
+                        { updated, stale -> saveEdited(updated, stale, true) } else null,
+                    onDismiss = { edit = null })
+            }
+        }
         copy?.let { patient -> CopyPatientDialog(patient, state.doctors,
             onConfirm = { if (viewModel.save(it)) copy = null }, onDismiss = { copy = null }) }
         deleting?.let { patient -> ConfirmDialog("حذف تجريبي", "نقل ${patient.name} إلى المحذوفات؟",

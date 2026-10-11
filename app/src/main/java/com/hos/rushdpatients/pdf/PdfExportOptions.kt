@@ -46,5 +46,8 @@ data class PdfExportOptions(
     val paperSize: PdfPaperSize = PdfPaperSize.A4,
     val colorPreset: PdfColorPreset = PdfColorPreset.TEAL,
     val darkMode: Boolean = false,
-    val patientCardStyle: PatientCardStyle = PatientCardStyle.BADGE_HEADER
+    val patientCardStyle: PatientCardStyle = PatientCardStyle.BADGE_HEADER,
+    val hospitalName: String = "",
+    val wardName: String = "",
+    val generatedAtEpochMillis: Long = System.currentTimeMillis()
 )

@@ -839,3 +839,15 @@ Attachments (kept private and redacted):
 - screenshot or UI dump
 - package/device version output
 ```
+
+## Arabic PDF text and card navigation
+
+Use a **demo** export with Arabic names, long treatment/task text, overdue/pending/completed tasks, and enough patients for multiple index pages. Cards must remain portrait A5. No new Android build is authorized by this procedure alone.
+
+1. Open the same generated file in Adobe Acrobat and a browser PDF viewer such as Chrome/Edge. Select/copy an Arabic patient name and a mixed Arabic/Latin clinical line; compare the copied logical text with the saved demo values. Search the exact name and a partial Arabic name, then move among repeated occurrences. Record viewer versions and results; native text drawing alone is not proof of extraction/search correctness.
+2. Click each index entry, the name on a first/continuation card, and Previous / Index / Next. Check patient ordering, disabled end controls, multi-page index returns, and that footer links do not overlap clinical text. Name headings should contain no admission number or sort position.
+3. Confirm hospital/ward/shift date and generation time on the opening page, every demo-page label, all task descriptions/deadlines/owners/completions, overdue-first/completed-last order, and legible neutral-body/heading/urgency colors in light/dark exports.
+4. Optional local tools: `pdfinfo demo.pdf` should report 420×595pt pages; `pdftotext -enc UTF-8 demo.pdf demo.txt` checks Unicode extraction. Compare dummy names/content, without treating command-line extraction as proof of viewer selection/search.
+5. In Demo, enable Save and next, edit a filtered/pinned patient, save, and check that the displayed successor opens. Repeat ordinary Save, invalid forms, the last patient, and discard. In the live app, also verify stale-edit review and a disappearing successor; a failed save must never advance.
+
+Status on 2026-10-11: `pdftotext`/`pdfinfo` are available; ADB successfully listed devices but none were connected, and no demo PDF was present. No viewer/text extraction/rendered navigation or device Save-and-next verification has been performed for this source snapshot.

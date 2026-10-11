@@ -26,6 +26,7 @@ class PdfReportExporter @Inject constructor() {
 
     private val exportMutex = Mutex()
     private var documentLabel: String? = null
+    private var reportNowEpochMillis: Long = 0
 
     private var pageWidth = 595f
     private var pageHeight = 842f
@@ -132,7 +133,9 @@ class PdfReportExporter @Inject constructor() {
 
                 var y = marginTop
 
-                val rosterTitle = "${PdfStrings.REPORT_TITLE_PREFIX} " + doctors.joinToString(" + ") { it.fullName }
+                val rosterTitle = (PdfReportContext.lines(options, summary) +
+                    ("${PdfStrings.REPORT_TITLE_PREFIX} " + doctors.joinToString(" + ") { it.fullName }))
+                    .joinToString("\n")
                 val titleLines = PdfTextWrapper.wrap(rosterTitle, titlePaint, contentWidth - 2 * cellPadding)
                 val titleLineHeight = PdfTextWrapper.lineHeight(titlePaint)
                 val titleLinesPerPage = ((pageHeight - marginTop - marginBottom -
@@ -224,6 +227,7 @@ class PdfReportExporter @Inject constructor() {
     }
 
     private fun configure(options: PdfExportOptions) {
+        reportNowEpochMillis = options.generatedAtEpochMillis
         val paper = options.paperSize
         val portraitWidth = paper.widthPoints.toFloat()
         val portraitHeight = paper.heightPoints.toFloat()
@@ -423,7 +427,7 @@ class PdfReportExporter @Inject constructor() {
             PdfPatientContent.buildAdmitCell(patient) to bodyCenterPaint,
             PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames) to bodyCenterPaint,
             patient.treatmentPlan to bodyCenterPaint,
-            PdfPatientContent.buildNotesCell(patient, residentNames + supervisorNames) to bodyCenterPaint
+            PdfPatientContent.buildNotesCell(patient, residentNames + supervisorNames, reportNowEpochMillis) to bodyCenterPaint
         ).asReversed()
         return cells.mapIndexed { index, (text, paint) ->
             val maxWidth = colWidths[index] - 2 * cellPadding

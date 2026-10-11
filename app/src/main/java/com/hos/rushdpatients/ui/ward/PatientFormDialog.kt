@@ -90,6 +90,7 @@ internal fun PatientFormDialog(
     reviewAction: @Composable () -> Unit = {},
     onDraftChanged: (PatientDraft) -> Unit = {},
     onConfirm: (Patient) -> Unit,
+    onConfirmAndNext: ((Patient) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     var formMode by remember(initial) { mutableStateOf(PatientFormMode.GENERAL) }
@@ -745,7 +746,7 @@ internal fun PatientFormDialog(
                 }
             },
             confirmButton = {
-                AppButton(modifier = Modifier.fillMaxWidth(), enabled = !saving, onClick = {
+                val submit: (Boolean) -> Unit = submit@{ advance ->
                     val pendingTreatment = treatmentDraft.trim().takeIf { it.isNotEmpty() }
                     val resolvedTreatments = treatmentItems + listOfNotNull(pendingTreatment)
                     val treatmentPlan = resolvedTreatments
@@ -793,7 +794,7 @@ internal fun PatientFormDialog(
                     if (errors.isNotEmpty()) {
                         validationMessages = errors
                         formScope.launch { formScrollState.animateScrollTo(0) }
-                        return@Button
+                        return@submit
                     }
 
                     val resolvedBirthDate = birthYear?.let { LocalDate.of(it, 1, 1) }
@@ -838,8 +839,16 @@ internal fun PatientFormDialog(
                         tasks = tasks,
                         isPriority = isPriority
                     )
-                    onConfirm(patient)
-                }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
+                    if (advance) onConfirmAndNext?.invoke(patient) else onConfirm(patient)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                    AppButton(modifier = Modifier.weight(1f), enabled = !saving,
+                        onClick = { submit(false) }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
+                    if (onConfirmAndNext != null) {
+                        AppOutlinedButton(modifier = Modifier.weight(1f), enabled = !saving,
+                            onClick = { submit(true) }) { Text("حفظ والتالي") }
+                    }
+                }
             },
             dismissButton = {
                 AppTextButton(onClick = requestDismiss, enabled = !saving) { Text("إلغاء") }

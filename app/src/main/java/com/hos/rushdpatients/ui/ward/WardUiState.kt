@@ -71,6 +71,7 @@ data class WardUiState(
     val patientDetailsExpanded: Boolean = false,
     val twoColumn: Boolean = false,
     val compactCards: Boolean = false,
+    val saveAndNext: Boolean = false,
     val showSyncHint: Boolean = false,
     val lastOperation: String? = null,
     val retryAction: WardRetryAction? = null,

@@ -35,6 +35,7 @@ internal data class DemoWardState(
     val sort: SortSpec = SortSpec(),
     val date: LocalDate = LocalDate.now(),
     val exporting: Boolean = false,
+    val saveAndNext: Boolean = false,
     val message: String? = null
 ) {
     val names: Map<String, String> get() = doctors.associate { it.id to it.fullName }
@@ -56,6 +57,7 @@ class DemoWardViewModel @Inject constructor(
 
     internal fun endSession() { _state.value = DemoWardState() }
     internal fun reset() { if (!_state.value.exporting) _state.value = DemoWardState(message = "أُعيدت البيانات التجريبية") }
+    internal fun setSaveAndNext(enabled: Boolean) = _state.update { it.copy(saveAndNext = enabled) }
     internal fun dismissMessage() = _state.update { it.copy(message = null) }
     internal fun message(value: String) = _state.update { it.copy(message = value) }
     internal fun sort(spec: SortSpec) = _state.update { current ->
@@ -118,7 +120,7 @@ class DemoWardViewModel @Inject constructor(
                     try {
                         pdfExporter.export(patients = snapshot.ordered, doctors = snapshot.shiftDoctors,
                             summary = snapshot.summary, residentNames = snapshot.names, supervisorNames = snapshot.names,
-                            options = options, elegant = elegant, documentLabel = "عرض تجريبي — بيانات وهمية وغير طبية",
+                            options = options.copy(hospitalName = "مشفى تجريبي", wardName = "جناح تجريبي"), elegant = elegant, documentLabel = "عرض تجريبي — بيانات وهمية وغير طبية",
                             outputFile = file)
                         check(file.length() > 0) { "تعذر إنشاء التقرير التجريبي" }
                         context.contentResolver.openOutputStream(uri, "wt")?.use { output ->

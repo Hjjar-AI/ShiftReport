@@ -24,6 +24,19 @@ object PatientTasks {
     fun overdue(task: PatientTask, nowEpochMillis: Long): Boolean =
         !task.done && task.dueAtEpochMillis?.let { it <= nowEpochMillis } == true
 
+    /** Display only: never reorder the stored task list or change completion/deadline data. */
+    fun orderedForDisplay(tasks: List<PatientTask>, nowEpochMillis: Long): List<PatientTask> =
+        tasks.sortedWith(compareBy<PatientTask> {
+            when { overdue(it, nowEpochMillis) -> 0; !it.done -> 1; else -> 2 }
+        }.thenBy { if (it.done) Long.MAX_VALUE else it.dueAtEpochMillis ?: Long.MAX_VALUE }
+            .thenBy { if (it.done) 0 else -it.priority.ordinal })
+
+    fun statusLabel(task: PatientTask, nowEpochMillis: Long): String = when {
+        task.done -> "مكتملة"
+        overdue(task, nowEpochMillis) -> "متأخرة"
+        else -> "معلقة"
+    }
+
     fun requireValid(tasks: List<PatientTask>, requireCompletion: Boolean = true) {
         require(tasks.map { it.id }.distinct().size == tasks.size) { "توجد معرّفات مهام مكررة" }
         tasks.forEach { task ->
@@ -48,9 +61,10 @@ object PatientTasks {
         tasks: List<PatientTask>,
         names: Map<String, String> = emptyMap(),
         includeUnassigned: Boolean = true,
-        includeRoutinePriority: Boolean = true
-    ): String = tasks.joinToString("\n") { task ->
-        (if (task.done) "✓ مكتملة: " else "☐ معلقة: ") + task.description +
+        includeRoutinePriority: Boolean = true,
+        nowEpochMillis: Long = System.currentTimeMillis()
+    ): String = orderedForDisplay(tasks, nowEpochMillis).joinToString("\n") { task ->
+        (if (task.done) "✓ " else "☐ ") + statusLabel(task, nowEpochMillis) + ": " + task.description +
             metadataSuffix(task, names, includeUnassigned, includeRoutinePriority)
     }
 

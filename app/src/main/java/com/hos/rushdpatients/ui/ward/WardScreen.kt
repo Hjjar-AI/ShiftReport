@@ -64,6 +64,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -973,22 +974,39 @@ fun WardScreen(
     }
 
     editTarget?.let { p ->
-        EditPatientDialog(
-            patient = p,
-            doctors = state.doctors,
-            saving = state.saving,
-            onConfirm = { draft, onStale ->
-                viewModel.updatePatient(draft, onStale) {
-                    viewModel.consumeRolloverReview(p.id)
+        fun saveEdited(draft: Patient, onStale: (Patient?) -> Unit, advance: Boolean) {
+            // Capture the displayed successor before saving can change filters/order.
+            val nextId = if (advance) patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId else null
+            viewModel.updatePatient(draft, onStale) {
+                viewModel.consumeRolloverReview(p.id)
+                val current = viewModel.state.value
+                val next = nextId?.takeIf { !current.isReadOnly && current.shift?.id == state.shift?.id }
+                    ?.let { id -> current.patients.firstOrNull { it.id == id && !it.isDeleted } }
+                if (next != null) {
+                    returnTarget = null
+                    editTarget = next
+                    if (detailsTargetId != null) detailsTargetId = next.id
+                } else {
                     returnTarget = PatientReturnTarget(draft.id, draft.revision)
                     editTarget = null
                 }
-            },
-            onDismiss = {
-                viewModel.consumeRolloverReview(p.id)
-                editTarget = null
             }
-        )
+        }
+        key(p.id) {
+            EditPatientDialog(
+                patient = p,
+                doctors = state.doctors,
+                saving = state.saving,
+                onConfirm = { draft, onStale -> saveEdited(draft, onStale, false) },
+                onConfirmAndNext = if (state.saveAndNext &&
+                    patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId != null)
+                    { draft, onStale -> saveEdited(draft, onStale, true) } else null,
+                onDismiss = {
+                    viewModel.consumeRolloverReview(p.id)
+                    editTarget = null
+                }
+            )
+        }
     }
 
     copyTarget?.let { source ->

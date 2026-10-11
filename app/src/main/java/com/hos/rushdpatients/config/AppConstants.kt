@@ -55,6 +55,8 @@ object AppConstants {
     const val SETTING_PATIENT_DETAILS_EXPANDED = "patient_details_expanded"
     const val SETTING_PATIENT_TWO_COLUMN = "patient_two_column"
     const val SETTING_PATIENT_COMPACT_DENSITY = "patient_compact_density"
+    const val SETTING_SAVE_AND_NEXT = "save_and_next"
+    const val SETTING_REPORT_WARD_NAME = "report_ward_name"
     const val SETTING_GROUP_BY_MODE = "group_by_mode"
     const val SETTING_AUTO_SYNC = "auto_sync"
     const val SETTING_SYNC_WIFI_ONLY = "sync_wifi_only"

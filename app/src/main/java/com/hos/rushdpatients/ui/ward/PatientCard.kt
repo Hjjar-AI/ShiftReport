@@ -275,7 +275,7 @@ fun PatientCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     if (patient.tasks.isNotEmpty()) SectionBlock("المهام",
-                        PatientTasks.summary(patient.tasks, doctorNames))
+                        PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = taskNowEpochMillis))
                     Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     if (effectiveStyle == PatientCardStyle.ICON_ROWS ||
                         effectiveStyle == PatientCardStyle.FIELD_MONOGRAMS

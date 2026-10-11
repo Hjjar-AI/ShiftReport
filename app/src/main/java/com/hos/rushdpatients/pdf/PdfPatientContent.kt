@@ -54,7 +54,7 @@ internal object PdfPatientContent {
         ).joinToString("\n${PdfStrings.SEPARATOR}\n")
     }
 
-    fun buildNotesCell(patient: Patient, doctorNames: Map<String, String>): String {
+    fun buildNotesCell(patient: Patient, doctorNames: Map<String, String>, nowEpochMillis: Long = System.currentTimeMillis()): String {
         val sb = StringBuilder()
         if (patient.followUp.isNotBlank()) {
             sb.append("المتابعة: ")
@@ -62,7 +62,7 @@ internal object PdfPatientContent {
         }
         if (patient.tasks.isNotEmpty()) {
             if (sb.isNotEmpty()) sb.append('\n')
-            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks, doctorNames, includeUnassigned = false, includeRoutinePriority = false))
+            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks, doctorNames, includeUnassigned = false, includeRoutinePriority = false, nowEpochMillis = nowEpochMillis))
         }
         if (patient.labs.isNotBlank()) {
             if (sb.isNotEmpty()) sb.append('\n')
