@@ -249,9 +249,11 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                             Text("خيارات PDF", style = MaterialTheme.typography.titleMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 FilterChip(selected = !elegant, onClick = { elegant = false }, label = { Text("جدول كلاسيكي") })
-                                FilterChip(selected = elegant, onClick = { elegant = true }, label = { Text("صفوف أنيقة") })
-                                FilterChip(selected = landscape, onClick = { landscape = !landscape }, label = { Text("أفقي") })
+                                FilterChip(selected = elegant, onClick = { elegant = true }, label = { Text("بطاقات ملونة مع فهرس") })
+                                if (!elegant) FilterChip(selected = landscape, onClick = { landscape = !landscape }, label = { Text("أفقي") })
                             }
+                            if (elegant) Text("بطاقات A5 عمودية مع فهرس؛ اضغط الاسم للعودة إليه.",
+                                style = MaterialTheme.typography.bodySmall)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 PdfColorPreset.entries.forEach { value -> FilterChip(selected = pdfColor == value,
                                     onClick = { pdfColor = value }, label = { Text(value.arabicLabel) }) }

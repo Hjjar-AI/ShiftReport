@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.pdf
 
-import com.hos.rushdpatients.domain.task.PatientTasks
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -44,7 +43,6 @@ class PdfReportExporter @Inject constructor() {
     private var colWidths = FloatArray(colWeights.size)
     private var colX = FloatArray(colWeights.size)
     private var palette = PdfPalette.resolve(PdfExportOptions())
-    private var elegantRows = false
     private val bidiFormatter = BidiFormatter.getInstance()
 
     private val titleBandHeight = 20f
@@ -111,7 +109,13 @@ class PdfReportExporter @Inject constructor() {
         documentLabel: String? = null
     ): File = exportMutex.withLock {
         withContext(Dispatchers.IO) {
-            configure(options, elegant)
+            if (elegant) {
+                return@withContext PdfPatientCardsRenderer().export(
+                    patients, doctors, summary, residentNames, supervisorNames,
+                    options, outputFile, documentLabel
+                )
+            }
+            configure(options)
             this@PdfReportExporter.documentLabel = documentLabel
             val document = PdfDocument()
             try {
@@ -156,11 +160,7 @@ class PdfReportExporter @Inject constructor() {
                 val bottomLimit = pageHeight - marginBottom - summaryBandHeight - 2f
 
                 patients.forEachIndexed { index, patient ->
-                    val bgColor: Int? = if (elegantRows) {
-                        null
-                    } else {
-                        if (index % 2 == 0) palette.zebra else null
-                    }
+                    val bgColor: Int? = if (index % 2 == 0) palette.zebra else null
 
                     val maxRowHeight = bottomLimit - marginTop - headerHeight
                     val (cells, rowHeight) = layoutPatientRowToFit(
@@ -223,7 +223,7 @@ class PdfReportExporter @Inject constructor() {
         }
     }
 
-    private fun configure(options: PdfExportOptions, elegant: Boolean) {
+    private fun configure(options: PdfExportOptions) {
         val paper = options.paperSize
         val portraitWidth = paper.widthPoints.toFloat()
         val portraitHeight = paper.heightPoints.toFloat()
@@ -246,9 +246,8 @@ class PdfReportExporter @Inject constructor() {
             }
         }
 
-        elegantRows = elegant
-        palette = PdfPalette.resolve(if (elegantRows) options.copy(darkMode = false) else options)
-        bodyPaint.textSize = if (elegantRows) 9.5f else 9f
+        palette = PdfPalette.resolve(options)
+        bodyPaint.textSize = 9f
         bodyCenterPaint.textSize = bodyPaint.textSize
         summaryPaint.color = palette.text
         bodyPaint.color = palette.text
@@ -258,8 +257,7 @@ class PdfReportExporter @Inject constructor() {
     }
 
     private fun drawPageBackground(canvas: Canvas) {
-        // Elegant rows are always print-friendly; Classic retains its explicit dark option.
-        canvas.drawColor(if (elegantRows) Color.WHITE else palette.pageBackground)
+        canvas.drawColor(palette.pageBackground)
         documentLabel?.let { label ->
             val paint = Paint(bodyPaint).apply { textSize = 8f; textAlign = Paint.Align.CENTER }
             canvas.drawText(bidiFormatter.unicodeWrap(label), pageWidth / 2f, pageHeight - 3f, paint)
@@ -287,7 +285,7 @@ class PdfReportExporter @Inject constructor() {
         y: Float,
         summary: ReportSummary
     ) {
-        fillPaint.color = if (elegantRows) Color.WHITE else palette.summary
+        fillPaint.color = palette.summary
         canvas.drawRect(contentLeft, y, contentRight, y + summaryBandHeight, fillPaint)
 
         val c1 = contentLeft
@@ -383,7 +381,7 @@ class PdfReportExporter @Inject constructor() {
         supervisorNames: Map<String, String>,
         maxHeight: Float
     ): Pair<List<CellLines>, Float> {
-        val preferredSize = if (elegantRows) 9.5f else 9f
+        val preferredSize = 9f
         var size = preferredSize
         var cells: List<CellLines>
         var lineHeight: Float
@@ -420,12 +418,12 @@ class PdfReportExporter @Inject constructor() {
     ): List<CellLines> {
         val cells = listOf(
             patient.sortOrder.toString() to bodyCenterPaint,
-            buildPatientCell(patient) to bodyCenterPaint,
-            buildDiagnosisCell(patient) to bodyCenterPaint,
-            buildAdmitCell(patient) to bodyCenterPaint,
-            buildSupervisorResidentCell(patient, residentNames, supervisorNames) to bodyCenterPaint,
+            PdfPatientContent.buildPatientCell(patient) to bodyCenterPaint,
+            PdfPatientContent.buildDiagnosisCell(patient) to bodyCenterPaint,
+            PdfPatientContent.buildAdmitCell(patient) to bodyCenterPaint,
+            PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames) to bodyCenterPaint,
             patient.treatmentPlan to bodyCenterPaint,
-            buildNotesCell(patient, residentNames + supervisorNames) to bodyCenterPaint
+            PdfPatientContent.buildNotesCell(patient, residentNames + supervisorNames) to bodyCenterPaint
         ).asReversed()
         return cells.mapIndexed { index, (text, paint) ->
             val maxWidth = colWidths[index] - 2 * cellPadding
@@ -472,89 +470,6 @@ class PdfReportExporter @Inject constructor() {
             canvas.drawRect(xStart, y, xEnd, y + height, borderPaint)
         }
         canvas.drawRect(contentLeft, y, contentRight, y + height, mediumBorderPaint)
-    }
-
-    private fun buildPatientCell(patient: Patient): String {
-        val sb = StringBuilder()
-        if (patient.isPriority) sb.append("[أولوية] ")
-        sb.append(patient.name)
-        patient.age?.let { age ->
-            sb.append('\n')
-            patient.birthDate?.let {
-                sb.append(it.year)
-                sb.append(" • ")
-            }
-            sb.append(age).append(' ').append(PdfStrings.YEAR_SUFFIX)
-        }
-        sb.append(" • ")
-        sb.append(if (patient.gender == com.hos.rushdpatients.data.model.Gender.MALE) "ذكر" else "أنثى")
-        if (patient.hasCompanion) {
-            sb.append('\n')
-            sb.append('(')
-            sb.append(PdfStrings.ESCORT_LABEL)
-            sb.append(')')
-        }
-        return sb.toString()
-    }
-
-    private fun buildAdmitCell(patient: Patient): String {
-        val sb = StringBuilder()
-        if (patient.admittanceNumber.isNotBlank()) sb.append(patient.admittanceNumber)
-        sb.append('\n')
-        sb.append(PdfStrings.SEPARATOR)
-        sb.append('\n')
-        patient.admittanceDate?.let { date ->
-            sb.append("يوم ")
-            sb.append(patient.admittanceDays ?: 0)
-            sb.append('\n')
-            sb.append(date)
-        }
-        return sb.toString()
-    }
-
-    private fun buildSupervisorResidentCell(
-        patient: Patient,
-        residentNames: Map<String, String>,
-        supervisorNames: Map<String, String>
-    ): String {
-        return listOfNotNull(
-            patient.responsibleSpecialistId?.let(supervisorNames::get)?.takeIf(String::isNotBlank),
-            patient.responsibleResidentId?.let(residentNames::get)?.takeIf(String::isNotBlank)
-        ).joinToString("\n${PdfStrings.SEPARATOR}\n")
-    }
-
-    private fun buildNotesCell(patient: Patient, doctorNames: Map<String, String>): String {
-        val sb = StringBuilder()
-        if (patient.followUp.isNotBlank()) {
-            sb.append("المتابعة: ")
-            sb.append(patient.followUp)
-        }
-        if (patient.tasks.isNotEmpty()) {
-            if (sb.isNotEmpty()) sb.append('\n')
-            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks, doctorNames, includeUnassigned = false, includeRoutinePriority = false))
-        }
-        if (patient.labs.isNotBlank()) {
-            if (sb.isNotEmpty()) sb.append('\n')
-            sb.append("التحاليل: ")
-            sb.append(patient.labs)
-        }
-        return sb.toString()
-    }
-
-    private fun buildDiagnosisCell(patient: Patient): String = buildString {
-        append(patient.diagnosisType.arabicLabel)
-        if (patient.badges.isNotEmpty()) {
-            append('\n')
-            append(patient.badges.joinToString("\n") { badge ->
-                val level = badge.priority?.takeIf { it == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH }
-                    ?.let { " · ${it.arabicLabel}" }.orEmpty()
-                "⚠ ${badge.text}$level"
-            })
-        }
-        if (patient.initialDiagnosis.isNotBlank()) {
-            append('\n')
-            append(patient.initialDiagnosis)
-        }
     }
 
     private fun autoDirection(text: String): String = bidiFormatter.unicodeWrap(

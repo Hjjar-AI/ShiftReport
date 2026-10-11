@@ -7,10 +7,7 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Compatibility entry point for the former card PDF setting. Output is now an
- * elegant, print-friendly row report using the shared non-splitting renderer.
- */
+/** Exports colored portrait A5 patient cards with an opening, linked index. */
 @Singleton
 class PdfCardsExporter @Inject constructor(
     private val rowExporter: PdfReportExporter

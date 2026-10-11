@@ -308,7 +308,7 @@ fun SettingsScreen(
 
                     if (state.pdfStyle == PdfStyle.CARDS) {
                         Text(
-                            "الصفوف الأنيقة تستخدم خلفية بيضاء وألواناً محدودة لتقليل حجم الملف وتحسين الطباعة.",
+                            "بطاقات طولية ملونة بحجم A5 عمودي فقط، مع فهرس قابل للضغط. اضغط اسم المريض في البطاقة للعودة إلى الفهرس.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -318,31 +318,33 @@ fun SettingsScreen(
                             stateDescription = if (advancedPdf) "موسع" else "مطوي"
                         }) { Text(if (advancedPdf) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة") }
                     if (advancedPdf) {
-                        Text("اتجاه الصفحة", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                            PdfOrientation.entries.forEach { option ->
-                                FilterChip(
-                                    selected = state.pdfOrientation == option,
-                                    onClick = { viewModel.setPdfOrientation(option) },
-                                    label = { Text(option.arabicLabel) }
-                                )
+                        if (state.pdfStyle == PdfStyle.CLASSIC) {
+                            Text("اتجاه الصفحة", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                                PdfOrientation.entries.forEach { option ->
+                                    FilterChip(
+                                        selected = state.pdfOrientation == option,
+                                        onClick = { viewModel.setPdfOrientation(option) },
+                                        label = { Text(option.arabicLabel) }
+                                    )
+                                }
                             }
-                        }
 
-                        Text("حجم الورق", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                            PdfPaperSize.entries.forEach { option ->
-                                FilterChip(
-                                    selected = state.pdfPaperSize == option,
-                                    onClick = { viewModel.setPdfPaperSize(option) },
-                                    label = { Text(option.arabicLabel) }
-                                )
+                            Text("حجم الورق", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                                PdfPaperSize.entries.forEach { option ->
+                                    FilterChip(
+                                        selected = state.pdfPaperSize == option,
+                                        onClick = { viewModel.setPdfPaperSize(option) },
+                                        label = { Text(option.arabicLabel) }
+                                    )
+                                }
                             }
                         }
 
                         Divider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsSubheading("ألوان وتوزيع الملف")
-                        Text("ألوان العنوان والجدول", style = MaterialTheme.typography.labelMedium)
+                        Text("ألوان ملف PDF", style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                             PdfColorPreset.entries.forEach { option ->
                                 FilterChip(
@@ -353,14 +355,12 @@ fun SettingsScreen(
                             }
                         }
 
-                        if (state.pdfStyle == PdfStyle.CLASSIC) {
-                            ToggleRow(
-                                title = "PDF داكن",
-                                subtitle = "خلفية داكنة ونص فاتح",
-                                checked = state.pdfDarkMode,
-                                onCheckedChange = viewModel::setPdfDarkMode
-                            )
-                        }
+                        ToggleRow(
+                            title = "PDF داكن",
+                            subtitle = "خلفية داكنة ونص فاتح",
+                            checked = state.pdfDarkMode,
+                            onCheckedChange = viewModel::setPdfDarkMode
+                        )
                         ToggleRow(
                             title = "ملف PDF لكل مشرف",
                             subtitle = "عند الحفظ المحلي",
