@@ -11,6 +11,7 @@
 *.local.properties
 /legacy-hardcoded-credentials.local.properties
 /GITHUB-GUIDE.local.md
+/docs/local/
 /doctors-import.local.csv
 
 # Signing material and local secret configuration
@@ -61,3 +62,30 @@ Thumbs.db
 *.rpb
 *.srjoin
 /Xslx Things/
+# Standalone desktop runtime and private workspace artifacts
+**/__pycache__/
+/desktop/.venv/
+*.srjoin.json
+*.srdraft
+*.sqlite3
+*.sqlite3-journal
+*.linux-key
+**/.instance.lock
+
+# Platform layout: Android project-local state and private artifacts
+/android/local.properties
+/android/keys/
+/android/keystore.properties
+/android/doctors-import.local.csv
+/android/app/release/
+/android/.idea/caches/
+/android/.idea/libraries/
+/android/.idea/modules.xml
+/android/.idea/workspace.xml
+/android/.idea/navEditor.xml
+/android/.idea/assetWizardSettings.xml
+/android/.idea/deploymentTargetSelector.xml
+/android/.idea/deviceManager.xml
+/android/.idea/shelf/
+/android/.idea/httpRequests/
+/local/

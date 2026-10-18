@@ -1,0 +1,3 @@
+# Linux CPython 3.8–3.11: reuse the existing desktop pins without changing Windows.
+# These binary dependency pins do not target Python 3.12+.
+-r requirements-win7.txt

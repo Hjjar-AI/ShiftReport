@@ -1,0 +1,33 @@
+package com.hos.rushdpatients.ui.components
+
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun AppSearchField(query: String, onQueryChange: (String) -> Unit, label: String,
+    modifier: Modifier = Modifier, enabled: Boolean = true) {
+    val active = enabled && LocalFieldEnabled.current
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    AppTextField(value = query, onValueChange = onQueryChange, label = { Text(label) },
+        singleLine = true, enabled = active, modifier = modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focus.clearFocus() }),
+        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { onQueryChange("") }, enabled = active) {
+            Icon(Icons.Filled.Close, contentDescription = "مسح البحث")
+        } })
+}

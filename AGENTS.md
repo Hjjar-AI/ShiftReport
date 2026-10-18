@@ -24,11 +24,11 @@ These instructions apply to the entire repository. Before work, check for additi
 ## Security and clinical-safety invariants
 
 - Never hardcode or commit bot tokens, chat IDs, signing keys, PINs, passphrases, or hospital credentials.
-- `GITHUB-GUIDE.local.md`, signing files, and `*.local.properties` files are intentionally local and ignored. The obsolete legacy Telegram properties file was removed; connection credentials belong in runtime project configuration.
+- `docs/local/github-guide.local.md`, signing files, and `*.local.properties` files are intentionally local and ignored. The obsolete legacy Telegram properties file was removed; connection credentials belong in runtime project configuration.
 - Do not replace encryption with encoding, obfuscation, dummy lines, or reversible presentation tricks.
 - Do not silently overwrite stale patient or shift data. Preserve expected-revision checks and explicit conflict handling.
 - Keep admin authorization below the UI/navigation layer for every privileged mutation.
-- Never present Telegram pinned state as an atomic multi-writer database. Preserve the accepted retrieve/edit/publish and last-write-wins scope documented in `designAndArchitecture.md` and `currentState.md`; do not introduce a required collaboration backend.
+- Never present Telegram pinned state as an atomic multi-writer database. Preserve the accepted retrieve/edit/publish and last-write-wins scope documented in `docs/architecture.md` and `docs/current-state.md`; do not introduce a required collaboration backend.
 - Joining is file-only through a password-protected `.srjoin.json` file. Connection settings, topic IDs, and the optional shared data key come from that file. Manual group/topic entry belongs only to project creation; manual replacement of the same bot's token requires live admin authorization.
 - Optional Telegram-data encryption is chosen when creating a project. Preserve authenticated encryption, the shared key in encrypted device settings/protected join files, explicit decryption failures, and the deliberate readable-PDF exception. Replacing a bot token must not silently replace the project data key.
 - Do not mix one hospital/project's existing clinical database with another project's credentials. Same-project reconnect must validate candidate credentials before changing the live token and preserve local clinical state, pending edits, topics, and the data key. Cross-project/key/topic changes are blocked; do not bypass this protection or clear clinical records implicitly.
@@ -36,6 +36,8 @@ These instructions apply to the entire repository. Before work, check for additi
 - Report sending must retain review/confirmation. Do not turn the ward FAB into an accidental one-tap clinical publication action.
 
 ## Architecture conventions
+
+- The Android project root is `android/` (open it in Android Studio and run Gradle there); Android source-layer paths below are relative to `android/app/src/main/java/com/hos/rushdpatients/`. The Python PC client is in `desktop/`; shared documentation remains in `docs/`. Private local Excel artifacts are ignored under `local/excel/`.
 
 - UI is Jetpack Compose under `ui/`; screens delegate state and mutations to Hilt ViewModels.
 - Keep ward navigation, dashboard, review dialogs, and reusable patient fields in their dedicated files. Doctor synchronization belongs in `DoctorSyncCoordinator`; patient/doctor pinned-state updates share the singleton `RemoteSyncStateStore` and its mutex.
@@ -62,11 +64,11 @@ These instructions apply to the entire repository. Before work, check for additi
 
 ## Work tracking
 
-- `workRemains.md` contains only unfinished implementation work and the explicitly deferred voice/template proposals. Do not restore removed verification-only or edge-case backlog items. Record verification evidence and limitations in `currentState.md` and `workDone.md`.
-- Move genuinely completed items to `workDone.md`; do not duplicate them in both files.
-- Keep `workDone.md` concise, grouped by feature, and free of repeated chronological entries. Link to technical detail instead of copying it. Removing an unwanted proposal is a scope decision, not implementation of that proposal.
-- Update `currentState.md` when architecture, security boundaries, persistence, synchronization, onboarding, or major navigation changes.
-- Keep design/architecture rationale in `designAndArchitecture.md`, implementation details in `currentState.md`, and diagnostic procedures in `debugging.md`. Keep documentation links and historical/current-state distinctions accurate.
+- `docs/roadmap.md` contains only unfinished implementation work and the explicitly deferred voice/template proposals. Do not restore removed verification-only or edge-case backlog items. Record verification evidence and limitations in `docs/current-state.md` and `docs/changelog.md`.
+- Move genuinely completed items to `docs/changelog.md`; do not duplicate them in both files.
+- Keep `docs/changelog.md` concise, grouped by feature, and free of repeated chronological entries. Link to technical detail instead of copying it. Removing an unwanted proposal is a scope decision, not implementation of that proposal.
+- Update `docs/current-state.md` when architecture, security boundaries, persistence, synchronization, onboarding, or major navigation changes.
+- Keep design/architecture rationale in `docs/architecture.md`, implementation details in `docs/current-state.md`, and diagnostic procedures in `docs/troubleshooting.md`. Keep documentation links and historical/current-state distinctions accurate.
 - Keep README build instructions intact unless the user explicitly asks to change them.
 - Keep voice dictation in “Far future” and specialty templates in “Far far future”, with their technology/design notes. Do not implement deferred proposals unless requested.
 

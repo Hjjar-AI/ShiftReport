@@ -1,0 +1,526 @@
+package com.hos.rushdpatients.ui.ward
+
+import com.hos.rushdpatients.ui.components.uiDateTime
+import com.hos.rushdpatients.ui.components.uiNumber
+import com.hos.rushdpatients.ui.components.relativeFreshness
+import com.hos.rushdpatients.ui.components.AppSectionHeader
+import com.hos.rushdpatients.ui.theme.UiPadding
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.components.AppCard
+import com.hos.rushdpatients.domain.task.PatientTasks
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.hos.rushdpatients.data.model.DiagnosisType
+import com.hos.rushdpatients.data.model.Gender
+import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.PatientBadgePriority
+import com.hos.rushdpatients.ui.theme.patientBadgeColors
+import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.LocalClinicalColors
+import com.hos.rushdpatients.util.ArabicNumbers
+
+@Composable
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+fun PatientCard(
+    patient: Patient,
+    expanded: Boolean,
+    twoColumn: Boolean,
+    doctorNames: Map<String, String>,
+    readOnly: Boolean = false,
+    selected: Boolean = false,
+    recentlyEdited: Boolean = false,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = onClick,
+    onEdit: () -> Unit = onClick,
+    onBadgeEdit: () -> Unit = onEdit,
+    onDelete: () -> Unit,
+    onCopy: () -> Unit = {},
+    onPriorityChange: (Boolean) -> Unit = {},
+    pinned: Boolean = false,
+    onPinToggle: () -> Unit = {},
+    onExpandToggle: () -> Unit = {},
+    showViewControls: Boolean = true,
+    compact: Boolean = false,
+    animateExpansion: Boolean = false,
+    taskNowEpochMillis: Long = System.currentTimeMillis(),
+    modifier: Modifier = Modifier
+) {
+    val taskCounts = PatientTasks.counts(patient.tasks, taskNowEpochMillis)
+    val clinicalColors = LocalClinicalColors.current
+    val visibleBadges = if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
+    val residentName = patient.responsibleResidentId?.let(doctorNames::get)
+    val supervisorName = patient.responsibleSpecialistId?.let(doctorNames::get)
+
+    val cardColor by animateColorAsState(
+        targetValue = if (recentlyEdited) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        animationSpec = tween(220), label = "patientReturnHighlight"
+    )
+    AppCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                this.selected = selected
+                contentDescription = buildString {
+                    append(patient.name)
+                    append("، رقم القبول الحالي ").append(patient.admittanceNumber)
+                    append("، ").append(patient.diagnosisType.arabicLabel)
+                    patient.responsibleResidentId?.let { id ->
+                        doctorNames[id]?.let { append("، المقيم ").append(it) }
+                    }
+                    if (patient.badges.isNotEmpty()) {
+                        append("، ").append(patient.badges.size).append(" شارات")
+                    }
+                    if (patient.tasks.isNotEmpty()) append("، مهام معلقة ${uiNumber(taskCounts.pending)}، منها متأخرة ${uiNumber(taskCounts.overdue)}")
+                    if (pinned) append("، مثبت مؤقتاً")
+                    append("، ").append(relativeFreshness(patient.updatedAt))
+                }
+                stateDescription = buildString {
+                    append(if (patient.badges.isEmpty()) "دون شارات" else "شارات فعالة")
+                    if (patient.isPriority) append("، أولوية")
+                    append(if (expanded) "، التفاصيل موسعة" else "، التفاصيل مطوية")
+                }
+                customActions = buildList {
+                    if (showViewControls) {
+                        add(CustomAccessibilityAction(if (expanded) "طي تفاصيل المريض" else "توسيع تفاصيل المريض") { onExpandToggle(); true })
+                        add(CustomAccessibilityAction(if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت") { onPinToggle(); true })
+                        add(CustomAccessibilityAction("فتح تفاصيل المريض") { onLongClick(); true })
+                        if (!readOnly) {
+                            add(CustomAccessibilityAction("تعديل بيانات المريض") { onEdit(); true })
+                            add(CustomAccessibilityAction("تعديل شارات المريض") { onBadgeEdit(); true })
+                            add(CustomAccessibilityAction(if (patient.isPriority) "إلغاء الأولوية" else "تحديد أولوية") { onPriorityChange(!patient.isPriority); true })
+                            add(CustomAccessibilityAction("نسخ كمريض جديد") { onCopy(); true })
+                            add(CustomAccessibilityAction("حذف المريض مع التأكيد") { onDelete(); true })
+                        }
+                    }
+                }
+            }
+            .combinedClickable(enabled = showViewControls, onClick = onClick, onLongClick = onLongClick),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = cardColor),
+        border = BorderStroke(
+            if (selected || recentlyEdited) 2.dp else 1.dp,
+            if (selected || recentlyEdited) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (compact) UiPadding.compact else UiPadding.content),
+            verticalArrangement = Arrangement.spacedBy(if (compact) UiSpacing.tiny else UiSpacing.small)
+        ) {
+            PatientIdentityHeader(
+                patient = patient,
+                readOnly = readOnly,
+                expanded = expanded,
+                pinned = pinned,
+                showViewControls = showViewControls,
+                onExpandToggle = onExpandToggle,
+                onPinToggle = onPinToggle,
+                onPriorityChange = onPriorityChange,
+                onCopy = onCopy,
+                onDelete = onDelete
+            )
+
+
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                    DiagnosisChip(patient.diagnosisType)
+                    if (expanded && patient.hasCompanion) {
+                        SmallChip(
+                            text = "مرافق",
+                            container = MaterialTheme.colorScheme.surface,
+                            content = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+
+            // -------- Doctor chips row --------
+            if (supervisorName != null || residentName != null) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
+                ) {
+                    supervisorName?.let {
+                        SmallChip(
+                            text = "مشرف: $it",
+                            container = MaterialTheme.colorScheme.surfaceVariant,
+                            content = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    residentName?.let {
+                        SmallChip(
+                            text = "مقيم: $it",
+                            container = MaterialTheme.colorScheme.surfaceVariant,
+                            content = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (visibleBadges.isNotEmpty() || (!expanded && patient.badges.isNotEmpty())) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
+                ) {
+                    visibleBadges.forEach { badge ->
+                        val badgeColors = patientBadgeColors(badge.priority)
+                        SmallChip(
+                            text = buildString {
+                                append(badge.text)
+                                badge.priority?.let { append(" · ").append(it.arabicLabel) }
+                            },
+                            container = badgeColors.container,
+                            content = badgeColors.content
+                        )
+                    }
+                    if (!expanded && visibleBadges.size < patient.badges.size) SmallChip(
+                        "${patient.badges.size - visibleBadges.size} شارات أخرى",
+                        MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (patient.initialDiagnosis.isNotBlank()) {
+                SectionBlock("التشخيص", patient.initialDiagnosis,
+                    maxLines = if (expanded) Int.MAX_VALUE else 2)
+            }
+
+            if (taskCounts.pending > 0) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                    SmallChip("${uiNumber(taskCounts.pending)} مهمة معلقة", MaterialTheme.colorScheme.secondaryContainer,
+                        MaterialTheme.colorScheme.onSecondaryContainer)
+                    if (taskCounts.overdue > 0) SmallChip("${uiNumber(taskCounts.overdue)} متأخرة",
+                        clinicalColors.urgentContainer, clinicalColors.onUrgentContainer)
+                }
+            }
+
+            // -------- Expanded detail --------
+            AnimatedVisibility(
+                visible = expanded,
+                enter = if (animateExpansion) expandVertically(animationSpec = tween(160)) else EnterTransition.None,
+                exit = if (animateExpansion) shrinkVertically(animationSpec = tween(130)) else ExitTransition.None
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    if (patient.tasks.isNotEmpty()) SectionBlock("المهام",
+                        PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = taskNowEpochMillis))
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    if (twoColumn) {
+                        TwoColumnDetail(patient = patient)
+                    } else {
+                        SingleColumnDetail(patient = patient)
+                    }
+                }
+            }
+            if (expanded) patient.lastEditedByName?.let { editor ->
+                val time = remember(patient.updatedAt) {
+                    uiDateTime(patient.updatedAt, "MM-dd HH:mm")
+                }
+                Text(
+                    text = "آخر تعديل: $editor · $time · ${relativeFreshness(patient.updatedAt)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+// ---------------- Expanded layouts ----------------
+
+@Composable
+private fun PatientIdentityHeader(
+    patient: Patient,
+    readOnly: Boolean,
+    expanded: Boolean,
+    pinned: Boolean,
+    showViewControls: Boolean,
+    onExpandToggle: () -> Unit,
+    onPinToggle: () -> Unit,
+    onPriorityChange: (Boolean) -> Unit,
+    onCopy: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val meta = if (expanded) listOf(metaLine(patient), admitLine(patient))
+        .filter(String::isNotBlank).joinToString(" · ")
+    else "رقم القبول الحالي: ${ArabicNumbers.toArabicDigits(patient.admittanceNumber)}"
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
+    ) {
+        Surface(color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer, shape = MaterialTheme.shapes.small,
+            modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(com.hos.rushdpatients.ui.components.uiNumber(patient.sortOrder), fontWeight = FontWeight.Bold)
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+            IdentityName(patient.name)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                if (pinned) Icon(Icons.Filled.Bookmark, contentDescription = "مثبت مؤقتاً", modifier = Modifier.size(UiSize.iconSmall))
+                if (patient.isPriority) Icon(Icons.Filled.Star, contentDescription = "مريض ذو أولوية",
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(UiSize.iconSmall))
+                Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (showViewControls) {
+                IconButton(onClick = onExpandToggle) {
+                    Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (expanded) "طي التفاصيل" else "توسيع التفاصيل")
+                }
+                PatientMenu(priority = patient.isPriority, onPriorityChange = onPriorityChange,
+                    onCopy = onCopy, onDelete = onDelete, pinned = pinned, onPinToggle = onPinToggle,
+                    readOnly = readOnly)
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun IdentityName(name: String) {
+    Text(
+        text = name,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.semantics { heading() },
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
+
+@Composable
+private fun SingleColumnDetail(patient: Patient) {
+    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+        if (patient.treatmentPlan.isNotBlank()) {
+            SectionBlock("الخطة العلاجية", prettifyLabText(patient.treatmentPlan))
+        }
+        if (patient.followUp.isNotBlank()) {
+            SectionBlock("المتابعة", prettifyLabText(patient.followUp))
+        }
+        if (patient.labs.isNotBlank()) {
+            SectionBlock("التحاليل", prettifyLabText(patient.labs))
+        }
+    }
+}
+
+@Composable
+private fun TwoColumnDetail(patient: Patient) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth < 440.dp) {
+            SingleColumnDetail(patient)
+            return@BoxWithConstraints
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+            ) {
+            if (patient.treatmentPlan.isNotBlank()) {
+                SectionBlock("الخطة العلاجية", prettifyLabText(patient.treatmentPlan))
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.outline)
+        )
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+        ) {
+            if (patient.followUp.isNotBlank()) {
+                SectionBlock("المتابعة", prettifyLabText(patient.followUp))
+            }
+            if (patient.labs.isNotBlank()) {
+                SectionBlock("التحاليل", prettifyLabText(patient.labs))
+            }
+            if (patient.followUp.isBlank() && patient.labs.isBlank()) {
+                Text(
+                    text = "لا توجد متابعة أو تحاليل",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            }
+        }
+    }
+}
+
+// ---------------- Sub-composables ----------------
+
+@Composable
+private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
+    onCopy: () -> Unit, onDelete: () -> Unit, pinned: Boolean, onPinToggle: () -> Unit, readOnly: Boolean) {
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { menu = true }, modifier = Modifier.size(UiSpacing.touchTarget)) {
+            Icon(Icons.Filled.MoreVert, contentDescription = "خيارات المريض", modifier = Modifier.size(UiSize.iconMedium))
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(text = { Text(if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت") },
+                leadingIcon = { Icon(if (pinned) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder, contentDescription = null) },
+                onClick = { menu = false; onPinToggle() })
+            if (!readOnly) {
+                DropdownMenuItem(text = { Text(if (priority) "إلغاء الأولوية" else "تثبيت كأولوية") },
+                    onClick = { menu = false; onPriorityChange(!priority) })
+                DropdownMenuItem(text = { Text("نسخ كمريض جديد") }, onClick = { menu = false; onCopy() })
+                DropdownMenuItem(text = { Text("حذف") }, onClick = { menu = false; onDelete() })
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiagnosisChip(type: DiagnosisType) {
+    SmallChip(text = type.arabicLabel, container = MaterialTheme.colorScheme.surfaceVariant,
+        content = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun SmallChip(text: String, container: Color, content: Color) {
+    Surface(
+        color = container,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(UiPadding.compact),
+            style = MaterialTheme.typography.labelSmall,
+            color = content,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun SectionBlock(title: String, content: String, maxLines: Int = Int.MAX_VALUE) {
+    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+        AppSectionHeader(title)
+        Text(
+            text = content,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                textDirection = if (title == "التحاليل") {
+                    TextDirection.ContentOrLtr
+                } else {
+                    TextDirection.ContentOrRtl
+                },
+                fontFamily = if (title == "التحاليل") FontFamily.Monospace else null
+            ),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+// ---------------- Helpers ----------------
+
+private val LAB_DATE_MARKER = Regex("""@date:(\d{4})-(\d{2})-(\d{2})""")
+
+private fun prettifyLabText(text: String): String =
+    LAB_DATE_MARKER.replace(text) { m ->
+        val (y, mo, d) = m.destructured
+        "📅 $d/$mo/$y"
+    }
+
+private fun metaLine(patient: Patient): String = buildString {
+    append(if (patient.gender == Gender.MALE) "ذكر" else "أنثى")
+    patient.age?.let { append(" · ${ArabicNumbers.toArabicDigits(it.toString())} سنة") }
+}
+
+/**
+ * Compact admission summary for the card header:
+ *   رقم 1 · دخول 2026-09-20 · 70 يوم
+ *
+ * Empty pieces are omitted. If the patient has neither an admission number
+ * nor an admission date, the line collapses to "".
+ */
+private fun admitLine(patient: Patient): String {
+    val parts = mutableListOf<String>()
+    if (patient.admittanceNumber.isNotBlank()) {
+        parts += "رقم ${ArabicNumbers.toArabicDigits(patient.admittanceNumber)}"
+    }
+    patient.admittanceDate?.let { date ->
+        parts += "دخول $date"
+        patient.admittanceDays?.let { days ->
+            parts += "${ArabicNumbers.toArabicDigits(days.toString())} يوم"
+        }
+    }
+    return parts.joinToString(" · ")
+}

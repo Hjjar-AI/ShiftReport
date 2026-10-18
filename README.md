@@ -4,13 +4,27 @@ ShiftReport is an Arabic-first Android application for hospital shift handoff, w
 
 The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Kotlin coroutines, and the Telegram Bot API. It supports Android 6.0/API 23 and newer.
 
+## Repository layout
+
+| Folder | Contents |
+|---|---|
+| [`android/`](android/) | Android Studio/Gradle project, app source, wrapper and Android-local settings |
+| [`desktop/`](desktop/README.md) | Python CustomTkinter client for Windows and Linux, setup and launch scripts |
+| [`docs/`](docs/README.md) | Shared architecture, current state, guides and roadmap |
+| `local/` | Ignored private local artifacts, including the old Excel workspace |
+
+Open **`android/`** in Android Studio. For the PC client, use the launch scripts
+inside **`desktop/`**. Each platform keeps its existing application identity and
+shared Telegram formats. Root-level Git metadata and repository instructions stay
+shared.
+
 ## Current capabilities
 
 - Structured ward list with patient details, custom badges, priority, responsible clinicians, search, filters, grouping, and sorting that updates saved patient positions and CSV/text/PDF order. General and Advanced editing both include labs. Full-screen patient editing keeps clinical sections first and demographics last; new-patient entry starts with demographics.
 - Structured patient tasks with optional doctor assignment (unassigned by default), priority, deadlines, pending/done state, and completion actor/time. Collapsed cards show per-patient pending and overdue counts; the dashboard shows ward totals and task filters. Overdue tasks are included in the pending count.
 - Dashboard, personal patient view (including assigned tasks), admin-only Activity Center, per-patient history, recycle bin, guided rollover of unfinished tasks, and stored-shift viewing.
 - Top-bar expand/collapse-all control, individual card expansion, direct drawer destinations, and grouped Settings shortcuts.
-- Classic and Elegant Row PDF reports generated from a fresh current-shift snapshot. Multiple patients share a page, but a patient row is moved intact to the next page instead of splitting.
+- Classic table and linked portrait A5 patient-card PDFs from fresh reviewed snapshots, with readable pagination and complete clinical/task content.
 - Shift doctors can be selected directly at the top of report preview, with no fixed maximum.
 - Administrator-controlled UTF-8 doctor-registry CSV import/export for fresh starts and spreadsheet editing.
 - Telegram report delivery, immutable CSV snapshots, background synchronization, three-way patient merging, and explicit conflict review.
@@ -18,11 +32,11 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 - Encrypted local database, encrypted project preferences, PIN/biometric access, encrypted backups, and verified admin authorization for core privileged actions.
 - Hospital/project setup with Demo, file-only Join, and Create paths, plus optional encryption of Telegram project data.
 - A splash that dismisses on tap or after 10 seconds; Splash and About use the white-field emblem and current credits.
-- Unified neutral surfaces with independent System/Light/Dark appearance and accent choices, readable typography, consistent status colors, compact cards, and advanced PDF settings. Distinct teal/green/blue/gold/purple accents apply to controls and section headings. Individual expansion animates briefly; bulk expansion is immediate.
+- Unified neutral surfaces with independent System/Light/Dark appearance and accent choices, readable typography, consistent status colors, compact cards, and advanced PDF settings. Distinct named palettes tint controls, section headings and surfaces. Individual expansion animates briefly; bulk expansion is immediate.
 
 ## First launch
 
-For Arabic setup instructions and how to obtain the bot token, group/user IDs, and topic IDs, see [telegramIDsGuide.md](telegramIDsGuide.md).
+For Arabic setup instructions and how to obtain the bot token, group/user IDs, and topic IDs, see [Telegram setup](docs/guides/telegram-setup.md).
 
 Choose one of three paths:
 
@@ -44,29 +58,36 @@ New projects can optionally encrypt Telegram patient bundles (including tasks), 
 
 Admin-only operations are checked against the live local doctor registry below the navigation layer. Patient edits and shift controls reject stale local revisions rather than silently overwriting newer data.
 
-Telegram remains the shared synchronization and delivery channel. The accepted workflow is retrieve, edit, and publish; the last successful pinned-state write wins. Telegram pinned state is not an atomic multi-writer database. Guaranteed simultaneous collaboration is outside scope, and no authoritative backend is required. Existing revision checks, merges, conflict review, and report confirmation remain in place. See [designAndArchitecture.md](designAndArchitecture.md).
+Telegram remains the shared synchronization and delivery channel. The accepted workflow is retrieve, edit, and publish; the last successful pinned-state write wins. Telegram pinned state is not an atomic multi-writer database. Guaranteed simultaneous collaboration is outside scope, and no authoritative backend is required. Existing revision checks, merges, conflict review, and report confirmation remain in place. See [Architecture](docs/architecture.md).
 
-Appearance and accent are configured separately under **Settings → App interface**. Teal is the default accent; every accent supports light and dark appearance. Uncommon report options are under **Settings → Report → Advanced PDF options**. Collapsed cards summarize clinical content; expand a card for full details.
+Appearance and accent are configured separately under **Settings → App interface**. Every accent supports light and dark appearance; AMOLED is available separately. Uncommon report options are under **Settings → Report → Advanced PDF options**. Collapsed cards summarize clinical content; expand a card for full details.
 
 ## Implementation status
 
 Structured tasks and per-patient counts are implemented. Remaining near-term work is production signing. Safe same-project credential replacement/reconnect is implemented. User acknowledgment is not required. Voice dictation is a far-future proposal; specialty templates are a far-far-future proposal.
 
-The authorized `assembleDebug` build passed on 2026-10-07 in 2m 55s (43 tasks: 21 executed, 22 up-to-date), compiling and packaging the current demo, form, PDF, roster, export, and navigation changes. APK metadata confirms `1.1.1.20261007-debug` (code 2). Release uses `1.1.1.20261007` without a suffix and was not built. Device behavior and rendered accessibility remain unverified. Database schema is 5, patient CSV schema is 7, and doctor-registry CSV schema is 1; toolchain/dependency versions are unchanged. Gradle reports deprecated-feature usage.
+The latest owner-supplied debug build succeeded on 2026-10-18 for its source
+snapshot. Later Android refinements and desktop integration have source/offline checks only;
+current Android compilation, device behavior, Windows desktop and live Telegram
+workflows remain unverified. See [verification evidence](docs/current-state.md#verification-and-limits).
+Production signing remains required before distribution.
 
 ## Project documentation
 
-- [currentState.md](currentState.md): current technical architecture, flows, invariants, and limitations.
-- [workRemains.md](workRemains.md): active roadmap ordered by safety and dependency.
-- [workDone.md](workDone.md): completed work removed from the active roadmap.
-- [AGENTS.md](AGENTS.md): repository rules for coding agents and automated contributors.
-- [designAndArchitecture.md](designAndArchitecture.md): accepted architecture scope and external design basis.
-- [telegramIDsGuide.md](telegramIDsGuide.md): Arabic user guide to Telegram setup, tokens, group/user/topic IDs, and joining.
-- [debugging.md](debugging.md): focused device, import, encryption, task, and synchronization diagnostics.
+Start at the [documentation index](docs/README.md): current state, architecture,
+roadmap, changelog, troubleshooting, setup guides and unresolved review findings.
+
+- [Telegram setup — العربية](docs/guides/telegram-setup.md)
+- [Standalone Windows/Linux desktop workflow](desktop/README.md)
+- [Contributor rules](AGENTS.md)
 
 ## Developer commands
 
+Run these existing Android commands from the Android project directory:
+
 ```bash
+cd android
+
 # Build the debug APK
 ./gradlew assembleDebug
 
@@ -95,7 +116,7 @@ The authorized `assembleDebug` build passed on 2026-10-07 in 2m 55s (43 tasks: 2
 ./gradlew --stop
 ```
 
-Generated files are normally located under:
+Generated files are normally located under these paths relative to `android/`:
 
 ```text
 app/build/outputs/apk/debug/
