@@ -213,7 +213,7 @@ and schema version remain unchanged. Rebuild Android and republish before shared
 
 The [`desktop/` source](../desktop/README.md) supersedes the Excel helper with a
 CustomTkinter client targeting Windows 7 SP1 / Python 3.8.10 and Linux desktop /
-Python 3.8–3.11. No workbook, Excel,
+Python 3.8 or later. No workbook, Excel,
 VBA, COM or pywin32 is used. The owner will bundle it separately; no executable
 was built. Original clinical artifacts and Android formats/versions are unchanged.
 
@@ -253,7 +253,9 @@ ledger and invalidate review. File-based reconnect is available before login,
 validates candidates before replacing an open connection and refuses different
 projects/keys/topics. A Windows named mutex or Linux flock prevents a second local
 instance. Linux uses XDG_DATA_HOME or ~/.local/share and creates owner-only
-key/database files; launchers retain the original binary dependency pins in a venv.
+key/database files. Linux setup now installs unpinned binary dependencies in
+`desktop/.venv`, accepts the owner's current system Python and keeps Windows
+compatibility requirements separate.
 
 The [wire contract](../desktop/PROTOCOL.md) retains state v4/bundle v1/CSV v7,
 registry/join/AES-GCM envelopes, expected-baseline field/deletion/roster/order
@@ -292,19 +294,24 @@ executed; no builds/packages or test-suite work were performed.
 Linux Arabic display now uses `desktop_widgets.py` for presentation-only shaping
 and bidi ordering of labels, choices, status, tabs, prompts and readonly reviews.
 Logical paragraphs wrap before line shaping. Choice variables/callbacks retain the
-original Unicode/IDs; review copying returns the complete logical source. Form
-inputs remain logical native Tk buffers and provide a live shaped readback of the
-current Arabic context. Native Tk bidi cursor/selection editing is not implemented;
-the buffer can still appear reversed while the readback is readable. Secrets have
-no readback. TEXT_RENDERING defaults to Linux shaping / unchanged Windows native
-rendering, with explicit native/shaped overrides. Persistence and PDF/Telegram
-representations are unchanged.
+original Unicode/IDs; review copying returns the complete logical source. Form/search inputs use `desktop_input.py`: original Unicode is the editing
+model, shaped physical lines are the display, and caret/mouse/selection positions
+map between them. Typing, clipboard, deletion, wrapping, undo/redo, numeric-field
+validation and bound variables operate on logical text. Actual patient Save was
+checked to retain that text without presentation glyphs. The earlier separate
+readback preview was removed. Passwords and native mode retain native widgets.
+TEXT_RENDERING defaults to Linux shaping / Windows native rendering; native/shaped
+overrides remain. Persistence and PDF/Telegram representations are unchanged.
 
-Actual Linux main-window/choice/status construction, single/multiline logical input,
-Arabic readbacks, readonly copying and cleanup were exercised with dummy in-memory
-text on 2026-10-19. Screenshots confirmed corrected labels/reviews/readbacks. These
-checks do not establish full clinical workflows, native bidi editing, Windows
-rendering or live Telegram operation. No project credentials were loaded.
+Actual main-window, editor and Arabic input screenshots were inspected with dummy
+data on 2026-10-19. Input probes covered mixed Arabic/English/numbers, cursor/mouse
+placement, selection/copy/cut/paste, Backspace/Delete, undo/redo, multiline wrapping,
+diacritics/zero-width marks, numeric validation, bound-variable updates and patient
+Save. Setup_Linux.sh succeeded on the owner's current system Python; dependency
+consistency, shell syntax, Python 3.8 grammar and whitespace checks passed. No real
+`.env` or clinical data was read and no Telegram requests were made by the probes.
+Full clinical/live Telegram workflows and Windows target rendering remain
+unverified.
 
 The desktop source and launchers live under `desktop/`. `.env` is the active
 local settings file; `.env.example` is the single shared commented guide for both
@@ -325,6 +332,22 @@ and Git whitespace checks only. No builds or test-suite work was run.
 
 ## Verification and limits
 
+- Python 3.14.4 Linux compatibility probe on 2026-10-19 passed in an isolated
+  `/tmp/shiftreport-python314-check` venv with CustomTkinter 6.0.0, Pillow 13.0.0,
+  ReportLab 5.0.1, cryptography 50.0.2, Requests 2.34.2, arabic-reshaper 3.0.1 and
+  python-bidi 0.6.11. All nine desktop modules imported; Arabic patient/task bundle
+  round trips, AES-GCM wrong-key rejection, SQLite reopening/receipt retention,
+  Linux local-passphrase rejection, actual main-window/patient-editor construction,
+  logical Arabic choices and Tk callbacks passed. A dummy Arabic PDF and editor
+  screenshot were visually inspected. No real `.env` or clinical data was loaded;
+  Telegram requests were blocked in the probe. The environment's exact dependency
+  snapshot is `/tmp/shiftreport-python314-requirements.txt`; it is temporary.
+  At that snapshot, Linux setup rejected the interpreter and binary resolution
+  failed on the old Pillow pin. The subsequent owner-authorized Linux change
+  removed its pins and upper-version gate; actual setup and Arabic editing probes
+  now pass as documented above. System Python and Windows requirements are intact.
+  These checks do not establish live Telegram login/publication/delivery, complete
+  clinical workflows, or a supported production Python 3.14 installation.
 - Historical authorized Android build on 2026-10-07: success in 2m 55s, 43 tasks
   (21 executed, 22 up-to-date); APK metadata confirmed debug version/code above.
 - Latest owner-supplied success on 2026-10-18: 2m 15s, 43 tasks (10 executed,

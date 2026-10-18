@@ -3,10 +3,11 @@
 [Setup and complete workflow](README.md) · [Wire contract](PROTOCOL.md)
 
 - **Startup:** use CPython 3.8.10 with Tcl/Tk, pip and the Windows py launcher.
-  On Linux use Python 3.8–3.11 with Tcl/Tk and venv, run Setup_Linux.sh, then
+  On Linux use Python 3.8 or later with Tcl/Tk and venv, run Setup_Linux.sh, then
   Start_Linux.sh in a graphical session. Select an installed compatible interpreter
   with PYTHON_BIN if necessary. Keep all desktop modules together. Setup uses
-  binary-only pins in a virtual environment; Python 3.12+ is outside those pins.
+  unpinned binary dependencies in a virtual environment on Linux; Windows 7 keeps
+  its separate compatibility requirements.
   The launchers leave failures visible. Excel is not involved.
 - **Configuration:** optional .env accepts only the documented literal settings;
   no shell expansion/interpolation. Default `CONNECTION_MODE=join` uses a protected
@@ -59,10 +60,10 @@ Windows 7/DPAPI, graphical Linux/Tk and live Android/Telegram operation remain
 unverified on this host. Dependency wheel resolution and source checks are not target certification.
 Use this folder and README as the current desktop entry point.
 
-If Arabic labels appear reversed on Linux, keep TEXT_RENDERING=auto (or use shaped).
-If a Tk build already performs bidi rendering, use native to prevent applying
-layout twice. Restart the app after changing this setting. Clinical edit buffers
-remain logical; use the live Arabic readback beneath form fields when native Tk
-shows input backwards. A multiline readback follows the current line/caret context.
-Copy from the readonly review with its full-text copy action to retain logical
-Unicode. Passwords never appear in readbacks.
+If Arabic labels or inputs appear reversed on Linux, keep TEXT_RENDERING=auto
+(or use shaped), then restart the app. Form/search fields shape the text inside
+the field and map cursor/selection to original Unicode; no duplicate readback is
+needed. Copy/paste and Save retain the logical source. On a Tk build with working
+native Arabic layout, use native to retain its own editing behavior. Passwords
+always use native masked fields. Readonly reviews still have a full-text copy
+button that copies original Unicode.

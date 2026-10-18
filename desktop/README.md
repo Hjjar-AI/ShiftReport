@@ -2,7 +2,7 @@
 
 Standalone source replacement for the Excel helper. No Excel, workbook, VBA, COM,
 pywin32 or Office PDF conversion is used. Targets: **Windows 7 SP1 / CPython
-3.8.10** and **Linux desktop / CPython 3.8–3.11**, with Tcl/Tk installed. The owner will bundle it separately; no EXE or
+3.8.10** and **Linux desktop / CPython 3.8 or later**, with Tcl/Tk installed. The owner will bundle it separately; no EXE or
 package is built by these scripts.
 
 ## Run on Windows
@@ -39,7 +39,7 @@ package is built by these scripts.
 
 ## Run on Linux
 
-Use a graphical Linux session with Python 3.8–3.11, Tcl/Tk, venv, xdg-utils, a
+Use a graphical Linux session with Python 3.8 or later, Tcl/Tk, venv, xdg-utils, a
 configured PDF viewer and an Arabic-capable TrueType font such as DejaVu Sans.
 Keep the source folder writable for the virtual environment. Run:
 
@@ -49,12 +49,13 @@ cd desktop
 ./Start_Linux.sh
 ```
 
-If the default `python3` is outside that range, select an installed compatible
-interpreter explicitly, for example `PYTHON_BIN=python3.11 ./Setup_Linux.sh`.
-The existing dependency pins are reused without changing the Windows target;
-Python 3.12+ is not covered by these binary pins. Setup installs into `.venv` only;
-it does not install system packages. On Debian/Ubuntu, Tcl/Tk and venv are commonly
-provided by `python3-tk` and `python3-venv` for the selected interpreter.
+Setup uses the installed `python3`; select another interpreter if needed with
+`PYTHON_BIN=/path/to/python ./Setup_Linux.sh`. Linux dependencies are unpinned and
+pip resolves compatible binary releases for that interpreter. Setup installs or
+updates only the folder's `.venv`; system Python and Windows compatibility
+requirements are separate. The setup and dummy GUI/editing/storage/PDF checks
+passed with the owner's current system Python. On Debian/Ubuntu, Tcl/Tk and venv
+are commonly provided by `python3-tk` and `python3-venv` for that interpreter.
 
 Joining, clinician verification, editing, review and confirmed publication/delivery
 follow the same workflow above. For an unencrypted Telegram project, Linux asks
@@ -96,13 +97,13 @@ before each line is shaped, so wrapped clinical reviews keep the correct reading
 order. Choice values, doctor IDs and callbacks remain logical Unicode. The review
 copy action copies the complete original text, not presentation glyphs.
 
-Native Tk editing keeps the original Unicode text and cursor semantics. On Tk
-builds without Arabic editing layout, the editable buffer can still look reversed;
-patient/task/badge forms show a correctly shaped live Arabic readback underneath.
-For multiline text it follows a bounded context around the caret on the current
-line. This is a readable editing aid, not a full bidi cursor/selection engine.
-Passwords never use these previews. Clinical records, searches, drafts, Telegram
-payloads and PDFs never receive the shaped UI strings.
+In Linux auto/shaped mode, patient/task/badge and search fields use
+`desktop_input.py`. The editor keeps the original Unicode as its model and renders
+shaped visual lines inside the field, with mapped caret and selection positions.
+Typing, mouse placement/selection, copy/cut/paste, deletion, undo/redo and wrapping
+operate on logical text. `get()`, bound variables and patient Save return original
+Unicode, never presentation glyphs. The separate readback preview is no longer
+needed. Password fields and native-rendering mode retain native controls.
 
 TEXT_RENDERING accepts `auto`, `native` or `shaped`. Auto enables the Linux adapter
 and leaves Windows rendering unchanged. Use native on a Tk build that already
@@ -213,3 +214,10 @@ remain unverified. Wheel availability is not Windows 7 certification. The pinned
 legacy dependencies are compatibility choices, not a current-support claim.
 See [protocol](PROTOCOL.md) and
 [desktop troubleshooting](TROUBLESHOOTING.md).
+
+The subsequent Linux update installed unpinned dependencies through Setup_Linux.sh
+on the owner's system Python. Actual form/search editing, visual cursor/mouse
+mapping, mixed Arabic/English text, clipboard, deletion, undo/redo, numeric
+validation and patient Save passed dummy GUI checks; screenshots confirmed Arabic
+inside the fields. Native-rendering/password exclusions and encrypted storage/PDF
+checks also passed. This does not establish full clinical or live Telegram workflows.

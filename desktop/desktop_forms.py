@@ -4,7 +4,8 @@ import copy
 from datetime import datetime
 import json
 import tkinter as tk
-from desktop_widgets import messagebox, visual_text, attach_input_preview
+from desktop_widgets import messagebox, visual_text
+from desktop_input import ArabicEntry, ArabicTextbox
 import uuid
 import desktop_widgets as ctk
 from desktop_protocol import BridgeError, ZoneInfo, packed, require
@@ -21,15 +22,16 @@ def button(parent, text, command, **kwargs):
 def entry(parent, label, value='', multiline=False):
     ctk.CTkLabel(parent, text=label, anchor='e').pack(fill='x', padx=10, pady=(6, 0))
     if multiline:
-        widget = ctk.CTkTextbox(parent, height=115, wrap='word', font=('Arial', 15))
+        widget = ArabicTextbox(parent, height=115, wrap='word', font=('Arial', 15))
         widget.insert('1.0', value)
         widget.tag_config('rtl', justify='right'); widget.tag_add('rtl', '1.0', 'end')
         widget.bind('<KeyRelease>', lambda event: widget.tag_add('rtl', '1.0', 'end'))
     else:
-        widget = ctk.CTkEntry(parent, justify='right', height=48)
+        widget = ArabicEntry(parent, justify='right', height=48)
         widget.insert(0, value)
+    if hasattr(widget, 'reset_undo'):
+        widget.reset_undo()
     widget.pack(fill='x', padx=10, pady=2)
-    attach_input_preview(widget,multiline)
     return widget
 
 

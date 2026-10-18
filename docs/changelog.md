@@ -60,10 +60,15 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   encrypted SQLite, Windows 7 pins and explicit report confirmation. Linux offline
   storage/locking/opener/PDF checks passed; graphical/live-project behavior remains
   unverified. See [current state](current-state.md).
-- Corrected Linux Arabic labels/choices/status/reviews with presentation-only
-  shaping and line-aware bidi layout; kept logical values and added form readbacks
-  without transforming editable clinical text. Actual dummy GUI/screenshots and
-  selection/copy checks passed. Native bidi cursor editing remains a Tk limitation.
+- Corrected Linux Arabic labels/choices/reviews and form/search inputs. Editors
+  render shaped Arabic in-place with mapped caret/selection, logical Unicode
+  clipboard/getters/Save, wrapping, undo/redo and preserved numeric validation.
+  Dummy GUI editing/Save probes and screenshots passed; full live workflows remain
+  unverified. Passwords/native mode retain native widgets.
+- Linux setup resolves unpinned binary dependencies in its own environment and
+  accepts current system Python. Actual setup, GUI/input, encrypted-draft,
+  protocol and Arabic PDF probes passed; Windows compatibility requirements stay
+  separate. See current state for verification scope.
 - Old workbook/builder/extractor/packaging work is superseded; original artifacts
   remain preserved. Protected `tools/` and old Windows guides could not be removed/
   rewritten due filesystem permissions. See [current state](current-state.md).

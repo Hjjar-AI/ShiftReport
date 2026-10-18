@@ -61,6 +61,9 @@ restore publication approval. Local mutex/transactions do not imply distributed
 Telegram atomicity. See [current state](current-state.md) for implementation and
 runtime limits; protected legacy tools/guides remain historical on disk.
 
+Linux setup resolves unpinned binary dependencies for its selected interpreter
+inside `.venv`; Windows 7 requirements remain separate.
+
 Linux uses the same encrypted SQLite and Telegram representations without a schema
 change. A separate local passphrase wraps the random key for unencrypted Telegram
 projects; it is never stored or derived from connection credentials. Missing keys
@@ -71,8 +74,11 @@ review/confirmation and does not authorize delivery on its own.
 
 Arabic UI presentation is isolated in `desktop_widgets.py`: adapters shape only
 rendered labels/choices/reviews and keep logical values for callbacks and copies.
-Patient editors keep native logical buffers and show a shaped context readback;
-no presentation glyphs are written back to clinical state. PDF shaping remains
+In auto/shaped mode, `desktop_input.py` keeps a logical Unicode editing model
+separate from its shaped display, with visual-to-logical caret and selection maps.
+Form/search getters, clipboard, bound variables and Save use the logical model;
+passwords and native mode retain native controls. No presentation glyphs are
+written back to clinical state. PDF shaping remains
 independent, preventing double transformation across UI and export paths.
 
 ## Repository organization

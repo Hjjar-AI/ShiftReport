@@ -22,6 +22,7 @@ from desktop_settings import read_settings, raw_config
 from desktop_store import Workspace
 from desktop_platform import data_directory, open_pdf, acquire_instance_lock
 from desktop_forms import button, combo, edit_patient, modal
+from desktop_input import ArabicEntry
 
 BASE = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent
 
@@ -62,7 +63,8 @@ class Window:
         ctk.CTkLabel(sidebar,text='إدارة الأطباء والأدوار والمشروع من Android.\nالنشر يتطلب اتصالا وهوية متحققة.',wraplength=275,justify='right').pack(padx=8,pady=8)
         tools = ctk.CTkFrame(self.content); tools.pack(fill='x',padx=5,pady=4)
         self.search = tk.StringVar()
-        ctk.CTkEntry(tools,textvariable=self.search,placeholder_text='بحث',justify='right').pack(side='right',fill='x',expand=True,padx=5,pady=5)
+        ctk.CTkLabel(tools,text='بحث',anchor='e').pack(side='right',padx=5)
+        ArabicEntry(tools,textvariable=self.search,justify='right').pack(side='right',fill='x',expand=True,padx=5,pady=5)
         self.search.trace_add('write',lambda *args:self.render())
         self.filter = ctk.CTkComboBox(tools,values=['الكل','أولوية','مهام معلقة','مهام متأخرة'],state='readonly',width=140,command=lambda value:self.render())
         self.filter.pack(side='left',padx=5)
