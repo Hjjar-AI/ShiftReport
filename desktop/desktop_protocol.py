@@ -42,6 +42,10 @@ class UncertainDelivery(BridgeError):
     pass
 
 
+class MissingProjectIndex(BridgeError):
+    pass
+
+
 def require(ok, message):
     if not ok:
         raise BridgeError(message)
@@ -179,12 +183,12 @@ class Telegram:
         message = chat.get('pinned_message', {})
         try:
             state = json.loads(self.cipher.decode_text(message.get('text', '')))
-            require(state.get('kind') == 'shift-report-sync-state' and state.get('v') == 4, 'مطلوب فهرس Android الحالي؛ لا تستبدل التثبيت بملف XLSX')
+            require(state.get('kind') == 'shift-report-sync-state' and state.get('v') == 4, 'الرسالة المثبتة ليست فهرس المشروع الحالي؛ راجع المشروع والتثبيت')
             return message['message_id'], state
         except BridgeError:
             raise
         except Exception:
-            raise BridgeError('لا يوجد فهرس المشروع الحالي مثبتا؛ انشر سجل الأطباء من التطبيق أولا') from None
+            raise MissingProjectIndex('لا يوجد فهرس مشروع صالح مثبت. للمجموعة الجديدة استخدم «إنشاء مشروع جديد»؛ للمشروع القائم راجع تثبيت الفهرس أو مزامنة سجل الأطباء') from None
 
     def upload(self, raw, filename, topic=None, caption=None, chat=None, pdf=False):
         params = {'chat_id': chat or self.config['chatId'], 'disable_notification': 'true'}
@@ -212,11 +216,11 @@ class Telegram:
             self.call('editMessageText', {'chat_id': self.config['chatId'], 'message_id': message_id, 'text': text})
         except BridgeError:
             # A timeout can follow a successful edit. Read back before declaring failure.
-            _, actual = self.state()
-            if actual.get('csvMessageId') != state.get('csvMessageId'):
+            actual_id, actual = self.state()
+            if actual_id != message_id or pointer(actual) != pointer(state) or doctor_pointer(actual) != doctor_pointer(state):
                 raise
-        _, actual = self.state()
-        require(actual.get('csvMessageId') == state.get('csvMessageId') and actual.get('csvFileId') == state.get('csvFileId'),
+        actual_id, actual = self.state()
+        require(actual_id == message_id and pointer(actual) == pointer(state) and doctor_pointer(actual) == doctor_pointer(state),
                 'وصل نشر متزامن؛ لم يتم تأكيد نسختك كنسخة حالية. اجلب وراجع التعارضات')
         return actual
 
@@ -476,6 +480,12 @@ class Client:
                 member.get('status') == 'restricted' and member.get('is_member'), 'الطبيب لم يعد عضوا في المشروع')
         return actor
 
+    def require_admin(self):
+        snapshot = self.fetch()
+        actor = self.authorize(snapshot['doctors'])
+        require(is_admin(actor), 'تصدير توزيع المرضى متاح للمدير فقط')
+        return actor
+
     def download(self):
         snapshot = self.fetch()
         self.authorize(snapshot['doctors'])
@@ -529,7 +539,7 @@ class Client:
         plan = Review(pointer(remote['state']), doctor_pointer(remote['state']), output, remote['bundle'], remote, conflicts)
         return plan
 
-    def prepare(self, plan):
+    def prepare(self, plan, restored_completions=None):
         require(not plan.conflicts, 'راجع كل التعارضات أولا')
         actor = self.authorize(plan.remote['doctors'])
         doctors = plan.remote['doctors']
@@ -546,6 +556,12 @@ class Client:
             validate_patient(row, doctors, self.zone)
             old = previous.get(row['externalId'], {})
             old_tasks = {t['id']: t for t in json.loads(old.get('tasksJson') or '[]')}
+            recovered = next((entry['tasks'] for entry in (restored_completions or [])
+                              if entry['shiftId'] == shift['meta']['shiftId'] and entry['patientId'] == row['externalId']), [])
+            # Only previously published completions from encrypted local recovery are retained.
+            # Editable form completion fields still do not establish completion identity/time.
+            for task in recovered:
+                if task.get('done'): old_tasks.setdefault(task['id'], task)
             tasks = json.loads(row.get('tasksJson') or '[]')
             require(isinstance(tasks, list) and len({t['id'] for t in tasks}) == len(tasks), 'قائمة مهام غير صالحة')
             for task in tasks:
@@ -631,3 +647,33 @@ class Client:
         before_send(chat, topic)
         return self.telegram.upload(raw, 'ShiftReport_' + shift['meta']['shiftDate'] + '.pdf', topic,
                                     self.config['hospitalName'] + ' — ' + shift['meta']['shiftDate'], chat, pdf=True)
+
+    def send_text(self, text, shift, supervisor, reviewed_pointer, reviewed_registry, before_send):
+        from desktop_reports import report_text, text_chunks
+        def destination():
+            current = self.fetch()
+            self.authorize(current['doctors'])
+            require(pointer(current['state']) == reviewed_pointer and doctor_pointer(current['state']) == reviewed_registry,
+                    'تغيرت نسخة المرضى أو الأطباء؛ أعد المعاينة')
+            require(shift['meta']['shiftDate'] == current_date(self.zone), 'لا ترسل تقرير مناوبة محفوظة')
+            self.doctors = current['doctors']
+            require(text == report_text(self, shift, supervisor), 'تغير النص بعد المعاينة')
+            chat, topic = self.config['chatId'], self.config.get('reportsTopicId')
+            if supervisor:
+                doctor = current['doctors'].get(supervisor)
+                require(doctor and doctor['clinicalRole'] == 'SUPERVISOR' and doctor.get('destination'), 'وجهة المشرف غير متاحة')
+                chat, topic = doctor['destination'], None
+            return chat, topic
+        chat, topic = destination()
+        before_send(chat, topic)  # One UNKNOWN receipt covers all parts, including partial delivery.
+        if self.config.get('telegramDataKey'):
+            return self.telegram.upload(text.encode('utf-8'), 'ShiftReport_'+shift['meta']['shiftDate']+'.txt', topic, chat=chat)
+        parts = text_chunks(text)
+        result = None
+        for index, part in enumerate(parts, 1):
+            destination()  # A mid-send failure retains UNKNOWN; never silently retry a partial report.
+            params = dict(chat_id=chat, text='({}/{})\n'.format(index, len(parts))+part, disable_notification='true')
+            if topic: params['message_thread_id'] = topic
+            result = self.telegram.call('sendMessage', params)
+            require(result.get('message_id'), 'لم يرجع تليجرام معرّف جزء التقرير؛ افحص التسليم قبل الإعادة')
+        return result

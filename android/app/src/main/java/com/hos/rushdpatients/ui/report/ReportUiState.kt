@@ -14,10 +14,11 @@ data class SupervisorReportTarget(
     val patientCount: Int
 )
 
-enum class ReportRetryAction { SEND, PREVIEW, SAVE, SHARE }
+enum class ReportRetryAction { SEND, PREVIEW, SAVE, SHARE, ASSIGNMENTS }
 
 data class ReportUiState(
     val loading: Boolean = true,
+    val isAdmin: Boolean = false,
     val shift: Shift? = null,
     val isReadOnly: Boolean = false,
     val patients: List<Patient> = emptyList(),

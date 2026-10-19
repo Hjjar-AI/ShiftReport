@@ -222,7 +222,8 @@ preferences, private-code identity, patient/task/badge editors, current/archive
 shift selection, explicit carry-forward, unlimited active-doctor roster, search/
 filters/counts and stored sorting. Offline edits are encrypted local drafts;
 publication requires fresh verified identity/membership, conflict choices and
-snapshot review. Doctor/role/project administration remains in Android.
+snapshot review. Desktop can create the first admin/project and export join files;
+reviewed ongoing doctor/role/destination administration is also available.
 
 The owner-authorized desktop exception `CONNECTION_MODE=raw` accepts literal local
 bot/group/topic credentials plus the existing data key via `.env` or a separate
@@ -236,8 +237,40 @@ join-file startup and protected-file reconnect remain available; Android is
 unchanged. Raw files contain plaintext secrets and must stay private/out of
 bundles; token possession still permits direct Telegram access outside the client.
 Dummy configuration and authorization probes, Python 3.8 grammar inspection and
-whitespace checks cover this change; live Telegram/admin startup, target Windows
-and Linux GUI behavior remain unverified. No build or test-suite work was run.
+whitespace checks cover this change; live Telegram/admin startup and target
+Windows behavior remain unverified. Later Linux dummy GUI probes are recorded below. No build or test-suite work was run.
+
+Desktop project creation uses `desktop_project.py` for protocol rules and
+`desktop_onboarding.py` for the Arabic dialogs, with common Windows/Linux paths.
+Complete raw `.env` settings expose **إنشاء مشروع جديد** before login. The first
+human admin must own/administer the Telegram group and verify a private code;
+challenges expire after three minutes/five attempts with a resend cooldown.
+Successful verification allows thirty minutes for review; every write still
+rechecks live group-admin authority.
+The bot must administer the group with pin rights. Any existing pin or local
+baseline/draft/receipt blocks creation. Review shows hospital/group/topic mapping,
+first admin/clinical role and encryption setting, without revealing the token/key.
+Every group write rechecks authority and the absence of a pin. A sealed profile
+and configuration prevent stale/reused review. A persisted encrypted UNKNOWN
+receipt precedes the initial doctor upload. The app publishes one permanent-admin
+registry, sends/pins the current JSON index in General and verifies both before
+confirming the receipt/session; no patient or shift is created automatically.
+Failures do not silently delete artifacts or retry. This cannot guarantee empty
+chat history or atomic concurrent creation. Existing pin recovery remains manual.
+
+Verified admins can export Android-compatible protected `.srjoin.json` files.
+The live registry/session is rechecked below the UI before preparation/write;
+output includes only connection/topics/key and uses the existing authenticated
+password envelope. Existing files are refused and new files are reopened for
+verification; passwords are never persisted. The key is preserved exactly.
+Fake-transport probes passed for plaintext/encrypted bootstrap, initial wire/index
+formats, review/authority/stale-data guards, challenge limits, concurrent-pin abort,
+persisted UNKNOWN/restart blocking and protected join-file round trips/overwrite
+refusal. Actual Linux first-admin/review/export dialogs, admin-only visibility and
+screenshots passed with dummy data and all real network blocked. Python 3.8 grammar
+and whitespace checks passed. Real Windows/DPAPI execution, Android-device join
+and live Telegram creation/export were not performed. No build/package or
+migration/test-suite work was run; existing versions are unchanged.
 
 Local persistence is a project-fingerprint SQLite workspace containing an AES-GCM
 blob: baseline, draft, registry cache and delivery ledger. No connection secrets
@@ -329,6 +362,87 @@ installed and no packaging was run.
 
 Cleanup verification used configuration parsing, documentation-link inspection
 and Git whitespace checks only. No builds or test-suite work was run.
+
+### Desktop recovery, richer reports and administration
+
+The desktop now retains deleted patients and their original list positions in
+optional encrypted workspace recovery records, with no SQLite/interchange schema
+or version changes. Current-shift restoration requires an unchanged draft and a
+missing patient ID, restores complete content and uses normal conflict review
+before publication. Recovery survives reopen/publication and encrypted draft
+backup; receipts still cannot be rolled back by restoring a backup. Previously
+published task completions retain their identity/time through sealed recovery
+history; unpublished completions still receive verified review-time stamps.
+
+Reports support text and PDF; the Classic seven-column RTL table and linked
+portrait A5 cards now follow Android's layouts, paper/orientation choices, five
+palettes and dark appearance. Paragraph output remains available. Local PDF
+export can save a separate file for each supervisor, including an unassigned group. Content
+and stored patient order are retained. Local text export is explicit/readable.
+Delivery keeps exact-file PDF preview or complete logical-text review followed by
+explicit destination confirmation. Encrypted projects send text as a protected
+document; plaintext projects use UTF-16-bounded Telegram messages. Partial or
+uncertain multi-part delivery retains UNKNOWN and blocks an unreviewed retry.
+
+`desktop_doctors.py` and `desktop_admin_ui.py` implement reviewed add/edit/delete,
+supervisor destinations, promotion and eligible demotion. Protocol-level checks
+require current Telegram identity/membership and registry admin authority, retain
+permanent-admin/rank protections, reject stale registry/patient pointers and local
+draft changes, and guard published/local patient/task references and current
+rosters. New doctors use the current stable ID/wire representation; no Android
+PINs are transported. Registry publication records UNKNOWN before upload, retains
+unrelated index fields and confirms the exact registry/pointer by readback.
+Updating the registry cache does not replace the private patient draft or its
+patient merge baseline. Telegram concurrency remains last-successful-write-wins.
+
+Source/local verification, repeated against the applied production modules:
+Python 3.8 grammar; dummy encrypted deletion/reopen/
+restore/backup and ledger preservation; fake-transport add/promote/demote and
+stale/permanent-admin/non-admin rejection; text chunking and encrypted/plain
+transport; long Arabic table A4/A5, linked A5 card and landscape Letter paragraph
+PDF generation. An A5 table page was visually inspected. New dialog interaction,
+Windows 7, live Telegram and Android round trips remain unverified. No build,
+compilation, packaging, migration or test-suite work ran.
+
+### Names-only team overview and desktop PDF parity
+
+Both platforms expose **حفظ توزيع المرضى بالأسماء فقط (PDF)** from the report
+workflow (Android report preview; desktop sidebar). Each supervisor gets one
+separate table: supervisor heading, one comma-separated resident-name row, then
+one patient name per row. Residents are collected/deduplicated from that team's
+explicit patient assignments; no doctor hierarchy is inferred or persisted.
+Unknown/unassigned teams remain visible and every patient name is retained in
+stored relative order within its group. The local export is one portrait page:
+selected paper width/minimum height, increasing height when needed. It is a local
+names-only overview; ordinary clinical report review/sending remains separate.
+
+Android `PdfAssignmentExporter` measures the complete layout before creating its
+single page, uses the existing palette/settings and saves through the existing
+PDF path on IO with byte verification. Its local snapshot does not require a
+shift roster; normal clinical report building still does. The action works for saved shifts as other local exports do,
+retains busy/conflict guards, and has a dedicated retry action. It does not write
+clinical records, sync data or change any versions.
+
+Desktop `desktop_pdf_content.py` shares report content, task display ordering and
+the exact current Android palette values with the renderer. Classic tables use
+Android's seven RTL columns and proportional widths with full-row continuation;
+A5 cards use a linked index, repeated patient heading and Previous/Index/Next on
+all continuation pages. Paper sizes/orientation, five palettes (including pastel),
+dark backgrounds/text, ward/context and separate local supervisor files are
+available. Per-supervisor files are fully prepared before writing a new set;
+the combined names overview always remains one file. No clinical content, tasks,
+completion history or saved badges are removed from full reports. PDF delivery
+still requires actual-file preview and explicit confirmation.
+
+Verification: desktop Python 3.8 grammar; dummy grouping/resident deduplication/
+unassigned-name preservation; one-page ordinary and 200-patient/200-team overview;
+Classic output for all five palettes in light/dark; long Classic/card/paragraph
+PDF generation; visual inspection of the overview, Classic and a continuation card.
+Separate local supervisor-file generation retained the unassigned group and left
+the original shift unchanged; card output contained resolved internal navigation links.
+Android source wiring/layout and retry handling were inspected; no Kotlin compile,
+Gradle/build, packaging, migration or test-suite work ran. Android rendering/saving,
+new desktop dialogs, Windows and live Telegram remain unverified.
 
 ## Verification and limits
 

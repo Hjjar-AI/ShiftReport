@@ -21,12 +21,14 @@ class MediaStoreSaver @Inject constructor() {
     suspend fun savePdf(
         context: Context,
         sourceFile: File,
-        displayName: String
+        displayName: String,
+        verifyContents: Boolean = false
     ): Uri? = saveFile(
         context = context,
         sourceFile = sourceFile,
         displayName = displayName,
-        mimeType = "application/pdf"
+        mimeType = "application/pdf",
+        verifyContents = verifyContents
     )
 
     suspend fun saveCsv(
@@ -65,19 +67,19 @@ class MediaStoreSaver @Inject constructor() {
             val uri = resolver.insert(collection, values) ?: return@withContext null
             try {
                 val stream = resolver.openOutputStream(uri)
-                if (verifyContents && stream == null) error("تعذر فتح ملف CSV")
+                if (verifyContents && stream == null) error("تعذر فتح ملف التصدير")
                 stream?.use { output ->
                     sourceFile.inputStream().use { input -> input.copyTo(output) }
                     if (verifyContents) output.flush()
                 }
                 if (verifyContents) {
                     verifyCopy(sourceFile, resolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?: error("تعذر التحقق من حفظ CSV"))
+                        ?: error("تعذر التحقق من حفظ الملف"))
                 }
                 values.clear()
                 values.put(MediaStore.MediaColumns.IS_PENDING, 0)
                 val published = resolver.update(uri, values, null, null)
-                if (verifyContents) check(published > 0) { "تعذر إكمال حفظ CSV" }
+                if (verifyContents) check(published > 0) { "تعذر إكمال حفظ الملف" }
                 uri
             } catch (e: Exception) {
                 if (verifyContents) {
@@ -116,7 +118,7 @@ class MediaStoreSaver @Inject constructor() {
         try {
             expected = source.readBytes()
             check(expected.isNotEmpty() && saved.contentEquals(expected)) {
-                "لم يُحفظ ملف CSV كاملاً"
+                "لم يُحفظ ملف التصدير كاملاً"
             }
         } finally {
             expected?.fill(0)

@@ -257,6 +257,13 @@ fun ReportPreviewScreen(
                     )
                 }
 
+                if (state.isAdmin) {
+                    AppOutlinedButton(onClick = viewModel::exportAssignments, modifier = Modifier.fillMaxWidth(),
+                        enabled = !busy && state.shift != null) { Text("حفظ توزيع المرضى بالأسماء فقط (PDF)") }
+                    Text("صفحة طولية واحدة: جدول لكل مشرف، أسماء المقيمين في صف واحد ثم أسماء المرضى فقط.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
                 state.error?.let { err ->
                     AppNotice(err, kind = NoticeKind.ERROR,
                         actionLabel = if (state.retryAction == null) null else "إعادة المحاولة",

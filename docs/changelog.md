@@ -18,8 +18,17 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 - Same-device PIN re-entry after sign-out, persistent attempt limits, optional
   biometric locking and below-UI live admin authorization.
 
+- Desktop first-admin creation for new Telegram groups, with group-admin/code
+  verification, explicit review, persistent creation receipts and verified registry/
+  index publication. Added live-admin protected join export for Android/desktop.
+  Fake-transport and Linux dialog probes passed; live/Windows limits are recorded
+  in current state.
+
 ## Clinical data and reports
 
+- Added one-page portrait names-only team PDFs on Android and desktop: a separate
+  table per supervisor, a comma-separated resident row and patient-name rows.
+  Unassigned groups and complete names are retained; page height grows as needed.
 - Full-screen RTL patient drafts, General/Advanced labs, compact paired inputs,
   validation shortcuts, explicit discard and optional validated Save and next.
 - Structured optional-owner tasks, completion identity/time, per-patient/ward
@@ -46,12 +55,19 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Standalone desktop
 
+- Added encrypted local patient recycle/restore with original task completion
+  history; reviewed text/PDF reports, Android-style Classic tables/linked A5 cards,
+  five palettes/dark mode, paper/ward settings and local per-supervisor files; and
+  live-admin reviewed doctor/role/destination management. Preserved patient drafts,
+  pointer checks, permanent-admin/reference guards and UNKNOWN delivery receipts.
+  Source/local/fake-transport/PDF checks and remaining runtime limits are recorded
+  in [current state](current-state.md).
 - Replaced the active Excel workflow with source in `desktop/`: CustomTkinter
   patient/task/badge/roster editing, search/counts/order, encrypted offline drafts,
   protected-file reconnect and reviewed current-format Android/Telegram publication.
 - Added Office-free paginated Arabic PDFs, preview/confirmed delivery, local export,
   durable UNKNOWN receipts and ledger-preserving encrypted draft restore. Kept
-  existing protocol/encryption/schema versions and Android administration boundaries.
+  existing protocol/encryption/schema versions and clinical safety checks.
 - Added Python 3.8.10 source launch/setup, optional `.env` preferences and isolated
   Windows 7 dependency pins. Source/offline/PDF and x86/x64 wheel checks passed;
   target runtime/live Telegram remain unverified. Owner will bundle separately.

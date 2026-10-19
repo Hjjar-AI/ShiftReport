@@ -39,12 +39,34 @@ the decoder. Android must rebuild/republish before shared use.
   three minutes/five attempts; verified sessions last thirty minutes. The client
   does not consume `getUpdates`. Mutations recheck live doctor linkage/membership.
 - Bot possession, actor IDs and editable actor fields are not authorization.
-  Doctor-registry/role/destination mutation remains in Android.
+  Registry/role/destination mutations require live admin authorization below the GUI.
 - Project fingerprint binds bot identity, group/topics and data key. Different
   projects/keys/topics cannot be mixed. Baselines use the stable project key or a
   random local key protected by Windows DPAPI or a Linux passphrase; same-bot token
   replacement preserves them. Linux stores only the authenticated wrapped key;
   its local passphrase is entered interactively and never saved.
+
+## First-admin bootstrap and join export
+
+`desktop_project.py` creates the existing registry/index formats without changing
+versions. No registry exists to authorize the first actor, so bootstrap requires
+both a private Telegram challenge and live human group owner/admin status. The bot
+must be an admin with pin rights. Before each group write, recheck authority,
+frozen configuration and absence of any pinned message. Review seals the profile;
+UI bypass, stale reviews and reused approvals fail below the UI.
+
+A new, unused project workspace records an encrypted UNKNOWN creation receipt
+before uploading the registry. Existing baseline/draft/receipts block initialization.
+Upload the first permanent admin with a stable UUID, then send the JSON index in
+General, pin it and read back the exact index and registry. Only then establish
+the clinician session and confirm the receipt. Failures leave the receipt for
+manual inspection/reconnect; there is no automatic publication retry or deletion.
+These checks do not make concurrent creation atomic or prove empty chat history.
+
+Protected join export requires a current verified registry admin. Serialize only
+connection/topics/key into the existing password-encrypted Android join envelope;
+refuse overwrites, recheck authorization before writing and reopen/verify the
+new file. Secrets/passwords never enter the clinical workspace or receipt payload.
 
 ## Download and draft
 
@@ -79,7 +101,35 @@ force endpoint or automatic upload retry exists. An upload alone does not prove
 its snapshot became current. A matching journal entry may confirm a publication;
 absence from the bounded journal does not prove failure.
 
-## PDF delivery
+## Desktop registry mutation and local recovery
+
+`desktop_doctors.py` publishes the current nine-column registry, without a format
+or version change. Review binds action, proposed registry, actor, local draft and
+remote patient/doctor pointers. Recheck live membership/admin status below the UI,
+protect permanent admins and demotion rank rules, and block unsafe clinical
+reference removal. Persist UNKNOWN before upload; re-read both pointers and
+admin authority before updating the existing index; verify the exact new registry
+and pointer afterward. Keep the patient baseline/draft and unrelated index fields.
+This uses the accepted last-successful-write-wins model, not atomic transactions.
+
+Deleted local rows and their previously published completion history remain in
+optional encrypted workspace recovery records; SQLite and interchange schemas
+are unchanged. Restoration checks shift, expected draft and duplicate ID, retains
+full content and position, and requires ordinary conflict review before publication.
+Recovery travels with `.srdraft` backups; delivery receipts remain device-local.
+
+## Report delivery
+
+PDF options cover Android-style seven-column Classic tables, paragraphs, linked
+A5 cards, paper/orientation, five matching palettes, dark mode and ward context.
+Separate local supervisor files include unassigned patients. A separate local
+names-only export groups patient names by supervisor, with residents in one
+comma-separated row; it always remains one portrait page/file with growing height. Logical text reports retain the selected patients/roster and all
+clinical content. Review then explicitly confirm. Encrypted projects upload a
+protected text document; unencrypted projects split plain text by UTF-16 units.
+One UNKNOWN receipt precedes the first message and remains UNKNOWN if a later
+part fails. Never silently retry or claim that partial delivery rolled back.
+
 
 Generate a fresh paginated ReportLab PDF with all clinical fields, structured tasks/completions,
 badges, roster and context. Omit routine/unassigned and patient last-edit labels,

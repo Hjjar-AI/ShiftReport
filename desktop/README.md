@@ -21,8 +21,9 @@ package is built by these scripts.
    topics and the optional shared key normally come from that file. An optional
    admin-only raw `.env` path is described below; Android joining remains file-only.
    No credentials should be pasted into source or chat.
-4. Publish the doctor registry and current patient data from the current Android
-   source first. Its complete CSV metadata must be quoted; rebuild/republish older
+4. For an existing project, publish the doctor registry and current patient data
+   from the current Android source first. For a new group, use desktop creation
+   below. Its complete CSV metadata must be quoted; rebuild/republish older
    incorrectly quoted snapshots using Android. Protocol/schema versions stay unchanged.
 5. Update the doctor list, select yourself, request a private Telegram code and
    enter it. Open the bot and press Start beforehand if it cannot deliver the code.
@@ -68,6 +69,46 @@ A default PDF viewer is opened through `xdg-open`, without a shell. If opening
 fails, sending stops before delivery starts. Always inspect the actual PDF before
 confirming: launching a viewer alone does not establish that you reviewed it.
 
+## Create a project from Windows or Linux
+
+1. Add your bot as a group administrator with permission to pin messages. Your
+   personal Telegram account must also own/administer the group. Enable topics if
+   you use topic IDs, create those topics in Telegram and copy their exact IDs;
+   desktop creation does not create the topics themselves. Use a new group; it refuses every existing
+   pinned item and never removes pins/messages to make room.
+2. Fill `.env` using its commented guide: choose `CONNECTION_MODE=raw`, leave
+   `JOIN_FILE` blank, and provide the hospital, bot, group and exact topic settings.
+   Encryption follows the configured setting/key; no key is silently generated,
+   replaced or used to convert an existing project.
+3. Start the desktop client. If connection reports no index, choose **إنشاء مشروع جديد**. Enter your full name, personal Telegram user
+   ID, gender and clinical role. Open your bot and press Start beforehand.
+4. Request and enter the private creation code. The app checks your group-admin
+   status and the bot's pin permission. On Linux, set/unlock the separate local
+   draft passphrase if the Telegram project is unencrypted.
+5. Review the group, hospital, topic mapping, first administrator and encryption
+   setting, then explicitly approve. The app uploads the first doctor registry,
+   sends/pins the current JSON index in General and reads both back for confirmation.
+   It creates no dummy patients or shift automatically.
+6. Choose **جلب / اختيار مناوبة** to start your first shift. Use
+   **تصدير ملف انضمام محمي** to save an Android-compatible `.srjoin.json` for other
+   devices; enter/confirm a password and send that password separately. The export
+   includes the connection and any shared data key, without patient/user records.
+
+The creation action locks once a project is open. Existing local drafts, baselines
+or operation receipts block bootstrap. A persisted encrypted UNKNOWN receipt is
+written before the first registry upload. If creation fails after it starts,
+inspect Telegram and reconnect once the correct index is pinned; do not blindly
+repeat creation or delete the workspace. Uploaded files/messages are not silently
+removed. Read/edit/publish and concurrent creation still have Telegram's
+last-successful-write-wins limitation, not a distributed transaction.
+
+Join-file export is visible to a verified admin and rechecks the live registry
+below the UI. It refuses existing output files and verifies the encrypted file
+by reopening it before reporting success. Windows uses its existing DPAPI path;
+Linux uses its existing shared-key/passphrase path. The new dialogs and protocol
+were checked on Linux with a fake Telegram transport; actual Windows runtime and
+live creation/export remain unverified.
+
 ## Features and boundaries
 
 - Patient demographics, clinical notes/labs, optional resident/supervisor, priority,
@@ -83,11 +124,60 @@ confirming: launching a viewer alone does not establish that you reviewed it.
   last-successful-write-wins; pointer checks are not a distributed transaction.
 - Live identity/membership and pointer checks below the GUI. Completion identity,
   time, revisions and publication metadata are stamped during reviewed preparation.
-- Doctor/role/destination administration, project creation, announcements and
-  Android's local audit UI remain in Android. This replaces the shared Excel
+- First-admin project creation and protected join-file export work on desktop.
+  Reviewed doctor/role/destination administration is available to verified admins.
+  Announcements and Android's local clinical audit UI remain in Android. This replaces the shared Excel
   client; it is not a second implementation of every Android administration screen.
 - The app never opens/converts old workbooks. Private clinical artifacts remain
   preserved in ignored local storage.
+
+## Desktop recovery, reports and doctor administration
+
+- **Recycle bin:** deleting a patient retains the full record, tasks, badges and
+  position in the encrypted workspace. Open **سلة المرضى المحذوفين**, review the
+  saved record and explicitly restore it to the current shift's local draft.
+  Existing IDs are never overwritten. Review assignments before publishing;
+  restoration uses ordinary conflict review. This is this device's recycle bin,
+  not a shared Telegram deletion archive. It survives reopen, publication and
+  encrypted draft backups. Previously published task completion identity/time
+  comes from the sealed recovery history; new completions are stamped at review.
+- **Reports:** choose PDF or text before preview/export. PDF supports paginated
+  Classic seven-column RTL tables, paragraphs and linked portrait A5 cards.
+  Paper size/orientation, five Android palettes, dark mode and separate local
+  supervisor files are available under Advanced; ward name is shared report context.
+  Card headings and Previous/Index/Next links remain on continuation pages. Patient order and full clinical content,
+  tasks and badges are retained. PDF delivery still requires opening the exact
+  file and confirming the destination. Text is reviewed in the app, then confirmed;
+  encrypted projects send it as an encrypted document, while readable projects
+  use plain Telegram messages split within the UTF-16 limit. Local text exports
+  are readable files deliberately saved by the user.
+- **Names-only overview:** use **حفظ توزيع المرضى بالأسماء فقط (PDF)** in the
+  sidebar. Each supervisor has a distinct table, with one comma-separated row of
+  residents and a single column of patient-name rows. Residents come from saved
+  patient assignments, deduplicated within each supervisor group. Unassigned
+  patients remain in their own labelled group. This always exports one combined
+  portrait page, increasing its height when needed; it does not follow the
+  separate-supervisor-file setting for full clinical reports.
+- **Administration:** a verified admin can add/edit/delete doctors, assign
+  supervisor report groups, promote regular doctors and demote eligible admins.
+  Review the complete before/after registry before publishing. The protocol checks
+  live identity, membership and admin role; permanent admins cannot be demoted,
+  and ordinary admins can demote only lower ranks. Removal/clinical-role changes
+  check published patient/task references and the local draft; deletion also
+  checks the current roster. Reassign and publish first. Desktop does not set or
+  export Android device-local PINs; clinician login here uses private Telegram codes.
+- Registry publication rechecks patient/doctor pointers and the reviewed draft,
+  preserves other index fields and confirms the uploaded registry by reading it
+  back. The local patient baseline/draft is retained. Uncertain registry or partial
+  text delivery stays UNKNOWN in the operation ledger; inspect Telegram before
+  allowing another attempt. There is no automatic upload retry.
+
+Source checks for this addition covered Python 3.8 grammar, encrypted local
+recovery/backup and receipt preservation, fake-transport administration and text
+delivery, and long Arabic PDFs in table/card/paragraph layouts. An A5 table page
+was visually inspected. These checks used the existing Linux environment, not
+Windows 7 or a fresh pinned installation. Live Telegram, Android round trips and
+new dialog interaction remain unverified. No builds, packaging or test-suite work ran.
 
 ## Arabic display
 
@@ -132,8 +222,9 @@ credentials fail without falling back to another connection.
 Raw startup requires an online current-registry admin verified by a private
 Telegram code **before opening the local workspace**. Subsequent shared actions
 recheck the admin role and membership below the UI. Join-file startup retains
-ordinary member login and offline draft reopening. Raw mode does not create a
-project or doctor registry; publish the registry from Android first. Reconnecting
+ordinary member login and offline draft reopening. For an empty new group,
+the separate reviewed Create project action bootstraps its first registry/index.
+Reconnecting
 an already open project still uses a protected join file and rejects project/key/
 topic changes. Join passwords, login codes and local unlock passphrases are never
 read from `.env`.
@@ -221,3 +312,9 @@ mapping, mixed Arabic/English text, clipboard, deletion, undo/redo, numeric
 validation and patient Save passed dummy GUI checks; screenshots confirmed Arabic
 inside the fields. Native-rendering/password exclusions and encrypted storage/PDF
 checks also passed. This does not establish full clinical or live Telegram workflows.
+
+The names-only overview and Android-style PDF update was checked through Python
+3.8 grammar, dummy grouping/unassigned-name probes, ordinary/200-team one-page
+exports, all five Classic palettes in light/dark and long paginated reports.
+Overview, Classic and continuation-card images were inspected. New dialog use,
+Android rendering/compilation, Windows and live Telegram remain unverified.

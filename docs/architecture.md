@@ -46,12 +46,23 @@ forms replace Excel; the existing Telegram formats and accepted retrieve/edit/
 review/publish model stay unchanged. A worker serializes blocking network/file/
 crypto operations. The GUI owns logical Arabic input text; PDF shaping happens
 only during rendering. Authentication and publication checks live in the protocol
-layer, not just navigation. Android retains project and doctor/role administration.
+layer, not just navigation. Desktop can bootstrap the first admin and export join
+files and perform reviewed ongoing doctor/role/destination administration.
+Live authorization, stale-review checks and reference guards remain below the UI.
 Protected join files remain the normal desktop connection path. An explicit local
 raw-credential mode supports occasional admin use, with Telegram verification
 before workspace access and admin checks in protocol authorization. Its plaintext
 settings are outside the encrypted workspace and must stay out of bundles; these
 client checks cannot restrict direct Telegram access by a token holder.
+
+Before a registry exists, desktop creation uses verified human Telegram group
+administration as bootstrap authority. Keep this separate from ordinary registry
+login: require a private challenge, explicit review, no existing pin and an unused
+local workspace, with authority rechecks below the UI for every publication step.
+Persist an encrypted UNKNOWN receipt before the first write. Do not silently
+replace unknown pins, reset data or retry ambiguous creation. Current Android
+registry/index/join formats remain the source of interoperability; no new backend
+or atomic multi-writer guarantee is introduced.
 
 A project-fingerprint workspace seals baseline, draft, registry cache and receipts
 with AES-GCM before SQLite persistence. The stable shared project key or a random key protected by Windows DPAPI
@@ -91,3 +102,10 @@ This separates platform tooling without altering application/data versions or
 shared Telegram contracts. Android commands and IDE imports use `android/` as
 the project root. Historical protected reviews retain old source-root paths;
 current source paths are prefixed with `android/`.
+
+The names-only team PDF is a presentation of explicit patient assignments, not a
+new persisted supervisor/resident hierarchy. Both platforms group by supervisor,
+list the team's distinct assigned residents in one row and retain patient-name
+rows in one portrait page whose height grows with content. Full desktop reports
+mirror Android's current Classic/card layouts and palette semantics; local
+per-supervisor exports and readable names/PDF exports do not publish clinical data.

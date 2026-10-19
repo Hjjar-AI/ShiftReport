@@ -27,10 +27,22 @@
 - **Reconnect:** use a new protected join file before login. An open session rejects
   cross-project/key/topic changes. Candidate credentials must validate live before
   replacing the client. Token revocation is in BotFather.
-- **Login:** publish the current doctor registry from Android, link your Telegram
+- **Login:** for an existing project, publish the doctor registry from Android; link your Telegram
   identity and press Start on the bot. Codes expire after three minutes/five
   attempts. Verified sessions expire after thirty minutes; mutations recheck live
   membership. Doctor/role administration stays in Android.
+- **Empty new group:** with complete raw `.env` settings, select **إنشاء مشروع جديد**.
+  Verify the first admin using a private Telegram code, then review and approve.
+  The personal account must own/administer the group; the bot needs pin rights.
+  An existing pin blocks creation, including an unrelated `.txt` document. Review
+  the old pin manually or use a genuinely new group; the app never removes it.
+- **Incomplete creation:** the local encrypted receipt remains UNKNOWN. Inspect
+  Telegram for the first registry and JSON index and reconnect after confirming
+  the correct index is pinned. Do not repeat bootstrap or erase local files to
+  bypass the guard. A previously used local workspace also blocks creation.
+- **Join export:** after verified admin login, use **تصدير ملف انضمام محمي**.
+  Choose a new `.srjoin.json` name and a password of at least ten characters.
+  Existing outputs are refused; a changed admin role/session blocks export.
 - **CSV:** republish old incorrectly quoted metadata using the current Android
   source. Keep schema versions unchanged and do not pin an XLSX in place of JSON.
 - **Review:** match Android's timezone and 08:30 boundary. Archived shifts are

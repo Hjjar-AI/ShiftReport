@@ -15,7 +15,7 @@ from tkinter import filedialog
 from desktop_widgets import messagebox, simpledialog, set_readonly_text
 import uuid
 import desktop_widgets as ctk
-from desktop_protocol import (BridgeError, Client, ZoneInfo, current_date, doctor_pointer,
+from desktop_protocol import (BridgeError, MissingProjectIndex, Client, ZoneInfo, current_date, doctor_pointer,
                               fingerprint, is_admin, open_join, packed, pointer, require)
 from desktop_model import (LABELS, DIAGNOSIS, carry_forward, doctor_label, new_patient, task_counts, patient_text, shift_text)
 from desktop_settings import read_settings, raw_config
@@ -23,6 +23,9 @@ from desktop_store import Workspace
 from desktop_platform import data_directory, open_pdf, acquire_instance_lock
 from desktop_forms import button, combo, edit_patient, modal
 from desktop_input import ArabicEntry
+from desktop_onboarding import create_project, export_project_join
+from desktop_admin_ui import administer
+from desktop_reports import options_dialog, report_text, export_supervisor_pdfs
 
 BASE = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent
 
@@ -34,6 +37,7 @@ class Window:
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.busy = False
         self.actor_ids, self.destinations = [], [None]
+        self.project_creator = None
         root.title('ShiftReport — Telegram')
         root.geometry('{}x{}'.format(min(1150,max(760,root.winfo_screenwidth()-50)),min(760,max(500,root.winfo_screenheight()-100))))
         root.minsize(760,500)
@@ -47,6 +51,13 @@ class Window:
         sidebar = ctk.CTkScrollableFrame(body,width=295); sidebar.pack(side='right',fill='y',padx=5,pady=5)
         self.content = ctk.CTkFrame(body); self.content.pack(side='left',fill='both',expand=True,padx=5,pady=5)
         button(sidebar,'الاتصال بالمشروع / إعادة الاتصال',lambda:self.run(self.connect))
+        self.creation_button = None
+        if settings.get('CONNECTION_MODE') == 'raw':
+            self.creation_button = button(sidebar,'إنشاء مشروع جديد',lambda:self.run(lambda:create_project(self)))
+        self.join_export_button = ctk.CTkButton(sidebar,text='تصدير ملف انضمام محمي',height=48,
+            command=lambda:self.run(lambda:export_project_join(self)))
+        self.admin_button = ctk.CTkButton(sidebar,text='إدارة الأطباء والصلاحيات',height=48,
+            command=lambda:self.run(lambda:administer(self)))
         ctk.CTkLabel(sidebar,text='المنطقة الزمنية نفسها في Android',anchor='e').pack(fill='x',padx=10)
         ctk.CTkEntry(sidebar,textvariable=self.zone,justify='right').pack(fill='x',padx=8,pady=4)
         self.actor = ctk.CTkComboBox(sidebar,values=['اختر الطبيب'],state='readonly',justify='right'); self.actor.pack(fill='x',padx=8,pady=4)
@@ -59,8 +70,11 @@ class Window:
         button(sidebar,'سجل العمليات والتسليم',lambda:self.run(self.resolve))
         button(sidebar,'حفظ نسخة مسودة مشفرة',lambda:self.run(self.export_draft))
         button(sidebar,'استعادة مسودة مشفرة',lambda:self.run(self.import_draft))
-        button(sidebar,'حفظ PDF محليا',lambda:self.run(lambda:self.report(export_only=True)))
-        ctk.CTkLabel(sidebar,text='إدارة الأطباء والأدوار والمشروع من Android.\nالنشر يتطلب اتصالا وهوية متحققة.',wraplength=275,justify='right').pack(padx=8,pady=8)
+        button(sidebar,'حفظ تقرير محليا',lambda:self.run(lambda:self.report(export_only=True)))
+        self.assignments_button = ctk.CTkButton(sidebar,text='حفظ توزيع المرضى بالأسماء فقط (PDF)',height=48,
+            command=lambda:self.run(self.export_assignments))
+        button(sidebar,'سلة المرضى المحذوفين',lambda:self.run(self.recycle_bin))
+        ctk.CTkLabel(sidebar,text='النشر والإدارة يتطلبان اتصالا وهوية متحققة.',wraplength=275,justify='right').pack(padx=8,pady=8)
         tools = ctk.CTkFrame(self.content); tools.pack(fill='x',padx=5,pady=4)
         self.search = tk.StringVar()
         ctk.CTkLabel(tools,text='بحث',anchor='e').pack(side='right',padx=5)
@@ -90,6 +104,8 @@ class Window:
             self.status.set('العملية جارية؛ انتظر اكتمالها قبل الإغلاق.'); return
         self.executor.shutdown(wait=False)
         if self.client: self.client.telegram._http.close()
+        if self.project_creator and self.project_creator.client is not self.client:
+            self.project_creator.client.telegram._http.close()
         self.root.destroy()
 
     def run(self,action):
@@ -159,6 +175,9 @@ class Window:
             try:
                 if not self.verify_raw_admin(candidate):
                     candidate.telegram._http.close();return
+            except MissingProjectIndex as error:
+                candidate.telegram._http.close()
+                self.status.set(str(error));return
             except Exception:
                 candidate.telegram._http.close();raise
         if self.client:
@@ -169,6 +188,20 @@ class Window:
             require(member.get('status') in {'administrator','creator'},'البوت ليس مديرا في المشروع')
             # Protected-file reconnect is available before login. No manual token replacement.
             # The old live client is closed only after the candidate and local workspace validate.
+        live_doctors=candidate.doctors
+        workspace=self.open_workspace(candidate)
+        if workspace is None:return
+        if self.client:self.client.telegram._http.close()
+        self.client,self.store=candidate,workspace
+        self.plan=None; self.raw_draft=None
+        if raw:
+            self.client.doctors=live_doctors
+        self.set_doctors()
+        self.status.set('المشروع: '+config['hospitalName']+' — المسودة المحلية متاحة. حدّث الأطباء وأثبت الهوية قبل النشر.')
+        if not self.client.doctors:
+            self.refresh_identity()
+
+    def open_workspace(self, candidate):
         directory=Path(self.settings.get('DATA_DIR') or data_directory())
         if not directory.is_absolute(): directory=BASE/directory
         local_passphrase=None
@@ -184,22 +217,13 @@ class Window:
                 if not matches:
                     local_passphrase=None;candidate.telegram._http.close()
                     raise BridgeError('لم تتطابق كلمتا مرور المسودة المحلية')
-        live_doctors=candidate.doctors
         try:
             workspace=self.io(lambda:Workspace(directory,candidate,local_passphrase))
         except Exception:
             candidate.telegram._http.close();raise
         finally:
             local_passphrase=None
-        if self.client:self.client.telegram._http.close()
-        self.client,self.store=candidate,workspace
-        self.plan=None; self.raw_draft=None
-        if raw:
-            self.client.doctors=live_doctors
-        self.set_doctors()
-        self.status.set('المشروع: '+config['hospitalName']+' — المسودة المحلية متاحة. حدّث الأطباء وأثبت الهوية قبل النشر.')
-        if not self.client.doctors:
-            self.refresh_identity()
+        return workspace
 
     def verify_raw_admin(self, candidate):
         snapshot=self.io(candidate.fetch)
@@ -285,6 +309,20 @@ class Window:
 
     def render(self):
         if not hasattr(self,'patients'):return
+        if self.creation_button is not None:
+            self.creation_button.configure(state='disabled' if self.client or self.busy else 'normal')
+        actor=self.client.doctors.get(self.client._actor) if self.client else None
+        if actor and is_admin(actor) and time.time()<self.client._expires:
+            self.join_export_button.pack(fill='x',padx=8,pady=4)
+            self.join_export_button.configure(state='disabled' if self.busy else 'normal')
+            self.admin_button.pack(fill='x',padx=8,pady=4)
+            self.admin_button.configure(state='disabled' if self.busy else 'normal')
+            self.assignments_button.pack(fill='x',padx=8,pady=4)
+            self.assignments_button.configure(state='disabled' if self.busy else 'normal')
+        else:
+            self.join_export_button.pack_forget()
+            self.admin_button.pack_forget()
+            self.assignments_button.pack_forget()
         for child in self.patients.winfo_children():child.destroy()
         if self.store is None or self.store.state['draft'] is None:
             self.metrics.configure(text='افتح المشروع واجلب مناوبة، أو استعد مسودة مشفرة.');return
@@ -315,8 +353,22 @@ class Window:
 
     def delete_patient(self,key):
         draft=self.editable()
-        if messagebox.askyesno('حذف مريض','هل تؤكد حذف المريض ومهامه وشاراته من المسودة؟ ستراجع الحذف قبل النشر.',default='no'):
-            draft['patients']=[p for p in draft['patients'] if p['externalId']!=key];self.save_draft(draft)
+        if messagebox.askyesno('حذف مريض','هل تنقل المريض ومهامه وشاراته إلى السلة المحلية؟ ستراجع الحذف قبل النشر.',default='no'):
+            self.io(lambda:self.store.delete_patient(key,fingerprint(draft)))
+            self.plan=None;self.raw_draft=None
+            self.status.set('نُقل المريض إلى السلة المشفرة على هذا الجهاز؛ راجع الحذف قبل النشر.')
+
+    def recycle_bin(self):
+        draft=self.editable()
+        records=self.io(self.store.deleted_patients)
+        require(records,'لا توجد سجلات محذوفة محليا لهذه المناوبة؛ الحذف على أجهزة أخرى لا يظهر في هذه السلة')
+        choice=self.choose('استعادة مريض محذوف',[item['patient']['name']+' · '+item['patient']['admitNum'] for item in records])
+        if choice is None:return
+        row=records[choice]['patient']
+        if not self.text_dialog('مراجعة الاستعادة','استعادة إلى المسودة فقط؛ يلزم مراجعة التعارضات والنشر لاحقاً.\n\n'+patient_text(row,self.client.doctors,self.client.zone),True,'استعادة إلى المسودة'):return
+        self.io(lambda:self.store.restore_patient(row['externalId'],fingerprint(draft)))
+        self.plan=None;self.raw_draft=None
+        self.status.set('استُعيد المريض وكامل مهامه وشاراته محليا؛ راجع المسؤوليات والمسودة قبل النشر.')
 
     def move(self,index,delta):
         draft=self.editable(); target=index+delta
@@ -359,7 +411,7 @@ class Window:
             self.io(lambda:self.store.import_draft(path,self.client));self.plan=None;self.set_doctors()
             self.status.set('استعدت المسودة؛ أعد المراجعة مع تليجرام قبل النشر.')
 
-    def text_dialog(self,title,text,approve=False):
+    def text_dialog(self,title,text,approve=False,approval_label='راجعت النسخة المعروضة وأوافق على النشر'):
         window=modal(self,title,'920x680')
         controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
         widget=ctk.CTkTextbox(window,wrap='word',font=('Arial',15));widget.pack(fill='both',expand=True,padx=8,pady=8)
@@ -367,7 +419,7 @@ class Window:
         button(controls,'نسخ النص الكامل',copy_original)
         accepted=[]
         def accept():accepted.append(True);window.destroy()
-        if approve:button(controls,'راجعت النسخة المعروضة وأوافق على النشر',accept)
+        if approve:button(controls,approval_label,accept)
         button(controls,'إغلاق / إلغاء',window.destroy)
         self.root.wait_window(window);return bool(accepted)
 
@@ -409,7 +461,7 @@ class Window:
                 messagebox.showinfo('تغيرت النسخة','وصلت نسخة أحدث أثناء مراجعة التعارضات؛ ستعاد المقارنة.')
                 next_plan=self.io(lambda:self.client.plan(local))
             plan=next_plan
-        plan=self.io(lambda:self.client.prepare(plan))
+        plan=self.io(lambda:self.client.prepare(plan,self.store.restored_completions()))
         require(fingerprint(self.store.read(self.client))==draft_hash,'تغير المسودة أثناء المراجعة؛ أعدها')
         before=next((s for s in plan.bundle if s['meta']['shiftId']==plan.shift['meta']['shiftId']),{'patients':[]})
         old={p['externalId']:p for p in before['patients']};new={p['externalId']:p for p in plan.shift['patients']}
@@ -437,48 +489,88 @@ class Window:
             raise BridgeError('تم النشر على تليجرام؛ تعذر تحديث المسودة محليا. لا تعد الإرسال. اجلب النسخة الحالية بعد حفظ مسودتك') from None
         messagebox.showinfo('تم النشر','نشر مؤكد؛ بقيت بيانات الأطباء والإعلانات والاستعادة في الفهرس.')
 
+    def export_assignments(self):
+        self.ready()
+        actor_id=self.io(self.client.require_admin)['uid']
+        local=self.store.read()
+        options=options_dialog(self,export_only=True,assignments=True)
+        if options is None:return
+        font=self.settings.get('PDF_FONT')
+        if font and not Path(font).is_absolute():font=str(BASE/font)
+        destination=filedialog.asksaveasfilename(title='توزيع المرضى بالأسماء فقط',defaultextension='.pdf',filetypes=[('PDF','*.pdf')])
+        if not destination:return
+        from desktop_pdf import render_assignments
+        def save():
+            path=render_assignments(self.client,local,font_path=font,options=options)
+            require(self.client.require_admin()['uid']==actor_id,'تغيّر المستخدم؛ أعد تصدير توزيع المرضى')
+            raw=path.read_bytes()
+            Path(destination).write_bytes(raw)
+            require(Path(destination).read_bytes()==raw,'تعذر التحقق من حفظ PDF كاملاً')
+        self.io(save)
+        self.status.set('حُفظ توزيع المرضى بالأسماء فقط في صفحة طولية واحدة.')
+
     def report(self,export_only=False):
         self.ready(not export_only);local=self.store.read(self.client)
-        baseline=next((s for s in self.client.baseline['bundle'] if s['meta']['shiftId']==local['meta']['shiftId']),None)
+        options=options_dialog(self,export_only)
+        if options is None:return
+        supervisor=self.selected_supervisor()
+        font=self.settings.get('PDF_FONT')
+        if font and not Path(font).is_absolute():font=str(BASE/font)
+        from desktop_pdf import render_report
         if export_only:
-            from desktop_pdf import render_report
-            font=self.settings.get('PDF_FONT')
-            if font and not Path(font).is_absolute():font=str(BASE/font)
-            supervisor=self.selected_supervisor()
-            path=self.io(lambda:render_report(self.client,local,supervisor,font))
-            destination=filedialog.asksaveasfilename(defaultextension='.pdf',filetypes=[('PDF','*.pdf')])
-            if destination:
-                def save_pdf():
-                    with open(destination,'wb') as stream:stream.write(path.read_bytes())
-                self.io(save_pdf)
+            if options['format']=='pdf' and options['separate']:
+                export_supervisor_pdfs(self,local,supervisor,font,options)
+                return
+            if options['format']=='text':
+                raw=report_text(self.client,local,supervisor).encode('utf-8')
+                extension='.txt'
+            else:
+                path=self.io(lambda:render_report(self.client,local,supervisor,font,options))
+                raw=self.io(path.read_bytes);extension='.pdf'
+            destination=filedialog.asksaveasfilename(defaultextension=extension,filetypes=[('Report','*'+extension)])
+            if destination:self.io(lambda:Path(destination).write_bytes(raw))
             return
+        baseline=next((s for s in self.client.baseline['bundle'] if s['meta']['shiftId']==local['meta']['shiftId']),None)
         require(baseline is not None,'انشر المناوبة أولا')
         def content(shift):
             return {'meta':{'shiftId':shift['meta']['shiftId'],'doctors':shift['meta'].get('doctors','')},'patients':shift['patients']}
-        require(fingerprint(content(local))==fingerprint(content(baseline)),'المسودة يحمل تعديلات؛ راجعها وانشرها قبل إنشاء التقرير')
+        require(fingerprint(content(local))==fingerprint(content(baseline)),'المسودة تحمل تعديلات؛ راجعها وانشرها قبل إنشاء التقرير')
         snapshot=self.io(self.client.fetch);self.io(lambda:self.client.authorize(snapshot['doctors']))
         require(pointer(snapshot['state'])==pointer(self.client.baseline['state']) and doctor_pointer(snapshot['state'])==doctor_pointer(self.client.baseline['state']),'وصلت نسخة أحدث؛ اجلبها وراجع قبل التقرير')
-        supervisor=self.selected_supervisor()
+        self.client.doctors=snapshot['doctors']
         destination='موضوع التقارير العام' if supervisor is None else doctor_label(snapshot['doctors'],supervisor)
-        from desktop_pdf import render_report
-        font=self.settings.get('PDF_FONT')
-        if font and not Path(font).is_absolute():font=str(BASE/font)
-        path=self.io(lambda:render_report(self.client,baseline,supervisor,font))
-        raw=self.io(path.read_bytes);digest=fingerprint({'bytes':__import__('hashlib').sha256(raw).hexdigest()})
-        self.io(lambda:open_pdf(path))
-        if not messagebox.askyesno('تأكيد إرسال التقرير','افحص PDF الذي فتح.\nالوجهة: '+destination+'\nالتاريخ: '+baseline['meta']['shiftDate']+'\nهل توافق على إرسال هذا الملف؟',default='no'):return
-        require(fingerprint({'bytes':__import__('hashlib').sha256(self.io(path.read_bytes)).hexdigest()})==digest,'تغير PDF بعد المعاينة')
+        text=path=raw=None
+        if options['format']=='text':
+            text=report_text(self.client,baseline,supervisor)
+            if not self.show_review('الوجهة: '+destination+'\n\n'+text):return
+            confirmation='هل تؤكد إرسال النص الذي راجعته؟'
+            if self.client.config.get('telegramDataKey'):confirmation+='\nسيُرسل كملف مشفر بمفتاح المشروع.'
+        else:
+            path=self.io(lambda:render_report(self.client,baseline,supervisor,font,options))
+            raw=self.io(path.read_bytes)
+            self.io(lambda:open_pdf(path))
+            confirmation='افحص PDF الذي فتح. هل توافق على إرسال هذا الملف؟'
+        if not messagebox.askyesno('تأكيد إرسال التقرير',confirmation+'\nالوجهة: '+destination+'\nالتاريخ: '+baseline['meta']['shiftDate'],default='no'):return
+        if path:require(self.io(path.read_bytes)==raw,'تغير PDF بعد المعاينة')
         require(fingerprint(self.store.read(self.client))==fingerprint(local),'تغيرت المسودة بعد المعاينة')
-        key=fingerprint({'operation':'report','project':self.client.project_id,'pointer':pointer(snapshot['state']),'shift':baseline['meta']['shiftId'],'supervisor':supervisor})
+        # Keep PDF receipt keys compatible with existing workspaces.
+        identity={'operation':'report','project':self.client.project_id,'pointer':pointer(snapshot['state']),'shift':baseline['meta']['shiftId'],'supervisor':supervisor}
+        if options['format']=='text':identity['format']='text'
+        key=fingerprint(identity)
+        require(not self.store.receipts(status='UNKNOWN',key=key),'نتيجة إرسال سابقة غير مؤكدة؛ افحص سجل العمليات قبل الإعادة')
         repeat=False
         if self.store.receipts(status='SENT',key=key):
             repeat=messagebox.askyesno('نسخة إضافية','هذا التقرير سلم سابقا إلى الوجهة نفسها. هل تؤكد إرسال نسخة إضافية بعد المراجعة؟',default='no')
             if not repeat:return
-        result=self.io(lambda:self.client.send_pdf(raw,baseline,supervisor,pointer(snapshot['state']),doctor_pointer(snapshot['state']),lambda chat,topic:self.store.receipt_start(key,'report',chat,topic,self.client._actor,repeat=repeat)))
-        self.status.set('تليجرام أكد تسليم PDF. لا تعاود الإرسال إذا تعذر حفظ سجل المسودة.')
+        before=lambda chat,topic:self.store.receipt_start(key,'report',chat,topic,self.client._actor,repeat=repeat)
+        if text is not None:
+            result=self.io(lambda:self.client.send_text(text,baseline,supervisor,pointer(snapshot['state']),doctor_pointer(snapshot['state']),before))
+        else:
+            result=self.io(lambda:self.client.send_pdf(raw,baseline,supervisor,pointer(snapshot['state']),doctor_pointer(snapshot['state']),before))
+        self.status.set('تليجرام أكد تسليم التقرير. لا تعاود الإرسال إذا تعذر حفظ سجل المسودة.')
         try:self.io(lambda:self.store.receipt_finish(result))
         except Exception:raise BridgeError('تم تسليم التقرير؛ تعذر حفظ إيصال المسودة. لا تعد إرسال التقرير') from None
-        messagebox.showinfo('تم التسليم','تم تسليم PDF مع حقول المرضى والمهام والشارات إلى الوجهة المعروضة.')
+        messagebox.showinfo('تم التسليم','تم تسليم التقرير إلى الوجهة المعروضة.')
 
     def resolve(self):
         self.ready(False)
@@ -488,6 +580,14 @@ class Window:
         choice=self.choose('اختر عملية واحدة للمراجعة',[str(index)+' | '+row[0]+' | '+row[6]+' | '+row[4]+' | '+row[1][:12] for index,row in records])
         if choice is None:return
         index,row=records[choice]
+        if row[0]=='doctors' and row[7].startswith('snapshot='):
+            self.ready()
+            snapshot=self.io(self.client.fetch)
+            self.io(lambda:self.client.authorize(snapshot['doctors']))
+            if fingerprint(snapshot['doctors'])==row[7][9:]:
+                self.io(lambda:self.store.confirm_indexed_receipt(index,snapshot['state']['doctorsMessageId']))
+                messagebox.showinfo('تأكيد سجل الأطباء','السجل المثبت الحالي يطابق العملية؛ لا تكررها.')
+                return
         if row[0]=='publish' and row[7].startswith('snapshot='):
             self.ready()
             state=self.io(self.client.fetch)['state']

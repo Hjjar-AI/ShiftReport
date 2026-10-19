@@ -15,6 +15,7 @@ import com.hos.rushdpatients.data.repository.StaleShiftEditException
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.SessionManager
+import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.report.BuiltReport
 import com.hos.rushdpatients.domain.report.ReportBuilder
 import com.hos.rushdpatients.domain.report.ReportReview
@@ -26,6 +27,7 @@ import com.hos.rushdpatients.network.ReportSender
 import com.hos.rushdpatients.network.telegram.Markdown
 import com.hos.rushdpatients.pdf.MediaStoreSaver
 import com.hos.rushdpatients.pdf.PdfCardsExporter
+import com.hos.rushdpatients.pdf.PdfAssignmentExporter
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfExportOptions
 import com.hos.rushdpatients.pdf.PdfOrientation
@@ -43,6 +45,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -60,12 +63,14 @@ class ReportPreviewViewModel @Inject constructor(
     private val reportSender: ReportSender,
     private val classicPdfExporter: PdfReportExporter,
     private val cardsPdfExporter: PdfCardsExporter,
+    private val assignmentPdfExporter: PdfAssignmentExporter,
     private val mediaStoreSaver: MediaStoreSaver,
     private val settingsRepository: SettingsRepository,
     private val doctorRepository: DoctorRepository,
     private val shiftRepository: ShiftRepository,
     private val wardMutations: WardMutationRepository,
     private val sessionManager: SessionManager,
+    private val adminAuthorizer: AdminAuthorizer,
     private val syncService: SyncService,
     private val projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
@@ -77,6 +82,13 @@ class ReportPreviewViewModel @Inject constructor(
     private var reviewedReport: BuiltReport? = null
 
     init {
+        viewModelScope.launch {
+            combine(sessionManager.sessionFlow, doctorRepository.observeAll()) { session, doctors ->
+                session?.isAdmin == true && doctors.any {
+                    it.id == session.doctorId && it.isAdmin && !it.isDeleted
+                }
+            }.collect { isAdmin -> _state.update { it.copy(isAdmin = isAdmin) } }
+        }
         load()
         viewModelScope.launch {
             syncService.patientConflicts.collect { conflicts ->
@@ -411,7 +423,42 @@ class ReportPreviewViewModel @Inject constructor(
             ReportRetryAction.PREVIEW -> previewPdf()
             ReportRetryAction.SAVE -> exportLocally()
             ReportRetryAction.SHARE -> sharePdf()
+            ReportRetryAction.ASSIGNMENTS -> exportAssignments()
             null -> Unit
+        }
+    }
+
+    fun exportAssignments() {
+        val current = _state.value
+        if (current.loading || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf ||
+            current.sharingPdf || current.sending || current.resolvingConflicts || current.shift == null) return
+        _state.update { it.copy(exportingLocalPdf = true, error = null, retryAction = null) }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val actorId = adminAuthorizer.requireAdmin().id
+                    val built = reportBuilder.buildAssignments(shiftId)
+                    val tmp = File.createTempFile("rushd_assignments_", ".pdf", context.cacheDir)
+                    try {
+                        assignmentPdfExporter.export(built.patients, built.doctorNames, built.summary,
+                            loadPdfOptions(), tmp)
+                        require(adminAuthorizer.requireAdmin().id == actorId) { "تغيّر المستخدم؛ أعد تصدير توزيع المرضى" }
+                        checkNotNull(mediaStoreSaver.savePdf(context, tmp, reportFileName(built.shift.date, "Names"),
+                            verifyContents = true)) {
+                            "تعذر حفظ توزيع المرضى"
+                        }
+                    } finally {
+                        tmp.delete()
+                    }
+                }
+                _state.update { it.copy(exportingLocalPdf = false, snackbar = "تم حفظ توزيع المرضى بالأسماء فقط",
+                    lastOperation = "آخر عملية ناجحة: حفظ توزيع المرضى", retryAction = null) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(exportingLocalPdf = false, error = e.message ?: "تعذر حفظ توزيع المرضى",
+                    retryAction = ReportRetryAction.ASSIGNMENTS) }
+            }
         }
     }
 

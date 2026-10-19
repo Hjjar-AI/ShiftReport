@@ -39,7 +39,12 @@ class ReportBuilder @Inject constructor(
     /**
      * Assemble all pieces required to render or send the report.
      */
-    suspend fun build(shiftId: String): BuiltReport = withContext(dispatchers.io) {
+    suspend fun build(shiftId: String): BuiltReport = buildSnapshot(shiftId, requireRoster = true)
+
+    /** Names-only local export does not require the clinical report's shift roster. */
+    suspend fun buildAssignments(shiftId: String): BuiltReport = buildSnapshot(shiftId, requireRoster = false)
+
+    private suspend fun buildSnapshot(shiftId: String, requireRoster: Boolean): BuiltReport = withContext(dispatchers.io) {
         database.withTransaction {
             val shift = shiftRepository.getById(shiftId)
                 ?: error("Shift not found: $shiftId")
@@ -47,7 +52,7 @@ class ReportBuilder @Inject constructor(
             val allDoctors = doctorRepository.getAllIncludingDeleted()
             val doctorsById = allDoctors.associateBy { it.id }
             val shiftDoctors = shift.doctorIds.mapNotNull { doctorsById[it] }
-            require(shiftDoctors.isNotEmpty()) { "حدد أطباء المناوبة قبل إنشاء التقرير" }
+            if (requireRoster) require(shiftDoctors.isNotEmpty()) { "حدد أطباء المناوبة قبل إنشاء التقرير" }
 
             val residentNames = allDoctors.associate { it.id to it.fullName }
             val supervisorNames = residentNames
