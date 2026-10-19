@@ -406,8 +406,12 @@ compilation, packaging, migration or test-suite work ran.
 
 ### Names-only team overview and desktop PDF parity
 
-Both platforms expose **حفظ توزيع المرضى بالأسماء فقط (PDF)** from the report
-workflow (Android report preview; desktop sidebar). Each supervisor gets one
+Both platforms expose **حفظ توزيع المرضى بالأسماء فقط (PDF)** only to admins
+(Android report preview; desktop sidebar). Android observes session/current-registry
+admin status for visibility and uses `AdminAuthorizer` inside the renderer and
+before final export. Desktop verifies the active Telegram session, current admin
+registry role and membership before rendering and saving; it requires connectivity.
+Actor changes or revoked authority stop the export even if its dialog was already open. Each supervisor gets one
 separate table: supervisor heading, one comma-separated resident-name row, then
 one patient name per row. Residents are collected/deduplicated from that team's
 explicit patient assignments; no doctor hierarchy is inferred or persisted.
@@ -440,7 +444,9 @@ Classic output for all five palettes in light/dark; long Classic/card/paragraph
 PDF generation; visual inspection of the overview, Classic and a continuation card.
 Separate local supervisor-file generation retained the unassigned group and left
 the original shift unchanged; card output contained resolved internal navigation links.
-Android source wiring/layout and retry handling were inspected; no Kotlin compile,
+Direct desktop renderer probes rejected non-admin, expired-session and mid-render
+revocation attempts; verified admin generation succeeded with a fake transport.
+Android authority-observer/renderer/final-save wiring and retry handling were inspected; no Kotlin compile,
 Gradle/build, packaging, migration or test-suite work ran. Android rendering/saving,
 new desktop dialogs, Windows and live Telegram remain unverified.
 

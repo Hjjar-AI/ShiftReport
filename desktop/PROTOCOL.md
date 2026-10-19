@@ -123,8 +123,9 @@ Recovery travels with `.srdraft` backups; delivery receipts remain device-local.
 PDF options cover Android-style seven-column Classic tables, paragraphs, linked
 A5 cards, paper/orientation, five matching palettes, dark mode and ward context.
 Separate local supervisor files include unassigned patients. A separate local
-names-only export groups patient names by supervisor, with residents in one
-comma-separated row; it always remains one portrait page/file with growing height. Logical text reports retain the selected patients/roster and all
+names-only export requires a current verified admin and live membership/registry
+checks below the GUI, including inside the renderer and before saving. It groups
+patient names by supervisor, with residents in one comma-separated row; it always remains one portrait page/file with growing height. Logical text reports retain the selected patients/roster and all
 clinical content. Review then explicitly confirm. Encrypted projects upload a
 protected text document; unencrypted projects split plain text by UTF-16 units.
 One UNKNOWN receipt precedes the first message and remains UNKNOWN if a later

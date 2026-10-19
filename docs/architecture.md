@@ -103,9 +103,14 @@ shared Telegram contracts. Android commands and IDE imports use `android/` as
 the project root. Historical protected reviews retain old source-root paths;
 current source paths are prefixed with `android/`.
 
-The names-only team PDF is a presentation of explicit patient assignments, not a
+The admin-only names-only team PDF is a presentation of explicit patient assignments, not a
 new persisted supervisor/resident hierarchy. Both platforms group by supervisor,
 list the team's distinct assigned residents in one row and retain patient-name
 rows in one portrait page whose height grows with content. Full desktop reports
 mirror Android's current Classic/card layouts and palette semantics; local
 per-supervisor exports and readable names/PDF exports do not publish clinical data.
+
+Assignments-PDF access is enforced below navigation: Android reuses its session/
+current-registry AdminAuthorizer in rendering and final export; desktop uses live
+Telegram session/membership and registry-role checks. Recheck the same actor
+before saving so an open dialog does not retain withdrawn authority.

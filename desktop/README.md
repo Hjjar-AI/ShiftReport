@@ -151,8 +151,10 @@ live creation/export remain unverified.
   encrypted projects send it as an encrypted document, while readable projects
   use plain Telegram messages split within the UTF-16 limit. Local text exports
   are readable files deliberately saved by the user.
-- **Names-only overview:** use **حفظ توزيع المرضى بالأسماء فقط (PDF)** in the
-  sidebar. Each supervisor has a distinct table, with one comma-separated row of
+- **Names-only overview (admins):** use **حفظ توزيع المرضى بالأسماء فقط (PDF)**
+  in the sidebar after Telegram verification. This action requires connectivity
+  and rechecks current registry admin status/membership during generation and
+  before saving. It is hidden from ordinary clinicians. Each supervisor has a distinct table, with one comma-separated row of
   residents and a single column of patient-name rows. Residents come from saved
   patient assignments, deduplicated within each supervisor group. Unassigned
   patients remain in their own labelled group. This always exports one combined

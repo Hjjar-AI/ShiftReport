@@ -26,9 +26,10 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Clinical data and reports
 
-- Added one-page portrait names-only team PDFs on Android and desktop: a separate
+- Added admin-only one-page portrait names-only team PDFs on Android and desktop: a separate
   table per supervisor, a comma-separated resident row and patient-name rows.
   Unassigned groups and complete names are retained; page height grows as needed.
+  Authorization is checked below the UI during generation and before export.
 - Full-screen RTL patient drafts, General/Advanced labs, compact paired inputs,
   validation shortcuts, explicit discard and optional validated Save and next.
 - Structured optional-owner tasks, completion identity/time, per-patient/ward
