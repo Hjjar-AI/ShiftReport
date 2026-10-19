@@ -646,6 +646,14 @@ internal fun PatientFormDialog(
                         }
                     )
 
+                    Text("يجوز اختيار مقيم من فريق آخر للتغطية الفردية؛ لا يتغير فريقه الثابت أو مشرف المريض.",
+                        style = MaterialTheme.typography.bodySmall)
+                    if (com.hos.rushdpatients.domain.doctor.DoctorTeams.isCrossTeamCover(
+                            activeDoctors.firstOrNull { it.id == residentId }, specialistId)) {
+                        Text("تغطية فردية من فريق آخر", style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.tertiary)
+                    }
+
                     SectionTitle("الأولوية والشارات")
                     AppToggleRow(title = "تحديد كمريض ذي أولوية", checked = isPriority,
                         onCheckedChange = { isPriority = it }, enabled = !saving)

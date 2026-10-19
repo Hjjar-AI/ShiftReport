@@ -17,7 +17,6 @@ import com.hos.rushdpatients.domain.auth.BootstrapSeeder
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.network.telegram.TelegramClient
-import com.hos.rushdpatients.sync.AutoSyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -163,11 +162,6 @@ class ProjectSetupViewModel @Inject constructor(
 
                 sessionManager.clear()
                 projectConfigStore.markInitialized()
-                AutoSyncScheduler.configure(
-                    context = context,
-                    enabled = settingsRepository.isAutoSyncEnabled(),
-                    wifiOnly = settingsRepository.isSyncWifiOnly()
-                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

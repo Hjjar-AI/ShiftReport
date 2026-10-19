@@ -133,8 +133,9 @@ def edit_patient(owner, source, is_new=False):
         widgets[key] = entry(areas['السريرية'], LABELS[key], row.get(key,''), True)
     for key, role in [('responsibleResidentId','RESIDENT'),('responsibleSupervisorId','SUPERVISOR')]:
         choices = {'': 'بدون'}
-        choices.update({key:doctor_label(owner.client.doctors,key) for key,d in owner.client.doctors.items() if d['clinicalRole']==role})
+        choices.update({key:doctor_label(owner.client.doctors,key)+(' · فريق '+owner.client.doctors.get(d.get('teamSupervisorId'),{}).get('name','دون فريق') if role=='RESIDENT' else '') for key,d in owner.client.doctors.items() if d['clinicalRole']==role})
         getters[key] = combo(areas['السريرية'], LABELS[key], choices, row.get(key,''))
+    ctk.CTkLabel(areas['السريرية'],text='يجوز اختيار مقيم من فريق آخر للتغطية الفردية. لا يغيّر ذلك فريقه الثابت أو مشرف المريض.',justify='right',wraplength=440).pack(fill='x',padx=10,pady=4)
     getters['isPriority'] = combo(areas['السريرية'], LABELS['isPriority'], YES, row.get('isPriority') or 'N')
     for key in ['name','admitNum','admitDate','birthDate']:
         widgets[key] = entry(areas['البيانات الشخصية'], LABELS[key], row.get(key,''))

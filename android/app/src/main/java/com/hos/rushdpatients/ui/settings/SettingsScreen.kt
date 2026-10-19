@@ -363,25 +363,14 @@ fun SettingsScreen(
                                 onCheckedChange = viewModel::setSaveAndNext
                             )
                             AppToggleRow(
-                                title = "الترحيل الموجّه للمناوبة",
-                                subtitle = "عند بدء مناوبة فارغة، اختر المرضى المستمرين من المناوبة السابقة",
+                                title = "اقتراح نسخ المناوبة السابقة كاملة",
+                                subtitle = "عند بدء مناوبة فارغة، اعرض تأكيد نسخ جميع المرضى والمهام غير المكتملة؛ مستقل عن جلب تليجرام",
                                 checked = state.guidedRollover,
                                 onCheckedChange = viewModel::setGuidedRollover
                             )
                         }
                         SettingsSectionId.SYNC -> SettingsSection(title = section.title, onPositioned = { sectionOffsets[section.title] = it }) {
-                            AppToggleRow(
-                                title = "المزامنة التلقائية",
-                                subtitle = "كل 15 دقيقة في الخلفية",
-                                checked = state.autoSync,
-                                onCheckedChange = viewModel::setAutoSync
-                            )
-                            AppToggleRow(
-                                title = "عبر Wi-Fi فقط",
-                                subtitle = "تجنب بيانات الجوال",
-                                checked = state.syncWifiOnly,
-                                onCheckedChange = if (state.autoSync) viewModel::setSyncWifiOnly else null
-                            )
+                            Text("المزامنة يدوية: اجلب النسخة الكاملة أو انشر تعديلاتك من الإجراءات أدناه.")
 
                             state.lastCsvSync?.let {
                                 Text(

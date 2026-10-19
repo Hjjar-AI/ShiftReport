@@ -48,6 +48,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -57,6 +59,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -78,6 +82,7 @@ fun DoctorsScreen(
     val snackbar = remember { SnackbarHostState() }
 
     var showAdd by remember { mutableStateOf(false) }
+    var showTeams by remember { mutableStateOf(false) }
     var transferExpanded by rememberSaveable { mutableStateOf(false) }
     var showMergeReview by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Doctor?>(null) }
@@ -125,6 +130,10 @@ fun DoctorsScreen(
             viewModel.dismissSnackbar()
         }
     }
+
+    if (showTeams) TeamManagementDialog(doctors = state.doctors, busy = busy,
+        onDismiss = { showTeams = false },
+        onSave = { expected, assignments -> viewModel.saveTeams(expected, assignments) { showTeams = false } })
 
     if (showMergeReview && state.mergeConflicts.isNotEmpty()) {
         DoctorConflictReviewDialog(
@@ -184,6 +193,9 @@ fun DoctorsScreen(
                                 kind = NoticeKind.ERROR, actionLabel = "مراجعة التعارضات",
                                 onAction = { showMergeReview = true }, actionEnabled = !state.saving)
                         }
+                    }
+                    item {
+                        AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy) { Text("إدارة الفرق معاً") }
                     }
                     item {
                         AppSearchField(query = query, onQueryChange = { query = it }, label = "البحث بالاسم أو معرف تليجرام")
@@ -259,6 +271,7 @@ fun DoctorsScreen(
                     items(visibleDoctors, key = { it.id }) { doctor ->
                         DoctorCard(
                             doctor = doctor,
+                            teamSupervisorName = state.doctors.firstOrNull { it.id == doctor.teamSupervisorId }?.fullName,
                             onEdit = { editTarget = doctor },
                             enabled = !busy,
                             onDelete = { deleteTarget = doctor }
@@ -273,6 +286,7 @@ fun DoctorsScreen(
         AddEditDoctorDialog(
             existing = null,
             saving = state.saving,
+            doctors = state.doctors,
             onConfirm = { _, input, _ ->
                 viewModel.addDoctor(input) { showAdd = false }
             },
@@ -284,6 +298,7 @@ fun DoctorsScreen(
         AddEditDoctorDialog(
             existing = d,
             saving = state.saving,
+            doctors = state.doctors,
             onConfirm = { expected, input, onStale ->
                 if (expected != null) viewModel.editDoctor(expected, input, onStale) { editTarget = null }
             },
@@ -307,8 +322,14 @@ fun DoctorsScreen(
             onDismissRequest = viewModel::dismissDoctorImport,
             title = { Text("مراجعة استيراد سجل الأطباء") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                Column(modifier = Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * .65f).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text("الأطباء الفعّالون: ${preview.activeCount}")
+                    listOf("إضافات" to preview.added, "تعديلات" to preview.changed,
+                        "صفوف مستوردة دون تغيير" to preview.unchanged,
+                        "سجلات غائبة عن الملف محفوظة كما هي" to preview.retained).forEach { (label, names) ->
+                        Text("$label (${names.size}): " + names.joinToString("، ").ifBlank { "لا يوجد" })
+                    }
                     Text("المديرون: ${preview.adminCount}")
                     Text("السجلات المحذوفة: ${preview.deletedCount}")
                     if (preview.newWithoutPinCount > 0) {
@@ -318,13 +339,13 @@ fun DoctorsScreen(
                         )
                     }
                     Text(
-                        "يُدمج الملف مع السجل المحلي حسب المعرّف أو تليجرام أو الاسم. لا يحذف الاستيراد طبيباً محلياً فعّالاً، ويحمي المدير الحالي والمديرين الدائمين.",
+                        "الاستيراد يضيف ويحدّث حسب المعرّف أو تليجرام أو الاسم ويحفظ الغائبين. بعد الموافقة يُحفظ محلياً ويُنشر السجل الكامل على تليجرام. يبقى المدير الحالي والمديرون الدائمون محميين.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
             },
             confirmButton = {
-                AppTextButton(onClick = viewModel::confirmDoctorImport) { Text("استيراد ومزامنة") }
+                AppTextButton(onClick = viewModel::confirmDoctorImport) { Text("حفظ الاستيراد ونشر السجل الكامل") }
             },
             dismissButton = {
                 AppTextButton(onClick = viewModel::dismissDoctorImport) { Text("إلغاء") }
@@ -338,7 +359,8 @@ private fun DoctorCard(
     doctor: Doctor,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    teamSupervisorName: String? = null
 ) {
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -359,6 +381,9 @@ private fun DoctorCard(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
+                if (doctor.clinicalRole == com.hos.rushdpatients.data.model.ClinicalRole.RESIDENT) {
+                    Text("مشرف الفريق: " + (teamSupervisorName ?: "دون فريق"), style = MaterialTheme.typography.bodySmall)
+                }
                 Text("صلاحية التطبيق: $accessText", style = MaterialTheme.typography.bodySmall)
                 doctor.telegramId?.let {
                     Text("تليجرام: $it", style = MaterialTheme.typography.bodySmall)

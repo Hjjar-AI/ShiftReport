@@ -47,6 +47,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.catch
+import com.hos.rushdpatients.domain.report.ReportDeliveryLedger
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -68,6 +73,7 @@ class WardViewModel @Inject constructor(
     private val auditRepository: AuditRepository,
     private val adminAuthorizer: AdminAuthorizer,
     private val json: Json,
+    private val deliveryLedger: ReportDeliveryLedger,
     projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
 
@@ -85,6 +91,7 @@ class WardViewModel @Inject constructor(
         load()
         observePreferences()
         observeSyncStatus()
+        observeWorkflowStatus()
         loadDraft()
         monitorEditabilityBoundary()
         observeMergeConflicts()
@@ -96,6 +103,23 @@ class WardViewModel @Inject constructor(
                         false
                     )
                 )
+            }
+        }
+    }
+
+    private fun observeWorkflowStatus() {
+        viewModelScope.launch {
+            _state.map { it.shift?.id }.distinctUntilChanged().collectLatest { id ->
+                if (id == null) return@collectLatest
+                _state.update { it.copy(lastDownloadAt = null, lastDownloadMessage = null, unresolvedDeliveries = 0) }
+                combine(
+                    settingsRepository.observe(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + id),
+                    settingsRepository.observe(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + id),
+                    deliveryLedger.observe()
+                ) { at, message, records -> Triple(at?.toLongOrNull(), message?.toLongOrNull(), records.count { it.shiftId == id && it.status == "UNKNOWN" }) }
+                    .catch { _state.update { it.copy(deliveryLogUnavailable = true) } }
+                    .collect { (at, message, count) -> _state.update { it.copy(lastDownloadAt = at,
+                        lastDownloadMessage = message, unresolvedDeliveries = count, deliveryLogUnavailable = false) } }
             }
         }
     }
@@ -261,7 +285,9 @@ class WardViewModel @Inject constructor(
                     val previous = shiftRepository.getRecent(12)
                         .firstOrNull { it.date < initialShift.date }
                     val candidates = previous?.let { patientRepository.getForShift(it.id) }.orEmpty()
-                    _state.update { it.copy(rolloverPatients = candidates) }
+                    val sourceLabel = previous?.let { rolloverSourceLabel(it) }.orEmpty()
+                    _state.update { it.copy(rolloverPatients = candidates, rolloverTarget = initialShift,
+                        rolloverSourceLabel = sourceLabel) }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -311,7 +337,35 @@ class WardViewModel @Inject constructor(
 
     fun bringLatestData() = fetchRemoteData(previous = false)
 
-    fun dismissRollover() = _state.update { it.copy(rolloverPatients = emptyList()) }
+    private suspend fun rolloverSourceLabel(source: com.hos.rushdpatients.data.model.Shift): String {
+        val at = settingsRepository.get(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + source.id)?.toLongOrNull()
+        val message = settingsRepository.get(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + source.id)?.toLongOrNull()
+        val downloaded = if (at != null && message != null && source.csvMessageId == message) {
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z")
+                .format(java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()))
+        } else "غير معروف؛ قد تكون نسخة محلية لم تُنزّل على هذا الجهاز"
+        return "المصدر: مناوبة ${source.date} المحفوظة على هذا الجهاز\nآخر تنزيل لهذه الحزمة: $downloaded\n" +
+            "لم يُفحص تليجرام الآن؛ قد توجد نسخة أحدث. ألغِ واجلب أحدث البيانات أولاً إذا أردت تحديث المصدر."
+    }
+
+    fun offerPreviousShift() {
+        val shiftId = editableShiftId() ?: return
+        if (_state.value.saving || _state.value.syncing) return
+        viewModelScope.launch {
+            try {
+                require(patientRepository.countForShift(shiftId) == 0) { "مناوبة اليوم تحتوي مرضى؛ لن تُستبدل" }
+                val shift = shiftRepository.getById(shiftId) ?: error("المناوبة غير موجودة")
+                val previous = shiftRepository.getRecent(12).firstOrNull { it.date < shift.date }
+                val candidates = previous?.let { patientRepository.getForShift(it.id) }.orEmpty()
+                require(candidates.isNotEmpty()) { "لا توجد مناوبة سابقة تحتوي مرضى لنسخهم؛ يمكنك جلب البيانات من تليجرام أولاً" }
+                val sourceLabel = rolloverSourceLabel(requireNotNull(previous))
+                _state.update { it.copy(rolloverPatients = candidates, rolloverTarget = shift, rolloverSourceLabel = sourceLabel) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: "تعذر تحضير المناوبة الجديدة") } }
+        }
+    }
+
+    fun dismissRollover() = _state.update { it.copy(rolloverPatients = emptyList(), rolloverTarget = null, rolloverSourceLabel = "") }
 
     private var activityJob: Job? = null
 
@@ -356,61 +410,32 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun applyRollover(decisions: Map<String, RolloverDecision>) {
+    fun applyRollover(keepAssignments: Boolean) {
         val shiftId = editableShiftId() ?: return
-        if (_state.value.saving) return
+        if (_state.value.saving || _state.value.syncing) return
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
             saveAction(onSuccess = {}) {
+                val expected = requireNotNull(_state.value.rolloverTarget) { "أعد فتح نسخ المناوبة" }
+                require(expected.id == shiftId) { "تغيرت المناوبة؛ أعد فتح النسخ" }
                 val candidates = _state.value.rolloverPatients
-                val rolled = candidates.filter {
-                    decisions[it.id] in setOf(
-                        RolloverDecision.CONTINUE,
-                        RolloverDecision.CONTINUE_AND_EDIT,
-                        RolloverDecision.REASSIGN
-                    )
-                }.mapIndexed { index, patient ->
-                    val decision = decisions[patient.id] ?: RolloverDecision.SKIP
+                require(candidates.isNotEmpty()) { "لا توجد سجلات لنسخها" }
+                val selected = candidates.mapIndexed { index, patient ->
                     patient.copy(
                         id = UUID.randomUUID().toString(),
-                        tasks = PatientTasks.carryForward(
-                            patient.tasks, clearOwners = decision == RolloverDecision.REASSIGN),
-                        sortOrder = index + 1,
-                        revision = 1,
-                        updatedAt = Instant.now(),
+                        tasks = PatientTasks.carryForward(patient.tasks, clearOwners = !keepAssignments),
+                        sortOrder = index + 1, revision = 1, updatedAt = Instant.now(),
                         lastEditedByDoctorId = sessionManager.current()?.doctorId,
                         lastEditedByName = sessionManager.current()?.doctorName,
-                        responsibleResidentId = if (decision == RolloverDecision.REASSIGN) null else patient.responsibleResidentId,
-                        responsibleSpecialistId = if (decision == RolloverDecision.REASSIGN) null else patient.responsibleSpecialistId
-                    ) to decision
-                }
-                val selected = rolled.map { it.first }
-                wardMutations.rollover(
-                    selected,
-                    shiftId,
-                    candidates.map { patient ->
-                        patient to (decisions[patient.id] ?: RolloverDecision.SKIP).name.lowercase()
-                    },
-                    sessionManager.current()
-                )
-                val reviewPatients = rolled.filter { (_, decision) ->
-                    decision == RolloverDecision.CONTINUE_AND_EDIT ||
-                        decision == RolloverDecision.REASSIGN
-                }.map { it.first }
-                _state.update {
-                    it.copy(
-                        rolloverPatients = emptyList(),
-                        rolloverReviewPatients = reviewPatients,
-                        snackbar = "تم ترحيل ${uiNumber(selected.size)} مريض؛ يحتاج ${reviewPatients.size} إلى مراجعة"
+                        responsibleResidentId = patient.responsibleResidentId.takeIf { keepAssignments },
+                        responsibleSpecialistId = patient.responsibleSpecialistId.takeIf { keepAssignments }
                     )
                 }
+                wardMutations.rollover(selected, shiftId, expected.revision,
+                    candidates.map { it to if (keepAssignments) "continue" else "reassign" }, sessionManager.current())
+                _state.update { it.copy(rolloverPatients = emptyList(), rolloverTarget = null, rolloverSourceLabel = "",
+                    snackbar = "نُسخ جميع المرضى (${uiNumber(selected.size)}) محلياً؛ حدد أطباء المناوبة ثم راجع وانشر") }
             }
-        }
-    }
-
-    fun consumeRolloverReview(patientId: String) {
-        _state.update { state ->
-            state.copy(rolloverReviewPatients = state.rolloverReviewPatients.filterNot { it.id == patientId })
         }
     }
 

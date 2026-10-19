@@ -12,7 +12,7 @@ Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and
 | Shared pointer | Pinned JSON `kind=shift-report-sync-state`, version 4 |
 | Patient document | Bundle 1, `# rushdShiftBundle=1`, boundary `#==RUSHD_SHIFT_BOUNDARY_7F3A9C==` |
 | Shift CSV | Schema 7, exact 22 columns and full quoted metadata field |
-| Doctor Telegram wire | Current nine-column records; distinct from schema-1 spreadsheet CSV |
+| Doctor Telegram wire | Ten columns including teamSupervisorId; distinct from schema-1 spreadsheet CSV |
 | Encrypted file | `SRDATA1` + 12-byte nonce + AES-GCM ciphertext/tag |
 | Encrypted text | `SRMSG1:` + Base64 of encrypted gzip text |
 
@@ -85,10 +85,11 @@ become tasks. Continuing patients/unfinished tasks require explicit new-shift re
 
 ## Publication
 
-1. Compare draft against its sealed baseline and freshly fetched remote data.
-   Preserve remote additions; require field/deletion/roster/order choices for conflicts.
+1. Fetch the current remote snapshot for authority/pointer review. The full local
+   shift is the proposed replacement, including deletions, roster and stored order.
+   Do not merge remote fields or additions into it.
 2. Recheck the live actor, registry/pointers, exact reviewed plan and draft hash.
-   A changed review requires new approval. Missing saved rows are not silent deletes.
+   A changed review requires new approval. Removed rows are part of the reviewed full replacement.
 3. Persist an UNKNOWN receipt before requesting an immutable upload. Recheck
    pointers, then update the existing pinned index while retaining unrelated
    registry/announcement/recovery fields.
@@ -103,8 +104,8 @@ absence from the bounded journal does not prove failure.
 
 ## Desktop registry mutation and local recovery
 
-`desktop_doctors.py` publishes the current nine-column registry, without a format
-or version change. Review binds action, proposed registry, actor, local draft and
+`desktop_doctors.py` publishes the ten-column registry with explicit teamSupervisorId.
+The preceding nine-column header is accepted as unassigned membership on retrieval. Review binds action, proposed registry, actor, local draft and
 remote patient/doctor pointers. Recheck live membership/admin status below the UI,
 protect permanent admins and demotion rank rules, and block unsafe clinical
 reference removal. Persist UNKNOWN before upload; re-read both pointers and
@@ -115,17 +116,52 @@ This uses the accepted last-successful-write-wins model, not atomic transactions
 Deleted local rows and their previously published completion history remain in
 optional encrypted workspace recovery records; SQLite and interchange schemas
 are unchanged. Restoration checks shift, expected draft and duplicate ID, retains
-full content and position, and requires ordinary conflict review before publication.
+full content and position, and requires complete-snapshot review before publication.
 Recovery travels with `.srdraft` backups; delivery receipts remain device-local.
 
+## Desktop local access, CSV and demo
+
+Local PIN hashes and persistent throttling are optional private records inside
+existing encrypted workspace storage; they never enter `.srdraft`, patient CSV,
+doctor CSV or Telegram. Enrollment requires fresh verified clinician membership.
+Idle/manual locking hides clinical windows, preserves unsaved editors and clears
+network authority. PIN checks use the cached doctor/account binding and unlock
+local operations only; shared writes retain fresh Telegram authorization.
+
+Doctor spreadsheet import/export uses the existing schema-1 columns; patient
+export uses a single schema-7 CSV rather than a bundle envelope. Registry import
+is a reviewed admin publication using the guards above. It retains local stable
+IDs, omitted active doctors and protected permissions, rejects ambiguous identity
+matches/unsupported extra options and never imports PIN/sync aliases. Wire-only
+storage does not acquire username/timestamp/tombstone fields from the CSV.
+The shared team link is carried by the Telegram teamSupervisorId column and the
+existing schema-1 CSV extra_options entry teamSupervisor:<id>. Each resident has
+at most one supervisor; unset links represent an unassigned resident. Both updated
+clients are needed when publishing team membership. Android persists the link in
+its existing options storage, so no Room migration/version change is needed.
+Multi-level sorting retains Android's existing compact sort metadata and saved
+row positions, normalized before publication review. Grouping is local presentation.
+Demo is a separate memory-only workspace/client without Telegram transport;
+explicit local PDFs carry DEMO on every page.
+
 ## Report delivery
+
+Report sending prepares/reviews the full replacement and report before final
+confirmation. Pending changes are published through the same guarded publication
+path, followed by exact-content delivery. Unchanged accepted content reuses the
+remote publication and existing report receipt key. Cancelling before final
+confirmation performs no publication. A delivery failure cannot roll back a
+successful data publication. Separate manual publication remains available.
+
 
 PDF options cover Android-style seven-column Classic tables, paragraphs, linked
 A5 cards, paper/orientation, five matching palettes, dark mode and ward context.
 Separate local supervisor files include unassigned patients. A separate local
 names-only export requires a current verified admin and live membership/registry
 checks below the GUI, including inside the renderer and before saving. It groups
-patient names by supervisor, with residents in one comma-separated row; it always remains one portrait page/file with growing height. Logical text reports retain the selected patients/roster and all
+patient names by supervisor, with independently enrolled team residents in one
+comma-separated row (including residents without patients and empty supervisor teams); it uses fixed A4 portrait pages with three 56.7 mm tables per row and continuous
+left-to-right patient numbering. Long tables/pages continue without dropping names. Logical text reports retain the selected patients/roster and all
 clinical content. Review then explicitly confirm. Encrypted projects upload a
 protected text document; unencrypted projects split plain text by UTF-16 units.
 One UNKNOWN receipt precedes the first message and remains UNKNOWN if a later
@@ -140,7 +176,12 @@ the current snapshot/registry and reviewed draft before sending.
 General PDFs go to Reports; supervisor PDFs use the live registry destination.
 Check Telegram `ok` and message identity before reporting sent. Keep local delivery
 receipts; they do not populate Android's local sent/audit view. Ambiguous operations
-remain UNKNOWN until explicitly resolved. Confirmed reports need explicit approval
+remain UNKNOWN until explicitly resolved. Report UNKNOWN blocking uses shift,
+chat and topic independently of format/publication keys, before publication and
+at the delivery boundary. Local receipt metadata retains the report shift ID;
+unlabelled unresolved receipts conservatively block their destination. Manual
+resolution requires live same-project sender/admin authorization below the UI.
+Confirmed reports need explicit approval
 for another copy. A confirmed send followed by failed local bookkeeping is still a send.
 
 ## Evidence

@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.sync
 
 import java.util.Locale
+import com.hos.rushdpatients.domain.doctor.DoctorTeams
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.Gender
@@ -24,13 +25,14 @@ import com.hos.rushdpatients.domain.doctor.DoctorNaming
 object DoctorsRegistryCodec {
 
     private const val HEADER =
-        "#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId"
+        "#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId,teamSupervisorId"
     private const val ROW_SEP = "|"
     private const val ID_SEP = "@"
 
     // ---------------- Encoding ----------------
 
     fun encode(doctors: List<Doctor>): String {
+        DoctorTeams.validate(doctors)
         val body = buildString {
             append(HEADER)
             for (d in doctors) {
@@ -65,7 +67,8 @@ object DoctorsRegistryCodec {
             escapeField(d.customTitle.orEmpty()),
             encodeOptions(d),
             d.clinicalRole.code,
-            d.supervisorGroupChatId?.toString().orEmpty()
+            d.supervisorGroupChatId?.toString().orEmpty(),
+            d.teamSupervisorId.orEmpty()
         )
         return fields.joinToString(",")
     }
@@ -124,6 +127,7 @@ object DoctorsRegistryCodec {
         val rankIdx = header.indexOf("#")
         val clinicalRoleIdx = header.indexOf("clinicalrole")
         val supervisorGroupChatIdIdx = header.indexOf("supervisorgroupchatid")
+        val teamSupervisorIdIdx = header.indexOf("teamsupervisorid")
         require(listOf(rankIdx, uidIdx, nameIdx, genderIdx, idIdx, titleIdx, optionsIdx,
             clinicalRoleIdx, supervisorGroupChatIdIdx).all { it >= 0 }) {
             "سجل الأطباء لا يحتوي جميع الأعمدة المطلوبة"
@@ -180,7 +184,8 @@ object DoctorsRegistryCodec {
                 customTitle = title,
                 rank = parsedRank,
                 isPermanentAdmin = parsedOptions.isPermanent,
-                extraOptions = emptySet()
+                extraOptions = if (teamSupervisorIdIdx >= 0) cols[teamSupervisorIdIdx].takeIf { it.isNotBlank() }
+                    ?.let { setOf(DoctorTeams.PREFIX + it) }.orEmpty() else emptySet()
             )
         }
 
@@ -199,6 +204,7 @@ object DoctorsRegistryCodec {
             "معرفات مجموعات المشرفين غير صالحة"
         }
 
+        DoctorTeams.validate(doctors)
         return Decoded(doctors, lastId)
     }
 

@@ -55,6 +55,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.ui.ward.ShiftDoctorPicker
 import com.hos.rushdpatients.ui.components.LoadingButton
 import com.hos.rushdpatients.sync.ConflictChoice
+import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
+import com.hos.rushdpatients.domain.report.DeliveryResolution
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -68,6 +70,8 @@ fun ReportPreviewScreen(
     var supervisorMenuOpen by remember { mutableStateOf(false) }
     var selectedSupervisorIds by remember { mutableStateOf(emptySet<String>()) }
     var showShiftDoctors by remember { mutableStateOf(false) }
+    var showDeliveryLog by remember { mutableStateOf(false) }
+    var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
     var confirmSend by remember { mutableStateOf(false) }
     var pendingSupervisorTargets by remember { mutableStateOf<List<SupervisorReportTarget>?>(null) }
     val busy = state.loading || state.savingDoctors || state.sending || state.previewingPdf ||
@@ -260,10 +264,18 @@ fun ReportPreviewScreen(
                 if (state.isAdmin) {
                     AppOutlinedButton(onClick = viewModel::exportAssignments, modifier = Modifier.fillMaxWidth(),
                         enabled = !busy && state.shift != null) { Text("حفظ توزيع المرضى بالأسماء فقط (PDF)") }
-                    Text("صفحة طولية واحدة: جدول لكل مشرف، أسماء المقيمين في صف واحد ثم أسماء المرضى فقط.",
+                    Text("A4 عمودي · ثلاثة جداول في كل صف · أسماء المقيمين في صف واحد ثم المرضى بترقيم متصل من اليسار إلى اليمين.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
+                state.publicationOutcome?.let { publication ->
+                    Text("آخر محاولة إرسال — نشر البيانات: ${publication.arabicLabel}؛ تسليم التقرير: ${state.deliveryOutcome?.arabicLabel.orEmpty()}",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                if (state.deliveryRecords.any { it.status == "UNKNOWN" }) {
+                    AppNotice("يوجد تسليم غير مؤكد محفوظ على هذا الجهاز؛ احسمه من السجل قبل الإعادة إلى الوجهة نفسها.", kind = NoticeKind.WARNING)
+                }
+                AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy) { Text("سجل تسليم التقارير وحسم النتائج") }
                 state.error?.let { err ->
                     AppNotice(err, kind = NoticeKind.ERROR,
                         actionLabel = if (state.retryAction == null) null else "إعادة المحاولة",
@@ -297,12 +309,16 @@ fun ReportPreviewScreen(
         AlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text("مجموعات المشرفين") }, text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 if (state.supervisorTargets.isEmpty()) EmptyState("لا يوجد مشرفون مرتبطون بمرضى هذه المناوبة")
+                Text("عاين PDF لكل وجهة مختارة قبل تأكيد النشر والإرسال. سيُرسل الملف نفسه.")
                 state.supervisorTargets.forEach { target ->
                     AppCheckRow(label = "${target.doctorName} (${uiNumber(target.patientCount)} مريض)" +
                         if (target.chatId == null) " — لا توجد مجموعة" else "", checked = target.doctorId in selectedSupervisorIds,
                         enabled = !busy && target.chatId != null, onCheckedChange = { checked ->
                             selectedSupervisorIds = if (checked) selectedSupervisorIds + target.doctorId else selectedSupervisorIds - target.doctorId
                         })
+                    AppTextButton(onClick = { viewModel.previewSupervisorPdf(target.doctorId) }, enabled = !busy && target.chatId != null) {
+                        Text("معاينة PDF — ${target.doctorName}")
+                    }
                 }
             }
         }, confirmButton = {
@@ -312,6 +328,39 @@ fun ReportPreviewScreen(
             }) { Text("مراجعة الإرسال") }
         }, dismissButton = { AppTextButton(onClick = { supervisorMenuOpen = false }) { Text("إلغاء") } })
     }
+    if (showDeliveryLog) {
+        AlertDialog(onDismissRequest = { showDeliveryLog = false }, title = { Text("سجل تسليم هذه المناوبة — هذا الجهاز") }, text = {
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                Text("افحص تليجرام أولاً. انتهاء المهلة أو غياب الإيصال المحلي لا يثبت عدم الوصول. الحسم للمرسل أو لمدير نشط.")
+                if (state.deliveryRecords.isEmpty()) Text("لا توجد محاولات محفوظة لهذه المناوبة")
+                state.deliveryRecords.asReversed().forEach { row ->
+                    val label = when (row.status) { "UNKNOWN" -> "غير مؤكد"; "SENT" -> "سُلّم / أُكد وصوله"; else -> "أُكد عدم وصوله" }
+                    Text("${row.label} · ${row.format} · $label")
+                    Text(java.time.Instant.ofEpochMilli(row.at).atZone(java.time.ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+                        style = MaterialTheme.typography.bodySmall)
+                    if (row.status == "UNKNOWN") {
+                        AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.RECEIVED }, enabled = !busy) { Text("تحققت أنه وصل") }
+                        AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.NOT_RECEIVED }, enabled = !busy) { Text("تحققت أنه لم يصل") }
+                    } else if (row.status == "SENT") {
+                        AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.ALLOW_COPY }, enabled = !busy) { Text("السماح بنسخة إضافية واحدة") }
+                    }
+                }
+            }
+        }, confirmButton = { AppTextButton(onClick = { showDeliveryLog = false }) { Text("إغلاق") } })
+    }
+    deliveryDecision?.let { (row, decision) ->
+        val instruction = when (decision) {
+            DeliveryResolution.RECEIVED -> "بعد فحص تليجرام، هل تؤكد وصول هذا التقرير؟ لن يُسمح بتكراره تلقائياً."
+            DeliveryResolution.NOT_RECEIVED -> "بعد فحص تليجرام وكل أجزاء التقرير، هل تؤكد أنه لم يصل؟ يسمح ذلك بمحاولة جديدة بعد المراجعة."
+            DeliveryResolution.ALLOW_COPY -> "هذا التقرير سُلّم بالفعل. هل تسمح بنسخة إضافية واحدة من المحتوى نفسه، بعد معاينته وتأكيد إرساله؟"
+        }
+        AlertDialog(onDismissRequest = { deliveryDecision = null }, title = { Text("تأكيد قرار التسليم") },
+            text = { Text(row.label + "\n" + instruction) },
+            confirmButton = { AppButton(onClick = { deliveryDecision = null; viewModel.resolveDelivery(row, decision) }, enabled = !busy) { Text("أؤكد") } },
+            dismissButton = { AppTextButton(onClick = { deliveryDecision = null }) { Text("إلغاء") } })
+    }
+
     pendingSupervisorTargets?.let { targets ->
         val targetsUnchanged = targets.all { it in state.supervisorTargets }
         ReportSendConfirmation(destinations = targets.map { "مجموعة ${it.doctorName} · ${uiNumber(it.patientCount)} مريض" },

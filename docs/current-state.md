@@ -7,7 +7,7 @@ Updated 2026-10-19. [Roadmap](roadmap.md) · [Architecture](architecture.md) ·
 
 ShiftReport is an Arabic-first RTL Android ward/handoff app. Each device works
 from encrypted local Room data; Telegram stores immutable documents and shared
-pointers. Users retrieve, edit, review conflicts, and publish. Competing remote
+pointers. Users retrieve complete snapshots, edit, review and publish complete replacements. Competing remote
 pointer writes remain last-successful-write-wins; Telegram is not an atomic
 multi-writer database and no separate backend is required.
 
@@ -169,12 +169,21 @@ path; historical data-integrity findings are tracked separately in
 ## Synchronization and encryption
 
 Patient/doctor channels share `RemoteSyncStateStore` and its mutex for pinned IO;
-doctor orchestration lives in `DoctorSyncCoordinator`. Patient sync retains a saved
-base, three-way field merge, explicit conflict choices, immutable snapshots,
-recovery and publication journal. Pending/in-flight local edits are protected.
-Doctor sync merges portable wire fields, preserves local-only data, rechecks
-protected identities/references and retains a PIN-free base. Conflict application
-rechecks the live actor and full reviewed local/base snapshots.
+doctor orchestration lives in `DoctorSyncCoordinator`. Both platforms use manual
+full-snapshot downloads and publication. Patient records, deletions, stored order
+and roster are taken from the reviewed local snapshot; remote fields/rows are not
+merged into it. Android doctor synchronization likewise replaces the full portable
+registry, preserving device-only PINs/aliases and protected identities/references.
+Pending local work blocks a destructive Android download until publication; desktop
+requires explicit draft replacement and keeps encrypted recovery. In-flight edits,
+local revisions and report confirmation remain protected. Immutable documents,
+three-shift bundles, recovery and the publication journal remain unchanged.
+
+Android no longer schedules background synchronization. The worker, scheduling
+hooks, interval and auto/Wi-Fi controls were removed. Startup cancels the old unique
+job. A manual publish performs one attempt, without automatically re-uploading on
+a publication race. Concurrent pointer changes require renewed review; the last
+successful pinned write remains authoritative, not an atomic transaction.
 
 Local revisions and pointer rechecks detect stale work; remote competing writers
 can still race. A new backend or atomic compare-and-swap is outside accepted scope.
@@ -221,7 +230,7 @@ The client provides protected join/password startup, optional literal `.env`
 preferences, private-code identity, patient/task/badge editors, current/archive
 shift selection, explicit carry-forward, unlimited active-doctor roster, search/
 filters/counts and stored sorting. Offline edits are encrypted local drafts;
-publication requires fresh verified identity/membership, conflict choices and
+publication requires fresh verified identity/membership and complete
 snapshot review. Desktop can create the first admin/project and export join files;
 reviewed ongoing doctor/role/destination administration is also available.
 
@@ -291,8 +300,8 @@ key/database files. Linux setup now installs unpinned binary dependencies in
 compatibility requirements separate.
 
 The [wire contract](../desktop/PROTOCOL.md) retains state v4/bundle v1/CSV v7,
-registry/join/AES-GCM envelopes, expected-baseline field/deletion/roster/order
-conflicts, revision and task-completion stamps, three-shift history, recovery
+registry/join/AES-GCM envelopes, reviewed whole-shift replacement including
+deletion/roster/order, revision and task-completion stamps, three-shift history, recovery
 pointers and publication journals. Telegram remains last-successful-write-wins;
 checks are not atomic multi-writer transactions. Complete Arabic PDFs are generated
 using ReportLab/shaping/bidi and an embedded TTF, previewed through Windows
@@ -368,7 +377,7 @@ and Git whitespace checks only. No builds or test-suite work was run.
 The desktop now retains deleted patients and their original list positions in
 optional encrypted workspace recovery records, with no SQLite/interchange schema
 or version changes. Current-shift restoration requires an unchanged draft and a
-missing patient ID, restores complete content and uses normal conflict review
+missing patient ID, restores complete content and uses complete-snapshot review
 before publication. Recovery survives reopen/publication and encrypted draft
 backup; receipts still cannot be rolled back by restoring a backup. Previously
 published task completions retain their identity/time through sealed recovery
@@ -393,7 +402,7 @@ rosters. New doctors use the current stable ID/wire representation; no Android
 PINs are transported. Registry publication records UNKNOWN before upload, retains
 unrelated index fields and confirms the exact registry/pointer by readback.
 Updating the registry cache does not replace the private patient draft or its
-patient merge baseline. Telegram concurrency remains last-successful-write-wins.
+patient review baseline. Telegram concurrency remains last-successful-write-wins.
 
 Source/local verification, repeated against the applied production modules:
 Python 3.8 grammar; dummy encrypted deletion/reopen/
@@ -413,15 +422,19 @@ before final export. Desktop verifies the active Telegram session, current admin
 registry role and membership before rendering and saving; it requires connectivity.
 Actor changes or revoked authority stop the export even if its dialog was already open. Each supervisor gets one
 separate table: supervisor heading, one comma-separated resident-name row, then
-one patient name per row. Residents are collected/deduplicated from that team's
-explicit patient assignments; no doctor hierarchy is inferred or persisted.
+one patient name per row. Residents now come from independent one-supervisor
+registry membership, including residents with no assigned patient. Empty active
+supervisor teams are included; no membership is inferred from patient records.
 Unknown/unassigned teams remain visible and every patient name is retained in
-stored relative order within its group. The local export is one portrait page:
-selected paper width/minimum height, increasing height when needed. It is a local
+stored relative order within its group. The export is fixed A4 portrait, with three 56.7 mm supervisor tables per row.
+Each table has a supervisor header, one resident-name row, then a number column
+on the left and a patient-name column on the right. Global numbering flows left
+to right across tables, then down to the next row. Overflow continues on A4 pages
+with repeated team headers and no dropped names. It is a local
 names-only overview; ordinary clinical report review/sending remains separate.
 
-Android `PdfAssignmentExporter` measures the complete layout before creating its
-single page, uses the existing palette/settings and saves through the existing
+Android `PdfAssignmentExporter` measures team rows before laying out its
+three-column A4 grid, uses the existing palette/settings and saves through the existing
 PDF path on IO with byte verification. Its local snapshot does not require a
 shift roster; normal clinical report building still does. The action works for saved shifts as other local exports do,
 retains busy/conflict guards, and has a dedicated retry action. It does not write
@@ -439,7 +452,7 @@ completion history or saved badges are removed from full reports. PDF delivery
 still requires actual-file preview and explicit confirmation.
 
 Verification: desktop Python 3.8 grammar; dummy grouping/resident deduplication/
-unassigned-name preservation; one-page ordinary and 200-patient/200-team overview;
+unassigned-name preservation; fixed-A4 three-table grid and 200-patient overflow;
 Classic output for all five palettes in light/dark; long Classic/card/paragraph
 PDF generation; visual inspection of the overview, Classic and a continuation card.
 Separate local supervisor-file generation retained the unassigned group and left
@@ -450,8 +463,332 @@ Android authority-observer/renderer/final-save wiring and retry handling were in
 Gradle/build, packaging, migration or test-suite work ran. Android rendering/saving,
 new desktop dialogs, Windows and live Telegram remain unverified.
 
+Current update checks: Python 3.8 grammar and full-snapshot proposal probes
+confirmed local values, deletions, roster and order are used without remote field
+merging. PDF metadata/text positions verified A4 portrait, three tables per row
+and sequential 1–18 numbering flowing left to right; a 200-patient overflow PDF
+was generated and the six-team grid was visually inspected. Android references,
+removed scheduler/settings and full-download/publication paths were inspected at
+source level. No Android build/compilation, packaging, migration or test-suite work
+ran; Android rendering, live Telegram and device execution remain unverified.
+Date-changing carry-forward is now one explicit whole-shift action on both
+platforms, separate from retrieving a published snapshot (details below).
+
+### Desktop grouping, local access, CSV and demo
+
+- Ward grouping is presentation-only: none, supervisor, resident, diagnosis,
+  gender or admission date. Stored numbers remain visible within groups.
+  The five-level sort editor uses Android's existing sort-spec fields and
+  ASC/DESC directions, keeps priority patients first and saves list positions and
+  compact metadata together, reapplied with current doctor names before publication
+  review. Manual arrows clear the sort levels. Text/PDF/CSV
+  consume that same saved order; edits reapply the active sort.
+- Device PIN enrollment/reset requires a current Telegram clinician session and
+  fresh membership/account authorization. Salted PBKDF2-SHA256 hashes (600,000
+  rounds), doctor/account binding and persistent attempt delays live inside the
+  encrypted workspace, excluded from portable backups and both CSV formats.
+  Arabic/ASCII digits are accepted. Reopening an enrolled workspace locks it;
+  manual locking or 1/5/15-minute inactivity hides the ward and existing dialogs,
+  preserving unsaved editors for unlock. Local workspace reads/saves/exports are
+  blocked while locked. The active network operation finishes before the idle
+  lock engages. Locking clears Telegram authority and reviewed publication;
+  PIN opens local work only. Private Telegram verification remains available for
+  recovery and is still required for shared publication/admin actions.
+- Patient CSV export is a single Android schema-7 document in stored order,
+  retaining tasks and complete clinical fields. Doctor CSV uses Android's existing
+  schema-1 columns, omits local PINs and goes through live-admin before/after
+  review and the existing pointer/draft/receipt publication checks. Import matches
+  existing IDs/account/name without ambiguity; it retains omitted active doctors,
+  permanent/current-actor privileges, reference guards and local access records.
+  Deleted-only newcomers are ignored; an old deleted row cannot delete an active
+  doctor. Unsupported portable extra options are rejected explicitly. Telegram's
+  registry has no username/update/delete timestamp storage: export timestamps
+  describe the export, and those CSV-only fields do not add registry fields.
+- `--demo` starts without reading connection settings or opening a persistent
+  workspace; the regular sidebar can also open a separate demo window. Demo uses
+  the real forms, groups, sorting, tasks, roster, recycle and PDF renderer with an
+  in-memory workspace and a client that has no Telegram transport. Network/admin,
+  backup/import and CSV paths are blocked. Reset/exit discards the session.
+  Beverage patients and tree doctors are dummy data; explicitly saved PDFs carry
+  a DEMO footer on every page, including card continuations/index pages.
+
+Checks for these additions: Python 3.8 grammar and module import; disposable
+source probes for stable priority/multi-level order, group conservation,
+patient/doctor CSV round-trips, non-admin/ambiguous/rank import rejection,
+persistent PIN throttling/account rebinding, backup exclusion and locked local
+operations; and in-memory demo reset/recycle/network/backup rejection. Generated
+Classic, cards and paragraph demo PDFs (1/13/3 pages) had a DEMO marker on every
+page; the Classic page was visually inspected. Desktop module import hit the
+sandbox's read-only user-font path and CustomTkinter reported its fallback.
+No graphical desktop/display was available: lock conceal/restore, native dialogs,
+large-font interaction and Windows remain unverified. No build, compilation,
+packaging, migration or test-suite work ran; live Telegram is unverified.
+
+### Team membership and workflow consolidation
+
+The owner authorized independent teams with at most one supervisor per resident.
+Doctor editing on both platforms includes that link, with an explicit unassigned
+state for setup. Lower administration/registry checks require active supervisor
+references and block deleting/changing a linked supervisor until residents move.
+Android stores `teamSupervisor:<id>` in its existing doctor options; Telegram adds
+an optional tenth `teamSupervisorId` column, and doctor CSV retains its existing
+schema-1 columns using portable `extra_options`. Retrieval accepts the previous
+nine-column registry as unassigned teams; it never invents team links from patient
+assignments. Both clients should be updated when publishing team data. No Room
+schema/migration or numbered format/toolchain version changes were needed.
+
+Android registry retrieval replaces the portable team link while retaining local
+PINs/aliases. Existing ID normalization and CSV identity matching also remap team
+references. CSV review on both platforms now names additions, changes, unchanged
+imported rows and omitted active doctors retained as-is; Android excludes PINs,
+aliases and incidental update times when classifying changes. Its active/admin
+counts cover the resulting full registry. The existing stale-registry/live-admin
+publication guards remain in place. Assignments PDFs use the independent team
+roster and include empty active supervisor teams; individual patient resident fields
+remain separate clinical assignments and no longer define PDF team membership.
+
+Android's optional empty-shift prompt and explicit drawer action now offer the
+same whole-shift copy as desktop: all patients, unfinished tasks with deadlines,
+one keep/clear responsibility choice, fresh patient IDs, no completed-task copy.
+Per-patient rollover decisions/review queues are removed. Android uses the previous
+local shift (download to refresh it); the clinical transaction checks source IDs,
+source revisions, target date/revision and target emptiness. The new shift uses
+saved manual order with priority first. Desktop has a separate start-shift action,
+keeps an existing empty current-shift identity/roster, refuses local/remote nonempty
+targets and rechecks patient/doctor pointers after confirmation. Neither download
+path creates copied patient records. Ordinary review/publication remains required.
+
+Desktop navigation is grouped into project/identity, local data/publication,
+reports and files/recovery, with explicit local-save → review/publish → send wording.
+Local report exports are labelled as draft exports that may contain unpublished
+edits. The ward shows the saved sort and explains that grouping is display-only
+and arrows clear sort levels. Android reuses the sort-sheet description in its
+filter dialog and explains grouping versus stored/export order.
+
+Checks: Python 3.8 grammar; disposable team wire/CSV round-trips, absent-patient
+resident inclusion, empty supervisor tables, invalid/deleted team-target rejection,
+CSV stable-ID remapping and protected import; bulk copying with retained deadlines,
+completed-task exclusion and keep/clear assignments; and sort-description probes.
+The desktop start-shift handler was exercised with disposable encrypted storage,
+confirming target identity/roster retention, all-record copying, assignment clearing
+and nonempty-target rejection. An assignments PDF with explicit residents but no
+per-patient resident assignments and an empty supervisor table was generated and
+visually inspected. Desktop GUI import again reported its read-only user-font
+fallback; no interactive desktop execution was performed. Android edits
+were inspected at source level only. No Gradle/build, Kotlin compilation, packaging,
+migration or test-suite work ran. Updated GUI workflows, Android rendering and
+live mixed-device Telegram operation remain unverified.
+
+### Cover, reviewed sending and source freshness
+
+Cross-team cover is allowed using the existing patient resident/supervisor fields.
+There is no automatic reassignment of permanent team membership or supervisor.
+Desktop resident choices identify the permanent team and explain covering; its
+text/full-PDF patient output marks a known cross-team assignment. Android's form
+shows the policy and a live cross-team indication. Its text/PDF report context
+explains that individual cover may differ from permanent membership. Role/active
+physician validation remains unchanged; no new stored clinical flag is required.
+
+Desktop report sending now prepares the same guarded full-shift publication used
+by manual review/publish. If data differ from the current remote shift, the user
+reviews the entire ward replacement (including deletions, even for a supervisor
+report), previews the final text/PDF, then explicitly confirms publication and
+delivery. No write occurs on cancellation before final confirmation. The existing
+publication ledger, current actor/pointer checks and exact PDF/text checks remain.
+After successful publication, sending uses that accepted shift/pointer. Identical
+accepted data reuse the remote publication, preserving existing report receipt
+identity and UNKNOWN blocking rather than creating a new snapshot for each retry.
+Android already publishes the matched reviewed shift before sending; its shared
+confirmation now also explains that delivery failure cannot undo publication.
+
+Android successful bundle application records per-shift download time/message ID
+in existing settings in the same transaction. Both automatic empty-shift and
+explicit whole-shift copy prompts display the source date and that recorded time
+only when it matches the source's CSV message ID. Older/local-only copies show an
+explicit unknown time; the prompt says no Telegram freshness check occurred now
+and tells the user to cancel/download first if needed. Desktop copy confirmation
+shows source date/count and the client-zone time its remote bundle was fetched
+for this operation, retaining its final pointer recheck. No database migration,
+interchange/schema version change or background synchronization was added.
+
+Checks: Python 3.8 grammar; disposable production-handler probes with encrypted
+workspace storage/fake transport confirmed cancellation causes no publication,
+final confirmation precedes publication/delivery, unchanged data avoid republishing,
+and an ambiguous delivery remains UNKNOWN and blocked across a retry. Cross-team
+classification, text/PDF content labels and assignment/membership preservation
+passed local probes. Android download metadata, scrollable confirmation and
+cover-policy wiring were inspected at source level. The desktop GUI import
+reported its known read-only font-install fallback. No Android build/compilation,
+packaging, migration or test-suite work ran. Graphical workflows, actual Android
+rendering and live Telegram remain unverified.
+
+### Explicit report outcomes and movement restrictions
+
+Report screens now expose publication and delivery as separate outcomes for the
+last send attempt. Android records publication-in-progress before upload and
+confirmed publication before rebuilding/sending. ReportSender wraps failures at
+the actual Telegram delivery boundary as uncertain delivery, preserving separate
+cancellation handling; render/file/validation failures before delivery remain
+not-started outcomes. Supervisor batches retain the confirmed destination count
+and distinguish partial success from an uncertain next delivery. Uncertain
+publication/delivery removes the shortcut retry action and instructs manual
+Telegram review. Successful sending marks delivery confirmed independently of
+publication. Attempt-stage displays are session-local; the durable Android delivery
+ledger described below protects retries across recreation and restart. No database
+or interchange schema/version changes were introduced.
+
+Desktop has the same separate last-attempt display and actionable failure text.
+It recognizes confirmed publication even if subsequent local bookkeeping fails,
+and confirmed delivery before receipt bookkeeping. Existing durable UNKNOWN
+receipts remain authoritative across restarts and retries. Local report export
+is separate and does not reset the send attempt display.
+
+Desktop manual movement is disabled while any grouping, filter or nonempty search
+is active, with a visible explanation to clear these first. The move handler also
+checks the condition, so a stale callback cannot move against hidden neighbours.
+Boundary arrows are disabled in the full ungrouped list. Existing stored order,
+priority-first behavior and sort-level clearing remain unchanged.
+
+Android synchronization labels now say «تعديلات غير منشورة» and «منشور على تليجرام»;
+the timestamp says last synchronization with Telegram, avoiding confusion with
+local encrypted backup files. Internal enum/persistence names remain unchanged.
+
+Checks: Python 3.8 grammar and disposable production-handler/source probes passed
+for group/filter/search movement rejection, report cancellation, confirmed
+publication before delivery, UNKNOWN retry blocking and outcome classification
+before requests/after ambiguous requests/after confirmed bookkeeping failures.
+Android network-boundary wrappers, stage updates, partial delivery and retry wiring
+were inspected at source level; affected import checks passed. GUI import used the
+known font fallback. No Gradle/build, Kotlin compilation, packaging, migrations or
+test-suite work ran; interactive Android/desktop and live Telegram remain unverified.
+
+### Durable Android deliveries and exact reviewed PDFs
+
+Android stores local report-delivery metadata in its existing settings repository.
+A singleton ledger persists UNKNOWN before a Telegram request, then records SENT
+and message IDs after acknowledgement. An unresolved shift/destination blocks all
+new formats/content for that route; identical confirmed content requires explicit
+one-copy permission. Preflight checks run before publication, and the send boundary
+rechecks under the ledger mutex. Network/cancellation failures retain UNKNOWN;
+receipt-write failures after acknowledgement retain a successful delivery outcome
+and leave the durable entry blocking retries. No patient text, credentials or raw
+destination IDs are stored in the ledger; route/content identifiers are hashes.
+This is a device-local guard, not Telegram idempotency or cross-device coordination.
+Android supervisor delivery identity also includes the supervisor ID, so distinct
+reviewed subsets can share a Telegram group without being mistaken for duplicates.
+Preflight and send use that same identity; an unresolved route still blocks both.
+
+Desktop now checks UNKNOWN report receipts by shift/chat/topic independently of
+format and publication pointer, before review/publication and again before the
+request. New report receipts append the shift ID to local metadata. Existing
+unresolved rows without that label conservatively block their destination until
+resolved; their contents are retained. The existing confirmed-report key and
+explicit extra-copy confirmation remain. One shared destination selector is used
+by preflight and both text/PDF transport paths. No database or interchange schema
+or version changes were made.
+
+Desktop manual receipt resolution checks the live project identity/membership and
+requires the original sender or a current admin below the UI. Wrong-project,
+locked, expired or unauthorized sessions cannot clear the block. Automatic receipt
+confirmation still relies on Telegram acknowledgement or matching pinned evidence.
+
+The report screen exposes dated attempts and explicit confirmation after inspecting
+Telegram: received, not received, or one additional copy of a confirmed report.
+Only the original sender or an active local admin can resolve an attempt, checked
+below the UI with expected status. An executing request cannot be resolved; process
+recreation releases that in-memory execution guard while preserving UNKNOWN. Any
+subsequent send still requires ordinary report review/confirmation.
+
+General and per-supervisor Android PDF previews retain the generated private-cache
+file, SHA-256, reviewed report and frozen export options/style. Send requires that
+same intact file, matching current clinical content/destinations and options. It
+sends those bytes without regeneration. Changed data/options, lost files or viewer
+launch failure require another preview; recreation without the in-memory reviewed
+artifact also requires a new preview. A supervisor batch checks every selected
+preview before publication. Local save/share/export remain separate actions.
+
+Historical assignment PDFs on both clients explicitly say the resident membership
+is the current roster, rather than a historical team snapshot; the context repeats
+on every page. Patient assignments still come from the selected shift.
+
+Checks: source inspection covered durable-before-request ordering, authenticated
+resolution, active-request exclusion, cancellation cleanup, all three delivery
+entry points, preview/data/options/hash checks and exact-file send wiring. Desktop
+production modules parse with Python 3.8 grammar. Disposable dummy-data PDF probes
+verified a one-page current shift and four-page historical overflow with repeated
+context; the historical Arabic page was visually inspected. Git whitespace checks
+passed. No Gradle/build, Kotlin compilation, packaging, migrations or test-suite
+work ran. Android recreation/concurrency/viewer behavior, interactive workflows
+and live Telegram delivery remain unverified.
+
+Additional disposable production-handler probes confirmed persistent destination
+blocking across format/publication changes, rejection before review/publication,
+independent shift/chat/topic availability and preservation of unresolved earlier
+rows. The real client authorization path with a fake transport rejected unrelated
+clinicians, expired sessions, departed membership, locked workspaces and wrong
+projects; sender/admin resolution passed. Existing review/cancellation/delivery
+outcome probes also passed. Python 3.8 grammar, affected Kotlin delimiter/import,
+local documentation-link and Git whitespace checks passed. GUI imports used the
+known read-only font fallback. Android supervisor identity was inspected at source
+level; no builds, compilation, migration or test-suite work, or live Telegram ran.
+
+### Workflow status, ward tasks and batch teams
+
+Both ward interfaces expose the selected shift, local publication state, recorded
+last download and count of unresolved report deliveries. The next action leads to
+delivery review, publication review or manual download. Android publication state
+is explicitly labelled device-wide, using the existing pending flag; desktop
+compares the selected draft with its known publication. Neither display claims to
+have checked Telegram now. Unknown download times remain explicit; a recorded time
+for an earlier snapshot is labelled accordingly. Desktop records selected-shift
+download metadata atomically with the local replacement, without changing shared
+formats or versions. Demo status is explicitly in-memory and its network action is
+disabled. Existing report review/confirmation remains required.
+
+A ward task list on each platform shows individual unfinished tasks across all
+patients, ordered overdue/deadline/priority, with patient-supervisor and
+patient-resident filters. Cards retain task ownership/deadline information. Opening
+a task resolves the current patient identity and uses the existing patient screen
+or editor; the board does not complete tasks or silently save clinical changes.
+Android reuses the PatientTasks display comparator. These are display filters and
+do not change stored patient/task order or exported content.
+
+The doctor-management screens now offer a batch team editor: supervisors and their
+residents appear together, with resident membership choices and explicit review of
+all changes before saving/publishing. Android checks live admin authority, the
+complete expected registry and valid one-supervisor membership in the mutation
+transaction, then writes the changed residents/audit/pending state together.
+Desktop reuses Administration review/approval/publication and its live admin,
+patient-draft and remote-registry checks. A single registry publication contains
+the entire approved batch. Patient assignments, cover and task owners are retained.
+
+Desktop manually confirmed arrival (CHECKED_DO_NOT_REPEAT) now qualifies for an
+explicitly approved extra report copy. It still blocks ordinary repetition, and
+UNKNOWN remains blocked independently of any extra-copy approval.
+
+Verification: disposable production probes passed task ordering/filtering and
+non-mutation, status/download persistence and next actions, multi-resident team
+validation/admin checks, one-upload batch publication, stale-draft/registry
+rejection and patient preservation. A dummy complete desktop handler sequence
+covered download, edit, reviewed publication, report send, retrieval through the
+shared Android CSV format, ambiguous delivery resolution and an approved repeat.
+Actual desktop demo-window/task-filter/patient-opening/team-selection callbacks
+ran with network prohibited; task/team/main Arabic screenshots were inspected.
+Demo state remained in memory. ADB was reachable after its sandbox socket
+restriction was lifted, but listed no connected devices. Android has source
+inspection and delimiter/import checks only. Python 3.8 grammar, documentation links
+and Git whitespace checks passed. No Gradle/build, compilation, packaging,
+migration or test-suite work ran. Actual Android-to-desktop execution, live Telegram
+and Android layout/accessibility remain unverified; dummy transport and wire
+round-trips do not establish those runtime behaviors.
+
 ## Verification and limits
 
+- Owner-supplied Android build on 2026-10-19 stopped at `compileDebugKotlin`
+  because `DoctorsScreen` passed an unsupported `doctors` argument to
+  `DoctorConflictReviewDialog`. Removed that argument and checked the sole call
+  against its declaration; Git whitespace checks passed. No build was rerun,
+  so compilation of the corrected snapshot remains unverified.
 - Python 3.14.4 Linux compatibility probe on 2026-10-19 passed in an isolated
   `/tmp/shiftreport-python314-check` venv with CustomTkinter 6.0.0, Pillow 13.0.0,
   ReportLab 5.0.1, cryptography 50.0.2, Requests 2.34.2, arabic-reshaper 3.0.1 and

@@ -4,7 +4,7 @@ This file records the accepted architecture scope and external design basis. The
 
 ## Accepted synchronization scope
 
-Telegram remains the shared storage and delivery channel. Users retrieve published data and publish updates; the last successful pinned-state write wins. Simultaneous collaborative editing and guaranteed preservation of competing remote publications are outside the required scope. Telegram pinned state is not an atomic multi-writer database; this limitation is accepted, not a release blocker. A separate authoritative service is not required. Existing local stale-edit checks, merge/conflict handling, authorization, and report confirmation remain in place.
+Telegram remains the shared storage and delivery channel. Users retrieve published data and publish updates; the last successful pinned-state write wins. Simultaneous collaborative editing and guaranteed preservation of competing remote publications are outside the required scope. Telegram pinned state is not an atomic multi-writer database; this limitation is accepted, not a release blocker. A separate authoritative service is not required. Downloads and publications transfer complete snapshots; remote field-by-field merging is removed. Local stale-edit checks, explicit replacement review, authorization and report confirmation remain in place. Synchronization is manual on both platforms; there is no periodic background upload/download.
 
 ## Current architecture decisions
 
@@ -103,10 +103,13 @@ shared Telegram contracts. Android commands and IDE imports use `android/` as
 the project root. Historical protected reviews retain old source-root paths;
 current source paths are prefixed with `android/`.
 
-The admin-only names-only team PDF is a presentation of explicit patient assignments, not a
-new persisted supervisor/resident hierarchy. Both platforms group by supervisor,
-list the team's distinct assigned residents in one row and retain patient-name
-rows in one portrait page whose height grows with content. Full desktop reports
+The admin-only names-only team PDF groups patients by their assigned supervisor.
+Resident membership is an independent one-supervisor registry link, stored through
+Android's existing doctor options and a shared Telegram column. Unassigned residents
+are allowed during setup. Both platforms list all linked residents, including those
+without a patient, in one row, followed by numbered
+patient-name rows. Fixed A4 portrait pages contain three 56.7 mm tables per row,
+with global numbers flowing left to right and onto subsequent A4 pages as needed. Full desktop reports
 mirror Android's current Classic/card layouts and palette semantics; local
 per-supervisor exports and readable names/PDF exports do not publish clinical data.
 
@@ -114,3 +117,59 @@ Assignments-PDF access is enforced below navigation: Android reuses its session/
 current-registry AdminAuthorizer in rendering and final export; desktop uses live
 Telegram session/membership and registry-role checks. Recheck the same actor
 before saving so an open dialog does not retain withdrawn authority.
+
+
+Desktop local access uses clinician/account-bound PIN hashes inside its encrypted
+workspace, with persistent delays and an idle screen lock that preserves hidden
+editors. It unlocks offline work from the cached roster; shared publication and
+administration retain fresh Telegram identity/membership checks. PIN records never
+travel through CSV, Telegram or portable draft backups. Desktop demo is a separate
+in-memory workspace with no Telegram transport, using the real local forms and
+labelled PDF renderer. Portable doctor CSV is an explicit reviewed admin operation
+through the existing registry publication path; it does not enable background sync.
+
+
+New-shift creation and retrieval are explicit separate actions. New-shift creation
+copies the entire preceding shift and unfinished tasks into new patient records,
+with one keep/clear responsibility choice. It cannot overwrite a nonempty target;
+Android checks source membership/revisions and target revision inside the clinical
+transaction, and desktop rechecks remote pointers after review. Copying is local
+work pending publication. CSV import retains omitted active doctors; its preview
+separates added, changed, unchanged imported and retained records before a complete
+registry publication.
+
+
+Patient-level cross-team cover is permitted without mutating permanent team
+membership or the patient's supervisor. Forms make that policy explicit rather
+than filtering away valid covering residents. Reviewed report sending ensures data
+publication before delivery on both platforms; desktop skips a redundant publication
+for identical accepted content so its existing delivery identity/UNKNOWN guards
+survive retries. Full-ward publication review remains required even when the sent
+report is limited to one supervisor. Cancellation before final confirmation has no
+publication side effect. Shift-copy confirmation exposes source date and freshness
+rather than silently treating a local snapshot as a current remote snapshot.
+
+## Reviewed PDF and delivery identity
+
+Android binds each general/supervisor PDF send to the exact private-cache artifact
+opened for review, its SHA-256 and the reviewed clinical content/export options.
+Changed content/options or a missing artifact require another preview. Delivery
+metadata persists UNKNOWN before network access and blocks retry by shift and
+destination until the sender or an active admin explicitly resolves the outcome.
+Supervisor report identity includes the supervisor ID, while UNKNOWN blocks the
+shift/destination regardless of report subset. Desktop likewise blocks unresolved
+shift/chat/topic deliveries independently of format and publication identity,
+checks before publication and at the send boundary, and requires live sender/admin
+authorization for manual resolution. Confirmed identical content requires explicit
+extra-copy permission. These local ledgers complement review and last-write-wins publication; it cannot guarantee
+exactly-once delivery across devices or prove non-delivery after a timeout.
+Historical assignment PDFs use the current independent team roster and label that
+limitation, while patients retain the selected shift's assignments.
+
+## Ward workflow controls
+
+Show known local publication/download/delivery state together, with a clear next
+action; a recorded download time does not claim remote freshness. Ward-wide task
+lists reuse structured tasks and existing patient save flows, changing display
+only. Batch resident-team changes require one review and authorization/stale-state
+checks below the UI, preserving patient assignments and individual cover.

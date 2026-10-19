@@ -23,22 +23,13 @@ data class ShiftSnapshotOption(
 
 enum class PatientSyncStatus(val arabicLabel: String) {
     LOCAL("محفوظ محلياً"),
-    PENDING("بانتظار النسخ الاحتياطي"),
-    BACKED_UP("منسوخ احتياطياً"),
+    PENDING("تعديلات غير منشورة"),
+    BACKED_UP("منشور على تليجرام"),
     SYNCING("جارٍ التزامن"),
     CONFLICT("تعارض")
 }
 
 enum class WardRetryAction { FETCH_LATEST, FETCH_PREVIOUS, EXPORT_CSV }
-
-enum class RolloverDecision(val arabicLabel: String) {
-    CONTINUE("استمرار"),
-    CONTINUE_AND_EDIT("استمرار مع مراجعة"),
-    REASSIGN("استمرار وإعادة تعيين"),
-    DISCHARGED("خروج"),
-    TRANSFERRED("تحويل"),
-    SKIP("تخطي")
-}
 
 data class WardUiState(
     val hospitalName: String = "",
@@ -50,7 +41,8 @@ data class WardUiState(
     val deletedPatients: List<Patient> = emptyList(),
     val patientDraft: PatientDraft? = null,
     val rolloverPatients: List<Patient> = emptyList(),
-    val rolloverReviewPatients: List<Patient> = emptyList(),
+    val rolloverTarget: Shift? = null,
+    val rolloverSourceLabel: String = "",
     val activityLoading: Boolean = false,
     val activityError: String? = null,
     val recentActivity: List<AuditEntryEntity> = emptyList(),
@@ -67,6 +59,10 @@ data class WardUiState(
     val showSnapshotPicker: Boolean = false,
     val syncStatus: PatientSyncStatus = PatientSyncStatus.LOCAL,
     val lastBackedUpAt: Long? = null,
+    val lastDownloadAt: Long? = null,
+    val lastDownloadMessage: Long? = null,
+    val unresolvedDeliveries: Int = 0,
+    val deliveryLogUnavailable: Boolean = false,
     val exportingCsv: Boolean = false,
     val patientDetailsExpanded: Boolean = false,
     val twoColumn: Boolean = false,

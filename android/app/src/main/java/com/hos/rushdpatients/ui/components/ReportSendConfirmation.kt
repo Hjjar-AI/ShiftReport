@@ -20,7 +20,7 @@ fun ReportSendConfirmation(destinations: List<String>, format: String, warningCo
             Text("الصيغة: $format")
             Text("الوجهة:")
             destinations.forEach { Text("• $it") }
-            Text("ستُحدّث بيانات المناوبة المنشورة أولاً، ثم يُرسل التقرير من النسخة المقبولة بعد التحقق من مطابقتها للمراجعة.")
+            Text("ستُحدّث بيانات المناوبة المنشورة أولاً، ثم يُرسل التقرير من النسخة المقبولة بعد التحقق من مطابقتها للمراجعة. إذا فشل الإرسال بعد النشر، تبقى البيانات منشورة؛ راجع حالة العملية قبل الإعادة.")
             if (warningCount > 0) AppNotice("توجد ${uiNumber(warningCount)} ملاحظات جاهزية غير مانعة.", kind = NoticeKind.WARNING)
         }
     }, confirmButton = { AppButton(onClick = onConfirm, enabled = enabled) { Text("إرسال") } },

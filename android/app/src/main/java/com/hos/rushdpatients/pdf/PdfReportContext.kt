@@ -12,6 +12,7 @@ internal object PdfReportContext {
         "المشفى: ${options.hospitalName.ifBlank { "غير محدد" }}",
         "الجناح: ${options.wardName.ifBlank { "غير محدد" }}",
         "تاريخ المناوبة: ${summary.shiftDate}",
+        "تعيين المقيم للمريض قد يكون تغطية من فريق آخر؛ عضوية الفريق الثابتة لا تتغير.",
         "أُنشئ في: " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z", Locale("ar"))
             .format(Instant.ofEpochMilli(options.generatedAtEpochMillis).atZone(ZoneId.systemDefault()))
     )

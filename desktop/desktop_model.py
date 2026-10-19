@@ -112,6 +112,8 @@ def patient_text(row, doctors, zone):
         elif key == 'diagnosisType': value = DIAGNOSIS.get(value,value)
         elif key in ['hasCompanion','isPriority']: value = YES.get(value,value)
         lines.append(LABELS[key] + ': ' + value)
+    from desktop_teams import is_cross_team_cover
+    if is_cross_team_cover(row,doctors):lines.append('تغطية فردية من فريق آخر؛ عضوية الفريق الثابتة لا تتغير')
     for text, level in badges_decode(row.get('warningDetails', '')):
         lines.append('شارة: ' + text + ' · ' + BADGE_PRIORITY[level])
     for task in json.loads(row.get('tasksJson') or '[]'):

@@ -231,7 +231,7 @@ def parse_doctors(raw):
         rows = body.split('|')
         header = rows.pop(0).split(',')
         expected = '#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId'.split(',')
-        require(header == expected, 'مطلوب سجل الأطباء الحالي')
+        require(header in (expected, expected+['teamSupervisorId']), 'مطلوب سجل الأطباء الحالي')
         result = {}
         for line in rows:
             values = line.split(',')
@@ -243,9 +243,11 @@ def parse_doctors(raw):
             require(row['telegram_id'] is None or row['telegram_id'] > 0, 'هوية تليجرام غير صالحة')
             row['destination'] = int(row['supervisorGroupChatId']) if row['supervisorGroupChatId'] else None
             require(row['destination'] is None or row['clinicalRole'] == 'SUPERVISOR' and row['destination'] < 0, 'وجهة مشرف غير صالحة')
+            row['teamSupervisorId'] = row.get('teamSupervisorId','')
             result[row['uid']] = row
         require(result, 'سجل الأطباء فارغ')
-        return result
+        from desktop_teams import validate_teams
+        return validate_teams(result)
     except BridgeError:
         raise
     except Exception:
@@ -362,35 +364,6 @@ def doctor_pointer(state):
     return state.get('doctorsFileId'), state.get('doctorsMessageId'), state.get('doctorsUpdatedAt')
 
 
-def merge_patients(base, local, remote, choices):
-    maps = [{r['externalId']: r for r in rows} for rows in [base, local, remote]]
-    order = list(maps[1]) + [key for key in maps[2] if key not in maps[1]]
-    conflicts, result = [], []
-    for key in list(dict.fromkeys(order + list(maps[0]))):
-        b, l, r = (m.get(key) for m in maps)
-        if l is None or r is None or b is None:
-            if l == b: selected = r
-            elif r == b or l == r: selected = l
-            else:
-                conflict = (key, '__record__')
-                if conflict not in choices:
-                    conflicts.append({'id': key, 'field': '__record__', 'base': b, 'local': l, 'remote': r}); continue
-                selected = l if choices[conflict] == 'local' else r
-            if selected is not None: result.append(copy.deepcopy(selected))
-            continue
-        row = copy.deepcopy(r)
-        for col in EDITABLE:
-            if l.get(col) == b.get(col): row[col] = r.get(col, '')
-            elif r.get(col) == b.get(col) or l.get(col) == r.get(col): row[col] = l.get(col, '')
-            else:
-                conflict = (key, col)
-                if conflict not in choices:
-                    conflicts.append({'id': key, 'field': col, 'base': b.get(col), 'local': l.get(col), 'remote': r.get(col)})
-                else: row[col] = l[col] if choices[conflict] == 'local' else r[col]
-        result.append(row)
-    return result, conflicts
-
-
 def is_admin(doctor):
     options = doctor.get('options', '')
     match = re.fullmatch(r'[aA]([1-9][0-9]*)', options)
@@ -480,6 +453,10 @@ class Client:
                 member.get('status') == 'restricted' and member.get('is_member'), 'الطبيب لم يعد عضوا في المشروع')
         return actor
 
+    def require_local_identity(self):
+        snapshot = self.fetch()
+        return self.authorize(snapshot['doctors'])
+
     def require_admin(self):
         snapshot = self.fetch()
         actor = self.authorize(snapshot['doctors'])
@@ -512,31 +489,10 @@ class Client:
         same_date = [s for s in remote['bundle'] if s['meta']['shiftDate'] == shift['meta']['shiftDate']]
         require(not same_date or all(s['meta']['shiftId'] == selected_id for s in same_date), 'معرف المناوبة الحالية تغير؛ اجلبها قبل التعديل')
         require(base_shift is None or latest is not None, 'مناوبة الأساس لم تعد في الحزمة؛ أعد الجلب ولا تنشر فوق سجل آخر')
-        merged, conflicts = merge_patients(base_shift['patients'] if base_shift else [], shift['patients'], latest['patients'] if latest else [], choices or {})
+        # The reviewed local shift is the entire replacement, including deletions,
+        # roster and stored order. Remote fields/additions are never silently merged.
         output = copy.deepcopy(shift)
-        output['patients'] = merged
-        if latest and base_shift:
-            b, l, r = (x['meta'].get('doctors', '') for x in [base_shift, shift, latest])
-            if l == b: output['meta']['doctors'] = r
-            elif r != b and l != r:
-                choice = (choices or {}).get(('__shift__', 'doctors'))
-                if choice: output['meta']['doctors'] = l if choice == 'local' else r
-                else: conflicts.append({'id': '__shift__', 'field': 'doctors', 'base': b, 'local': l, 'remote': r})
-        if latest and base_shift:
-            b, l, r = ([p['externalId'] for p in s['patients']] for s in [base_shift, shift, latest])
-            order = l
-            if l == b:
-                order = r
-            elif r != b and l != r:
-                choice = (choices or {}).get(('__shift__', 'order'))
-                if choice:
-                    order = l if choice == 'local' else r
-                else:
-                    conflicts.append({'id': '__shift__', 'field': 'order', 'base': b, 'local': l, 'remote': r})
-            by_id = {p['externalId']: p for p in merged}
-            ids = list(dict.fromkeys(order + list(by_id)))
-            output['patients'] = [by_id[key] for key in ids if key in by_id]
-        plan = Review(pointer(remote['state']), doctor_pointer(remote['state']), output, remote['bundle'], remote, conflicts)
+        plan = Review(pointer(remote['state']), doctor_pointer(remote['state']), output, remote['bundle'], remote, [])
         return plan
 
     def prepare(self, plan, restored_completions=None):
@@ -545,6 +501,8 @@ class Client:
         doctors = plan.remote['doctors']
         now = int(time.time() * 1000)
         shift = copy.deepcopy(plan.shift)
+        from desktop_sort import ordered
+        ordered(shift, doctors, self.zone)
         latest = next((s for s in plan.bundle if s['meta']['shiftId'] == shift['meta']['shiftId']), None)
         previous = {r['externalId']: r for r in latest['patients']} if latest else {}
         require(len(shift['patients']) <= 200, 'الحد الأقصى للمناوبة 200 مريض')
@@ -590,7 +548,7 @@ class Client:
         meta = shift['meta']
         meta.update(schemaVersion='7', snapshotId=str(uuid.uuid4()), baseSnapshotId=latest['meta'].get('snapshotId', '') if latest else '',
                     shiftRevision=str(int(latest['meta'].get('shiftRevision') or 0) + 1) if latest else '1', deviceId=self.device,
-                    sortSpec='{"levels":[]}')
+                    sortSpec=meta.get('sortSpec') or '{"levels":[]}')
         plan.shift = shift
         plan.actor_id = self._actor
         plan._approval = None
@@ -634,22 +592,19 @@ class Client:
         return uploaded
 
     def send_pdf(self, raw, shift, supervisor, reviewed_pointer, reviewed_registry, before_send):
+        from desktop_reports import report_destination
         require(raw.startswith(b'%PDF-'), 'مطلوب PDF معاين')
         current = self.fetch()
         self.authorize(current['doctors'])
         require(pointer(current['state']) == reviewed_pointer and doctor_pointer(current['state']) == reviewed_registry, 'تغيرت نسخة المرضى أو الأطباء؛ أعد المعاينة')
         require(shift['meta']['shiftDate'] == current_date(self.zone), 'لا ترسل تقرير مناوبة محفوظة')
-        chat, topic = self.config['chatId'], self.config.get('reportsTopicId')
-        if supervisor:
-            doctor = current['doctors'].get(supervisor)
-            require(doctor is not None and doctor['clinicalRole'] == 'SUPERVISOR' and doctor['destination'], 'وجهة المشرف غير متاحة')
-            chat, topic = doctor['destination'], None
+        chat, topic = report_destination(self, current['doctors'], supervisor)
         before_send(chat, topic)
         return self.telegram.upload(raw, 'ShiftReport_' + shift['meta']['shiftDate'] + '.pdf', topic,
                                     self.config['hospitalName'] + ' — ' + shift['meta']['shiftDate'], chat, pdf=True)
 
     def send_text(self, text, shift, supervisor, reviewed_pointer, reviewed_registry, before_send):
-        from desktop_reports import report_text, text_chunks
+        from desktop_reports import report_destination, report_text, text_chunks
         def destination():
             current = self.fetch()
             self.authorize(current['doctors'])
@@ -658,12 +613,7 @@ class Client:
             require(shift['meta']['shiftDate'] == current_date(self.zone), 'لا ترسل تقرير مناوبة محفوظة')
             self.doctors = current['doctors']
             require(text == report_text(self, shift, supervisor), 'تغير النص بعد المعاينة')
-            chat, topic = self.config['chatId'], self.config.get('reportsTopicId')
-            if supervisor:
-                doctor = current['doctors'].get(supervisor)
-                require(doctor and doctor['clinicalRole'] == 'SUPERVISOR' and doctor.get('destination'), 'وجهة المشرف غير متاحة')
-                chat, topic = doctor['destination'], None
-            return chat, topic
+            return report_destination(self, current['doctors'], supervisor)
         chat, topic = destination()
         before_send(chat, topic)  # One UNKNOWN receipt covers all parts, including partial delivery.
         if self.config.get('telegramDataKey'):

@@ -28,7 +28,6 @@ import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
-import com.hos.rushdpatients.sync.AutoSyncScheduler
 import com.hos.rushdpatients.sync.SyncService
 import com.hos.rushdpatients.ui.theme.AppFontScale
 import com.hos.rushdpatients.ui.theme.AppAppearance
@@ -125,8 +124,6 @@ class SettingsViewModel @Inject constructor(
                             session.isAdmin -> "مدير"
                             else -> "غير مدير"
                         },
-                        autoSync = settingsRepository.isAutoSyncEnabled(),
-                        syncWifiOnly = settingsRepository.isSyncWifiOnly(),
                         reportAsPdf = settingsRepository.isReportAsPdf(),
                         reportWardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
                         saveAndNext = settingsRepository.getBoolean(AppConstants.SETTING_SAVE_AND_NEXT, false),
@@ -203,22 +200,6 @@ class SettingsViewModel @Inject constructor(
                     it.copy(lastDoctorsSync = sync?.lastSyncedAtEpochMillis?.let(::format))
                 }
             }
-        }
-    }
-
-    fun setAutoSync(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.setAutoSync(value)
-            _state.update { it.copy(autoSync = value) }
-            AutoSyncScheduler.configure(context, value, _state.value.syncWifiOnly)
-        }
-    }
-
-    fun setSyncWifiOnly(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.setSyncWifiOnly(value)
-            _state.update { it.copy(syncWifiOnly = value) }
-            AutoSyncScheduler.configure(context, _state.value.autoSync, value)
         }
     }
 

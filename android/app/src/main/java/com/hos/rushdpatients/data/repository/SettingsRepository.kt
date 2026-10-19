@@ -62,19 +62,6 @@ class SettingsRepository @Inject constructor(
     suspend fun setReportAsPdf(enabled: Boolean) =
         putBoolean(AppConstants.SETTING_REPORT_AS_PDF, enabled)
 
-    // Auto sync defaults to OFF. The user must opt in from Settings.
-    suspend fun isAutoSyncEnabled(): Boolean =
-        getBoolean(AppConstants.SETTING_AUTO_SYNC, false)
-
-    suspend fun setAutoSync(enabled: Boolean) =
-        putBoolean(AppConstants.SETTING_AUTO_SYNC, enabled)
-
-    suspend fun isSyncWifiOnly(): Boolean =
-        getBoolean(AppConstants.SETTING_SYNC_WIFI_ONLY, false)
-
-    suspend fun setSyncWifiOnly(wifiOnly: Boolean) =
-        putBoolean(AppConstants.SETTING_SYNC_WIFI_ONLY, wifiOnly)
-
     suspend fun getAutoLockMinutes(): Int =
         getInt(AppConstants.SETTING_AUTO_LOCK_MINUTES, 20).coerceIn(1, 60)
 

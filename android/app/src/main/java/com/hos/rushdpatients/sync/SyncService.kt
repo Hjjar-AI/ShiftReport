@@ -62,13 +62,6 @@ private data class AppliedShift(
     val updated: Int
 )
 
-private data class PendingPatientMerge(
-    val shiftId: String,
-    val remote: ParsedShift,
-    val base: List<Patient>,
-    val local: List<Patient>
-)
-
 @Singleton
 class SyncService @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -89,7 +82,6 @@ class SyncService @Inject constructor(
     private val patientSyncMutex = Mutex()
     private val _patientConflicts = MutableStateFlow<List<PatientFieldConflict>>(emptyList())
     val patientConflicts: StateFlow<List<PatientFieldConflict>> = _patientConflicts.asStateFlow()
-    private var pendingPatientMerge: PendingPatientMerge? = null
     val doctorConflicts: StateFlow<List<DoctorRegistryConflict>> get() = doctorSync.doctorConflicts
 
     suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSync.uploadDoctors(registryData)
@@ -107,23 +99,6 @@ class SyncService @Inject constructor(
 
     suspend fun fetchPreviousCsv(): Result<CsvFetchResult> = patientSyncMutex.withLock {
         fetchCsv(previous = true)
-    }
-
-    /**
-     * Background-safe patient synchronization. Local edits are published before any pull so a
-     * periodic worker cannot silently replace an unsent device change.
-     */
-    suspend fun synchronizeCurrentPatients(): Result<*> {
-        val pending = settingsRepository.getBoolean(
-            AppConstants.SETTING_PATIENTS_SYNC_PENDING,
-            false
-        )
-        if (pending) {
-            val shift = shiftRepository.getByDate(ShiftDate.current())
-                ?: return Result.failure<Unit>(IllegalStateException("لا توجد وردية لمزامنتها"))
-            return uploadCsv(shift.id)
-        }
-        return fetchLatestCsv()
     }
 
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary =
@@ -228,6 +203,10 @@ class SyncService @Inject constructor(
                 prepared.map { preparedShift ->
                     applyPreparedShift(preparedShift).also { appliedShift ->
                         shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
+                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
+                            java.time.Instant.now().toEpochMilli().toString())
+                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + appliedShift.shift.id,
+                            snapshot.messageId.toString())
                     }
                 }
             }
@@ -366,20 +345,7 @@ class SyncService @Inject constructor(
     }
 
     suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> =
-        patientSyncMutex.withLock { uploadCsvWithRetry(shiftId) }
-
-    private suspend fun uploadCsvWithRetry(shiftId: String): Result<CsvUploadResult> {
-        var last: Result<CsvUploadResult>? = null
-        repeat(3) { attempt ->
-            val result = uploadCsvInternal(shiftId, forceCurrent = false)
-            if (result.isSuccess) return result
-            last = result
-            val message = result.exceptionOrNull()?.message.orEmpty()
-            val publicationRace = message.contains("بالتزامن") || message.contains("نسخة أحدث")
-            if (!publicationRace || attempt == 2) return result
-        }
-        return last ?: Result.failure(IllegalStateException("تعذر نشر البيانات"))
-    }
+        patientSyncMutex.withLock { uploadCsvInternal(shiftId, forceCurrent = false) }
 
     suspend fun forceUploadCsv(shiftId: String): Result<CsvUploadResult> =
         patientSyncMutex.withLock { uploadCsvInternal(shiftId, forceCurrent = true) }
@@ -395,39 +361,15 @@ class SyncService @Inject constructor(
                 "المناوبات المحفوظة للعرض والاستعادة فقط ولا يمكن نشرها كالمناوبة الحالية"
             }
 
-            var patients = patientRepository.getForShift(shiftId)
+            val patients = patientRepository.getForShift(shiftId)
             val publishingDeviceId = getOrCreateDeviceId()
-            val remoteStateBeforeMerge = remoteState.readState()
-            val remoteSnapshotBeforeMerge = remoteStateBeforeMerge?.currentCsvSnapshot()
-            val remoteShift = if (forceCurrent) null else remoteSnapshotBeforeMerge?.let { downloadSnapshot(it) }
+            val remoteStateBeforeUpload = remoteState.readState()
+            val remoteSnapshotBeforeUpload = remoteStateBeforeUpload?.currentCsvSnapshot()
+            val remoteShift = if (forceCurrent) null else remoteSnapshotBeforeUpload?.let { downloadSnapshot(it) }
                 ?.firstOrNull { it.shiftDate == shift.date }
 
-            if (!forceCurrent && remoteShift != null && remoteShift.snapshotId != shift.snapshotId) {
-                val base = settingsRepository.get(AppConstants.SETTING_PATIENTS_BASE_SNAPSHOT)
-                    ?.let { csv -> runCatching { CsvCodec.decode(csv) }.getOrNull() }
-                    ?.takeIf { it.shiftDate == shift.date && it.snapshotId == shift.snapshotId }
-                val basePatients = base?.patients.orEmpty()
-                val merged = mergePatients(basePatients, patients, remoteShift.patients)
-                if (merged.conflicts.isNotEmpty()) {
-                    pendingPatientMerge = PendingPatientMerge(
-                        shiftId = shift.id,
-                        remote = remoteShift,
-                        base = basePatients,
-                        local = patients
-                    )
-                    _patientConflicts.value = merged.conflicts
-                    error("توجد ${merged.conflicts.size} حقول متعارضة وتحتاج إلى مراجعة")
-                }
-                pendingPatientMerge = null
-                _patientConflicts.value = emptyList()
-                patients = merged.patients
-                patientRepository.softDeleteMissingFromShift(shift.id, patients.map(Patient::id))
-                patientRepository.upsertAll(patients, shift.id)
-                auditRepository.record(
-                    null, null, AppConstants.AUDIT_SYNC_MERGED,
-                    "shift=${shift.id} remote=${remoteShift.snapshotId} patients=${patients.size}"
-                )
-            }
+            // Publish this complete local snapshot; never merge remote fields into it.
+            _patientConflicts.value = emptyList()
 
             shift = shift.copy(
                 baseSnapshotId = remoteShift?.snapshotId ?: shift.snapshotId,
@@ -496,8 +438,8 @@ class SyncService @Inject constructor(
             )
             val newState = remoteState.updateState { current ->
                 if (!forceCurrent) {
-                    require(current.currentCsvSnapshot()?.messageId == remoteSnapshotBeforeMerge?.messageId) {
-                        "وصلت نسخة أحدث أثناء الرفع؛ أعد المحاولة ليتم دمجها"
+                    require(current.currentCsvSnapshot()?.messageId == remoteSnapshotBeforeUpload?.messageId) {
+                        "وصلت نسخة أحدث أثناء الرفع؛ راجع وانشر النسخة الكاملة مجدداً"
                     }
                 }
                 val previousCurrent = current.currentCsvSnapshot()
@@ -527,7 +469,7 @@ class SyncService @Inject constructor(
             }
             val published = newState.currentCsvSnapshot()
             check(published != null && published.messageId == msg.messageId) {
-                "وصل نشر أحدث بالتزامن؛ أعد المحاولة لدمج النسختين"
+                "وصل نشر أحدث بالتزامن؛ راجع النسخة الحالية قبل نشر نسختك الكاملة"
             }
             runCatching {
                 syncStateRepository.update(
@@ -546,7 +488,7 @@ class SyncService @Inject constructor(
                 if (forceCurrent) {
                     auditRepository.record(
                         null, null, AppConstants.AUDIT_SYNC_FORCED,
-                        "shift=$shiftId replacedMessage=${remoteSnapshotBeforeMerge?.messageId ?: "none"} " +
+                        "shift=$shiftId replacedMessage=${remoteSnapshotBeforeUpload?.messageId ?: "none"} " +
                             "replacement=${shift.snapshotId} device=$publishingDeviceId"
                     )
                 }
@@ -588,7 +530,7 @@ class SyncService @Inject constructor(
     private suspend fun downloadSnapshot(snapshot: CsvSnapshot): List<ParsedShift> {
         val remote = telegram.getFile(snapshot.fileId)
         val path = requireNotNull(remote.filePath) { "تعذر الحصول على مسار الملف" }
-        val local = File.createTempFile("merge_shift_", ".csv", context.cacheDir)
+        val local = File.createTempFile("snapshot_shift_", ".csv", context.cacheDir)
         return try {
             telegram.downloadFile(path, local)
             CsvBundleCodec.decode(local.readText(Charsets.UTF_8))
@@ -599,43 +541,11 @@ class SyncService @Inject constructor(
 
     suspend fun resolvePatientConflicts(
         resolutions: Map<String, ConflictChoice>
-    ): Result<CsvUploadResult> = patientSyncMutex.withLock {
-        val pending = pendingPatientMerge
-            ?: return@withLock Result.failure(IllegalStateException("لا توجد تعارضات معلقة"))
-        val merged = mergePatients(pending.base, pending.local, pending.remote.patients, resolutions)
-        if (merged.conflicts.isNotEmpty()) {
-            _patientConflicts.value = merged.conflicts
-            return@withLock Result.failure(IllegalStateException("لم تُحسم جميع الحقول المتعارضة"))
-        }
-        runCatching {
-            val shift = shiftRepository.getById(pending.shiftId) ?: error("الوردية غير موجودة")
-            patientRepository.softDeleteMissingFromShift(shift.id, merged.patients.map(Patient::id))
-            patientRepository.upsertAll(merged.patients, shift.id)
-            val remoteBase = shift.copy(
-                doctorIds = pending.remote.doctorIds,
-                sortSpecJson = pending.remote.sortSpecJson,
-                revision = pending.remote.shiftRevision,
-                snapshotId = pending.remote.snapshotId,
-                baseSnapshotId = pending.remote.baseSnapshotId,
-                publishedByDeviceId = pending.remote.deviceId
-            )
-            shiftRepository.upsert(remoteBase)
-            settingsRepository.put(
-                AppConstants.SETTING_PATIENTS_BASE_SNAPSHOT,
-                CsvCodec.encode(remoteBase, pending.remote.patients)
-            )
-            pendingPatientMerge = null
-            _patientConflicts.value = emptyList()
-            auditRepository.record(null, null, AppConstants.AUDIT_SYNC_MERGED,
-                "resolvedFields=${resolutions.size} shift=${shift.id}")
-            uploadCsvWithRetry(shift.id).getOrThrow()
-        }
-    }
+    ): Result<CsvUploadResult> = Result.failure(IllegalStateException(
+        "الدمج الجزئي متوقف؛ اجلب النسخة الكاملة أو راجع وانشر نسختك الكاملة"
+    ))
 
-    fun dismissPatientConflicts() {
-        pendingPatientMerge = null
-        _patientConflicts.value = emptyList()
-    }
+    fun dismissPatientConflicts() { _patientConflicts.value = emptyList() }
 
     suspend fun getOrCreateDeviceId(): String {
         settingsRepository.get(AppConstants.SETTING_DEVICE_ID)?.takeIf(String::isNotBlank)?.let {

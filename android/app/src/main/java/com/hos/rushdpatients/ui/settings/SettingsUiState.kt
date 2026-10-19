@@ -17,8 +17,6 @@ data class SettingsUiState(
     val doctorName: String = "",
     val role: String = "",
     val isAdmin: Boolean = false,
-    val autoSync: Boolean = false,
-    val syncWifiOnly: Boolean = false,
     val reportAsPdf: Boolean = false,
     val reportWardName: String = "",
     val pdfStyle: PdfStyle = PdfStyle.CLASSIC,

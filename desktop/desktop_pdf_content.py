@@ -41,19 +41,20 @@ def context_lines(client, shift, options, now):
 
 
 def assignment_groups(shift, doctors):
-    """A supervisor's residents come from the explicit assignments on that team's patients."""
-    groups = {}
+    """Teams are explicit registry membership, independent of patient assignments."""
+    from desktop_teams import resident_ids, validate_teams
+    validate_teams(doctors)
+    groups={}
     for patient in shift['patients']:
-        supervisor = patient.get('responsibleSupervisorId') or None
-        group = groups.setdefault(supervisor, dict(supervisorId=supervisor,
-            supervisor=doctors.get(supervisor, {}).get('name', 'مشرف محفوظ' if supervisor else 'بدون مشرف'),
-            residentIds=[], residents=[], patients=[]))
-        resident = patient.get('responsibleResidentId')
-        if resident and resident not in group['residentIds']:
-            group['residentIds'].append(resident)
-            group['residents'].append(doctors.get(resident, {}).get('name', 'مقيم محفوظ'))
-        group['patients'].append(patient['name'])
-    return list(groups.values())
+        supervisor=patient.get('responsibleSupervisorId') or None
+        groups.setdefault(supervisor,[]).append(patient['name'])
+    for key,doctor in doctors.items():
+        if doctor['clinicalRole']=='SUPERVISOR':groups.setdefault(key,[])
+    return [dict(supervisorId=supervisor,
+                 supervisor=doctors.get(supervisor,{}).get('name','مشرف محفوظ' if supervisor else 'بدون مشرف'),
+                 residentIds=resident_ids(doctors,supervisor),
+                 residents=[doctors[key]['name'] for key in resident_ids(doctors,supervisor)],patients=names)
+            for supervisor,names in groups.items()]
 
 
 def patient_content(row, doctors, zone, now):
@@ -68,6 +69,8 @@ def patient_content(row, doctors, zone, now):
         diagnosis.append('تنبيه: '+text+(' · أولوية '+level if level else ''))
     diagnosis.append(row.get('initialDiagnosis',''))
     team = '\n---\n'.join(filter(None,[doctor('responsibleSupervisorId'),doctor('responsibleResidentId')]))
+    from desktop_teams import is_cross_team_cover
+    if is_cross_team_cover(row,doctors):team+='\nتغطية من فريق آخر'
     tasks = json.loads(row.get('tasksJson') or '[]')
     def task_key(task):
         overdue = not task.get('done') and task.get('dueAtEpochMillis') and task['dueAtEpochMillis']<=now.timestamp()*1000

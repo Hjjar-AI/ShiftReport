@@ -13,7 +13,6 @@ import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
-import com.hos.rushdpatients.domain.doctor.DoctorRegistryMerge
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryConflict
 import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
 import com.hos.rushdpatients.network.telegram.TelegramClient
@@ -30,21 +29,6 @@ import java.io.File
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private data class PendingDoctorMerge(
-    val remoteState: SyncState,
-    val baseData: String?,
-    val base: List<Doctor>,
-    val localSnapshot: List<Doctor>,
-    val local: List<Doctor>,
-    val remote: List<Doctor>,
-    val baseKnown: Boolean,
-    val protectedDeletionIds: Set<String>
-)
-
-class DoctorRegistryConflictsException : IllegalStateException(
-    "توجد تعارضات في سجل الأطباء؛ افتح سجل الأطباء وراجع كل حقل قبل المزامنة"
-)
 
 @Singleton
 class DoctorSyncCoordinator @Inject constructor(
@@ -63,8 +47,6 @@ class DoctorSyncCoordinator @Inject constructor(
     private val doctorSyncMutex = Mutex()
     private val _doctorConflicts = MutableStateFlow<List<DoctorRegistryConflict>>(emptyList())
     val doctorConflicts: StateFlow<List<DoctorRegistryConflict>> = _doctorConflicts.asStateFlow()
-    private var pendingDoctorMerge: PendingDoctorMerge? = null
-    private var pendingDoctorChoices: Map<String, DoctorMergeChoice> = emptyMap()
 
     suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSyncMutex.withLock {
         withContext(dispatchers.io) {
@@ -84,9 +66,6 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private fun registryData(doctors: List<Doctor>): String = DoctorsRegistryCodec.encode(doctors.sortedBy { it.id })
 
-    private fun portableDoctors(doctors: List<Doctor>): List<Doctor> =
-        DoctorsRegistryCodec.decode(registryData(doctors)).doctors
-
     private fun sameDoctorPointer(a: SyncState?, b: SyncState?): Boolean =
         a?.doctorsMessageId == b?.doctorsMessageId && a?.doctorsFileId == b?.doctorsFileId &&
             a?.doctorsUpdatedAt == b?.doctorsUpdatedAt && a?.doctorsData == b?.doctorsData
@@ -96,16 +75,27 @@ class DoctorSyncCoordinator @Inject constructor(
     ): Result<Unit> = withContext(dispatchers.io) {
         try {
             val remoteStateBeforeUpload = remoteState.readState()
-            val remoteMessageIdBeforeUpload = remoteStateBeforeUpload?.doctorsMessageId
-            val known = syncStateRepository.get(SyncChannel.DOCTORS)
-            val hasRemoteRegistry = remoteStateBeforeUpload?.let {
-                it.doctorsFileId != null || it.doctorsData != null
-            } == true
-            require(!hasRemoteRegistry || known != null &&
-                remoteMessageIdBeforeUpload == known.lastMessageId &&
-                remoteStateBeforeUpload?.doctorsFileId == known.lastFileId &&
-                remoteStateBeforeUpload?.doctorsUpdatedAt == known.lastOffset) {
-                "وصل سجل أطباء أحدث من جهاز آخر؛ اجلبه قبل إعادة تطبيق تعديلاتك"
+            val actor = adminAuthorizer.requireAdmin()
+            if (remoteStateBeforeUpload != null &&
+                (remoteStateBeforeUpload.doctorsFileId != null || remoteStateBeforeUpload.doctorsData != null)) {
+                val remoteDoctors = doctorRepository.normalizeRemoteRegistry(
+                    DoctorsRegistryCodec.decode(downloadDoctorsData(remoteStateBeforeUpload)).doctors)
+                val remoteActor = remoteDoctors.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
+                require(remoteActor != null && remoteActor.telegramId == actor.telegramId) {
+                    "صلاحية المدير لم تعد متاحة في السجل المنشور"
+                }
+                val proposed = DoctorsRegistryCodec.decode(registryData).doctors.associateBy { it.id }
+                remoteDoctors.filter { it.isAdmin }.forEach { current ->
+                    val next = proposed[current.id]
+                    if (current.isPermanentAdmin) require(next != null && next.isPermanentAdmin && next.rank > 0) {
+                        "لا يمكن إزالة مدير دائم عبر استبدال السجل"
+                    }
+                    if (next == null || next.rank != current.rank || next.isPermanentAdmin != current.isPermanentAdmin) {
+                        require(remoteActor.isPermanentAdmin || !current.isPermanentAdmin && remoteActor.rank > current.rank) {
+                            "لا يمكنك تغيير صلاحية مدير أعلى رتبة عبر استبدال السجل"
+                        }
+                    }
+                }
             }
             val file = File.createTempFile("doctors_registry_", ".csv", context.cacheDir)
             file.writeText(registryData, Charsets.UTF_8)
@@ -125,6 +115,7 @@ class DoctorSyncCoordinator @Inject constructor(
                 "لم يعُد تليجرام بمعرّف ملف سجل الأطباء"
             }
 
+            require(adminAuthorizer.requireAdmin().id == actor.id) { "تغيّر المدير أثناء الرفع" }
             val newState = remoteState.updateState { current ->
                 require(sameDoctorPointer(current, remoteStateBeforeUpload ?: SyncState())) {
                     "وصل سجل أطباء أحدث أثناء الرفع؛ اجلبه قبل إعادة تطبيق تعديلاتك"
@@ -176,13 +167,13 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun uploadCurrentDoctorsInternal(): Result<Unit> = withContext(dispatchers.io) {
         try {
-            val fetched = fetchAndApplyLatestDoctorsInternal()
-            val error = fetched.exceptionOrNull()
-            if (error != null && !isMissingDoctorRegistry(error)) return@withContext Result.failure(error)
-            val doctors = doctorRepository.getAll()
-            if (error == null && !settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                return@withContext Result.success(Unit)
+            if (!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+                val fetched = fetchAndApplyLatestDoctorsInternal()
+                if (fetched.isSuccess) return@withContext Result.success(Unit)
+                val error = fetched.exceptionOrNull()
+                if (!isMissingDoctorRegistry(error)) return@withContext Result.failure(requireNotNull(error))
             }
+            val doctors = doctorRepository.getAll()
             validateDoctorRegistry(doctors)
             uploadDoctorsInternal(registryData(doctors))
         } catch (e: CancellationException) {
@@ -205,7 +196,7 @@ class DoctorSyncCoordinator @Inject constructor(
         }
     }
 
-    /** Pull and merge; pending local changes and unresolved fields are never discarded. */
+    /** Retrieve the full portable registry; publish pending local changes first. */
     suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSyncMutex.withLock {
         val fetched = fetchAndApplyLatestDoctorsInternal()
         if (isMissingDoctorRegistry(fetched.exceptionOrNull()) && doctorRepository.getAll().isNotEmpty()) {
@@ -238,42 +229,35 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun fetchAndApplyLatestDoctorsInternal(): Result<Int> = withContext(dispatchers.io) {
         try {
-            val localSnapshot = doctorRepository.getAllIncludingDeleted()
-            val baseData = settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)
-            val local = portableDoctors(localSnapshot)
-            val pending = settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
+            require(!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+                "توجد تعديلات محلية في سجل الأطباء؛ انشر النسخة الكاملة قبل تنزيل سجل بديل"
+            }
+            val local = doctorRepository.getAllIncludingDeleted()
             val state = remoteState.readState()
                 ?: return@withContext Result.failure(IllegalStateException("لا يوجد سجل أطباء بعد"))
             val remote = doctorRepository.normalizeRemoteRegistry(
-                DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors
-            )
+                DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
             validateDoctorRegistry(remote)
             check(sameDoctorPointer(remoteState.readState(), state)) {
-                "تغيّر سجل الأطباء أثناء التنزيل؛ أعد المزامنة للحصول على أحدث نسخة"
+                "تغيّر سجل الأطباء أثناء التنزيل؛ أعد جلب النسخة الكاملة"
             }
-            val baseKnown = baseData != null || !pending
-            val base = baseData?.let { DoctorsRegistryCodec.decode(it).doctors } ?: local
-            val remoteIds = remote.mapTo(mutableSetOf()) { it.id }
-            val protectedDeletionIds = doctorRepository.protectedDeletionIds(
-                local.mapTo(mutableSetOf()) { it.id } - remoteIds
-            )
-            val review = PendingDoctorMerge(
-                state, baseData, base, localSnapshot, local, remote, baseKnown, protectedDeletionIds
-            )
-            val merged = DoctorRegistryMerge.merge(
-                base, local, remote, baseKnown, protectedDeletionIds = protectedDeletionIds
-            )
-            if (merged.conflicts.isNotEmpty()) {
-                pendingDoctorMerge = review
-                pendingDoctorChoices = emptyMap()
-                _doctorConflicts.value = merged.conflicts
-                return@withContext Result.failure(DoctorRegistryConflictsException())
+            database.withTransaction {
+                check(doctorRepository.getAllIncludingDeleted() == local &&
+                    !settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+                    "تغيّر سجل الأطباء المحلي أثناء التنزيل؛ لم تُستبدل تعديلاتك"
+                }
+                // Replace all portable fields while preserving device-only PINs/identity aliases
+                // and the existing permanent-admin/clinical-reference safety checks.
+                doctorRepository.applyMergedRegistry(remote)
+                settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData(remote))
+                settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
+                syncStateRepository.update(SyncChannel.DOCTORS, state.doctorsUpdatedAt,
+                    state.doctorsMessageId, state.doctorsFileId)
+                auditRepository.record(null, null, AppConstants.AUDIT_DOCTORS_SYNCED,
+                    "full_download:${remote.size}")
             }
-            applyDoctorMerge(review, merged.doctors)
-            pendingDoctorMerge = null
-            pendingDoctorChoices = emptyMap()
             _doctorConflicts.value = emptyList()
-            Result.success(merged.doctors.size)
+            Result.success(remote.size)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -282,94 +266,7 @@ class DoctorSyncCoordinator @Inject constructor(
     }
 
     suspend fun resolveDoctorConflicts(choices: Map<String, DoctorMergeChoice>): Result<Unit> =
-        doctorSyncMutex.withLock {
-            withContext(dispatchers.io) {
-                try {
-                    val review = pendingDoctorMerge ?: error("أعد المزامنة لتحميل التعارضات الحالية")
-                    val actor = adminAuthorizer.requireAdmin()
-                    val remoteActor = review.remote.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
-                    require(remoteActor != null) {
-                        "صلاحية المدير الحالية غير موجودة في السجل المنشور؛ يلزم مدير مخوّل لمراجعة التعارضات"
-                    }
-                    require(choices.keys == _doctorConflicts.value.mapTo(mutableSetOf()) { it.key }) {
-                        "اختر قيمة لكل تعارض حالي فقط قبل تطبيق الدمج"
-                    }
-                    if (!sameDoctorPointer(remoteState.readState(), review.remoteState) ||
-                        doctorRepository.getAllIncludingDeleted() != review.localSnapshot ||
-                        settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY) != review.baseData
-                    ) {
-                        // Regenerate review; never apply choices to a different local or remote snapshot.
-                        fetchAndApplyLatestDoctorsInternal().getOrThrow()
-                        error("تغيّر السجل منذ فتح المراجعة؛ راجع أحدث نسخة قبل تطبيق اختياراتك")
-                    }
-                    val combinedChoices = pendingDoctorChoices + choices
-                    val merged = DoctorRegistryMerge.merge(
-                        review.base, review.local, review.remote, review.baseKnown, combinedChoices,
-                        review.protectedDeletionIds
-                    )
-                    if (merged.conflicts.isNotEmpty()) {
-                        pendingDoctorChoices = combinedChoices
-                        _doctorConflicts.value = merged.conflicts
-                        throw DoctorRegistryConflictsException()
-                    }
-                    if (!remoteActor.isPermanentAdmin) {
-                        review.remote.filter { it.isAdmin }.forEach { target ->
-                            val next = merged.doctors.firstOrNull { it.id == target.id }
-                            val permissionChanged = next == null || next.rank != target.rank ||
-                                next.isPermanentAdmin != target.isPermanentAdmin
-                            require(!permissionChanged || remoteActor.rank > target.rank && !target.isPermanentAdmin) {
-                                "لا يمكنك تغيير صلاحية مدير أعلى رتبة أو مدير دائم عبر الدمج"
-                            }
-                        }
-                    }
-                    applyDoctorMerge(review, merged.doctors, actor)
-                    pendingDoctorMerge = null
-                    pendingDoctorChoices = emptyMap()
-                    _doctorConflicts.value = emptyList()
-                    // Publication is a separate retryable step after the atomic local merge commits.
-                    if (settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                        uploadDoctorsInternal(registryData(doctorRepository.getAll()))
-                    } else Result.success(Unit)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Result.failure(e)
-                }
-            }
-        }
-
-    private suspend fun applyDoctorMerge(
-        review: PendingDoctorMerge,
-        doctors: List<Doctor>,
-        resolvingActor: Doctor? = null
-    ) {
-        validateDoctorRegistry(doctors)
-        database.withTransaction {
-            check(doctorRepository.getAllIncludingDeleted() == review.localSnapshot &&
-                settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY) == review.baseData) {
-                "تغيّر سجل الأطباء المحلي أثناء الدمج؛ أعد المزامنة وراجع أحدث نسخة"
-            }
-            if (resolvingActor != null) {
-                check(adminAuthorizer.requireAdmin().id == resolvingActor.id) { "تغيّرت صلاحية المدير" }
-            }
-            doctorRepository.applyMergedRegistry(doctors)
-            settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData(review.remote))
-            settingsRepository.putBoolean(
-                AppConstants.SETTING_DOCTORS_SYNC_PENDING,
-                registryData(doctors) != registryData(review.remote)
-            )
-            syncStateRepository.update(
-                SyncChannel.DOCTORS, review.remoteState.doctorsUpdatedAt,
-                review.remoteState.doctorsMessageId, review.remoteState.doctorsFileId
-            )
-            auditRepository.record(
-                resolvingActor?.id, resolvingActor?.fullName, AppConstants.AUDIT_DOCTORS_SYNCED,
-                if (resolvingActor == null) "merged:${doctors.size}" else "conflicts_resolved:${doctors.size}",
-                beforeValue = registryData(review.local),
-                afterValue = registryData(doctors)
-            )
-        }
-    }
+        Result.failure(IllegalStateException("الدمج الجزئي متوقف؛ اجلب أو انشر سجل الأطباء الكامل"))
 
     private fun validateDoctorRegistry(doctors: List<Doctor>) {
         require(doctors.isNotEmpty() && doctors.size <= AppConstants.MAX_DOCTORS) {

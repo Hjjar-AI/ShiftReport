@@ -10,6 +10,7 @@ import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.doctor.DoctorImportPlan
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.domain.doctor.DoctorNaming
+import com.hos.rushdpatients.domain.doctor.DoctorTeams
 import com.hos.rushdpatients.domain.doctor.DoctorValidationResult
 import com.hos.rushdpatients.domain.doctor.DoctorValidator
 import com.hos.rushdpatients.util.DispatcherProvider
@@ -41,6 +42,7 @@ class DoctorMutationRepository @Inject constructor(
 
     private suspend fun requireUnique(doctor: Doctor) {
         val all = doctors.getAll()
+        DoctorTeams.validate(all.filterNot { it.id == doctor.id } + doctor)
         require(all.none { it.id != doctor.id && it.fullName.equals(doctor.fullName, ignoreCase = true) }) {
             "الاسم موجود مسبقاً"
         }
@@ -62,13 +64,13 @@ class DoctorMutationRepository @Inject constructor(
         database.withTransaction {
             val actor = authorizer.requireAdmin()
             val name = DoctorNaming.formatName(input.firstName, input.lastName)
-            val doctor = Doctor(
+            val doctor = DoctorTeams.assign(Doctor(
                 id = DoctorNaming.stableId(name), fullName = name,
                 firstName = input.firstName.trim(), lastName = input.lastName.trim(),
                 gender = input.gender, clinicalRole = input.clinicalRole,
                 telegramId = input.telegramId, customTitle = input.customTitle?.takeIf { it.isNotBlank() },
                 extraOptions = setOf("pin:$pinHash")
-            )
+            ), input.teamSupervisorId.takeIf { input.clinicalRole == ClinicalRole.RESIDENT })
             require(doctors.getById(doctor.id) == null) {
                 "يوجد سجل سابق لهذا الطبيب؛ لا يمكن استبداله بإضافة جديدة"
             }
@@ -88,7 +90,7 @@ class DoctorMutationRepository @Inject constructor(
             require(current.clinicalRole == input.clinicalRole || patients.countActiveReferencesToDoctor(current.id) == 0) {
                 "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب"
             }
-            val updated = current.copy(
+            val updated = DoctorTeams.assign(current.copy(
                 fullName = DoctorNaming.formatName(input.firstName, input.lastName),
                 firstName = input.firstName.trim(), lastName = input.lastName.trim(),
                 gender = input.gender, clinicalRole = input.clinicalRole,
@@ -97,10 +99,31 @@ class DoctorMutationRepository @Inject constructor(
                 customTitle = input.customTitle?.takeIf { it.isNotBlank() },
                 extraOptions = if (pinHash == null) current.extraOptions else
                     current.extraOptions.filterNot { it.startsWith("pin:") }.toSet() + "pin:$pinHash"
-            )
+            ), input.teamSupervisorId.takeIf { input.clinicalRole == ClinicalRole.RESIDENT })
             requireUnique(updated)
             doctors.upsert(updated)
             audit.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_EDITED, updated.fullName)
+        }
+    }
+
+    suspend fun updateTeams(expected: List<Doctor>, assignments: Map<String, String?>) = withContext(dispatchers.io) {
+        database.withTransaction {
+            val actor = authorizer.requireAdmin()
+            val current = doctors.getAll()
+            require(current.associateBy { it.id } == expected.associateBy { it.id }) {
+                "تغير سجل الأطباء؛ أعد فتح إدارة الفرق وراجع التغييرات"
+            }
+            require(assignments.isNotEmpty() && assignments.keys.all { id ->
+                current.any { it.id == id && it.clinicalRole == ClinicalRole.RESIDENT }
+            }) { "اختر مقيمين نشطين فقط" }
+            val proposed = current.map { doctor ->
+                if (doctor.id in assignments) DoctorTeams.assign(doctor, assignments[doctor.id]) else doctor
+            }
+            DoctorTeams.validate(proposed)
+            val changed = proposed.filter { next -> next != current.first { it.id == next.id } }
+            require(changed.isNotEmpty()) { "لا توجد تغييرات في الفرق" }
+            doctors.upsertAll(changed)
+            audit.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_EDITED, "teams:${changed.size}")
         }
     }
 
@@ -137,7 +160,7 @@ class DoctorMutationRepository @Inject constructor(
             require(it.supervisorGroupChatId == null ||
                 it.clinicalRole == ClinicalRole.SUPERVISOR && it.supervisorGroupChatId < 0) { "مجموعة مشرف مستوردة غير صالحة" }
         }
-        val merged = imported.map { incoming ->
+        val matched = imported.map { incoming ->
             val matches = existing.filter { candidate ->
                 candidate.id == incoming.id ||
                     (incoming.telegramId != null && candidate.telegramId == incoming.telegramId) ||
@@ -185,6 +208,7 @@ class DoctorMutationRepository @Inject constructor(
             require(telegramId == null || telegramId > 0) { "معرّف تليجرام غير صالح" }
             result
         }
+        val merged = DoctorTeams.remap(matched, imported.zip(matched).associate { (source, target) -> source.id to target.id })
         require(merged.map { it.id }.distinct().size == merged.size) {
             "تطابق أكثر من صف مستورد مع الطبيب المحلي نفسه"
         }
@@ -195,6 +219,7 @@ class DoctorMutationRepository @Inject constructor(
             "سيؤدي الاستيراد إلى تجاوز الحد الأقصى لعدد الأطباء"
         }
         val finalActive = finalById.values.filterNot { it.isDeleted }
+        DoctorTeams.validate(finalActive)
         require(finalActive.map { it.fullName.lowercase() }.distinct().size == finalActive.size) {
             "سيؤدي الاستيراد إلى تكرار اسم طبيب محلي"
         }
@@ -256,6 +281,7 @@ class DoctorMutationRepository @Inject constructor(
             val actor = authorizer.requireAdmin()
             val current = requireCurrent(expected)
             require(!current.isAdmin) { "أزل صلاحية المدير قبل حذف الطبيب" }
+            DoctorTeams.validate(doctors.getAll().filterNot { it.id == current.id })
             doctors.requireNoClinicalReferences(current.id)
             doctors.softDelete(current.id)
             audit.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_DELETED, current.fullName)

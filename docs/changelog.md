@@ -26,16 +26,37 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Clinical data and reports
 
-- Added admin-only one-page portrait names-only team PDFs on Android and desktop: a separate
+- Added both-platform ward status with recorded download/publication/delivery state,
+  individual ward task lists and reviewed batch team management; retained clinical
+  save, admin and stale-edit protections. Desktop manually confirmed arrival now
+  permits an explicitly approved extra copy. Local/graphical/dummy-workflow checks
+  and device limits are in [current state](current-state.md#workflow-status-ward-tasks-and-batch-teams).
+  Removed an unsupported doctor-conflict-dialog argument reported by the owner's
+  Android build; the corrected source has not been rebuilt.
+
+- Persisted Android report-delivery uncertainty across restarts, with sender/admin
+  resolution and explicit permission for an extra copy. PDF sending now uses the
+  exact reviewed file, checked against current content/options and its hash.
+  Supervisor identities stay distinct in shared destinations. Desktop blocks
+  unresolved delivery across format/publication changes and checks live sender/admin
+  permission before manual resolution. Historical assignment PDFs on both clients
+  identify current team membership. Checks and runtime limits are in [current state](current-state.md#durable-android-deliveries-and-exact-reviewed-pdfs).
+
+- Removed Android automatic synchronization and its controls/scheduler; both
+  clients retrieve/publish complete snapshots with last-successful-write-wins.
+  Removed remote field merges and automatic publication-race retries, retaining
+  local stale-edit checks, authorization, explicit review and recovery.
+- Added admin-only A4 portrait names-only team PDFs on Android and desktop: a separate
   table per supervisor, a comma-separated resident row and patient-name rows.
-  Unassigned groups and complete names are retained; page height grows as needed.
+  Three 56.7 mm tables per row use continuous left-to-right patient numbering;
+  overflow continues on A4 pages without dropping names.
   Authorization is checked below the UI during generation and before export.
 - Full-screen RTL patient drafts, General/Advanced labs, compact paired inputs,
   validation shortcuts, explicit discard and optional validated Save and next.
 - Structured optional-owner tasks, completion identity/time, per-patient/ward
   counts, overdue subset, rollover and consistent backup/sync/conflict/report output.
 - Transactional mutation/audit/pending state, expected revisions, reviewed stale
-  drafts, patient/doctor three-way merge, recovery and publication journals.
+  drafts, full-snapshot patient/doctor transfer, recovery and publication journals.
 - Reviewed main/supervisor delivery, unlimited active-doctor roster selection,
   shared sorting/order, Classic tables and linked portrait A5 cards with full content.
 - Correct CSV metadata quoting for multi-doctor rosters, sort JSON and snapshot IDs,
@@ -54,7 +75,38 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 - Animated grouped splash credits with 120dp emblem, automatic version and
   dismissible ten-second deadline; existing logo/About preserved.
 
+## Team and workflow consolidation
+
+- Separated report publication/delivery outcomes and next actions, preserving
+  confirmed results through bookkeeping failures and identifying uncertain or
+  partial delivery. Disabled desktop manual moves in grouped/filtered/search
+  views, with a handler guard. Renamed Android sync states as publication states.
+  Checks and limits are in [current state](current-state.md#explicit-report-outcomes-and-movement-restrictions).
+
+- Made cross-team patient cover explicit without changing permanent membership;
+  aligned desktop reviewed sending with publish-before-delivery, preserving
+  cancellation and UNKNOWN retry guards; and exposed shift-copy source dates and
+  recorded download/fetch freshness. Checks/limits are in
+  [current state](current-state.md#cover-reviewed-sending-and-source-freshness).
+
+- Added independent one-supervisor resident membership across Android/desktop
+  editing, registry synchronization, doctor CSV and assignments PDFs, including
+  residents without patients and empty supervisor teams. Reused existing Android
+  storage and guarded references/identity remapping.
+- Replaced individual rollover choices with whole-shift copying, separate from
+  retrieval, preserving unfinished tasks and stale/empty-target protections.
+  Clarified active sorting/grouping, desktop save/publish/report navigation and
+  CSV added/changed/unchanged/retained previews. Checks and runtime limits are in
+  [current state](current-state.md#team-membership-and-workflow-consolidation).
+
 ## Standalone desktop
+
+- Added ward grouping and saved multi-level sorting; clinician-bound local PINs
+  with persistent throttling and automatic/manual screen locking; patient CSV
+  export and live-admin reviewed Android-format doctor CSV import/export; and a
+  separate in-memory demo with labelled local PDFs. Preserved local drafts and
+  Telegram publication authorization. Checks/limits are in
+  [current state](current-state.md#desktop-grouping-local-access-csv-and-demo).
 
 - Added encrypted local patient recycle/restore with original task completion
   history; reviewed text/PDF reports, Android-style Classic tables/linked A5 cards,

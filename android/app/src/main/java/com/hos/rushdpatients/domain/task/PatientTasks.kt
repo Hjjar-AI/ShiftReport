@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.domain.task
 
+import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientTask
 import java.time.Instant
 import java.time.LocalDate
@@ -8,6 +9,8 @@ import java.time.format.DateTimeFormatter
 
 /** Pending includes overdue; the overdue count is a subset, never an additional total. */
 data class TaskCounts(val pending: Int, val overdue: Int, val unassigned: Int)
+
+data class WardTaskEntry(val patient: Patient, val task: PatientTask)
 
 object PatientTasks {
     fun counts(tasks: List<PatientTask>, nowEpochMillis: Long): TaskCounts {
@@ -26,10 +29,20 @@ object PatientTasks {
 
     /** Display only: never reorder the stored task list or change completion/deadline data. */
     fun orderedForDisplay(tasks: List<PatientTask>, nowEpochMillis: Long): List<PatientTask> =
-        tasks.sortedWith(compareBy<PatientTask> {
+        tasks.sortedWith(displayComparator(nowEpochMillis))
+
+    fun wardPending(patients: List<Patient>, supervisorId: String?, residentId: String?, nowEpochMillis: Long): List<WardTaskEntry> {
+        val comparator = displayComparator(nowEpochMillis)
+        return patients.filter { (supervisorId == null || it.responsibleSpecialistId == supervisorId) &&
+            (residentId == null || it.responsibleResidentId == residentId) }
+            .flatMap { patient -> patient.tasks.filterNot { it.done }.map { WardTaskEntry(patient, it) } }
+            .sortedWith { a, b -> comparator.compare(a.task, b.task) }
+    }
+
+    private fun displayComparator(nowEpochMillis: Long): Comparator<PatientTask> = compareBy<PatientTask> {
             when { overdue(it, nowEpochMillis) -> 0; !it.done -> 1; else -> 2 }
         }.thenBy { if (it.done) Long.MAX_VALUE else it.dueAtEpochMillis ?: Long.MAX_VALUE }
-            .thenBy { if (it.done) 0 else -it.priority.ordinal })
+            .thenBy { if (it.done) 0 else -it.priority.ordinal }
 
     fun statusLabel(task: PatientTask, nowEpochMillis: Long): String = when {
         task.done -> "مكتملة"

@@ -18,12 +18,17 @@ import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.report.BuiltReport
 import com.hos.rushdpatients.domain.report.ReportBuilder
+import com.hos.rushdpatients.domain.report.ReportDeliveryLedger
+import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
+import com.hos.rushdpatients.domain.report.DeliveryResolution
+import com.hos.rushdpatients.domain.report.ReportDeliveryBlockedException
 import com.hos.rushdpatients.domain.report.ReportReview
 import com.hos.rushdpatients.domain.report.ReportChangedSinceReviewException
 import com.hos.rushdpatients.domain.report.ReportReadiness
 import com.hos.rushdpatients.domain.report.TextReportBuilder
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.network.ReportSender
+import com.hos.rushdpatients.network.ReportDeliveryUncertainException
 import com.hos.rushdpatients.network.telegram.Markdown
 import com.hos.rushdpatients.pdf.MediaStoreSaver
 import com.hos.rushdpatients.pdf.PdfCardsExporter
@@ -46,6 +51,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -72,7 +78,8 @@ class ReportPreviewViewModel @Inject constructor(
     private val sessionManager: SessionManager,
     private val adminAuthorizer: AdminAuthorizer,
     private val syncService: SyncService,
-    private val projectConfigStore: ProjectConfigStore
+    private val projectConfigStore: ProjectConfigStore,
+    private val deliveryLedger: ReportDeliveryLedger
 ) : ViewModel() {
 
     private val shiftId: String = savedStateHandle.get<String>("shiftId").orEmpty()
@@ -80,8 +87,19 @@ class ReportPreviewViewModel @Inject constructor(
     private val _state = MutableStateFlow(ReportUiState())
     val state: StateFlow<ReportUiState> = _state.asStateFlow()
     private var reviewedReport: BuiltReport? = null
+    private data class ReviewedPdf(val file: File, val digest: String, val reportKey: String, val options: PdfExportOptions, val style: PdfStyle, val reviewed: BuiltReport)
+    private val reviewedPdfs = java.util.concurrent.ConcurrentHashMap<String, ReviewedPdf>()
+    private class PdfReviewRequiredException : IllegalStateException("عاين PDF لهذه الوجهة أولاً؛ تغيّر الملف أو البيانات أو خيارات PDF يتطلب معاينة جديدة")
+
 
     init {
+        viewModelScope.launch {
+            deliveryLedger.observe().catch {
+                _state.update { it.copy(error = "تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد حتى إصلاح السجل", retryAction = null) }
+            }.collect { rows ->
+                _state.update { it.copy(deliveryRecords = rows.filter { row -> row.shiftId == shiftId }) }
+            }
+        }
         viewModelScope.launch {
             combine(sessionManager.sessionFlow, doctorRepository.observeAll()) { session, doctors ->
                 session?.isAdmin == true && doctors.any {
@@ -123,6 +141,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun load(reviewNotice: String? = null) {
         if (_state.value.sending || _state.value.savingDoctors) return
+        reviewedPdfs.clear()
         reviewedReport = null
         viewModelScope.launch {
             _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
@@ -222,7 +241,9 @@ class ReportPreviewViewModel @Inject constructor(
         syncService.synchronizeDoctors().getOrThrow()
         activeSendingActor()
         ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
+        _state.update { it.copy(publicationOutcome = ReportStepOutcome.IN_PROGRESS) }
         syncService.uploadCsv(shiftId).getOrThrow()
+        _state.update { it.copy(publicationOutcome = ReportStepOutcome.CONFIRMED) }
         val accepted = reportBuilder.build(shiftId)
         ReportReview.requireMatches(reviewed, accepted)
         check(accepted.shift.date == ShiftDate.current()) { "انتهت المناوبة؛ أعد مراجعة التقرير" }
@@ -238,6 +259,42 @@ class ReportPreviewViewModel @Inject constructor(
     private fun reloadChangedReport(error: ReportChangedSinceReviewException) {
         _state.update { it.copy(sending = false, retryAction = null, snackbar = null) }
         load(reviewNotice = error.message)
+    }
+
+    fun resolveDelivery(record: ReportDeliveryRecord, resolution: DeliveryResolution) {
+        if (_state.value.sending) return
+        viewModelScope.launch {
+            try {
+                deliveryLedger.resolve(record.id, record.status, resolution)
+                _state.update { it.copy(snackbar = "حُفظ قرار التسليم؛ أي إرسال جديد يمر بالمراجعة والتأكيد", retryAction = null) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(error = e.message ?: "تعذر حسم التسليم", retryAction = null) } }
+        }
+    }
+
+    private fun recordSendFailure(error: Exception, delivered: Int = 0, cancelled: Boolean = false) {
+        _state.update { current ->
+            val publication = if (current.publicationOutcome == ReportStepOutcome.IN_PROGRESS)
+                ReportStepOutcome.UNCERTAIN else current.publicationOutcome
+            val delivery = when {
+                error is ReportDeliveryUncertainException || cancelled && current.deliveryOutcome == ReportStepOutcome.IN_PROGRESS -> ReportStepOutcome.UNCERTAIN
+                delivered > 0 -> ReportStepOutcome.PARTIAL
+                else -> ReportStepOutcome.NOT_STARTED
+            }
+            val next = when {
+                delivery == ReportStepOutcome.UNCERTAIN -> "افحص وصول التقرير في تليجرام قبل إعادة الإرسال."
+                publication == ReportStepOutcome.UNCERTAIN -> "لم يتأكد نشر البيانات؛ اجلب الحالة الحالية وراجعها قبل الإعادة."
+                delivered > 0 -> "تم تأكيد $delivered تقارير؛ راجع الوجهات المستلمة ولا تُعد إرسالها."
+                publication == ReportStepOutcome.CONFIRMED -> "البيانات منشورة؛ لم يبدأ تسليم التقرير. عالج السبب ثم راجع وأرسل."
+                else -> "لم يبدأ تسليم التقرير؛ عالج السبب ثم راجع العملية."
+            }
+            current.copy(sending = false, publicationOutcome = publication, deliveryOutcome = delivery,
+                error = (if (delivered > 0) "تم تأكيد $delivered تقارير. " else "") + next + "\n" + error.message.orEmpty(),
+                retryAction = if (error is PdfReviewRequiredException && delivered == 0) ReportRetryAction.PREVIEW
+                    else if (error is ReportDeliveryBlockedException) null
+                    else if (!cancelled && delivered == 0 && publication != ReportStepOutcome.UNCERTAIN &&
+                    delivery != ReportStepOutcome.UNCERTAIN) ReportRetryAction.SEND else null)
+        }
     }
 
     fun sendSupervisorReports(supervisorIds: Set<String>) {
@@ -258,37 +315,40 @@ class ReportPreviewViewModel @Inject constructor(
             _state.update { it.copy(error = "اختر مجموعة مشرف واحدة على الأقل") }
             return
         }
-        _state.update { it.copy(sending = true, error = null, retryAction = null) }
+        _state.update { it.copy(sending = true, error = null, retryAction = null,
+            publicationOutcome = ReportStepOutcome.NOT_STARTED, deliveryOutcome = ReportStepOutcome.NOT_STARTED) }
         viewModelScope.launch {
             var delivered = 0
             try {
+                ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
+                for (target in selected) {
+                    reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId))
+                    checkedPdf(reviewed, target.doctorId)
+                }
                 val built = prepareReviewedReport(reviewed)
                 val actor = activeSendingActor()
                 val targets = buildSupervisorTargets(built).filter {
                     it.doctorId in supervisorIds && it.chatId != null
                 }
                 check(targets.size == selected.size) { "تغيّرت مجموعات المشرفين؛ أعد مراجعة الاختيار" }
-                val options = loadPdfOptions()
                 for (target in targets) {
-                    sendSupervisorPdf(built, target, options, actor)
+                    _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
+                    sendSupervisorPdf(built, target, actor)
                     delivered++
                 }
                 _state.update {
-                    it.copy(sending = false, snackbar = "تم إرسال $delivered تقرير PDF ونشر بيانات CSV الكاملة",
+                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = "تم إرسال $delivered تقرير PDF ونشر بيانات CSV الكاملة",
                         lastOperation = "آخر عملية ناجحة: إرسال تقارير المشرفين", retryAction = null)
                 }
             } catch (e: ReportChangedSinceReviewException) {
+                recordSendFailure(e, delivered)
                 reloadChangedReport(e)
             } catch (e: CancellationException) {
-                _state.update { it.copy(sending = false) }
+                recordSendFailure(e, delivered, cancelled = true)
                 throw e
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(sending = false,
-                        error = (if (delivered > 0) "تم إرسال $delivered تقرير؛ توقف الإرسال. راجع المجموعات المستلمة قبل إعادة المحاولة: "
-                            else "تعذر إرسال تقارير المشرفين: ") + e.message.orEmpty(),
-                        retryAction = null)
-                }
+                recordSendFailure(e, delivered)
+                _state.update { it.copy(retryAction = null) }
             }
         }
     }
@@ -306,65 +366,99 @@ class ReportPreviewViewModel @Inject constructor(
             _state.update { it.copy(error = "لا يوجد اتصال بالإنترنت — أعد المحاولة عند توفر الشبكة", retryAction = ReportRetryAction.SEND) }
             return
         }
-        _state.update { it.copy(sending = true, error = null, retryAction = null) }
+        _state.update { it.copy(sending = true, error = null, retryAction = null,
+            publicationOutcome = ReportStepOutcome.NOT_STARTED, deliveryOutcome = ReportStepOutcome.NOT_STARTED) }
         viewModelScope.launch {
             try {
+                reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
+                ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
+                if (current.reportAsPdf) checkedPdf(reviewed)
                 val built = prepareReviewedReport(reviewed)
                 val actor = activeSendingActor()
+                _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
                 if (current.reportAsPdf) sendPdf(built, actor) else sendText(built, actor)
                 _state.update {
-                    it.copy(sending = false, snackbar = "تم إرسال التقرير ونشر أحدث بيانات المرضى",
+                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = "تم إرسال التقرير ونشر أحدث بيانات المرضى",
                         lastOperation = "آخر عملية ناجحة: إرسال التقرير ونشر CSV", retryAction = null)
                 }
             } catch (e: ReportChangedSinceReviewException) {
+                recordSendFailure(e)
                 reloadChangedReport(e)
             } catch (e: CancellationException) {
-                _state.update { it.copy(sending = false) }
+                recordSendFailure(e, cancelled = true)
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(sending = false, error = e.message ?: "فشل الإرسال", retryAction = ReportRetryAction.SEND) }
+                recordSendFailure(e)
             }
         }
     }
 
-    fun previewPdf() {
+    fun previewPdf() = previewPdfFor(null)
+
+    fun previewSupervisorPdf(supervisorId: String) = previewPdfFor(supervisorId)
+
+    private fun previewPdfFor(supervisorId: String?) {
         val current = _state.value
         if (current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(previewingPdf = true, error = null, retryAction = null) }
         viewModelScope.launch {
             try {
                 val built = reportBuilder.build(shiftId)
-                val names = built.doctorNames
-                val previewDir = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
-                previewDir.listFiles()?.forEach { it.delete() }
-                val previewFile = File.createTempFile("ward_report_preview_", ".pdf", previewDir)
-                renderPdf(
-                    patients = built.patients,
-                    doctors = built.doctors,
-                    summary = built.summary,
-                    residentNames = names,
-                    supervisorNames = names,
-                    options = loadPdfOptions(),
-                    outputFile = previewFile
-                )
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    previewFile
-                )
+                val prepared = withContext(Dispatchers.IO) {
+                    val selected = if (supervisorId == null) built else supervisorPdfReport(built, supervisorId)
+                    val options = loadPdfOptions()
+                    val style = PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE))
+                    val dir = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
+                    val file = File.createTempFile("reviewed_report_", ".pdf", dir)
+                    try {
+                        renderPdf(selected.patients, selected.doctors, selected.summary,
+                            selected.doctorNames, selected.doctorNames, options, file, style)
+                        ReviewedPdf(file, pdfDigest(file), ReportReview.fingerprint(built), options, style, built)
+                    } catch (e: Exception) { file.delete(); throw e }
+                }
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", prepared.file)
+                reviewedPdfs[pdfKey(supervisorId)] = prepared
                 _state.update { it.copy(previewingPdf = false, pdfPreviewUri = uri) }
             } catch (e: CancellationException) {
-                throw e
+                reviewedPdfs.remove(pdfKey(supervisorId))
+                _state.update { it.copy(previewingPdf = false) }; throw e
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        previewingPdf = false,
-                        error = e.message ?: "تعذر إنشاء معاينة PDF",
-                        retryAction = ReportRetryAction.PREVIEW
-                    )
-                }
+                reviewedPdfs.remove(pdfKey(supervisorId))
+                _state.update { it.copy(previewingPdf = false, error = e.message ?: "تعذر إنشاء معاينة PDF",
+                    retryAction = if (supervisorId == null) ReportRetryAction.PREVIEW else null) }
             }
         }
+    }
+
+    private fun pdfKey(supervisorId: String?) = supervisorId?.let { "supervisor:$it" } ?: "general"
+
+    private fun pdfDigest(file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { stream ->
+            val buffer = ByteArray(8192)
+            while (true) { val count = stream.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+
+    private suspend fun checkedPdf(built: BuiltReport, supervisorId: String? = null): File = withContext(Dispatchers.IO) {
+        val artifact = reviewedPdfs[pdfKey(supervisorId)] ?: throw PdfReviewRequiredException()
+        ReportReview.requireMatches(artifact.reviewed, built)
+        if (artifact.style != PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE)) ||
+            artifact.reportKey != ReportReview.fingerprint(built) ||
+            artifact.options.copy(generatedAtEpochMillis = 0) != loadPdfOptions().copy(generatedAtEpochMillis = 0) ||
+            !artifact.file.isFile || pdfDigest(artifact.file) != artifact.digest) throw PdfReviewRequiredException()
+        artifact.file
+    }
+
+    private fun supervisorPdfReport(built: BuiltReport, supervisorId: String): BuiltReport {
+        val supervisor = built.registryDoctors.firstOrNull { it.id == supervisorId && !it.isDeleted }
+            ?: error("المشرف غير موجود")
+        val patients = built.patients.filter { it.responsibleSpecialistId == supervisorId }
+        require(patients.isNotEmpty()) { "لا يوجد مرضى لهذا المشرف" }
+        return built.copy(patients = patients, doctors = listOf(supervisor), summary = built.summary.copy(
+            patientCount = patients.size, psychoCount = patients.count { it.diagnosisType == DiagnosisType.PSYCHIATRIC || it.diagnosisType == DiagnosisType.DUAL },
+            escortCount = patients.count { it.hasCompanion }, doctors = listOf(supervisor)))
     }
 
     fun consumePdfPreview() = _state.update { it.copy(pdfPreviewUri = null) }
@@ -440,7 +534,7 @@ class ReportPreviewViewModel @Inject constructor(
                     val built = reportBuilder.buildAssignments(shiftId)
                     val tmp = File.createTempFile("rushd_assignments_", ".pdf", context.cacheDir)
                     try {
-                        assignmentPdfExporter.export(built.patients, built.doctorNames, built.summary,
+                        assignmentPdfExporter.export(built.patients, built.doctorNames, built.registryDoctors, built.summary,
                             loadPdfOptions(), tmp)
                         require(adminAuthorizer.requireAdmin().id == actorId) { "تغيّر المستخدم؛ أعد تصدير توزيع المرضى" }
                         checkNotNull(mediaStoreSaver.savePdf(context, tmp, reportFileName(built.shift.date, "Names"),
@@ -502,34 +596,23 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun onPdfViewerUnavailable() = _state.update {
-        it.copy(pdfPreviewUri = null, error = "لا يوجد تطبيق مثبت لعرض ملفات PDF")
+    fun onPdfViewerUnavailable() {
+        reviewedPdfs.clear()
+        _state.update { it.copy(pdfPreviewUri = null, error = "لا يوجد تطبيق مثبت لعرض ملفات PDF؛ لم تعتمد المعاينة") }
     }
 
     private suspend fun sendText(built: BuiltReport, actor: com.hos.rushdpatients.data.model.Doctor?) {
         reportSender.sendTextReport(
             shift = built.shift,
             chunks = built.textChunks,
-            actor = actor
+            actor = actor, contentKey = ReportReview.fingerprint(built)
         )
     }
 
     private suspend fun sendPdf(built: BuiltReport, actor: com.hos.rushdpatients.data.model.Doctor?) {
         withContext(Dispatchers.IO) {
-            val names = built.doctorNames
-
-            val tmp = File(context.cacheDir, reportFileName(built.shift.date))
-            try {
-                renderPdf(
-                    patients = built.patients,
-                    doctors = built.doctors,
-                    summary = built.summary,
-                    residentNames = names,
-                    supervisorNames = names,
-                    options = loadPdfOptions(),
-                    outputFile = tmp
-                )
-
+            val tmp = checkedPdf(built)
+            run {
                 val separate = settingsRepository.getBoolean(
                     AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR,
                     false
@@ -550,10 +633,8 @@ class ReportPreviewViewModel @Inject constructor(
                     shift = built.shift,
                     pdfFile = tmp,
                     caption = caption,
-                    actor = actor
+                    actor = actor, contentKey = ReportReview.fingerprint(built)
                 )
-            } finally {
-                tmp.delete()
             }
         }
     }
@@ -585,9 +666,10 @@ class ReportPreviewViewModel @Inject constructor(
         residentNames: Map<String, String>,
         supervisorNames: Map<String, String>,
         options: PdfExportOptions,
-        outputFile: File
+        outputFile: File,
+        reviewedStyle: PdfStyle? = null
     ) {
-        val style = PdfStyle.fromSetting(
+        val style = reviewedStyle ?: PdfStyle.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_STYLE)
         )
         when (style) {
@@ -630,51 +712,16 @@ class ReportPreviewViewModel @Inject constructor(
             .sortedBy { it.doctorName }
 
     private suspend fun sendSupervisorPdf(
-        built: BuiltReport,
-        target: SupervisorReportTarget,
-        options: PdfExportOptions,
+        built: BuiltReport, target: SupervisorReportTarget,
         actor: com.hos.rushdpatients.data.model.Doctor?
     ) {
-        withContext(Dispatchers.IO) {
-            val chatId = requireNotNull(target.chatId) { "لا توجد مجموعة للمشرف ${target.doctorName}" }
-            val supervisor = built.registryDoctors.firstOrNull { it.id == target.doctorId && !it.isDeleted }
-                ?: error("المشرف ${target.doctorName} غير موجود")
-            val patients = built.patients.filter {
-                it.responsibleSpecialistId == target.doctorId
-            }
-            require(patients.isNotEmpty()) { "لا يوجد مرضى للمشرف ${target.doctorName}" }
-            val summary = built.summary.copy(
-                patientCount = patients.size,
-                psychoCount = patients.count {
-                    it.diagnosisType == DiagnosisType.PSYCHIATRIC ||
-                            it.diagnosisType == DiagnosisType.DUAL
-                },
-                escortCount = patients.count { it.hasCompanion },
-                doctors = listOf(supervisor)
-            )
-            val tmp = File.createTempFile("rushd_group_report_", ".pdf", context.cacheDir)
-            try {
-                renderPdf(
-                    patients = patients,
-                    doctors = listOf(supervisor),
-                    summary = summary,
-                    residentNames = built.doctorNames,
-                    supervisorNames = built.doctorNames,
-                    options = options,
-                    outputFile = tmp
-                )
-                reportSender.sendSupervisorPdfReport(
-                    shift = built.shift,
-                    pdfFile = tmp,
-                    caption = textReportBuilder.buildTitle(built.shift, listOf(supervisor)),
-                    actor = actor,
-                    supervisor = supervisor,
-                    chatId = chatId
-                )
-            } finally {
-                tmp.delete()
-            }
-        }
+        val supervisor = built.registryDoctors.firstOrNull { it.id == target.doctorId && !it.isDeleted }
+            ?: error("المشرف غير موجود")
+        val reviewedFile = checkedPdf(built, target.doctorId)
+        reportSender.sendSupervisorPdfReport(shift = built.shift, pdfFile = reviewedFile,
+            caption = textReportBuilder.buildTitle(built.shift, listOf(supervisor)), actor = actor,
+            supervisor = supervisor, chatId = requireNotNull(target.chatId),
+            contentKey = ReportReview.supervisorFingerprint(built, target.doctorId))
     }
 
     private suspend fun saveCombinedPdf(built: BuiltReport, options: PdfExportOptions) {

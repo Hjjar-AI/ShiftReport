@@ -18,7 +18,6 @@ import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.auth.TelegramLoginManager
-import com.hos.rushdpatients.sync.AutoSyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -272,11 +271,6 @@ class LoginViewModel @Inject constructor(
         runCatching {
             auditRepository.record(doctor.id, doctor.fullName, AppConstants.AUDIT_LOGIN)
         }
-        AutoSyncScheduler.configure(
-            context,
-            settingsRepository.isAutoSyncEnabled(),
-            settingsRepository.isSyncWifiOnly()
-        )
         _state.update { it.copy(busy = false) }
     }
 }

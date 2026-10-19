@@ -146,8 +146,8 @@ class ProjectCreator:
         profile = self._profile
         uid = str(uuid.uuid4())
         fields = ['1', uid, profile['name'], profile['gender'], str(profile['telegram_id']),
-                  '', 'A1', profile['clinicalRole'], '']
-        registry = ('#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId|'+
+                  '', 'A1', profile['clinicalRole'], '', '']
+        registry = ('#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId,teamSupervisorId|'+
                     ','.join(fields)+'@1').encode('utf-8')
         parse_doctors(registry)
         self._review = None

@@ -10,6 +10,30 @@ object ReportReview {
         if (!sameContent(reviewed, current)) throw ReportChangedSinceReviewException()
     }
 
+    /** Stable clinical identity; independent of publication revisions and PDF generation time. */
+    fun fingerprint(report: BuiltReport): String {
+        val fields = listOf(report.shift.id, report.shift.date.toString(), report.shift.doctorIds.toString(),
+            report.shift.multiDoctorMode.toString(), report.shift.sortSpecJson.orEmpty(),
+            report.patients.map(::clinicalPatient).toString(), relevantDoctors(report).toString(), report.textChunks.toString())
+        return digestFields(fields)
+    }
+
+    /** Different supervisor subsets remain distinct even when they share a Telegram group. */
+    fun supervisorFingerprint(report: BuiltReport, supervisorId: String): String {
+        require(supervisorId.isNotBlank())
+        return digestFields(listOf("supervisor-pdf", supervisorId, fingerprint(report)))
+    }
+
+    private fun digestFields(fields: List<String>): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        fields.forEach { value ->
+            val bytes = value.toByteArray(Charsets.UTF_8)
+            digest.update(java.nio.ByteBuffer.allocate(4).putInt(bytes.size).array())
+            digest.update(bytes)
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+
     private fun sameContent(a: BuiltReport, b: BuiltReport): Boolean {
         val sameShift = a.shift.id == b.shift.id && a.shift.date == b.shift.date &&
             a.shift.doctorIds == b.shift.doctorIds && a.shift.multiDoctorMode == b.shift.multiDoctorMode &&

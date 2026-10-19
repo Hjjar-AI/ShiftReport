@@ -35,7 +35,6 @@ object AppConstants {
     const val CUSTOM_TITLE_MAX_LENGTH = 16
 
     // Sync
-    const val SYNC_CSV_INTERVAL_MINUTES = 15L
     const val CSV_VERSION_WINDOW_HOURS = 10L
     const val CSV_BUNDLE_SHIFT_COUNT = 3
 
@@ -58,12 +57,12 @@ object AppConstants {
     const val SETTING_SAVE_AND_NEXT = "save_and_next"
     const val SETTING_REPORT_WARD_NAME = "report_ward_name"
     const val SETTING_GROUP_BY_MODE = "group_by_mode"
-    const val SETTING_AUTO_SYNC = "auto_sync"
-    const val SETTING_SYNC_WIFI_ONLY = "sync_wifi_only"
     const val SETTING_AUTO_LOCK_MINUTES = "auto_lock_minutes"
     const val SETTING_BIOMETRIC_ENABLED = "biometric_enabled"
     const val SETTING_DOCTORS_BASE_REGISTRY = "doctors_base_registry"
     const val SETTING_DOCTORS_SYNC_PENDING = "doctors_sync_pending"
+    const val SETTING_PATIENT_DOWNLOAD_AT_PREFIX = "patient_download_at:"
+    const val SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX = "patient_download_message:"
     const val SETTING_PATIENTS_SYNC_PENDING = "patients_sync_pending"
     const val SETTING_PATIENT_DRAFT = "patient_draft"
     const val SETTING_LAST_ENCRYPTED_BACKUP_AT = "last_encrypted_backup_at"

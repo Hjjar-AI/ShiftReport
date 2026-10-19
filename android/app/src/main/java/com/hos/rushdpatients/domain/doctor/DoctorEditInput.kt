@@ -11,5 +11,6 @@ data class DoctorEditInput(
     val clinicalRole: ClinicalRole,
     val pin: String?,
     val customTitle: String?,
-    val telegramId: Long?
+    val telegramId: Long?,
+    val teamSupervisorId: String? = null
 )

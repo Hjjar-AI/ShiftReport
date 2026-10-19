@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui.report
 
 import android.net.Uri
+import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Shift
@@ -13,6 +14,11 @@ data class SupervisorReportTarget(
     val chatId: Long?,
     val patientCount: Int
 )
+
+enum class ReportStepOutcome(val arabicLabel: String) {
+    NOT_STARTED("لم يبدأ"), IN_PROGRESS("جارٍ"), CONFIRMED("مؤكد"),
+    PARTIAL("مؤكد لبعض الوجهات"), UNCERTAIN("غير مؤكد")
+}
 
 enum class ReportRetryAction { SEND, PREVIEW, SAVE, SHARE, ASSIGNMENTS }
 
@@ -35,6 +41,9 @@ data class ReportUiState(
     val pdfPreviewUri: Uri? = null,
     val pdfShareUri: Uri? = null,
     val sending: Boolean = false,
+    val publicationOutcome: ReportStepOutcome? = null,
+    val deliveryRecords: List<ReportDeliveryRecord> = emptyList(),
+    val deliveryOutcome: ReportStepOutcome? = null,
     val readinessWarnings: List<String> = emptyList(),
     val changeBriefing: List<String> = emptyList(),
     val mergeConflicts: List<PatientFieldConflict> = emptyList(),

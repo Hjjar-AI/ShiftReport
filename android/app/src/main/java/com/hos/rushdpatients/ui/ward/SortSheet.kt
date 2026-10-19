@@ -224,7 +224,7 @@ private fun DirectionDropdown(
     }
 }
 
-private fun fieldLabel(f: SortField): String = when (f) {
+internal fun fieldLabel(f: SortField): String = when (f) {
     SortField.NAME -> "الاسم"
     SortField.GENDER -> "الجنس"
     SortField.DIAGNOSIS -> "التشخيص"
@@ -232,7 +232,7 @@ private fun fieldLabel(f: SortField): String = when (f) {
     SortField.SUPERVISOR -> "المشرف"
 }
 
-private fun sortReviewLabel(spec: SortSpec): String =
+internal fun sortReviewLabel(spec: SortSpec): String =
     if (spec.levels.isEmpty()) "الترتيب الأصلي" else spec.levels.joinToString(" ← ") {
         "${fieldLabel(it.field)} (${if (it.direction == SortDirection.ASC) "تصاعدي" else "تنازلي"})"
     }

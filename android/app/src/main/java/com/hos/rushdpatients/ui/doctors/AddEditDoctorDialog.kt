@@ -17,6 +17,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -39,7 +41,8 @@ fun AddEditDoctorDialog(
     existing: Doctor?,
     onConfirm: (Doctor?, DoctorEditInput, (Doctor?) -> Unit) -> Unit,
     onDismiss: () -> Unit,
-    saving: Boolean = false
+    saving: Boolean = false,
+    doctors: List<Doctor> = emptyList()
 ) {
     var baseline by remember(existing?.id) { mutableStateOf(existing) }
     var rejectedInput by remember(existing?.id) { mutableStateOf<DoctorEditInput?>(null) }
@@ -51,6 +54,8 @@ fun AddEditDoctorDialog(
     var lastName by remember(existing?.id) { mutableStateOf(existing?.lastName ?: "") }
     var gender by remember(existing?.id) { mutableStateOf(existing?.gender ?: Gender.MALE) }
     var clinicalRole by remember(existing?.id) { mutableStateOf(existing?.clinicalRole ?: ClinicalRole.RESIDENT) }
+    var teamSupervisorId by remember(existing?.id) { mutableStateOf(existing?.teamSupervisorId) }
+    var teamMenu by remember { mutableStateOf(false) }
     var pin by remember(existing?.id) { mutableStateOf("") }
     var customTitle by remember(existing?.id) { mutableStateOf(existing?.customTitle ?: "") }
     var telegramIdText by remember(existing?.id) { mutableStateOf(existing?.telegramId?.toString() ?: "") }
@@ -60,6 +65,7 @@ fun AddEditDoctorDialog(
         lastName = input.lastName
         gender = input.gender
         clinicalRole = input.clinicalRole
+        teamSupervisorId = input.teamSupervisorId
         pin = input.pin.orEmpty()
         customTitle = input.customTitle.orEmpty()
         telegramIdText = input.telegramId?.toString().orEmpty()
@@ -123,6 +129,19 @@ fun AddEditDoctorDialog(
                             )
                         }
                     }
+                    if (clinicalRole == ClinicalRole.RESIDENT) {
+                        Text("مشرف الفريق — مستقل عن تعيينات المرضى")
+                        AppTextButton(onClick = { teamMenu = true }, enabled = !saving) {
+                            Text(doctors.firstOrNull { it.id == teamSupervisorId }?.fullName ?: "دون فريق")
+                        }
+                        DropdownMenu(expanded = teamMenu, onDismissRequest = { teamMenu = false }) {
+                            DropdownMenuItem(text = { Text("دون فريق") }, onClick = { teamSupervisorId = null; teamMenu = false })
+                            doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.SUPERVISOR && it.id != existing?.id }.forEach { supervisor ->
+                                DropdownMenuItem(text = { Text(supervisor.fullName) },
+                                    onClick = { teamSupervisorId = supervisor.id; teamMenu = false })
+                            }
+                        }
+                    }
                     PasswordField(
                         keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next,
                         value = pin,
@@ -159,7 +178,8 @@ fun AddEditDoctorDialog(
                         }
                         val input = DoctorEditInput(
                             firstName, lastName, gender, clinicalRole,
-                            pin.takeIf { it.isNotBlank() }, customTitle.takeIf { it.isNotBlank() }, telegramId
+                            pin.takeIf { it.isNotBlank() }, customTitle.takeIf { it.isNotBlank() }, telegramId,
+                            teamSupervisorId.takeIf { clinicalRole == ClinicalRole.RESIDENT }
                         )
                         val expected = baseline
                         onConfirm(expected, input) { saved ->
@@ -185,11 +205,13 @@ fun AddEditDoctorDialog(
             val savedInput = doctorInput(it)
             val draftValues = listOf(draft.firstName, draft.lastName,
                 if (draft.gender == Gender.MALE) "ذكر" else "أنثى", draft.clinicalRole.arabicLabel,
-                draft.customTitle.orEmpty(), draft.telegramId?.toString().orEmpty())
+                draft.customTitle.orEmpty(), draft.telegramId?.toString().orEmpty(),
+                doctors.firstOrNull { it.id == draft.teamSupervisorId }?.fullName ?: draft.teamSupervisorId.orEmpty())
             val savedValues = listOf(savedInput.firstName, savedInput.lastName,
                 if (savedInput.gender == Gender.MALE) "ذكر" else "أنثى", savedInput.clinicalRole.arabicLabel,
-                savedInput.customTitle.orEmpty(), savedInput.telegramId?.toString().orEmpty())
-            val labels = listOf("الاسم الأول", "اسم العائلة", "الجنس", "التصنيف السريري", "اللقب", "معرّف تليجرام")
+                savedInput.customTitle.orEmpty(), savedInput.telegramId?.toString().orEmpty(),
+                doctors.firstOrNull { it.id == savedInput.teamSupervisorId }?.fullName ?: savedInput.teamSupervisorId.orEmpty())
+            val labels = listOf("الاسم الأول", "اسم العائلة", "الجنس", "التصنيف السريري", "اللقب", "معرّف تليجرام", "مشرف الفريق")
             buildList {
                 labels.indices.forEach { index ->
                     if (draftValues[index] != savedValues[index]) add(Triple(labels[index], draftValues[index], savedValues[index]))
@@ -225,7 +247,7 @@ fun AddEditDoctorDialog(
 
 private fun doctorInput(doctor: Doctor) = DoctorEditInput(
     doctor.firstName, doctor.lastName, doctor.gender, doctor.clinicalRole,
-    null, doctor.customTitle, doctor.telegramId
+    null, doctor.customTitle, doctor.telegramId, doctor.teamSupervisorId
 )
 
 private fun doctorPermissionLabel(doctor: Doctor?): String = when {

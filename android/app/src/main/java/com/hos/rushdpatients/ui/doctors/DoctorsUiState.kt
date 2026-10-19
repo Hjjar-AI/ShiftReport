@@ -7,7 +7,11 @@ data class DoctorImportPreview(
     val activeCount: Int,
     val adminCount: Int,
     val deletedCount: Int,
-    val newWithoutPinCount: Int
+    val newWithoutPinCount: Int,
+    val added: List<String> = emptyList(),
+    val changed: List<String> = emptyList(),
+    val unchanged: List<String> = emptyList(),
+    val retained: List<String> = emptyList()
 )
 
 data class DoctorsUiState(

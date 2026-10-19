@@ -8,7 +8,7 @@ import time
 import uuid
 from desktop_protocol import doctor_pointer, fingerprint, is_admin, parse_doctors, pointer, require
 
-HEADER = '#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId'
+HEADER = '#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId,teamSupervisorId'
 
 
 def rank(doctor):
@@ -20,6 +20,8 @@ def permanent(doctor):
 
 
 def encode_doctors(doctors):
+    from desktop_teams import validate_teams
+    validate_teams(doctors)
     require(0 < len(doctors) <= 500, 'عدد الأطباء يجب أن يكون بين 1 و500')
     rows, names, accounts, ranks = [], set(), set(), set()
     for key, doctor in doctors.items():
@@ -67,6 +69,7 @@ def profile(values, existing=None):
                   telegram_id=int(identity) if identity else None, destination=int(destination) if destination else None)
     result['id'] = identity
     result['supervisorGroupChatId'] = destination
+    result['teamSupervisorId'] = str(values.get('teamSupervisorId', (existing or {}).get('teamSupervisorId','')) or '').strip() if values['clinicalRole']=='RESIDENT' else ''
     return result
 
 
@@ -96,7 +99,17 @@ class Administration:
         require(is_admin(actor), 'إدارة الأطباء متاحة للمدير فقط')
         doctors = copy.deepcopy(snapshot['doctors'])
         old = doctors.get(key)
-        require(action == 'add' or old is not None, 'الطبيب لم يعد في السجل')
+        require(action in {'add', 'import', 'teams'} or old is not None, 'الطبيب لم يعد في السجل')
+        if action == 'teams':
+            require(isinstance(values,dict) and values, 'اختر تغييرات الفرق أولاً')
+            for resident,supervisor in values.items():
+                require(resident in doctors and doctors[resident]['clinicalRole']=='RESIDENT', 'المقيم غير متاح؛ أعد مراجعة الفرق')
+                doctors[resident]['teamSupervisorId']=supervisor or ''
+            encode_doctors(doctors)
+            return doctors
+        if action == 'import':
+            from desktop_csv import import_registry
+            return import_registry(self, snapshot, values or [], actor)
         if action in {'add', 'edit'}:
             candidate = profile(values or {}, old)
             if old and old['clinicalRole'] != candidate['clinicalRole']:

@@ -42,7 +42,7 @@ class TextReportBuilder @Inject constructor() {
         val patientBlocks = patients.map {
             buildPatientBlock(it, residentNames, supervisorNames)
         }
-        val summaryBlock = buildSummary(summary)
+        val summaryBlock = buildSummary(summary) + "\n" + Markdown.escape("يجوز تعيين مقيم من فريق آخر للتغطية الفردية؛ لا تتغير عضوية الفريق الثابتة.")
         return titles.dropLast(1) + ReportChunking.chunk(titles.last(), patientBlocks, summaryBlock)
     }
 

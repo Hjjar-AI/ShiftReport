@@ -13,6 +13,9 @@ import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.network.telegram.ParseMode
 import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.util.Logging
+import com.hos.rushdpatients.domain.report.ReportDeliveryLedger
+import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
@@ -20,6 +23,10 @@ import java.io.File
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** The request started; an exception cannot establish that Telegram received nothing. */
+class ReportDeliveryUncertainException(cause: Throwable) : Exception(
+    "نتيجة تسليم التقرير غير مؤكدة؛ افحص تليجرام قبل إعادة الإرسال", cause)
 
 data class SendResult(
     val messageIds: List<Long>,
@@ -34,97 +41,89 @@ class ReportSender @Inject constructor(
     private val telegram: TelegramClient,
     private val topics: Topics,
     private val shiftRepository: ShiftRepository,
-    private val auditRepository: AuditRepository
+    private val auditRepository: AuditRepository,
+    private val deliveryLedger: ReportDeliveryLedger
 ) {
 
+    suspend fun checkGeneralDelivery(shift: Shift, contentKey: String, pdf: Boolean) =
+        deliveryLedger.check(shift.id, topics.chatId, contentKey, if (pdf) "PDF" else "TEXT")
+
+    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long) =
+        deliveryLedger.check(shift.id, chatId, contentKey, "PDF")
+
     suspend fun sendTextReport(
-        shift: Shift,
-        chunks: List<String>,
-        actor: Doctor?
+        shift: Shift, chunks: List<String>, actor: Doctor?, contentKey: String
     ): SendResult = withContext(Dispatchers.IO) {
         require(chunks.isNotEmpty()) { "No chunks to send" }
-
+        val file = if (dataCipher.enabled) File.createTempFile("text_report_", ".txt", context.cacheDir) else null
         val messageIds = mutableListOf<Long>()
-
         try {
-            if (dataCipher.enabled) {
-                val file = File.createTempFile("text_report_", ".txt", context.cacheDir)
+            file?.writeText(chunks.joinToString("\n\n"), Charsets.UTF_8)
+            deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "TEXT", "تقرير المناوبة العام", actor?.id) { receipt ->
                 try {
-                    file.writeText(chunks.joinToString("\n\n"), Charsets.UTF_8)
-                    val msg = telegram.sendDocument(
-                        chatId = topics.chatId, file = file,
-                        messageThreadId = topics.threadId(Topic.REPORTS)
-                    )
-                    messageIds += msg.messageId
-                } finally {
-                    file.delete()
+                    if (file != null) {
+                        val msg = uncertainDelivery { telegram.sendDocument(chatId = topics.chatId, file = file,
+                            messageThreadId = topics.threadId(Topic.REPORTS)) }
+                        messageIds += msg.messageId
+                    } else {
+                        for (chunk in chunks) {
+                            val msg = uncertainDelivery { telegram.sendMessage(chatId = topics.chatId, text = chunk,
+                                parseMode = ParseMode.MARKDOWN_V2, replyToMessageId = null, disableNotification = true,
+                                messageThreadId = topics.threadId(Topic.REPORTS)) }
+                            messageIds += msg.messageId
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    messageIds.asReversed().forEach { id ->
+                        try { telegram.deleteMessage(topics.chatId, id) }
+                        catch (cancel: CancellationException) { throw cancel }
+                        catch (_: Exception) { /* Partial cleanup is not proof of non-delivery. */ }
+                    }
+                    throw e
                 }
-            } else {
-                for (chunk in chunks) {
-                    val msg = telegram.sendMessage(
-                        chatId = topics.chatId,
-                        text = chunk,
-                        parseMode = ParseMode.MARKDOWN_V2,
-                        replyToMessageId = null,
-                        disableNotification = true,
-                        messageThreadId = topics.threadId(Topic.REPORTS)
-                    )
-                    messageIds += msg.messageId
-                }
+                confirmBestEffort(receipt, messageIds)
+                val sentAt = Instant.now()
+                recordDeliveryBestEffort(shift, sentAt, messageIds.first(), null, actor,
+                    if (file != null) "encrypted-text; 1 document" else "text; ${chunks.size} message(s)")
+                SendResult(messageIds, messageIds.first(), sentAt)
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            messageIds.asReversed().forEach { messageId ->
-                try {
-                    telegram.deleteMessage(topics.chatId, messageId)
-                } catch (_: Exception) {
-                    // Best-effort rollback of a partially delivered multi-part report.
-                }
-            }
-            throw e
-        }
-
-        val sentAt = Instant.now()
-        recordDeliveryBestEffort(
-            shift = shift,
-            sentAt = sentAt,
-            reportMessageId = messageIds.first(),
-            pdfMessageId = null,
-            actor = actor,
-            detail = if (dataCipher.enabled) "encrypted-text; 1 document" else "text; ${chunks.size} message(s)"
-        )
-
-        SendResult(messageIds, messageIds.first(), sentAt)
+        } finally { file?.delete() }
     }
 
     suspend fun sendPdfReport(
         shift: Shift,
         pdfFile: File,
         caption: String?,
-        actor: Doctor?
+        actor: Doctor?,
+        contentKey: String
     ): SendResult = withContext(Dispatchers.IO) {
-        val msg = telegram.sendDocument(
-            chatId = topics.chatId,
-            file = pdfFile,
-            caption = caption,
-            parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
-            replyToMessageId = null,
-            disableNotification = true,
-            messageThreadId = topics.threadId(Topic.REPORTS)
-        )
+        require(pdfFile.isFile && pdfFile.length() > 0) { "ملف المعاينة غير موجود؛ أعد المعاينة" }
+        deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "PDF", "تقرير المناوبة العام", actor?.id) { receipt ->
+            val msg = uncertainDelivery { telegram.sendDocument(
+                chatId = topics.chatId,
+                file = pdfFile,
+                caption = caption,
+                parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
+                replyToMessageId = null,
+                disableNotification = true,
+                messageThreadId = topics.threadId(Topic.REPORTS)
+            ) }
 
-        val sentAt = Instant.now()
-        recordDeliveryBestEffort(
-            shift = shift,
-            sentAt = sentAt,
-            reportMessageId = null,
-            pdfMessageId = msg.messageId,
-            actor = actor,
-            detail = "pdf; size=${pdfFile.length()} bytes"
-        )
+            confirmBestEffort(receipt, listOf(msg.messageId))
+            val sentAt = Instant.now()
+            recordDeliveryBestEffort(
+                shift = shift,
+                sentAt = sentAt,
+                reportMessageId = null,
+                pdfMessageId = msg.messageId,
+                actor = actor,
+                detail = "pdf; size=${pdfFile.length()} bytes"
+            )
 
-        SendResult(listOf(msg.messageId), msg.messageId, sentAt)
+            SendResult(listOf(msg.messageId), msg.messageId, sentAt)
+        }
     }
 
     suspend fun sendSupervisorPdfReport(
@@ -133,31 +132,54 @@ class ReportSender @Inject constructor(
         caption: String?,
         actor: Doctor?,
         supervisor: Doctor,
-        chatId: Long
+        chatId: Long,
+        contentKey: String
     ): SendResult = withContext(Dispatchers.IO) {
         require(chatId < 0L) { "معرف مجموعة المشرف غير صالح" }
-        val msg = telegram.sendDocument(
-            chatId = chatId,
-            file = pdfFile,
-            caption = caption,
-            parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
-            replyToMessageId = null,
-            disableNotification = true,
-            messageThreadId = null
-        )
-        val sentAt = Instant.now()
-        try {
-            auditRepository.record(
-                actorDoctorId = actor?.id,
-                actorName = actor?.fullName,
-                action = AppConstants.AUDIT_REPORT_SENT,
-                detail = "supervisor-pdf; supervisor=${supervisor.id}; " +
-                    "shift=${shift.id}; size=${pdfFile.length()} bytes"
-            )
-        } catch (e: Exception) {
-            Logging.e("Supervisor report delivered, but audit recording failed", e)
+        require(pdfFile.isFile && pdfFile.length() > 0) { "ملف المعاينة غير موجود؛ أعد المعاينة" }
+        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", supervisor.fullName, actor?.id) { receipt ->
+            val msg = uncertainDelivery { telegram.sendDocument(
+                chatId = chatId,
+                file = pdfFile,
+                caption = caption,
+                parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
+                replyToMessageId = null,
+                disableNotification = true,
+                messageThreadId = null
+            ) }
+            confirmBestEffort(receipt, listOf(msg.messageId))
+            val sentAt = Instant.now()
+            try {
+                auditRepository.record(
+                    actorDoctorId = actor?.id,
+                    actorName = actor?.fullName,
+                    action = AppConstants.AUDIT_REPORT_SENT,
+                    detail = "supervisor-pdf; supervisor=${supervisor.id}; " +
+                        "shift=${shift.id}; size=${pdfFile.length()} bytes"
+                )
+            } catch (e: Exception) {
+                Logging.e("Supervisor report delivered, but audit recording failed", e)
+            }
+            SendResult(listOf(msg.messageId), msg.messageId, sentAt)
         }
-        SendResult(listOf(msg.messageId), msg.messageId, sentAt)
+    }
+
+    private suspend fun confirmBestEffort(receipt: ReportDeliveryRecord, ids: List<Long>) {
+        withContext(NonCancellable + Dispatchers.IO) {
+            try { deliveryLedger.confirm(receipt.id, ids) }
+            catch (e: Exception) {
+                // Telegram acknowledged delivery; the persisted UNKNOWN entry still blocks retries.
+                Logging.e("Delivery confirmed; local receipt remains unresolved", e)
+            }
+        }
+    }
+
+    private suspend fun <T> uncertainDelivery(block: suspend () -> T): T = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        throw ReportDeliveryUncertainException(e)
     }
 
     private suspend fun recordDeliveryBestEffort(

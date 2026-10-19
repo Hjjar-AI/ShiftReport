@@ -13,6 +13,7 @@ import com.hos.rushdpatients.data.repository.DoctorMutationRepository
 import com.hos.rushdpatients.data.repository.StaleDoctorEditException
 import com.hos.rushdpatients.domain.export.PendingExportStore
 import com.hos.rushdpatients.domain.doctor.DoctorImportPlan
+import com.hos.rushdpatients.domain.doctor.changes
 import com.hos.rushdpatients.data.repository.StaleDoctorImportException
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.domain.doctor.DoctorCsvCodec
@@ -131,6 +132,19 @@ class DoctorsViewModel @Inject constructor(
             } catch (e: Exception) {
                 fail(e.message ?: "تعذر تحديث الطبيب")
             }
+        }
+    }
+
+    fun saveTeams(expected: List<Doctor>, assignments: Map<String, String?>, onSuccess: () -> Unit) {
+        if (_state.value.saving || _state.value.importing) return
+        _state.update { it.copy(saving = true) }
+        viewModelScope.launch {
+            try {
+                doctorMutations.updateTeams(expected, assignments)
+                finishWithSync("حُفظت تغييرات الفرق", onSuccess)
+            } catch (e: CancellationException) {
+                _state.update { it.copy(saving = false) }; throw e
+            } catch (e: Exception) { fail(e.message ?: "تعذر حفظ الفرق") }
         }
     }
 
@@ -268,15 +282,21 @@ class DoctorsViewModel @Inject constructor(
                         "name:${doctor.fullName.lowercase()}"
                     ).none { it in existingKeys }
                 }
+                val changes = plan.changes()
+                val finalRegistry = existing.associateBy { it.id }.toMutableMap().apply {
+                    plan.reviewedChanges.forEach { put(it.id, it) }
+                }.values
                 pendingImportPlan = plan
                 _state.update {
                     it.copy(
                         importing = false,
                         importPreview = DoctorImportPreview(
-                            activeCount = plan.reviewedChanges.count { doctor -> !doctor.isDeleted },
-                            adminCount = plan.reviewedChanges.count { doctor -> !doctor.isDeleted && doctor.isAdmin },
-                            deletedCount = plan.reviewedChanges.count { doctor -> doctor.isDeleted },
-                            newWithoutPinCount = newWithoutPin
+                            activeCount = finalRegistry.count { doctor -> !doctor.isDeleted },
+                            adminCount = finalRegistry.count { doctor -> !doctor.isDeleted && doctor.isAdmin },
+                            deletedCount = finalRegistry.count { doctor -> doctor.isDeleted },
+                            newWithoutPinCount = newWithoutPin,
+                            added = changes.added, changed = changes.changed,
+                            unchanged = changes.unchanged, retained = changes.retained
                         )
                     )
                 }

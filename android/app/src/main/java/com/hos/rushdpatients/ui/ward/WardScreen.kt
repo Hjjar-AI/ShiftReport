@@ -130,7 +130,7 @@ fun WardScreen(
     val freshnessLabel = remember(state.lastBackedUpAt, state.syncStatus) {
         val lastBackup = state.lastBackedUpAt?.let { epochMillis ->
             val time = uiDateTime(Instant.ofEpochMilli(epochMillis), "HH:mm")
-            "آخر نسخة $time"
+            "آخر مزامنة مع تليجرام $time"
         }
         when (state.syncStatus) {
             PatientSyncStatus.BACKED_UP -> lastBackup ?: state.syncStatus.arabicLabel
@@ -172,13 +172,13 @@ fun WardScreen(
     var taskFilter by remember { mutableStateOf<DashboardFilter?>(null) }
     var urgentOnly by remember { mutableStateOf(false) }
     var newAdmissionsOnly by remember { mutableStateOf(false) }
-    var rolloverDecisions by remember { mutableStateOf(emptyMap<String, RolloverDecision>()) }
     var showReportSheet by rememberSaveable { mutableStateOf(false) }
     var expandedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var collapsedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val anyCardsExpanded = state.patients.any { patient ->
         if (state.patientDetailsExpanded) patient.id !in collapsedPatientIds else patient.id in expandedPatientIds
     }
+    var showWardTasks by remember { mutableStateOf(false) }
     var animatedPatientId by remember { mutableStateOf<String?>(null) }
     fun toggleAllCards() {
         animatedPatientId = null
@@ -288,6 +288,16 @@ fun WardScreen(
             recentlyEditedId = null
         }
     }
+    if (showWardTasks) WardTaskBoard(state.patients, state.doctors, state.taskNowEpochMillis,
+        onDismiss = { showWardTasks = false }, onPatient = { id ->
+            if (!state.saving && !state.syncing && !showAdd && editTarget == null && copyTarget == null && state.patients.any { it.id == id }) {
+                showWardTasks = false
+                viewMode = WardViewMode.ALL
+                searchQuery = ""; priorityOnly = false; warningsOnly = false; unassignedOnly = false
+                urgentOnly = false; newAdmissionsOnly = false; taskFilter = null
+                detailsTargetId = id
+            }
+        })
     val detailContent: @Composable (Boolean) -> Unit = { embedded ->
         if (selectedPatient != null && editTarget == null && copyTarget == null) {
             detailStateHolder.SaveableStateProvider(selectedPatient.id) {
@@ -366,10 +376,6 @@ fun WardScreen(
         }
     }
 
-    LaunchedEffect(state.rolloverPatients) {
-        rolloverDecisions = state.rolloverPatients.associate { it.id to RolloverDecision.CONTINUE }
-    }
-
     LaunchedEffect(state.mergeConflicts) {
         conflictChoices = conflictChoices.filterKeys { key ->
             state.mergeConflicts.any { it.key == key }
@@ -381,10 +387,6 @@ fun WardScreen(
         pinnedPatientIds = pinnedPatientIds.filter { it in activeIds }
         expandedPatientIds = expandedPatientIds.filter { it in activeIds }
         collapsedPatientIds = collapsedPatientIds.filter { it in activeIds }
-    }
-
-    LaunchedEffect(state.rolloverReviewPatients, editTarget) {
-        if (editTarget == null) editTarget = state.rolloverReviewPatients.firstOrNull()
     }
 
     ModalNavigationDrawer(
@@ -420,6 +422,7 @@ fun WardScreen(
                                 WardDrawerAction.SORT -> if (!state.isReadOnly) showSort = true
                                 WardDrawerAction.GROUP -> showGroupBy = true
                                 WardDrawerAction.SHIFT_DOCTORS -> if (!state.isReadOnly) showShiftDoctors = true
+                                WardDrawerAction.START_SHIFT -> viewModel.offerPreviousShift()
                                 WardDrawerAction.SYNC -> confirmLatest = true
                                 WardDrawerAction.PREVIOUS -> confirmPrevious = true
                                 WardDrawerAction.EXPORT_CSV -> viewModel.exportCsv()
@@ -440,6 +443,7 @@ fun WardScreen(
     ) {
         Scaffold(
             topBar = {
+                Column {
                 WardToolbarLayout(foldingFeature) {
                     Surface(color = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
@@ -483,6 +487,12 @@ fun WardScreen(
                             }
                         })
                     }
+                }
+                WardWorkflowStrip(state, onNext = {
+                    if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) state.shift?.id?.let(onOpenReport)
+                    else if (state.syncStatus == PatientSyncStatus.PENDING && !state.isReadOnly) showReportSheet = true
+                    else confirmLatest = true
+                }, onTasks = { if (!showAdd && editTarget == null && copyTarget == null) showWardTasks = true })
                 }
             },
             floatingActionButton = {
@@ -911,9 +921,9 @@ fun WardScreen(
     if (state.rolloverPatients.isNotEmpty()) {
         RolloverReviewDialog(
             patients = state.rolloverPatients,
-            decisions = rolloverDecisions,
-            onDecision = { id, decision -> rolloverDecisions = rolloverDecisions + (id to decision) },
-            onConfirm = { viewModel.applyRollover(rolloverDecisions) },
+            saving = state.saving,
+            sourceLabel = state.rolloverSourceLabel,
+            onConfirm = viewModel::applyRollover,
             onDismiss = viewModel::dismissRollover
         )
     }
@@ -966,7 +976,6 @@ fun WardScreen(
             // Capture the displayed successor before saving can change filters/order.
             val nextId = if (advance) patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId else null
             viewModel.updatePatient(draft, onStale) {
-                viewModel.consumeRolloverReview(p.id)
                 val current = viewModel.state.value
                 val next = nextId?.takeIf { !current.isReadOnly && current.shift?.id == state.shift?.id }
                     ?.let { id -> current.patients.firstOrNull { it.id == id && !it.isDeleted } }
@@ -989,10 +998,7 @@ fun WardScreen(
                 onConfirmAndNext = if (state.saveAndNext &&
                     patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId != null)
                     { draft, onStale -> saveEdited(draft, onStale, true) } else null,
-                onDismiss = {
-                    viewModel.consumeRolloverReview(p.id)
-                    editTarget = null
-                }
+                onDismiss = { editTarget = null }
             )
         }
     }
@@ -1050,7 +1056,8 @@ fun WardScreen(
             text = {
                 Column(Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * .65f)
                     .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text("تُطبّق التغييرات فوراً على قائمة المرضى الحالية", style = MaterialTheme.typography.bodySmall)
+                    Text("البحث والتصفية والتجميع للعرض فقط؛ الترتيب يُحفظ ويستخدم في التقارير وCSV. مرضى الأولوية أولاً.", style = MaterialTheme.typography.bodySmall)
+                    Text("الترتيب المحفوظ: " + sortReviewLabel(state.sortSpec), style = MaterialTheme.typography.bodySmall)
                     AppSearchField(query = searchQuery, onQueryChange = { searchQuery = it }, label = "بحث")
                     FilterChip(priorityOnly, { priorityOnly = !priorityOnly }, { Text("أولوية فقط") })
                     FilterChip(warningsOnly, { warningsOnly = !warningsOnly }, { Text("مع شارة") })

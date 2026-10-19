@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.data.repository
 
+import com.hos.rushdpatients.domain.doctor.DoctorTeams
+
 import androidx.room.withTransaction
 import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.sync.DoctorsRegistryCodec
@@ -114,7 +116,7 @@ class DoctorRepository @Inject constructor(
         require(normalized.map { it.id }.distinct().size == normalized.size) {
             "معرّفات السجل المنشور تتطابق مع سجل محلي واحد؛ يلزم مراجعة الهوية"
         }
-        normalized
+        DoctorTeams.remap(normalized, doctors.zip(normalized).associate { (source, target) -> source.id to target.id })
     }
 
     suspend fun requireNoClinicalReferences(id: String) = withContext(dispatchers.io) {
@@ -138,6 +140,7 @@ class DoctorRepository @Inject constructor(
     /** Caller must run this together with base/cursor/pending bookkeeping in a Room transaction. */
     suspend fun applyMergedRegistry(doctors: List<Doctor>) = withContext(dispatchers.io) {
         database.withTransaction {
+            DoctorTeams.validate(doctors)
             val local = getAllIncludingDeleted()
             val byId = doctors.associateBy { it.id }
             local.filterNot { it.isDeleted }.forEach { current ->
@@ -158,9 +161,9 @@ class DoctorRepository @Inject constructor(
                     firstName = existing?.takeIf { it.fullName == incoming.fullName }?.firstName ?: incoming.firstName,
                     lastName = existing?.takeIf { it.fullName == incoming.fullName }?.lastName ?: incoming.lastName,
                     // Identity changes invalidate the previous account's device-local PIN.
-                    extraOptions = existing?.extraOptions.orEmpty().filterNot {
+                    extraOptions = DoctorTeams.sharedOptions(existing?.extraOptions.orEmpty().filterNot {
                         it.startsWith("pin:") && existing?.telegramId != incoming.telegramId
-                    }.toSet(),
+                    }.toSet(), incoming),
                     telegramUsername = existing?.telegramUsername.takeIf {
                         existing?.telegramId == incoming.telegramId
                     },
@@ -192,21 +195,23 @@ class DoctorRepository @Inject constructor(
                 if (existing == null) remote else remote.copy(
                     id = existing.id,
                     // PINs and other device-only secrets never travel through Telegram.
-                    extraOptions = existing.extraOptions.filterNot {
+                    extraOptions = DoctorTeams.sharedOptions(existing.extraOptions.filterNot {
                         it.startsWith("pin:") && existing.telegramId != remote.telegramId
-                    }.toSet() + if (remote.id != existing.id) {
+                    }.toSet(), remote) + if (remote.id != existing.id) {
                         setOf("$syncAliasPrefix${remote.id}")
                     } else emptySet(),
                     updatedAt = Instant.now()
                 )
             }
-            val entities = merged.map(DoctorMapper::toEntity)
+            val remapped = DoctorTeams.remap(merged, doctors.zip(merged).associate { (source, target) -> source.id to target.id })
+            DoctorTeams.validate(remapped)
+            val entities = remapped.map(DoctorMapper::toEntity)
             dao.replaceActiveRegistry(
                 doctors = entities,
                 retainedIds = entities.map { it.id },
                 updatedAtMillis = Instant.now().toEpochMilli()
             )
-            settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(merged))
+            settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(remapped))
             settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
         }
     }

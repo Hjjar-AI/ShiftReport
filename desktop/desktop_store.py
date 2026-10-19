@@ -1,4 +1,4 @@
-"""Encrypted, transactional local workspace. No network or Tk access."""
+"""Encrypted local workspace. Manual receipt resolution requires live client authorization."""
 from __future__ import annotations
 import base64
 import copy
@@ -9,7 +9,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from desktop_protocol import BridgeError, packed, require
+from desktop_protocol import BridgeError, is_admin, packed, require
 
 MAGIC = b'SRDESKTOP1'
 
@@ -98,6 +98,7 @@ def linux_state_key(directory, project, passphrase):
 
 class Workspace:
     def __init__(self, directory, client, local_passphrase=None):
+        self.locked = False
         self.directory = Path(directory)
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.project = client.project_id
@@ -152,16 +153,23 @@ class Workspace:
         self.state = updated
 
     def read(self, client=None):
+        require(not self.locked, 'الجلسة مقفلة')
         require(self.state['draft'] is not None, 'اجلب مناوبة أولا')
         return copy.deepcopy(self.state['draft'])
 
-    def write(self, client, shift, backup=True):
+    def write(self, client, shift, backup=True, downloaded=False):
+        require(not self.locked, 'الجلسة مقفلة')
         if backup and self.state['draft'] is not None:
             # One encrypted recovery copy before replacing a draft. Never contains credentials.
             self.export(self.path.with_suffix('.previous.srdraft'), replace=True)
-        self.commit(baseline=copy.deepcopy(client.baseline), draft=copy.deepcopy(shift))
+        downloads=copy.deepcopy(self.state.get('downloads',{}))
+        if downloaded and any(s['meta']['shiftId']==shift['meta']['shiftId'] for s in (client.baseline or {}).get('bundle',[])):
+            import time
+            downloads[shift['meta']['shiftId']]=dict(at=int(time.time()*1000), snapshot=shift['meta'].get('snapshotId',''))
+        self.commit(baseline=copy.deepcopy(client.baseline), draft=copy.deepcopy(shift), downloads=downloads)
 
     def save_draft(self, shift):
+        require(not self.locked, 'الجلسة مقفلة')
         self.commit(draft=copy.deepcopy(shift))
 
     def deleted_patients(self):
@@ -218,6 +226,7 @@ class Workspace:
         self.commit(draft=shift, recycle=recycled, restored=restored)
 
     def export(self, path, replace=False):
+        require(not self.locked, 'الجلسة مقفلة')
         # Delivery records are not portable/restorable: rollback must not allow duplicate sends.
         state = {'project': self.project, 'baseline': self.state['baseline'], 'draft': self.state['draft'],
                  'recycle': self.state.get('recycle', []), 'restored': self.state.get('restored', []), 'receipts': []}
@@ -234,6 +243,7 @@ class Workspace:
                 stream.write(raw); stream.flush(); os.fsync(stream.fileno())
 
     def import_draft(self, path, client):
+        require(not self.locked, 'الجلسة مقفلة')
         with Path(path).open('rb') as stream:
             raw = stream.read(64 * 1024 * 1024 + 1)
         require(len(raw) <= 64 * 1024 * 1024, 'ملف المسودة كبير جدا')
@@ -248,14 +258,27 @@ class Workspace:
         return [(i, copy.deepcopy(row)) for i, row in enumerate(self.state['receipts'])
                 if (status is None or row[2] == status) and (key is None or row[1] == key)]
 
-    def receipt_start(self, key, operation, chat, topic, actor, repeat=False, snapshot=None):
+    def check_report_delivery(self, shift_id, chat, topic):
+        require(shift_id, 'معرف المناوبة مطلوب قبل الإرسال')
+        for _, row in self.receipts(status='UNKNOWN'):
+            if row[0] != 'report' or row[4:6] != [str(chat), str(topic or '')]:
+                continue
+            # Older unresolved rows lack a shift label: keep their destination blocked.
+            if len(row) <= 9 or not row[9] or row[9] == shift_id:
+                raise BridgeError('نتيجة إرسال سابقة لهذه الوجهة غير مؤكدة؛ احسمها في سجل العمليات قبل أي إرسال جديد، حتى لو تغيرت الصيغة أو النسخة المنشورة')
+
+    def receipt_start(self, key, operation, chat, topic, actor, repeat=False, snapshot=None, report_shift=None):
         from datetime import datetime
+        if operation == 'report':
+            self.check_report_delivery(report_shift, chat, topic)
         for _, row in self.receipts(key=key):
-            require(row[2] == 'CONFIRMED_NOT_SENT' or repeat and row[2] == 'SENT',
+            require(row[2] == 'CONFIRMED_NOT_SENT' or repeat and row[2] in {'SENT', 'CHECKED_DO_NOT_REPEAT'},
                     'هذه العملية أرسلت أو نتيجتها غير مؤكدة؛ راجع سجل العمليات قبل التكرار')
         rows = copy.deepcopy(self.state['receipts'])
-        rows.append([operation, key, 'UNKNOWN', '', str(chat), str(topic or ''), datetime.now().isoformat(timespec='seconds'),
-                     'snapshot=' + snapshot if snapshot else 'تحقق من تليجرام قبل الإعادة', actor])
+        row = [operation, key, 'UNKNOWN', '', str(chat), str(topic or ''), datetime.now().isoformat(timespec='seconds'),
+               'snapshot=' + snapshot if snapshot else 'تحقق من تليجرام قبل الإعادة', actor]
+        if operation == 'report': row.append(report_shift)
+        rows.append(row)
         self.commit(receipts=rows)
         self._receipt = len(rows) - 1
 
@@ -271,8 +294,14 @@ class Workspace:
         rows[index][7] = 'تأكيد تليجرام'
         self.commit(receipts=rows)
 
-    def resolve_unknown(self, index, not_sent):
+    def resolve_unknown(self, index, not_sent, client):
+        require(not self.locked, 'الجلسة مقفلة')
+        require(client.project_id == self.project, 'سجل العمليات يخص مشروعاً آخر')
+        actor = client.require_local_identity()  # Live identity/role check below the UI.
+        require(not self.locked, 'الجلسة مقفلة')
         rows = copy.deepcopy(self.state['receipts'])
         require(rows[index][2] == 'UNKNOWN', 'حالة العملية تغيرت')
+        require(actor.get('uid') == rows[index][8] or is_admin(actor),
+                'حسم العملية متاح لمن أرسلها أو لمدير نشط فقط')
         rows[index][2] = 'CONFIRMED_NOT_SENT' if not_sent else 'CHECKED_DO_NOT_REPEAT'
         self.commit(receipts=rows)

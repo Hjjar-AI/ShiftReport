@@ -57,7 +57,7 @@ import com.hos.rushdpatients.domain.sort.GroupByMode
 internal enum class WardDrawerAction {
     ALL_PATIENTS, REPORT, ACTIVITY, SETTINGS, DASHBOARD, MY_PATIENTS, FILTERS,
     SORT, GROUP, SHIFT_DOCTORS, SYNC_DETAILS, SYNC, PREVIOUS, DISMISS_SYNC_HINT,
-    EXPORT_CSV, RECYCLE_BIN, ADMIN, IMPORT, ABOUT
+    EXPORT_CSV, RECYCLE_BIN, ADMIN, IMPORT, ABOUT, START_SHIFT
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -251,6 +251,12 @@ internal fun WardDrawer(
                             onClick = { onAction(WardDrawerAction.PREVIOUS) },
                             enabled = !state.syncing
                         ) { Text("نسخة سابقة", style = MaterialTheme.typography.labelSmall) }
+                    }
+                    if (!state.isReadOnly) {
+                        AppTextButton(onClick = { onAction(WardDrawerAction.START_SHIFT) },
+                            enabled = !state.syncing && !state.saving && state.patients.isEmpty()) {
+                            Text("بدء مناوبة اليوم من السابقة")
+                        }
                     }
                     if (state.showSyncHint) {
                         Text(
