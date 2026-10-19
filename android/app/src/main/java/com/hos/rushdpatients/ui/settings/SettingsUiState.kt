@@ -11,7 +11,7 @@ import com.hos.rushdpatients.ui.theme.AppFontScale
 import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.AppThemePreset
 
-enum class SettingsRetryAction { FETCH, UPLOAD, FORCE_UPLOAD, EXPORT }
+enum class SettingsRetryAction { FETCH, UPLOAD, EXPORT }
 
 data class SettingsUiState(
     val doctorName: String = "",
@@ -42,6 +42,7 @@ data class SettingsUiState(
     val lastCsvSync: String? = null,
     val lastDoctorsSync: String? = null,
     val syncing: Boolean = false,
+    val publicationReviewText: String? = null,
     val exportingCsv: Boolean = false,
     val backupBusy: Boolean = false,
     val backupReady: Boolean = false,

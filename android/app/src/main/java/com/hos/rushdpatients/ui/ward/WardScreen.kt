@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.components.uiDateTime
 import com.hos.rushdpatients.ui.components.noticeColors
 import com.hos.rushdpatients.ui.components.uiNumber
 import androidx.compose.foundation.verticalScroll
@@ -47,11 +46,9 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -95,11 +92,9 @@ import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.domain.report.ReportReadiness
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.EmptyState
-import com.hos.rushdpatients.sync.ConflictChoice
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.launch
-import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -127,24 +122,13 @@ fun WardScreen(
     var listFraction by rememberSaveable { mutableStateOf(.42f) }
     var showSupportingSheet by rememberSaveable { mutableStateOf(false) }
     val expandedWindow = LocalConfiguration.current.screenWidthDp >= 600
-    val freshnessLabel = remember(state.lastBackedUpAt, state.syncStatus) {
-        val lastBackup = state.lastBackedUpAt?.let { epochMillis ->
-            val time = uiDateTime(Instant.ofEpochMilli(epochMillis), "HH:mm")
-            "آخر مزامنة مع تليجرام $time"
-        }
-        when (state.syncStatus) {
-            PatientSyncStatus.BACKED_UP -> lastBackup ?: state.syncStatus.arabicLabel
-            PatientSyncStatus.PENDING -> listOfNotNull(state.syncStatus.arabicLabel, lastBackup)
-                .joinToString(" · ")
-            else -> state.syncStatus.arabicLabel
-        }
-    }
+    val freshnessLabel = state.freshnessLabel
     val doctorNames = remember(state.doctors) {
         state.doctors.associate { it.id to it.fullName }
     }
     val patientGridState = rememberLazyGridState()
-    val reportReadinessIssueCount = remember(state.patients, state.mergeConflicts) {
-        ReportReadiness.warnings(state.patients).size + state.mergeConflicts.size
+    val reportReadinessIssueCount = remember(state.patients) {
+        ReportReadiness.warnings(state.patients).size
     }
 
     var showAdd by remember { mutableStateOf(false) }
@@ -159,6 +143,7 @@ fun WardScreen(
     var showShiftDoctors by remember { mutableStateOf(false) }
     var confirmLatest by remember { mutableStateOf(false) }
     var confirmPrevious by remember { mutableStateOf(false) }
+    var confirmUndoDownload by remember { mutableStateOf(false) }
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var requestSearchFocus by remember { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -198,7 +183,6 @@ fun WardScreen(
         }
     }
     var pinnedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
-    var conflictChoices by remember { mutableStateOf(emptyMap<String, ConflictChoice>()) }
     var activityQuery by rememberSaveable { mutableStateOf("") }
     var activityFilter by rememberSaveable { mutableStateOf(ActivityFilter.ALL) }
 
@@ -335,6 +319,7 @@ fun WardScreen(
     }
 
     fun applyDashboardFilter(filter: DashboardFilter) {
+        searchQuery = ""
         priorityOnly = false
         warningsOnly = false
         unassignedOnly = false
@@ -351,6 +336,12 @@ fun WardScreen(
             DashboardFilter.NEW_ADMISSIONS -> newAdmissionsOnly = true
             DashboardFilter.TASK_PENDING, DashboardFilter.TASK_OVERDUE, DashboardFilter.TASK_UNASSIGNED -> taskFilter = filter
         }
+    }
+
+    fun resetPatientFilters() {
+        searchQuery = ""
+        applyDashboardFilter(DashboardFilter.ALL)
+        focusManager.clearFocus()
     }
 
     LaunchedEffect(state.snackbar) {
@@ -376,12 +367,6 @@ fun WardScreen(
         }
     }
 
-    LaunchedEffect(state.mergeConflicts) {
-        conflictChoices = conflictChoices.filterKeys { key ->
-            state.mergeConflicts.any { it.key == key }
-        }
-    }
-
     LaunchedEffect(state.patients.map { it.id }) {
         val activeIds = state.patients.mapTo(mutableSetOf()) { it.id }
         pinnedPatientIds = pinnedPatientIds.filter { it in activeIds }
@@ -403,7 +388,7 @@ fun WardScreen(
                     !priorityOnly && !warningsOnly && !unassignedOnly && !urgentOnly &&
                     !newAdmissionsOnly && taskFilter == null && searchQuery.isBlank(),
                 filtersSelected = priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
-                    newAdmissionsOnly || searchQuery.isNotBlank(),
+                    newAdmissionsOnly || taskFilter != null || viewMode == WardViewMode.MINE || searchQuery.isNotBlank(),
                 onAction = { action ->
                     when (action) {
                         WardDrawerAction.SYNC_DETAILS -> scope.launch {
@@ -417,14 +402,13 @@ fun WardScreen(
                                 WardDrawerAction.ACTIVITY -> viewMode = WardViewMode.ACTIVITY
                                 WardDrawerAction.SETTINGS -> onOpenSettings()
                                 WardDrawerAction.DASHBOARD -> viewMode = WardViewMode.DASHBOARD
-                                WardDrawerAction.MY_PATIENTS -> viewMode = WardViewMode.MINE
+                                WardDrawerAction.MY_PATIENTS -> applyDashboardFilter(DashboardFilter.MINE)
                                 WardDrawerAction.FILTERS -> showFilters = true
-                                WardDrawerAction.SORT -> if (!state.isReadOnly) showSort = true
-                                WardDrawerAction.GROUP -> showGroupBy = true
                                 WardDrawerAction.SHIFT_DOCTORS -> if (!state.isReadOnly) showShiftDoctors = true
                                 WardDrawerAction.START_SHIFT -> viewModel.offerPreviousShift()
                                 WardDrawerAction.SYNC -> confirmLatest = true
                                 WardDrawerAction.PREVIOUS -> confirmPrevious = true
+                                WardDrawerAction.UNDO_DOWNLOAD -> confirmUndoDownload = true
                                 WardDrawerAction.EXPORT_CSV -> viewModel.exportCsv()
                                 WardDrawerAction.RECYCLE_BIN -> {
                                     viewModel.loadRecycleBin()
@@ -489,9 +473,11 @@ fun WardScreen(
                     }
                 }
                 WardWorkflowStrip(state, onNext = {
-                    if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) state.shift?.id?.let(onOpenReport)
-                    else if (state.syncStatus == PatientSyncStatus.PENDING && !state.isReadOnly) showReportSheet = true
-                    else confirmLatest = true
+                    when (state.workflowAction) {
+                        WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
+                        WardWorkflowAction.REVIEW_PUBLICATION -> showReportSheet = true
+                        WardWorkflowAction.DOWNLOAD -> confirmLatest = true
+                    }
                 }, onTasks = { if (!showAdd && editTarget == null && copyTarget == null) showWardTasks = true })
                 }
             },
@@ -512,8 +498,8 @@ fun WardScreen(
                         Text("إرسال تقرير", Modifier.padding(start = UiSpacing.small))
                         if (reportReadinessIssueCount > 0) {
                             Badge(modifier = Modifier.padding(start = UiSpacing.small),
-                                containerColor = noticeColors(if (state.mergeConflicts.isNotEmpty()) NoticeKind.ERROR else NoticeKind.WARNING).first,
-                                contentColor = noticeColors(if (state.mergeConflicts.isNotEmpty()) NoticeKind.ERROR else NoticeKind.WARNING).second
+                                containerColor = noticeColors(NoticeKind.WARNING).first,
+                                contentColor = noticeColors(NoticeKind.WARNING).second
                             ) { Text(uiNumber(reportReadinessIssueCount)) }
                         }
                     }
@@ -607,7 +593,7 @@ fun WardScreen(
                                 patients = state.patients,
                                 currentDoctorId = currentDoctorId,
                                 syncStatus = state.syncStatus,
-                            online = online, freshnessLabel = freshnessLabel, conflictCount = state.mergeConflicts.size,
+                            online = online, freshnessLabel = freshnessLabel,
                                 nowEpochMillis = state.taskNowEpochMillis,
                                 bottomClearance = scrollBottomClearance,
                                 onFilter = ::applyDashboardFilter,
@@ -641,105 +627,42 @@ fun WardScreen(
                             ) {
                                 item(span = { GridItemSpan(maxLineSpan) }) {
                                     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                        Text(
-                                            text = "${uiNumber(visiblePatients.size)} مريض • تاريخ المناوبة: " +
-                                                    (state.shift?.date ?: ""),
-                                            modifier = Modifier.padding(top = UiSpacing.small),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        FlowRow(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)
-                                        ) {
-                                            AppTextButton(
-                                                onClick = { showFilters = true },
-                                                contentPadding = PaddingValues(horizontal = UiSpacing.small, vertical = 0.dp)
-                                            ) {
-                                                Icon(
-                                                    Icons.Filled.FilterList,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(UiSize.iconSmall)
-                                                )
-                                                Text("تصفية", style = MaterialTheme.typography.labelSmall)
+                                        val activeFilters = buildList<Pair<String, () -> Unit>> {
+                                            if (viewMode == WardViewMode.MINE) add("مرضاي" to { viewMode = WardViewMode.ALL })
+                                            if (searchQuery.isNotBlank()) add("بحث: $searchQuery" to { searchQuery = "" })
+                                            if (priorityOnly) add("أولوية" to { priorityOnly = false })
+                                            if (warningsOnly) add("مع شارة" to { warningsOnly = false })
+                                            if (unassignedOnly) add("غير معيّن" to { unassignedOnly = false })
+                                            if (urgentOnly) add("عاجل" to { urgentOnly = false })
+                                            if (newAdmissionsOnly) add("دخول اليوم" to { newAdmissionsOnly = false })
+                                            val taskLabel = when (taskFilter) {
+                                                DashboardFilter.TASK_PENDING -> "مهام معلقة"
+                                                DashboardFilter.TASK_OVERDUE -> "مهام متأخرة"
+                                                DashboardFilter.TASK_UNASSIGNED -> "مهام غير معيّنة"
+                                                else -> null
                                             }
+                                            taskLabel?.let { add(it to { taskFilter = null }) }
                                         }
-                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                            CompactFilterChip(
-                                                selected = viewMode == WardViewMode.ALL && !urgentOnly &&
-                                                    !unassignedOnly && !warningsOnly && !priorityOnly &&
-                                                    !newAdmissionsOnly && taskFilter == null && searchQuery.isBlank(),
-                                                onClick = { applyDashboardFilter(DashboardFilter.ALL) },
-                                                label = "الكل"
-                                            )
-                                            CompactFilterChip(
-                                                selected = viewMode == WardViewMode.MINE,
-                                                onClick = { applyDashboardFilter(DashboardFilter.MINE) },
-                                                label = "مرضاي"
-                                            )
-                                            CompactFilterChip(
-                                                selected = urgentOnly,
-                                                onClick = { applyDashboardFilter(DashboardFilter.URGENT) },
-                                                label = "عاجل"
-                                            )
-                                            CompactFilterChip(
-                                                selected = unassignedOnly,
-                                                onClick = { applyDashboardFilter(DashboardFilter.UNASSIGNED) },
-                                                label = "غير معيّن"
-                                            )
-                                            CompactFilterChip(
-                                                selected = taskFilter == DashboardFilter.TASK_PENDING,
-                                                onClick = { applyDashboardFilter(DashboardFilter.TASK_PENDING) }, label = "مهام معلقة"
-                                            )
-                                            CompactFilterChip(
-                                                selected = taskFilter == DashboardFilter.TASK_OVERDUE,
-                                                onClick = { applyDashboardFilter(DashboardFilter.TASK_OVERDUE) }, label = "مهام متأخرة"
-                                            )
-                                            CompactFilterChip(
-                                                selected = taskFilter == DashboardFilter.TASK_UNASSIGNED,
-                                                onClick = { applyDashboardFilter(DashboardFilter.TASK_UNASSIGNED) }, label = "مهام غير معيّنة"
-                                            )
-                                            CompactFilterChip(
-                                                selected = state.compactCards,
-                                                onClick = { viewModel.setCompactCards(!state.compactCards) },
-                                                label = if (state.compactCards) "مضغوط" else "مريح"
-                                            )
+                                        val selectedPreset = when {
+                                            activeFilters.isEmpty() -> DashboardFilter.ALL
+                                            activeFilters.size != 1 -> null
+                                            viewMode == WardViewMode.MINE -> DashboardFilter.MINE
+                                            urgentOnly -> DashboardFilter.URGENT
+                                            taskFilter == DashboardFilter.TASK_OVERDUE -> DashboardFilter.TASK_OVERDUE
+                                            else -> null
                                         }
+                                        WardPatientListControls(
+                                            visibleCount = visiblePatients.size, totalCount = state.patients.size,
+                                            groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.arabicLabel,
+                                            activeFilters = activeFilters, selectedPreset = selectedPreset,
+                                            onPreset = ::applyDashboardFilter,
+                                            onOptions = { showFilters = true }, onReset = ::resetPatientFilters,
+                                            showSearch = showSearch, query = searchQuery,
+                                            onQueryChange = { searchQuery = it }, requestFocus = requestSearchFocus,
+                                            onFocusRequested = { requestSearchFocus = false }
+                                        )
                                         if (state.isReadOnly) {
                                             AppNotice("نسخة محفوظة — للعرض والاستعادة فقط", icon = Icons.Filled.Lock)
-                                        }
-                                        if (showSearch || searchQuery.isNotBlank()) {
-                                            WardPatientSearchField(
-                                                query = searchQuery,
-                                                onQueryChange = { searchQuery = it },
-                                                requestFocus = requestSearchFocus,
-                                                onFocusRequested = { requestSearchFocus = false }
-                                            )
-                                        }
-                                        if (priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
-                                            newAdmissionsOnly || taskFilter != null || searchQuery.isNotBlank()
-                                        ) {
-                                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                                if (searchQuery.isNotBlank()) FilterChip(
-                                                    selected = true,
-                                                    onClick = { searchQuery = "" },
-                                                    label = { Text("بحث: $searchQuery ×") }
-                                                )
-                                                if (priorityOnly) ActiveFilterChip("أولوية", { priorityOnly = false })
-                                                if (warningsOnly) ActiveFilterChip("مع شارة", { warningsOnly = false })
-                                                if (unassignedOnly) ActiveFilterChip("غير معيّن", { unassignedOnly = false })
-                                                if (urgentOnly) ActiveFilterChip("عاجل", { urgentOnly = false })
-                                                if (newAdmissionsOnly) ActiveFilterChip("دخول اليوم", { newAdmissionsOnly = false })
-                                                val taskFilterLabel = when (taskFilter) {
-                                                    DashboardFilter.TASK_PENDING -> "مهام معلقة"
-                                                    DashboardFilter.TASK_OVERDUE -> "مهام متأخرة"
-                                                    DashboardFilter.TASK_UNASSIGNED -> "مهام غير معيّنة"
-                                                    else -> null
-                                                }
-                                                taskFilterLabel?.let { label ->
-                                                    ActiveFilterChip(label, { taskFilter = null })
-                                                }
-                                            }
                                         }
                                     }
                                 }
@@ -750,15 +673,7 @@ fun WardScreen(
                                             title = "لا توجد نتائج مطابقة",
                                             subtitle = "غيّر البحث أو أزل بعض عوامل التصفية",
                                             actionLabel = "مسح عوامل التصفية",
-                                            onAction = {
-                                                searchQuery = ""
-                                                priorityOnly = false
-                                                warningsOnly = false
-                                                unassignedOnly = false
-                                                urgentOnly = false
-                                                newAdmissionsOnly = false
-                                                taskFilter = null
-                                            }
+                                            onAction = ::resetPatientFilters
                                         )
                                     }
                                 } else if (state.groupByMode != GroupByMode.NONE &&
@@ -893,7 +808,6 @@ fun WardScreen(
             patientCount = state.patients.size,
             freshnessLabel = freshnessLabel,
             issueCount = reportReadinessIssueCount,
-            hasMergeConflicts = state.mergeConflicts.isNotEmpty(),
             foldingFeature = foldingFeature,
             onReviewReport = {
                 state.shift?.id?.let { shiftId ->
@@ -906,13 +820,22 @@ fun WardScreen(
     }
 
     if (showAdd) {
+        val insertionPatients = remember { state.patients.toList() }
+        val insertionRevision = remember { state.shift?.revision }
+        var insertionPosition by remember { mutableStateOf("") }
         AddPatientDialog(
             doctors = state.doctors,
             draft = state.patientDraft,
             saving = state.saving,
+            position = insertionPosition,
+            positionLimit = insertionPatients.size + 1,
+            onPositionChange = { value -> insertionPosition = value.filter { it.isDigit() }.take(3) },
             onDraftChanged = viewModel::saveDraft,
             onConfirm = {
-                viewModel.addPatient(it) { showAdd = false }
+                val requested = insertionPosition.map { digit -> Character.digit(digit, 10) }.joinToString("").toIntOrNull()
+                if (insertionPosition.isBlank() || requested != null) {
+                    viewModel.addPatient(it, requested, insertionPatients, insertionRevision) { showAdd = false }
+                }
             },
             onDismiss = { showAdd = false }
         )
@@ -925,17 +848,6 @@ fun WardScreen(
             sourceLabel = state.rolloverSourceLabel,
             onConfirm = viewModel::applyRollover,
             onDismiss = viewModel::dismissRollover
-        )
-    }
-
-    if (state.mergeConflicts.isNotEmpty()) {
-        PatientConflictDialog(
-            conflicts = state.mergeConflicts,
-            choices = conflictChoices,
-            resolving = state.resolvingConflicts,
-            onChoice = { key, choice -> conflictChoices = conflictChoices + (key to choice) },
-            onConfirm = { viewModel.resolveMergeConflicts(conflictChoices) },
-            onDismiss = viewModel::dismissMergeConflicts
         )
     }
 
@@ -962,6 +874,12 @@ fun WardScreen(
             onDismiss = { confirmPrevious = false }
         )
     }
+
+    if (confirmUndoDownload) ConfirmDialog(
+        title = "التراجع عن آخر تنزيل",
+        message = "استعادة البيانات المحلية قبل آخر تنزيل؟ لن يتغير تليجرام أو سجل التسليم. يُرفض التراجع إذا تغيرت البيانات بعد التنزيل، وتحتاج البيانات المستعادة إلى مراجعة قبل النشر.",
+        onConfirm = { confirmUndoDownload = false; viewModel.undoLastDownload() },
+        onDismiss = { confirmUndoDownload = false })
 
     if (state.showSnapshotPicker) {
         ShiftSnapshotPickerDialog(
@@ -1052,34 +970,42 @@ fun WardScreen(
     if (showFilters) {
         AlertDialog(
             onDismissRequest = { showFilters = false },
-            title = { Text("بحث وتصفية وترتيب") },
+            title = { Text("التصفية والعرض والترتيب") },
             text = {
                 Column(Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * .65f)
                     .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text("البحث والتصفية والتجميع للعرض فقط؛ الترتيب يُحفظ ويستخدم في التقارير وCSV. مرضى الأولوية أولاً.", style = MaterialTheme.typography.bodySmall)
                     Text("الترتيب المحفوظ: " + sortReviewLabel(state.sortSpec), style = MaterialTheme.typography.bodySmall)
                     AppSearchField(query = searchQuery, onQueryChange = { searchQuery = it }, label = "بحث")
-                    FilterChip(priorityOnly, { priorityOnly = !priorityOnly }, { Text("أولوية فقط") })
-                    FilterChip(warningsOnly, { warningsOnly = !warningsOnly }, { Text("مع شارة") })
-                    FilterChip(unassignedOnly, { unassignedOnly = !unassignedOnly }, { Text("غير معيّن") })
-                    FilterChip(urgentOnly, { urgentOnly = !urgentOnly }, { Text("عاجل") })
-                    FilterChip(newAdmissionsOnly, { newAdmissionsOnly = !newAdmissionsOnly }, { Text("دخول اليوم") })
-                    listOf(DashboardFilter.TASK_PENDING to "مهام معلقة",
-                        DashboardFilter.TASK_OVERDUE to "مهام متأخرة",
-                        DashboardFilter.TASK_UNASSIGNED to "مهام غير معيّنة").forEach { (value, label) ->
-                        FilterChip(selected = taskFilter == value,
-                            onClick = { taskFilter = if (taskFilter == value) null else value }, label = { Text(label) })
+                    Text("تصفية المرضى", style = MaterialTheme.typography.titleSmall)
+                    CompactFilterChip(viewMode == WardViewMode.MINE,
+                        { viewMode = if (viewMode == WardViewMode.MINE) WardViewMode.ALL else WardViewMode.MINE },
+                        "مرضاي ومهامي")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                        CompactFilterChip(priorityOnly, { priorityOnly = !priorityOnly }, "أولوية فقط")
+                        CompactFilterChip(warningsOnly, { warningsOnly = !warningsOnly }, "مع شارة")
+                        CompactFilterChip(unassignedOnly, { unassignedOnly = !unassignedOnly }, "غير معيّن")
+                        CompactFilterChip(urgentOnly, { urgentOnly = !urgentOnly }, "عاجل")
+                        CompactFilterChip(newAdmissionsOnly, { newAdmissionsOnly = !newAdmissionsOnly }, "دخول اليوم")
+                        listOf(DashboardFilter.TASK_PENDING to "مهام معلقة",
+                            DashboardFilter.TASK_OVERDUE to "مهام متأخرة",
+                            DashboardFilter.TASK_UNASSIGNED to "مهام غير معيّنة").forEach { (value, label) ->
+                            CompactFilterChip(selected = taskFilter == value,
+                                onClick = { taskFilter = if (taskFilter == value) null else value }, label = label)
+                        }
                     }
-                    AppTextButton(onClick = { showFilters = false; showSort = true }) { Text("خيارات الترتيب") }
+                    Text("العرض والترتيب", style = MaterialTheme.typography.titleSmall)
+                    CompactFilterChip(state.compactCards, { viewModel.setCompactCards(!state.compactCards) },
+                        "بطاقات مضغوطة")
+                    if (!state.isReadOnly) {
+                        AppTextButton(onClick = { showFilters = false; showSort = true }) { Text("خيارات الترتيب المحفوظ") }
+                    }
                     AppTextButton(onClick = { showFilters = false; showGroupBy = true }) { Text("خيارات التجميع") }
                 }
             },
             confirmButton = { AppTextButton(onClick = { showFilters = false }) { Text("تم") } },
             dismissButton = {
-                AppTextButton(onClick = {
-                    searchQuery = ""; priorityOnly = false; warningsOnly = false; unassignedOnly = false
-                    urgentOnly = false; newAdmissionsOnly = false; taskFilter = null
-                }) { Text("مسح عوامل التصفية") }
+                AppTextButton(onClick = ::resetPatientFilters) { Text("مسح عوامل التصفية") }
             }
         )
     }

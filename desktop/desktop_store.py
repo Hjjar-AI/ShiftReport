@@ -99,6 +99,8 @@ def linux_state_key(directory, project, passphrase):
 class Workspace:
     def __init__(self, directory, client, local_passphrase=None):
         self.locked = False
+        self.client = client
+        self.local_actor = None
         self.directory = Path(directory)
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.project = client.project_id
@@ -159,6 +161,7 @@ class Workspace:
 
     def write(self, client, shift, backup=True, downloaded=False):
         require(not self.locked, 'الجلسة مقفلة')
+        if downloaded:self.require_downloadable()
         if backup and self.state['draft'] is not None:
             # One encrypted recovery copy before replacing a draft. Never contains credentials.
             self.export(self.path.with_suffix('.previous.srdraft'), replace=True)
@@ -166,11 +169,100 @@ class Workspace:
         if downloaded and any(s['meta']['shiftId']==shift['meta']['shiftId'] for s in (client.baseline or {}).get('bundle',[])):
             import time
             downloads[shift['meta']['shiftId']]=dict(at=int(time.time()*1000), snapshot=shift['meta'].get('snapshotId',''))
-        self.commit(baseline=copy.deepcopy(client.baseline), draft=copy.deepcopy(shift), downloads=downloads)
+        changes=dict(baseline=copy.deepcopy(client.baseline), draft=copy.deepcopy(shift), downloads=downloads)
+        if downloaded:
+            from desktop_protocol import fingerprint
+            changes['downloadUndo']=dict(before=copy.deepcopy(self.state.get('draft')),after=fingerprint(shift)) if self.state.get('draft') is not None else None
+        self.commit(**changes)
+
+    def undo_download(self, client, expected):
+        from desktop_protocol import fingerprint
+        from desktop_clinical import event,local_identity
+        current=self.read()
+        require(self.project==client.project_id,'تغير المشروع')
+        undo=self.state.get('downloadUndo')
+        require(undo and undo.get('before') is not None,'لا يوجد تنزيل محلي للتراجع عنه')
+        require(fingerprint(current)==expected==undo['after'],
+                'تغيرت البيانات منذ التنزيل؛ لن يستبدل التراجع تعديلات أو نشرًا لاحقًا')
+        self.export(self.path.with_suffix('.previous.srdraft'),replace=True)
+        require(fingerprint(self.read())==expected,'تغيرت المسودة أثناء التراجع')
+        before=copy.deepcopy(undo['before'])
+        self.commit(draft=before,downloadUndo=None,clinicalActivity=self.state.get('clinicalActivity',[])+
+                    [event(before['meta']['shiftId'],local_identity(self,client),'download_undone')])
+
+    def has_pending_changes(self):
+        """Compare saved clinical/order/roster content with this shift's known baseline."""
+        require(not self.locked, 'الجلسة مقفلة')
+        if self.state.get('draft') is None:return False
+        from desktop_reports import report_content
+        from desktop_protocol import fingerprint
+        draft=self.read()
+        known=next((shift for shift in (self.state.get('baseline') or {}).get('bundle',[])
+                    if shift['meta']['shiftId']==draft['meta']['shiftId']),None)
+        empty=(not draft['patients'] and not draft['meta'].get('doctors') and
+               json.loads(draft['meta'].get('sortSpec') or '{"levels":[]}')=={'levels':[]})
+        return not ((known is not None and fingerprint(report_content(known))==fingerprint(report_content(draft))) or
+                    (known is None and empty))
+
+    def require_downloadable(self):
+        """Match Android: a complete download must not discard saved pending work."""
+        require(not self.has_pending_changes(), 'توجد تعديلات محلية غير منشورة؛ راجعها وانشرها قبل جلب نسخة كاملة')
+
+    def start_shift(self, client, shift, expected, recovery_path=None):
+        """Replace the view only after preserving explicitly acknowledged pending work."""
+        from desktop_protocol import current_date, fingerprint
+        require(not self.locked and self.project==client.project_id, 'الجلسة مقفلة أو تغير المشروع')
+        def check():
+            local=self.state.get('draft')
+            require(fingerprint(local)==expected, 'تغيرت المسودة أثناء بدء المناوبة؛ أعد العملية')
+            require(shift['meta']['shiftDate']==current_date(self.zone), 'تغير تاريخ المناوبة؛ أعد بدء المناوبة')
+            require(local is None or local['meta']['shiftDate']!=shift['meta']['shiftDate'] or not local['patients'],
+                    'مناوبة اليوم المحلية تحتوي مرضى؛ لن تُستبدل بنسخ السابقة')
+        check()
+        if self.has_pending_changes():
+            require(recovery_path, 'احفظ التعديلات غير المنشورة في ملف استرداد مستقل قبل بدء المناوبة')
+            destination=Path(recovery_path)
+            require(destination.resolve()!=self.path.with_suffix('.previous.srdraft').resolve(),
+                    'اختر ملف استرداد مستقلاً عن نسخة الاسترداد التلقائية')
+            self.export(destination)
+            # Reopen and authenticate the saved file before replacing the local view.
+            saved=self.decode(destination.read_bytes())
+            require(fingerprint(saved['draft'])==expected, 'تعذر التحقق من ملف الاسترداد؛ بقيت المناوبة الحالية محفوظة')
+        check()
+        self.write(client,shift)
 
     def save_draft(self, shift):
         require(not self.locked, 'الجلسة مقفلة')
         self.commit(draft=copy.deepcopy(shift))
+
+    def save_clinical_draft(self, client, shift, expected):
+        from desktop_clinical import save_clinical
+        save_clinical(self,client,shift,expected)
+
+    def report_preferences(self):
+        require(not self.locked, 'الجلسة مقفلة')
+        return copy.deepcopy(self.state.get('reportPreferences',{}))
+
+    def save_report_preferences(self, value):
+        require(not self.locked, 'الجلسة مقفلة')
+        self.commit(reportPreferences=copy.deepcopy(value))
+
+    def clinical_activity(self, patient_id=None, shift_id=None):
+        from desktop_clinical import local_identity
+        require(is_admin(local_identity(self,self.client) or {}), 'مركز النشاط متاح للمدير المسجل محلياً فقط')
+        return copy.deepcopy([row for row in self.state.get('clinicalActivity',[])
+                              if (patient_id is None or row.get('patientId')==patient_id) and
+                                 (shift_id is None or row.get('shiftId')==shift_id)])
+
+    def patient_form_draft(self):
+        require(not self.locked, 'الجلسة مقفلة')
+        return copy.deepcopy(self.state.get('patientForm'))
+
+    def save_patient_form(self, value):
+        require(not self.locked, 'الجلسة مقفلة')
+        if value is not None:
+            require(self.read()['meta']['shiftId'] == value['shiftId'], 'تغيرت المناوبة؛ احتفظ بالمسودة السابقة')
+        self.commit(patientForm=copy.deepcopy(value))
 
     def deleted_patients(self):
         shift = self.read()
@@ -178,7 +270,8 @@ class Workspace:
                               if item['shiftId'] == shift['meta']['shiftId']])
 
     def restored_completions(self):
-        return copy.deepcopy(self.state.get('restored', []))
+        from desktop_clinical import completion_evidence
+        return completion_evidence(self)
 
     def delete_patient(self, patient_id, expected):
         from desktop_protocol import current_date, fingerprint
@@ -195,13 +288,21 @@ class Workspace:
                       if saved_shift['meta']['shiftId'] == shift['meta']['shiftId']
                       for row in saved_shift['patients'] if row['externalId'] == patient_id), {})
         completed = [task for task in json.loads(saved.get('tasksJson') or '[]') if task.get('done')]
-        # Retain already recovered history when a restored patient is deleted again.
-        if not saved:
-            completed = next((entry['tasks'] for entry in self.state.get('restored', [])
-                              if entry['shiftId'] == shift['meta']['shiftId'] and entry['patientId'] == patient_id), [])
-        recycled.append(dict(shiftId=shift['meta']['shiftId'], position=position, completedTasks=completed,
-                             patient=shift['patients'].pop(position)))
-        self.commit(draft=shift, recycle=recycled)
+        # Preserve locally saved completion identity too, including a reopen/re-complete cycle.
+        completed_by_id = {task['id']:task for task in completed}
+        completed_local = False
+        for entry in self.restored_completions():
+            if entry['shiftId']!=shift['meta']['shiftId'] or entry['patientId']!=patient_id:continue
+            for task in entry['tasks']:
+                if task.get('done'):
+                    if entry.get('local'):completed_by_id[task['id']]=task
+                    else:completed_by_id.setdefault(task['id'],task)
+            completed_local = completed_local or entry.get('local',False)
+        recycled.append(dict(shiftId=shift['meta']['shiftId'], position=position, completedTasks=list(completed_by_id.values()),
+                             completedLocal=completed_local,patient=shift['patients'].pop(position)))
+        from desktop_clinical import event, local_identity
+        activity = self.state.get('clinicalActivity',[]) + [event(shift['meta']['shiftId'],local_identity(self,self.client),'patient_deleted',recycled[-1]['patient'])]
+        self.commit(draft=shift, recycle=recycled, clinicalActivity=activity)
 
     def restore_patient(self, patient_id, expected):
         from desktop_protocol import current_date, fingerprint
@@ -222,14 +323,17 @@ class Workspace:
         recycled.pop(index)
         restored = [entry for entry in self.state.get('restored', [])
                     if not (entry['shiftId'] == shift['meta']['shiftId'] and entry['patientId'] == patient_id)]
-        restored.append(dict(shiftId=shift['meta']['shiftId'], patientId=patient_id, tasks=item.get('completedTasks', [])))
-        self.commit(draft=shift, recycle=recycled, restored=restored)
+        restored.append(dict(shiftId=shift['meta']['shiftId'], patientId=patient_id, tasks=item.get('completedTasks', []),local=item.get('completedLocal',False)))
+        from desktop_clinical import event, local_identity
+        activity = self.state.get('clinicalActivity',[]) + [event(shift['meta']['shiftId'],local_identity(self,self.client),'patient_restored',item['patient'])]
+        self.commit(draft=shift, recycle=recycled, restored=restored, clinicalActivity=activity)
 
     def export(self, path, replace=False):
         require(not self.locked, 'الجلسة مقفلة')
         # Delivery records are not portable/restorable: rollback must not allow duplicate sends.
         state = {'project': self.project, 'baseline': self.state['baseline'], 'draft': self.state['draft'],
-                 'recycle': self.state.get('recycle', []), 'restored': self.state.get('restored', []), 'receipts': []}
+                 'recycle': self.state.get('recycle', []), 'restored': self.state.get('restored', []),
+                 'localCompletions': self.state.get('localCompletions', []), 'receipts': []}
         path = Path(path)
         require(path.suffix.lower() == '.srdraft', 'اختر ملف .srdraft للمسودة المشفرة')
         raw = self.encode(state)
@@ -250,7 +354,9 @@ class Workspace:
         value = self.decode(raw)
         require(value.get('baseline') is not None and value.get('draft') is not None, 'ملف مسودة فارغ')
         self.export(self.path.with_suffix('.previous.srdraft'), replace=True)
-        self.commit(baseline=value['baseline'], draft=value['draft'], recycle=value.get('recycle', []), restored=value.get('restored', []))
+        from desktop_clinical import event, local_identity
+        activity = self.state.get('clinicalActivity',[]) + [event(value['draft']['meta']['shiftId'],local_identity(self,client),'draft_restored')]
+        self.commit(baseline=value['baseline'], draft=value['draft'], recycle=value.get('recycle', []), restored=value.get('restored', []), localCompletions=value.get('localCompletions', []), clinicalActivity=activity)
         client.baseline = copy.deepcopy(value['baseline'])
         client.doctors = copy.deepcopy(client.baseline['doctors'])
 
@@ -294,14 +400,19 @@ class Workspace:
         rows[index][7] = 'تأكيد تليجرام'
         self.commit(receipts=rows)
 
-    def resolve_unknown(self, index, not_sent, client):
+    def require_receipt_resolution(self, index, client):
         require(not self.locked, 'الجلسة مقفلة')
         require(client.project_id == self.project, 'سجل العمليات يخص مشروعاً آخر')
-        actor = client.require_local_identity()  # Live identity/role check below the UI.
+        actor = client.require_local_identity()
         require(not self.locked, 'الجلسة مقفلة')
-        rows = copy.deepcopy(self.state['receipts'])
-        require(rows[index][2] == 'UNKNOWN', 'حالة العملية تغيرت')
+        rows = self.state['receipts']
+        require(0 <= index < len(rows) and rows[index][2] == 'UNKNOWN', 'حالة العملية تغيرت')
         require(actor.get('uid') == rows[index][8] or is_admin(actor),
                 'حسم العملية متاح لمن أرسلها أو لمدير نشط فقط')
+        return copy.deepcopy(rows[index])
+
+    def resolve_unknown(self, index, not_sent, client):
+        self.require_receipt_resolution(index,client)
+        rows = copy.deepcopy(self.state['receipts'])
         rows[index][2] = 'CONFIRMED_NOT_SENT' if not_sent else 'CHECKED_DO_NOT_REPEAT'
         self.commit(receipts=rows)

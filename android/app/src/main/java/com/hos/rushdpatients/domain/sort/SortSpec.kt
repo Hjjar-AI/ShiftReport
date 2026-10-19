@@ -30,6 +30,12 @@ data class SortSpec(
     val isEmpty: Boolean get() = levels.isEmpty()
 
     companion object {
+        val WORKBOOK: SortSpec = SortSpec(listOf(
+            SortLevel(SortField.GENDER, SortDirection.DESC),
+            SortLevel(SortField.DIAGNOSIS),
+            SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.DESC),
+            SortLevel(SortField.NAME)
+        ))
         val DEFAULT: SortSpec = SortSpec(
             listOf(SortLevel(SortField.NAME, SortDirection.ASC))
         )

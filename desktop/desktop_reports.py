@@ -8,42 +8,106 @@ DEFAULTS = dict(format='pdf', layout='table', paper='A4', orientation='portrait'
                 dark=False, separate=False, ward='')
 
 
-def options_dialog(owner, export_only=False, assignments=False):
+def readiness_warnings(patients):
+    """Non-blocking notes matching Android domain/report/ReportReadiness.kt."""
+    warnings = []
+    for field, label in (('responsibleSupervisorId', 'اختصاصي'),
+                         ('responsibleResidentId', 'مقيم'),
+                         ('initialDiagnosis', 'تشخيص أولي'),
+                         ('treatmentPlan', 'خطة علاجية')):
+        count = sum(not (patient.get(field) or '').strip() for patient in patients)
+        if count: warnings.append('{} مريض دون {}'.format(count, label))
+    return warnings
+
+
+def readiness_notes(patients):
+    warnings = readiness_warnings(patients)
+    return ('ملاحظات اكتمال غير مانعة:\n' + '\n'.join(warnings)) if warnings else 'لا توجد ملاحظات اكتمال للحقول الأساسية.'
+
+
+def options_dialog(owner, export_only=False, assignments=False, force_pdf=False):
     import desktop_widgets as ctk
-    from desktop_forms import button, combo, entry, modal
-    previous = dict(DEFAULTS, **getattr(owner, 'report_options', {}))
+    from desktop_forms import button, combo, modal, guarded
+    from desktop_pdf_content import normalize_options
+    previous = normalize_options(dict(DEFAULTS, **owner.io(owner.store.report_preferences)))
     window = modal(owner, 'توزيع المرضى بالأسماء فقط' if assignments else 'خيارات التقرير', '740x680')
     actions = ctk.CTkFrame(window); actions.pack(side='bottom', fill='x')
     area = ctk.CTkScrollableFrame(window); area.pack(fill='both', expand=True)
+    if not assignments:
+        from desktop_protocol import current_date
+        from desktop_model import doctor_label
+        source = owner.store.read()
+        project, shift_id = owner.client.project_id, source['meta']['shiftId']
+        roster = ctk.CTkLabel(area, text='', anchor='e', justify='right', wraplength=600)
+        roster.pack(fill='x', padx=10, pady=4)
+        def update_roster():
+            shift = owner.store.read()
+            require(owner.client.project_id == project and shift['meta']['shiftId'] == shift_id,
+                    'تغير المشروع أو المناوبة؛ أعد فتح خيارات التقرير')
+            names = ' / '.join(doctor_label(owner.client.doctors, key)
+                               for key in shift['meta'].get('doctors', '').split(',') if key)
+            roster.configure(text='أطباء المناوبة: ' + (names or 'لم تحدد بعد') + '\n' + readiness_notes(shift['patients']))
+            return shift
+        def choose_roster():
+            update_roster()
+            owner.roster()
+            if window.winfo_exists():
+                window.grab_set()
+                update_roster()
+        button(area, 'اختيار أطباء المناوبة', guarded(choose_roster),
+               state='normal' if source['meta']['shiftDate'] == current_date(owner.client.zone) else 'disabled')
+        update_roster()
+    from desktop_layout import Disclosure
     formats = {'pdf':'PDF', 'text':'نص'}
-    format_get = (lambda:'pdf') if assignments or getattr(owner,'demo',False) else combo(area, 'صيغة التقرير', formats, previous['format'])
-    layout = (lambda:previous['layout']) if assignments else combo(area, 'نمط PDF',
-        {'table':'جدول كلاسيكي', 'cards':'بطاقات ملونة مع فهرس', 'paragraphs':'فقرات'}, previous['layout'])
-    ward = entry(area, 'اسم الجناح — اختياري', previous['ward'])
-    advanced = ctk.CTkFrame(area)
-    def toggle():
-        if advanced.winfo_manager(): advanced.pack_forget()
-        else: advanced.pack(fill='x', padx=8, pady=4)
-    button(area, 'خيارات PDF المتقدمة', toggle)
-    paper = (lambda:'A4') if assignments else combo(advanced, 'حجم الورق', {key:key for key in ('A4','A5','A3','Letter')}, previous['paper'])
-    orientation = (lambda:'portrait') if assignments else combo(advanced, 'الاتجاه', {'portrait':'عمودي', 'landscape':'أفقي'}, previous['orientation'])
-    color = combo(advanced, 'اللون', {'teal':'فيروزي', 'blue':'أزرق', 'green':'أخضر', 'purple':'بنفسجي', 'pastel':'باستيل'}, previous['color'])
-    dark = combo(advanced, 'مظهر PDF', {False:'فاتح', True:'داكن'}, previous['dark'])
-    separate = combo(advanced, 'ملف PDF لكل مشرف عند الحفظ المحلي', {False:'ملف واحد', True:'ملف لكل مشرف'}, previous['separate']) if export_only and not assignments else lambda:previous['separate']
-    description = ('A4 عمودي · ثلاثة جداول مشرفين في كل صف · عرض الجدول 56.7 مم.\n'
-                   'ترقيم متصل من اليسار إلى اليمين؛ تتابع الصفحات عند الحاجة دون حذف أسماء.' if assignments else
-                  'البطاقات تستخدم A5 عمودي وتحافظ على كامل المحتوى.\n'
-                 'التقرير النصي يُرسل كملف مشفر عند تفعيل تشفير المشروع.\n'
-                 'إرسال التقرير يتطلب معاينة وموافقة صريحة.')
-    ctk.CTkLabel(area, text=description, wraplength=620, justify='right').pack(fill='x', padx=10, pady=8)
+    format_get = (lambda:'pdf') if assignments or force_pdf or getattr(owner,'demo',False) else combo(
+        area, 'صيغة التقرير', formats, previous['format'], on_change=lambda:refresh_options())
+    pdf_area=ctk.CTkFrame(area)
+    layout = (lambda:previous['layout']) if assignments else combo(pdf_area, 'نمط PDF',
+        {'table':'جدول كلاسيكي', 'cards':'بطاقات ملونة مع فهرس', 'paragraphs':'فقرات'},
+        previous['layout'], on_change=lambda:refresh_options())
+    advanced=Disclosure(pdf_area,'خيارات PDF المتقدمة')
+    advanced.pack(fill='x',padx=8,pady=4)
+    page_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
+    page_area.pack(fill='x')
+    paper = (lambda:'A4') if assignments else combo(page_area, 'حجم الورق', {key:key for key in ('A4','A5','A3','Letter')}, previous['paper'])
+    orientation = (lambda:'portrait') if assignments else combo(page_area, 'الاتجاه', {'portrait':'عمودي', 'landscape':'أفقي'}, previous['orientation'])
+    appearance_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
+    appearance_area.pack(fill='x')
+    color = combo(appearance_area, 'اللون', {'teal':'فيروزي', 'blue':'أزرق', 'green':'أخضر', 'purple':'بنفسجي', 'pastel':'باستيل'}, previous['color'])
+    dark = combo(appearance_area, 'مظهر PDF', {False:'فاتح', True:'داكن'}, previous['dark'])
+    separate = combo(appearance_area, 'ملف PDF لكل مشرف عند الحفظ المحلي', {False:'ملف واحد', True:'ملف لكل مشرف'}, previous['separate']) if export_only and not assignments else lambda:previous['separate']
+    description=ctk.CTkLabel(area,text='',wraplength=620,justify='right',anchor='e')
+    description.pack(fill='x',padx=10,pady=8)
+    def refresh_options():
+        if format_get()=='pdf':
+            pdf_area.pack(fill='x',padx=4,pady=3,before=description)
+            if not assignments and layout()=='cards':page_area.pack_forget()
+            elif not page_area.winfo_manager():page_area.pack(fill='x',before=appearance_area)
+            if assignments:
+                text='A4 عمودي · ثلاثة جداول من اليمين إلى اليسار · الترقيم العربي في العمود الأيمن · تتابع الصفحات دون حذف أسماء.'
+            else:
+                text={
+                    'cards':'بطاقات A5 عمودي مع فهرس؛ حجم الورق والاتجاه ثابتان لهذا النمط.',
+                    'table':'جدول كلاسيكي مضغوط يحافظ على كامل المحتوى.',
+                    'paragraphs':'فقرات متتابعة تحافظ على كامل المحتوى.'
+                }[layout()]
+        else:
+            pdf_area.pack_forget()
+            text='تقرير نصي؛ يُرسل كملف مشفر عند تفعيل تشفير المشروع.'
+        description.configure(text=text+('' if export_only else '\nإرسال التقرير يتطلب معاينة وموافقة صريحة.'))
+    refresh_options()
     result = []
     def submit():
+        if not assignments: update_roster()
         options = dict(format=format_get(), layout=layout(), paper=paper(), orientation=orientation(), color=color(),
-                       dark=dark(), separate=separate(), ward=ward.get())
+                       dark=dark(), separate=separate(), ward=previous['ward'])
+        preferences = dict(previous, color=options['color'],dark=options['dark'],ward=options['ward']) if assignments else dict(options)
+        if force_pdf:preferences['format']=previous['format']
+        owner.io(lambda:owner.store.save_report_preferences(preferences))
+        if not window.winfo_exists():return
         result.append(options)
-        owner.report_options = dict(previous, color=options['color'],dark=options['dark'],ward=options['ward']) if assignments else options
         window.destroy()
-    button(actions, 'متابعة إلى الحفظ' if export_only else 'متابعة إلى المعاينة', submit)
+    button(actions, 'متابعة إلى الحفظ' if export_only else 'متابعة إلى المعاينة', guarded(submit))
     button(actions, 'إلغاء', window.destroy)
     owner.root.wait_window(window)
     return result[0] if result else None
@@ -62,7 +126,9 @@ def report_text(client, shift, supervisor=None):
     selected = copy.deepcopy(shift)
     selected['patients'] = [row for row in shift['patients'] if not supervisor or row.get('responsibleSupervisorId') == supervisor]
     require(selected['patients'], 'لا يوجد مرضى في التقرير المختار')
-    return 'المشفى: '+client.config['hospitalName']+'\nعدد المرضى: '+str(len(selected['patients']))+'\n'+shift_text(selected, client.doctors, client.zone)
+    return ('المشفى: '+client.config['hospitalName']+'\nعدد المرضى: '+str(len(selected['patients']))+
+            '\nعدد المرافقين: '+str(sum(row.get('hasCompanion')=='Y' for row in selected['patients']))+
+            '\n'+shift_text(selected, client.doctors, client.zone))
 
 
 def export_supervisor_pdfs(owner, shift, supervisor, font, options):
@@ -126,7 +192,7 @@ def report_content(shift):
 
 def prepare_delivery(client, local, restored):
     from desktop_protocol import fingerprint
-    plan=client.prepare(client.plan(local),restored)
+    plan=client.prepare(client.plan(local),restored,saved_patients=local['patients'])
     remote=next((shift for shift in plan.bundle if shift['meta']['shiftId']==plan.shift['meta']['shiftId']),None)
     needs_publish=remote is None or fingerprint(report_content(remote))!=fingerprint(report_content(plan.shift))
     return plan,plan.shift if needs_publish else remote,needs_publish
@@ -136,7 +202,8 @@ def publication_review(plan, zone):
     from desktop_model import patient_text
     before=next((s for s in plan.bundle if s['meta']['shiftId']==plan.shift['meta']['shiftId']),{'patients':[]})
     old={p['externalId']:p for p in before['patients']};new={p['externalId']:p for p in plan.shift['patients']}
-    lines=['ستستبدل هذه النسخة الكاملة بيانات المناوبة المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.']
+    lines=['ستستبدل هذه النسخة الكاملة بيانات المناوبة المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.',
+           readiness_notes(plan.shift['patients'])]
     for key in dict.fromkeys(list(old)+list(new)):
         if old.get(key)==new.get(key):continue
         lines+=['\nالمريض: '+new.get(key,old.get(key,{})).get('name',''),

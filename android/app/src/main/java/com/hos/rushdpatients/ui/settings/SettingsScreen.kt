@@ -103,8 +103,6 @@ fun SettingsScreen(
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var pendingRestorePassword by remember { mutableStateOf("") }
     var confirmBackupRestore by remember { mutableStateOf(false) }
-    var confirmForceUpload by remember { mutableStateOf(false) }
-    var forceConfirmationText by remember { mutableStateOf("") }
     var advancedPdf by rememberSaveable { mutableStateOf(false) }
     var provisioningDialog by remember(canManageProject) { mutableStateOf(false) }
     var provisioningPassphrase by remember(canManageProject) { mutableStateOf("") }
@@ -245,19 +243,13 @@ fun SettingsScreen(
                                 onCheckedChange = viewModel::setReportAsPdf
                             )
 
-                            var wardNameDraft by remember(state.reportWardName) { mutableStateOf(state.reportWardName) }
-                            AppTextField(value = wardNameDraft, onValueChange = { wardNameDraft = it },
-                                label = { Text("اسم الجناح في التقارير") }, modifier = Modifier.fillMaxWidth())
-                            AppTextButton(onClick = { viewModel.setReportWardName(wardNameDraft) },
-                                enabled = wardNameDraft.trim() != state.reportWardName) { Text("حفظ اسم الجناح") }
-
                             AppPdfStylePicker(selected = state.pdfStyle, onSelected = viewModel::setPdfStyle)
                             AppTextButton(onClick = { advancedPdf = !advancedPdf },
                                 modifier = Modifier.heightIn(min = UiSpacing.touchTarget).semantics {
                                     stateDescription = if (advancedPdf) "موسع" else "مطوي"
                                 }) { Text(if (advancedPdf) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة") }
                             if (advancedPdf) {
-                                if (state.pdfStyle == PdfStyle.CLASSIC) {
+                                if (state.pdfStyle != PdfStyle.CARDS) {
                                     Text("اتجاه الصفحة", style = MaterialTheme.typography.labelMedium)
                                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                         PdfOrientation.entries.forEach { option ->
@@ -397,7 +389,7 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
                             LoadingButton(
-                                text = "رفع بيانات المناوبة الحالية",
+                                text = "مراجعة ونشر بيانات المناوبة",
                                 outlined = true,
                                 loading = state.syncing,
                                 enabled = !state.exportingCsv,
@@ -458,15 +450,12 @@ fun SettingsScreen(
                             Divider()
                             SettingsSubheading("استعادة بيانات تليجرام")
                             AppOutlinedButton(
-                                onClick = {
-                                    forceConfirmationText = ""
-                                    confirmForceUpload = true
-                                },
+                                onClick = viewModel::uploadCurrent,
                                 enabled = !state.syncing,
                                 modifier = Modifier.fillMaxWidth()
-                            ) { Text("فرض النسخة الحالية") }
+                            ) { Text("مراجعة ونشر بيانات الاستعادة") }
                             Text(
-                                "يتجاوز الدمج ويجعل بيانات هذا الجهاز هي النسخة المنشورة. استخدمه فقط للاستعادة المقصودة.",
+                                "بعد الاستعادة راجع النسخة المحلية الكاملة قبل نشرها. يشمل الاستبدال الحذف والترتيب وأطباء المناوبة، ويتوقف إذا تغيرت البيانات بعد المراجعة.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -648,39 +637,24 @@ fun SettingsScreen(
         )
     }
 
-    if (confirmForceUpload) {
+    state.publicationReviewText?.let { reviewText ->
         AlertDialog(
-            onDismissRequest = {
-                confirmForceUpload = false
-                forceConfirmationText = ""
-            },
-            title = { Text("فرض النسخة المحلية؟") },
+            onDismissRequest = viewModel::cancelPublicationReview,
+            title = { Text("مراجعة نشر النسخة الكاملة") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text("سيتم حفظ مرجع النسخة المستبدلة ثم تجاوز الدمج. اكتب «فرض النسخة الحالية» للمتابعة.")
-                    AppTextField(
-                        value = forceConfirmationText,
-                        onValueChange = { forceConfirmationText = it },
-                        label = { Text("عبارة التأكيد") },
-                        singleLine = true
-                    )
+                Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    Text(reviewText)
+                    Text("التأكيد ينشر البيانات فقط؛ إرسال التقرير إجراء منفصل يتطلب معاينته.")
                 }
             },
             confirmButton = {
-                AppTextButton(
-                    onClick = {
-                        confirmForceUpload = false
-                        forceConfirmationText = ""
-                        viewModel.forceUploadCurrent()
-                    },
-                    enabled = forceConfirmationText.trim() == "فرض النسخة الحالية"
-                ) { Text("فرض النسخة") }
+                AppTextButton(onClick = viewModel::confirmPublication, enabled = !state.syncing) {
+                    Text("راجعت النسخة وأؤكد نشرها")
+                }
             },
             dismissButton = {
-                AppTextButton(onClick = {
-                    confirmForceUpload = false
-                    forceConfirmationText = ""
-                }) { Text("إلغاء") }
+                AppTextButton(onClick = viewModel::cancelPublicationReview, enabled = !state.syncing) { Text("إلغاء") }
             }
         )
     }

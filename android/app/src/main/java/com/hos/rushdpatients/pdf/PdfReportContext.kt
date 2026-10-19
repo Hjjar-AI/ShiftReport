@@ -8,12 +8,10 @@ import java.util.Locale
 
 /** Public report context only; never takes connection settings or credentials. */
 internal object PdfReportContext {
-    fun lines(options: PdfExportOptions, summary: ReportSummary): List<String> = listOf(
-        "المشفى: ${options.hospitalName.ifBlank { "غير محدد" }}",
-        "الجناح: ${options.wardName.ifBlank { "غير محدد" }}",
-        "تاريخ المناوبة: ${summary.shiftDate}",
-        "تعيين المقيم للمريض قد يكون تغطية من فريق آخر؛ عضوية الفريق الثابتة لا تتغير.",
+    fun lines(summary: ReportSummary, includeShiftDate: Boolean = true): List<String> =
+        if (includeShiftDate) listOf("تاريخ المناوبة: ${summary.shiftDate}") else emptyList()
+
+    fun createdAt(options: PdfExportOptions): String =
         "أُنشئ في: " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z", Locale("ar"))
             .format(Instant.ofEpochMilli(options.generatedAtEpochMillis).atZone(ZoneId.systemDefault()))
-    )
 }

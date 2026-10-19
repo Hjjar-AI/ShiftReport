@@ -15,6 +15,7 @@ Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and
 | Doctor Telegram wire | Ten columns including teamSupervisorId; distinct from schema-1 spreadsheet CSV |
 | Encrypted file | `SRDATA1` + 12-byte nonce + AES-GCM ciphertext/tag |
 | Encrypted text | `SRMSG1:` + Base64 of encrypted gzip text |
+| Portable shift backup | `.rpb`: `RUSHDBK1` + 16-byte salt + 12-byte nonce + AES-GCM ciphertext/tag; single CSV7 document; password PBKDF2-HMAC-SHA256/210000/256-bit, no AAD |
 
 The desktop accepts the current contract only. No schema renumbering or old-schema
 conversion was added. The Android metadata-quoting fix preserves roster commas,
@@ -119,6 +120,19 @@ are unchanged. Restoration checks shift, expected draft and duplicate ID, retain
 full content and position, and requires complete-snapshot review before publication.
 Recovery travels with `.srdraft` backups; delivery receipts remain device-local.
 
+Desktop local patient Save establishes completion identity/time from an authenticated
+local PIN session or valid Telegram identity. Saved encrypted completion evidence
+travels with draft recovery; publication preserves that evidence or previously
+published stamps and rejects unstamped form completions. It never assigns a new
+completion to the publishing doctor. Local clinical audit is admin-only and excluded
+from portable drafts; report preferences persist privately in the encrypted workspace.
+Patient editor/time metadata is likewise established locally. Publication takes the
+saved patient snapshot as evidence, checks its clinical content, and preserves the
+editor even when a different clinician publishes. Derived task doctor labels do not
+change that identity. Announcements use authenticated project text encryption when
+enabled; uncertain delivery blocks repetition until manual resolution, with safe
+repair of the expected announcement reference and preservation of newer references.
+
 ## Desktop local access, CSV and demo
 
 Local PIN hashes and persistent throttling are optional private records inside
@@ -184,7 +198,26 @@ resolution requires live same-project sender/admin authorization below the UI.
 Confirmed reports need explicit approval
 for another copy. A confirmed send followed by failed local bookkeeping is still a send.
 
+Single PDF/text delivery and supervisor PDF batches share `desktop_delivery.ReportDelivery`.
+Preview/confirmation remain with the caller; the coordinator owns draft/destination
+checks, publication reuse and durable receipt handling. `desktop_tasks` supplies
+task validation, counts, deadline/display and rollover rules to draft, wire and
+report paths. Completion validation does not establish trust: clinical Save stamps
+the authenticated actor, and publication still requires saved completion evidence.
+
 ## Evidence
+
+Patient details navigate stable IDs from the captured visible sequence; scoped
+local activity requires current admin authorization for every read. The reusable
+readonly pane copies the current logical patient text when its content changes.
+
+Desktop `.rpb` import/export reuses the Android production format. Import requires
+the selected shift ID/date in the current project and valid registry references,
+an expected-draft recheck, review and confirmation. Recovery keeps current receipts
+and saved imported task attribution. `.srdraft` remains separately labelled desktop
+workspace recovery. Both clients block downloaded snapshots over pending saved
+clinical changes until publication. Source-based backup compatibility still needs
+an actual Android/desktop exchange; dummy desktop crypto/recovery checks passed.
 
 Offline crypto/Unicode CSV/bundle/baseline/merge checks and source/artifact checks
 passed for the implementation snapshot. A long dummy Arabic PDF generated eight pages and its first page was visually

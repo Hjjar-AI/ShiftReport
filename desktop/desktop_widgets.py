@@ -188,18 +188,23 @@ class CTkComboBox(native.CTkComboBox):
 
 def set_readonly_text(widget, logical_text):
     """Render review text at its actual width; clipboard copies the original full text."""
+    widget._readonly_source = logical_text
+    if hasattr(widget, '_readonly_render'):
+        widget.after_idle(widget._readonly_render)
+        return widget._readonly_copy
     def render(event=None):
         if not widget.winfo_exists(): return
         position = widget.yview()[0]
         font = tkfont.Font(root=widget, font=widget._textbox.cget('font'))
-        text = wrapped_text(logical_text, font.measure, max(80, widget._textbox.winfo_width()-24))
+        text = wrapped_text(widget._readonly_source, font.measure, max(80, widget._textbox.winfo_width()-24))
         widget.configure(state='normal', wrap='none')
         widget.delete('1.0','end'); widget.insert('1.0',text)
         widget.tag_config('rtl',justify='right');widget.tag_add('rtl','1.0','end')
         widget.configure(state='disabled');widget.yview_moveto(position)
     def copy_original(event=None):
-        widget.clipboard_clear(); widget.clipboard_append(logical_text)
+        widget.clipboard_clear(); widget.clipboard_append(widget._readonly_source)
         return 'break'
+    widget._readonly_render, widget._readonly_copy = render, copy_original
     widget.bind('<Configure>',render,add=True)
     widget.bind('<<Copy>>',copy_original,add=True)
     widget.bind('<Control-c>',copy_original,add=True)

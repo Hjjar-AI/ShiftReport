@@ -67,7 +67,7 @@ object AppConstants {
     const val SETTING_PATIENT_DRAFT = "patient_draft"
     const val SETTING_LAST_ENCRYPTED_BACKUP_AT = "last_encrypted_backup_at"
     const val SETTING_SYNC_LONG_PRESS_HINT_SHOWN = "sync_long_press_hint_shown"
-    const val SETTING_PATIENTS_BASE_SNAPSHOT = "patients_base_snapshot"
+    const val SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX = "known_shift_snapshot:"
     const val SETTING_GUIDED_ROLLOVER = "guided_rollover"
     const val SETTING_DEVICE_ID = "device_id"
 

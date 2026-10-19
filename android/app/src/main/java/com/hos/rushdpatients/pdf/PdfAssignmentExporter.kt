@@ -20,7 +20,7 @@ import java.io.FileOutputStream
 import kotlin.coroutines.coroutineContext
 import javax.inject.Inject
 
-/** Admin-only A4 grid: three 56.7 mm team tables per row, numbered left to right. */
+/** Admin-only A4 grid: right-to-left team placement and right-side Arabic numbering. */
 class PdfAssignmentExporter @Inject constructor(private val adminAuthorizer: AdminAuthorizer) {
     private data class Row(val lines: List<String>, val height: Float, val number: Int? = null)
     private data class Team(val supervisor: Row, val residents: Row, val patients: List<Row>, val color: Int) {
@@ -37,7 +37,8 @@ class PdfAssignmentExporter @Inject constructor(private val adminAuthorizer: Adm
         val width = PdfPaperSize.A4.widthPoints
         val height = PdfPaperSize.A4.heightPoints
         val tableWidth = 56.7f * 72f / 25.4f
-        val margin = (width - 3 * tableWidth) / 2f
+        val columnGap = 3f // Thin vertical gutter between adjacent supervisor tables.
+        val margin = (width - 3 * tableWidth - 2 * columnGap) / 2f
         val top = 20f
         val gap = 12f
         val padding = 3f
@@ -54,11 +55,16 @@ class PdfAssignmentExporter @Inject constructor(private val adminAuthorizer: Adm
             return Row(lines, lines.size * PdfTextWrapper.lineHeight(paint) + 2 * padding, number)
         }
         val rosterNote = if (summary.shiftDate != com.hos.rushdpatients.util.ShiftDate.current())
-            "مناوبة محفوظة — عضوية الفرق المعروضة هي الحالية وليست تاريخية\n" else ""
-        val context = row("توزيع المرضى حسب المشرف — الأسماء فقط\n" + rosterNote +
-            PdfReportContext.lines(options, summary).joinToString("\n"), body, 3 * tableWidth)
-        val tableTop = top + context.height + gap
-        val maxTableHeight = height - tableTop - 24f
+            "مناوبة محفوظة · الفرق حسب السجل الحالي\n" else ""
+        val documentTitlePaint = Paint(heading).apply { textSize = 12f }
+        val documentTitle = row("توزيع المرضى حسب المشرف", documentTitlePaint, 3 * tableWidth + 2 * columnGap)
+        val context = row(rosterNote +
+            PdfReportContext.lines(summary, includeShiftDate = false).joinToString("\n"), body, 3 * tableWidth)
+        val contextHeight = if (rosterNote.isBlank()) 0f else context.height
+        val timestampPaint = Paint(body).apply { textSize = 8.5f }
+        val timestampSpace = gap + PdfTextWrapper.lineHeight(timestampPaint)
+        val tableTop = top + documentTitle.height + contextHeight + gap
+        val maxTableHeight = height - tableTop - 24f - timestampSpace
         val fragments = mutableListOf<Team>()
         var number = 1
         val teams = patients.groupBy { it.responsibleSpecialistId }.toMutableMap()
@@ -99,8 +105,13 @@ class PdfAssignmentExporter @Inject constructor(private val adminAuthorizer: Adm
                 val page = document.startPage(PdfDocument.PageInfo.Builder(width, height, pageNumber).create())
                 openPage = page
                 page.canvas.drawColor(palette.pageBackground)
-                var baseline = top + padding - body.fontMetrics.top
-                context.lines.forEach { line ->
+                var baseline = top + padding - documentTitlePaint.fontMetrics.top
+                documentTitle.lines.forEach { line ->
+                    page.canvas.drawText(bidi.unicodeWrap(line, TextDirectionHeuristics.FIRSTSTRONG_LTR), width - margin, baseline, documentTitlePaint)
+                    baseline += PdfTextWrapper.lineHeight(documentTitlePaint)
+                }
+                baseline = top + documentTitle.height + padding - body.fontMetrics.top
+                (if (contextHeight > 0f) context.lines else emptyList()).forEach { line ->
                     page.canvas.drawText(bidi.unicodeWrap(line, TextDirectionHeuristics.FIRSTSTRONG_LTR), width - margin, baseline, body)
                     baseline += PdfTextWrapper.lineHeight(body)
                 }
@@ -112,10 +123,10 @@ class PdfAssignmentExporter @Inject constructor(private val adminAuthorizer: Adm
             fragments.chunked(3).forEach { tableRow ->
                 coroutineContext.ensureActive()
                 val rowHeight = tableRow.maxOf { it.height }
-                if (y + rowHeight > height - 24f) newPage()
+                if (y + rowHeight + timestampSpace > height - 24f) newPage()
                 tableRow.forEachIndexed { column, team ->
                     val canvas = checkNotNull(openPage).canvas
-                    val x = margin + column * tableWidth // Physical left-to-right table/number flow.
+                    val x = width - margin - tableWidth - column * (tableWidth + columnGap)
                     var cellY = y
                     fun draw(value: Row, paint: Paint, background: Int, textColor: Int) {
                         fill.color = background
@@ -124,13 +135,13 @@ class PdfAssignmentExporter @Inject constructor(private val adminAuthorizer: Adm
                         var baseline = cellY + padding - p.fontMetrics.top
                         value.lines.forEach { line ->
                             canvas.drawText(bidi.unicodeWrap(line, TextDirectionHeuristics.FIRSTSTRONG_LTR),
-                                x + tableWidth - padding, baseline, p)
+                                x + tableWidth - (if (value.number != null) numberWidth else 0f) - padding, baseline, p)
                             baseline += PdfTextWrapper.lineHeight(p)
                         }
                         value.number?.let { n ->
-                            canvas.drawLine(x + numberWidth, cellY, x + numberWidth, cellY + value.height, border)
+                            canvas.drawLine(x + tableWidth - numberWidth, cellY, x + tableWidth - numberWidth, cellY + value.height, border)
                             val numberPaint = Paint(body).apply { textAlign = Paint.Align.CENTER }
-                            canvas.drawText(n.toString(), x + numberWidth / 2f,
+                            canvas.drawText(com.hos.rushdpatients.util.ArabicNumbers.toArabicDigits(n.toString()), x + tableWidth - numberWidth / 2f,
                                 cellY + padding - numberPaint.fontMetrics.top, numberPaint)
                         }
                         canvas.drawRect(x, cellY, x + tableWidth, cellY + value.height, border)
@@ -144,6 +155,9 @@ class PdfAssignmentExporter @Inject constructor(private val adminAuthorizer: Adm
                 }
                 y += rowHeight + gap
             }
+            checkNotNull(openPage).canvas.drawText(
+                bidi.unicodeWrap(PdfReportContext.createdAt(options), TextDirectionHeuristics.FIRSTSTRONG_LTR),
+                width - margin, y - timestampPaint.fontMetrics.top, timestampPaint)
             openPage?.let { document.finishPage(it) }
             openPage = null
             require(adminAuthorizer.requireAdmin().id == actorId) { "تغيّر المستخدم؛ أعد تصدير توزيع المرضى" }

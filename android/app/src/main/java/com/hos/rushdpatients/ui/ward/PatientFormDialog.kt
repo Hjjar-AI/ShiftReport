@@ -88,6 +88,7 @@ internal fun PatientFormDialog(
     doctors: List<Doctor>,
     saving: Boolean,
     reviewAction: @Composable () -> Unit = {},
+    entryOptions: @Composable () -> Unit = {},
     onDraftChanged: (PatientDraft) -> Unit = {},
     onConfirm: (Patient) -> Unit,
     onConfirmAndNext: ((Patient) -> Unit)? = null,
@@ -438,6 +439,7 @@ internal fun PatientFormDialog(
                         }
                     }
                     if (initial == null) admissionIdentityContent()
+                    entryOptions()
 
                     SectionTitle(
                         "التشخيص والعلاج",

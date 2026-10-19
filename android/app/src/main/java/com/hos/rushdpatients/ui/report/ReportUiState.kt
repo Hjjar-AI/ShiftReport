@@ -6,7 +6,6 @@ import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.report.ReportSummary
-import com.hos.rushdpatients.sync.PatientFieldConflict
 
 data class SupervisorReportTarget(
     val doctorId: String,
@@ -46,8 +45,6 @@ data class ReportUiState(
     val deliveryOutcome: ReportStepOutcome? = null,
     val readinessWarnings: List<String> = emptyList(),
     val changeBriefing: List<String> = emptyList(),
-    val mergeConflicts: List<PatientFieldConflict> = emptyList(),
-    val resolvingConflicts: Boolean = false,
     val lastOperation: String? = null,
     val retryAction: ReportRetryAction? = null,
     val error: String? = null,

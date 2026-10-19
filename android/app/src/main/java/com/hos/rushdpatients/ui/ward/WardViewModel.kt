@@ -31,8 +31,10 @@ import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.sort.PatientComparators
 import com.hos.rushdpatients.domain.sort.SortSpec
 import com.hos.rushdpatients.domain.sort.SortSpecCodec
+import com.hos.rushdpatients.sync.KnownShiftSnapshot
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.hos.rushdpatients.sync.SyncService
-import com.hos.rushdpatients.sync.ConflictChoice
 import com.hos.rushdpatients.util.ShiftDate
 import com.hos.rushdpatients.util.NetworkStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -88,13 +90,14 @@ class WardViewModel @Inject constructor(
     private var draftSaveJob: Job? = null
 
     init {
+        viewModelScope.launch {
+            syncService.observeDownloadUndo().collect { available -> _state.update { it.copy(canUndoDownload = available) } }
+        }
         load()
         observePreferences()
-        observeSyncStatus()
         observeWorkflowStatus()
         loadDraft()
         monitorEditabilityBoundary()
-        observeMergeConflicts()
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -110,55 +113,42 @@ class WardViewModel @Inject constructor(
     private fun observeWorkflowStatus() {
         viewModelScope.launch {
             _state.map { it.shift?.id }.distinctUntilChanged().collectLatest { id ->
+                _state.update { it.copy(synchronization = WardSynchronization()) }
                 if (id == null) return@collectLatest
-                _state.update { it.copy(lastDownloadAt = null, lastDownloadMessage = null, unresolvedDeliveries = 0) }
+                val publication = combine(
+                    settingsRepository.observe(AppConstants.SETTING_PATIENTS_SYNC_PENDING),
+                    syncStateRepository.observe(SyncChannel.CSV)
+                ) { pending, sync ->
+                    (pending?.toBooleanStrictOrNull() ?: false) to sync?.lastSyncedAtEpochMillis
+                }
+                val selectedSnapshot = combine(
+                    _state.map { it.shift to it.patients }.distinctUntilChanged(),
+                    settingsRepository.observe(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + id)
+                ) { current, csv ->
+                    withContext(Dispatchers.Default) { KnownShiftSnapshot.compare(current.first, current.second, csv) }
+                }
+                // An unreadable delivery ledger must not hide publication/download metadata.
+                val deliveries = deliveryLedger.observe().map { records ->
+                    records.count { it.shiftId == id && it.status == "UNKNOWN" } to false
+                }.catch { emit(0 to true) }
                 combine(
+                    publication,
                     settingsRepository.observe(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + id),
                     settingsRepository.observe(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + id),
-                    deliveryLedger.observe()
-                ) { at, message, records -> Triple(at?.toLongOrNull(), message?.toLongOrNull(), records.count { it.shiftId == id && it.status == "UNKNOWN" }) }
-                    .catch { _state.update { it.copy(deliveryLogUnavailable = true) } }
-                    .collect { (at, message, count) -> _state.update { it.copy(lastDownloadAt = at,
-                        lastDownloadMessage = message, unresolvedDeliveries = count, deliveryLogUnavailable = false) } }
+                    deliveries,
+                    selectedSnapshot
+                ) { published, at, message, delivery, selected ->
+                    WardSynchronization(pending = published.first, selectedSnapshot = selected, lastSynchronizedAt = published.second,
+                        downloadedAt = at?.toLongOrNull(), downloadedMessage = message?.toLongOrNull(),
+                        unresolvedDeliveries = delivery.first, deliveryLogUnavailable = delivery.second)
+                }.collect { synchronization ->
+                    _state.update { current ->
+                        if (current.shift?.id == id) current.copy(synchronization = synchronization) else current
+                    }
+                }
             }
         }
     }
-
-    private fun observeMergeConflicts() {
-        viewModelScope.launch {
-            syncService.patientConflicts.collect { conflicts ->
-                _state.update { it.copy(mergeConflicts = conflicts) }
-            }
-        }
-    }
-
-    fun resolveMergeConflicts(choices: Map<String, ConflictChoice>) {
-        if (_state.value.resolvingConflicts) return
-        _state.update { it.copy(resolvingConflicts = true) }
-        viewModelScope.launch {
-            syncService.resolvePatientConflicts(choices)
-                .onSuccess {
-                    _state.update {
-                        it.copy(
-                            resolvingConflicts = false,
-                            syncStatus = PatientSyncStatus.BACKED_UP,
-                            snackbar = "تم دمج الحقول المتعارضة ونشر النسخة الموحدة"
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _state.update {
-                        it.copy(
-                            resolvingConflicts = false,
-                            syncStatus = PatientSyncStatus.CONFLICT,
-                            snackbar = error.message ?: "تعذر حسم التعارضات"
-                        )
-                    }
-                }
-        }
-    }
-
-    fun dismissMergeConflicts() = syncService.dismissPatientConflicts()
 
     private fun monitorEditabilityBoundary() {
         viewModelScope.launch {
@@ -200,29 +190,6 @@ class WardViewModel @Inject constructor(
         draftSaveJob?.cancel()
         settingsRepository.delete(AppConstants.SETTING_PATIENT_DRAFT)
         _state.update { it.copy(patientDraft = null) }
-    }
-
-    private fun observeSyncStatus() {
-        viewModelScope.launch {
-            combine(
-                settingsRepository.observe(AppConstants.SETTING_PATIENTS_SYNC_PENDING),
-                syncStateRepository.observe(SyncChannel.CSV)
-            ) { pending, sync ->
-                (pending?.toBooleanStrictOrNull() ?: false) to sync?.lastSyncedAtEpochMillis
-            }.collect { (pending, backedUpAt) ->
-                _state.update {
-                    it.copy(
-                        lastBackedUpAt = backedUpAt,
-                        syncStatus = when {
-                            it.syncing -> PatientSyncStatus.SYNCING
-                            pending -> PatientSyncStatus.PENDING
-                            backedUpAt != null -> PatientSyncStatus.BACKED_UP
-                            else -> PatientSyncStatus.LOCAL
-                        }
-                    )
-                }
-            }
-        }
     }
 
     private fun observePreferences() {
@@ -559,7 +526,6 @@ class WardViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     snackbar = "لا يوجد اتصال بالإنترنت — أعد المحاولة عند توفر الشبكة",
-                    syncStatus = PatientSyncStatus.PENDING,
                     retryAction = retry
                 )
             }
@@ -568,19 +534,17 @@ class WardViewModel @Inject constructor(
         _state.update {
             it.copy(
                 syncing = true,
-                syncStatus = PatientSyncStatus.SYNCING,
                 snackbar = null,
                 retryAction = null
             )
         }
         viewModelScope.launch {
-            // Registry refresh merges with pending local edits and routes conflicts to admin review.
+            // Refresh the complete registry; pending local changes require explicit handling.
             val doctorsResult = syncService.refreshDoctorsFromRemote()
             if (doctorsResult.isFailure) {
                 _state.update {
                     it.copy(
                         syncing = false,
-                        syncStatus = PatientSyncStatus.PENDING,
                         snackbar = doctorsResult.exceptionOrNull()?.message
                             ?: "فشل جلب سجل الأطباء",
                         retryAction = retry
@@ -600,7 +564,6 @@ class WardViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         syncing = false,
-                        syncStatus = PatientSyncStatus.BACKED_UP,
                         snackbar = "تم استبدال البيانات المحلية بـ$source",
                         lastOperation = "آخر عملية ناجحة: جلب $source",
                         retryAction = null
@@ -611,9 +574,6 @@ class WardViewModel @Inject constructor(
                     val message = error.message ?: "فشل جلب البيانات"
                     it.copy(
                         syncing = false,
-                        syncStatus = if (
-                            message.contains("أقدم") || message.contains("تعارض")
-                        ) PatientSyncStatus.CONFLICT else PatientSyncStatus.PENDING,
                         snackbar = message,
                         retryAction = retry
                     )
@@ -622,7 +582,21 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun addPatient(patient: Patient, onSuccess: () -> Unit = {}) {
+    fun undoLastDownload() {
+        if (_state.value.syncing || _state.value.saving) return
+        _state.update { it.copy(syncing = true) }
+        viewModelScope.launch {
+            try {
+                syncService.undoLastDownload().onSuccess { id ->
+                    observeShift(id)
+                    _state.update { it.copy(snackbar = "استُعيدت البيانات المحلية قبل التنزيل؛ راجعها قبل النشر") }
+                }.onFailure { error -> showError(error.message ?: "تعذر التراجع عن التنزيل") }
+            } finally { _state.update { it.copy(syncing = false) } }
+        }
+    }
+
+    fun addPatient(patient: Patient, position: Int? = null, expectedPatients: List<Patient>? = null,
+        expectedShiftRevision: Long? = null, onSuccess: () -> Unit = {}) {
         val shiftId = editableShiftId() ?: return
         viewModelScope.launch {
             if (!validateForSave(patient)) return@launch
@@ -632,7 +606,7 @@ class WardViewModel @Inject constructor(
             }
             saveAction(onSuccess) {
                 requireEditableShift(shiftId)
-                wardMutations.addPatient(patient, shiftId, sessionManager.current())
+                wardMutations.addPatient(patient, shiftId, sessionManager.current(), position, expectedPatients, expectedShiftRevision)
                 clearDraft()
             }
         }

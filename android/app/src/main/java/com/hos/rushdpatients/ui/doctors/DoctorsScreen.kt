@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.ui.doctors
 
-import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.rememberFloatingActionSpace
 import com.hos.rushdpatients.ui.components.AppFieldPair
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,8 +7,6 @@ import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.ui.components.AppLoadingState
 import com.hos.rushdpatients.ui.components.AppSearchField
 import com.hos.rushdpatients.ui.components.AppTopBar
-import com.hos.rushdpatients.ui.components.NoticeKind
-import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
@@ -84,7 +81,6 @@ fun DoctorsScreen(
     var showAdd by remember { mutableStateOf(false) }
     var showTeams by remember { mutableStateOf(false) }
     var transferExpanded by rememberSaveable { mutableStateOf(false) }
-    var showMergeReview by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Doctor?>(null) }
     var deleteTarget by remember { mutableStateOf<Doctor?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -135,15 +131,6 @@ fun DoctorsScreen(
         onDismiss = { showTeams = false },
         onSave = { expected, assignments -> viewModel.saveTeams(expected, assignments) { showTeams = false } })
 
-    if (showMergeReview && state.mergeConflicts.isNotEmpty()) {
-        DoctorConflictReviewDialog(
-            conflicts = state.mergeConflicts,
-            saving = state.saving,
-            onConfirm = viewModel::resolveRegistryConflicts,
-            onDismiss = { showMergeReview = false }
-        )
-    }
-
     Scaffold(
         topBar = {
             AppTopBar(title = "سجل الأطباء", onBack = onBack, actions = {
@@ -185,14 +172,6 @@ fun DoctorsScreen(
                             state.exporting -> "جار تصدير سجل الأطباء…"
                             else -> "جار تحديث سجل الأطباء…"
                         })
-                    }
-                    if (state.mergeConflicts.isNotEmpty()) {
-                        item {
-                            AppNotice("تعارضات سجل الأطباء: ${uiNumber(state.mergeConflicts.size)}\n" +
-                                "لم تُستبدل التعديلات المحلية. راجع القيم المتعارضة قبل المزامنة.",
-                                kind = NoticeKind.ERROR, actionLabel = "مراجعة التعارضات",
-                                onAction = { showMergeReview = true }, actionEnabled = !state.saving)
-                        }
                     }
                     item {
                         AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy) { Text("إدارة الفرق معاً") }

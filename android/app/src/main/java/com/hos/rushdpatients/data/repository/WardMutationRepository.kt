@@ -39,7 +39,8 @@ class WardMutationRepository @Inject constructor(
             }
         }
 
-    suspend fun addPatient(patient: Patient, shiftId: String, actor: Session?) =
+    suspend fun addPatient(patient: Patient, shiftId: String, actor: Session?,
+        position: Int? = null, expectedPatients: List<Patient>? = null, expectedShiftRevision: Long? = null) =
         mutate(shiftId) {
             require(patients.getById(patient.id) == null) {
                 "المريض موجود بالفعل؛ أعد مراجعة القائمة قبل الإضافة"
@@ -47,7 +48,26 @@ class WardMutationRepository @Inject constructor(
             require(patients.countForShift(shiftId) < AppConstants.MAX_PATIENTS_PER_SHIFT) {
                 "تم الوصول إلى الحد الأقصى لعدد المرضى"
             }
-            val order = (patients.getForShift(shiftId).maxOfOrNull { it.sortOrder } ?: 0) + 1
+            val stored = patients.getForShift(shiftId)
+            val storedOrders = stored.associate { it.id to it.sortOrder }
+            val current = if (position == null) stored.sortedBy { it.sortOrder } else PatientComparators.ordered(
+                stored, SortSpecCodec.decode(shifts.getById(shiftId)?.sortSpecJson),
+                doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
+            if (position != null) {
+                val shift = requireNotNull(shifts.getById(shiftId))
+                require(shift.revision == expectedShiftRevision && expectedPatients != null &&
+                    current.map { Triple(it.id, it.revision, it.sortOrder) } ==
+                        expectedPatients.sortedBy { it.sortOrder }.map { Triple(it.id, it.revision, it.sortOrder) }) {
+                    "تغيرت قائمة المرضى؛ أعد فتح الإدراج وراجع الموضع"
+                }
+                require(position in 1..current.size + 1) { "موضع المريض خارج القائمة" }
+                val priorityCount = current.count { it.isPriority }
+                require(if (patient.isPriority) position <= priorityCount + 1 else position > priorityCount) {
+                    "مرضى الأولوية أولاً؛ اختر موضعاً ضمن مجموعة أولوية المريض"
+                }
+                shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY), shift.revision)
+            }
+            val order = position ?: ((current.maxOfOrNull { it.sortOrder } ?: 0) + 1)
             val prepared = prepareTasks(patient, null, actor)
             val added = prepared.copy(
                 sortOrder = order,
@@ -56,6 +76,12 @@ class WardMutationRepository @Inject constructor(
                 lastEditedByName = actor?.doctorName
             )
             patients.upsert(added, shiftId)
+            if (position != null) {
+                current.toMutableList().apply { add(position - 1, added) }.forEachIndexed { index, row ->
+                    if (row.id != added.id && storedOrders[row.id] != index + 1)
+                        patients.updateOptimistically(row.copy(sortOrder = index + 1), shiftId, row.revision)
+                }
+            }
             recordPatientChange(
                 actor, AppConstants.AUDIT_PATIENT_ADDED, null,
                 requireNotNull(patients.getById(added.id))

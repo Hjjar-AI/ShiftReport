@@ -174,8 +174,8 @@ full-snapshot downloads and publication. Patient records, deletions, stored orde
 and roster are taken from the reviewed local snapshot; remote fields/rows are not
 merged into it. Android doctor synchronization likewise replaces the full portable
 registry, preserving device-only PINs/aliases and protected identities/references.
-Pending local work blocks a destructive Android download until publication; desktop
-requires explicit draft replacement and keeps encrypted recovery. In-flight edits,
+Pending saved local work blocks a destructive download on both platforms until
+publication; desktop also keeps encrypted recovery before replacing its view. In-flight edits,
 local revisions and report confirmation remain protected. Immutable documents,
 three-shift bundles, recovery and the publication journal remain unchanged.
 
@@ -381,7 +381,8 @@ missing patient ID, restores complete content and uses complete-snapshot review
 before publication. Recovery survives reopen/publication and encrypted draft
 backup; receipts still cannot be rolled back by restoring a backup. Previously
 published task completions retain their identity/time through sealed recovery
-history; unpublished completions still receive verified review-time stamps.
+history. Newly completed tasks are now stamped during local patient Save and
+retain that identity/time through publication, as described below.
 
 Reports support text and PDF; the Classic seven-column RTL table and linked
 portrait A5 cards now follow Android's layouts, paper/orientation choices, five
@@ -427,9 +428,9 @@ registry membership, including residents with no assigned patient. Empty active
 supervisor teams are included; no membership is inferred from patient records.
 Unknown/unassigned teams remain visible and every patient name is retained in
 stored relative order within its group. The export is fixed A4 portrait, with three 56.7 mm supervisor tables per row.
-Each table has a supervisor header, one resident-name row, then a number column
-on the left and a patient-name column on the right. Global numbering flows left
-to right across tables, then down to the next row. Overflow continues on A4 pages
+Each table has a supervisor header, one resident-name row, then a patient-name
+column on the left and an Arabic number column on the right. Global numbering
+flows right to left across tables, then down to the next row. Overflow continues on A4 pages
 with repeated team headers and no dropped names. It is a local
 names-only overview; ordinary clinical report review/sending remains separate.
 
@@ -445,7 +446,7 @@ the exact current Android palette values with the renderer. Classic tables use
 Android's seven RTL columns and proportional widths with full-row continuation;
 A5 cards use a linked index, repeated patient heading and Previous/Index/Next on
 all continuation pages. Paper sizes/orientation, five palettes (including pastel),
-dark backgrounds/text, ward/context and separate local supervisor files are
+dark backgrounds/text, report context and separate local supervisor files are
 available. Per-supervisor files are fully prepared before writing a new set;
 the combined names overview always remains one file. No clinical content, tasks,
 completion history or saved badges are removed from full reports. PDF delivery
@@ -736,9 +737,9 @@ level; no builds, compilation, migration or test-suite work, or live Telegram ra
 
 Both ward interfaces expose the selected shift, local publication state, recorded
 last download and count of unresolved report deliveries. The next action leads to
-delivery review, publication review or manual download. Android publication state
-is explicitly labelled device-wide, using the existing pending flag; desktop
-compares the selected draft with its known publication. Neither display claims to
+delivery review, publication review or manual download. Both clients compare the
+selected shift with a locally known snapshot; Android additionally labels its
+existing device-wide pending flag separately. Neither display claims to
 have checked Telegram now. Unknown download times remain explicit; a recorded time
 for an earlier snapshot is labelled accordingly. Desktop records selected-shift
 download metadata atomically with the local replacement, without changing shared
@@ -782,13 +783,621 @@ migration or test-suite work ran. Actual Android-to-desktop execution, live Tele
 and Android layout/accessibility remain unverified; dummy transport and wire
 round-trips do not establish those runtime behaviors.
 
+### Android synchronization consolidation
+
+Android ward synchronization uses one `WardSynchronization` model for the existing
+device-wide pending flag/last synchronization time, selected-shift snapshot comparison,
+download metadata and delivery uncertainty. Drawer, dashboard, report entry and
+workflow strip share its derived status and freshness wording. A timestamp is a
+recorded local event, not a current remote check. Failed downloads
+leave publication status derived from persisted metadata. Ledger read failure is
+isolated so publication/download metadata still update. Switching shifts resets
+selected-shift metadata and ignores late emissions for the previous selection.
+
+One `WardWorkflowAction` decision supplies both the workflow button label and its
+destination: delivery history first, review/publication for editable pending data,
+otherwise manual download. Removed unused remote field-merge models, dialogs,
+subscriptions and resolver methods across ward, doctors and reports. Expected-revision
+checks, local stale-edit review and reviewed full-snapshot replacement remain.
+This consolidation has source checks only; no Gradle, compilation, device execution,
+live Telegram, migration or test-suite work was performed.
+
+### Cross-platform workflow parity
+
+Desktop supervisor PDF sending now supports selecting multiple groups, reviewing
+every file and confirming the full destination list. The existing complete-shift
+review/publication runs once when needed, followed by exact reviewed bytes and a
+separate durable receipt per supervisor. Sending stops after a failed/uncertain
+destination or a changed registry/publication; earlier deliveries are retained.
+An extra copy still needs explicit approval. Cancellation before final confirmation
+does not publish. Ordinary single-destination and local-export flows remain.
+
+Desktop patient forms autosave an unfinished candidate and its expected saved
+patient in the encrypted local workspace. Resume, explicit discard and keep-on-close
+are separate from saving clinical records. Recovery checks shift and local identity;
+a changed saved patient requires comparison and a second explicit Save. Form recovery
+is device-local, excluded from portable draft exports and Telegram publication, and
+stays in memory in demo mode. No new database table, shared field or version is used.
+
+Desktop combines clinical filters (priority, badges, missing responsibility, urgent,
+new admission), task filters (pending, overdue, unassigned), and own-patient/task
+visibility. Arabic search matches Android normalization and includes task descriptions.
+Filters do not change saved order; manual movement is disabled under any active filter.
+Both clients use action identifiers independently of the Arabic button labels.
+
+Android records per-shift known CSV content in existing settings after latest download or
+publication, and compares patient content/order, roster and sort criteria off the main
+thread. Selected-shift status is unknown, matching known content, or changed; the
+device-wide pending flag remains separately visible. Change summaries use the same
+selected-shift baseline rather than another shift's last snapshot. This is local
+comparison metadata, with no migration or interchange-version change. Restoring a
+previous bundle does not replace the known current baseline; missing baselines
+remain explicitly unknown.
+
+Desktop announcement administration is visible to admins and checks live authority
+again below the UI. It previews text, requires approval of that exact plan, creates
+or edits the existing announcement, and updates the existing announcement fields in
+the dedicated synchronization index while preserving other pointers. A durable
+UNKNOWN receipt precedes sending; uncertain publication blocks another announcement
+until sender/admin resolution. Both clients review literal text and use the existing
+authenticated text encryption when project encryption is enabled; PDFs retain their
+deliberate readable-file exception.
+
+Verification: Python 3.8 grammar, production imports, encrypted SQLite reopening and
+form isolation/lock checks passed. Dummy production probes covered Arabic/filter
+rules, workflow actions, announcement create/edit/admin/stale/approval checks, one
+batch publication, exact reviewed payloads, per-destination receipts, partial failure
+and registry-change stopping. Actual desktop demo windows exercised combined filters,
+form autosave/resume, stale comparison followed by explicit Save, batch selection and
+the announcement editor. Network requests were blocked; no real project data was
+loaded. Android has source/delimiter/import checks only; no builds, compilation,
+migration, test-suite work or live Telegram operations ran. Windows rendering and
+cross-device runtime behavior remain unverified.
+
+### Local clinical attribution, activity and desktop presentation
+
+Desktop clinical Save now stamps newly completed tasks with the current authenticated
+local clinician and time, matching Android. The mutation layer accepts a verified
+local PIN session or valid Telegram identity, validates task owners, clears reopened
+completion metadata and preserves existing completions. Saved completion evidence,
+clinical changes and audit records commit together in the encrypted workspace.
+Publication preserves that saved evidence or published completion history; it no
+longer credits a new completion to the publisher. Arbitrary completed form values
+without saved evidence cannot establish completion identity. Delete/restore and
+encrypted `.srdraft` recovery preserve the evidence, including reopen/re-complete
+cycles. No shared patient field, wire version or SQLite schema changed.
+
+The desktop admin activity center records local patient additions/edits, task
+completion/reopening, deletion/restoration, roster/order changes and draft recovery.
+Entries include actor/time, patient, task description and changed field names,
+without credentials or full before/after clinical narratives. Search, action and
+shift filters are available; the view shows the latest 500 matches while retaining
+the full encrypted history. Access checks the current local identity/registry below
+the UI, including PIN use offline. Unlocking as a non-admin closes the activity
+window. This is device-local history, not an audit of other devices; PINs and audit
+history stay out of portable draft exports. Publication/delivery receipts retain
+their separate existing workflow.
+
+PDF/report preferences now persist in the encrypted project workspace, survive
+reopening, and remain in memory in demo mode. Assignment export does not replace
+ordinary report choices, and batch PDF sending preserves the preferred ordinary
+report format. Desktop cards support inline full details, expand/collapse all and
+per-patient view pinning. Pins move rows only within displayed groups, retain stored
+numbering and disable manual arrows while active; they never change saved order or
+exports. Card state resets across project/shift changes and prunes removed patients.
+
+Verification: production dummy-data probes passed local completion attribution,
+preservation under a different publisher, reopening, deletion/restoration, encrypted
+backup and preference reopening, admin/stale/expired-session guards and card-state
+isolation. Existing fake-transport batch delivery checks still passed. Actual dummy
+desktop windows exercised card pinning/expansion, preference controls, local task
+completion, admin activity and PIN unlock as a non-admin. The activity dialog also
+handles closing during its background read. Network requests were blocked and GUI
+data stayed in memory. Python 3.8 grammar and Git whitespace checks passed. No
+Gradle, compilation, packaging, migration, test-suite work or live Telegram ran;
+Windows rendering and live cross-device behavior remain unverified.
+
+### Patient editor, clock refresh and reviewed announcements
+
+Desktop patient metadata is now stamped at local clinical Save and preserved when
+another clinician publishes. Publication checks the saved patient content, ignoring
+derived doctor labels, rather than assigning the publisher as editor. Anonymous
+local edits remain explicitly unattributed. Carry-forward stamps copied patients at
+local creation; revisions still protect publication/recovery. No shared field changed.
+
+Desktop ward displays and the open ward task list refresh every minute, without
+network synchronization. Locked/busy ward views defer refresh; the task-list timer
+respects the lock and is cancelled on closure. Overdue filters/counts and date-based
+status therefore update without requiring another user action.
+
+Android announcements now require preparation, exact-text preview and final
+confirmation, with local-session/published-registry admin checks below the UI.
+They send literal text with project encryption preserved and preflight wire-size
+validation. The existing delivery ledger records UNKNOWN before the request and
+keeps it until message/index publication is confirmed; cancellation retains the
+guard. Optional private receipt metadata binds the previous announcement reference.
+There is no Room migration, shared schema change or version bump.
+
+Both clients let an authorized operator resolve uncertain announcements after
+checking Telegram. Received-message resolution takes the actual message ID and
+repairs an unchanged missing/older reference while preserving a subsequently changed
+announcement. Android updates only an existing recognized index and refuses to
+manufacture a replacement pin if it disappears. Ordinary report receipt guards
+retain their active-request, sender/admin, duplicate and extra-copy checks.
+
+Verification: production desktop dummy probes passed local/anonymous editor
+attribution under another publisher, encrypted announcement round trips, uncertainty
+blocking, reference repair/newer-reference preservation and clock refresh/lock
+behavior. Existing completion/recovery and batch-delivery probes passed against the
+updated save contract. An actual dummy GUI exercised overdue filtering and the
+registered task-list timer, including cleanup. Network calls were blocked. Python
+3.8 grammar, affected Kotlin delimiters/imports/API call inspection and Git whitespace
+checks passed. Android announcement behavior has source checks only; no Gradle,
+compilation, packaging, migrations, test-suite work or live Telegram operations ran.
+
+### Shared desktop report delivery and task rules
+
+Single PDF/text reports and multi-supervisor PDFs now use `ReportDelivery` for
+draft freshness, destination preflight, one reviewed publication, compatible
+receipt identities, explicit extra copies and per-destination UNKNOWN/confirmation
+bookkeeping. Their existing previews and final confirmations remain in the UI.
+Each transport still rechecks the live publication, registry and authorization;
+a later batch failure stops subsequent destinations. Confirmed delivery followed
+by failed local receipt saving retains the uncertainty guard and tells the user
+not to repeat the send.
+
+`desktop_tasks` supplies structural/deadline validation, pending/overdue/unassigned
+counts, stable display ordering, status, unfinished-task rollover and historical
+owner resolution. Draft forms, clinical saves, wire/publication validation, ward
+filters/task lists and PDF content use those shared rules. Display sorting does
+not change saved task order. Draft validation allows completion before its local
+save stamp; saved/wire tasks require complete stamps. Authentication, completion
+stamping and trusted publication evidence remain in their clinical/protocol layers.
+No persistence format, schema or version changed.
+
+Task presentation also uses `desktop_tasks` across patient details/cards, text
+reports/publication review, PDFs, editor task rows and the ward task list. Shared
+metadata includes priority, current/historical owner names, deadline/shift and
+completion identity/time. Overdue text now agrees with PDF and ward status; editor
+and ward rows expose priority and shift deadlines without opening the task editor.
+PDFs still omit unassigned/routine-priority labels and retain all clinical content.
+Unsaved completion is labelled as awaiting Save; formatting never stamps evidence.
+Ward task-list refresh/open actions now check the lock and captured project/shift
+before resolving a current patient, retaining archived-shift read-only routing.
+
+Verification: focused production-source dummy probes passed single PDF/text
+delivery, publication reuse, extra-copy consent/cancellation, stale-preview
+rejection, failed receipt saving and retry blocking; batch probes passed exact
+reviewed bytes, one publication, individual receipts, partial failure and changed
+registry stops. Shared task probes passed deadline boundaries, filters/counts,
+ward/PDF ordering, validation, rollover and historical-owner guards without order
+mutation. Existing clinical attribution/offline PIN/recovery probes passed. All
+network requests were blocked. Python 3.8 grammar and Git whitespace checks passed.
+The single-report UI method was exercised with dummy callbacks; rendered desktop
+interaction, Windows, live Telegram and Android build/device behavior remain
+unverified. No builds, compilation, packaging, test-suite or migration work ran.
+
+Additional task-presentation checks: Python 3.8 grammar passed for five affected
+production modules. Dummy production probes passed shared text/PDF formatting,
+deadline boundaries, priority/owner omission, historical names, pending completion
+and non-mutation. Production ward-list callbacks with dummy widgets passed current/
+archived/deleted-patient routing, lock/project/shift rejection and timer cleanup.
+Git whitespace checks passed. No rendered GUI, live Telegram, Android build/device
+or cross-device execution was performed for this consolidation.
+
+### Download, editor, appearance and portable backup alignment
+
+Desktop now matches Android's publish-before-download rule. Its workspace checks
+saved clinical/order/roster content against the known shift before downloaded data
+can replace it, including a second check at the write boundary. An untouched empty
+shift can still download. Explicit recovery remains a separately reviewed action.
+
+Desktop patient editing now includes General/Advanced views for treatment,
+follow-up and labs, using the same draft and preserving blank lines/separators.
+Detailed items can be edited, reordered or removed, with separators and a lab-date
+picker using Android's existing date marker. Pending new text is included
+when saving or changing mode. Save and next captures the filtered/grouped/pinned
+display sequence and advances only after successful save and draft cleanup.
+Failed validation/stale review stays in the current editor; the next patient and
+shift are resolved again before opening.
+
+Desktop appearance controls offer light/dark/system mode, the eight Android accent
+names/primary colors and proportional text/control scaling. Preferences remain in
+the existing encrypted workspace, or memory in demo, and reapply on connection.
+They are independent of PDF preferences and explicit clinical severity colors.
+The generated theme stays in memory; platform widget rendering remains distinct.
+
+Desktop can export/import Android's existing password-protected `.rpb` single-shift
+backup: `RUSHDBK1`, 16-byte salt, PBKDF2-HMAC-SHA256 at 210000 iterations, 256-bit
+AES-GCM with a 12-byte nonce, and current single-shift CSV7 plaintext. There is no
+new backup format, interchange/database version or migration. Desktop `.srdraft`
+remains device-workspace recovery and is labelled separately. Portable backups
+include clinical data, task attribution, stored order and roster, without connection
+credentials, local access settings or delivery receipts.
+
+Since `.rpb` has no project identifier, desktop restoration requires the opened
+project's matching selected shift ID/date and validates doctor references; users
+must select that shift and update its registry first. Restore decrypts/validates
+before review and final confirmation, rechecks the expected draft, preserves a
+desktop recovery copy and retains the current delivery ledger. Imported completed
+tasks become saved recovery evidence, preserving their actual clinician/time in
+subsequent publication. Other shifts' evidence and local activity remain intact.
+Restoration changes local data and still requires reviewed publication.
+
+Verification: production dummy probes passed portable encryption/CSV round trips,
+wrong-password/tamper rejection, task completion preservation through publication,
+receipt retention, shift/stale/lock and pending-download guards. An actual dummy
+desktop GUI passed general/detail draft and pending-text preservation, item order,
+lab-date insertion, Save and next (including stale review before a second Save),
+captured display sequence, palette/size switching and in-memory
+preferences. Existing clinical/offline-PIN and single/batch fake-delivery probes
+passed. Network calls were blocked. Python 3.8 grammar and Git whitespace checks
+passed. Android `.rpb` compatibility was checked against production format/crypto
+source; an actual Android-to-desktop file exchange, Windows rendering and live
+Telegram remain unverified. No builds, compilation, packaging, migration or
+test-suite work ran.
+
+### Patient rounds and reviewed recovery publication
+
+Desktop read-only patient details now support previous/next over the captured
+filtered/grouped/pinned view sequence, retaining patient scroll positions and
+resolving current records by ID. Deleted neighbors are skipped; project/shift
+changes stop navigation. Editing is an explicit separate action and historical
+shifts remain read-only. The reusable text pane now updates its logical clipboard
+source without accumulating callbacks from previously displayed patients.
+
+An admin can open this patient's local activity directly from details. Filtering
+uses both patient and shift IDs below the dialog, with authorization rechecked on
+every read. The activity dialog remains admin-only, and mapping the details window
+after unlock refreshes activity-button visibility for the new role. The source
+records remain device-local; this view does not claim another device's history.
+
+Android Settings ordinary publication and post-backup publication now share a
+full-snapshot review and explicit confirmation. Review lists added/changed/removed
+patients and the proposed complete clinical report. Its private in-memory token
+binds the exact local CSV, patient/doctor source pointers and published clinician
+identity. Preparation downloads the published doctor registry and blocks pending
+local registry changes; it does not publish those changes implicitly. Confirmation
+rechecks the actor, local rows/roster/order and source pointers before upload and
+before index publication. Retry prepares another review; it does not automatically
+repeat a send. Clinical publication remains distinct from report delivery.
+
+The separate force-upload API, flag and Settings retry/dialog paths were removed.
+All CSV publication now retains the remote-change check; historical journal
+representation and ordinary recovery rotation remain unchanged. No database,
+interchange version or migration changed. Android runtime/compilation verification
+for this change remains outstanding under the repository's build restriction.
+
+Verification: production dummy probes passed captured rounds, deleted-neighbor
+skipping, project/shift guards, patient/shift activity filtering and non-admin
+rejection. An actual dummy Linux GUI passed previous/next, captured filter order,
+scoped admin activity, current-patient copying, scroll retention and activity-button
+concealment on non-admin remapping, without clinical mutations. Existing clinical
+completion/recovery probes passed. Python 3.8 grammar, affected Kotlin delimiter/
+new-import/API-reference inspection and Git whitespace checks passed. Network
+requests were blocked. Android publication has source verification only; no build,
+compilation, packaging, test-suite/migration work or live Telegram ran.
+
+### Desktop handover and report setup alignment
+
+Desktop now exposes a read-only «لوحة تسليم المناوبة» alongside the ward card
+controls. Its actionable counts cover all patients, own patients/pending tasks,
+urgent/priority patients, badges, missing clinician assignments, today's admissions
+and pending/overdue/unassigned tasks. The existing ward filter rules supply patient
+counts, while shared task rules count individual tasks; overdue remains a subset
+of pending. Selecting a count clears search and replaces clinical/task/ownership
+filters together, without changing stored order, grouping or pins. The summary
+refreshes once per minute while unlocked and respects project/shift boundaries.
+Ward ownership filtering and dashboard counts now share the verified local identity,
+including offline PIN sessions, instead of preferring an expired Telegram actor.
+
+Report setup starts with the shift roster and an actionable picker even when no
+roster exists. Archived-shift selection remains read-only. Saving a roster rechecks
+the expected draft and current doctor availability. Single and batch report paths
+reload the local source after report options, retaining the roster chosen there.
+Completeness notes mirror Android's four advisory fields: supervisor, resident,
+initial diagnosis and treatment. They appear in setup, full publication review and
+destination-specific text/PDF confirmations; they do not alter clinical report
+payloads or make optional task owners mandatory. Existing review/confirmation and
+delivery guards remain in place. No format, schema or version changed.
+
+Verification: Python 3.8 grammar checks passed for the four affected production
+modules. Production dummy-data probes covered all dashboard metrics/filter actions,
+deadline boundaries, completed/optional tasks, non-mutation and Arabic completeness
+notes. A production report-options callback probe with dummy widgets verified the
+first-position picker, empty-roster selection and saved preferences/roster without
+publication. Git whitespace checks passed. These are source and headless callback
+checks; rendered Linux/Windows interaction, live Telegram and Android-to-desktop
+runtime exchanges remain unverified. No builds, compilation, packaging, migrations
+or test-suite work ran.
+
+### Desktop stale saves, draft identity and rollover protection
+
+Every desktop clinical snapshot save now carries the fingerprint captured before
+that operation edits its copy. Patient, roster, manual-order and sort actions pass
+it through the UI helper to the existing clinical mutation boundary. Both layers
+reject a changed local snapshot; sorting no longer obtains a fresh fingerprint
+for an old dialog copy. Rejected sort dialogs stay open and newer data is retained.
+
+Unfinished patient-form saving and recovery use the same verified local identity
+as clinical attribution: a current Telegram identity or valid local PIN session.
+Cached actor IDs no longer satisfy draft ownership after expiry. Autosave cannot
+overwrite another clinician's owned form or turn an expired owner's form anonymous.
+Explicit discard remains available, and newly anonymous forms remain supported.
+
+Starting a new shift shares the existing saved-content comparison used by download
+protection. Pending clinical/order/roster changes require explicit acknowledgment
+and a separate new encrypted `.srdraft` archive before replacing the local view.
+The workspace writes and authenticates that archive, checking its exact draft,
+then rechecks the original local fingerprint and current shift date before writing.
+Existing files and the automatically rotated `.previous.srdraft` destination are
+rejected for this archive, so later automatic backups cannot replace it. Cancellation,
+stale state or archive failure leaves the current data intact. The new shift still
+copies the reviewed Telegram source; archived unpublished changes are not silently
+merged into it. Ordinary downloads retain their publish-before-replacement rule.
+No schema, format or version changed.
+
+Verification: Python 3.8 grammar and production save-call inspection passed.
+Production dummy probes covered both UI/worker stale-save rejection, active/expired/
+PIN/other/anonymous/locked draft identities and actual encrypted SQLite/recovery
+files. Rollover probes covered clean/pending shifts, cancellation, stale state,
+existing/automatic/corrupt archive rejection and shift-boundary rejection. The
+separate saved archive remained readable after automatic-backup replacement.
+Production sort-dialog callbacks with dummy widgets verified current-save success
+and stale rejection without closing the dialog or overwriting newer clinical data.
+Arabic presentation dependencies were shimmed for headless GUI-module import;
+no rendered GUI was exercised. Git whitespace checks passed. No builds, compilation,
+packaging, test-suite/migration work or live Telegram operations ran. Windows,
+rendered Linux and cross-device runtime behavior remain unverified.
+
+### Selected workbook workflow and report features
+
+Both clients can optionally insert a new patient at a one-based position in the
+complete saved list. Explicit insertion clears the automatic sort specification,
+keeps priority patients first, and rejects a position outside that patient's
+priority group. Ordinary addition retains its existing behavior. Android checks
+the captured shift revision and patient ID/revision/order sequence in its mutation
+transaction, then stamps changed stored positions with new revisions. Desktop
+checks the captured draft fingerprint and uses its existing clinical-save boundary.
+Filtering, grouping and view pins do not redefine insertion positions. The position
+is an entry-session choice and must be selected again when reopening a form.
+
+The additional Excel sort action uses female first, diagnosis ascending, longest
+admission first, then name ascending. This preserves the workbook's date-column
+meaning when expressed as duration. Existing default/manual sort actions and
+priority-first ordering remain available; no sort field or wire format changed.
+
+Download undo is an explicit local recovery action. Android records before/after
+CSV snapshots for all affected shifts inside the download-application transaction,
+using existing encrypted Room settings. Undo checks exact saved after-content
+before restoring any rows, increases restored row/shift revisions, preserves
+delivery/publication evidence and known publication baselines, and marks recovery
+pending for reviewed publication. The record survives restart and is consumed only
+after success. Desktop stores its prior view and downloaded fingerprint in its
+existing encrypted workspace, preserves current known baselines and receipts, and
+backs up the downloaded view before restoring. It also survives reopening. Both
+paths reject later saved edits/publication and require confirmation; undo does not
+contact Telegram or replace credentials/doctor registries. Restored content still
+follows ordinary reviewed publication and download protection rules.
+
+Classic PDFs now detect contiguous supervisor groups by doctor ID, alternating
+each group's palette color with cream; interleaved groups use ordinary zebra rows.
+Row coloring never changes saved patient order. The former separate «نمط Excel»
+PDF preset is now merged into Classic, sharing its compact typography and existing
+palette/dark controls. Android keeps ordinary rows together and continues oversized
+rows at the fixed 9-point body size; desktop retains its existing table continuation.
+Both retain full clinical/task content, report review and demo page labels.
+PDF roster headings adapt to one doctor, one female doctor, all-female rosters or
+mixed/male rosters. Font metrics and pagination remain platform-specific.
+
+Desktop admission entry accepts ISO dates and day/month/four-digit-year input
+using slashes or backslashes, including Arabic digits, normalizing only the saved
+value to ISO. Impossible dates and future admissions retain ordinary validation;
+two-digit years are not guessed. General/supervisor text reports now include the
+selected report's companion total as well as patient count. PDFs already counted
+companions. No database/interchange version, schema, migration or credential format
+changed.
+
+Verification: production desktop dummy probes passed insertion/priority/stored
+order, date normalization/rejection, preset directions, destination-filtered
+companion totals, roster grammar and light/dark grouped/interleaved striping.
+Actual encrypted SQLite reopening verified undo persistence, receipt/current-
+baseline retention, one-use behavior and stale/locked rejection. Headless production
+callbacks verified preset selection, preference persistence and stale-sort rejection.
+New light/dark Excel-style PDF samples and Classic comparison rendered successfully;
+every sample page contains DEMO, and first pages were visually inspected. A long-row
+Excel PDF retained all 100 unique content markers across continuation pages.
+Python 3.8 grammar, affected Kotlin delimiters/import/enum/API wiring and Git
+whitespace checks passed. The attempted native desktop GUI check could not connect
+to display `:0`; no rendered application GUI interaction was verified. Android
+has source checks only. No builds, compilation, packaging, migration, test-suite
+work or live Telegram operations ran; Android/device, Windows and cross-device
+runtime behavior remain unverified.
+
+### Ward layout and view-control consolidation
+
+Desktop now groups freshness/next action and ward totals together, followed by a
+two-column patient/task/dashboard/roster action area. Search and reset stay visible;
+clinical, owner and task filters, grouping, saved sorting and bulk expansion share
+one collapsible, scrollable view panel. Active filters and grouping remain visible
+when it is closed. The current doctor, login and lock remain accessible above
+collapsible project settings; files/recovery are also collapsible. Data/publication
+and reports retain their separate labelled groups and existing confirmation paths.
+The patient list shows visible/total counts and an explicit empty-result message.
+
+Desktop patient cards share `desktop_patient_card.py`: Edit, View and inline
+expansion stay visible; pinning, deletion and manual movement sit under More.
+Movement uses labelled 48px controls, retains filter/pin/group and boundary guards,
+and explains when those view settings block it. Collapsed summaries omit zero task
+counts while retaining positive pending/overdue counts and a visible pinned label.
+Full task/clinical content remains in expanded details and the read-only view.
+
+Android extracts the list header into `WardPatientListControls`, with four common
+presets, removable active filters and one options entry. The scrollable options
+dialog groups clinical/task/ownership filters separately from card density,
+grouping and saved sorting; saved-sort controls are hidden for read-only shifts.
+Filter labels can wrap while retaining 48dp targets. The workflow strip avoids
+repeating the toolbar date and omits zero uncertain-delivery counts, while still
+showing unavailable-ledger and uncertain-delivery notices.
+The drawer shares the same view-options entry instead of separate sort/group rows;
+its selected state includes task and ownership filters. Its report action uses
+«إرسال تقرير» and retains report preview. The My patients drawer action uses the
+same preset reset path as the patient list and dashboard.
+
+All three Android reset entry points now clear ownership as well as search,
+clinical and task filters. Dashboard/preset actions also clear old search text,
+so their results agree with the chosen category. Desktop reset clears all filter
+dimensions while retaining view grouping/pins and saved order. None of these view
+changes alters clinical snapshots, report content or publication safeguards.
+
+Verification: Python 3.8 grammar and production imports passed; headless production
+callbacks verified the four primary desktop actions, disclosure state retention,
+active-filter summaries, complete filter reset and unchanged dummy clinical data.
+Patient-card callback probes also passed primary/secondary action routing, hidden
+secondary controls, minimum control sizes, movement bounds and edit-candidate copy
+isolation; drawer entry/preset/active-filter source wiring checks passed.
+Affected Kotlin delimiter and source-wiring checks passed, including the new
+component and shared reset/preset paths. Git whitespace checks passed. Desktop
+imports reported the existing read-only user-font fallback. No usable graphical
+display was available, so actual layout, font scaling and accessibility rendering
+remain unverified. Android has source checks only; no builds, compilation,
+packaging, test-suite work or live Telegram operations ran.
+
+### Patient-entry and report-option presentation
+
+Both clients place optional positioned insertion after demographic entry and under
+an expandable heading. A selected position stays identified in that heading;
+Android also offers an explicit clear-position action. Collapsing the section
+retains its value, and the existing priority/order/stale-snapshot checks still
+apply. Desktop limits the input to numeric characters. Ordinary append remains
+the default; insertion intent is still separate from the recovered patient draft.
+
+Desktop report setup now hides PDF-only controls for Text. Card layouts hide
+paper/orientation choices and explain their fixed A5 portrait output. Other PDF
+layouts restore those controls without losing selected values. Advanced PDF
+options use the shared disclosure control, and each layout has its own short
+description. The Android PDF style picker has matching explanatory text and
+48dp minimum chip targets. Roster selection remains the first report-setup step.
+
+Fixed a report-option aliasing issue discovered during these callback checks:
+retaining the user's Text preference during a forced-PDF action previously changed
+the returned output format as well. Preferences are now copied separately, so the
+action returns PDF while the ordinary saved format remains Text.
+
+Verification: headless production report callbacks passed text/PDF visibility,
+card paper controls, retained paper/orientation/color selections, saved preferences,
+forced-PDF behavior and names-only distribution defaults, with unchanged dummy
+clinical snapshots. Python 3.8 grammar and affected Kotlin delimiter/source checks
+passed, as did Git whitespace checks. No rendered GUI, Android build, compilation,
+packaging, test-suite work or live Telegram operations ran; actual layout and
+accessibility behavior remain unverified. Desktop imports retain the existing
+read-only user-font fallback.
+
+### Compact Classic header, page-fit card index and RTL assignment layout
+
+Classic PDFs on both platforms now separate the roster title (11-point) from a
+compact metadata line (8.5-point) beneath it. All roster names wrap without a
+fixed limit; header pagination reserves the metadata height. The merged table
+style uses this same compact hierarchy. Cards enforce
+A5 portrait inside both renderers, regardless of selected table paper/orientation.
+Card-name and footer Index links return to the containing index page using the
+standard PDF `/Fit` destination; they no longer position a patient row at the top
+of the viewport. Android's internal-link writer supports an explicit page-fit
+destination while keeping existing positional links for forward patient navigation.
+PDF viewers may override fit/zoom behavior; device-reader interaction is unverified.
+
+Assignment PDFs now place the first team at the right of each row, with continuous
+numbering down each team and then right to left across the row. Each patient row
+has a narrow number column on the right, using Arabic digits, and a name column
+to its left. Adjacent supervisor tables have a 3-point (about 1 mm) vertical gutter;
+the fixed table widths and centered three-column grid are preserved on both clients.
+Android name drawing reserves that number-column width; full-width
+supervisor/resident headers retain their span. Overflow and empty teams remain
+supported. Both platforms' report descriptions document the RTL arrangement.
+Assignment has a distinct 12-point document title.
+Saved-shift notices are shortened while still explaining that teams reflect the
+current registry. Cards use an explicit patient-index title, compact metadata,
+wrapped roster names and a shorter navigation hint. Desktop paragraph reports
+likewise separate the document title from metadata. The generic team-cover
+explanation has been removed from Android PDF context; clinical patient/team/task
+content remains intact.
+
+Hospital and ward names are omitted from all PDF headers, index context and
+footers, including Classic, cards, paragraphs and assignment exports.
+Assignment output also omits the shift date; its generation timestamp and the
+saved-shift/current-team warning remain. Ordinary clinical PDFs retain shift dates.
+Unused ward-name entry controls were removed from desktop PDF setup and Android
+report settings. Existing stored configuration is preserved; no schema changes
+are involved. Text reports and the project's identity elsewhere remain unchanged.
+
+Verification: regenerated ten desktop sample PDFs from fabricated beverage/tree
+data; every page retains DEMO. Visually inspected Classic and assignment first
+pages. Card samples were A5 and contained page-fit return annotations. A separate
+60-patient export produced three index pages; all page-fit destinations referenced
+index pages, and A3-landscape input still yielded A5 portrait. Python 3.8 grammar,
+affected Kotlin delimiters/source wiring and Git whitespace checks passed. No
+Android builds, compilation, test-suite work or live operations ran. Viewer click
+behavior and Android rendering remain unverified. These verification samples were subsequently removed at the owner’s request.
+The later name-removal changes were checked with distinctive hospital/ward marker
+values across all five desktop PDF layouts and an independent old shift date for
+assignment output. Extracted PDF text contains none of those markers, and assignment
+output omits the old date. Eleven regenerated samples retained DEMO on every page; these files have since
+been removed. Report
+option callbacks, Python grammar, Kotlin source and Git whitespace checks passed;
+Android remains source-checked only.
+The subsequent header hierarchy was checked with desktop samples (since removed):
+Classic, Cards and Assignment first pages
+were visually inspected, and all sample pages retained DEMO. Card sizes and
+page-fit links, Python grammar, affected Kotlin source and Git whitespace were
+checked; no Android build or viewer interaction was performed.
+
+The creation timestamp is now omitted from every PDF header/index and rendered
+once below the final content, separated by about 10–12 points. Desktop flow-based
+reports reserve a small area above the ordinary footer and use a zero-height end
+marker to draw the timestamp there after the last content; assignment grids reserve
+the same space beneath the final grid row. Android Classic, Cards and
+Assignment similarly reserve timestamp space during pagination, then draw it after
+the final summary, patient content or grid respectively. Card navigation and page
+footers remain below it. Reserving space during layout avoids timestamp-only pages.
+
+Verification: eleven desktop samples (since removed at the owner’s request)
+were extracted with page/line coordinates; each creation label occurred exactly
+once on the last page, below the final report content. Python grammar, Kotlin
+source/delimiter and Git whitespace checks passed. Demo page labels, A5 cards and
+index return links were retained. Android rendering/builds remain unverified.
+
+### Unified compact table PDF and sample cleanup
+
+Removed the separate Workbook PDF choice and rendering flag from Android and
+desktop selectors/renderers. Classic uses one typography set: 11-point roster,
+10-point totals, 9.5-point column headings and 9-point body, with existing palette,
+dark mode and adaptive supervisor/zebra striping. Android now shares one table-row
+pagination path: ordinary rows stay together; oversized rows continue with repeated
+column headings and fixed readable body text instead of shrinking. Cards and the
+separate assignment overview retain their current behavior. The Excel patient-sort
+preset remains independent of PDF appearance.
+
+An existing desktop `workbook` report preference is interpreted as `table`; Android
+already falls back to Classic for removed style names. No stored data, schema or
+version changes are required. Deleted 68 generated sample PDFs, their seven sample
+folders and five ZIP archives from `reports/`. Historical verification evidence is
+retained above, but those generated artifacts are no longer available.
+
+Verification: Python 3.8 grammar, desktop option normalization and headless report
+callbacks passed, including retained choices, forced-PDF behavior and assignment
+defaults. Affected Kotlin delimiter/source checks and Git whitespace checks passed.
+The reports folder is empty. No replacement samples, Android builds, compilation,
+test-suite work or live operations ran; rendered behavior after this consolidation
+is unverified.
+
 ## Verification and limits
 
-- Owner-supplied Android build on 2026-10-19 stopped at `compileDebugKotlin`
-  because `DoctorsScreen` passed an unsupported `doctors` argument to
-  `DoctorConflictReviewDialog`. Removed that argument and checked the sole call
-  against its declaration; Git whitespace checks passed. No build was rerun,
-  so compilation of the corrected snapshot remains unverified.
+- Latest owner-supplied Android debug build on 2026-10-19 succeeded in 2m 51s,
+  with 43 tasks (13 executed, 30 up-to-date), after correcting the unsupported
+  doctor-conflict-dialog argument. Its two warnings concerned unused arguments in
+  disabled partial-merge entry points, now removed by the consolidation above.
+  That later consolidation has not been built; the successful build applies to
+  its earlier snapshot. Device and live synchronization remain unverified.
 - Python 3.14.4 Linux compatibility probe on 2026-10-19 passed in an isolated
   `/tmp/shiftreport-python314-check` venv with CustomTkinter 6.0.0, Pillow 13.0.0,
   ReportLab 5.0.1, cryptography 50.0.2, Requests 2.34.2, arabic-reshaper 3.0.1 and
@@ -807,10 +1416,9 @@ round-trips do not establish those runtime behaviors.
   clinical workflows, or a supported production Python 3.14 installation.
 - Historical authorized Android build on 2026-10-07: success in 2m 55s, 43 tasks
   (21 executed, 22 up-to-date); APK metadata confirmed debug version/code above.
-- Latest owner-supplied success on 2026-10-18: 2m 15s, 43 tasks (10 executed,
-  33 up-to-date). Later unused-local cleanup, visual/export/login refinements,
-  restored grid alias and metadata fix have source checks only. Neither build
-  establishes compilation of the current working tree.
+- Earlier owner-supplied success on 2026-10-18: 2m 15s, 43 tasks (10 executed,
+  33 up-to-date). The newer build evidence and subsequent source-only cleanup
+  are recorded above.
 - Offline checks covered Python parsing, Unicode/protected-join crypto, CSV/bundle
   metadata, baseline/token-replacement and merge/conflict choices. Workbook ZIP/XML,
   VBA source round trips, clinical-cell preservation, reference/hash/credential

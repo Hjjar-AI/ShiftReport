@@ -6,7 +6,7 @@ import hmac
 import secrets
 import time
 import unicodedata
-from desktop_protocol import require
+from desktop_protocol import require, is_admin
 
 
 def normalize_pin(pin):
@@ -36,6 +36,7 @@ class LocalAccess:
         pins[key]=dict(salt=salt,digest=digest,telegram=actor['telegram_id'])
         state.update(minutes=minutes,failures=0,until=0)
         self.workspace.commit(localAccess=state)
+        self.workspace.local_actor = key
         return key
 
     def verify(self, key, pin, now=None):
@@ -53,6 +54,7 @@ class LocalAccess:
         delay=0 if failures<5 else min(900,30*2**min(5,failures-5))
         state.update(failures=failures,until=0 if success else now+delay)
         self.workspace.commit(localAccess=state)
+        if success:self.workspace.local_actor = key
         return success
 
     def timeout(self):
@@ -86,7 +88,7 @@ def lock_screen(owner):
     from desktop_model import doctor_label
     from desktop_widgets import simpledialog
     if owner.locked or owner.demo or owner.access is None or not owner.access.records():return
-    owner.locked=True;owner.store.locked=True
+    owner.locked=True;owner.store.locked=True;owner.store.local_actor=None
     owner.plan=None;owner.raw_draft=None
     owner.client._actor=None;owner.client._expires=0;owner.client._nonce=None;owner.client._verified_telegram=None
     previous_grab=owner.root.grab_current()
@@ -131,6 +133,9 @@ def lock_screen(owner):
         owner.status.set('فُتحت الجلسة: '+owner.client.doctors[actor]['name']+' — النشر يتطلب هوية تليجرام متحققة.')
         owner.root.deiconify()
         for child,state in hidden:
+            if child.winfo_exists() and getattr(child,'admin_only',False) and not is_admin(owner.client.doctors.get(actor,{})):
+                child.destroy()
+                continue
             if child.winfo_exists() and state!='withdrawn':
                 if state=='iconic':child.iconify()
                 else:child.deiconify()

@@ -30,7 +30,6 @@ internal fun WardReportSheet(
     patientCount: Int,
     freshnessLabel: String,
     issueCount: Int,
-    hasMergeConflicts: Boolean,
     foldingFeature: FoldingFeature?,
     onReviewReport: () -> Unit,
     onDismiss: () -> Unit
@@ -54,16 +53,8 @@ internal fun WardReportSheet(
                 com.hos.rushdpatients.ui.components.AppNotice(
                     message = if (issueCount == 0) "التقرير جاهز للمراجعة والإرسال"
                         else "${com.hos.rushdpatients.ui.components.uiNumber(issueCount)} ملاحظات تحتاج المراجعة قبل الإرسال",
-                    kind = if (hasMergeConflicts) com.hos.rushdpatients.ui.components.NoticeKind.ERROR
-                        else if (issueCount > 0) com.hos.rushdpatients.ui.components.NoticeKind.WARNING
+                    kind = if (issueCount > 0) com.hos.rushdpatients.ui.components.NoticeKind.WARNING
                         else com.hos.rushdpatients.ui.components.NoticeKind.SUCCESS)
-                if (hasMergeConflicts) {
-                    Text(
-                        "يتضمن العدد تعارضات مزامنة يجب حسمها داخل شاشة التقرير.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
                 AppButton(
                     onClick = onReviewReport,
                     modifier = Modifier.fillMaxWidth()

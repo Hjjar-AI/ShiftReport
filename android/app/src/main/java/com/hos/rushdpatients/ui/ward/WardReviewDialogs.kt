@@ -1,25 +1,19 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.components.uiNumber
-import com.hos.rushdpatients.ui.components.AppValueComparison
-import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -31,8 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.sync.ConflictChoice
-import com.hos.rushdpatients.sync.PatientFieldConflict
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,68 +62,6 @@ internal fun RolloverReviewDialog(
             }
         },
         dismissButton = { AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") } }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-internal fun PatientConflictDialog(
-    conflicts: List<PatientFieldConflict>,
-    choices: Map<String, ConflictChoice>,
-    resolving: Boolean,
-    onChoice: (String, ConflictChoice) -> Unit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = { if (!resolving) onDismiss() },
-        title = { Text("حل تعارضات المزامنة") },
-        text = {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 520.dp),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
-            ) {
-                items(conflicts, key = { it.key }) { conflict ->
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Column(
-                            Modifier.padding(UiPadding.content),
-                            verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
-                        ) {
-                            AppValueComparison(title = "${conflict.patientName} · ${conflict.fieldLabel}",
-                                firstLabel = "هذا الجهاز", firstValue = conflict.localValue,
-                                secondLabel = "النسخة المنشورة", secondValue = conflict.remoteValue)
-                            Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                FilterChip(
-                                    enabled = !resolving,
-                                    selected = choices[conflict.key] == ConflictChoice.LOCAL,
-                                    onClick = { onChoice(conflict.key, ConflictChoice.LOCAL) },
-                                    label = { Text("استخدام المحلي") }
-                                )
-                                FilterChip(
-                                    enabled = !resolving,
-                                    selected = choices[conflict.key] == ConflictChoice.REMOTE,
-                                    onClick = { onChoice(conflict.key, ConflictChoice.REMOTE) },
-                                    label = { Text("استخدام المنشور") }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            AppTextButton(
-                onClick = onConfirm,
-                enabled = !resolving &&
-                    conflicts.all { it.key in choices }
-            ) { Text(if (resolving) "جارٍ الدمج…" else "دمج ونشر") }
-        },
-        dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !resolving) { Text("إلغاء") }
-        }
     )
 }
 

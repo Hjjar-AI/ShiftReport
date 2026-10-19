@@ -7,7 +7,6 @@ import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.ReportSendConfirmation
 import com.hos.rushdpatients.ui.components.AppLoadingState
 import com.hos.rushdpatients.ui.components.EmptyState
-import com.hos.rushdpatients.ui.ward.PatientConflictDialog
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.components.NoticeKind
@@ -54,7 +53,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.ui.ward.ShiftDoctorPicker
 import com.hos.rushdpatients.ui.components.LoadingButton
-import com.hos.rushdpatients.sync.ConflictChoice
 import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
 import com.hos.rushdpatients.domain.report.DeliveryResolution
 
@@ -75,17 +73,11 @@ fun ReportPreviewScreen(
     var confirmSend by remember { mutableStateOf(false) }
     var pendingSupervisorTargets by remember { mutableStateOf<List<SupervisorReportTarget>?>(null) }
     val busy = state.loading || state.savingDoctors || state.sending || state.previewingPdf ||
-        state.exportingLocalPdf || state.sharingPdf || state.resolvingConflicts
+        state.exportingLocalPdf || state.sharingPdf
     fun selectSupervisorGroups() {
         selectedSupervisorIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
         supervisorMenuOpen = true
     }
-    var conflictChoices by remember { mutableStateOf(emptyMap<String, ConflictChoice>()) }
-
-    LaunchedEffect(state.mergeConflicts) {
-        conflictChoices = conflictChoices.filterKeys { key -> state.mergeConflicts.any { it.key == key } }
-    }
-
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
             snackbar.showSnackbar(it)
@@ -173,8 +165,7 @@ fun ReportPreviewScreen(
                     if (!state.isReadOnly) AppOutlinedButton(
                         onClick = { confirmSend = false; showShiftDoctors = true },
                         enabled = state.shift != null && !state.savingDoctors && !state.sending &&
-                            !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf &&
-                            !state.resolvingConflicts,
+                            !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(if (state.doctors.isEmpty()) "اختيار أطباء المناوبة" else "تعديل أطباء المناوبة") }
                 }
@@ -240,7 +231,7 @@ fun ReportPreviewScreen(
                         loading = state.previewingPdf,
                         onClick = viewModel::previewPdf,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.resolvingConflicts && state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
+                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
                     )
                     LoadingButton(
                         text = "حفظ PDF محلياً",
@@ -248,7 +239,7 @@ fun ReportPreviewScreen(
                         loading = state.exportingLocalPdf,
                         onClick = viewModel::exportLocally,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.resolvingConflicts && state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf && !state.sharingPdf
+                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf && !state.sharingPdf
                     )
                     LoadingButton(
                         text = "مشاركة PDF",
@@ -256,7 +247,7 @@ fun ReportPreviewScreen(
                         loading = state.sharingPdf,
                         onClick = viewModel::sharePdf,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.resolvingConflicts && state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf &&
+                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf &&
                             !state.exportingLocalPdf
                     )
                 }
@@ -264,7 +255,7 @@ fun ReportPreviewScreen(
                 if (state.isAdmin) {
                     AppOutlinedButton(onClick = viewModel::exportAssignments, modifier = Modifier.fillMaxWidth(),
                         enabled = !busy && state.shift != null) { Text("حفظ توزيع المرضى بالأسماء فقط (PDF)") }
-                    Text("A4 عمودي · ثلاثة جداول في كل صف · أسماء المقيمين في صف واحد ثم المرضى بترقيم متصل من اليسار إلى اليمين.",
+                    Text("A4 عمودي · ثلاثة جداول من اليمين إلى اليسار · أسماء المقيمين ثم المرضى بترقيم عربي متصل في العمود الأيمن.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
@@ -280,7 +271,7 @@ fun ReportPreviewScreen(
                     AppNotice(err, kind = NoticeKind.ERROR,
                         actionLabel = if (state.retryAction == null) null else "إعادة المحاولة",
                         onAction = if (state.retryAction == null) null else viewModel::retryLastAction,
-                        actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf && !state.resolvingConflicts)
+                        actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
                 }
                 state.lastOperation?.let { AppNotice(it) }
                 if (state.isReadOnly) {
@@ -296,13 +287,6 @@ fun ReportPreviewScreen(
 
             }
         }
-    }
-
-    if (state.mergeConflicts.isNotEmpty()) {
-        PatientConflictDialog(conflicts = state.mergeConflicts, choices = conflictChoices,
-            resolving = state.resolvingConflicts,
-            onChoice = { key, choice -> conflictChoices = conflictChoices + (key to choice) },
-            onConfirm = { viewModel.resolveMergeConflicts(conflictChoices) }, onDismiss = viewModel::dismissMergeConflicts)
     }
 
     if (supervisorMenuOpen) {

@@ -115,6 +115,20 @@ live creation/export remain unverified.
   structured tasks with optional owners/deadlines/completion, and multiple badges.
 - Search, priority/pending/overdue filters, per-patient/ward counts, explicit deletion,
   stored manual/alphabetical/admission ordering, unlimited active-doctor roster.
+- New-patient forms optionally insert at a saved position with priority-first and
+  stale-draft protection. The Excel sort preset is available in the sort dialog.
+  Admission dates accept ISO or day/month/year with slashes/backslashes and Arabic digits.
+- «التراجع عن آخر تنزيل» restores the pre-download local view after confirmation,
+  rejecting later saved changes and preserving the current publication baseline
+  and delivery receipts. Recovery remains subject to reviewed publication.
+- Classic tables use compact text and adaptive supervisor/zebra striping. The
+  former separate Excel PDF choice is merged into Classic. PDF roster headings
+  follow roster count/gender, and text reports include
+  companion totals for their selected patients.
+- «لوحة تسليم المناوبة» shows actionable ward totals, including urgent patients,
+  own patients/tasks, missing assignments, admissions and pending/overdue tasks.
+  Report setup starts with the shift-doctor picker, including an empty roster;
+  completeness notes match Android and do not require optional task ownership.
 - Current 08:30 shift boundary in the selected IANA zone (default Asia/Damascus).
   Archived shifts are viewable/exportable. Only current shifts are editable or
   publishable/sendable. A new shift can explicitly carry patients and unfinished
@@ -122,12 +136,12 @@ live creation/export remain unverified.
 - Existing Android state v4, bundle v1, CSV v7, doctor wire registry, join envelope
   and authenticated encryption. Telegram remains retrieve/edit/publish with
   last-successful-write-wins; pointer checks are not a distributed transaction.
-- Live identity/membership and pointer checks below the GUI. Completion identity,
-  time, revisions and publication metadata are stamped during reviewed preparation.
+- Live identity/membership and pointer checks below the GUI. Clinical saves stamp
+  editor/task completion identity and time; reviewed publication preserves them.
 - First-admin project creation and protected join-file export work on desktop.
   Reviewed doctor/role/destination administration is available to verified admins.
-  Announcements and Android's local clinical audit UI remain in Android. This replaces the shared Excel
-  client; it is not a second implementation of every Android administration screen.
+  Reviewed announcement administration and an admin-only local clinical activity
+  center are also available. Each device retains its own activity and delivery history.
 - The app never opens/converts old workbooks. Private clinical artifacts remain
   preserved in ignored local storage.
 
@@ -144,7 +158,8 @@ live creation/export remain unverified.
 - **Reports:** choose PDF or text before preview/export. PDF supports paginated
   Classic seven-column RTL tables, paragraphs and linked portrait A5 cards.
   Paper size/orientation, five Android palettes, dark mode and separate local
-  supervisor files are available under Advanced; ward name is shared report context.
+  supervisor files are available under Advanced. PDFs omit hospital and ward names;
+  the assignment overview also omits the shift date.
   Card headings and Previous/Index/Next links remain on continuation pages. Patient order and full clinical content,
   tasks and badges are retained. PDF delivery still requires opening the exact
   file and confirming the destination. Text is reviewed in the app, then confirmed;
@@ -158,8 +173,8 @@ live creation/export remain unverified.
   residents and a single column of patient-name rows. Residents come from independent one-supervisor team membership in doctor management,
   including residents with no assigned patient. Empty supervisor teams are included. Unassigned
   patients remain in their own labelled group. This exports fixed A4 portrait pages, with three 56.7 mm supervisor tables per
-  row. A left number column runs 1,2,3… through each table, across the row from
-  left to right, then down to the next row; long tables continue with team headers.
+  row. A right number column runs ١،٢،٣… through each table, across the row from
+  right to left, then down to the next row; long tables continue with team headers.
   All names are retained; it does not follow the
   separate-supervisor-file setting for full clinical reports.
 - **Administration:** a verified admin can add/edit/delete doctors, assign

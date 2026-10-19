@@ -60,7 +60,10 @@ class RTLText(Flowable):
 
     def draw(self):
         if self.anchor:
-            self.canv.bookmarkHorizontal(self.anchor, 0, self.height)
+            if self.anchor.startswith('entry-'):
+                # Return to the containing index page at page-fit, never to the row.
+                self.canv.bookmarkPage(self.anchor,fit='Fit')
+            else:self.canv.bookmarkHorizontal(self.anchor, 0, self.height)
         if self.link:
             self.canv.linkRect('', self.link, (0, 0, self.width, self.height), relative=1, thickness=0)
         self.canv.setFillColor(self.color or HexColor('#111111'))
@@ -83,6 +86,21 @@ def temporary_pdf():
     directory = Path(tempfile.mkdtemp(prefix='ShiftReportPreview_'))
     atexit.register(shutil.rmtree, str(directory), ignore_errors=True)
     return directory / 'report.pdf'
+
+
+class EndTimestamp(Flowable):
+    """Draw once after final content, inside space reserved above the page footer."""
+    def __init__(self,label):
+        Flowable.__init__(self)
+        self.label=label
+
+    def wrap(self,width,height):
+        self.label.wrap(width,100000)
+        self.width=width
+        return width,0
+
+    def draw(self):
+        self.label.drawOn(self.canv,0,-10-self.label.height)
 
 
 class ReportTable(Table):
@@ -131,7 +149,7 @@ class ReportDocument(SimpleDocTemplate):
 
 
 def render_report(client, shift, supervisor=None, font_path=None, options=None):
-    from desktop_pdf_content import normalize_options, palette, PAPERS, context_lines, patient_content
+    from desktop_pdf_content import normalize_options, palette, PAPERS, context_lines, patient_content, row_backgrounds, roster_label, created_at
     options = normalize_options(options)
     colors = palette(options)
     cards = options['layout']=='cards'
@@ -148,6 +166,7 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
     def text(value,size=11,color=None,**kwargs):return RTLText(value,size,color=color or text_color,**kwargs)
     context=context_lines(client,shift,options,now)
     roster=' / '.join(client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in shift['meta'].get('doctors','').split(',') if key)
+    roster_heading=roster_label([client.doctors.get(key,{}) for key in shift['meta'].get('doctors','').split(',') if key])
     pending,overdue=task_counts(patients)
     summary='عدد المرضى: {} · حالات نفسية: {} · المرافقون: {} · مهام معلقة: {} (متأخرة: {})'.format(
         len(patients),sum(p['diagnosisType'] in {'PSYCHIATRIC','DUAL'} for p in patients),
@@ -155,9 +174,9 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
     story=[]
     if cards:
         story.append(text('فهرس المرضى',14,heading_color,anchor='index'))
-        story.extend(text(line) for line in context)
-        story.extend([text(summary),text('أطباء المناوبة: '+roster),
-                      text('اضغط اسم المريض لفتح بطاقته؛ اضغط اسمه في البطاقة للعودة إلى الفهرس.')])
+        story.append(text(' · '.join(context),9))
+        story.extend([text(summary,10),text(roster_heading,11,heading_color),text(roster,11),
+                      text('اضغط المريض لفتح البطاقة؛ زر الفهرس يعيدك إلى صفحته.',9)])
         for index,patient in enumerate(patients):
             story.append(text('{} · {}'.format(index+1,patient['name']),12,heading_color,
                               link='patient-'+str(index),anchor='entry-'+str(index)))
@@ -177,29 +196,36 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
                 title_text=text(title,12,color);title_text.keepWithNext=True
                 story.extend([title_text,text(value,12),Spacer(1,3)])
     elif options['layout']=='table':
-        story.append(styled_table([[text('\n'.join(context+['تقرير مناوبة: '+roster]),14,white)]],[width],colors,
-                                  backgrounds=[colors['title']]))
+        heading=styled_table([[text(roster_heading+': '+roster,11,white)],
+                              [text(' · '.join(context),8.5,white)]],[width],colors,
+                             backgrounds=[colors['title'],colors['title']])
+        heading.setStyle(TableStyle([('TOPPADDING',(0,0),(-1,-1),1.5),('BOTTOMPADDING',(0,0),(-1,-1),1.5),
+                                     ('LINEBELOW',(0,0),(-1,0),0,HexColor(colors['title']))]))
+        story.append(heading)
         story.append(styled_table([[text(summary,10)]],[width],colors,backgrounds=[colors['summary']]))
         headers=['#','المريض','التشخيص / التنبيهات','رقم القبول الحالي\nالتاريخ / الأيام','الاختصاصي / المقيم','الخطة العلاجية','المتابعة / التحاليل']
         data=[[[text(label,9.5,white)] for label in reversed(headers)]]
         backgrounds=[colors['header']]
-        group_ids=list(dict.fromkeys(p.get('responsibleSupervisorId') for p in patients))
+        stripes=row_backgrounds(patients,colors)
         for index,patient in enumerate(patients,1):
             content=patient_content(patient,client.doctors,client.zone,now)
             cells=[str(index),content['personal'],content['diagnosis'],content['admit'],content['team'],content['treatment'],content['notes']]
             data.append([[text(value,9)] for value in reversed(cells)])
-            group=group_ids.index(patient.get('responsibleSupervisorId'))
-            backgrounds.append(colors['groups'][group%len(colors['groups'])])
+            backgrounds.append(stripes[index-1])
         weights=list(reversed([4,16,13,12,15,30,34]))
         story.append(styled_table(data,[width*w/sum(weights) for w in weights],colors,repeat=1,backgrounds=backgrounds))
         story.append(styled_table([[text(summary,10)]],[width],colors,backgrounds=[colors['summary']]))
     else:
-        story.extend(text(line) for line in context+[summary,'أطباء المناوبة: '+roster])
+        story.extend([text('تقرير المناوبة',14,heading_color),text(' · '.join(context),9),
+                      text(roster_heading+': '+roster,11),text(summary,10)])
         for index,patient in enumerate(patients,1):
             content=patient_content(patient,client.doctors,client.zone,now)
             story.extend([Spacer(1,12),text(str(index)+': '+patient['name'],14,heading_color)])
             for key,label in [('personal','بيانات المريض'),('admit','القبول'),('team','الفريق المسؤول'),('diagnosis','التشخيص / التنبيهات'),('treatment','العلاج'),('notes','المتابعة / المهام / التحاليل')]:
                 if content[key]:story.append(text(label+': '+content[key]))
+    timestamp=text(created_at(now),8.5)
+    timestamp.wrap(width,100000)
+    story.append(EndTimestamp(timestamp))
     path=temporary_pdf()
     top_margin=18
     if cards:
@@ -210,45 +236,51 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
         top_margin=max(heights)+27
         require(top_margin+100<page_size[1], 'اسم المريض أطول من مساحة بطاقة A5؛ استخدم الجدول لحفظ كامل المحتوى')
     document=ReportDocument(str(path),pagesize=page_size,leftMargin=margin,rightMargin=margin,
-                            topMargin=top_margin,bottomMargin=52 if cards else 35,title='DEMO — ShiftReport' if getattr(client,'demo',False) else 'ShiftReport',author='ShiftReport')
+                            topMargin=top_margin,bottomMargin=(52 if cards else 35)+timestamp.height+10,title='DEMO — ShiftReport' if getattr(client,'demo',False) else 'ShiftReport',author='ShiftReport')
     document.cards,document.patients,document.colors=cards,patients,colors
     def page_background(canvas,doc):
         canvas.setFillColor(HexColor(colors['cream'] if cards else colors['page']))
         canvas.rect(0,0,page_size[0],page_size[1],fill=1,stroke=0)
-        footer=text('{}{} · {} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',client.config['hospitalName'],shift['meta']['shiftDate'],doc.page),8)
+        footer=text('{}{} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',shift['meta']['shiftDate'],doc.page),8)
         footer.wrap(width,30);footer.drawOn(canvas,margin,10)
     document.build(story,onFirstPage=page_background,onLaterPages=page_background)
     return path
 
 
 def render_assignments(client,shift,font_path=None,options=None):
-    """Admin-only A4 grid: three 56.7 mm tables per row; global numbering flows left to right."""
+    """Admin-only A4 grid: right-to-left team placement and right-side numbering."""
     actor_id=client.require_admin()['uid']
     from reportlab.pdfgen import canvas as pdfcanvas
-    from desktop_pdf_content import normalize_options,palette,context_lines,assignment_groups
+    from desktop_pdf_content import normalize_options,palette,context_lines,assignment_groups,created_at
     options=normalize_options(options);colors=palette(options)
     groups=assignment_groups(shift,client.doctors)
     require(groups,'لا يوجد مرضى لتصدير توزيعهم')
     register_font(font_path)
     width,height=595,842
     table_width=56.7*72/25.4
-    margin=(width-3*table_width)/2
+    column_gap=3  # Thin vertical gutter between adjacent supervisor tables.
+    margin=(width-3*table_width-2*column_gap)/2
     number_width=7*72/25.4
     gap,top=12,20
     def text(value,size=9,color=None,align='right'):return RTLText(value,size,color=HexColor(color or colors['text']),align=align)
     from desktop_protocol import current_date
-    roster_note='مناوبة محفوظة — عضوية الفرق المعروضة هي الحالية وليست تاريخية\n' if shift['meta']['shiftDate']!=current_date(client.zone) else ''
-    context=text('توزيع المرضى حسب المشرف — الأسماء فقط\n'+roster_note+'\n'.join(context_lines(client,shift,options,datetime.now(ZoneInfo(client.zone)))))
-    context.wrap(3*table_width,100000)
-    table_top=height-top-context.height-gap
-    available=table_top-24
+    roster_note='مناوبة محفوظة · الفرق حسب السجل الحالي\n' if shift['meta']['shiftDate']!=current_date(client.zone) else ''
+    context_title=text('توزيع المرضى حسب المشرف',12)
+    context_title.wrap(3*table_width+2*column_gap,100000)
+    context=text(roster_note+'\n'.join(context_lines(client,shift,options,datetime.now(ZoneInfo(client.zone)),include_shift_date=False)),8.5)
+    context.wrap(3*table_width+2*column_gap,100000)
+    context_height=context.height if roster_note else 0
+    timestamp=text(created_at(datetime.now(ZoneInfo(client.zone))),8.5)
+    timestamp.wrap(3*table_width+2*column_gap,100000)
+    table_top=height-top-context_title.height-context_height-gap
+    available=table_top-24-timestamp.height-gap
     def team_table(group,rows,index):
         data=[[text(group['supervisor'],10,'#FFFFFF'),''],
               [text('، '.join(group['residents']) or 'لم يُحدد مقيم',8.5),'']]
-        data += [[text(str(number),align='center'),text(name)] for number,name in rows]
+        data += [[text(name),text(str(number).translate(str.maketrans('0123456789','٠١٢٣٤٥٦٧٨٩')),align='center')] for number,name in rows]
         backgrounds=[colors['title'],colors['groups'][index%len(colors['groups'])]]
         backgrounds += [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(rows))]
-        table=styled_table(data,[number_width,table_width-number_width],colors,backgrounds=backgrounds)
+        table=styled_table(data,[table_width-number_width,number_width],colors,backgrounds=backgrounds)
         table.setStyle(TableStyle([('SPAN',(0,0),(1,0)),('SPAN',(0,1),(1,1))]))
         return table,table.wrap(table_width,1000000)[1]
     tables=[];number=1
@@ -273,16 +305,18 @@ def render_assignments(client,shift,font_path=None,options=None):
         if page:canvas.showPage()
         page+=1
         canvas.setFillColor(HexColor(colors['page']));canvas.rect(0,0,width,height,fill=1,stroke=0)
-        context.drawOn(canvas,margin,height-top-context.height)
+        context_title.drawOn(canvas,margin,height-top-context_title.height)
+        if context_height:context.drawOn(canvas,margin,height-top-context_title.height-context_height)
         canvas.setFont('Arabic',8);canvas.setFillColor(HexColor(colors['text']))
-        canvas.drawCentredString(width/2,10,str(page))
+        canvas.drawCentredString(width/2,10,('DEMO — ' if getattr(client,'demo',False) else '')+str(page))
     new_page();y=table_top
     for start in range(0,len(tables),3):
         row=tables[start:start+3];row_height=max(h for _,h in row)
-        if y-row_height<24:new_page();y=table_top
+        if y-row_height<24+timestamp.height+gap:new_page();y=table_top
         for column,(table,table_height) in enumerate(row):
-            table.drawOn(canvas,margin+column*table_width,y-table_height)
+            table.drawOn(canvas,width-margin-table_width-column*(table_width+column_gap),y-table_height)
         y-=row_height+gap
+    timestamp.drawOn(canvas,margin,y-timestamp.height)
     require(client.require_admin()['uid']==actor_id,'تغيّر المستخدم؛ أعد تصدير توزيع المرضى')
     canvas.showPage();canvas.save()
     return path

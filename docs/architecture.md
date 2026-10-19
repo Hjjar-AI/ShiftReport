@@ -49,6 +49,24 @@ only during rendering. Authentication and publication checks live in the protoco
 layer, not just navigation. Desktop can bootstrap the first admin and export join
 files and perform reviewed ongoing doctor/role/destination administration.
 Live authorization, stale-review checks and reference guards remain below the UI.
+Unfinished desktop patient forms are encrypted device-local recovery data, separate
+from saved clinical records and portable exports. Both clients describe the selected
+shift against a locally known snapshot without claiming current remote freshness;
+Android's device-wide pending flag is separate. Batch supervisor delivery reviews
+each PDF, publishes the complete shift once when needed and records delivery per
+destination. Desktop announcements reuse the existing shared announcement pointers,
+with reviewed text, live admin authorization and durable uncertainty tracking.
+Task completion identity/time is established at local clinical Save on both clients;
+desktop publication consumes saved encrypted evidence instead of assigning credit
+to its publisher. Desktop local clinical audit and report preferences remain in the
+encrypted workspace. Activity access follows the authenticated local admin session;
+patient-card pinning/expansion affects presentation only.
+Patient editor identity/time also comes from local Save, including explicit anonymous
+edits, rather than the later publisher. Desktop clock refresh changes presentation
+only. Both announcement workflows review literal text, retain project encryption,
+persist uncertainty before sending and repair confirmed references without replacing
+a subsequently changed announcement. Android reuses its report delivery ledger in a
+separate scope and refuses to create a new synchronization pin during this workflow.
 Protected join files remain the normal desktop connection path. An explicit local
 raw-credential mode supports occasional admin use, with Telegram verification
 before workspace access and admin checks in protocol authorization. Its plaintext
@@ -71,6 +89,15 @@ part of the workspace. Draft restoration cannot roll back delivery receipts or
 restore publication approval. Local mutex/transactions do not imply distributed
 Telegram atomicity. See [current state](current-state.md) for implementation and
 runtime limits; protected legacy tools/guides remain historical on disk.
+
+Both clients protect saved pending edits from complete downloads until publication.
+Desktop patient rounds use the captured displayed order for Save and next, while
+general/detail clinical editors share one draft. Appearance is device-local and
+independent from report colors and clinical severity. Portable shift recovery
+reuses Android's existing encrypted `.rpb` CSV format; desktop `.srdraft` remains
+workspace recovery. Because `.rpb` lacks a project identifier, desktop binds import
+to the selected project shift and existing registry, requires explicit replacement
+review, and keeps device delivery receipts outside restored state.
 
 Linux setup resolves unpinned binary dependencies for its selected interpreter
 inside `.venv`; Windows 7 requirements remain separate.
@@ -173,3 +200,10 @@ action; a recorded download time does not claim remote freshness. Ward-wide task
 lists reuse structured tasks and existing patient save flows, changing display
 only. Batch resident-team changes require one review and authorization/stale-state
 checks below the UI, preserving patient assignments and individual cover.
+
+Patient details and editing rounds use stable patient IDs from the displayed
+sequence; local activity is scoped by patient/shift and remains admin-only. Android
+Settings recovery publishes through the same reviewed snapshot flow as ordinary
+Settings publication. There is no force path around a changed remote pointer;
+review tokens bind local CSV, published clinician and patient/doctor pointers and
+stay in device memory. Restoring local data does not itself publish or send a report.

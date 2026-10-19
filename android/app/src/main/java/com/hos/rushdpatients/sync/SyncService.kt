@@ -18,11 +18,11 @@ import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
-import com.hos.rushdpatients.domain.doctor.DoctorRegistryConflict
-import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
 import com.hos.rushdpatients.domain.patient.PatientValidationResult
 import com.hos.rushdpatients.domain.patient.PatientValidator
+import com.hos.rushdpatients.domain.report.ReportBuilder
 import com.hos.rushdpatients.network.telegram.TelegramClient
+import com.hos.rushdpatients.network.telegram.Markdown
 import com.hos.rushdpatients.util.DispatcherProvider
 import com.hos.rushdpatients.util.Logging
 import com.hos.rushdpatients.util.ShiftDate
@@ -31,9 +31,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
@@ -76,13 +73,18 @@ class SyncService @Inject constructor(
     private val auditRepository: AuditRepository,
     private val dispatchers: DispatcherProvider,
     private val remoteState: RemoteSyncStateStore,
-    private val doctorSync: DoctorSyncCoordinator
+    private val doctorSync: DoctorSyncCoordinator,
+    private val reportBuilder: ReportBuilder,
+    private val downloadUndo: LocalDownloadUndo
 ) {
 
     private val patientSyncMutex = Mutex()
-    private val _patientConflicts = MutableStateFlow<List<PatientFieldConflict>>(emptyList())
-    val patientConflicts: StateFlow<List<PatientFieldConflict>> = _patientConflicts.asStateFlow()
-    val doctorConflicts: StateFlow<List<DoctorRegistryConflict>> get() = doctorSync.doctorConflicts
+    fun observeDownloadUndo() = downloadUndo.available
+    suspend fun undoLastDownload(): Result<String> = patientSyncMutex.withLock {
+        try { Result.success(downloadUndo.undo()) }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { Result.failure(e) }
+    }
 
     suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSync.uploadDoctors(registryData)
     suspend fun uploadCurrentDoctors(): Result<Unit> = doctorSync.uploadCurrentDoctors()
@@ -90,9 +92,6 @@ class SyncService @Inject constructor(
     suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSync.refreshDoctorsFromRemote()
     suspend fun fetchLatestDoctors(): Result<String> = doctorSync.fetchLatestDoctors()
     suspend fun fetchAndApplyLatestDoctors(): Result<Int> = doctorSync.fetchAndApplyLatestDoctors()
-    suspend fun resolveDoctorConflicts(choices: Map<String, DoctorMergeChoice>): Result<Unit> =
-        doctorSync.resolveDoctorConflicts(choices)
-
     suspend fun fetchLatestCsv(): Result<CsvFetchResult> = patientSyncMutex.withLock {
         fetchCsv(previous = false)
     }
@@ -104,7 +103,7 @@ class SyncService @Inject constructor(
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary =
         withContext(dispatchers.io) {
             val current = patientRepository.getForShift(shiftId).associateBy(Patient::id)
-            val base = settingsRepository.get(AppConstants.SETTING_PATIENTS_BASE_SNAPSHOT)
+            val base = settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + shiftId)
                 ?.let { csv -> runCatching { CsvCodec.decode(csv) }.getOrNull() }
                 ?.patients.orEmpty().associateBy(Patient::id)
             HandoverChangeSummary(
@@ -200,8 +199,17 @@ class SyncService @Inject constructor(
                         "تغيرت البيانات المحلية أثناء التنزيل؛ أعد المزامنة لنشر التعديلات بأمان"
                     }
                 }
-                prepared.map { preparedShift ->
+                val beforeDownload = prepared.map { item ->
+                    shiftRepository.getByDate(item.parsed.shiftDate)?.let { shift ->
+                        ShiftCsvSnapshot(shift, patientRepository.getForShift(shift.id))
+                    }
+                }
+                val downloaded = prepared.map { preparedShift ->
                     applyPreparedShift(preparedShift).also { appliedShift ->
+                        // Restoring an older bundle must not redefine the last known current publication.
+                        if (!previous) settingsRepository.put(
+                            AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + appliedShift.shift.id,
+                            CsvCodec.encode(appliedShift.shift, appliedShift.patients))
                         shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
                         settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
                             java.time.Instant.now().toEpochMilli().toString())
@@ -209,6 +217,8 @@ class SyncService @Inject constructor(
                             snapshot.messageId.toString())
                     }
                 }
+                downloadUndo.record(beforeDownload, downloaded.map { it.shift.id })
+                downloaded
             }
             val latest = applied.first()
             val inserted = applied.sumOf { it.inserted }
@@ -225,10 +235,6 @@ class SyncService @Inject constructor(
             settingsRepository.putBoolean(
                 AppConstants.SETTING_PATIENTS_SYNC_PENDING,
                 previous && latest.shift.date == ShiftDate.current()
-            )
-            settingsRepository.put(
-                AppConstants.SETTING_PATIENTS_BASE_SNAPSHOT,
-                CsvCodec.encode(latest.shift, latest.patients)
             )
             if (!previous) {
                 val currentShift = shiftRepository.getById(latest.shift.id)
@@ -344,15 +350,67 @@ class SyncService @Inject constructor(
         return AppliedShift(updatedShift, toUpsert, inserted, updated)
     }
 
-    suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> =
-        patientSyncMutex.withLock { uploadCsvInternal(shiftId, forceCurrent = false) }
+    suspend fun prepareCsvPublication(shiftId: String): CsvPublicationReview = patientSyncMutex.withLock {
+        withContext(dispatchers.io) {
+            require(!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+                "راجع وانشر تعديلات سجل الأطباء أولاً، ثم راجع نشر المرضى"
+            }
+            doctorSync.fetchAndApplyLatestDoctors().getOrThrow()
+            val source = requireNotNull(remoteState.readState()) { "فهرس المشروع غير متاح؛ أعد الجلب" }
+            val actor = doctorSync.requirePublishedClinician(source)
+            val built = reportBuilder.build(shiftId)
+            require(built.shift.date == ShiftDate.current()) { "راجع مناوبة اليوم فقط قبل النشر" }
+            val remote = source.currentCsvSnapshot()?.let { downloadSnapshot(it) }
+                ?.firstOrNull { it.shiftDate == built.shift.date }
+            val before = remote?.patients.orEmpty().associateBy(Patient::id)
+            val after = built.patients.associateBy(Patient::id)
+            fun names(ids: Set<String>, rows: Map<String, Patient>) =
+                ids.mapNotNull { rows[it]?.name }.sorted().joinToString("، ").ifBlank { "لا يوجد" }
+            val changed = (before.keys intersect after.keys).filter {
+                !samePatientContent(before[it], after[it])
+            }.toSet()
+            val text = buildString {
+                append("ستُنشر النسخة المحلية الكاملة للمناوبة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.\n")
+                append("إضافات: ").append(names(after.keys - before.keys, after)).append('\n')
+                append("تعديلات: ").append(names(changed, after)).append('\n')
+                append("حذف من النسخة المنشورة: ").append(names(before.keys - after.keys, before)).append("\n\n")
+                append(built.textChunks.joinToString("\n\n") { Markdown.toPlainText(it) })
+            }
+            check(samePublicationSource(remoteState.readState(), source)) {
+                "تغيّرت النسخة المنشورة أثناء إعداد المراجعة؛ أعد المراجعة"
+            }
+            CsvPublicationReview(shiftId, CsvCodec.encode(built.shift, built.patients), source,
+                actor.id, actor.telegramId, text)
+        }
+    }
 
-    suspend fun forceUploadCsv(shiftId: String): Result<CsvUploadResult> =
-        patientSyncMutex.withLock { uploadCsvInternal(shiftId, forceCurrent = true) }
+    suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> =
+        patientSyncMutex.withLock { uploadCsvInternal(shiftId) }
+
+    suspend fun uploadReviewedCsv(review: CsvPublicationReview): Result<CsvUploadResult> =
+        patientSyncMutex.withLock { uploadCsvInternal(review.shiftId, review) }
+
+    private suspend fun requirePublicationReview(review: CsvPublicationReview, state: SyncState?) {
+        check(samePublicationSource(state, review.source)) {
+            "تغيّرت نسخة المرضى أو الأطباء بعد المراجعة؛ أعد مراجعة النشر"
+        }
+        val actor = doctorSync.requirePublishedClinician(requireNotNull(state))
+        require(actor.id == review.actorId && actor.telegramId == review.telegramId) {
+            "تغيّر المستخدم؛ أعد مراجعة النشر"
+        }
+        require(!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+            "تغير سجل الأطباء المحلي؛ انشره ثم أعد المراجعة"
+        }
+        val current = reportBuilder.build(review.shiftId)
+        check(current.shift.date == ShiftDate.current() &&
+            CsvCodec.encode(current.shift, current.patients) == review.csv) {
+            "تغيرت المناوبة أو البيانات المحلية بعد المراجعة؛ أعد المراجعة"
+        }
+    }
 
     private suspend fun uploadCsvInternal(
         shiftId: String,
-        forceCurrent: Boolean
+        review: CsvPublicationReview? = null
     ): Result<CsvUploadResult> = withContext(dispatchers.io) {
         try {
             var shift = shiftRepository.getById(shiftId)
@@ -365,12 +423,13 @@ class SyncService @Inject constructor(
             val publishingDeviceId = getOrCreateDeviceId()
             val remoteStateBeforeUpload = remoteState.readState()
             val remoteSnapshotBeforeUpload = remoteStateBeforeUpload?.currentCsvSnapshot()
-            val remoteShift = if (forceCurrent) null else remoteSnapshotBeforeUpload?.let { downloadSnapshot(it) }
+            if (review != null) requirePublicationReview(review, remoteStateBeforeUpload)
+            val remoteShift = remoteSnapshotBeforeUpload?.let { downloadSnapshot(it) }
                 ?.firstOrNull { it.shiftDate == shift.date }
 
             // Publish this complete local snapshot; never merge remote fields into it.
-            _patientConflicts.value = emptyList()
 
+            val localPublicationShift = shift
             shift = shift.copy(
                 baseSnapshotId = remoteShift?.snapshotId ?: shift.snapshotId,
                 snapshotId = UUID.randomUUID().toString(),
@@ -385,6 +444,13 @@ class SyncService @Inject constructor(
             }
             require(invalidPatient == null) {
                 "بيانات المريض ${invalidPatient?.name.orEmpty()} غير مكتملة"
+            }
+            if (review != null) {
+                val orderedPatients = PatientComparators.ordered(patients, SortSpecCodec.decode(localPublicationShift.sortSpecJson),
+                    doctorRepository.getAllIncludingDeleted().associate { it.id to it.fullName })
+                check(CsvCodec.encode(localPublicationShift, orderedPatients) == review.csv) {
+                    "تغيرت البيانات أثناء تجهيز النشر؛ أعد المراجعة"
+                }
             }
             val previouslyUploaded = shiftRepository.getRecent(12)
                 .filter { candidate ->
@@ -436,24 +502,21 @@ class SyncService @Inject constructor(
                 date = shift.date.toString(),
                 updatedAt = uploadedAt
             )
+            if (review != null) requirePublicationReview(review, remoteState.readState())
             val newState = remoteState.updateState { current ->
-                if (!forceCurrent) {
-                    require(current.currentCsvSnapshot()?.messageId == remoteSnapshotBeforeUpload?.messageId) {
-                        "وصلت نسخة أحدث أثناء الرفع؛ راجع وانشر النسخة الكاملة مجدداً"
-                    }
+                require(current.currentCsvSnapshot()?.fileId == remoteSnapshotBeforeUpload?.fileId &&
+                    current.currentCsvSnapshot()?.messageId == remoteSnapshotBeforeUpload?.messageId) {
+                    "وصلت نسخة أحدث أثناء الرفع؛ راجع وانشر النسخة الكاملة مجدداً"
+                }
+                if (review != null) check(samePublicationSource(current, review.source)) {
+                    "تغير فهرس المرضى أو الأطباء؛ أعد مراجعة النشر"
                 }
                 val previousCurrent = current.currentCsvSnapshot()
                 val rotateRecovery = previousCurrent == null ||
                     previousCurrent.updatedAt <= 0L ||
                     uploadedSnapshot.updatedAt - previousCurrent.updatedAt >=
                     AppConstants.CSV_VERSION_WINDOW_HOURS * 60L * 60L * 1_000L
-                val protectedCurrent = if (forceCurrent) current.copy(
-                    previousCsvFileId = current.csvFileId,
-                    previousCsvMessageId = current.csvMessageId,
-                    previousCsvDate = current.csvDate,
-                    previousCsvUpdatedAt = current.csvUpdatedAt
-                ) else current
-                protectedCurrent.withPublishedCsv(uploadedSnapshot, rotateRecovery).copy(
+                current.withPublishedCsv(uploadedSnapshot, rotateRecovery).copy(
                     publicationJournal = (
                         current.publicationJournal + PublicationJournalEntry(
                             snapshotId = requireNotNull(shift.snapshotId),
@@ -462,7 +525,7 @@ class SyncService @Inject constructor(
                             messageId = msg.messageId,
                             at = uploadedAt,
                             deviceId = publishingDeviceId,
-                            forced = forceCurrent
+                            forced = false
                         )
                     ).distinctBy { it.messageId }.sortedByDescending { it.messageId }.take(12)
                 )
@@ -485,21 +548,12 @@ class SyncService @Inject constructor(
                     action = AppConstants.AUDIT_CSV_UPLOADED,
                     detail = "shift=$shiftId patients=${patients.size} snapshot=${shift.snapshotId} device=$publishingDeviceId"
                 )
-                if (forceCurrent) {
-                    auditRepository.record(
-                        null, null, AppConstants.AUDIT_SYNC_FORCED,
-                        "shift=$shiftId replacedMessage=${remoteSnapshotBeforeUpload?.messageId ?: "none"} " +
-                            "replacement=${shift.snapshotId} device=$publishingDeviceId"
-                    )
-                }
                 // Clear the changes represented by this publication, then re-check local state.
                 // An edit racing the network upload either sets the flag after this clear or is
                 // detected by the snapshot comparison below.
                 settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)
-                settingsRepository.put(
-                    AppConstants.SETTING_PATIENTS_BASE_SNAPSHOT,
-                    CsvCodec.encode(shift, patients)
-                )
+                settingsRepository.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + shift.id,
+                    CsvCodec.encode(shift, patients))
                 val currentPatients = patientRepository.getForShift(shift.id)
                 val currentShift = shiftRepository.getById(shift.id)
                 val changedDuringUpload = !samePublishedPatients(currentPatients, patients) ||
@@ -539,14 +593,6 @@ class SyncService @Inject constructor(
         }
     }
 
-    suspend fun resolvePatientConflicts(
-        resolutions: Map<String, ConflictChoice>
-    ): Result<CsvUploadResult> = Result.failure(IllegalStateException(
-        "الدمج الجزئي متوقف؛ اجلب النسخة الكاملة أو راجع وانشر نسختك الكاملة"
-    ))
-
-    fun dismissPatientConflicts() { _patientConflicts.value = emptyList() }
-
     suspend fun getOrCreateDeviceId(): String {
         settingsRepository.get(AppConstants.SETTING_DEVICE_ID)?.takeIf(String::isNotBlank)?.let {
             return it
@@ -575,19 +621,6 @@ class SyncService @Inject constructor(
             left.doctorIds == right.doctorIds &&
             left.multiDoctorMode == right.multiDoctorMode &&
             left.sortSpecJson == right.sortSpecJson
-    }
-
-    suspend fun recordAnnouncement(messageId: Long) = withContext(dispatchers.io) {
-        remoteState.updateState { current ->
-            current.copy(
-                announcementMessageId = messageId,
-                announcementUpdatedAt = System.currentTimeMillis()
-            )
-        }
-    }
-
-    suspend fun announcementMessageId(): Long? = withContext(dispatchers.io) {
-        remoteState.readState()?.announcementMessageId
     }
 
 }

@@ -38,7 +38,7 @@ internal fun WardSupportingPane(
         Text(if (isAdmin) "جاهزية التقرير والنشاط" else "جاهزية التقرير", style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() })
         Text("${uiNumber(state.patients.size)} مريض")
-        PatientSyncNotice(state.syncStatus, freshnessLabel, online, state.mergeConflicts.size)
+        PatientSyncNotice(state.syncStatus, freshnessLabel, online)
         if (warnings.isEmpty()) Text("لا توجد ملاحظات اكتمال في الفحص الحالي")
         warnings.forEach { Text("• $it") }
         AppButton(onClick = onReviewReport, enabled = state.shift != null, modifier = Modifier.fillMaxWidth()) {

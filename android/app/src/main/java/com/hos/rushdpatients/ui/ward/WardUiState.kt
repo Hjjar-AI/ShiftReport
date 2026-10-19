@@ -6,7 +6,6 @@ import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.sort.SortSpec
 import com.hos.rushdpatients.data.db.entity.AuditEntryEntity
-import com.hos.rushdpatients.sync.PatientFieldConflict
 import com.hos.rushdpatients.sync.PublicationJournalEntry
 
 data class PatientGroup(
@@ -22,11 +21,10 @@ data class ShiftSnapshotOption(
 )
 
 enum class PatientSyncStatus(val arabicLabel: String) {
-    LOCAL("محفوظ محلياً"),
+    LOCAL("محفوظ محلياً؛ النسخة المنشورة غير معروفة"),
     PENDING("تعديلات غير منشورة"),
-    BACKED_UP("منشور على تليجرام"),
-    SYNCING("جارٍ التزامن"),
-    CONFLICT("تعارض")
+    BACKED_UP("مطابق لآخر نسخة منشورة معروفة لهذا الجهاز"),
+    SYNCING("جارٍ التزامن")
 }
 
 enum class WardRetryAction { FETCH_LATEST, FETCH_PREVIOUS, EXPORT_CSV }
@@ -47,22 +45,16 @@ data class WardUiState(
     val activityError: String? = null,
     val recentActivity: List<AuditEntryEntity> = emptyList(),
     val publications: List<PublicationJournalEntry> = emptyList(),
-    val mergeConflicts: List<PatientFieldConflict> = emptyList(),
-    val resolvingConflicts: Boolean = false,
     val groupedPatients: List<PatientGroup> = emptyList(),
     val doctors: List<Doctor> = emptyList(),
     val sortSpec: SortSpec = SortSpec.DEFAULT,
     val groupByMode: GroupByMode = GroupByMode.SUPERVISOR,
     val saving: Boolean = false,
     val syncing: Boolean = false,
+    val canUndoDownload: Boolean = false,
     val snapshotChoices: List<ShiftSnapshotOption> = emptyList(),
     val showSnapshotPicker: Boolean = false,
-    val syncStatus: PatientSyncStatus = PatientSyncStatus.LOCAL,
-    val lastBackedUpAt: Long? = null,
-    val lastDownloadAt: Long? = null,
-    val lastDownloadMessage: Long? = null,
-    val unresolvedDeliveries: Int = 0,
-    val deliveryLogUnavailable: Boolean = false,
+    val synchronization: WardSynchronization = WardSynchronization(),
     val exportingCsv: Boolean = false,
     val patientDetailsExpanded: Boolean = false,
     val twoColumn: Boolean = false,
@@ -73,4 +65,10 @@ data class WardUiState(
     val retryAction: WardRetryAction? = null,
     val error: String? = null,
     val snackbar: String? = null
-)
+) {
+    val syncStatus: PatientSyncStatus get() = synchronization.status(syncing)
+    val freshnessLabel: String get() = synchronization.description(syncing, shift?.csvMessageId)
+    internal val workflowAction: WardWorkflowAction get() = synchronization.nextAction(isReadOnly)
+    val unresolvedDeliveries: Int get() = synchronization.unresolvedDeliveries
+    val deliveryLogUnavailable: Boolean get() = synchronization.deliveryLogUnavailable
+}

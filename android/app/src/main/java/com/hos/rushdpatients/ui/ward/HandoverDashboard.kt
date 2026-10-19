@@ -34,7 +34,6 @@ internal fun HandoverDashboard(
     syncStatus: PatientSyncStatus,
     online: Boolean,
     freshnessLabel: String,
-    conflictCount: Int,
     nowEpochMillis: Long,
     onFilter: (DashboardFilter) -> Unit,
     onSync: () -> Unit,
@@ -95,7 +94,7 @@ internal fun HandoverDashboard(
         ) {
             Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Text("حالة المناوبة", style = MaterialTheme.typography.titleMedium)
-                PatientSyncNotice(syncStatus, freshnessLabel, online, conflictCount)
+                PatientSyncNotice(syncStatus, freshnessLabel, online)
                 Text("استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر")
             }
         }

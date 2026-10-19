@@ -1,9 +1,9 @@
 """Logical PDF content and Android's current palette; no shaping or saved-data edits."""
 from __future__ import annotations
 from datetime import datetime
-import json
 from desktop_model import DIAGNOSIS, GENDER, badges_decode
-from desktop_protocol import ZoneInfo, require
+from desktop_protocol import require
+from desktop_tasks import read_tasks, ordered_for_display, task_text
 
 PAPERS = {'A4': (595, 842), 'Letter': (612, 792), 'A5': (420, 595), 'A3': (842, 1191)}
 DEFAULT_OPTIONS = dict(layout='table', paper='A4', orientation='portrait', color='teal', dark=False,
@@ -12,10 +12,34 @@ DEFAULT_OPTIONS = dict(layout='table', paper='A4', orientation='portrait', color
 
 def normalize_options(options=None):
     result = dict(DEFAULT_OPTIONS, **(options or {}))
+    if result['layout']=='workbook':result['layout']='table'
     require(result['layout'] in {'table','cards','paragraphs'} and result['paper'] in PAPERS and
             result['orientation'] in {'portrait','landscape'} and result['color'] in
             {'teal','blue','green','purple','pastel'}, 'خيارات PDF غير صالحة')
     require(type(result['dark']) is bool and type(result['separate']) is bool, 'خيارات PDF غير صالحة')
+    return result
+
+
+def roster_label(doctors):
+    if len(doctors)==1:return 'طبيبة المناوبة' if doctors[0].get('gender')=='F' else 'طبيب المناوبة'
+    return 'طبيبات المناوبة' if doctors and all(d.get('gender')=='F' for d in doctors) else 'أطباء المناوبة'
+
+
+def row_backgrounds(patients, colors):
+    """Contiguous supervisor groups use group/cream stripes; other orders use zebra."""
+    seen=set();last=object();group=-1;position=0;grouped=True
+    for patient in patients:
+        key=patient.get('responsibleSupervisorId') or ''
+        if key!=last:
+            if key in seen:grouped=False;break
+            seen.add(key);last=key
+    if not grouped:return [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(patients))]
+    result=[];last=object()
+    for patient in patients:
+        key=patient.get('responsibleSupervisorId') or ''
+        if key!=last:group+=1;position=0;last=key
+        result.append(colors['groups'][group%len(colors['groups'])] if position%2==0 else colors['cream'])
+        position+=1
     return result
 
 
@@ -35,9 +59,12 @@ def palette(options):
                 page='#FFFFFF', text='#000000', border='#000000', zebra='#F2F2F2', cream='#FFFDF5', groups=groups)
 
 
-def context_lines(client, shift, options, now):
-    return ['المشفى: '+client.config['hospitalName'], 'الجناح: '+(options['ward'].strip() or 'غير محدد'),
-            'تاريخ المناوبة: '+shift['meta']['shiftDate'], 'أُنشئ في: '+now.strftime('%Y-%m-%d %H:%M %Z')]
+def context_lines(client, shift, options, now, include_shift_date=True):
+    return ['تاريخ المناوبة: '+shift['meta']['shiftDate']] if include_shift_date else []
+
+
+def created_at(now):
+    return 'أُنشئ في: '+now.strftime('%Y-%m-%d %H:%M %Z')
 
 
 def assignment_groups(shift, doctors):
@@ -71,23 +98,12 @@ def patient_content(row, doctors, zone, now):
     team = '\n---\n'.join(filter(None,[doctor('responsibleSupervisorId'),doctor('responsibleResidentId')]))
     from desktop_teams import is_cross_team_cover
     if is_cross_team_cover(row,doctors):team+='\nتغطية من فريق آخر'
-    tasks = json.loads(row.get('tasksJson') or '[]')
-    def task_key(task):
-        overdue = not task.get('done') and task.get('dueAtEpochMillis') and task['dueAtEpochMillis']<=now.timestamp()*1000
-        return (0 if overdue else 2 if task.get('done') else 1,
-                float('inf') if task.get('done') else task.get('dueAtEpochMillis') or float('inf'),
-                0 if task.get('done') else -{'LOW':0,'NORMAL':1,'HIGH':2}.get(task.get('priority','NORMAL'),1))
+    tasks = read_tasks(row)
+    now_millis = int(now.timestamp()*1000)
     task_lines=[]
-    for task in sorted(tasks,key=task_key):
-        status='مكتملة' if task.get('done') else 'متأخرة' if task.get('dueAtEpochMillis') and task['dueAtEpochMillis']<=now.timestamp()*1000 else 'معلقة'
-        details=status+': '+task['description']
-        if task.get('priority')=='HIGH':details+=' · أولوية عالية'
-        if task.get('ownerDoctorId'):details+=' · '+doctors.get(task['ownerDoctorId'],{}).get('name',task.get('ownerName') or 'طبيب محفوظ')
-        for key,label in [('dueAtEpochMillis','الموعد'),('completedAtEpochMillis','أُتمت في')]:
-            if task.get(key):details+=' · '+label+' '+datetime.fromtimestamp(task[key]/1000,ZoneInfo(zone)).strftime('%Y-%m-%d %H:%M')
-        if task.get('dueShiftDate'):details+=' · نهاية مناوبة '+task['dueShiftDate']
-        if task.get('done') and task.get('completedByName'):details+=' · أتمها '+task['completedByName']
-        task_lines.append(details)
+    for task in ordered_for_display(tasks,now_millis):
+        task_lines.append(task_text(task, doctors, zone, now_millis,
+                                    include_unassigned=False, include_routine_priority=False))
     notes = '\n'.join(label+': '+value for label,value in
                      [('المتابعة',row.get('followUp','')),('المهام','\n'.join(task_lines)),('التحاليل',row.get('labs',''))] if value)
     return dict(personal=personal, admit=admit, diagnosis='\n'.join(filter(None,diagnosis)),team=team,

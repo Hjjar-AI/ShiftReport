@@ -29,6 +29,7 @@ import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.sync.SyncService
+import com.hos.rushdpatients.sync.CsvPublicationReview
 import com.hos.rushdpatients.ui.theme.AppFontScale
 import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.AppThemePreset
@@ -84,6 +85,8 @@ class SettingsViewModel @Inject constructor(
         const val PENDING_BACKUP_COUNT = "pending_backup_count"
         const val PENDING_PROVISIONING_ID = "pending_provisioning_id"
     }
+
+    private var publicationReview: CsvPublicationReview? = null
 
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
@@ -430,91 +433,53 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** Prepare only: no publication occurs until the reviewed snapshot is confirmed. */
     fun uploadCurrent() {
         if (_state.value.syncing) return
-        if (!NetworkStatus.isOnline(context)) {
-            _state.update {
-                it.copy(
-                    snackbar = "لا يوجد اتصال بالإنترنت — بقيت البيانات محفوظة محلياً",
-                    retryAction = SettingsRetryAction.UPLOAD
-                )
-            }
-            return
-        }
-        _state.update { it.copy(syncing = true, snackbar = null, retryAction = null) }
+        publicationReview = null
+        _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
         viewModelScope.launch {
-            val shiftId = shiftRepository.getByDate(ShiftDate.current())?.id
-            if (shiftId == null) {
-                _state.update { it.copy(syncing = false, snackbar = "لا توجد وردية لرفعها") }
-                return@launch
+            try {
+                check(NetworkStatus.isOnline(context)) { "لا يوجد اتصال بالإنترنت؛ بقيت البيانات محفوظة محلياً" }
+                val shiftId = shiftRepository.getByDate(ShiftDate.current())?.id ?: error("لا توجد مناوبة حالية")
+                val review = syncService.prepareCsvPublication(shiftId)
+                publicationReview = review
+                _state.update { it.copy(publicationReviewText = review.text) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = e.message ?: "تعذر إعداد مراجعة النشر", retryAction = SettingsRetryAction.UPLOAD) }
+            } finally {
+                _state.update { it.copy(syncing = false) }
             }
-            val doctorsResult = syncService.uploadCurrentDoctors()
-            if (doctorsResult.isFailure) {
-                _state.update {
-                    it.copy(
-                        syncing = false,
-                        snackbar = doctorsResult.exceptionOrNull()?.message
-                            ?: "فشل رفع سجل الأطباء",
-                        retryAction = SettingsRetryAction.UPLOAD
-                    )
-                }
-                return@launch
-            }
-            syncService.uploadCsv(shiftId)
-                .onSuccess { r ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = "تم رفع البيانات (${r.patientCount} مريض)",
-                            lastOperation = "آخر عملية ناجحة: رفع ${r.patientCount} مريض",
-                            retryAction = null
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = e.message ?: "فشل الرفع",
-                            retryAction = SettingsRetryAction.UPLOAD
-                        )
-                    }
-                }
         }
     }
 
-    fun forceUploadCurrent() {
+    fun cancelPublicationReview() {
         if (_state.value.syncing) return
-        if (!NetworkStatus.isOnline(context)) {
-            _state.update { it.copy(snackbar = "لا يوجد اتصال بالإنترنت", retryAction = SettingsRetryAction.FORCE_UPLOAD) }
-            return
-        }
-        _state.update { it.copy(syncing = true, snackbar = null, retryAction = null) }
+        publicationReview = null
+        _state.update { it.copy(publicationReviewText = null) }
+    }
+
+    fun confirmPublication() {
+        if (_state.value.syncing) return
+        val review = publicationReview ?: return
+        publicationReview = null
+        _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
         viewModelScope.launch {
-            val shiftId = shiftRepository.getByDate(ShiftDate.current())?.id
-            if (shiftId == null) {
-                _state.update { it.copy(syncing = false, snackbar = "لا توجد وردية حالية") }
-                return@launch
+            try {
+                check(NetworkStatus.isOnline(context)) { "لا يوجد اتصال بالإنترنت؛ أعد مراجعة النشر عند الاتصال" }
+                val result = syncService.uploadReviewedCsv(review).getOrThrow()
+                _state.update { it.copy(snackbar = "نُشرت النسخة المراجعة (${result.patientCount} مريض)",
+                    lastOperation = "آخر عملية: نشر النسخة الكاملة المراجعة") }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = e.message ?: "تعذر تأكيد النشر؛ افحص النسخة المنشورة قبل الإعادة",
+                    retryAction = SettingsRetryAction.UPLOAD) }
+            } finally {
+                _state.update { it.copy(syncing = false) }
             }
-            syncService.forceUploadCsv(shiftId)
-                .onSuccess { result ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = "تم فرض النسخة الحالية (${result.patientCount} مريض)",
-                            lastOperation = "آخر عملية: فرض النسخة المحلية"
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = error.message ?: "تعذر فرض النسخة الحالية",
-                            retryAction = SettingsRetryAction.FORCE_UPLOAD
-                        )
-                    }
-                }
         }
     }
 
@@ -747,7 +712,6 @@ class SettingsViewModel @Inject constructor(
         when (_state.value.retryAction) {
             SettingsRetryAction.FETCH -> bringLatest()
             SettingsRetryAction.UPLOAD -> uploadCurrent()
-            SettingsRetryAction.FORCE_UPLOAD -> forceUploadCurrent()
             SettingsRetryAction.EXPORT -> exportCsv()
             null -> Unit
         }

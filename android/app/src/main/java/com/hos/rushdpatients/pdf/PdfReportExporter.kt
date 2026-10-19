@@ -10,6 +10,7 @@ import android.text.TextDirectionHeuristics
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.report.ReportSummary
+import com.hos.rushdpatients.domain.report.ReportRosterLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -133,13 +134,15 @@ class PdfReportExporter @Inject constructor() {
 
                 var y = marginTop
 
-                val rosterTitle = (PdfReportContext.lines(options, summary) +
-                    ("${PdfStrings.REPORT_TITLE_PREFIX} " + doctors.joinToString(" + ") { it.fullName }))
-                    .joinToString("\n")
+                val rosterTitle = "${ReportRosterLabel.forDoctors(doctors)}: " + doctors.joinToString(" + ") { it.fullName }
+                val contextPaint = Paint(titlePaint).apply { textSize = 8.5f }
+                val contextLines = PdfTextWrapper.wrap(PdfReportContext.lines(summary).joinToString(" · "),
+                    contextPaint, contentWidth - 2 * cellPadding)
+                val contextHeight = contextLines.size * PdfTextWrapper.lineHeight(contextPaint) + 2 * cellPadding
                 val titleLines = PdfTextWrapper.wrap(rosterTitle, titlePaint, contentWidth - 2 * cellPadding)
                 val titleLineHeight = PdfTextWrapper.lineHeight(titlePaint)
                 val titleLinesPerPage = ((pageHeight - marginTop - marginBottom -
-                    2 * summaryBandHeight - headerMinHeight - 4 * cellPadding) / titleLineHeight)
+                    2 * summaryBandHeight - headerMinHeight - contextHeight - 4 * cellPadding) / titleLineHeight)
                     .toInt().coerceAtLeast(1)
                 titleLines.chunked(titleLinesPerPage).forEachIndexed { index, lines ->
                     if (index > 0) {
@@ -153,6 +156,7 @@ class PdfReportExporter @Inject constructor() {
                     }
                     y += drawTitleBand(canvas, y, lines)
                 }
+                y += drawTitleBand(canvas, y, contextLines, contextPaint)
 
                 drawSummaryBand(canvas, y, summary)
                 y += summaryBandHeight
@@ -160,47 +164,45 @@ class PdfReportExporter @Inject constructor() {
                 val headerHeight = drawHeaderRow(canvas, y)
                 y += headerHeight
 
-                val bottomLimit = pageHeight - marginBottom - summaryBandHeight - 2f
+                val timestampPaint = Paint(summaryPaint).apply { textSize = 8.5f; textAlign = Paint.Align.RIGHT }
+                val timestampSpace = 10f + PdfTextWrapper.lineHeight(timestampPaint)
+                val bottomLimit = pageHeight - marginBottom - summaryBandHeight - 2f - timestampSpace
 
+                val stripes = PdfTableStriping.colors(patients, palette)
                 patients.forEachIndexed { index, patient ->
-                    val bgColor: Int? = if (index % 2 == 0) palette.zebra else null
-
-                    val maxRowHeight = bottomLimit - marginTop - headerHeight
-                    val (cells, rowHeight) = layoutPatientRowToFit(
-                        patient = patient,
-                        residentNames = residentNames,
-                        supervisorNames = supervisorNames,
-                        maxHeight = maxRowHeight
-                    )
-
-                    if (y + rowHeight > bottomLimit) {
-                        document.finishPage(page)
-                        pageNumber++
-                        page = document.startPage(
-                            PdfDocument.PageInfo.Builder(
-                                pageWidth.toInt(), pageHeight.toInt(), pageNumber
-                            ).create()
-                        )
-                        canvas = page.canvas
-                        drawPageBackground(canvas)
-                        y = marginTop
-                        y += drawHeaderRow(canvas, y)
+                    val bgColor: Int? = stripes[index]
+                    val cells = layoutPatientRow(patient, residentNames, supervisorNames)
+                    val lineHeight = PdfTextWrapper.lineHeight(bodyPaint)
+                    val totalLines = cells.maxOf { it.lines.size }.coerceAtLeast(1)
+                    val totalHeight = maxOf(rowMinHeight, totalLines * lineHeight + 2 * cellPadding)
+                    val freshPageHeight = bottomLimit - marginTop - headerHeight
+                    var offset = 0
+                    while (offset < totalLines) {
+                        val remainingHeight = bottomLimit - y
+                        // Keep ordinary rows together; continue only rows taller than a page.
+                        var capacity = if (remainingHeight < rowMinHeight ||
+                            (offset == 0 && totalHeight <= freshPageHeight && totalHeight > remainingHeight)) 0
+                        else ((remainingHeight - 2 * cellPadding) / lineHeight).toInt()
+                        if (capacity < 1) {
+                            document.finishPage(page)
+                            pageNumber++
+                            page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth.toInt(), pageHeight.toInt(), pageNumber).create())
+                            canvas = page.canvas
+                            drawPageBackground(canvas)
+                            y = marginTop
+                            y += drawHeaderRow(canvas, y)
+                            capacity = ((bottomLimit - y - 2 * cellPadding) / lineHeight).toInt()
+                        }
+                        check(capacity > 0) { "حجم الورق لا يتسع للجدول؛ اختر ورقاً أكبر" }
+                        val count = minOf(capacity, totalLines - offset)
+                        val height = maxOf(rowMinHeight, count * lineHeight + 2 * cellPadding)
+                        drawPatientRowSlice(canvas, y, height, patient, cells, offset, count, bgColor)
+                        y += height
+                        offset += count
                     }
-
-                    drawPatientRowSlice(
-                        canvas = canvas,
-                        y = y,
-                        height = rowHeight,
-                        patient = patient,
-                        cells = cells,
-                        lineOffset = 0,
-                        lineCount = cells.maxOf { it.lines.size }.coerceAtLeast(1),
-                        bgColor = bgColor
-                    )
-                    y += rowHeight
                 }
 
-                if (y + summaryBandHeight > pageHeight - marginBottom - 2f) {
+                if (y + summaryBandHeight + timestampSpace > pageHeight - marginBottom - 2f) {
                     document.finishPage(page)
                     pageNumber++
                     page = document.startPage(
@@ -215,6 +217,9 @@ class PdfReportExporter @Inject constructor() {
                     y = marginTop
                 }
                 drawSummaryBand(canvas, y, summary)
+                y += summaryBandHeight + 10f
+                canvas.drawText(bidiFormatter.unicodeWrap(PdfReportContext.createdAt(options)), contentRight,
+                    y - timestampPaint.fontMetrics.top, timestampPaint)
 
                 document.finishPage(page)
                 outputFile.parentFile?.mkdirs()
@@ -251,6 +256,9 @@ class PdfReportExporter @Inject constructor() {
         }
 
         palette = PdfPalette.resolve(options)
+        titlePaint.textSize = 11f
+        summaryPaint.textSize = 10f
+        headerPaint.textSize = 9.5f
         bodyPaint.textSize = 9f
         bodyCenterPaint.textSize = bodyPaint.textSize
         summaryPaint.color = palette.text
@@ -268,16 +276,16 @@ class PdfReportExporter @Inject constructor() {
         }
     }
 
-    private fun drawTitleBand(canvas: Canvas, y: Float, lines: List<String>): Float {
-        val lineHeight = PdfTextWrapper.lineHeight(titlePaint)
-        val height = maxOf(titleBandHeight, lines.size * lineHeight + 2 * cellPadding)
+    private fun drawTitleBand(canvas: Canvas, y: Float, lines: List<String>, paint: Paint = titlePaint): Float {
+        val lineHeight = PdfTextWrapper.lineHeight(paint)
+        val height = maxOf(if (paint === titlePaint) titleBandHeight else 0f, lines.size * lineHeight + 2 * cellPadding)
         fillPaint.color = palette.titleHeader
         canvas.drawRect(contentLeft, y, contentRight, y + height, fillPaint)
         lines.forEachIndexed { index, line ->
             drawCenteredFittedText(
                 canvas = canvas, text = line, centerX = contentLeft + contentWidth / 2f,
-                baseline = y + cellPadding - titlePaint.fontMetrics.top + index * lineHeight,
-                paint = titlePaint, maxWidth = contentWidth - 2 * cellPadding
+                baseline = y + cellPadding - paint.fontMetrics.top + index * lineHeight,
+                paint = paint, maxWidth = contentWidth - 2 * cellPadding
             )
         }
         canvas.drawRect(contentLeft, y, contentRight, y + height, mediumBorderPaint)
@@ -379,42 +387,6 @@ class PdfReportExporter @Inject constructor() {
 
     private data class CellLines(val lines: List<String>, val paint: Paint)
 
-    private fun layoutPatientRowToFit(
-        patient: Patient,
-        residentNames: Map<String, String>,
-        supervisorNames: Map<String, String>,
-        maxHeight: Float
-    ): Pair<List<CellLines>, Float> {
-        val preferredSize = 9f
-        var size = preferredSize
-        var cells: List<CellLines>
-        var lineHeight: Float
-        var height: Float
-        do {
-            bodyPaint.textSize = size
-            bodyCenterPaint.textSize = size
-            cells = layoutPatientRow(patient, residentNames, supervisorNames)
-            lineHeight = PdfTextWrapper.lineHeight(bodyPaint)
-            height = (cells.maxOf { it.lines.size }.coerceAtLeast(1) * lineHeight + 2 * cellPadding)
-                .coerceAtLeast(rowMinHeight)
-            size -= 0.5f
-        } while (height > maxHeight && size >= 4f)
-
-        if (height > maxHeight) {
-            // Preserve every clinical line. For pathological amounts of text, scale the
-            // row further rather than silently truncating or continuing it on another page.
-            val scaledSize = (bodyPaint.textSize * maxHeight / height * 0.98f)
-                .coerceAtLeast(0.5f)
-            bodyPaint.textSize = scaledSize
-            bodyCenterPaint.textSize = scaledSize
-            cells = layoutPatientRow(patient, residentNames, supervisorNames)
-            lineHeight = PdfTextWrapper.lineHeight(bodyPaint)
-            height = (cells.maxOf { it.lines.size }.coerceAtLeast(1) * lineHeight + 2 * cellPadding)
-                .coerceAtLeast(rowMinHeight)
-        }
-        return cells to height
-    }
-
     private fun layoutPatientRow(
         patient: Patient,
         residentNames: Map<String, String>,
@@ -468,7 +440,8 @@ class PdfReportExporter @Inject constructor() {
                 else -> xStart + cellPadding
             }
             for (line in lines) {
-                canvas.drawText(autoDirection(line), xAnchor, baseline, paint)
+                if (i == cells.lastIndex) drawCenteredFittedText(canvas, line, xAnchor, baseline, paint, xEnd - xStart - 2 * cellPadding)
+                else canvas.drawText(autoDirection(line), xAnchor, baseline, paint)
                 baseline += lineHeight
             }
             canvas.drawRect(xStart, y, xEnd, y + height, borderPaint)

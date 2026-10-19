@@ -7,12 +7,13 @@ import json
 import re
 import time
 import uuid
-from desktop_protocol import COLUMNS, ZoneInfo, current_date, packed, require
+from desktop_protocol import COLUMNS, EDITABLE, ZoneInfo, current_date, packed, require
+from desktop_tasks import (TASK_PRIORITY, read_tasks, counts, validate as validate_tasks,
+                           carry_forward as carry_tasks, ordered_for_display, task_text)
 
 GENDER = {'M': 'ذكر', 'F': 'أنثى'}
 YES = {'Y': 'نعم', 'N': 'لا'}
 DIAGNOSIS = {'PSYCHIATRIC': 'نفسي', 'ADDICTION': 'إدمان', 'DUAL': 'نفسي + إدمان'}
-TASK_PRIORITY = {'LOW': 'منخفضة', 'NORMAL': 'عادية', 'HIGH': 'عالية'}
 BADGE_PRIORITY = {'none': 'دون مستوى', 'low': 'منخفضة', 'medium': 'متوسطة', 'high': 'عالية'}
 LABELS = {'name': 'الاسم', 'admitNum': 'رقم القبول', 'admitDate': 'تاريخ القبول YYYY-MM-DD',
           'birthDate': 'سنة الميلاد', 'gender': 'الجنس', 'hasCompanion': 'مرافق', 'diagnosisType': 'الحالة المرضية',
@@ -26,9 +27,8 @@ def doctor_label(doctors, key):
 
 
 def task_counts(patients):
-    tasks = [t for p in patients for t in json.loads(p.get('tasksJson') or '[]')]
-    pending = [t for t in tasks if not t.get('done')]
-    return len(pending), sum(bool(t.get('dueAtEpochMillis')) and t['dueAtEpochMillis'] <= time.time()*1000 for t in pending)
+    value = counts([task for patient in patients for task in read_tasks(patient)])
+    return value.pending, value.overdue
 
 
 def badges_decode(value):
@@ -70,18 +70,9 @@ def validate_patient(row, doctors, zone):
     for key, role in [('responsibleResidentId', 'RESIDENT'), ('responsibleSupervisorId', 'SUPERVISOR')]:
         value = row.get(key)
         require(not value or value in doctors and doctors[value]['clinicalRole'] == role, 'اختر طبيبا نشطا بالدور الصحيح')
-    tasks = json.loads(row.get('tasksJson') or '[]')
-    require(len({t['id'] for t in tasks}) == len(tasks), 'معرف مهمة مكرر')
+    tasks = read_tasks(row)
+    validate_tasks(tasks, require_completion=False)
     for task in tasks:
-        require(task['description'].strip(), 'وصف المهمة مطلوب')
-        require(task.get('priority', 'NORMAL') in TASK_PRIORITY, 'أولوية المهمة غير صالحة')
-        require(task.get('dueAtEpochMillis') is None or task['dueAtEpochMillis'] > 0, 'موعد المهمة غير صالح')
-        if task.get('dueShiftDate'):
-            try:
-                date.fromisoformat(task['dueShiftDate'])
-            except ValueError:
-                require(False, 'مناوبة استحقاق غير صالحة')
-            require(task.get('dueAtEpochMillis'), 'موعد مطلوب مع مناوبة الاستحقاق')
         require(not task.get('ownerDoctorId') or task['ownerDoctorId'] in doctors or task.get('done'), 'مسؤول المهمة غير نشط')
 
 
@@ -90,11 +81,9 @@ def carry_forward(source, zone, keep):
     for source_row in source['patients']:
         row = copy.deepcopy(source_row)
         row.update(externalId=str(uuid.uuid4()), revision='0', lastEditedBy='', lastEditedByDoctorId='', updatedAt='')
-        tasks = [t for t in json.loads(row.get('tasksJson') or '[]') if not t.get('done')]
+        tasks = carry_tasks(read_tasks(row), clear_owners=not keep)
         if not keep:
             row.update(responsibleResidentId='', responsibleSupervisorId='')
-            for task in tasks:
-                task.update(ownerDoctorId=None, ownerName=None)
         row['tasksJson'] = packed(tasks)
         shift['patients'].append(row)
     return shift
@@ -116,16 +105,9 @@ def patient_text(row, doctors, zone):
     if is_cross_team_cover(row,doctors):lines.append('تغطية فردية من فريق آخر؛ عضوية الفريق الثابتة لا تتغير')
     for text, level in badges_decode(row.get('warningDetails', '')):
         lines.append('شارة: ' + text + ' · ' + BADGE_PRIORITY[level])
-    for task in json.loads(row.get('tasksJson') or '[]'):
-        parts = [('مكتملة' if task.get('done') else 'معلقة') + ': ' + task['description'],
-                 'أولوية ' + TASK_PRIORITY.get(task.get('priority','NORMAL'), '')]
-        if task.get('ownerDoctorId'):
-            parts.append(doctors.get(task['ownerDoctorId'], {}).get('name', task.get('ownerName') or 'طبيب محفوظ'))
-        for key, label in [('dueAtEpochMillis','الموعد'),('completedAtEpochMillis','أتمت في')]:
-            if task.get(key): parts.append(label + ' ' + datetime.fromtimestamp(task[key]/1000,ZoneInfo(zone)).strftime('%Y-%m-%d %H:%M'))
-        if task.get('dueShiftDate'): parts.append('نهاية مناوبة ' + task['dueShiftDate'])
-        if task.get('completedByName'): parts.append('أتمها ' + task['completedByName'])
-        lines.append('مهمة: ' + ' · '.join(parts))
+    now = int(time.time()*1000)
+    for task in ordered_for_display(read_tasks(row), now):
+        lines.append('مهمة: ' + task_text(task, doctors, zone, now))
     return '\n'.join(lines)
 
 
@@ -135,3 +117,11 @@ def shift_text(shift, doctors, zone):
     for index,row in enumerate(shift['patients'],1):
         lines += ['\n──────── {} ────────'.format(index), patient_text(row,doctors,zone)]
     return '\n'.join(lines)
+
+
+def patient_edit_content(row):
+    """Saved clinical identity excluding publication bookkeeping and derived doctor labels."""
+    value = {key:row.get(key,'') for key in EDITABLE if key!='tasksJson'}
+    value['tasks'] = [{key:value for key,value in task.items() if key not in {'ownerName','completedByName'}}
+                      for task in json.loads(row.get('tasksJson') or '[]')]
+    return value

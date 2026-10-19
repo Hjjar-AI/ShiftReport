@@ -2,94 +2,108 @@ package com.hos.rushdpatients.ui.announcement
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hos.rushdpatients.config.AppConstants
-import com.hos.rushdpatients.config.Topic
-import com.hos.rushdpatients.config.Topics
-import com.hos.rushdpatients.data.repository.AuditRepository
-import com.hos.rushdpatients.domain.auth.AdminAuthorizer
-import com.hos.rushdpatients.network.telegram.TelegramClient
-import com.hos.rushdpatients.sync.SyncService
+import com.hos.rushdpatients.domain.announcement.AnnouncementPublisher
+import com.hos.rushdpatients.domain.announcement.AnnouncementReview
+import com.hos.rushdpatients.domain.report.ReportDeliveryLedger
+import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AnnouncementViewModel @Inject constructor(
-    private val telegram: TelegramClient,
-    private val topics: Topics,
-    private val syncService: SyncService,
-    private val auditRepository: AuditRepository,
-    private val adminAuthorizer: AdminAuthorizer
+    private val publisher: AnnouncementPublisher,
+    ledger: ReportDeliveryLedger
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(AnnouncementUiState())
     val state: StateFlow<AnnouncementUiState> = _state.asStateFlow()
+    private var reviewed: AnnouncementReview? = null
+    private fun busy() = _state.value.let { it.sending || it.reviewing || it.resolving }
 
-    init { load() }
-
-    private fun load() {
+    init {
+        refresh()
         viewModelScope.launch {
-            val id = syncService.announcementMessageId()
-            _state.update { it.copy(loading = false, lastMessageId = id) }
+            ledger.observe().catch {
+                _state.update { it.copy(ledgerUnavailable = true, snackbar = "تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد") }
+            }.collect { records ->
+                _state.update { it.copy(ledgerUnavailable = false,
+                    deliveryRecords = records.filter { row -> row.shiftId == AnnouncementPublisher.SCOPE && row.format == AnnouncementPublisher.SCOPE && row.status == "UNKNOWN" }) }
+            }
         }
     }
 
-    fun onTemplateChange(v: String) = _state.update { it.copy(template = v) }
-
-    fun send() {
-        if (_state.value.sending) return
-        val template = _state.value.template
-        if (template.isBlank()) {
-            _state.update { it.copy(snackbar = "النص فارغ") }
-            return
-        }
-        _state.update { it.copy(sending = true) }
+    fun refresh() {
+        if (busy() || _state.value.loading) return
+        _state.update { it.copy(loading = true) }
         viewModelScope.launch {
             try {
-                val actor = adminAuthorizer.requireAdmin()
-                val existing = _state.value.lastMessageId
-                val message = if (existing != null) {
-                    telegram.editMessageText(
-                        chatId = topics.chatId,
-                        messageId = existing,
-                        text = template,
-                        parseMode = com.hos.rushdpatients.network.telegram.ParseMode.MARKDOWN_V2
-                    )
-                } else {
-                    telegram.sendMessage(
-                        chatId = topics.chatId,
-                        text = template,
-                        parseMode = com.hos.rushdpatients.network.telegram.ParseMode.MARKDOWN_V2,
-                        messageThreadId = topics.threadId(Topic.ANNOUNCEMENTS)
-                    )
-                }
-
-                // Remember the announcement without replacing the dedicated sync-state pin.
-                syncService.recordAnnouncement(message.messageId)
-
-                auditRepository.record(
-                    actorDoctorId = actor.id,
-                    actorName = actor.fullName,
-                    action = AppConstants.AUDIT_ANNOUNCEMENT_UPDATED,
-                    detail = "messageId=${message.messageId}"
-                )
-
-                _state.update {
-                    it.copy(
-                        sending = false,
-                        lastMessageId = message.messageId,
-                        snackbar = "تم نشر الإعلان"
-                    )
-                }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(sending = false, snackbar = e.message ?: "فشل النشر")
-                }
+                val messageId = publisher.currentMessageId()
+                _state.update { it.copy(lastMessageId = messageId, loading = false) }
             }
+            catch (e: CancellationException) { _state.update { it.copy(loading = false) }; throw e }
+            catch (e: Exception) { _state.update { it.copy(loading = false, snackbar = e.message ?: "تعذر قراءة فهرس الإعلان") } }
+        }
+    }
+
+    fun onTemplateChange(value: String) {
+        if (busy()) return
+        reviewed = null
+        _state.update { it.copy(template = value, reviewText = null) }
+    }
+
+    fun review() {
+        if (busy() || _state.value.loading || _state.value.ledgerUnavailable) return
+        val text = _state.value.template
+        _state.update { it.copy(reviewing = true, reviewText = null) }
+        viewModelScope.launch {
+            try {
+                val prepared = publisher.prepare(text)
+                reviewed = prepared
+                _state.update { it.copy(reviewing = false, reviewText = prepared.text,
+                    reviewExisting = prepared.existingMessageId != null, lastMessageId = prepared.existingMessageId) }
+            } catch (e: CancellationException) { _state.update { it.copy(reviewing = false) }; throw e }
+            catch (e: Exception) { _state.update { it.copy(reviewing = false, snackbar = e.message ?: "تعذرت مراجعة الإعلان") } }
+        }
+    }
+
+    fun dismissReview() {
+        if (busy()) return
+        reviewed = null
+        _state.update { it.copy(reviewText = null) }
+    }
+
+    fun confirmSend() {
+        if (busy()) return
+        val review = reviewed ?: return
+        if (_state.value.reviewText != review.text || _state.value.template != review.text) return
+        reviewed = null
+        _state.update { it.copy(sending = true, reviewText = null) }
+        viewModelScope.launch {
+            try {
+                val messageId = publisher.publish(review)
+                _state.update { it.copy(sending = false, lastMessageId = messageId, snackbar = "تم نشر الإعلان وتأكيد الفهرس") }
+            } catch (e: CancellationException) { _state.update { it.copy(sending = false) }; throw e }
+            catch (e: Exception) { _state.update { it.copy(sending = false,
+                snackbar = (e.message ?: "لم يتأكد النشر") + "؛ راجع سجل التسليم قبل الإعادة") } }
+        }
+    }
+
+    fun resolve(record: ReportDeliveryRecord, messageId: Long?) {
+        if (busy()) return
+        _state.update { it.copy(resolving = true) }
+        viewModelScope.launch {
+            try {
+                publisher.resolve(record, messageId)
+                _state.update { it.copy(resolving = false, snackbar = "حُسمت العملية؛ أعد مراجعة النص قبل أي نشر جديد") }
+                refresh()
+            } catch (e: CancellationException) { _state.update { it.copy(resolving = false) }; throw e }
+            catch (e: Exception) { _state.update { it.copy(resolving = false, snackbar = e.message ?: "تعذر حسم التسليم") } }
         }
     }
 

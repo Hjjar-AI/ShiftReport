@@ -13,6 +13,7 @@ import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.task.PatientTasks
 import com.hos.rushdpatients.data.model.TaskPriority
 import com.hos.rushdpatients.domain.report.ReportSummary
+import com.hos.rushdpatients.domain.report.ReportRosterLabel
 import kotlinx.coroutines.ensureActive
 import java.io.File
 import java.io.FileOutputStream
@@ -41,7 +42,8 @@ internal class PdfPatientCardsRenderer {
     private val urgentHeading = Paint(heading)
     private val footer = Paint(body).apply { textSize = 8f; textAlign = Paint.Align.CENTER }
     private val bottom: Float get() = cardBottom - padding - PdfTextWrapper.lineHeight(footer) - gap -
-        (if (isIndexPage) 0f else PdfTextWrapper.lineHeight(navigation) + 2 * padding + gap)
+        (if (isIndexPage) 0f else PdfTextWrapper.lineHeight(navigation) + 2 * padding + gap) -
+        (10f + PdfTextWrapper.lineHeight(footer) + gap)
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -79,12 +81,13 @@ internal class PdfPatientCardsRenderer {
         val cardPages = mutableListOf<CardPage>()
         try {
             newPage(documentLabel, index = true)
-            indexText(PdfStrings.REPORT_TITLE_PREFIX, heading, documentLabel)
-            PdfReportContext.lines(options, summary).forEach { indexText(it, body, documentLabel) }
+            indexText("فهرس المرضى", Paint(heading).apply { textSize = 14f }, documentLabel)
+            val metadataPaint = Paint(body).apply { textSize = 9f }
+            indexText(PdfReportContext.lines(summary).joinToString(" · "), metadataPaint, documentLabel)
             indexText("${summary.patientCount} مريض · ${summary.psychoCount} حالة نفسية · ${summary.escortCount} مرافق", body, documentLabel)
-            indexText("أطباء المناوبة", heading, documentLabel)
-            doctors.forEach { indexText(it.fullName, body, documentLabel) }
-            indexText("اضغط اسم المريض لفتح بطاقته؛ اضغط اسمه في البطاقة للعودة إلى الفهرس.", body, documentLabel)
+            indexText(ReportRosterLabel.forDoctors(doctors), heading, documentLabel)
+            indexText(doctors.joinToString(" / ") { it.fullName }, body, documentLabel)
+            indexText("اضغط المريض لفتح البطاقة؛ زر الفهرس يعيدك إلى صفحته.", metadataPaint, documentLabel)
             patients.forEach { patient ->
                 coroutineContext.ensureActive()
                 val lines = PdfTextWrapper.wrap("${patient.sortOrder} · ${patient.name}", heading, right - left)
@@ -111,7 +114,7 @@ internal class PdfPatientCardsRenderer {
                     canvas.drawRect(margin, y, width - margin, y + h, fill)
                     lines.forEach { drawLine(it, name) }
                     y = top + h
-                    links += PdfInternalLinks.Link(pageIndex, RectF(margin, top, width - margin, y), entry.page, entry.rect.top)
+                    links += PdfInternalLinks.Link(pageIndex, RectF(margin, top, width - margin, y), entry.page, entry.rect.top, fitPage = true)
                     y += gap
                     cardPages += CardPage(index, pageIndex, drawNavigation(index, patients.size))
                 }
@@ -164,9 +167,11 @@ internal class PdfPatientCardsRenderer {
                 val previous = destinations.getOrNull(card.patientIndex - 1)
                 val next = destinations.getOrNull(card.patientIndex + 1)
                 previous?.let { links += PdfInternalLinks.Link(card.page, card.rects[0], it.page, it.top) }
-                links += PdfInternalLinks.Link(card.page, card.rects[1], indexEntry.page, indexEntry.rect.top)
+                links += PdfInternalLinks.Link(card.page, card.rects[1], indexEntry.page, indexEntry.rect.top, fitPage = true)
                 next?.let { links += PdfInternalLinks.Link(card.page, card.rects[2], it.page, it.top) }
             }
+            y += 10f
+            drawLine(PdfReportContext.createdAt(options), Paint(footer).apply { textAlign = Paint.Align.RIGHT })
             finishPage()
             outputFile.parentFile?.mkdirs()
             FileOutputStream(outputFile).use { document.writeTo(it) }

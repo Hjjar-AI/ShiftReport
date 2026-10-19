@@ -12,7 +12,8 @@ import java.util.Locale
  * This deliberately accepts native classic-xref output, not imported/arbitrary PDFs.
  */
 internal object PdfInternalLinks {
-    data class Link(val page: Int, val rect: RectF, val destinationPage: Int, val destinationTop: Float)
+    data class Link(val page: Int, val rect: RectF, val destinationPage: Int, val destinationTop: Float,
+                    val fitPage: Boolean = false)
     private data class Ref(val number: Int, val generation: Int)
     private data class Entry(val offset: Long, val generation: Int)
     private val reference = Regex("(\\d+)\\s+(\\d+)\\s+R")
@@ -102,8 +103,9 @@ internal object PdfInternalLinks {
                     val destination = pages[link.destinationPage].first
                     val rect = link.rect
                     val box = "${number(rect.left)} ${number(pageHeight - rect.bottom)} ${number(rect.right)} ${number(pageHeight - rect.top)}"
+                    val view = if (link.fitPage) "/Fit" else "/XYZ null ${number(pageHeight - link.destinationTop)} null"
                     writeObject(annotation, "<< /Type /Annot /Subtype /Link /Rect [$box] /Border [0 0 0] " +
-                        "/Dest [${destination.number} ${destination.generation} R /XYZ null ${number(pageHeight - link.destinationTop)} null] >>")
+                        "/Dest [${destination.number} ${destination.generation} R $view] >>")
                     "${annotation.number} 0 R"
                 }
                 val (pageRef, dict) = pages[index]

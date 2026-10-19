@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Dashboard
@@ -52,12 +51,11 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.hos.rushdpatients.R
-import com.hos.rushdpatients.domain.sort.GroupByMode
 
 internal enum class WardDrawerAction {
     ALL_PATIENTS, REPORT, ACTIVITY, SETTINGS, DASHBOARD, MY_PATIENTS, FILTERS,
-    SORT, GROUP, SHIFT_DOCTORS, SYNC_DETAILS, SYNC, PREVIOUS, DISMISS_SYNC_HINT,
-    EXPORT_CSV, RECYCLE_BIN, ADMIN, IMPORT, ABOUT, START_SHIFT
+    SHIFT_DOCTORS, SYNC_DETAILS, SYNC, PREVIOUS, DISMISS_SYNC_HINT,
+    EXPORT_CSV, RECYCLE_BIN, ADMIN, IMPORT, ABOUT, START_SHIFT, UNDO_DOWNLOAD
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -108,7 +106,7 @@ internal fun WardDrawer(
                     }
                 }
                 PatientSyncNotice(status = state.syncStatus, freshnessLabel = state.syncStatus.arabicLabel,
-                    online = online, conflictCount = state.mergeConflicts.size, compact = true)
+                    online = online, compact = true)
             }
         }
 
@@ -121,7 +119,7 @@ internal fun WardDrawer(
             )
         CompactDrawerItem(
                 icon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
-                label = { Text("معاينة وإرسال التقرير") },
+                label = { Text("إرسال تقرير") },
                 selected = false,
                 onClick = { onAction(WardDrawerAction.REPORT) },
                 modifier = Modifier.padding(horizontal = UiSpacing.medium),
@@ -171,24 +169,9 @@ internal fun WardDrawer(
             )
             CompactDrawerItem(
                 icon = { Icon(Icons.Filled.FilterList, contentDescription = null) },
-                label = { Text("بحث وتصفية وترتيب") },
+                label = { Text("التصفية والعرض والترتيب") },
                 selected = filtersSelected,
                 onClick = { onAction(WardDrawerAction.FILTERS) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.Sort, contentDescription = null) },
-                label = { Text("ترتيب المرضى") },
-                selected = false,
-                onClick = { if (!state.isReadOnly) onAction(WardDrawerAction.SORT) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium),
-                enabled = !state.isReadOnly
-            )
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-                label = { Text("تجميع المرضى") },
-                selected = state.groupByMode != GroupByMode.NONE,
-                onClick = { onAction(WardDrawerAction.GROUP) },
                 modifier = Modifier.padding(horizontal = UiSpacing.medium)
             )
             CompactDrawerItem(
@@ -214,6 +197,12 @@ internal fun WardDrawer(
             }
         )
         if (dataMenuExpanded) {
+            if (state.canUndoDownload) CompactDrawerItem(
+                icon = { Icon(Icons.Filled.History, contentDescription = null) },
+                label = { Text("التراجع عن آخر تنزيل") }, selected = false,
+                enabled = !state.syncing && !state.saving,
+                onClick = { onAction(WardDrawerAction.UNDO_DOWNLOAD) },
+                modifier = Modifier.padding(horizontal = UiSpacing.medium))
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -239,7 +228,7 @@ internal fun WardDrawer(
                         }
                     }
                     PatientSyncNotice(status = state.syncStatus, freshnessLabel = freshnessLabel,
-                        online = online, conflictCount = state.mergeConflicts.size,
+                        online = online,
                         onDetails = { onAction(WardDrawerAction.SYNC_DETAILS) })
                     state.lastOperation?.let { AppNotice(it) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)) {

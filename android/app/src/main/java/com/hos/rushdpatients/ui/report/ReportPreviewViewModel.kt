@@ -40,7 +40,6 @@ import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfReportExporter
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.sync.SyncService
-import com.hos.rushdpatients.sync.ConflictChoice
 import com.hos.rushdpatients.util.ShiftDate
 import com.hos.rushdpatients.util.NetworkStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -108,36 +107,7 @@ class ReportPreviewViewModel @Inject constructor(
             }.collect { isAdmin -> _state.update { it.copy(isAdmin = isAdmin) } }
         }
         load()
-        viewModelScope.launch {
-            syncService.patientConflicts.collect { conflicts ->
-                _state.update { it.copy(mergeConflicts = conflicts) }
-            }
-        }
     }
-
-    fun resolveMergeConflicts(choices: Map<String, ConflictChoice>) {
-        _state.update { it.copy(resolvingConflicts = true) }
-        viewModelScope.launch {
-            syncService.resolvePatientConflicts(choices)
-                .onSuccess {
-                    _state.update { state ->
-                        state.copy(
-                            resolvingConflicts = false,
-                            snackbar = "تم الدمج والنشر. راجع التقرير ثم أرسله.",
-                            retryAction = null
-                        )
-                    }
-                    load()
-                }
-                .onFailure { error ->
-                    _state.update {
-                        it.copy(resolvingConflicts = false, error = error.message ?: "تعذر حل التعارض")
-                    }
-                }
-        }
-    }
-
-    fun dismissMergeConflicts() = syncService.dismissPatientConflicts()
 
     fun load(reviewNotice: String? = null) {
         if (_state.value.sending || _state.value.savingDoctors) return
@@ -200,7 +170,7 @@ class ReportPreviewViewModel @Inject constructor(
     ) {
         val current = _state.value
         if (current.loading || current.savingDoctors || current.sending || current.previewingPdf ||
-            current.exportingLocalPdf || current.sharingPdf || current.resolvingConflicts) return
+            current.exportingLocalPdf || current.sharingPdf) return
         if (current.isReadOnly || current.shift == null) return
         _state.update { it.copy(savingDoctors = true, error = null) }
         viewModelScope.launch {
@@ -525,7 +495,7 @@ class ReportPreviewViewModel @Inject constructor(
     fun exportAssignments() {
         val current = _state.value
         if (current.loading || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf ||
-            current.sharingPdf || current.sending || current.resolvingConflicts || current.shift == null) return
+            current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(exportingLocalPdf = true, error = null, retryAction = null) }
         viewModelScope.launch {
             try {

@@ -32,6 +32,7 @@ class DemoClient:
 class DemoWorkspace(Workspace):
     def __init__(self, client):
         self.zone=client.zone;self.project='demo';self.locked=False;self._receipt=None
+        self.client=client;self.local_actor=None
         self.state={'project':'demo','baseline':None,'draft':None,'receipts':[]}
         self.reset(client)
 

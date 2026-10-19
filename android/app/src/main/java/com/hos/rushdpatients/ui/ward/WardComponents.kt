@@ -48,8 +48,7 @@ internal fun CompactFilterChip(
         label = {
             Text(
                 label,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1
+                style = MaterialTheme.typography.labelSmall
             )
         },
         modifier = Modifier.heightIn(min = UiSpacing.touchTarget)

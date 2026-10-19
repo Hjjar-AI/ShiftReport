@@ -18,7 +18,6 @@ import com.hos.rushdpatients.data.repository.StaleDoctorImportException
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.domain.doctor.DoctorCsvCodec
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
-import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.CancellationException
 import com.hos.rushdpatients.sync.SyncService
@@ -57,27 +56,6 @@ class DoctorsViewModel @Inject constructor(
 
     init {
         observe()
-        viewModelScope.launch {
-            syncService.doctorConflicts.collect { conflicts ->
-                _state.update { it.copy(mergeConflicts = conflicts) }
-            }
-        }
-    }
-
-    fun resolveRegistryConflicts(choices: Map<String, DoctorMergeChoice>) {
-        if (_state.value.saving || _state.value.importing) return
-        _state.update { it.copy(saving = true) }
-        viewModelScope.launch {
-            try {
-                syncService.resolveDoctorConflicts(choices).fold(
-                    onSuccess = { _state.update { it.copy(saving = false, snackbar = "تم دمج سجل الأطباء ومزامنته") } },
-                    onFailure = { error -> fail(error.message ?: "تعذر تطبيق دمج سجل الأطباء") }
-                )
-            } catch (e: CancellationException) {
-                _state.update { it.copy(saving = false) }
-                throw e
-            }
-        }
     }
 
     private fun observe() {

@@ -264,29 +264,8 @@ def validate_wire_patient(patient):
     require(re.fullmatch(r'[0-9]{4}', patient['birthDate']), 'مطلوب عام الميلاد الحالي')
     require(1900 <= int(patient['birthDate']) <= 2100, 'سنة الميلاد غير صالحة')
     require(int(patient.get('revision') or 0) >= 0, 'نسخة مريض غير صالحة')
-    tasks = json.loads(patient.get('tasksJson') or '[]')
-    require(isinstance(tasks, list) and all(isinstance(t, dict) for t in tasks), 'قائمة مهام غير صالحة')
-    require(len({t['id'] for t in tasks}) == len(tasks), 'معرف مهمة مكرر')
-    allowed = {'id', 'description', 'ownerDoctorId', 'ownerName', 'priority', 'dueAtEpochMillis', 'dueShiftDate',
-               'done', 'completedByDoctorId', 'completedByName', 'completedAtEpochMillis'}
-    for task in tasks:
-        require(set(task) <= allowed and isinstance(task.get('id'), str) and task['id'].strip() and
-                isinstance(task.get('description'), str) and task['description'].strip(), 'مهمة غير صالحة')
-        require(task.get('priority', 'NORMAL') in {'LOW', 'NORMAL', 'HIGH'} and
-                isinstance(task.get('done', False), bool), 'حالة مهمة غير صالحة')
-        for key in ['ownerDoctorId', 'ownerName', 'dueShiftDate', 'completedByDoctorId', 'completedByName']:
-            require(task.get(key) is None or isinstance(task[key], str), 'هوية أو نص مهمة غير صالح')
-        require(task.get('ownerDoctorId') is None or task['ownerDoctorId'].strip(), 'مسؤول مهمة غير صالح')
-        due = task.get('dueAtEpochMillis')
-        require(due is None or type(due) is int and due > 0, 'موعد مهمة غير صالح')
-        if task.get('dueShiftDate') is not None:
-            date.fromisoformat(task['dueShiftDate'])
-            require(due is not None, 'موعد المهمة مطلوب مع مناوبة الاستحقاق')
-        completion = [task.get(k) for k in ['completedByDoctorId', 'completedByName', 'completedAtEpochMillis']]
-        if task.get('done'):
-            require(all(completion) and type(completion[2]) is int and completion[2] > 0, 'سجل إتمام المهمة غير مكتمل')
-        else:
-            require(all(v is None for v in completion), 'مهمة معلقة تحمل سجل إتمام')
+    from desktop_tasks import read_tasks, validate as validate_tasks
+    validate_tasks(read_tasks(patient))
     from desktop_model import badges_decode
     badges_decode(patient.get('warningDetails', ''))
 
@@ -460,7 +439,7 @@ class Client:
     def require_admin(self):
         snapshot = self.fetch()
         actor = self.authorize(snapshot['doctors'])
-        require(is_admin(actor), 'تصدير توزيع المرضى متاح للمدير فقط')
+        require(is_admin(actor), 'هذا الإجراء متاح للمدير فقط')
         return actor
 
     def download(self):
@@ -495,11 +474,10 @@ class Client:
         plan = Review(pointer(remote['state']), doctor_pointer(remote['state']), output, remote['bundle'], remote, [])
         return plan
 
-    def prepare(self, plan, restored_completions=None):
+    def prepare(self, plan, restored_completions=None, saved_patients=None):
         require(not plan.conflicts, 'راجع كل التعارضات أولا')
-        actor = self.authorize(plan.remote['doctors'])
+        self.authorize(plan.remote['doctors'])
         doctors = plan.remote['doctors']
-        now = int(time.time() * 1000)
         shift = copy.deepcopy(plan.shift)
         from desktop_sort import ordered
         ordered(shift, doctors, self.zone)
@@ -509,42 +487,41 @@ class Client:
         roster = shift['meta'].get('doctors', '').split(',')
         require(roster and all(d in doctors for d in roster), 'حدد أطباء مناوبة نشطين')
         require(len(set(roster)) == len(roster), 'طبيب مكرر في المناوبة')
-        from desktop_model import validate_patient, badges_decode
+        from desktop_model import validate_patient, badges_decode, patient_edit_content
+        from desktop_tasks import read_tasks, resolve_owner, COMPLETION
+        saved_rows = {row['externalId']:row for row in (saved_patients or [])}
         for row in shift['patients']:
             validate_patient(row, doctors, self.zone)
             old = previous.get(row['externalId'], {})
             old_tasks = {t['id']: t for t in json.loads(old.get('tasksJson') or '[]')}
-            recovered = next((entry['tasks'] for entry in (restored_completions or [])
-                              if entry['shiftId'] == shift['meta']['shiftId'] and entry['patientId'] == row['externalId']), [])
-            # Only previously published completions from encrypted local recovery are retained.
-            # Editable form completion fields still do not establish completion identity/time.
-            for task in recovered:
-                if task.get('done'): old_tasks.setdefault(task['id'], task)
-            tasks = json.loads(row.get('tasksJson') or '[]')
-            require(isinstance(tasks, list) and len({t['id'] for t in tasks}) == len(tasks), 'قائمة مهام غير صالحة')
+            for entry in (restored_completions or []):
+                if entry['shiftId']!=shift['meta']['shiftId'] or entry['patientId']!=row['externalId']:continue
+                for task in entry['tasks']:
+                    if not task.get('done'):continue
+                    if entry.get('local'):old_tasks[task['id']]=task
+                    else:old_tasks.setdefault(task['id'],task)
+            tasks = read_tasks(row)
             for task in tasks:
-                require(task['id'] and str(task['description']).strip() and task.get('priority', 'NORMAL') in {'LOW', 'NORMAL', 'HIGH'}, 'مهمة ناقصة أو مكررة')
                 task['description'] = task['description'].strip()
-                owner = task.get('ownerDoctorId')
                 before = old_tasks.get(task['id'], {})
-                require(not owner or owner in doctors or task.get('done') and owner == before.get('ownerDoctorId'), 'مسؤول مهمة غير نشط')
-                task['ownerName'] = doctors[owner]['name'] if owner in doctors else before.get('ownerName') if owner else None
-                require(task.get('dueAtEpochMillis') is None or task['dueAtEpochMillis'] > 0, 'موعد مهمة غير صالح')
-                if task.get('dueShiftDate'):
-                    require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',task['dueShiftDate']) is not None,'مناوبة استحقاق المهمة يجب أن تكون YYYY-MM-DD')
-                    date.fromisoformat(task['dueShiftDate']); require(task.get('dueAtEpochMillis') is not None, 'موعد المهمة مطلوب مع مناوبة الاستحقاق')
+                resolve_owner(task, doctors, before)
                 if not task.get('done'):
                     task.update(completedByDoctorId=None, completedByName=None, completedAtEpochMillis=None)
                 elif before.get('done'):
-                    for key in ['completedByDoctorId', 'completedByName', 'completedAtEpochMillis']: task[key] = before[key]
+                    for key in COMPLETION: task[key] = before[key]
                 else:
-                    task.update(completedByDoctorId=self._actor, completedByName=actor['name'], completedAtEpochMillis=now)
+                    require(False, 'احفظ إتمام المهمة محلياً بهوية الطبيب أولاً؛ النشر لا يحدد من أتمها')
             row['tasksJson'] = packed(tasks)
             row['warningFlags'] = '|'.join(level for _,level in badges_decode(row.get('warningDetails', '')) if level != 'none')
             validate_wire_patient(row)
             changed = not old or any(row.get(k, '') != old.get(k, '') for k in EDITABLE)
             if changed:
-                row.update(lastEditedByDoctorId=self._actor, lastEditedBy=actor['name'], updatedAt=str(now), revision=str(int(old.get('revision') or 0) + 1))
+                saved = saved_rows.get(row['externalId'])
+                require(saved is not None and patient_edit_content(saved)==patient_edit_content(row) and
+                        str(saved.get('updatedAt','')).isdigit() and int(saved['updatedAt'])>0,
+                        'احفظ تعديل المريض محلياً أولاً؛ النشر يحفظ هوية المحرر ولا ينسبها للناشر')
+                row.update(lastEditedByDoctorId=saved.get('lastEditedByDoctorId',''),lastEditedBy=saved.get('lastEditedBy',''),
+                           updatedAt=saved['updatedAt'],revision=str(max(int(saved.get('revision') or 0),int(old.get('revision') or 0)+1)))
         meta = shift['meta']
         meta.update(schemaVersion='7', snapshotId=str(uuid.uuid4()), baseSnapshotId=latest['meta'].get('snapshotId', '') if latest else '',
                     shiftRevision=str(int(latest['meta'].get('shiftRevision') or 0) + 1) if latest else '1', deviceId=self.device,

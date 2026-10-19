@@ -3,13 +3,15 @@ from __future__ import annotations
 from datetime import datetime, date
 from functools import cmp_to_key
 import json
-from desktop_protocol import ZoneInfo, packed, require
+from desktop_protocol import ZoneInfo, packed, require, fingerprint
 from desktop_model import DIAGNOSIS, GENDER
 
 FIELDS = {'NAME':'الاسم', 'GENDER':'الجنس', 'DIAGNOSIS':'التصنيف والتشخيص',
           'DAYS_OF_ADMITTANCE':'أيام القبول', 'SUPERVISOR':'المشرف'}
 GROUPS = {'NONE':'دون تجميع', 'SUPERVISOR':'حسب المشرف', 'RESIDENT':'حسب المقيم',
           'DIAGNOSIS':'حسب التصنيف', 'GENDER':'حسب الجنس', 'ADMISSION_DATE':'حسب تاريخ القبول'}
+WORKBOOK_LEVELS = [dict(field=field,direction='DESC' if field in {'GENDER','DAYS_OF_ADMITTANCE'} else 'ASC') for field in
+                   ('GENDER','DIAGNOSIS','DAYS_OF_ADMITTANCE','NAME')]
 
 
 def levels_for(shift):
@@ -74,6 +76,7 @@ def sorting_dialog(owner):
     import desktop_widgets as ctk
     from desktop_forms import modal, combo, button, guarded
     draft=owner.editable()
+    expected=fingerprint(draft)
     existing=levels_for(draft)
     window=modal(owner,'ترتيب متعدد المستويات','680x680')
     controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
@@ -89,10 +92,25 @@ def sorting_dialog(owner):
         levels=[dict(field=field(),direction=direction()) for field,direction in inputs if field()!='NONE']
         require(len({level['field'] for level in levels})==len(levels),'اختر كل حقل مرة واحدة')
         ordered(draft,owner.client.doctors,owner.client.zone,levels)
-        owner.save_draft(draft);window.destroy()
+        owner.save_draft(draft,expected);window.destroy()
+    def workbook_default():
+        ordered(draft,owner.client.doctors,owner.client.zone,[dict(level) for level in WORKBOOK_LEVELS])
+        owner.save_draft(draft,expected);window.destroy()
+    button(controls,'ترتيب Excel الافتراضي: الجنس ← التشخيص ← أيام القبول ← الاسم',guarded(workbook_default))
     button(controls,'حفظ الترتيب',guarded(save));button(controls,'إلغاء',window.destroy)
     owner.root.wait_window(window)
 
 
 def manual_move_allowed(grouping, filter_label, query):
     return grouping==GROUPS['NONE'] and filter_label=='الكل' and not query.strip()
+
+
+def insert_patient(shift, patient, position):
+    """One-based stored position; priority-first remains an explicit invariant."""
+    require(type(position) is int and 1<=position<=len(shift['patients'])+1,'موضع المريض خارج القائمة')
+    require(not any(row['externalId']==patient['externalId'] for row in shift['patients']),'معرّف المريض موجود')
+    priorities=sum(row.get('isPriority')=='Y' for row in shift['patients'])
+    require(position<=priorities+1 if patient.get('isPriority')=='Y' else position>priorities,
+            'مرضى الأولوية أولاً؛ اختر موضعاً ضمن مجموعة أولوية المريض')
+    shift['patients'].insert(position-1,patient)
+    shift['meta']['sortSpec']=packed(dict(levels=[]))

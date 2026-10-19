@@ -22,7 +22,8 @@ import javax.inject.Singleton
 data class ReportDeliveryRecord(
     val id: String, val shiftId: String, val route: String, val key: String,
     val label: String, val format: String, val actorId: String,
-    val at: Long, val status: String = "UNKNOWN", val messageIds: List<Long> = emptyList()
+    val at: Long, val status: String = "UNKNOWN", val messageIds: List<Long> = emptyList(),
+    val metadata: Map<String, Long> = emptyMap()
 )
 
 @Serializable
@@ -53,7 +54,7 @@ class ReportDeliveryLedger @Inject constructor(
         ?: error("يجب تسجيل الدخول بطبيب نشط قبل تعديل سجل التسليم")
 
     private suspend fun begin(shiftId: String, chatId: Long, contentKey: String, format: String,
-                      label: String, expectedActorId: String?): ReportDeliveryRecord = withContext(Dispatchers.IO) {
+                      label: String, expectedActorId: String?, metadata: Map<String, Long>): ReportDeliveryRecord = withContext(Dispatchers.IO) {
         mutex.withLock {
             val actor = activeActor()
             require(actor.id == expectedActorId) { "تغير مستخدم الإرسال؛ أعد المراجعة" }
@@ -62,7 +63,7 @@ class ReportDeliveryLedger @Inject constructor(
             val log = load()
             requireAllowed(log, route, key)
             val record = ReportDeliveryRecord(UUID.randomUUID().toString(), shiftId, route, key,
-                label, format, actor.id, System.currentTimeMillis())
+                label, format, actor.id, System.currentTimeMillis(), metadata = metadata)
             save(log.copy(records = log.records + record, repeatPermits = log.repeatPermits - key))
             activeAttempts += record.id
             record
@@ -71,9 +72,10 @@ class ReportDeliveryLedger @Inject constructor(
 
     /** Register and release together even if cancellation arrives during durable registration. */
     suspend fun <T> deliver(shiftId: String, chatId: Long, contentKey: String, format: String,
-                           label: String, expectedActorId: String?, block: suspend (ReportDeliveryRecord) -> T): T {
+                           label: String, expectedActorId: String?, metadata: Map<String, Long> = emptyMap(),
+                           block: suspend (ReportDeliveryRecord) -> T): T {
         val record = withContext(NonCancellable) {
-            begin(shiftId, chatId, contentKey, format, label, expectedActorId)
+            begin(shiftId, chatId, contentKey, format, label, expectedActorId, metadata)
         }
         try { return block(record) }
         finally {
@@ -85,9 +87,9 @@ class ReportDeliveryLedger @Inject constructor(
 
     private fun requireAllowed(log: DeliveryLog, route: String, key: String) {
         if (log.records.any { it.route == route && it.status == "UNKNOWN" }) throw ReportDeliveryBlockedException(
-            "يوجد تسليم غير مؤكد لهذه المناوبة والوجهة؛ افتح سجل التسليم وافحص تليجرام ثم احسمه قبل الإعادة")
+            "يوجد إرسال غير مؤكد لهذه الوجهة؛ افتح سجل التسليم وافحص تليجرام ثم احسمه قبل الإعادة")
         if (log.records.any { it.key == key && it.status == "SENT" } && key !in log.repeatPermits) throw ReportDeliveryBlockedException(
-            "هذا التقرير سُلّم سابقاً؛ افتح سجل التسليم واسمح صراحةً بنسخة إضافية إن أردتها")
+            "هذا المحتوى سُلّم سابقاً؛ افتح سجل التسليم واسمح صراحةً بنسخة إضافية إن أردتها")
     }
 
     suspend fun check(shiftId: String, chatId: Long, contentKey: String, format: String) = withContext(Dispatchers.IO) {
@@ -107,14 +109,23 @@ class ReportDeliveryLedger @Inject constructor(
         }
     }
 
+    private suspend fun resolvable(log: DeliveryLog, id: String, expectedStatus: String): ReportDeliveryRecord {
+        val actor = activeActor()
+        require(id !in activeAttempts) { "طلب التسليم ما زال قيد التنفيذ؛ انتظر نتيجته قبل الحسم" }
+        val row = log.records.singleOrNull { it.id == id } ?: error("سجل التسليم غير موجود")
+        require(row.status == expectedStatus) { "تغيرت حالة العملية؛ أعد فتح سجل التسليم" }
+        require(actor.id == row.actorId || actor.isAdmin) { "حسم العملية متاح لمن أرسلها أو لمدير نشط" }
+        return row
+    }
+
+    suspend fun requireResolvable(id: String, expectedStatus: String): ReportDeliveryRecord = withContext(Dispatchers.IO) {
+        mutex.withLock { resolvable(load(), id, expectedStatus) }
+    }
+
     suspend fun resolve(id: String, expectedStatus: String, resolution: DeliveryResolution) = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val actor = activeActor()
-            require(id !in activeAttempts) { "طلب التسليم ما زال قيد التنفيذ؛ انتظر نتيجته قبل الحسم" }
             val log = load()
-            val row = log.records.singleOrNull { it.id == id } ?: error("سجل التسليم غير موجود")
-            require(row.status == expectedStatus) { "تغيرت حالة العملية؛ أعد فتح سجل التسليم" }
-            require(actor.id == row.actorId || actor.isAdmin) { "حسم العملية متاح لمن أرسلها أو لمدير نشط" }
+            val row = resolvable(log, id, expectedStatus)
             if (resolution == DeliveryResolution.ALLOW_COPY) {
                 require(row.status == "SENT") { "احسم التسليم غير المؤكد أولاً" }
                 save(log.copy(repeatPermits = log.repeatPermits + row.key))

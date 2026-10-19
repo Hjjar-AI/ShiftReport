@@ -26,13 +26,91 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Clinical data and reports
 
+- Compacted Classic PDF headers, changed card index returns to full-page fit, and
+  corrected assignment tables to right-side Arabic numbering and RTL team flow,
+  with thin vertical gutters separating supervisor tables.
+  Removed hospital/ward names from every PDF and the shift date from assignment
+  PDFs. Separated roster titles from small metadata, simplified index/assignment
+  headings and shortened repeated explanatory text. Creation timestamps appear
+  once below the final content, with spacing and reserved pagination room.
+  Cards retain enforced A5
+  portrait. Samples and verification limits are in
+  [current state](current-state.md#compact-classic-header-page-fit-card-index-and-rtl-assignment-layout).
+
+- Simplified patient-entry insertion options and made report controls follow the
+  selected format/layout. Preserved hidden selections and corrected forced-PDF
+  output while retaining the user's ordinary format preference. Details and checks
+  are in [current state](current-state.md#patient-entry-and-report-option-presentation).
+
+- Consolidated ward controls across Android and desktop: clearer action groups,
+  compact secondary view options, visible active filters and complete filter reset.
+  Desktop cards group secondary actions under More; Android drawer shares view
+  options and consistent patient presets. Preserved roster access and report review.
+  Details and verification limits are in
+  [current state](current-state.md#ward-layout-and-view-control-consolidation).
+
+- Added positioned patient insertion, guarded local undo-download and the Excel
+  sort preset on both clients. Added adaptive table striping, roster-aware PDF
+  headings; the former Excel PDF style is merged into compact Classic. Desktop also normalizes typed
+  admission dates and includes companion totals in text reports. Evidence and
+  limits are in [current state](current-state.md#selected-workbook-workflow-and-report-features).
+
+- Fixed desktop stale sort/snapshot saves, verified unfinished-form ownership and
+  protected shift rollover with an explicitly saved independent encrypted archive
+  of unpublished work. Evidence and runtime limits are in
+  [current state](current-state.md#desktop-stale-saves-draft-identity-and-rollover-protection).
+
+- Added desktop handover dashboard actions, Android-aligned report completeness
+  notes and a shift-doctor picker at the start of report setup. Roster edits retain
+  stale-draft protection and report preparation reloads the saved selection.
+  Evidence and limits are in [current state](current-state.md#desktop-handover-and-report-setup-alignment).
+
+- Added desktop read-only patient rounds and scoped admin activity. Unified Android
+  Settings/recovery publication behind snapshot review and removed the force bypass.
+  Details and verification limits are in [current state](current-state.md#patient-rounds-and-reviewed-recovery-publication).
+
+- Aligned desktop pending-download protection, Save and next, General/Advanced
+  clinical fields, appearance controls and Android-compatible `.rpb` recovery.
+  Preserved task attribution and device delivery receipts. Evidence and limits are
+  in [current state](current-state.md#download-editor-appearance-and-portable-backup-alignment).
+
+- Consolidated desktop single/batch delivery safeguards and shared task validation,
+  counts, deadlines, display order, rollover and task presentation across editors,
+  patient views, ward lists and reports. Ward task actions retain project/shift/lock
+  checks. Dummy transport/clinical checks
+  and runtime limits are in [current state](current-state.md#shared-desktop-report-delivery-and-task-rules).
+
 - Added both-platform ward status with recorded download/publication/delivery state,
   individual ward task lists and reviewed batch team management; retained clinical
   save, admin and stale-edit protections. Desktop manually confirmed arrival now
   permits an explicitly approved extra copy. Local/graphical/dummy-workflow checks
   and device limits are in [current state](current-state.md#workflow-status-ward-tasks-and-batch-teams).
-  Removed an unsupported doctor-conflict-dialog argument reported by the owner's
-  Android build; the corrected source has not been rebuilt.
+  The owner's Android debug build passed after the doctor-conflict-dialog call fix.
+
+- Consolidated Android ward synchronization metadata and next-action selection.
+  Removed unused remote field-merge dialogs, state and callbacks; local stale-edit
+  review remains. Failed downloads no longer invent unpublished edits. Details and
+  source-only verification limits are in [current state](current-state.md#android-synchronization-consolidation).
+
+- Brought desktop closer to Android: reviewed multi-supervisor PDF delivery with
+  individual receipts, encrypted unfinished patient-form recovery, combined ward
+  filters and Arabic search, action identifiers, and admin announcement management.
+  Android now compares each shift with its locally known snapshot separately from
+  the device-wide pending flag. Evidence and remaining runtime limits are in
+  [current state](current-state.md#cross-platform-workflow-parity).
+
+- Aligned desktop task completion with Android's local-save attribution and retained
+  it through publication/recovery. Added admin local clinical history, persistent
+  encrypted report preferences, inline patient details, expand/collapse all and
+  view-only pinning. Evidence and runtime limits are in
+  [current state](current-state.md#local-clinical-attribution-activity-and-desktop-presentation).
+
+- Preserved desktop local patient-editor metadata during publication and refreshed
+  time-sensitive ward/task displays every minute. Android announcements now use
+  literal-text review/confirmation and durable uncertainty tracking; both clients
+  preserve project encryption and safely repair confirmed announcement references.
+  Evidence and Android source-only limits are in
+  [current state](current-state.md#patient-editor-clock-refresh-and-reviewed-announcements).
 
 - Persisted Android report-delivery uncertainty across restarts, with sender/admin
   resolution and explicit permission for an extra copy. PDF sending now uses the

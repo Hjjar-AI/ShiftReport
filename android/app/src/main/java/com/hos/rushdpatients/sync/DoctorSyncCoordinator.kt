@@ -13,8 +13,7 @@ import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
-import com.hos.rushdpatients.domain.doctor.DoctorRegistryConflict
-import com.hos.rushdpatients.domain.doctor.DoctorMergeChoice
+import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.util.DispatcherProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,9 +21,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.util.Locale
 import javax.inject.Inject
@@ -41,12 +37,11 @@ class DoctorSyncCoordinator @Inject constructor(
     private val database: AppDatabase,
     private val auditRepository: AuditRepository,
     private val adminAuthorizer: AdminAuthorizer,
+    private val sessions: SessionManager,
     private val dispatchers: DispatcherProvider,
     private val remoteState: RemoteSyncStateStore
 ) {
     private val doctorSyncMutex = Mutex()
-    private val _doctorConflicts = MutableStateFlow<List<DoctorRegistryConflict>>(emptyList())
-    val doctorConflicts: StateFlow<List<DoctorRegistryConflict>> = _doctorConflicts.asStateFlow()
 
     suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSyncMutex.withLock {
         withContext(dispatchers.io) {
@@ -256,7 +251,6 @@ class DoctorSyncCoordinator @Inject constructor(
                 auditRepository.record(null, null, AppConstants.AUDIT_DOCTORS_SYNCED,
                     "full_download:${remote.size}")
             }
-            _doctorConflicts.value = emptyList()
             Result.success(remote.size)
         } catch (e: CancellationException) {
             throw e
@@ -265,8 +259,33 @@ class DoctorSyncCoordinator @Inject constructor(
         }
     }
 
-    suspend fun resolveDoctorConflicts(choices: Map<String, DoctorMergeChoice>): Result<Unit> =
-        Result.failure(IllegalStateException("الدمج الجزئي متوقف؛ اجلب أو انشر سجل الأطباء الكامل"))
+    suspend fun requirePublishedAdmin(state: SyncState): Doctor = withContext(dispatchers.io) {
+        val actor = adminAuthorizer.requireAdmin()
+        require(actor.telegramId != null && sessions.current()?.telegramId == actor.telegramId) {
+            "تغير حساب المدير المرتبط؛ سجّل الدخول مجدداً"
+        }
+        val registry = doctorRepository.normalizeRemoteRegistry(
+            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        require(registry.any { it.id == actor.id && it.isAdmin && !it.isDeleted && it.telegramId == actor.telegramId }) {
+            "صلاحية المدير لم تعد متاحة في السجل المنشور"
+        }
+        actor
+    }
+
+    suspend fun requirePublishedClinician(state: SyncState): Doctor = withContext(dispatchers.io) {
+        val session = sessions.current() ?: error("سجّل الدخول قبل نشر البيانات")
+        val actor = doctorRepository.getActiveById(session.doctorId)
+            ?: error("الطبيب الحالي لم يعد نشطاً؛ سجّل الدخول مجدداً")
+        require(actor.telegramId != null && session.telegramId == actor.telegramId) {
+            "تغير حساب الطبيب المرتبط؛ سجّل الدخول مجدداً"
+        }
+        val registry = doctorRepository.normalizeRemoteRegistry(
+            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        require(registry.any { it.id == actor.id && !it.isDeleted && it.telegramId == actor.telegramId }) {
+            "الطبيب الحالي غير متاح في السجل المنشور"
+        }
+        actor
+    }
 
     private fun validateDoctorRegistry(doctors: List<Doctor>) {
         require(doctors.isNotEmpty() && doctors.size <= AppConstants.MAX_DOCTORS) {

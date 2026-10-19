@@ -34,7 +34,14 @@ class RemoteSyncStateStore @Inject constructor(
             ?.takeIf { it.isRecognized }
     }
 
-    private suspend fun writeState(state: SyncState) {
+    suspend fun updateExistingState(transform: (SyncState) -> SyncState): SyncState =
+        remoteStateMutex.withLock {
+            val current = requireNotNull(readState()) { "فهرس المشروع غير متاح؛ أعد الجلب" }
+            writeState(transform(current).copy(v = SyncState.CURRENT_VERSION), requireExisting = true)
+            requireNotNull(readState()) { "تعذر تأكيد فهرس المشروع" }
+        }
+
+    private suspend fun writeState(state: SyncState, requireExisting: Boolean = false) {
         val chat = telegram.getChat(topics.chatId)
         val existing = chat.pinnedMessage?.takeIf { message ->
             val text = message.text ?: return@takeIf false
@@ -43,6 +50,7 @@ class RemoteSyncStateStore @Inject constructor(
                 ?.isRecognized == true
         }
 
+        require(!requireExisting || existing != null) { "اختفى فهرس المشروع؛ لن يُنشأ تثبيت بديل" }
         val existingState = existing?.text?.let { text ->
             runCatching { json.decodeFromString<SyncState>(text) }.getOrNull()
         }

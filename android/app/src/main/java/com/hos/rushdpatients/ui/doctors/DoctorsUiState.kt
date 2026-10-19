@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.ui.doctors
 
-import com.hos.rushdpatients.domain.doctor.DoctorRegistryConflict
 import com.hos.rushdpatients.data.model.Doctor
 
 data class DoctorImportPreview(
@@ -22,7 +21,6 @@ data class DoctorsUiState(
     val exportReady: Boolean = false,
     val importing: Boolean = false,
     val importPreview: DoctorImportPreview? = null,
-    val mergeConflicts: List<DoctorRegistryConflict> = emptyList(),
     val error: String? = null,
     val snackbar: String? = null
 )

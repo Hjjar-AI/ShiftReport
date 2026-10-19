@@ -96,13 +96,13 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     var showReset by remember { mutableStateOf(false) }
     var appearance by rememberSaveable { mutableStateOf(AppAppearance.SYSTEM) }
     var accent by rememberSaveable { mutableStateOf(AppThemePreset.SYSTEM) }
-    var elegant by rememberSaveable { mutableStateOf(false) }
+    var pdfStyle by rememberSaveable { mutableStateOf(PdfStyle.CLASSIC) }
     var landscape by rememberSaveable { mutableStateOf(false) }
     var pdfColor by rememberSaveable { mutableStateOf(PdfColorPreset.TEAL) }
     val options = PdfExportOptions(orientation = if (landscape) PdfOrientation.LANDSCAPE else PdfOrientation.PORTRAIT,
         colorPreset = pdfColor)
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
-        viewModel.exportPdf(uri, options, elegant)
+        viewModel.exportPdf(uri, options, pdfStyle == PdfStyle.CARDS)
     }
     LaunchedEffect(state.message) {
         state.message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
@@ -257,9 +257,9 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                         item { Text("${state.date} · ${uiNumber(state.summary.patientCount)} مريض · ${uiNumber(state.summary.escortCount)} مرافق") }
                         item {
                             Text("خيارات PDF", style = MaterialTheme.typography.titleMedium)
-                            AppPdfStylePicker(selected = if (elegant) PdfStyle.CARDS else PdfStyle.CLASSIC,
-                                onSelected = { elegant = it == PdfStyle.CARDS }, enabled = !state.exporting)
-                            if (!elegant) com.hos.rushdpatients.ui.components.AppToggleRow(title = "صفحة أفقية",
+                            AppPdfStylePicker(selected = pdfStyle,
+                                onSelected = { pdfStyle = it }, enabled = !state.exporting)
+                            if (pdfStyle != PdfStyle.CARDS) com.hos.rushdpatients.ui.components.AppToggleRow(title = "صفحة أفقية",
                                 checked = landscape, onCheckedChange = { landscape = it }, enabled = !state.exporting)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 PdfColorPreset.entries.forEach { value -> FilterChip(selected = pdfColor == value,
