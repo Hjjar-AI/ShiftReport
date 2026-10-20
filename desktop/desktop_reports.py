@@ -216,10 +216,12 @@ def prepare_delivery(client, local, restored):
 
 def publication_review(plan, zone):
     from desktop_model import patient_text
-    before=next((s for s in plan.bundle if s['meta']['shiftId']==plan.shift['meta']['shiftId']),{'patients':[]})
+    before=next((s for s in plan.bundle if s['meta']['shiftDate']==plan.shift['meta']['shiftDate']),{'patients':[]})
     old={p['externalId']:p for p in before['patients']};new={p['externalId']:p for p in plan.shift['patients']}
     lines=['ستستبدل هذه النسخة الكاملة بيانات المناوبة المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.',
            readiness_notes(plan.shift['patients'])]
+    if plan.force_required:
+        lines.insert(0,'معرّف مناوبة اليوم المنشورة مختلف أو أزيلت نسخة الأساس. لن تُنزّل بيانات فوق تعديلاتك؛ اختر نشر نسختي المحلية للاستبدال الصريح.')
     for key in dict.fromkeys(list(old)+list(new)):
         if old.get(key)==new.get(key):continue
         lines+=['\nالمريض: '+new.get(key,old.get(key,{})).get('name',''),

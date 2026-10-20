@@ -22,14 +22,14 @@ private data class Accent(
 
 // Distinct hue families with tinted surfaces; clinical severity uses its separate palette.
 private fun accent(preset: AppThemePreset) = when (preset) {
-    AppThemePreset.SYSTEM -> Accent(Color(0xFF174EA6), Color(0xFFD7E5FF), Color(0xFF112B55), Color(0xFF9CC1FF), Color(0xFF203F70))
-    AppThemePreset.SAGE -> Accent(Color(0xFF1C633B), Color(0xFFCCECD6), Color(0xFF113B23), Color(0xFF8ED8A5), Color(0xFF244D30))
-    AppThemePreset.COASTAL -> Accent(Color(0xFF602D91), Color(0xFFECDCFB), Color(0xFF371351), Color(0xFFD7B0FF), Color(0xFF4C2868))
-    AppThemePreset.SUNSET -> Accent(Color(0xFF934500), Color(0xFFFFE0BC), Color(0xFF4E2804), Color(0xFFFFBB76), Color(0xFF683A12))
-    AppThemePreset.FUCHSIA -> Accent(Color(0xFFA1264A), Color(0xFFFFDCE5), Color(0xFF5C1028), Color(0xFFFFADC2), Color(0xFF70223C))
+    AppThemePreset.SYSTEM -> Accent(Color(0xFF2346B5), Color(0xFFDFE5FF), Color(0xFF122459), Color(0xFFB5C4FF), Color(0xFF243C80))
+    AppThemePreset.SAGE -> Accent(Color(0xFF006B3F), Color(0xFFBCF1D1), Color(0xFF003D23), Color(0xFF77DDA4), Color(0xFF004F30))
+    AppThemePreset.COASTAL -> Accent(Color(0xFF7026A0), Color(0xFFF0D9FF), Color(0xFF400D60), Color(0xFFDFB2FF), Color(0xFF50226B))
+    AppThemePreset.SUNSET -> Accent(Color(0xFF795900), Color(0xFFFFEBAC), Color(0xFF403000), Color(0xFFE9CA61), Color(0xFF594500))
+    AppThemePreset.FUCHSIA -> Accent(Color(0xFFA01575), Color(0xFFFFD8EF), Color(0xFF5C0841), Color(0xFFFFAADE), Color(0xFF721653))
     AppThemePreset.VANILLA -> Accent(Color(0xFF006B72), Color(0xFFBBEEF0), Color(0xFF003C42), Color(0xFF73D9DF), Color(0xFF135158))
-    AppThemePreset.CHOCOLATE -> Accent(Color(0xFF844328), Color(0xFFF9DECF), Color(0xFF4D2514), Color(0xFFF4B495), Color(0xFF613A28))
-    AppThemePreset.CREAM -> Accent(Color(0xFF526119), Color(0xFFE3EABD), Color(0xFF2C3606), Color(0xFFC7D481), Color(0xFF424E1C))
+    AppThemePreset.CHOCOLATE -> Accent(Color(0xFF455364), Color(0xFFDFE5ED), Color(0xFF202D3C), Color(0xFFB8C9DC), Color(0xFF344558))
+    AppThemePreset.CREAM -> Accent(Color(0xFFAD3D12), Color(0xFFFFDBCC), Color(0xFF5B2106), Color(0xFFFFB28E), Color(0xFF773015))
 }
 
 private data class Surfaces(val background: Color, val surface: Color, val variant: Color)
@@ -43,19 +43,10 @@ private fun surfaces(preset: AppThemePreset, dark: Boolean, amoled: Boolean): Su
         AppThemePreset.SUNSET -> Surfaces(Color(0xFF291C10), Color(0xFF3B2A19), Color(0xFF513D28))
         AppThemePreset.FUCHSIA -> Surfaces(Color(0xFF2B131D), Color(0xFF3C1E2B), Color(0xFF532C3D))
         AppThemePreset.VANILLA -> Surfaces(Color(0xFF0B2327), Color(0xFF15363B), Color(0xFF275057))
-        AppThemePreset.CHOCOLATE -> Surfaces(Color(0xFF261B17), Color(0xFF372720), Color(0xFF4C382E))
-        AppThemePreset.CREAM -> Surfaces(Color(0xFF1E2311), Color(0xFF2C331B), Color(0xFF414A2B))
+        AppThemePreset.CHOCOLATE -> Surfaces(Color(0xFF171D24), Color(0xFF252F3A), Color(0xFF394655))
+        AppThemePreset.CREAM -> Surfaces(Color(0xFF291810), Color(0xFF3B251B), Color(0xFF51372A))
     }
-    else -> when (preset) {
-        AppThemePreset.SYSTEM -> Surfaces(Color(0xFFE6EDF7), Color(0xFFF0F4FB), Color(0xFFD8E2F0))
-        AppThemePreset.SAGE -> Surfaces(Color(0xFFE6EFE7), Color(0xFFF1F7F0), Color(0xFFD5E4D7))
-        AppThemePreset.COASTAL -> Surfaces(Color(0xFFEFE7F5), Color(0xFFF8F1FC), Color(0xFFE2D4ED))
-        AppThemePreset.SUNSET -> Surfaces(Color(0xFFF4EBDC), Color(0xFFFCF4E6), Color(0xFFEAD9C0))
-        AppThemePreset.FUCHSIA -> Surfaces(Color(0xFFF5E6EB), Color(0xFFFDF1F5), Color(0xFFEED3DC))
-        AppThemePreset.VANILLA -> Surfaces(Color(0xFFDDEFEF), Color(0xFFEDF8F7), Color(0xFFC7E3E3))
-        AppThemePreset.CHOCOLATE -> Surfaces(Color(0xFFEEE5DF), Color(0xFFF8F0E9), Color(0xFFE4D4C9))
-        AppThemePreset.CREAM -> Surfaces(Color(0xFFEBEDDD), Color(0xFFF5F6E8), Color(0xFFDCE0C0))
-    }
+    else -> Surfaces(Color(0xFFF8FAFC), Color.White, Color(0xFFE8EEF2))
 }
 
 /** Used by palette controls to preview the actual selected appearance. */
@@ -70,9 +61,9 @@ private val AppShapes = Shapes(
 
 @Composable
 fun RushdPatientsTheme(
-    preset: AppThemePreset = AppThemePreset.SYSTEM,
+    preset: AppThemePreset = AppThemePreset.VANILLA,
     darkTheme: Boolean = isSystemInDarkTheme(),
-    appearance: AppAppearance = AppAppearance.SYSTEM,
+    appearance: AppAppearance = AppAppearance.LIGHT,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

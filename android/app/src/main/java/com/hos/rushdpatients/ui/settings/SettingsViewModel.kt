@@ -32,6 +32,8 @@ import com.hos.rushdpatients.pdf.PdfPresentationPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
+import com.hos.rushdpatients.sync.EmptyStartCoordinator
+import com.hos.rushdpatients.sync.EmptyStartReview
 import com.hos.rushdpatients.sync.SyncService
 import com.hos.rushdpatients.sync.CsvPublicationReview
 import com.hos.rushdpatients.ui.theme.AppFontScale
@@ -67,6 +69,7 @@ class SettingsViewModel @Inject constructor(
     private val syncStateRepository: SyncStateRepository,
     private val sessionManager: SessionManager,
     private val syncService: SyncService,
+    private val emptyStart: EmptyStartCoordinator,
     private val csvExporter: PatientCsvExporter,
     private val biometricHelper: BiometricHelper,
     private val encryptedBackupManager: EncryptedBackupManager,
@@ -91,6 +94,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     private var publicationReview: CsvPublicationReview? = null
+    private var emptyStartToken: EmptyStartReview? = null
 
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
@@ -112,14 +116,53 @@ class SettingsViewModel @Inject constructor(
                 val isAdmin = session?.isAdmin == true && doctors.any { doctor ->
                     doctor.id == session.doctorId && doctor.isAdmin && !doctor.isDeleted
                 }
-                isAdmin to if (isAdmin) doctors.filter { doctor ->
-                    doctor.clinicalRole == ClinicalRole.SUPERVISOR && !doctor.isDeleted
-                } else emptyList()
-            }.collect { (isAdmin, supervisors) ->
+                Triple(isAdmin, isAdmin && doctors.any { it.id == session?.doctorId && it.isPermanentAdmin && !it.isDeleted },
+                    if (isAdmin) doctors.filter { doctor ->
+                        doctor.clinicalRole == ClinicalRole.SUPERVISOR && !doctor.isDeleted
+                    } else emptyList())
+            }.collect { (isAdmin, permanent, supervisors) ->
                 _state.update {
-                    it.copy(isAdmin = isAdmin, supervisors = supervisors)
+                    it.copy(isAdmin = isAdmin, supervisors = supervisors,
+                        isPermanentAdmin = permanent)
                 }
             }
+        }
+    }
+
+    fun prepareEmptyStart() {
+        val current = _state.value
+        if (current.emptyStartBusy || current.syncing || current.backupBusy || current.provisioningBusy || current.exportingCsv) return
+        _state.update { it.copy(emptyStartBusy = true, emptyStartResult = null) }
+        viewModelScope.launch {
+            try {
+                emptyStartToken = emptyStart.prepare()
+                _state.update { it.copy(emptyStartReview = emptyStartToken?.text) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: "تعذر إعداد البداية الفارغة") } }
+            finally { _state.update { it.copy(emptyStartBusy = false) } }
+        }
+    }
+
+    fun dismissEmptyStart() {
+        if (_state.value.emptyStartBusy) return
+        emptyStartToken = null
+        _state.update { it.copy(emptyStartReview = null, emptyStartResult = null) }
+    }
+
+    fun confirmEmptyStart() {
+        val review = emptyStartToken ?: return
+        if (_state.value.emptyStartBusy) return
+        _state.update { it.copy(emptyStartBusy = true, emptyStartReview = null) }
+        emptyStartToken = null
+        publicationReview = null
+        viewModelScope.launch {
+            try {
+                emptyStart.confirm(review)
+                load()
+                _state.update { it.copy(emptyStartResult = "تم نشر البداية الفارغة ومسح المرضى والمناوبات على هذا الجهاز. بقي الأطباء والاتصال وسجل تليجرام. على الأجهزة الأخرى جلب البيانات قبل العمل.") }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: "تعذر إكمال البداية الفارغة؛ افحص النسخة الحالية قبل الإعادة") } }
+            finally { _state.update { it.copy(emptyStartBusy = false) } }
         }
     }
 

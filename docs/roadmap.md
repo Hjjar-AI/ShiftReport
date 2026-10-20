@@ -2,6 +2,15 @@
 
 This file contains only unfinished implementation work and explicitly deferred proposals. Verification evidence and limitations are recorded in [Current state](current-state.md). Completed items are tracked in [Changelog](changelog.md). Design and architecture basis are documented in [Architecture](architecture.md).
 
+## Active — owner-requested workflow refresh
+
+- Add permanent-superadmin empty patient/shift seed while retaining doctors,
+  accounts, connection and Telegram history.
+- Resolve the supplied Android doctor CSV import failure (file is structurally valid;
+  exact observed failure pending).
+- Default to Light/Turquoise and separate the other named palettes.
+- Reorder report preview and drawer; place ward tasks inside filter controls only.
+
 ## P0 — production signing
 
 1. Configure production signing before distribution.

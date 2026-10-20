@@ -275,7 +275,13 @@ class WardViewModel @Inject constructor(
                 ) { shift, patients, doctors -> Triple(shift, patients, doctors) }
                     .collect { (shift, patients, doctors) ->
                         if (shift == null) {
-                            _state.update { it.copy(loading = false, error = "المناوبة غير موجودة") }
+                            val replacement = shiftRepository.getByDate(ShiftDate.current())
+                            if (replacement != null && replacement.id != shiftId) {
+                                _state.update { it.copy(patientDraft = null, deletedPatients = emptyList(),
+                                    rolloverPatients = emptyList(), rolloverTarget = null, patients = emptyList(), groupedPatients = emptyList()) }
+                                observeShift(replacement.id)
+                            } else _state.update { it.copy(loading = false, shift = null, patients = emptyList(),
+                                groupedPatients = emptyList(), error = "المناوبة غير موجودة") }
                             return@collect
                         }
                         val spec = SortSpecCodec.decode(shift.sortSpecJson)

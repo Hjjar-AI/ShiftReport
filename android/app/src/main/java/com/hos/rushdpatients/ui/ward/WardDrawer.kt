@@ -63,14 +63,11 @@ internal fun WardDrawer(
     filtersSelected: Boolean,
     onAction: (WardDrawerAction) -> Unit
 ) {
-    var wardMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var dataMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var appMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     ModalDrawerSheet(modifier = Modifier.verticalScroll(rememberScrollState())) {
         Surface(
-            onClick = {
-                onAction(WardDrawerAction.DATA_MANAGEMENT)
-            },
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }
         ) {
@@ -99,133 +96,44 @@ internal fun WardDrawer(
             }
         }
 
-        CompactDrawerItem(
-                icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
-                label = { Text("جميع المرضى") },
-                selected = allPatientsSelected,
-                onClick = { onAction(WardDrawerAction.ALL_PATIENTS) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-        CompactDrawerItem(
-                icon = { Icon(UiAction.SEND_REPORT.icon, contentDescription = null) },
-                label = { Text(UiAction.SEND_REPORT.label) },
-                selected = false,
-                onClick = { onAction(WardDrawerAction.REPORT) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium),
-                enabled = state.shift != null
-            )
-        if (isAdmin) CompactDrawerItem(
-                icon = { Icon(Icons.Filled.History, contentDescription = null) },
-                label = { Text("مركز النشاط والسجل") },
-                selected = false,
-                onClick = { onAction(WardDrawerAction.ACTIVITY) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-        Divider()
-        DrawerSubmenuHeader(
-            label = "المناوبة والمرضى",
-            expanded = wardMenuExpanded,
-            onClick = {
-                wardMenuExpanded = !wardMenuExpanded
-                if (wardMenuExpanded) {
-                    appMenuExpanded = false
-                }
-            }
-        )
-        if (wardMenuExpanded) {
+        Text("العمل اليومي", Modifier.padding(horizontal = UiSpacing.medium, vertical = UiSpacing.tiny),
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        WardDrawerRow("جميع المرضى", Icons.Filled.ViewAgenda, allPatientsSelected) { onAction(WardDrawerAction.ALL_PATIENTS) }
+        WardDrawerRow("مرضاي", Icons.Filled.Person, viewMode == WardViewMode.MINE) { onAction(WardDrawerAction.MY_PATIENTS) }
+        WardDrawerRow("لوحة تسليم المناوبة", Icons.Filled.Dashboard, viewMode == WardViewMode.DASHBOARD) { onAction(WardDrawerAction.DASHBOARD) }
+        WardDrawerRow("خيارات العرض والتصفية", Icons.Filled.FilterList, filtersSelected) { onAction(WardDrawerAction.FILTERS) }
+        WardDrawerRow("أطباء المناوبة", Icons.Filled.Groups, enabled = !state.isReadOnly && state.shift != null) { onAction(WardDrawerAction.SHIFT_DOCTORS) }
+        WardDrawerRow(UiAction.SEND_REPORT.label, UiAction.SEND_REPORT.icon, enabled = state.shift != null) { onAction(WardDrawerAction.REPORT) }
 
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-                label = { Text("لوحة تسليم المناوبة") },
-                selected = viewMode == WardViewMode.DASHBOARD,
-                onClick = { onAction(WardDrawerAction.DASHBOARD) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                label = { Text("مرضاي") },
-                selected = viewMode == WardViewMode.MINE,
-                onClick = { onAction(WardDrawerAction.MY_PATIENTS) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.FilterList, contentDescription = null) },
-                label = { Text("خيارات العرض") },
-                selected = filtersSelected,
-                onClick = { onAction(WardDrawerAction.FILTERS) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.Groups, contentDescription = null) },
-                label = { Text("أطباء المناوبة") },
-                selected = false,
-                onClick = { if (!state.isReadOnly) onAction(WardDrawerAction.SHIFT_DOCTORS) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium),
-                enabled = !state.isReadOnly
-            )
+        Divider(Modifier.padding(vertical = UiSpacing.tiny))
+        DrawerSubmenuHeader(label = "البيانات والاستعادة", expanded = dataMenuExpanded,
+            onClick = { dataMenuExpanded = !dataMenuExpanded })
+        if (dataMenuExpanded) {
+            WardDrawerRow("الجلب والنشر والنسخ الاحتياطي", Icons.Filled.FileDownload) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
+            WardDrawerRow("بدء مناوبة اليوم من السابقة", Icons.Filled.History,
+                enabled = !state.isReadOnly && !state.syncing && !state.saving && state.patients.isEmpty()) { onAction(WardDrawerAction.START_SHIFT) }
+            WardDrawerRow("نسخة نشر سابقة", Icons.Filled.History, enabled = !state.syncing && !state.saving) { onAction(WardDrawerAction.PREVIOUS) }
+            WardDrawerRow("سلة المحذوفات", Icons.Filled.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
         }
-
-        if (wardMenuExpanded) {
-            CompactDrawerItem(icon = { Icon(Icons.Filled.History, contentDescription = null) },
-                label = { Text("نسخة نشر سابقة") }, selected = false, enabled = !state.syncing && !state.saving,
-                onClick = { onAction(WardDrawerAction.PREVIOUS) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium))
-            if (!state.isReadOnly) CompactDrawerItem(
-                icon = { Icon(Icons.Filled.History, contentDescription = null) },
-                label = { Text("بدء مناوبة اليوم من السابقة") }, selected = false,
-                enabled = !state.syncing && !state.saving && state.patients.isEmpty(),
-                onClick = { onAction(WardDrawerAction.START_SHIFT) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium))
-            CompactDrawerItem(icon = { Icon(Icons.Filled.Recycling, contentDescription = null) },
-                label = { Text("سلة المحذوفات") }, selected = false,
-                onClick = { onAction(WardDrawerAction.RECYCLE_BIN) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium))
-        }
-        Divider(modifier = Modifier.padding(vertical = UiSpacing.tiny))
-        CompactDrawerItem(
-            icon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
-            label = { Text("إدارة البيانات") }, selected = false,
-            onClick = { onAction(WardDrawerAction.DATA_MANAGEMENT) },
-            modifier = Modifier.padding(horizontal = UiSpacing.medium))
-
-        Divider(modifier = Modifier.padding(vertical = UiSpacing.tiny))
-        DrawerSubmenuHeader(
-            label = "الإعدادات والمشروع",
-            expanded = appMenuExpanded,
-            onClick = {
-                appMenuExpanded = !appMenuExpanded
-                if (appMenuExpanded) wardMenuExpanded = false
-            }
-        )
+        Divider(Modifier.padding(vertical = UiSpacing.tiny))
+        DrawerSubmenuHeader(label = "التفضيلات والمشروع", expanded = appMenuExpanded,
+            onClick = { appMenuExpanded = !appMenuExpanded })
         if (appMenuExpanded) {
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                label = { Text("الإعدادات") },
-                selected = false,
-                onClick = { onAction(WardDrawerAction.SETTINGS) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.Groups, contentDescription = null) },
-                label = { Text("إدارة المشروع") },
-                selected = false,
-                onClick = { onAction(WardDrawerAction.PROJECT) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-            if (isAdmin) CompactDrawerItem(
-                icon = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null) },
-                label = { Text("لوحة المدير") },
-                selected = false,
-                onClick = { onAction(WardDrawerAction.ADMIN) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
-            CompactDrawerItem(
-                icon = { Icon(Icons.Filled.Info, contentDescription = null) },
-                label = { Text("حول التطبيق") },
-                selected = false,
-                onClick = { onAction(WardDrawerAction.ABOUT) },
-                modifier = Modifier.padding(horizontal = UiSpacing.medium)
-            )
+            WardDrawerRow("المظهر وتفضيلات الجهاز", Icons.Filled.Settings) { onAction(WardDrawerAction.SETTINGS) }
+            WardDrawerRow("اتصال المشروع", Icons.Filled.Groups) { onAction(WardDrawerAction.PROJECT) }
+            if (isAdmin) {
+                WardDrawerRow("إدارة الأطباء والمشروع", Icons.Filled.AdminPanelSettings) { onAction(WardDrawerAction.ADMIN) }
+                WardDrawerRow("مركز النشاط والسجل", Icons.Filled.History) { onAction(WardDrawerAction.ACTIVITY) }
+            }
+            WardDrawerRow("حول التطبيق", Icons.Filled.Info) { onAction(WardDrawerAction.ABOUT) }
         }
     }
+}
+
+@Composable
+private fun WardDrawerRow(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
+    CompactDrawerItem(icon = { Icon(icon, contentDescription = null) }, label = { Text(label) },
+        selected = selected, enabled = enabled, onClick = onClick,
+        modifier = Modifier.padding(horizontal = UiSpacing.medium))
 }

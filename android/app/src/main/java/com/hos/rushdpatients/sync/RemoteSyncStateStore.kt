@@ -34,14 +34,14 @@ class RemoteSyncStateStore @Inject constructor(
             ?.takeIf { it.isRecognized }
     }
 
-    suspend fun updateExistingState(transform: (SyncState) -> SyncState): SyncState =
+    suspend fun updateExistingState(replaceCsvHistory: Boolean = false, transform: (SyncState) -> SyncState): SyncState =
         remoteStateMutex.withLock {
             val current = requireNotNull(readState()) { "فهرس المشروع غير متاح؛ أعد الجلب" }
-            writeState(transform(current).copy(v = SyncState.CURRENT_VERSION), requireExisting = true)
+            writeState(transform(current).copy(v = SyncState.CURRENT_VERSION), requireExisting = true, replaceCsvHistory = replaceCsvHistory)
             requireNotNull(readState()) { "تعذر تأكيد فهرس المشروع" }
         }
 
-    private suspend fun writeState(state: SyncState, requireExisting: Boolean = false) {
+    private suspend fun writeState(state: SyncState, requireExisting: Boolean = false, replaceCsvHistory: Boolean = false) {
         val chat = telegram.getChat(topics.chatId)
         val existing = chat.pinnedMessage?.takeIf { message ->
             val text = message.text ?: return@takeIf false
@@ -59,8 +59,8 @@ class RemoteSyncStateStore @Inject constructor(
                 state.currentCsvSnapshot(), state.previousCsvSnapshot(),
                 existingState.currentCsvSnapshot(), existingState.previousCsvSnapshot()
             ).distinctBy { it.messageId }.sortedByDescending { it.messageId }
-            val latest = snapshots.firstOrNull()
-            val previous = snapshots.getOrNull(1)
+            val latest = if (replaceCsvHistory) state.currentCsvSnapshot() else snapshots.firstOrNull()
+            val previous = if (replaceCsvHistory) null else snapshots.getOrNull(1)
             val doctorsState = listOf(state, existingState).maxWithOrNull(
                 compareBy<SyncState> { it.doctorsMessageId ?: Long.MIN_VALUE }
                     .thenBy { it.doctorsUpdatedAt }
@@ -78,7 +78,7 @@ class RemoteSyncStateStore @Inject constructor(
                 previousCsvMessageId = previous?.messageId,
                 previousCsvDate = previous?.date,
                 previousCsvUpdatedAt = previous?.updatedAt ?: 0L,
-                publicationJournal = (state.publicationJournal + existingState.publicationJournal)
+                publicationJournal = (state.publicationJournal + if (replaceCsvHistory) emptyList() else existingState.publicationJournal)
                     .distinctBy { it.messageId }
                     .sortedByDescending { it.messageId }
                     .take(12),

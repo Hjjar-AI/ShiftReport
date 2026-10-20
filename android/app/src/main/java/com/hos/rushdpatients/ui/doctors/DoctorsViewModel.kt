@@ -237,9 +237,12 @@ class DoctorsViewModel @Inject constructor(
     }
 
     fun prepareDoctorImport(uri: Uri) {
-        if (_state.value.saving || _state.value.exporting || _state.value.importing) return
+        if (_state.value.saving || _state.value.exporting || _state.value.importing) {
+            _state.update { it.copy(importError = "توجد عملية أخرى قيد التنفيذ؛ انتظر اكتمالها ثم اختر ملف الأطباء مجدداً") }
+            return
+        }
         pendingImportPlan = null
-        _state.update { it.copy(importing = true, importPreview = null) }
+        _state.update { it.copy(importing = true, importPreview = null, importError = null) }
         viewModelScope.launch {
             try {
                 adminAuthorizer.requireAdmin()
@@ -288,11 +291,15 @@ class DoctorsViewModel @Inject constructor(
                     it.copy(
                         importing = false,
                         importPreview = null,
-                        snackbar = e.message ?: "تعذر قراءة ملف الأطباء"
+                        importError = e.message ?: "تعذر قراءة ملف الأطباء"
                     )
                 }
             }
         }
+    }
+
+    fun dismissImportError() {
+        _state.update { it.copy(importError = null) }
     }
 
     fun dismissDoctorImport() {

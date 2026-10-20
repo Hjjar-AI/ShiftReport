@@ -63,12 +63,11 @@ def build_ward_controls(window):
     actions = ctk.CTkFrame(parent)
     actions.pack(fill='x', padx=5, pady=2,after=status)
     for index, (label, action) in enumerate([
-        ('مهام الجناح', lambda:task_board(window)),
         ('تسليم المناوبة', lambda:handover_dashboard(window)), ('أطباء المناوبة', window.roster)
     ]):
-        actions.grid_columnconfigure(2-index,weight=1)
+        actions.grid_columnconfigure(1-index,weight=1)
         ctk.CTkButton(actions, text=label, height=48, width=85,
-            command=lambda f=action:window.run(f)).grid(row=0, column=2-index, sticky='ew', padx=3, pady=2)
+            command=lambda f=action:window.run(f)).grid(row=0, column=1-index, sticky='ew', padx=3, pady=2)
     options = window.view_controls.content
     from desktop_sections import SectionPages
     window.options_tabs=SectionPages(options)
@@ -91,6 +90,8 @@ def build_ward_controls(window):
             command=lambda value:window.render())
         control.pack(side='left', fill='x', expand=True, padx=4)
         setattr(window, name, control)
+    ctk.CTkButton(sections['التصفية'],text='مهام الجناح',height=48,
+        command=lambda:window.run(lambda:task_board(window))).pack(fill='x',padx=4,pady=2)
     window.reset_view_button = ctk.CTkButton(sections['التصفية'],text='مسح التصفية',height=48,
         command=lambda:window.run(window.reset_patient_filters))
     window.reset_view_button.pack(fill='x',padx=4,pady=2)

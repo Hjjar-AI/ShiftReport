@@ -298,7 +298,18 @@ fun DoctorsScreen(
         )
     }
 
-    state.importPreview?.let { preview ->
+    if (state.importing) {
+        AlertDialog(onDismissRequest = {}, title = { Text("استيراد سجل الأطباء") },
+            text = { AppLoadingState("جار قراءة السجل أو حفظ الاستيراد ونشره…") },
+            confirmButton = {})
+    }
+    state.importError?.let { message ->
+        AlertDialog(onDismissRequest = viewModel::dismissImportError,
+            title = { Text("تعذر استيراد ملف الأطباء") }, text = { Text(message) },
+            confirmButton = { AppTextButton(onClick = viewModel::dismissImportError) { Text("فهمت") } })
+    }
+
+    state.importPreview?.takeUnless { state.importing }?.let { preview ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDoctorImport,
             title = { Text("مراجعة استيراد سجل الأطباء") },
@@ -326,10 +337,10 @@ fun DoctorsScreen(
                 }
             },
             confirmButton = {
-                AppTextButton(onClick = viewModel::confirmDoctorImport) { Text("حفظ الاستيراد ونشر السجل الكامل") }
+                AppTextButton(onClick = viewModel::confirmDoctorImport, enabled = !busy) { Text("حفظ الاستيراد ونشر السجل الكامل") }
             },
             dismissButton = {
-                AppTextButton(onClick = viewModel::dismissDoctorImport) { Text("إلغاء") }
+                AppTextButton(onClick = viewModel::dismissDoctorImport, enabled = !busy) { Text("إلغاء") }
             }
         )
     }

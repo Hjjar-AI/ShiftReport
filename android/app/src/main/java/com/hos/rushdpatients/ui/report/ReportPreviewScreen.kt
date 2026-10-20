@@ -14,7 +14,6 @@ import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiPadding
-import com.hos.rushdpatients.ui.components.LongPressLoadingButton
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
@@ -77,6 +76,7 @@ fun ReportPreviewScreen(
     var showShiftDoctors by remember { mutableStateOf(false) }
     var showDeliveryLog by remember { mutableStateOf(false) }
     var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
+    var showLocalExports by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var customizeReport by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var confirmSend by remember { mutableStateOf(false) }
@@ -185,23 +185,22 @@ fun ReportPreviewScreen(
                     }
                 }
 
-                AppSection(title = "النطاق والوجهة والصيغة") {
-                    Text("التقرير العام · جميع مرضى المناوبة", style = MaterialTheme.typography.titleSmall)
-                    Text("الوجهة: موضوع التقارير العام", style = MaterialTheme.typography.bodySmall)
-                    AppToggleRow(title = "إرسال كملف PDF", checked = state.reportAsPdf,
-                        onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
-                    if (state.reportAsPdf) AppPdfStylePicker(
-                        selected = state.pdfStyle,
-                        onSelected = { viewModel.setPdfAppearance(it, state.pdfOptions) },
-                        enabled = !busy
-                    )
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Text("تقارير المشرفين: ملف PDF مستقل لكل مجموعة مختارة، مع معاينة وتأكيد قبل الإرسال.",
+                state.publicationOutcome?.let { publication ->
+                    Text("آخر محاولة إرسال — نشر البيانات: ${publication.arabicLabel}؛ تسليم التقرير: ${state.deliveryOutcome?.arabicLabel.orEmpty()}",
                         style = MaterialTheme.typography.bodySmall)
-                    AppOutlinedButton(onClick = ::selectSupervisorGroups, modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy && state.summary != null && !state.isReadOnly) {
-                        Text("اختيار مجموعات المشرفين (PDF)")
-                    }
+                }
+                if (state.deliveryRecords.any { it.status == "UNKNOWN" }) {
+                    AppNotice("يوجد تسليم غير مؤكد محفوظ على هذا الجهاز؛ احسمه من السجل قبل الإعادة إلى الوجهة نفسها.", kind = NoticeKind.WARNING)
+                }
+                state.error?.let { err ->
+                    AppNotice(err, kind = NoticeKind.ERROR,
+                        actionLabel = if (state.retryAction == null) null else "إعادة المحاولة",
+                        onAction = if (state.retryAction == null) null else viewModel::retryLastAction,
+                        actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
+                }
+                state.lastOperation?.let { AppNotice(it) }
+                if (state.isReadOnly) {
+                    AppNotice("تقرير مناوبة محفوظة: المعاينة والحفظ المحلي متاحان، أما الإرسال والنشر فمتوقفان.")
                 }
 
                 if (state.readinessWarnings.isNotEmpty()) {
@@ -241,6 +240,17 @@ fun ReportPreviewScreen(
                 }
 
 
+                AppSection(title = "النطاق والوجهة والصيغة") {
+                    Text("التقرير العام · جميع مرضى المناوبة", style = MaterialTheme.typography.titleSmall)
+                    Text("الوجهة: موضوع التقارير العام", style = MaterialTheme.typography.bodySmall)
+                    AppToggleRow(title = "إرسال كملف PDF", checked = state.reportAsPdf,
+                        onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
+                    if (state.reportAsPdf) AppPdfStylePicker(
+                        selected = state.pdfStyle,
+                        onSelected = { viewModel.setPdfAppearance(it, state.pdfOptions) },
+                        enabled = !busy
+                    )
+                }
                 if (state.reportAsPdf) {
                     AppTextButton(onClick = { customizeReport = !customizeReport }, enabled = !busy,
                         modifier = Modifier.fillMaxWidth()) {
@@ -278,72 +288,62 @@ fun ReportPreviewScreen(
                     }
                 }
 
-                if (!state.reportAsPdf) {
-                    AppCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = state.previewMarkdown,
-                            modifier = Modifier.padding(UiPadding.content),
-                            style = MaterialTheme.typography.bodySmall
+                AppSection(title = "معاينة التقرير العام وإرساله") {
+                    if (!state.reportAsPdf) {
+                        AppCard(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = state.previewMarkdown,
+                                modifier = Modifier.padding(UiPadding.content),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    } else {
+                        LoadingButton(
+                            text = "معاينة ملف PDF",
+                            outlined = true,
+                            loading = state.previewingPdf,
+                            onClick = viewModel::previewPdf,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
                         )
                     }
-                } else {
-                    LoadingButton(
-                        text = "معاينة ملف PDF",
-                        outlined = true,
-                        loading = state.previewingPdf,
-                        onClick = viewModel::previewPdf,
+                    LoadingButton(text = if (state.sending) "جارٍ إرسال التقرير…" else UiAction.SEND_REPORT.label,
+                        loading = state.sending, onClick = { confirmSend = true },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
-                    )
-                    LoadingButton(
-                        text = "حفظ PDF محلياً",
-                        outlined = true,
-                        loading = state.exportingLocalPdf,
-                        onClick = viewModel::exportLocally,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf && !state.sharingPdf
-                    )
-                    LoadingButton(
-                        text = "مشاركة PDF",
-                        outlined = true,
-                        loading = state.sharingPdf,
-                        onClick = viewModel::sharePdf,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf &&
-                            !state.exportingLocalPdf
-                    )
+                        enabled = !busy && state.summary != null && !state.isReadOnly)
                 }
-
-                if (state.isAdmin) {
-                    AppOutlinedButton(onClick = viewModel::exportAssignments, modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy && state.shift != null) { Text("حفظ توزيع المرضى بالأسماء فقط (PDF)") }
-                    Text("A4 عمودي · ثلاثة جداول من اليمين إلى اليسار · أسماء المقيمين ثم المرضى بترقيم عربي متصل في العمود الأيمن.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-
-                state.publicationOutcome?.let { publication ->
-                    Text("آخر محاولة إرسال — نشر البيانات: ${publication.arabicLabel}؛ تسليم التقرير: ${state.deliveryOutcome?.arabicLabel.orEmpty()}",
+                AppSection(title = "تقارير مجموعات المشرفين") {
+                    Text("تقارير المشرفين: ملف PDF مستقل لكل مجموعة مختارة، مع معاينة وتأكيد قبل الإرسال.",
                         style = MaterialTheme.typography.bodySmall)
+                    AppOutlinedButton(onClick = ::selectSupervisorGroups, modifier = Modifier.fillMaxWidth(),
+                        enabled = !busy && state.summary != null && !state.isReadOnly) {
+                        Text("اختيار مجموعات المشرفين (PDF)")
+                    }
                 }
-                if (state.deliveryRecords.any { it.status == "UNKNOWN" }) {
-                    AppNotice("يوجد تسليم غير مؤكد محفوظ على هذا الجهاز؛ احسمه من السجل قبل الإعادة إلى الوجهة نفسها.", kind = NoticeKind.WARNING)
+                AppTextButton(onClick = { showLocalExports = !showLocalExports }, enabled = !busy,
+                    modifier = Modifier.fillMaxWidth()) {
+                    Text(if (showLocalExports) "طي الحفظ والمشاركة المحلية" else "الحفظ والمشاركة المحلية")
                 }
-                AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy) { Text("سجل تسليم التقارير وحسم النتائج") }
-                state.error?.let { err ->
-                    AppNotice(err, kind = NoticeKind.ERROR,
-                        actionLabel = if (state.retryAction == null) null else "إعادة المحاولة",
-                        onAction = if (state.retryAction == null) null else viewModel::retryLastAction,
-                        actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
+                if (showLocalExports) AppSection(title = "ملفات محلية") {
+                    Text("الحفظ والمشاركة لا ينشران بيانات المرضى أو يرسلان التقرير إلى المشروع.",
+                        style = MaterialTheme.typography.bodySmall)
+                    if (state.reportAsPdf) {
+                        LoadingButton(text = "حفظ PDF محلياً", outlined = true, loading = state.exportingLocalPdf,
+                            onClick = viewModel::exportLocally, modifier = Modifier.fillMaxWidth(),
+                            enabled = !busy && state.summary != null)
+                        LoadingButton(text = "مشاركة PDF", outlined = true, loading = state.sharingPdf,
+                            onClick = viewModel::sharePdf, modifier = Modifier.fillMaxWidth(),
+                            enabled = !busy && state.summary != null)
+                    } else Text("اختر صيغة PDF أعلاه لإظهار حفظ التقرير ومشاركته.", style = MaterialTheme.typography.bodySmall)
+                    if (state.isAdmin) {
+                        AppOutlinedButton(onClick = viewModel::exportAssignments, modifier = Modifier.fillMaxWidth(),
+                            enabled = !busy && state.shift != null) { Text("حفظ توزيع المرضى بالأسماء فقط (PDF)") }
+                        Text("A4 عمودي · أسماء المقيمين والمرضى في جداول الفرق.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-                state.lastOperation?.let { AppNotice(it) }
-                if (state.isReadOnly) {
-                    AppNotice("تقرير مناوبة محفوظة: المعاينة والحفظ المحلي متاحان، أما الإرسال والنشر فمتوقفان.")
-                }
-
-                LongPressLoadingButton(text = if (state.sending) "جارٍ إرسال التقرير…" else UiAction.SEND_REPORT.label,
-                    loading = state.sending, onClick = { confirmSend = true }, onLongClick = ::selectSupervisorGroups,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !busy && state.summary != null && !state.isReadOnly)
+                AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
+                    modifier = Modifier.fillMaxWidth()) { Text("سجل التسليم وحسم النتائج غير المؤكدة") }
 
             }
         }
@@ -411,9 +411,9 @@ fun ReportPreviewScreen(
             format = "PDF", warningCount = state.readinessWarnings.size,
             enabled = !busy && !state.isReadOnly && targetsUnchanged && targets.isNotEmpty(),
             unavailableReason = if (targetsUnchanged) null else "تغيّرت مجموعات المشرفين؛ أغلق هذه المراجعة واختر الوجهات من جديد.",
-            onConfirm = {
+            onConfirm = { forceLocal ->
                 pendingSupervisorTargets = null
-                viewModel.sendSupervisorReports(targets.mapTo(linkedSetOf()) { it.doctorId })
+                viewModel.sendSupervisorReports(targets.mapTo(linkedSetOf()) { it.doctorId }, forceLocal)
             }, onDismiss = { pendingSupervisorTargets = null })
     }
 
@@ -421,6 +421,6 @@ fun ReportPreviewScreen(
         ReportSendConfirmation(destinations = listOf("مجموعة المشروع — تقرير المناوبة الكامل"),
             format = if (state.reportAsPdf) "PDF" else "نصي", warningCount = state.readinessWarnings.size,
             enabled = !busy && !state.isReadOnly && state.summary != null,
-            onConfirm = { confirmSend = false; viewModel.send() }, onDismiss = { confirmSend = false })
+            onConfirm = { forceLocal -> confirmSend = false; viewModel.send(forceLocal) }, onDismiss = { confirmSend = false })
     }
 }

@@ -350,7 +350,7 @@ class SyncService @Inject constructor(
         return AppliedShift(updatedShift, toUpsert, inserted, updated)
     }
 
-    suspend fun prepareCsvPublication(shiftId: String): CsvPublicationReview = patientSyncMutex.withLock {
+    suspend fun prepareCsvPublication(shiftId: String, forceLocal: Boolean = false): CsvPublicationReview = patientSyncMutex.withLock {
         withContext(dispatchers.io) {
             require(!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
                 "راجع وانشر تعديلات سجل الأطباء أولاً، ثم راجع نشر المرضى"
@@ -376,7 +376,8 @@ class SyncService @Inject constructor(
                 append("حذف من النسخة المنشورة: ").append(names(before.keys - after.keys, before)).append("\n\n")
                 append(built.textChunks.joinToString("\n\n") { Markdown.toPlainText(it) })
             }
-            check(samePublicationSource(remoteState.readState(), source)) {
+            check(if (forceLocal) sameDoctorPublicationSource(remoteState.readState(), source)
+                else samePublicationSource(remoteState.readState(), source)) {
                 "تغيّرت النسخة المنشورة أثناء إعداد المراجعة؛ أعد المراجعة"
             }
             CsvPublicationReview(shiftId, CsvCodec.encode(built.shift, built.patients), source,
@@ -387,11 +388,12 @@ class SyncService @Inject constructor(
     suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> =
         patientSyncMutex.withLock { uploadCsvInternal(shiftId) }
 
-    suspend fun uploadReviewedCsv(review: CsvPublicationReview): Result<CsvUploadResult> =
-        patientSyncMutex.withLock { uploadCsvInternal(review.shiftId, review) }
+    suspend fun uploadReviewedCsv(review: CsvPublicationReview, forceLocal: Boolean = false): Result<CsvUploadResult> =
+        patientSyncMutex.withLock { uploadCsvInternal(review.shiftId, review, forceLocal) }
 
-    private suspend fun requirePublicationReview(review: CsvPublicationReview, state: SyncState?) {
-        check(samePublicationSource(state, review.source)) {
+    private suspend fun requirePublicationReview(review: CsvPublicationReview, state: SyncState?, forceLocal: Boolean) {
+        check(if (forceLocal) sameDoctorPublicationSource(state, review.source)
+            else samePublicationSource(state, review.source)) {
             "تغيّرت نسخة المرضى أو الأطباء بعد المراجعة؛ أعد مراجعة النشر"
         }
         val actor = doctorSync.requirePublishedClinician(requireNotNull(state))
@@ -410,7 +412,8 @@ class SyncService @Inject constructor(
 
     private suspend fun uploadCsvInternal(
         shiftId: String,
-        review: CsvPublicationReview? = null
+        review: CsvPublicationReview? = null,
+        forceLocal: Boolean = false
     ): Result<CsvUploadResult> = withContext(dispatchers.io) {
         try {
             var shift = shiftRepository.getById(shiftId)
@@ -423,7 +426,7 @@ class SyncService @Inject constructor(
             val publishingDeviceId = getOrCreateDeviceId()
             val remoteStateBeforeUpload = remoteState.readState()
             val remoteSnapshotBeforeUpload = remoteStateBeforeUpload?.currentCsvSnapshot()
-            if (review != null) requirePublicationReview(review, remoteStateBeforeUpload)
+            if (review != null) requirePublicationReview(review, remoteStateBeforeUpload, forceLocal)
             val remoteShift = remoteSnapshotBeforeUpload?.let { downloadSnapshot(it) }
                 ?.firstOrNull { it.shiftDate == shift.date }
 
@@ -502,13 +505,14 @@ class SyncService @Inject constructor(
                 date = shift.date.toString(),
                 updatedAt = uploadedAt
             )
-            if (review != null) requirePublicationReview(review, remoteState.readState())
+            if (review != null) requirePublicationReview(review, remoteState.readState(), forceLocal)
             val newState = remoteState.updateState { current ->
-                require(current.currentCsvSnapshot()?.fileId == remoteSnapshotBeforeUpload?.fileId &&
-                    current.currentCsvSnapshot()?.messageId == remoteSnapshotBeforeUpload?.messageId) {
+                require(forceLocal || (current.currentCsvSnapshot()?.fileId == remoteSnapshotBeforeUpload?.fileId &&
+                    current.currentCsvSnapshot()?.messageId == remoteSnapshotBeforeUpload?.messageId)) {
                     "وصلت نسخة أحدث أثناء الرفع؛ راجع وانشر النسخة الكاملة مجدداً"
                 }
-                if (review != null) check(samePublicationSource(current, review.source)) {
+                if (review != null) check(if (forceLocal) sameDoctorPublicationSource(current, review.source)
+                    else samePublicationSource(current, review.source)) {
                     "تغير فهرس المرضى أو الأطباء؛ أعد مراجعة النشر"
                 }
                 val previousCurrent = current.currentCsvSnapshot()
@@ -525,7 +529,7 @@ class SyncService @Inject constructor(
                             messageId = msg.messageId,
                             at = uploadedAt,
                             deviceId = publishingDeviceId,
-                            forced = false
+                            forced = forceLocal
                         )
                     ).distinctBy { it.messageId }.sortedByDescending { it.messageId }.take(12)
                 )

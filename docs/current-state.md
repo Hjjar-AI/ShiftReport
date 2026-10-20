@@ -1,6 +1,6 @@
 # Current implementation
 
-Updated 2026-10-19. [Roadmap](roadmap.md) · [Architecture](architecture.md) ·
+Updated 2026-10-20. [Roadmap](roadmap.md) · [Architecture](architecture.md) ·
 [Changelog](changelog.md) · [Troubleshooting](troubleshooting.md)
 
 ## Product and source layout
@@ -206,8 +206,9 @@ three-shift bundles, recovery and the publication journal remain unchanged.
 Android no longer schedules background synchronization. The worker, scheduling
 hooks, interval and auto/Wi-Fi controls were removed. Startup cancels the old unique
 job. A manual publish performs one attempt, without automatically re-uploading on
-a publication race. Concurrent pointer changes require renewed review; the last
-successful pinned write remains authoritative, not an atomic transaction.
+a publication race. Normal publication requires renewed review after concurrent
+pointer changes; the explicit local-copy option below permits patient replacement.
+The last successful pinned write remains authoritative, not an atomic transaction.
 
 Local revisions and pointer rechecks detect stale work; remote competing writers
 can still race. A new backend or atomic compare-and-swap is outside accepted scope.
@@ -218,6 +219,33 @@ explicit decryption failures are retained; compressed text uses `SRMSG1:` and
 files `SRDATA1`. The shared key travels only in encrypted settings/protected join
 files. PDFs/captions intentionally stay readable; Telegram metadata is visible.
 No automatic plaintext fallback, key rotation or existing-project conversion exists.
+
+### Explicit local-copy publication
+
+Android report confirmation and desktop patient-publication review now offer an
+unchecked «نشر نسختي المحلية حتى لو وصل نشر أحدث» option, including supervisor
+batches. Confirmation permits the reviewed complete local patient copy to replace
+competing remote patient pointers before/during upload; it does not apply downloaded
+patients to the local store. Normal publication still stops on pointer changes.
+Doctor-registry changes, current clinician authorization, local stale-review checks,
+validation and uncertain/duplicate report-delivery guards remain enforced. Forced
+publications set the existing journal `forced` field; formats/versions are unchanged.
+Last-successful-write-wins and concurrent-writer limitations still apply: a writer
+can still overtake the forced publication, and read-back confirmation can stop the
+operation. Force does not automatically retry or bypass uncertain delivery.
+
+Desktop can prepare review without a prior downloaded baseline. A different shift
+ID for today (or removal of the baseline shift) requires the explicit local-copy
+option instead of downloading over edited patients. Review compares the same day's
+published patients and publication replaces that day's entry while retaining the
+other bundled shifts. The Publish action opens review directly when needed.
+Android report publication now uses the CSV review token to bind local CSV, actor
+and registry through upload, in addition to matching the report preview.
+
+Verification: Python AST parsing and focused production-source/call-site inspection,
+plus `git diff --check`. No test-suite/migration inspection or work, builds,
+compilation, packaging, GUI/device execution or live Telegram verification was
+performed for this change.
 
 ## Reports and exports
 

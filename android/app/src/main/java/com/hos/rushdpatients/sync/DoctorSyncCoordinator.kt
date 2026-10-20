@@ -259,14 +259,15 @@ class DoctorSyncCoordinator @Inject constructor(
         }
     }
 
-    suspend fun requirePublishedAdmin(state: SyncState): Doctor = withContext(dispatchers.io) {
+    suspend fun requirePublishedAdmin(state: SyncState, permanentOnly: Boolean = false): Doctor = withContext(dispatchers.io) {
         val actor = adminAuthorizer.requireAdmin()
+        require(!permanentOnly || actor.isPermanentAdmin) { "هذه العملية متاحة للمدير الدائم فقط" }
         require(actor.telegramId != null && sessions.current()?.telegramId == actor.telegramId) {
             "تغير حساب المدير المرتبط؛ سجّل الدخول مجدداً"
         }
         val registry = doctorRepository.normalizeRemoteRegistry(
             DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
-        require(registry.any { it.id == actor.id && it.isAdmin && !it.isDeleted && it.telegramId == actor.telegramId }) {
+        require(registry.any { it.id == actor.id && it.isAdmin && (!permanentOnly || it.isPermanentAdmin) && !it.isDeleted && it.telegramId == actor.telegramId }) {
             "صلاحية المدير لم تعد متاحة في السجل المنشور"
         }
         actor

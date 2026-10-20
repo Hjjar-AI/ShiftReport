@@ -5,15 +5,20 @@ import customtkinter as native
 from desktop_protocol import require
 
 PALETTES={
-    'SYSTEM':('أطلس · Atlas','#174EA6'), 'SAGE':('غابة · Forest','#1C633B'),
-    'COASTAL':('جمشت · Amethyst','#602D91'), 'SUNSET':('كهرمان · Amber','#934500'),
-    'FUCHSIA':('كرز · Cherry','#A1264A'), 'VANILLA':('فيروز · Turquoise','#006B72'),
-    'CHOCOLATE':('نحاس · Copper','#844328'), 'CREAM':('زيتون · Olive','#526119')}
+    'SYSTEM':('لازورد · Lapis','#2346B5'),
+    'SAGE':('زمرد · Emerald','#006B3F'),
+    'COASTAL':('سوسن · Iris','#7026A0'),
+    'SUNSET':('زعفران · Saffron','#795900'),
+    'FUCHSIA':('تنين وردي · Dragonfruit','#A01575'),
+    'VANILLA':('فيروز · Turquoise','#006B72'),
+    'CHOCOLATE':('غرافيت · Graphite','#455364'),
+    'CREAM':('خشخاش · Poppy','#AD3D12')}
+
 SIZES={1.0:'عادي',1.15:'كبير',1.3:'أكبر'}
 
 
 def preferences(owner):
-    value=dict(mode=owner.settings.get('APPEARANCE') or 'System',accent='SYSTEM',scale=1.0,density='عادية')
+    value=dict(mode=owner.settings.get('APPEARANCE') or 'Light',accent='VANILLA',scale=1.0,density='عادية')
     value.update(owner.store.state.get('appearance',{}))
     return value
 
@@ -23,12 +28,10 @@ def validate(value):
             value.get('scale') in SIZES and value.get('density','عادية') in {'عادية','مضغوطة'},'إعدادات مظهر غير صالحة')
 
 
-def apply(owner,value):
-    validate(value)
-    old=copy.deepcopy(native.ThemeManager.theme)
+def set_palette_theme(accent='VANILLA'):
     native.set_default_color_theme('blue')
     theme=copy.deepcopy(native.ThemeManager.theme)
-    normal=PALETTES[value['accent']][1]
+    normal=PALETTES[accent][1]
     hover='#'+''.join('{:02X}'.format(round(int(normal[i:i+2],16)*0.8)) for i in (1,3,5))
     # Replace theme accents only. Explicit badge/error colors are left untouched.
     normal_before=theme['CTkButton']['fg_color']
@@ -37,6 +40,18 @@ def apply(owner,value):
         for key,color in styles.items():
             if color==normal_before:styles[key]=[normal,normal]
             elif color==hover_before:styles[key]=[hover,hover]
+    for widget, prop, light in [('CTk','fg_color','#F8FAFC'), ('CTkFrame','fg_color','#FFFFFF'),
+                                ('CTkFrame','top_fg_color','#F2F5F8')]:
+        color=theme[widget][prop]
+        theme[widget][prop]=[light,color[1]] if isinstance(color,list) else light
+    native.ThemeManager.theme=theme
+
+
+def apply(owner,value):
+    validate(value)
+    old=copy.deepcopy(native.ThemeManager.theme)
+    set_palette_theme(value['accent'])
+    theme=native.ThemeManager.theme
     # Keep the generated palette in memory, including in demo mode.
     native.ThemeManager.theme=theme
     def update(widget):

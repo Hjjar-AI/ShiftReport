@@ -50,8 +50,8 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     var pinnedIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var compact by rememberSaveable { mutableStateOf(false) }
     var twoColumn by rememberSaveable { mutableStateOf(false) }
-    var appearance by rememberSaveable { mutableStateOf(AppAppearance.SYSTEM) }
-    var accent by rememberSaveable { mutableStateOf(AppThemePreset.SYSTEM) }
+    var appearance by rememberSaveable { mutableStateOf(AppAppearance.LIGHT) }
+    var accent by rememberSaveable { mutableStateOf(AppThemePreset.VANILLA) }
     var font by rememberSaveable { mutableStateOf(AppFontScale.NORMAL) }
     var animatedId by remember { mutableStateOf<String?>(null) }
     var showAdd by remember { mutableStateOf(false) }

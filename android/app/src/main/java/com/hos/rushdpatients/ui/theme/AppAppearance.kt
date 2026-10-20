@@ -6,6 +6,6 @@ enum class AppAppearance(val arabicLabel: String) {
 
     companion object {
         fun fromSetting(value: String?): AppAppearance =
-            entries.firstOrNull { it.name == value } ?: SYSTEM
+            entries.firstOrNull { it.name == value } ?: LIGHT
     }
 }

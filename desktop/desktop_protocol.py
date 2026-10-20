@@ -331,6 +331,8 @@ class Review:
     bundle: list
     remote: dict
     conflicts: list = field(default_factory=list)
+    force_local: bool = False
+    force_required: bool = False
     _approval: Optional[str] = field(default=None, repr=False)
     actor_id: Optional[str] = field(default=None, repr=False)
 
@@ -455,23 +457,21 @@ class Client:
         return hashlib.sha256(b'ShiftReportDesktopBaseline'+seed).digest()
 
     def plan(self, shift, choices=None):
-        require(self.baseline is not None, 'اجلب نسخة أساس من تليجرام أولا')
         require(shift['meta']['shiftDate'] == current_date(self.zone), 'المناوبات السابقة للعرض فقط؛ وقت الانتقال 08:30')
         require(len({p['externalId'] for p in shift['patients']}) == len(shift['patients']), 'معرف مريض مكرر في الجدول')
         remote = self.fetch()
         self.authorize(remote['doctors'])
         selected_id = shift['meta']['shiftId']
-        other_ids = {p['externalId'] for s in remote['bundle'] if s['meta']['shiftId'] != selected_id for p in s['patients']}
+        other_ids = {p['externalId'] for s in remote['bundle'] if s['meta']['shiftDate'] != shift['meta']['shiftDate'] for p in s['patients']}
         require(not any(p['externalId'] in other_ids for p in shift['patients']), 'معرف مريض مستخدم في مناوبة أخرى')
-        base_shift = next((s for s in self.baseline['bundle'] if s['meta']['shiftId'] == selected_id), None)
-        latest = next((s for s in remote['bundle'] if s['meta']['shiftId'] == selected_id), None)
+        base_shift = next((s for s in (self.baseline or {}).get('bundle', []) if s['meta']['shiftId'] == selected_id), None)
+        latest = next((s for s in remote['bundle'] if s['meta']['shiftDate'] == shift['meta']['shiftDate']), None)
         same_date = [s for s in remote['bundle'] if s['meta']['shiftDate'] == shift['meta']['shiftDate']]
-        require(not same_date or all(s['meta']['shiftId'] == selected_id for s in same_date), 'معرف المناوبة الحالية تغير؛ اجلبها قبل التعديل')
-        require(base_shift is None or latest is not None, 'مناوبة الأساس لم تعد في الحزمة؛ أعد الجلب ولا تنشر فوق سجل آخر')
         # The reviewed local shift is the entire replacement, including deletions,
         # roster and stored order. Remote fields/additions are never silently merged.
         output = copy.deepcopy(shift)
         plan = Review(pointer(remote['state']), doctor_pointer(remote['state']), output, remote['bundle'], remote, [])
+        plan.force_required = any(s['meta']['shiftId'] != selected_id for s in same_date) or (base_shift is not None and latest is None)
         return plan
 
     def prepare(self, plan, restored_completions=None, saved_patients=None):
@@ -481,7 +481,7 @@ class Client:
         shift = copy.deepcopy(plan.shift)
         from desktop_sort import ordered
         ordered(shift, doctors, self.zone)
-        latest = next((s for s in plan.bundle if s['meta']['shiftId'] == shift['meta']['shiftId']), None)
+        latest = next((s for s in plan.bundle if s['meta']['shiftDate'] == shift['meta']['shiftDate']), None)
         previous = {r['externalId']: r for r in latest['patients']} if latest else {}
         require(len(shift['patients']) <= 200, 'الحد الأقصى للمناوبة 200 مريض')
         roster = shift['meta'].get('doctors', '').split(',')
@@ -532,17 +532,20 @@ class Client:
         return plan
 
     def approve(self, plan):
-        plan._approval = fingerprint(plan.shift)
+        plan._approval = fingerprint(dict(shift=plan.shift, force_local=plan.force_local))
 
     def publish(self, plan, before_upload):
         require(plan.actor_id == self._actor, 'تغير الطبيب بعد المراجعة؛ أعدها')
-        require(plan._approval == fingerprint(plan.shift), 'تغيرت البيانات بعد المراجعة؛ راجعها مجددا')
+        require(plan._approval == fingerprint(dict(shift=plan.shift, force_local=plan.force_local)), 'تغيرت البيانات بعد المراجعة؛ راجعها مجددا')
+        require(not plan.force_required or plan.force_local, 'اختر نشر نسختي المحلية في المراجعة لاستبدال مناوبة اليوم المنشورة دون تنزيلها')
         current = self.fetch()
         self.authorize(current['doctors'])
-        require(pointer(current['state']) == plan.baseline_pointer and doctor_pointer(current['state']) == plan.registry_pointer,
+        require((plan.force_local or pointer(current['state']) == plan.baseline_pointer) and doctor_pointer(current['state']) == plan.registry_pointer,
                 'وصلت بيانات أحدث بعد المراجعة؛ أعد المراجعة')
         require(plan.shift['meta']['shiftDate'] == current_date(self.zone), 'انتهت المناوبة الحالية')
-        others = [s for s in current['bundle'] if s['meta']['shiftId'] != plan.shift['meta']['shiftId']]
+        others = [s for s in current['bundle'] if s['meta']['shiftId'] != plan.shift['meta']['shiftId'] and s['meta']['shiftDate'] != plan.shift['meta']['shiftDate']]
+        other_ids = {p['externalId'] for s in others for p in s['patients']}
+        require(not any(p['externalId'] in other_ids for p in plan.shift['patients']), 'معرف مريض مستخدم في مناوبة أخرى؛ أعد المراجعة')
         require(not any(s['meta']['shiftDate'] > plan.shift['meta']['shiftDate'] for s in others), 'توجد مناوبة مستقبلية في الحزمة؛ صحح تاريخ الأجهزة قبل النشر')
         bundle = sorted([plan.shift] + others, key=lambda s: s['meta']['shiftDate'], reverse=True)[:3]
         raw = encode_bundle(bundle)
@@ -550,8 +553,8 @@ class Client:
         uploaded = self.telegram.upload(raw, 'ShiftReport.csv', self.config.get('csvTopicId'), 'نسخة المناوبات من سطح المكتب')
         # Preserve other pointers by re-reading and never manufacturing a fresh empty index.
         index_id, state = self.telegram.state()
-        require(pointer(state) == plan.baseline_pointer and doctor_pointer(state) == plan.registry_pointer,
-                'وصل نشر أثناء الرفع؛ الملف رفع لكن الفهرس لم يتغير. اجلب وراجع قبل إعادة النشر')
+        require((plan.force_local or pointer(state) == plan.baseline_pointer) and doctor_pointer(state) == plan.registry_pointer,
+                'وصل نشر أثناء الرفع؛ الملف رفع لكن الفهرس لم يتغير. أعد المراجعة واختر نشر نسختي المحلية دون تنزيل المرضى')
         self.authorize(current['doctors'])
         at = int(uploaded['date']) * 1000
         previous = copy.deepcopy(state)
@@ -561,7 +564,7 @@ class Client:
                 state[new] = previous.get(old, 0 if old == 'csvUpdatedAt' else None)
         state.update(csvFileId=uploaded['document']['file_id'], csvMessageId=uploaded['message_id'], csvDate=plan.shift['meta']['shiftDate'], csvUpdatedAt=at)
         journal = {'snapshotId': plan.shift['meta']['snapshotId'], 'parentSnapshotId': plan.shift['meta'].get('baseSnapshotId') or None,
-                   'fileId': state['csvFileId'], 'messageId': state['csvMessageId'], 'at': at, 'deviceId': self.device, 'forced': False}
+                   'fileId': state['csvFileId'], 'messageId': state['csvMessageId'], 'at': at, 'deviceId': self.device, 'forced': plan.force_local}
         state['publicationJournal'] = sorted(state.get('publicationJournal', []) + [journal], key=lambda v: v['messageId'], reverse=True)[:12]
         committed = self.telegram.write_state(index_id, state)
         self.baseline = {'index_id': index_id, 'state': committed, 'doctors': current['doctors'], 'bundle': bundle}

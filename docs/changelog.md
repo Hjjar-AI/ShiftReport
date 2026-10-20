@@ -26,6 +26,13 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Clinical data and reports
 
+- Added explicitly confirmed local-copy patient publication on Android/desktop,
+  including supervisor reports, to replace competing publications without applying
+  downloaded patients locally. Desktop reviews same-day shift-ID conflicts and
+  opens review from Publish; Android binds sending to a CSV publication review.
+  Authorization, local stale checks and delivery guards remain. Source-check and
+  runtime limits are in [current state](current-state.md#explicit-local-copy-publication).
+
 - Organized the [Android demo](android-demo.md) around shared Patients/Dashboard
   navigation, a secondary-tools drawer, real dashboard/options components and
   separate report/team/preferences screens. Added memory-only actor selection,

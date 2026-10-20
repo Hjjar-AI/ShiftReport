@@ -235,7 +235,7 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    private suspend fun prepareReviewedReport(reviewed: BuiltReport): BuiltReport {
+    private suspend fun prepareReviewedReport(reviewed: BuiltReport, forceLocal: Boolean): BuiltReport {
         activeSendingActor()
         val beforeSync = reportBuilder.build(shiftId)
         check(beforeSync.shift.date == ShiftDate.current()) {
@@ -247,7 +247,9 @@ class ReportPreviewViewModel @Inject constructor(
         activeSendingActor()
         ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.IN_PROGRESS) }
-        syncService.uploadCsv(shiftId).getOrThrow()
+        val publication = syncService.prepareCsvPublication(shiftId, forceLocal)
+        ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
+        syncService.uploadReviewedCsv(publication, forceLocal).getOrThrow()
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.CONFIRMED) }
         val accepted = reportBuilder.build(shiftId)
         ReportReview.requireMatches(reviewed, accepted)
@@ -302,7 +304,7 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun sendSupervisorReports(supervisorIds: Set<String>) {
+    fun sendSupervisorReports(supervisorIds: Set<String>, forceLocal: Boolean = false) {
         val current = _state.value
         val reviewed = reviewedReport ?: return
         if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
@@ -330,7 +332,7 @@ class ReportPreviewViewModel @Inject constructor(
                     reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId))
                     checkedPdf(reviewed, target.doctorId)
                 }
-                val built = prepareReviewedReport(reviewed)
+                val built = prepareReviewedReport(reviewed, forceLocal)
                 val actor = activeSendingActor()
                 val targets = buildSupervisorTargets(built).filter {
                     it.doctorId in supervisorIds && it.chatId != null
@@ -358,7 +360,7 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun send() {
+    fun send(forceLocal: Boolean = false) {
         val current = _state.value
         val reviewed = reviewedReport ?: return
         if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
@@ -378,7 +380,7 @@ class ReportPreviewViewModel @Inject constructor(
                 reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
                 ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
                 if (current.reportAsPdf) checkedPdf(reviewed)
-                val built = prepareReviewedReport(reviewed)
+                val built = prepareReviewedReport(reviewed, forceLocal)
                 val actor = activeSendingActor()
                 _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
                 if (current.reportAsPdf) sendPdf(built, actor) else sendText(built, actor)

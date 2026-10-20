@@ -21,6 +21,7 @@ data class DoctorsUiState(
     val exportReady: Boolean = false,
     val importing: Boolean = false,
     val importPreview: DoctorImportPreview? = null,
+    val importError: String? = null,
     val error: String? = null,
     val snackbar: String? = null
 )

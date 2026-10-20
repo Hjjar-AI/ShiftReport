@@ -12,7 +12,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit, onTasks: () -> Unit) {
+internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.small)) {
             Text(state.freshnessLabel, style = MaterialTheme.typography.labelSmall)
@@ -26,7 +26,6 @@ internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit, onTasks: 
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 if (!state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) AppTextButton(onClick = onNext, enabled = state.shift != null && !state.syncing && !state.saving) { Text(state.workflowAction.label) }
-                AppTextButton(onClick = onTasks, enabled = !state.loading && !state.saving && !state.syncing) { Text("مهام الجناح") }
             }
         }
     }

@@ -476,7 +476,7 @@ fun WardScreen(
                         WardWorkflowAction.REVIEW_PUBLICATION -> showReportSheet = true
                         WardWorkflowAction.DOWNLOAD -> confirmLatest = true
                     }
-                }, onTasks = { if (!showAdd && editTarget == null && copyTarget == null) showWardTasks = true })
+                })
                 }
             },
             floatingActionButton = {
@@ -972,6 +972,9 @@ fun WardScreen(
                     if (selectedViewOption == WardViewOption.FILTERS) {
                         AppSearchField(query = searchQuery, onQueryChange = { searchQuery = it }, label = "بحث")
                         Text("تصفية · للعرض فقط", style = MaterialTheme.typography.titleSmall)
+                        AppOutlinedButton(onClick = { showFilters = false; showWardTasks = true },
+                            enabled = state.patients.isNotEmpty() && !state.loading && !state.saving && !state.syncing,
+                            modifier = Modifier.fillMaxWidth()) { Text("مهام الجناح") }
                         CompactFilterChip(viewMode == WardViewMode.MINE,
                             { viewMode = if (viewMode == WardViewMode.MINE) WardViewMode.ALL else WardViewMode.MINE },
                             "مرضاي ومهامي")

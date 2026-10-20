@@ -10,7 +10,9 @@ class CsvPublicationReview internal constructor(
     val text: String
 )
 
+internal fun sameDoctorPublicationSource(a: SyncState?, b: SyncState): Boolean =
+    a != null && a.doctorsFileId == b.doctorsFileId && a.doctorsMessageId == b.doctorsMessageId &&
+        a.doctorsUpdatedAt == b.doctorsUpdatedAt && a.doctorsData == b.doctorsData
+
 internal fun samePublicationSource(a: SyncState?, b: SyncState): Boolean =
-    a != null && a.csvFileId == b.csvFileId && a.csvMessageId == b.csvMessageId &&
-        a.doctorsFileId == b.doctorsFileId && a.doctorsMessageId == b.doctorsMessageId &&
-        a.doctorsData == b.doctorsData
+    sameDoctorPublicationSource(a, b) && a?.csvFileId == b.csvFileId && a?.csvMessageId == b.csvMessageId

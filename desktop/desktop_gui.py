@@ -119,6 +119,9 @@ class Window:
             command=lambda:self.run(lambda:activity_center(self)))
         self.announcement_button = ctk.CTkButton(project,text='إدارة إعلان المشروع',height=48,
             command=lambda:self.run(lambda:administer_announcement(self)))
+        from desktop_empty_start import empty_start_dialog
+        self.empty_start_button = ctk.CTkButton(project,text='مراجعة بداية فارغة — المدير الدائم',height=48,
+            command=lambda:self.run(lambda:empty_start_dialog(self)))
         ctk.CTkLabel(security,text='المنطقة الزمنية نفسها في Android',anchor='e').pack(fill='x',padx=10)
         ctk.CTkEntry(security,textvariable=self.zone,justify='right').pack(fill='x',padx=8,pady=4)
         if not demo:
@@ -135,7 +138,7 @@ class Window:
         self.data_status_label=ctk.CTkLabel(self.data_window,textvariable=self.status,anchor='e',justify='right',wraplength=550)
         self.data_status_label.pack(side='bottom',fill='x',padx=10,pady=4)
         self.data_window.withdraw()
-        button(sidebar,'إدارة البيانات',self.open_data_tools)
+        data_sidebar_button=ctk.CTkButton(sidebar,text='البيانات والاستعادة',height=48,command=self.open_data_tools)
         data=section('الجلب والمراجعة والنشر',parent=data_area)
         self.data_description=ctk.CTkLabel(data,text='يحفظ تحرير المريض محلياً. النشر يستبدل النسخة الكاملة على تليجرام.',wraplength=550,justify='right')
         self.data_description.pack(fill='x',padx=8)
@@ -172,6 +175,7 @@ class Window:
         button(settings_area,'إدارة البيانات',self.open_data_tools)
         button(settings_area,'إدارة المشروع',self.open_project_tools)
         button(settings_area,'التشخيص ومعلومات الجهاز',self.open_diagnostics)
+        data_sidebar_button.pack(fill='x',padx=8,pady=4)
         self.settings_button.pack(fill='x',padx=8,pady=4)
         button(sidebar,'إدارة المشروع',self.open_project_tools)
         build_ward_controls(self)
@@ -585,6 +589,11 @@ class Window:
             self.admin_button.pack_forget()
             self.announcement_button.pack_forget()
             self.assignments_button.pack_forget()
+        from desktop_doctors import permanent
+        if actor and permanent(actor) and time.time()<self.client._expires and not self.demo:
+            self.empty_start_button.pack(fill='x',padx=8,pady=4)
+            self.empty_start_button.configure(state='disabled' if self.busy else 'normal')
+        else:self.empty_start_button.pack_forget()
         local = local_identity(self.store,self.client) if self.store and self.client else None
         if local and is_admin(local) and not self.demo:
             self.activity_button.pack(fill='x',padx=8,pady=4)
@@ -813,19 +822,29 @@ class Window:
             self.io(lambda:self.store.import_draft(path,self.client));self.plan=None;self.set_doctors()
             self.status.set('استعدت المسودة؛ أعد المراجعة مع تليجرام قبل النشر.')
 
-    def text_dialog(self,title,text,approve=False,approval_label='راجعت النسخة المعروضة وأوافق على النشر'):
+    def text_dialog(self,title,text,approve=False,approval_label='راجعت النسخة المعروضة وأوافق على النشر',publication_plan=None):
         window=modal(self,title,'920x680')
         controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
         widget=ctk.CTkTextbox(window,wrap='word',font=('Arial',15));widget.pack(fill='both',expand=True,padx=8,pady=8)
         copy_original=set_readonly_text(widget,text)
+        force=None
+        if publication_plan is not None:
+            force=ctk.CTkCheckBox(controls,text='نشر نسختي المحلية حتى لو وصل نشر أحدث',height=48)
+            force.pack(fill='x',padx=8,pady=4)
+            ctk.CTkLabel(controls,text='عند اختيار هذا الخيار ستستبدل نسختك بيانات المرضى والحذف والترتيب وأطباء المناوبة. قد تُفقد تعديلات أجهزة أخرى من النسخة الحالية.',wraplength=820,justify='right').pack(fill='x',padx=8)
         accepted=[]
-        def accept():accepted.append(True);window.destroy()
+        def accept():
+            if publication_plan is not None:
+                publication_plan.force_local=bool(force.get())
+                if publication_plan.force_required and not publication_plan.force_local:
+                    messagebox.showinfo('تأكيد الاستبدال','اختر نشر نسختي المحلية لاستبدال مناوبة اليوم المنشورة دون تنزيلها.');return
+            accepted.append(True);window.destroy()
         dialog_actions(controls,primary=(approval_label,accept) if approve else None,
             cancel=('إلغاء' if approve else 'إغلاق',window.destroy),secondary=[('نسخ النص الكامل',copy_original)])
         self.root.wait_window(window);return bool(accepted)
 
-    def show_review(self,text):
-        return self.text_dialog('مراجعة قبل النشر',text,approve=True)
+    def show_review(self,text,publication_plan=None):
+        return self.text_dialog('مراجعة قبل النشر',text,approve=True,publication_plan=publication_plan)
 
     def review(self):
         self.ready();self.plan=None
@@ -833,12 +852,15 @@ class Window:
         plan=self.io(lambda:self.client.plan(local))
         plan=self.io(lambda:self.client.prepare(plan,self.store.restored_completions(),saved_patients=local['patients']))
         require(fingerprint(self.store.read(self.client))==draft_hash,'تغير المسودة أثناء المراجعة؛ أعدها')
-        if self.show_review(publication_review(plan,self.client.zone)):
+        if self.show_review(publication_review(plan,self.client.zone),publication_plan=plan):
             self.client.approve(plan);self.plan=plan;self.raw_draft=draft_hash
-            self.status.set('المراجعة جاهزة. اضغط نشر؛ أي تعديل أو نسخة أحدث سيوقف هذا النشر.')
+            self.status.set('المراجعة جاهزة. اضغط نشر؛ تغيّر المسودة أو سجل الأطباء يتطلب مراجعة جديدة.' if plan.force_local else 'المراجعة جاهزة. اضغط نشر؛ أي تعديل أو نسخة أحدث سيوقف هذا النشر.')
 
     def publish(self, notify=True):
-        self.ready();require(self.plan is not None,'راجع المسودة أولا')
+        self.ready()
+        if self.plan is None:
+            self.review()
+            if self.plan is None:return
         require(fingerprint(self.store.read(self.client))==self.raw_draft,'تغيرت المسودة؛ أعد مراجعتها')
         plan=self.plan
         key=fingerprint({'operation':'publish','project':self.client.project_id,'draft':self.raw_draft,'remote':plan.baseline_pointer})
@@ -929,7 +951,7 @@ class Window:
         notes=readiness_notes([row for row in baseline['patients'] if supervisor is None or row.get('responsibleSupervisorId')==supervisor])
         if needs_publish and not self.text_dialog('مراجعة البيانات قبل النشر والإرسال',
                 publication_review(plan,self.client.zone)+'\n\nلم تُنشر البيانات بعد. ستعاين التقرير ثم تؤكد النشر والإرسال.',
-                True,'متابعة إلى معاينة التقرير'):return
+                True,'متابعة إلى معاينة التقرير',publication_plan=plan):return
         text=path=raw=None
         if options['format']=='text':
             text=report_text(self.client,baseline,supervisor)
@@ -966,7 +988,7 @@ class Window:
                 self.io(lambda:self.store.confirm_indexed_receipt(index,snapshot['state']['doctorsMessageId']))
                 messagebox.showinfo('تأكيد سجل الأطباء','السجل المثبت الحالي يطابق العملية؛ لا تكررها.')
                 return
-        if row[0]=='publish' and row[7].startswith('snapshot='):
+        if row[0] in {'publish','empty_start'} and row[7].startswith('snapshot='):
             self.ready()
             state=self.io(self.client.fetch)['state']
             match=next((entry for entry in state.get('publicationJournal',[]) if entry['snapshotId']==row[7][9:]),None)
@@ -1002,8 +1024,9 @@ def main():
         if not args.demo:lock=acquire_instance_lock()
         settings={} if args.demo else read_settings(args.env)
         ctk.configure_rendering(settings.get('TEXT_RENDERING') or 'auto')
-        ctk.set_appearance_mode(settings.get('APPEARANCE') or 'System')
-        ctk.set_default_color_theme('blue')
+        ctk.set_appearance_mode(settings.get('APPEARANCE') or 'Light')
+        from desktop_appearance import set_palette_theme
+        set_palette_theme()
         root=ctk.CTk()
         Window(root,settings,demo=args.demo)
         root.mainloop()

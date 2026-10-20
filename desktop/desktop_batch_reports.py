@@ -50,7 +50,7 @@ def send_supervisor_reports(owner):
     if not selected:return
     delivery.check_targets(selected)
     if needs_publish and not owner.text_dialog('مراجعة النسخة الكاملة قبل تقارير المشرفين',
-            publication_review(plan,owner.client.zone),True,'متابعة إلى معاينة ملفات المشرفين'):return
+            publication_review(plan,owner.client.zone),True,'متابعة إلى معاينة ملفات المشرفين',publication_plan=plan):return
     font = owner.settings.get('PDF_FONT')
     if font and not Path(font).is_absolute():
         base = Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent

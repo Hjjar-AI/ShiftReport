@@ -114,6 +114,20 @@ fun SettingsScreen(
     var openSection by rememberSaveable(workspace) {
         mutableStateOf<String?>(if (workspace == SettingsWorkspace.DATA) SettingsSectionId.SYNC.title else null)
     }
+    state.emptyStartReview?.takeIf { canManageProject && state.isPermanentAdmin }?.let { review ->
+        AlertDialog(onDismissRequest = viewModel::dismissEmptyStart,
+            title = { Text("بداية فارغة — المدير الدائم فقط") },
+            text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(review) } },
+            confirmButton = { AppTextButton(onClick = viewModel::confirmEmptyStart, enabled = !state.emptyStartBusy) {
+                Text("أؤكد مسح المرضى ونشر بداية فارغة", color = MaterialTheme.colorScheme.error)
+            } }, dismissButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text("إلغاء") } })
+    }
+    if (state.emptyStartBusy) AlertDialog(onDismissRequest = {}, title = { Text("البداية الفارغة") },
+        text = { com.hos.rushdpatients.ui.components.AppLoadingState("جار التحقق وتنفيذ العملية…") }, confirmButton = {})
+    state.emptyStartResult?.let { result ->
+        AlertDialog(onDismissRequest = viewModel::dismissEmptyStart, title = { Text("نتيجة البداية الفارغة") },
+            text = { Text(result) }, confirmButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text("فهمت") } })
+    }
     var confirmUndoDownload by remember { mutableStateOf(false) }
     if (confirmUndoDownload) com.hos.rushdpatients.ui.components.ConfirmDialog(
         title = "التراجع عن آخر تنزيل",
@@ -507,6 +521,15 @@ fun SettingsScreen(
                                 ProjectConnectionAction(isAdmin = canManageProject)
                             }
                             SettingsSectionId.ADMIN -> {
+                                if (state.isPermanentAdmin) {
+                                    SettingsSubheading("بداية فارغة للمشروع")
+                                    Text("مسح المرضى والمناوبات فقط مع إبقاء الأطباء والحسابات والاتصال وسجل تليجرام. يتطلب مراجعة وتأكيداً صريحاً.",
+                                        style = MaterialTheme.typography.bodySmall)
+                                    AppOutlinedButton(onClick = viewModel::prepareEmptyStart,
+                                        enabled = !state.emptyStartBusy && !state.syncing && !state.backupBusy && !state.provisioningBusy,
+                                        modifier = Modifier.fillMaxWidth()) { Text("مراجعة بداية فارغة", color = MaterialTheme.colorScheme.error) }
+                                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                                }
                                 Text("ضم أجهزة جديدة", style = MaterialTheme.typography.labelMedium)
                                 Text(
                                     "أنشئ ملفاً مشفراً يعبئ إعدادات المستشفى والبوت على جهاز العضو. أرسل عبارة المرور إليه عبر قناة منفصلة.",
