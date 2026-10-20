@@ -18,12 +18,27 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Reuse this workstation's shared cache, including when the environment explicitly
-# points at the normal home cache. Preserve genuinely custom cache locations.
+# Reuse the shared cache only when its daemon registries are accessible too.
+# Gradle creates version-specific daemon directories with owner-only permissions;
+# a writable cache root alone does not make another account's registry usable.
+# Preserve genuinely custom cache locations, and otherwise fall back to the
+# ordinary personal cache (which may already contain the pinned distribution).
 if { [ -z "${GRADLE_USER_HOME:-}" ] || [ "$GRADLE_USER_HOME" = "$HOME/.gradle" ]; } &&
-    [ -d /opt/android-shared/.gradle ] && [ -w /opt/android-shared/.gradle ]; then
-    GRADLE_USER_HOME=/opt/android-shared/.gradle
-    export GRADLE_USER_HOME
+    [ -d /opt/android-shared/.gradle ] && [ -r /opt/android-shared/.gradle ] &&
+    [ -w /opt/android-shared/.gradle ] && [ -x /opt/android-shared/.gradle ]; then
+    shiftreport_shared_cache_usable=true
+    for shiftreport_daemon_dir in /opt/android-shared/.gradle/daemon /opt/android-shared/.gradle/daemon/*; do
+        if [ -d "$shiftreport_daemon_dir" ] &&
+            { [ ! -r "$shiftreport_daemon_dir" ] || [ ! -w "$shiftreport_daemon_dir" ] || [ ! -x "$shiftreport_daemon_dir" ]; }; then
+            shiftreport_shared_cache_usable=false
+            break
+        fi
+    done
+    if [ "$shiftreport_shared_cache_usable" = true ]; then
+        GRADLE_USER_HOME=/opt/android-shared/.gradle
+        export GRADLE_USER_HOME
+    fi
+    unset shiftreport_shared_cache_usable shiftreport_daemon_dir
 fi
 
 # Keep account-specific project caches separate when users share this checkout.

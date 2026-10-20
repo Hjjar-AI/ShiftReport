@@ -1878,6 +1878,19 @@ Android builds or test-suite tasks were run for this documentation change.
 
 ### Workstation APK export and app build versions
 
+The owner's 20 October early `java.io.IOException: Permission denied` occurred
+after version reservation. Read-only host checks found the automatically selected
+shared cache writable at its root but its `daemon/8.7` directory owned by the other
+account with mode `0700`; the reporting account's personal cache has executable
+Gradle 8.7 already installed. The launcher now checks access to existing shared
+daemon directories and falls back to the personal cache when inaccessible, while
+preserving custom user-home overrides. Shell syntax and six disposable selection
+checks passed. No real cache permissions or reserved version metadata were
+changed, and no agent-run Gradle/build ran. The owner's next build reached Kotlin
+compilation and stored its configuration cache, confirming progress past that
+permission failure.
+
+
 The owner's export-task configuration-cache error was traced to the custom rename
 callback reading a Kotlin script property. APK export now uses a built-in regex
 rename rule and a destination resolved during configuration; configuration caching
@@ -1900,6 +1913,15 @@ configuration-cache storage and the produced APK still require an owner-run buil
 See [build fixes and reusable preferences](android-shared-workstation-build-fixes.md).
 
 ## Verification and limits
+
+- Owner-supplied 20 October debug build `1.1.4.20261020` (code 5) reached Kotlin
+  compilation, then failed on the ward-filter task button's missing
+  `AppOutlinedButton` import. Added the existing shared component import; the
+  accompanying composable-context diagnostic is consistent with that unresolved
+  call. The run stored its configuration cache and reported the SQLCipher strip
+  warning. The corrected import/call signature and Git whitespace were checked;
+  compilation after this fix and APK generation remain unverified. No agent-run
+  Gradle, compilation, packaging or test-suite work was performed.
 
 - Latest owner-supplied Android debug build on 2026-10-19 succeeded in 2m 51s,
   with 43 tasks (13 executed, 30 up-to-date), after correcting the unsupported

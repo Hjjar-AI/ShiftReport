@@ -15,7 +15,8 @@ For the encountered failures, causes and final fixes, see
 [Shared-workstation build issues](android-shared-workstation-build-fixes.md).
 
 The POSIX `android/gradlew` launcher automatically uses
-`/opt/android-shared/.gradle` when that directory exists, is writable and
+`/opt/android-shared/.gradle` when its root and existing daemon directories are
+readable, writable and traversable, and
 `GRADLE_USER_HOME` is unset or points to the normal `$HOME/.gradle` location.
 This also handles development environments that pre-export the ordinary home cache.
 The shared cache contains the project's Gradle 8.7 distribution. A genuinely custom
@@ -23,6 +24,14 @@ The shared cache contains the project's Gradle 8.7 distribution. A genuinely cus
 keep Gradle's normal per-user cache. The wrapper version and distribution checksum
 are unchanged. This setting applies to the shell launcher; Android Studio has its
 own Gradle user-home setting.
+
+A writable cache root can still contain another account's private `daemon/8.7`
+directory. This caused an early `java.io.IOException: Permission denied` after
+version reservation on the shared workstation. The launcher now checks daemon
+access before automatic shared-cache selection and otherwise keeps the personal
+cache. Explicit custom user-home settings still take precedence. If the same
+failure remains, include `--stacktrace` in the next owner-run build and share its
+failing path; the short error alone cannot identify every possible permission issue.
 
 The POSIX launcher also defaults the project cache to
 `$HOME/.gradle/shiftreport-project-cache`, isolating configuration-cache permissions

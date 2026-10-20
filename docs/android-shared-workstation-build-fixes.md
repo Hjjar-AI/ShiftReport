@@ -79,6 +79,7 @@ from keeping output filenames distinct.
 | Download continued after adding automatic shared-cache selection | The environment already exported `GRADLE_USER_HOME=/home/work/.gradle`; the first implementation preserved every existing value | Treat the ordinary `$HOME/.gradle` value like an unset value; still preserve custom cache locations |
 | Failure creating `buildfingerprint...tmp` under `android/.gradle/configuration-cache/...` | The existing cache directory was owned by `nobody` with owner-only directory access | Give each account its own project cache under its home |
 | `packageDebugResources` and `mergeDebugResources` could not delete generated files | Resource intermediates under shared `android/app/build` were owned by another account and lacked the required write access | Give each account its own generated build output as well |
+| Early `java.io.IOException: Permission denied` after version reservation | Shared cache root was writable, but `daemon/8.7` belonged to the other account with mode `0700` | Check access to existing daemon directories before selecting the shared cache; otherwise keep the personal cache. The reporting account already has Gradle 8.7 installed there |
 | `exportDebugApk` failed configuration-cache storage with a Gradle script-object reference | The APK rename callback read a script-level value at execution time | Use built-in regex rename strings and resolve the destination during task configuration, leaving configuration caching enabled |
 | `compileDebugKotlin` rejected the appearance/font FilterChips as experimental API usage | The new appearance section lacked a Material opt-in | Added `ExperimentalMaterial3Api` to the section; no dependency or toolchain changes |
 
@@ -97,7 +98,8 @@ Installing a different Gradle version does not satisfy the wrapper's request for
 8.7. Changing the project to 8.13 was unnecessary: the matching 8.7 distribution
 was already available in the shared cache.
 
-The shell launcher uses `/opt/android-shared/.gradle` when it exists, is writable,
+The shell launcher uses `/opt/android-shared/.gradle` when its root and existing
+daemon directories are readable, writable and traversable,
 and `GRADLE_USER_HOME` is either unset or equals `$HOME/.gradle`. Otherwise it
 retains the caller's cache selection or Gradle's normal per-user default.
 It does not select `mhmmd`'s private cache for `work`.
@@ -271,7 +273,7 @@ Gradle, Kotlin, plugins and SDK versions remain unchanged.
 
 | Layer | Default for this shell launcher | Purpose |
 | --- | --- | --- |
-| Gradle user home | `/opt/android-shared/.gradle`, when eligible | Reuse the installed distribution and cached dependencies |
+| Gradle user home | `/opt/android-shared/.gradle`, when its daemon registries are also accessible | Reuse the installed distribution and cached dependencies |
 | Project cache | Each account's home | Isolate configuration and project-state files |
 | Generated output | Each account's home | Isolate intermediates and APKs |
 | Project source | The existing shared checkout | Both accounts edit/build the same source |
@@ -304,7 +306,7 @@ custom machines, automation or intentionally fixed-version builds:
 
 | Control | Current behavior |
 | --- | --- |
-| `GRADLE_USER_HOME` | Shared `/opt/android-shared/.gradle` replaces an unset/normal-home value when writable; custom locations are preserved |
+| `GRADLE_USER_HOME` | Shared `/opt/android-shared/.gradle` replaces an unset/normal-home value when its root and existing daemon registries are accessible; custom locations are preserved |
 | `--project-cache-dir /path` | Overrides the account-local project cache; accepts paths containing spaces when quoted |
 | `-Pshiftreport.buildRoot=/path` | Overrides generated output, with separate `root`/`app` subdirectories |
 | `-Pshiftreport.apkExportDir=/path` | Overrides Desktop export root; each variant gets its own subdirectory |
@@ -477,6 +479,20 @@ that its Gradle API calls work unchanged with every Android plugin version.
 - [General troubleshooting](troubleshooting.md): current cache/output behavior.
 
 ## Verification and remaining limits
+
+For the owner's early 20 October `Permission denied` failure, read-only checks
+confirmed `/opt/android-shared/.gradle/daemon/8.7` had mode `0700`, owned by the
+other account, despite a writable shared cache root. The reporting account's own
+cache already contains the executable Gradle 8.7 distribution. Shell syntax and
+six disposable selection probes passed accessible/inaccessible daemon directories,
+unset/ordinary-home settings and preserved custom overrides. No permissions were
+changed on either real cache, and Gradle was not executed. The short supplied log
+contains no stack trace. The owner's subsequent `1.1.4.20261020` debug build
+progressed to Kotlin compilation and stored its configuration cache, confirming
+progress past the permission failure. It stopped on a missing `AppOutlinedButton`
+import in `WardScreen`, since corrected in source. Its consumed app-version
+reservation is preserved; the corrected source has not been rebuilt.
+
 
 The agent performed shell syntax checks, disposable argument-selection probes,
 source inspection and Git whitespace checks. Later APK-export checks covered

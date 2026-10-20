@@ -201,6 +201,9 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Interface
 
+- Corrected the missing shared-button import for the ward-task filter action
+  reported by the owner’s build; source checks passed, rebuild pending.
+
 - Defaulted fresh settings/demo to Light/Turquoise with white surfaces and eight
   more distinct named palettes. Reordered Android report preview and daily/data/
   project drawer groups, grouped desktop sidebar actions, and moved ward tasks
@@ -293,6 +296,11 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   rewritten due filesystem permissions. See [current state](current-state.md).
 
 ## Repository organization
+
+- Guarded automatic shared Gradle-cache selection against inaccessible
+  version-specific daemon directories, with personal-cache fallback. Read-only
+  permission evidence, shell checks and runtime limits are in the
+  [workstation build guide](android-shared-workstation-build-fixes.md#verification-and-remaining-limits).
 
 - The POSIX Gradle wrapper reuses the writable workstation cache under
   `/opt/android-shared/.gradle` when the cache variable is unset or set to the

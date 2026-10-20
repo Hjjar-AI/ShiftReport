@@ -21,6 +21,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppButton
+import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
