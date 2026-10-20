@@ -1,19 +1,19 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiDialog
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.AppValueComparison
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun StaleEditReviewDialog(
@@ -28,7 +28,7 @@ internal fun StaleEditReviewDialog(
         title = { Text("مراجعة تغييرات أحدث") },
         text = {
             Column(
-                Modifier.fillMaxWidth().heightIn(max = 440.dp)
+                Modifier.fillMaxWidth().appDialogBody(UiDialog.reviewBodyMaxHeight)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {

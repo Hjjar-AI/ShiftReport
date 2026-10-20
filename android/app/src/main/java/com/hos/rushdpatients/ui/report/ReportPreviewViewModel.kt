@@ -34,6 +34,9 @@ import com.hos.rushdpatients.pdf.MediaStoreSaver
 import com.hos.rushdpatients.pdf.PdfCardsExporter
 import com.hos.rushdpatients.pdf.PdfAssignmentExporter
 import com.hos.rushdpatients.pdf.PdfColorPreset
+import com.hos.rushdpatients.pdf.PdfRuleWeight
+import com.hos.rushdpatients.pdf.PdfRuleContrast
+import com.hos.rushdpatients.pdf.PdfRowShading
 import com.hos.rushdpatients.pdf.PdfExportOptions
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
@@ -110,13 +113,16 @@ class ReportPreviewViewModel @Inject constructor(
     }
 
     fun load(reviewNotice: String? = null) {
-        if (_state.value.sending || _state.value.savingDoctors) return
+        if (_state.value.sending || _state.value.savingDoctors || _state.value.savingPdfOptions) return
         reviewedPdfs.clear()
         reviewedReport = null
         viewModelScope.launch {
             _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
             try {
                 check(shiftId.isNotBlank()) { "معرف المناوبة غير موجود" }
+                val pdfOptions = loadPdfOptions()
+                val pdfStyle = PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE))
+                _state.update { it.copy(pdfOptions = pdfOptions, pdfStyle = pdfStyle) }
                 // Keep the selector available even when an empty roster prevents report building.
                 val shift = requireNotNull(shiftRepository.getById(shiftId)) { "المناوبة غير موجودة" }
                 val available = doctorRepository.getAll().filterNot { it.isDeleted }
@@ -169,7 +175,7 @@ class ReportPreviewViewModel @Inject constructor(
         onStale: (Shift?) -> Unit, onSuccess: () -> Unit
     ) {
         val current = _state.value
-        if (current.loading || current.savingDoctors || current.sending || current.previewingPdf ||
+        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf ||
             current.exportingLocalPdf || current.sharingPdf) return
         if (current.isReadOnly || current.shift == null) return
         _state.update { it.copy(savingDoctors = true, error = null) }
@@ -197,6 +203,35 @@ class ReportPreviewViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.setReportAsPdf(value)
             _state.update { it.copy(reportAsPdf = value) }
+        }
+    }
+
+    fun setPdfAppearance(style: PdfStyle, options: PdfExportOptions) {
+        val current = _state.value
+        if (current.loading || current.sending || current.savingDoctors || current.previewingPdf ||
+            current.exportingLocalPdf || current.sharingPdf || current.savingPdfOptions) return
+        _state.update { it.copy(savingPdfOptions = true) }
+        viewModelScope.launch {
+            try {
+                settingsRepository.putAll(mapOf(
+                    AppConstants.SETTING_PDF_STYLE to style.name,
+                    AppConstants.SETTING_PDF_ORIENTATION to options.orientation.name,
+                    AppConstants.SETTING_PDF_PAPER_SIZE to options.paperSize.name,
+                    AppConstants.SETTING_PDF_COLOR_PRESET to options.colorPreset.name,
+                    AppConstants.SETTING_PDF_DARK_MODE to options.darkMode.toString(),
+                    AppConstants.SETTING_PDF_RULE_WEIGHT to options.ruleWeight.name,
+                    AppConstants.SETTING_PDF_RULE_CONTRAST to options.ruleContrast.name,
+                    AppConstants.SETTING_PDF_ROW_SHADING to options.rowShading.name
+                ))
+                reviewedPdfs.clear()
+                _state.update { it.copy(pdfStyle = style, pdfOptions = options) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = e.message ?: "تعذر حفظ تخصيص التقرير") }
+            } finally {
+                _state.update { it.copy(savingPdfOptions = false) }
+            }
         }
     }
 
@@ -270,7 +305,7 @@ class ReportPreviewViewModel @Inject constructor(
     fun sendSupervisorReports(supervisorIds: Set<String>) {
         val current = _state.value
         val reviewed = reviewedReport ?: return
-        if (current.loading || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
+        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
             current.sharingPdf || current.shift == null) return
         if (current.isReadOnly) {
             _state.update { it.copy(error = "لا يمكن إرسال أو نشر تقرير مناوبة محفوظة") }
@@ -326,7 +361,7 @@ class ReportPreviewViewModel @Inject constructor(
     fun send() {
         val current = _state.value
         val reviewed = reviewedReport ?: return
-        if (current.loading || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
+        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
             current.sharingPdf || current.shift == null) return
         if (current.isReadOnly) {
             _state.update { it.copy(error = "لا يمكن إرسال أو نشر تقرير مناوبة محفوظة") }
@@ -369,7 +404,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     private fun previewPdfFor(supervisorId: String?) {
         val current = _state.value
-        if (current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
+        if (current.savingPdfOptions || current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(previewingPdf = true, error = null, retryAction = null) }
         viewModelScope.launch {
             try {
@@ -435,7 +470,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun sharePdf() {
         val current = _state.value
-        if (current.savingDoctors || current.sharingPdf || current.exportingLocalPdf || current.previewingPdf ||
+        if (current.savingPdfOptions || current.savingDoctors || current.sharingPdf || current.exportingLocalPdf || current.previewingPdf ||
             current.sending || current.shift == null
         ) return
         _state.update { it.copy(sharingPdf = true, error = null, retryAction = null) }
@@ -494,7 +529,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun exportAssignments() {
         val current = _state.value
-        if (current.loading || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf ||
+        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf ||
             current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(exportingLocalPdf = true, error = null, retryAction = null) }
         viewModelScope.launch {
@@ -528,7 +563,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun exportLocally() {
         val current = _state.value
-        if (current.savingDoctors || current.exportingLocalPdf || current.previewingPdf || current.sharingPdf || current.sending || current.shift == null) return
+        if (current.savingPdfOptions || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf || current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(exportingLocalPdf = true, error = null, retryAction = null) }
         viewModelScope.launch {
             try {
@@ -624,6 +659,9 @@ class ReportPreviewViewModel @Inject constructor(
             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
         ),
         darkMode = settingsRepository.getBoolean(AppConstants.SETTING_PDF_DARK_MODE, false),
+        ruleWeight = PdfRuleWeight.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_WEIGHT)),
+        ruleContrast = PdfRuleContrast.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_CONTRAST)),
+        rowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
         patientCardStyle = PatientCardStyle.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_PATIENT_CARD_STYLE)
         )

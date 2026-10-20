@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiAction
+import com.hos.rushdpatients.ui.components.AppDialogDismissAction
+import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
+import com.hos.rushdpatients.ui.components.AppDialogHeader
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppCheckRow
 import com.hos.rushdpatients.ui.components.AppSearchField
@@ -10,7 +15,6 @@ import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -24,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
@@ -51,12 +54,12 @@ fun ShiftDoctorPicker(
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("أطباء المناوبة") },
+        title = { AppDialogHeader("أطباء المناوبة") },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 400.dp),
+                    .appDialogBody(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 Text(
@@ -101,7 +104,7 @@ fun ShiftDoctorPicker(
             }
         },
         confirmButton = {
-            AppButton(
+            AppDialogConfirmAction(text = UiAction.SAVE.label, loading = saving,
                 onClick = {
                     val draft = selected.toList()
                     onConfirm(draft, revision) { saved ->
@@ -111,10 +114,10 @@ fun ShiftDoctorPicker(
                     }
                 },
                 enabled = selected.isNotEmpty() && !saving
-            ) { Text(if (saving) "جار الحفظ…" else "حفظ") }
+            )
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
+            AppDialogDismissAction(onClick = onDismiss, enabled = !saving)
         }
     )
     if (reviewing) {

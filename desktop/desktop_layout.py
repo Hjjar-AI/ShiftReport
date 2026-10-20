@@ -3,18 +3,20 @@ import tkinter as tk
 import desktop_widgets as ctk
 from desktop_input import ArabicEntry
 from desktop_patient_filters import CLINICAL_FILTERS, OWNER_FILTERS, TASK_FILTERS
-from desktop_sort import GROUPS, sorting_dialog
+from desktop_sort import GROUPS, sorting_editor
 from desktop_dashboard import handover_dashboard
 from desktop_workflow import task_board
 
 
 class Disclosure(ctk.CTkFrame):
-    def __init__(self, parent, title, expanded=False, scroll_height=None):
+    def __init__(self, parent, title, expanded=False, scroll_height=None, toggle_parent=None):
         super().__init__(parent)
         self.expanded = expanded
         self.title = title
-        self.toggle_button = ctk.CTkButton(self, text='', height=48, anchor='e', command=self.toggle)
-        self.toggle_button.pack(fill='x', padx=4, pady=2)
+        self.toggle_button = ctk.CTkButton(toggle_parent if toggle_parent is not None else self, text='', height=48,
+            width=120, anchor='e', command=self.toggle)
+        if toggle_parent is None:self.toggle_button.pack(fill='x', padx=4, pady=2)
+        else:self.toggle_button.pack(side='left',padx=3,pady=2)
         self.content = (ctk.CTkScrollableFrame(self, height=scroll_height, fg_color='transparent')
                         if scroll_height else ctk.CTkFrame(self, fg_color='transparent'))
         self.refresh()
@@ -32,6 +34,11 @@ class Disclosure(ctk.CTkFrame):
 
 def build_ward_controls(window):
     parent = window.content
+    window.operation_notice=ctk.CTkFrame(parent,fg_color=('#FFF3CD','#493C19'))
+    window.operation_notice_text=ctk.CTkLabel(window.operation_notice,text='',anchor='e',justify='right',wraplength=550)
+    window.operation_notice_text.pack(fill='x',padx=8,pady=3)
+    ctk.CTkButton(window.operation_notice,text='مراجعة سجل العمليات والتسليم',height=48,
+        command=lambda:window.run(window.resolve)).pack(fill='x',padx=8,pady=4)
     status = ctk.CTkFrame(parent)
     status.pack(fill='x', padx=5, pady=4)
     window.workflow = ctk.CTkLabel(status, text='', anchor='e', justify='right', wraplength=650)
@@ -43,44 +50,67 @@ def build_ward_controls(window):
     window.metrics = ctk.CTkLabel(status, text='', anchor='e', justify='right', wraplength=650)
     window.metrics.grid(row=1, column=0, columnspan=2, sticky='ew', padx=8, pady=3)
 
-    actions = ctk.CTkFrame(parent)
-    actions.pack(fill='x', padx=5, pady=3)
-    for column in range(2):actions.grid_columnconfigure(column, weight=1)
-    for index, (label, action) in enumerate([
-        ('إضافة مريض', window.add_patient), ('مهام الجناح', lambda:task_board(window)),
-        ('لوحة تسليم المناوبة', lambda:handover_dashboard(window)), ('أطباء المناوبة', window.roster)
-    ]):
-        ctk.CTkButton(actions, text=label, height=48, width=100,
-            command=lambda f=action:window.run(f)).grid(row=index//2, column=1-index%2, sticky='ew', padx=3, pady=3)
-
-    search = ctk.CTkFrame(parent)
-    search.pack(fill='x', padx=5, pady=3)
+    toolbar = ctk.CTkFrame(parent)
+    window.ward_toolbar=toolbar
+    toolbar.pack(fill='x', padx=5, pady=3, before=status)
+    ctk.CTkButton(toolbar,text='إضافة مريض',height=48,width=110,
+        command=lambda:window.run(window.add_patient)).pack(side='right',padx=3,pady=3)
     window.search = tk.StringVar()
-    ctk.CTkLabel(search, text='بحث', anchor='e').pack(side='right', padx=5)
-    ArabicEntry(search, textvariable=window.search, justify='right', height=48).pack(side='right', fill='x', expand=True, padx=4)
-    window.reset_view_button = ctk.CTkButton(search, text='مسح التصفية', height=48, width=100,
-        command=lambda:window.run(window.reset_patient_filters))
-    window.reset_view_button.pack(side='left', padx=4)
-    window.view_controls = Disclosure(parent, 'التصفية والعرض والترتيب', scroll_height=180)
-    window.view_controls.pack(fill='x', padx=5, pady=3)
+    window.view_controls = Disclosure(parent, 'خيارات العرض', scroll_height=220, toggle_parent=toolbar)
+    window.view_controls.pack(fill='x', padx=5, pady=0)
+    ArabicEntry(toolbar, textvariable=window.search, justify='right', height=48,
+        placeholder_text='بحث عن مريض').pack(side='right', fill='x', expand=True, padx=4)
+    actions = ctk.CTkFrame(parent)
+    actions.pack(fill='x', padx=5, pady=2,after=status)
+    for index, (label, action) in enumerate([
+        ('مهام الجناح', lambda:task_board(window)),
+        ('تسليم المناوبة', lambda:handover_dashboard(window)), ('أطباء المناوبة', window.roster)
+    ]):
+        actions.grid_columnconfigure(2-index,weight=1)
+        ctk.CTkButton(actions, text=label, height=48, width=85,
+            command=lambda f=action:window.run(f)).grid(row=0, column=2-index, sticky='ew', padx=3, pady=2)
     options = window.view_controls.content
+    from desktop_sections import SectionPages
+    window.options_tabs=SectionPages(options)
+    window.options_tabs.pack(fill='x',expand=True)
+    sections={}
+    for label in ['التصفية','التجميع','البطاقات','الترتيب']:
+        window.options_tabs.add(label)
+        sections[label]=window.options_tabs.tab(label)
     for name, label, values in [
         ('filter', 'الحالة السريرية', CLINICAL_FILTERS),
         ('owner_filter', 'المسؤولية', OWNER_FILTERS),
         ('task_filter', 'المهام', TASK_FILTERS),
-        ('grouping', 'التجميع للعرض', list(GROUPS.values()))
+        ('grouping', 'التجميع للعرض فقط', list(GROUPS.values()))
     ]:
-        row = ctk.CTkFrame(options, fg_color='transparent')
+        parent=sections['التجميع'] if name=='grouping' else sections['التصفية']
+        row = ctk.CTkFrame(parent, fg_color='transparent')
         row.pack(fill='x', pady=2)
         ctk.CTkLabel(row, text=label, anchor='e', width=110).pack(side='right', padx=4)
         control = ctk.CTkComboBox(row, values=values, state='readonly', justify='right', height=48,
             command=lambda value:window.render())
         control.pack(side='left', fill='x', expand=True, padx=4)
         setattr(window, name, control)
-    for label, action in [('ترتيب المرضى المحفوظ', lambda:sorting_dialog(window)),
-                          ('توسيع الكل', lambda:window.expand_cards(True)),
-                          ('طي الكل', lambda:window.expand_cards(False))]:
-        ctk.CTkButton(options, text=label, height=48, command=lambda f=action:window.run(f)).pack(fill='x', padx=4, pady=2)
+    window.reset_view_button = ctk.CTkButton(sections['التصفية'],text='مسح التصفية',height=48,
+        command=lambda:window.run(window.reset_patient_filters))
+    window.reset_view_button.pack(fill='x',padx=4,pady=2)
+    window.card_density=tk.StringVar(value='عادية')
+    from desktop_appearance import set_density
+    ctk.CTkLabel(sections['البطاقات'],text='مسافات البطاقات · تفضيل محلي',anchor='e').pack(fill='x',padx=8)
+    ctk.CTkComboBox(sections['البطاقات'],values=['عادية','مضغوطة'],variable=window.card_density,
+        state='readonly',justify='right',height=48,
+        command=lambda value:window.run(lambda:set_density(window,value))).pack(fill='x',padx=4,pady=2)
+    for label, expand in [('توسيع الكل', True),('طي الكل',False)]:
+        ctk.CTkButton(sections['البطاقات'], text=label, height=48,
+            command=lambda value=expand:window.run(lambda:window.expand_cards(value))).pack(fill='x',padx=4,pady=2)
+    sort_area=ctk.CTkFrame(sections['الترتيب']);sort_area.pack(fill='x')
+    sort_controls=ctk.CTkFrame(sections['الترتيب']);sort_controls.pack(fill='x')
+    def edit_sort():
+        sorting_editor(window,sort_area,sort_controls,edit_sort,embedded=True)
+    ctk.CTkLabel(sort_area,text='الترتيب محفوظ مع المناوبة ويستخدم في التقارير وCSV.',
+        anchor='e',justify='right',wraplength=420).pack(fill='x',padx=8)
+    ctk.CTkButton(sort_controls,text='تحرير الترتيب الحالي',height=48,
+        command=lambda:window.run(edit_sort)).pack(fill='x',padx=4,pady=2)
     window.view_help = ctk.CTkLabel(options, text='التصفية والتجميع والتثبيت للعرض فقط. الترتيب يُحفظ في التقارير وCSV. تحريك المريض يمسح مستويات الترتيب ويحافظ على الأولوية أولاً.',
         anchor='e', justify='right', wraplength=300)
     window.view_help.pack(fill='x', padx=8, pady=4)

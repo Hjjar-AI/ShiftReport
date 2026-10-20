@@ -89,12 +89,15 @@ def carry_forward(source, zone, keep):
     return shift
 
 
-def patient_text(row, doctors, zone):
+def patient_text(row, doctors, zone, clinical_only=False):
     if row is None:
         return 'محذوف / غير موجود'
     lines = []
-    for key in ['name','admitNum','admitDate','birthDate','gender','hasCompanion','diagnosisType','initialDiagnosis','treatmentPlan','followUp','labs','responsibleResidentId','responsibleSupervisorId','isPriority']:
+    keys = (['initialDiagnosis','treatmentPlan','followUp','labs','responsibleResidentId','responsibleSupervisorId','isPriority'] if clinical_only else
+            ['name','admitNum','admitDate','birthDate','gender','hasCompanion','diagnosisType','initialDiagnosis','treatmentPlan','followUp','labs','responsibleResidentId','responsibleSupervisorId','isPriority'])
+    for key in keys:
         value = row.get(key, '')
+        if clinical_only and (not value or key=='isPriority' and value!='Y'):continue
         if key in ['responsibleResidentId','responsibleSupervisorId']:
             value = doctor_label(doctors, value)
         elif key == 'gender': value = GENDER.get(value,value)

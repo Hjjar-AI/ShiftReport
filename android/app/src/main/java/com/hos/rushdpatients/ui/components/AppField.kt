@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.ui.graphics.lerp
 
 import androidx.compose.foundation.interaction.InteractionSource
@@ -61,7 +62,7 @@ fun AppTextField(
     val active = enabled && LocalFieldEnabled.current
     val interactionSource = remember { MutableInteractionSource() }
     val textColor = if (textStyle.color != Color.Unspecified) textStyle.color
-        else MaterialTheme.colorScheme.onSurface.copy(alpha = if (active) 1f else 0.38f)
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active))
     BasicTextField(
         value = value, onValueChange = onValueChange,
         modifier = modifier.appFieldLayout(label != null, isError),

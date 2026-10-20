@@ -1,7 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,7 +16,8 @@ fun AppLoadingState(message: String, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().padding(UiSpacing.screen)
         .semantics { liveRegion = LiveRegionMode.Polite }, horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        CircularProgressIndicator()
+        AppBusyIndicator(size = com.hos.rushdpatients.ui.theme.UiSize.loadingIndicator,
+            color = MaterialTheme.colorScheme.primary)
         Text(message, style = MaterialTheme.typography.bodyMedium)
     }
 }

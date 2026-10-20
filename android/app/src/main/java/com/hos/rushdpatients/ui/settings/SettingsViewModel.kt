@@ -25,6 +25,10 @@ import com.hos.rushdpatients.domain.export.PendingExportStore
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
+import com.hos.rushdpatients.pdf.PdfRuleWeight
+import com.hos.rushdpatients.pdf.PdfRuleContrast
+import com.hos.rushdpatients.pdf.PdfRowShading
+import com.hos.rushdpatients.pdf.PdfPresentationPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
@@ -91,6 +95,12 @@ class SettingsViewModel @Inject constructor(
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
     init {
+        viewModelScope.launch {
+            syncService.observeDownloadUndo().collect { available ->
+                _state.update { it.copy(canUndoDownload = available) }
+            }
+        }
+
         load()
         observeSyncState()
         observeSupervisors()
@@ -145,6 +155,9 @@ class SettingsViewModel @Inject constructor(
                         pdfColorPreset = PdfColorPreset.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
                         ),
+                        pdfRuleWeight = PdfRuleWeight.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_WEIGHT)),
+                        pdfRuleContrast = PdfRuleContrast.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_CONTRAST)),
+                        pdfRowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
                         pdfDarkMode = settingsRepository.getBoolean(
                             AppConstants.SETTING_PDF_DARK_MODE,
                             false
@@ -245,6 +258,41 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.put(AppConstants.SETTING_PDF_COLOR_PRESET, value.name)
             _state.update { it.copy(pdfColorPreset = value) }
+        }
+    }
+
+    fun setPdfRuleWeight(value: PdfRuleWeight) {
+        viewModelScope.launch {
+            settingsRepository.put(AppConstants.SETTING_PDF_RULE_WEIGHT, value.name)
+            _state.update { it.copy(pdfRuleWeight = value) }
+        }
+    }
+
+    fun setPdfRuleContrast(value: PdfRuleContrast) {
+        viewModelScope.launch {
+            settingsRepository.put(AppConstants.SETTING_PDF_RULE_CONTRAST, value.name)
+            _state.update { it.copy(pdfRuleContrast = value) }
+        }
+    }
+
+    fun setPdfRowShading(value: PdfRowShading) {
+        viewModelScope.launch {
+            settingsRepository.put(AppConstants.SETTING_PDF_ROW_SHADING, value.name)
+            _state.update { it.copy(pdfRowShading = value) }
+        }
+    }
+
+    fun setPdfPresentationPreset(value: PdfPresentationPreset) {
+        viewModelScope.launch {
+            val settings = mutableMapOf(
+                AppConstants.SETTING_PDF_RULE_WEIGHT to value.weight.name,
+                AppConstants.SETTING_PDF_RULE_CONTRAST to value.contrast.name,
+                AppConstants.SETTING_PDF_ROW_SHADING to value.shading.name
+            )
+            if (value.lightOnly) settings[AppConstants.SETTING_PDF_DARK_MODE] = "false"
+            settingsRepository.putAll(settings)
+            _state.update { it.copy(pdfRuleWeight = value.weight, pdfRuleContrast = value.contrast,
+                pdfRowShading = value.shading, pdfDarkMode = if (value.lightOnly) false else it.pdfDarkMode) }
         }
     }
 
@@ -430,6 +478,23 @@ class SettingsViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    /** Restore only through the existing guarded download-undo service. */
+    fun undoLastDownload() {
+        val current = _state.value
+        if (current.syncing || current.backupBusy || current.exportingCsv) return
+        _state.update { it.copy(syncing = true, retryAction = null) }
+        viewModelScope.launch {
+            try {
+                syncService.undoLastDownload().getOrThrow()
+                _state.update { it.copy(snackbar = "استُعيدت البيانات المحلية قبل التنزيل؛ راجعها قبل النشر") }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = e.message ?: "تعذر التراجع عن التنزيل") }
+            } finally { _state.update { it.copy(syncing = false) } }
         }
     }
 

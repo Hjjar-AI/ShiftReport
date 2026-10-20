@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.components.AppBusyIndicator
 import com.hos.rushdpatients.ui.components.AppSearchField
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
@@ -203,7 +205,7 @@ private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
             modifier = Modifier.padding(top = UiSpacing.section),
             style = MaterialTheme.typography.bodySmall
         )
-        CircularProgressIndicator(modifier = Modifier.padding(top = UiSpacing.screen))
+        AppBusyIndicator(modifier = Modifier.padding(top = UiSpacing.screen), size = UiSize.loadingIndicator, color = MaterialTheme.colorScheme.primary)
         AppTextButton(onClick = onCancel, modifier = Modifier.padding(top = UiSpacing.screen)) { Text("إلغاء") }
     }
 }

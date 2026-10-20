@@ -5,7 +5,8 @@ import com.hos.rushdpatients.domain.sort.GroupingDetector
 
 internal object PdfTableStriping {
     fun colors(patients: List<Patient>, palette: PdfPalette.Resolved): List<Int> {
-        if (!GroupingDetector.isGroupedBySupervisor(patients))
+        if (palette.rowShading == PdfRowShading.NONE) return patients.map { palette.pageBackground }
+        if (palette.rowShading == PdfRowShading.ZEBRA || !GroupingDetector.isGroupedBySupervisor(patients))
             return patients.indices.map { if (it % 2 == 0) palette.pageBackground else palette.zebra }
         var previous: String? = null
         var group = -1

@@ -20,7 +20,7 @@ internal fun WardPatientListControls(
     visibleCount: Int,
     totalCount: Int,
     groupingLabel: String?,
-    activeFilters: List<Pair<String, () -> Unit>>,
+    activeFilters: List<String>,
     selectedPreset: DashboardFilter?,
     onPreset: (DashboardFilter) -> Unit,
     onOptions: () -> Unit,
@@ -32,18 +32,16 @@ internal fun WardPatientListControls(
     onFocusRequested: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        FlowRow(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            Text("${uiNumber(visibleCount)} من ${uiNumber(totalCount)} مريض",
-                style = MaterialTheme.typography.titleSmall)
-            groupingLabel?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            AppTextButton(onClick = onOptions) {
-                Text("التصفية والعرض والترتيب" +
-                    if (activeFilters.isEmpty()) "" else " (${uiNumber(activeFilters.size)})")
-            }
-        }
         if (showSearch || query.isNotBlank()) {
             WardPatientSearchField(query, onQueryChange, requestFocus, onFocusRequested)
+        }
+
+        Text(wardPatientFilterSummary(visibleCount, totalCount, activeFilters, groupingLabel),
+            modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium)
+        FlowRow(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            AppTextButton(onClick = onOptions) { Text("خيارات العرض") }
+            if (activeFilters.isNotEmpty()) AppTextButton(onClick = onReset) { Text("مسح التصفية") }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
             listOf(DashboardFilter.ALL to "الكل", DashboardFilter.MINE to "مرضاي",
@@ -52,11 +50,18 @@ internal fun WardPatientListControls(
                 CompactFilterChip(selectedPreset == preset, { onPreset(preset) }, label)
             }
         }
-        if (activeFilters.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                activeFilters.forEach { (label, remove) -> ActiveFilterChip(label, remove) }
-                AppTextButton(onClick = onReset) { Text("مسح التصفية") }
-            }
-        }
     }
+}
+
+/** One wrapping summary; grouping remains a display choice, not a patient filter. */
+internal fun wardPatientFilterSummary(
+    visibleCount: Int, totalCount: Int, activeFilters: List<String>, groupingLabel: String? = null
+): String = buildList {
+    add("${uiNumber(visibleCount)} من ${uiNumber(totalCount)} مريض")
+    addAll(activeFilters.filter(String::isNotBlank).distinct())
+    groupingLabel?.takeIf(String::isNotBlank)?.let { add("تجميع: $it") }
+}.joinToString(" · ")
+
+internal enum class WardViewOption(val label: String) {
+    FILTERS("التصفية"), GROUPING("التجميع"), CARDS("البطاقات"), SORT("الترتيب")
 }

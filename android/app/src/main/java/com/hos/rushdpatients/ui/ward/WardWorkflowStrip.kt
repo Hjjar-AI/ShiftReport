@@ -13,17 +13,19 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit, onTasks: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
+    Surface(color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.small)) {
-            val deliveryNotice = when {
-                state.deliveryLogUnavailable -> " · سجل التسليم غير متاح"
-                state.unresolvedDeliveries > 0 -> " · تسليم غير مؤكد: ${uiNumber(state.unresolvedDeliveries)}"
-                else -> ""
+            Text(state.freshnessLabel, style = MaterialTheme.typography.labelSmall)
+            if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) {
+                com.hos.rushdpatients.ui.components.AppNotice(
+                    message = if (state.deliveryLogUnavailable) "تعذر قراءة سجل التسليم؛ تحقق منه قبل إعادة الإرسال"
+                        else "${uiNumber(state.unresolvedDeliveries)} محاولات تسليم غير محسومة؛ افحص تليجرام قبل الإعادة",
+                    kind = com.hos.rushdpatients.ui.components.NoticeKind.WARNING,
+                    actionLabel = "مراجعة سجل التسليم",
+                    onAction = if (!state.syncing && !state.saving && state.shift != null) onNext else null, compact = true)
             }
-            Text(state.freshnessLabel + deliveryNotice,
-                style = MaterialTheme.typography.labelSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                AppTextButton(onClick = onNext, enabled = state.shift != null && !state.syncing && !state.saving) { Text(state.workflowAction.label) }
+                if (!state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) AppTextButton(onClick = onNext, enabled = state.shift != null && !state.syncing && !state.saving) { Text(state.workflowAction.label) }
                 AppTextButton(onClick = onTasks, enabled = !state.loading && !state.saving && !state.syncing) { Text("مهام الجناح") }
             }
         }

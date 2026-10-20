@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.UiAction
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.noticeColors
 import com.hos.rushdpatients.ui.components.AppCheckRow
 import com.hos.rushdpatients.ui.components.AppButton
@@ -21,17 +23,23 @@ import com.hos.rushdpatients.ui.components.AppSection
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.FilterChip
+import com.hos.rushdpatients.pdf.*
+import com.hos.rushdpatients.ui.components.AppPdfStylePicker
+import com.hos.rushdpatients.ui.components.AppPdfAppearanceControls
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Divider
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +56,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.ui.ward.ShiftDoctorPicker
@@ -56,7 +63,7 @@ import com.hos.rushdpatients.ui.components.LoadingButton
 import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
 import com.hos.rushdpatients.domain.report.DeliveryResolution
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReportPreviewScreen(
     onBack: () -> Unit,
@@ -70,10 +77,12 @@ fun ReportPreviewScreen(
     var showShiftDoctors by remember { mutableStateOf(false) }
     var showDeliveryLog by remember { mutableStateOf(false) }
     var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
+    var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var customizeReport by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var confirmSend by remember { mutableStateOf(false) }
     var pendingSupervisorTargets by remember { mutableStateOf<List<SupervisorReportTarget>?>(null) }
     val busy = state.loading || state.savingDoctors || state.sending || state.previewingPdf ||
-        state.exportingLocalPdf || state.sharingPdf
+        state.exportingLocalPdf || state.sharingPdf || state.savingPdfOptions
     fun selectSupervisorGroups() {
         selectedSupervisorIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
         supervisorMenuOpen = true
@@ -155,7 +164,7 @@ fun ReportPreviewScreen(
                     .padding(padding)
                     .padding(UiSpacing.screen)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 AppSection(title = "أطباء المناوبة", colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -164,19 +173,34 @@ fun ReportPreviewScreen(
                     if (state.doctors.isEmpty()) Text("اختر أطباء المناوبة من الزر أدناه")
                     if (!state.isReadOnly) AppOutlinedButton(
                         onClick = { confirmSend = false; showShiftDoctors = true },
-                        enabled = state.shift != null && !state.savingDoctors && !state.sending &&
+                        enabled = !state.savingPdfOptions && state.shift != null && !state.savingDoctors && !state.sending &&
                             !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(if (state.doctors.isEmpty()) "اختيار أطباء المناوبة" else "تعديل أطباء المناوبة") }
                 }
                 state.summary?.let { summary ->
-                    AppSection(title = "ملخص المناوبة") {
-                        Text("عدد المرضى: ${uiNumber(summary.patientCount)}")
-                        if (summary.psychoCount > 0) {
-                            Text("عدد الحالات النفسية: ${uiNumber(summary.psychoCount)}")
-                        }
-                        Text("عدد المرافقين: ${uiNumber(summary.escortCount)}")
-                        Text("تاريخ المناوبة: ${uiNumber(summary.shiftDate)}")
+                    AppSection(title = "ملخص التقرير") {
+                        Text("${uiNumber(summary.patientCount)} مريض · ${uiNumber(summary.escortCount)} مرافق · ${uiNumber(summary.shiftDate)}")
+                        if (summary.psychoCount > 0) Text("حالات نفسية: ${uiNumber(summary.psychoCount)}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+
+                AppSection(title = "النطاق والوجهة والصيغة") {
+                    Text("التقرير العام · جميع مرضى المناوبة", style = MaterialTheme.typography.titleSmall)
+                    Text("الوجهة: موضوع التقارير العام", style = MaterialTheme.typography.bodySmall)
+                    AppToggleRow(title = "إرسال كملف PDF", checked = state.reportAsPdf,
+                        onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
+                    if (state.reportAsPdf) AppPdfStylePicker(
+                        selected = state.pdfStyle,
+                        onSelected = { viewModel.setPdfAppearance(it, state.pdfOptions) },
+                        enabled = !busy
+                    )
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Text("تقارير المشرفين: ملف PDF مستقل لكل مجموعة مختارة، مع معاينة وتأكيد قبل الإرسال.",
+                        style = MaterialTheme.typography.bodySmall)
+                    AppOutlinedButton(onClick = ::selectSupervisorGroups, modifier = Modifier.fillMaxWidth(),
+                        enabled = !busy && state.summary != null && !state.isReadOnly) {
+                        Text("اختيار مجموعات المشرفين (PDF)")
                     }
                 }
 
@@ -209,12 +233,50 @@ fun ReportPreviewScreen(
                     if (state.changeBriefing.isEmpty()) {
                         Text("لا توجد تغييرات محلية غير منشورة")
                     } else {
-                        state.changeBriefing.forEach { Text("• $it") }
+                        AppTextButton(onClick = { showChanges = !showChanges }) {
+                            Text("${uiNumber(state.changeBriefing.size)} تغييرات · " + if (showChanges) "طي التفاصيل" else "عرض التفاصيل")
+                        }
+                        if (showChanges) state.changeBriefing.forEach { Text("• $it") }
                     }
                 }
 
-                AppToggleRow(title = "إرسال كملف PDF", checked = state.reportAsPdf,
-                    onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
+
+                if (state.reportAsPdf) {
+                    AppTextButton(onClick = { customizeReport = !customizeReport }, enabled = !busy,
+                        modifier = Modifier.fillMaxWidth()) {
+                        Text(if (customizeReport) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة")
+                    }
+                    if (customizeReport) AppSection(title = "خيارات PDF المتقدمة") {
+                        val options = state.pdfOptions
+                        fun update(value: PdfExportOptions) = viewModel.setPdfAppearance(state.pdfStyle, value)
+                        if (state.pdfStyle != PdfStyle.CARDS) {
+                            Text("حجم الورق والاتجاه", style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                                PdfPaperSize.entries.forEach { value ->
+                                    FilterChip(selected = options.paperSize == value, enabled = !busy,
+                                        onClick = { update(options.copy(paperSize = value)) }, label = { Text(value.arabicLabel) })
+                                }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                                PdfOrientation.entries.forEach { value ->
+                                    FilterChip(selected = options.orientation == value, enabled = !busy,
+                                        onClick = { update(options.copy(orientation = value)) }, label = { Text(value.arabicLabel) })
+                                }
+                            }
+                        }
+                        AppToggleRow(title = "PDF داكن", checked = options.darkMode, enabled = !busy,
+                            onCheckedChange = { update(options.copy(darkMode = it)) })
+                        AppPdfAppearanceControls(weight = options.ruleWeight, contrast = options.ruleContrast,
+                            shading = options.rowShading, dark = options.darkMode, enabled = !busy,
+                            showShading = state.pdfStyle != PdfStyle.CARDS,
+                            onWeight = { update(options.copy(ruleWeight = it)) },
+                            onContrast = { update(options.copy(ruleContrast = it)) },
+                            onShading = { update(options.copy(rowShading = it)) },
+                            onPreset = { update(options.copy(ruleWeight = it.weight, ruleContrast = it.contrast,
+                                rowShading = it.shading, darkMode = if (it.lightOnly) false else options.darkMode)) })
+                        Text("بعد تغيير المظهر، عاين PDF مجدداً قبل الإرسال.", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
 
                 if (!state.reportAsPdf) {
                     AppCard(modifier = Modifier.fillMaxWidth()) {
@@ -231,7 +293,7 @@ fun ReportPreviewScreen(
                         loading = state.previewingPdf,
                         onClick = viewModel::previewPdf,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
+                        enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
                     )
                     LoadingButton(
                         text = "حفظ PDF محلياً",
@@ -239,7 +301,7 @@ fun ReportPreviewScreen(
                         loading = state.exportingLocalPdf,
                         onClick = viewModel::exportLocally,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf && !state.sharingPdf
+                        enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf && !state.sharingPdf
                     )
                     LoadingButton(
                         text = "مشاركة PDF",
@@ -247,7 +309,7 @@ fun ReportPreviewScreen(
                         loading = state.sharingPdf,
                         onClick = viewModel::sharePdf,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf &&
+                        enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.previewingPdf &&
                             !state.exportingLocalPdf
                     )
                 }
@@ -278,12 +340,10 @@ fun ReportPreviewScreen(
                     AppNotice("تقرير مناوبة محفوظة: المعاينة والحفظ المحلي متاحان، أما الإرسال والنشر فمتوقفان.")
                 }
 
-                LongPressLoadingButton(text = if (state.sending) "جارٍ إرسال التقرير…" else "إرسال تقرير",
+                LongPressLoadingButton(text = if (state.sending) "جارٍ إرسال التقرير…" else UiAction.SEND_REPORT.label,
                     loading = state.sending, onClick = { confirmSend = true }, onLongClick = ::selectSupervisorGroups,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !busy && state.summary != null && !state.isReadOnly)
-                AppOutlinedButton(onClick = ::selectSupervisorGroups, modifier = Modifier.fillMaxWidth(),
-                    enabled = !busy && state.summary != null && !state.isReadOnly) { Text("إرسال إلى مجموعات المشرفين (PDF)") }
 
             }
         }
@@ -291,7 +351,7 @@ fun ReportPreviewScreen(
 
     if (supervisorMenuOpen) {
         AlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text("مجموعات المشرفين") }, text = {
-            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+            Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) {
                 if (state.supervisorTargets.isEmpty()) EmptyState("لا يوجد مشرفون مرتبطون بمرضى هذه المناوبة")
                 Text("عاين PDF لكل وجهة مختارة قبل تأكيد النشر والإرسال. سيُرسل الملف نفسه.")
                 state.supervisorTargets.forEach { target ->
@@ -314,7 +374,7 @@ fun ReportPreviewScreen(
     }
     if (showDeliveryLog) {
         AlertDialog(onDismissRequest = { showDeliveryLog = false }, title = { Text("سجل تسليم هذه المناوبة — هذا الجهاز") }, text = {
-            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 Text("افحص تليجرام أولاً. انتهاء المهلة أو غياب الإيصال المحلي لا يثبت عدم الوصول. الحسم للمرسل أو لمدير نشط.")
                 if (state.deliveryRecords.isEmpty()) Text("لا توجد محاولات محفوظة لهذه المناوبة")
                 state.deliveryRecords.asReversed().forEach { row ->

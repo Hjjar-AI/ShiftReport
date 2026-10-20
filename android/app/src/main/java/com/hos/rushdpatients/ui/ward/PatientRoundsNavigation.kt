@@ -44,6 +44,6 @@ internal fun PatientRoundsBar(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.semantics { contentDescription = "المريض ${navigation.index + 1} من ${navigation.total}" })
         AppOutlinedButton(onClick = { navigation.nextId?.let(onNavigate) },
-            enabled = enabled && navigation.nextId != null, modifier = Modifier.weight(1f)) { Text("التالي") }
+            enabled = enabled && navigation.nextId != null, modifier = Modifier.weight(1f)) { Text(if (navigation.nextId == null) "نهاية الجولة" else "التالي") }
     }
 }

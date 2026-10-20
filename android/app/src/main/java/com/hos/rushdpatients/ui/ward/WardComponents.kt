@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.components.AppTabBar
 import com.hos.rushdpatients.ui.components.AppTabItem
 import com.hos.rushdpatients.ui.components.AppSectionHeader
@@ -51,17 +52,6 @@ internal fun CompactFilterChip(
                 style = MaterialTheme.typography.labelSmall
             )
         },
-        modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun ActiveFilterChip(label: String, onRemove: () -> Unit) {
-    FilterChip(
-        selected = true,
-        onClick = onRemove,
-        label = { Text("$label ×", style = MaterialTheme.typography.labelSmall) },
         modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
     )
 }
@@ -152,7 +142,7 @@ internal fun CompactDrawerItem(
     enabled: Boolean = true
 ) {
     val contentColor = (if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onSurface).let { if (enabled) it else it.copy(alpha = 0.38f) }
+        else MaterialTheme.colorScheme.onSurface).let { if (enabled) it else it.copy(alpha = UiOpacity.disabledContent) }
     Surface(onClick = onClick, enabled = enabled,
         modifier = modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).semantics { this.selected = selected },
         shape = MaterialTheme.shapes.small,

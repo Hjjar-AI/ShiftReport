@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.theme.UiDialog
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.rememberFloatingActionSpace
 import com.hos.rushdpatients.ui.components.AppFieldPair
 import androidx.compose.foundation.layout.PaddingValues
@@ -56,8 +58,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -288,7 +288,9 @@ fun DoctorsScreen(
     deleteTarget?.let { d ->
         ConfirmDialog(
             title = "حذف طبيب",
-            message = "هل أنت متأكد من حذف ${d.fullName}؟",
+            message = "سيُحذف ${d.fullName} من سجل الأطباء بعد التحقق من الصلاحية.",
+            confirmText = "حذف الطبيب",
+            destructive = true,
             onConfirm = {
                 viewModel.deleteDoctor(d) { deleteTarget = null }
             },
@@ -301,7 +303,7 @@ fun DoctorsScreen(
             onDismissRequest = viewModel::dismissDoctorImport,
             title = { Text("مراجعة استيراد سجل الأطباء") },
             text = {
-                Column(modifier = Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * .65f).verticalScroll(rememberScrollState()),
+                Column(modifier = Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text("الأطباء الفعّالون: ${preview.activeCount}")
                     listOf("إضافات" to preview.added, "تعديلات" to preview.changed,

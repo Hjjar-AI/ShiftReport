@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -44,7 +45,7 @@ fun AppPickerField(
             supportingText = if (supportingText == null) null else { { Text(supportingText) } },
             innerTextField = {
                 Text(value, style = MaterialTheme.typography.bodyLarge.copy(textDirection = valueTextDirection),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (active) 1f else 0.38f))
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))
             }
         )
     }

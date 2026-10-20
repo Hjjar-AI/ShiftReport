@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppActionLabel
+import com.hos.rushdpatients.ui.components.UiAction
+import com.hos.rushdpatients.ui.theme.UiDialog
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
@@ -7,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -17,13 +20,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Patient
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,7 +41,7 @@ internal fun RolloverReviewDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("بدء مناوبة اليوم من السابقة") },
         text = {
-            Column(modifier = Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * .65f)
+            Column(modifier = Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight)
                 .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 Text(sourceLabel, style = MaterialTheme.typography.bodySmall)
                 Text("نسخ جميع المرضى إلى سجلات جديدة في مناوبة اليوم، مع المهام غير المكتملة ومواعيدها فقط. المهام المكتملة تبقى في السابقة. هذا مستقل عن جلب بيانات تليجرام.")
@@ -48,7 +49,7 @@ internal fun RolloverReviewDialog(
                     onClick = { keepAssignments = !keepAssignments },
                     label = { Text("الاحتفاظ بالأطباء المسؤولين ومالكي المهام") })
                 if (!keepAssignments) Text("ستُزال مسؤوليات الأطباء ومالكو المهام من النسخة الجديدة فقط.")
-                LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
+                LazyColumn(modifier = Modifier.appDialogBody(UiDialog.compactBodyMaxHeight)) {
                     items(patients, key = { it.id }) { patient ->
                         Text(patient.name + " · مهام معلقة " + uiNumber(patient.tasks.count { !it.done }))
                     }
@@ -96,7 +97,7 @@ internal fun PatientRecycleBinDialog(
                             }
                             if (!readOnly) {
                                 AppTextButton(onClick = { onRestore(patient) }) {
-                                    Text("استعادة")
+                                    AppActionLabel(UiAction.RESTORE)
                                 }
                             }
                         }

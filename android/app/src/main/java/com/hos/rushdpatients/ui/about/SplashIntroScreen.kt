@@ -5,7 +5,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,14 +36,50 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
-/** Splash-only presentation. MainActivity continues to own the saved ten-second deadline. */
+/** MainActivity owns the fixed five-second deadline; holding only defers dismissal. */
 @Composable
-internal fun SplashIntroScreen(onSkip: () -> Unit, remainingSeconds: Int) {
+internal fun SplashIntroScreen(
+    onSkip: () -> Unit,
+    remainingSeconds: Int,
+    held: Boolean,
+    onHeldChange: (Boolean) -> Unit
+) {
+    val currentOnSkip by rememberUpdatedState(onSkip)
+    val currentOnHeldChange by rememberUpdatedState(onHeldChange)
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
     Box(Modifier.fillMaxSize()
         .background(Brush.verticalGradient(listOf(Color(0xFF0D1729), Color(0xFF1E3850))))
-        .clickable(onClickLabel = "تخطي المقدمة", onClick = onSkip)
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                // Observe before scrolling consumes input; do not consume reading/scroll gestures.
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                var moved = false
+                var releasedAt = down.uptimeMillis
+                var pressed: Boolean
+                currentOnHeldChange(true)
+                try {
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        event.changes.firstOrNull { it.id == down.id }?.let {
+                            releasedAt = it.uptimeMillis
+                            if ((it.position - down.position).getDistance() > viewConfiguration.touchSlop) moved = true
+                        }
+                        pressed = event.changes.any { it.pressed }
+                    } while (pressed)
+                    // A hold defers dismissal until release; only a short stationary tap skips.
+                    if (!moved && releasedAt - down.uptimeMillis < viewConfiguration.longPressTimeoutMillis) currentOnSkip()
+                } finally {
+                    currentOnHeldChange(false)
+                }
+            }
+        }
+        .semantics {
+            onClick(label = "تخطي المقدمة") { onSkip(); true }
+            customActions = listOf(CustomAccessibilityAction(
+                if (held) "إنهاء القراءة" else "إبقاء المقدمة مفتوحة للقراءة"
+            ) { onHeldChange(!held); true })
+        }
         .safeDrawingPadding().padding(UiSpacing.section), contentAlignment = Alignment.Center) {
         Column(Modifier.widthIn(max = 520.dp).fillMaxWidth().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -53,7 +95,9 @@ internal fun SplashIntroScreen(onSkip: () -> Unit, remainingSeconds: Int) {
             SplashCreditCard("مساهمة تقنية · الأطباء", technicalContributors, 1, entered)
             SplashCreditCard("فكرة Excel الأولية وبنية التقرير الأساسي", listOf(introOriginalAuthorName), 2, entered)
             Text("الإصدار ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFB9D1EC))
-            Text("اضغط في أي مكان للتخطي · المتبقي: ${uiNumber(remainingSeconds.coerceAtLeast(0))} ث",
+            Text(if (held && remainingSeconds <= 0) "انتهى الوقت · ارفع إصبعك للمتابعة"
+                else if (held) "ارفع إصبعك عند انتهاء القراءة · المتبقي: ${uiNumber(remainingSeconds)} ث"
+                else "اضغط مطولاً للقراءة · لمسة سريعة للتخطي · المتبقي: ${uiNumber(remainingSeconds.coerceAtLeast(0))} ث",
                 textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = Color(0xFFDAE8F8))
         }
     }

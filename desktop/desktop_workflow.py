@@ -23,14 +23,14 @@ def workflow_status(client, store, demo=False):
     baseline=store.state.get('baseline') or {}
     remote=next((s for s in baseline.get('bundle',[]) if s['meta']['shiftId']==key),None)
     dirty=remote is None or fingerprint(report_content(shift))!=fingerprint(report_content(remote))
-    unknown=[row for _,row in store.receipts(status='UNKNOWN') if row[0]=='report' and (len(row)<=9 or not row[9] or row[9]==key)]
+    unknown=[row for _,row in store.receipts(status='UNKNOWN') if row[0]!='report' or len(row)<=9 or not row[9] or row[9]==key]
     downloaded=store.state.get('downloads',{}).get(key,{})
     stamp='غير معروف على هذا الجهاز'
     if downloaded.get('at'):
         stamp=datetime.fromtimestamp(downloaded['at']/1000,ZoneInfo(client.zone)).strftime('%Y-%m-%d %H:%M')
         if downloaded.get('snapshot')!=shift['meta'].get('snapshotId',''):stamp+=' (لنسخة سابقة)'
     label='DEMO — بيانات في الذاكرة' if demo else ('لا توجد نسخة منشورة معروفة لهذه المناوبة' if remote is None else 'تعديلات غير منشورة لهذه المناوبة' if dirty else 'مطابق لآخر نسخة منشورة معروفة لهذا الجهاز')
-    text='مناوبة {} · {}\nآخر تنزيل: {} · تسليم غير مؤكد: {}'.format(shift['meta']['shiftDate'],label,stamp,len(unknown))
+    text='مناوبة {} · {}\nآخر تنزيل: {} · عمليات غير محسومة: {}'.format(shift['meta']['shiftDate'],label,stamp,len(unknown))
     return text, WorkflowAction.DEMO if demo else WorkflowAction.DELIVERY_HISTORY if unknown else WorkflowAction.REVIEW_PUBLICATION if dirty and shift['meta']['shiftDate']==current_date(client.zone) else WorkflowAction.DOWNLOAD
 
 

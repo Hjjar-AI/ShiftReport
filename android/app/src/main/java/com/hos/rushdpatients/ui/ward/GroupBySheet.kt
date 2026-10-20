@@ -1,11 +1,13 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppDialogDismissAction
+import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
+import com.hos.rushdpatients.ui.components.AppDialogHeader
+import com.hos.rushdpatients.ui.theme.UiDialog
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.AppChoiceRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.selection.selectableGroup
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppButton
@@ -43,15 +45,11 @@ fun GroupBySheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * .85f)
+                .appDialogBody(UiDialog.sheetMaxHeight)
                 .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
         ) {
-            Text(
-                text = "تجميع المرضى",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = UiSpacing.small)
-            )
+            AppDialogHeader("تجميع المرضى", modifier = Modifier.padding(bottom = UiSpacing.small))
 
             Column(Modifier.fillMaxWidth().weight(1f, fill = false)
                 .verticalScroll(rememberScrollState()).selectableGroup()) {
@@ -61,12 +59,12 @@ fun GroupBySheet(
                 }
             }
 
-            AppButton(
-                onClick = { onApply(selected) },
+            AppDialogConfirmAction(text = "تطبيق", onClick = { onApply(selected) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = UiSpacing.medium, bottom = UiSpacing.small)
-            ) { Text("تطبيق") }
+            )
+            AppDialogDismissAction(onClick = onDismiss)
         }
     }
 }

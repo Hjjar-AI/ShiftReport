@@ -4,7 +4,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 
 internal enum class PatientFormSection(val label: String) {
-    CLINICAL("سريري"), LABS("تحاليل"), TASKS("مهام"), PERSONAL("شخصي")
+    CLINICAL("السريري"), LABS("التحاليل"), TASKS("المهام"), PERSONAL("البيانات")
 }
 
 /** Scroll shortcuts only: all sections share the existing patient draft. */

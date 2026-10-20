@@ -384,15 +384,16 @@ internal fun PatientFormDialog(
             onDismissRequest = requestDismiss,
             title = {
                 Column {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = title, style = MaterialTheme.typography.titleSmall)
-                        savedBaseline?.name?.takeIf(String::isNotBlank)?.let {
-                            Text(" · $it", modifier = Modifier.weight(1f, fill = false),
-                                style = MaterialTheme.typography.bodyMedium, maxLines = 2,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        }
+                    Text(text = title, style = MaterialTheme.typography.titleSmall)
+                    val patientHeading = savedBaseline?.name?.takeIf(String::isNotBlank)
+                        ?: name.takeIf(String::isNotBlank)
+                    patientHeading?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                     }
+                    Text("القسم الحالي: ${activeSection.label}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     reviewAction()
                     if (hasUnsavedChanges) {
                         Text(
@@ -478,13 +479,13 @@ internal fun PatientFormDialog(
                             enabled = !saving,
                             selected = formMode == PatientFormMode.GENERAL,
                             onClick = { formMode = PatientFormMode.GENERAL },
-                            label = { Text("حقول إدخال عامة") }
+                            label = { Text("عام") }
                         )
                         FilterChip(
                             enabled = !saving,
                             selected = formMode == PatientFormMode.ADVANCED,
                             onClick = { formMode = PatientFormMode.ADVANCED },
-                            label = { Text("حقول إدخال مفصلة") }
+                            label = { Text("متقدم") }
                         )
                     }
                     if (formMode == PatientFormMode.GENERAL) {
@@ -857,6 +858,7 @@ internal fun PatientFormDialog(
             title = "تجاهل التغييرات؟",
             message = "توجد تغييرات غير محفوظة. هل تريد تجاهلها وإغلاق النموذج؟",
             confirmText = "تجاهل التغييرات",
+            destructive = true,
             dismissText = "متابعة التعديل",
             onConfirm = {
                 confirmDiscard = false

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.ui.components.AppActionContent
 import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
@@ -15,6 +16,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.Alignment
+import com.hos.rushdpatients.ui.theme.UiLayout
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -52,55 +56,46 @@ fun ProjectSetupScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showTopics by rememberSaveable(state.mode) { mutableStateOf(false) }
-    var showInstructions by rememberSaveable(state.mode) { mutableStateOf(state.mode != ProjectSetupMode.JOIN) }
+    var showInstructions by rememberSaveable(state.mode) { mutableStateOf(false) }
     val openProvisioning = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let(viewModel::importProvisioning) }
 
-    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding(),
+        horizontalAlignment = Alignment.CenterHorizontally) {
         Column(
             modifier = Modifier
                 .weight(1f)
+                .widthIn(max = UiLayout.patientFormMaxWidth)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
             Text(
-                "تهيئة ShiftReport",
+                "مرحباً بك في ShiftReport",
+                modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
             Text(
-                "اختر طريقة البدء. الانضمام هو الخيار المعتاد للأجهزة الجديدة، ولا يتطلب إنشاء بوت جديد.",
+                "تقرير المناوبة · اختر طريقة البدء",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            ProjectSetupChoices(selected = state.mode, enabled = !state.busy,
+                onSelect = viewModel::setMode)
 
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                FilterChip(
-                    selected = state.mode == ProjectSetupMode.DEMO,
-                    onClick = { viewModel.setMode(ProjectSetupMode.DEMO) },
-                    label = { Text("تجربة") },
-                    enabled = !state.busy
-                )
-                FilterChip(
-                    selected = state.mode == ProjectSetupMode.JOIN,
-                    onClick = { viewModel.setMode(ProjectSetupMode.JOIN) },
-                    label = { Text("انضمام") },
-                    enabled = !state.busy
-                )
-                FilterChip(
-                    selected = state.mode == ProjectSetupMode.CREATE,
-                    onClick = { viewModel.setMode(ProjectSetupMode.CREATE) },
-                    label = { Text("إنشاء") },
-                    enabled = !state.busy
-                )
+            if (state.mode == ProjectSetupMode.DEMO) {
+                SetupSection("اكتشف التطبيق قبل إعداد المشروع") {
+                    Text("مرضى وأطباء تجريبيون لتجربة البطاقات والجولات والتقارير.")
+                    Text("لا تحتاج إلى حساب أو رمز بوت. تبقى التجربة في الذاكرة دون حفظ أو مزامنة.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-
-            AppTextButton(onClick = { showInstructions = !showInstructions }) {
-                Text(if (showInstructions) "إخفاء خطوات الإعداد" else "خطوات الإعداد والمساعدة")
-            }
-            if (showInstructions) InstructionCard(state.mode)
 
             if (state.mode != ProjectSetupMode.DEMO) {
                 if (state.mode == ProjectSetupMode.JOIN) {
@@ -228,8 +223,14 @@ fun ProjectSetupScreen(
                 }
 
             }
+            AppTextButton(onClick = { showInstructions = !showInstructions },
+                enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text(if (showInstructions) "إخفاء المساعدة" else "خطوات الإعداد والمساعدة")
+            }
+            if (showInstructions) InstructionCard(state.mode)
         }
-        Column(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small),
+        Column(Modifier.widthIn(max = UiLayout.patientFormMaxWidth).fillMaxWidth()
+            .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             state.error?.let {
                 AppNotice(it, kind = NoticeKind.ERROR)
@@ -243,21 +244,11 @@ fun ProjectSetupScreen(
                 enabled = !state.busy && (state.mode != ProjectSetupMode.JOIN || state.importedProvisioning),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                if (state.busy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .padding(end = UiSpacing.medium)
-                            .size(UiSize.iconMedium),
-                        strokeWidth = UiSize.progressStroke
-                    )
-                }
-                Text(
-                    when (state.mode) {
-                        ProjectSetupMode.DEMO -> "بدء التجربة"
-                        ProjectSetupMode.JOIN -> "التحقق والانضمام"
-                        ProjectSetupMode.CREATE -> "إنشاء وتهيئة المشروع"
-                    }
-                )
+                AppActionContent(text = when (state.mode) {
+                    ProjectSetupMode.DEMO -> "بدء التجربة"
+                    ProjectSetupMode.JOIN -> "التحقق والانضمام"
+                    ProjectSetupMode.CREATE -> "إنشاء وتهيئة المشروع"
+                }, loading = state.busy)
             }
         }
     }

@@ -1,48 +1,69 @@
 """Patient-card presentation and action placement, with mutations owned by Window."""
 import copy
 import desktop_widgets as ctk
-from desktop_layout import Disclosure
 from desktop_model import DIAGNOSIS, patient_text, task_counts
 
 
-def patient_card(owner, parent, row, index, total, movement_allowed):
+def patient_card(owner, parent, row, index, total, movement_allowed, preview_style=None):
     row=copy.deepcopy(row)
     width=max(240,owner.content.winfo_width()-40)
     key=row['externalId']
     pending,overdue=task_counts([row])
-    summary='{} — {} · قبول {}\n{}'.format(index+1,row['name'],row['admitNum'],DIAGNOSIS.get(row['diagnosisType'],''))
-    if pending:summary+=' · مهام معلقة {}'.format(pending)
-    if overdue:summary+=' (متأخرة {})'.format(overdue)
-    if key in owner.cards.pinned:summary+=' · مثبت للعرض'
-    frame=ctk.CTkFrame(parent)
-    frame.pack(fill='x',padx=3,pady=4)
-    ctk.CTkLabel(frame,text=summary,font=('Arial',16),anchor='e',justify='right',wraplength=width).pack(fill='x',padx=10,pady=5)
+    style=preview_style or {}
+    scale=style.get('scale',1.0)
+    compact=style.get('density',getattr(owner,'card_density',None).get() if hasattr(owner,'card_density') else 'عادية')=='مضغوطة'
+    inset=6 if compact else 10
+    gap=2 if compact else 5
+    foreground=style.get('foreground',('gray10','gray90'))
+    muted=style.get('muted',('gray35','gray75'))
+    frame=ctk.CTkFrame(parent,**({'fg_color':style['background'],'border_color':style['accent'],'border_width':1} if style else {}))
+    ctk.CTkLabel(frame,text='{} · {}'.format(index+1,row['name']),font=('Arial',round(18*scale),'bold'),text_color=foreground,
+        anchor='e',justify='right',wraplength=width).pack(fill='x',padx=inset,pady=(gap,1))
+    metadata='قبول {} · {}'.format(row['admitNum'],DIAGNOSIS.get(row['diagnosisType'],''))
+    if row.get('hasCompanion')=='Y':metadata+=' · مرافق'
+    if key in owner.cards.pinned:metadata+=' · مثبت للعرض'
+    ctk.CTkLabel(frame,text=metadata,font=('Arial',round(13*scale)),text_color=muted,
+        anchor='e',justify='right',wraplength=width).pack(fill='x',padx=inset,pady=1)
+    if pending:
+        tasks='مهام معلقة {}'.format(pending)
+        if overdue:tasks+=' · متأخرة {}'.format(overdue)
+        ctk.CTkLabel(frame,text=tasks,anchor='e',justify='right',wraplength=width,
+            font=('Arial',round(13*scale),'bold'),text_color=foreground).pack(fill='x',padx=inset,pady=1)
     expanded=key in owner.cards.expanded
     if expanded:
-        ctk.CTkLabel(frame,text=patient_text(row,owner.client.doctors,owner.client.zone),
-            anchor='e',justify='right',wraplength=width).pack(fill='x',padx=10,pady=5)
+        ctk.CTkLabel(frame,text=patient_text(row,owner.client.doctors,owner.client.zone,clinical_only=True),
+            anchor='e',justify='right',wraplength=width,font=('Arial',round(14*scale)),text_color=foreground).pack(fill='x',padx=inset,pady=gap)
+    if preview_style is not None:return frame
     primary=ctk.CTkFrame(frame,fg_color='transparent')
     primary.pack(fill='x')
-    for column in range(3):primary.grid_columnconfigure(column,weight=1)
+    for column in range(4):primary.grid_columnconfigure(column,weight=1 if column==3 else 0)
     for column,(label,action) in enumerate([
         ('تحرير',lambda:owner.edit(copy.deepcopy(row))),
-        ('عرض',lambda:owner.details(copy.deepcopy(row))),
-        ('طي التفاصيل' if expanded else 'توسيع التفاصيل',lambda:owner.toggle_card(key,False))
+        ('الملف الكامل',lambda:owner.details(copy.deepcopy(row))),
+        ('طي' if expanded else 'توسيع',lambda:owner.toggle_card(key,False))
     ]):
-        ctk.CTkButton(primary,text=label,width=80,height=48,command=lambda f=action:owner.run(f)
-            ).grid(row=0,column=2-column,sticky='ew',padx=3,pady=3)
-    more=Disclosure(frame,'المزيد: تثبيت · نقل · حذف')
-    more.pack(fill='x',padx=3,pady=2)
-    for column in range(2):more.content.grid_columnconfigure(column,weight=1)
-    for position,(label,action,enabled) in enumerate([
-        ('إلغاء التثبيت' if key in owner.cards.pinned else 'تثبيت للعرض',lambda:owner.toggle_card(key,True),True),
-        ('حذف المريض',lambda:owner.delete_patient(key),True),
-        ('نقل لأعلى',lambda:owner.move(index,-1),movement_allowed and index>0),
-        ('نقل لأسفل',lambda:owner.move(index,1),movement_allowed and index<total-1)
-    ]):
-        ctk.CTkButton(more.content,text=label,width=100,height=48,state='normal' if enabled else 'disabled',
-            command=lambda f=action:owner.run(f)).grid(row=position//2,column=1-position%2,sticky='ew',padx=3,pady=3)
-    if not movement_allowed:
-        ctk.CTkLabel(more.content,text='للنقل اليدوي، امسح البحث والتصفية وألغِ التجميع والتثبيت.',
-            anchor='e',justify='right',wraplength=width).grid(row=2,column=0,columnspan=2,sticky='ew',padx=8,pady=3)
+        kwargs={} if column==0 else {'fg_color':'transparent','border_width':1,'text_color':('gray20','gray90')}
+        ctk.CTkButton(primary,text=label,width=105 if column==1 else 75,height=48,command=lambda f=action:owner.run(f),**kwargs
+            ).grid(row=0,column=3-column,sticky='ew',padx=3,pady=3)
+    # Use the Arabic-aware combo adapter so native and shaped text stay logical.
+    actions={
+        'إلغاء التثبيت' if key in owner.cards.pinned else 'تثبيت للعرض':lambda:owner.toggle_card(key,True),
+        'حذف المريض':lambda:owner.delete_patient(key)
+    }
+    menu=None
+    def choose(label):
+        menu.set('المزيد')
+        action=actions.get(label)
+        if action:owner.run(action)
+    menu=ctk.CTkComboBox(primary,values=['المزيد']+list(actions),state='readonly',justify='right',
+        width=105,height=48,command=choose)
+    menu.set('المزيد');menu.grid(row=0,column=0,padx=3,pady=3)
+    def refresh_movement(allowed):
+        actions.pop('نقل لأعلى',None);actions.pop('نقل لأسفل',None)
+        if allowed and index>0:actions['نقل لأعلى']=lambda:owner.move(index,-1)
+        if allowed and index<total-1:actions['نقل لأسفل']=lambda:owner.move(index,1)
+        menu.configure(values=['المزيد']+list(actions))
+        menu.set('المزيد')
+    frame.refresh_movement=refresh_movement
+    refresh_movement(movement_allowed)
     return frame

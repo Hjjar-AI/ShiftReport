@@ -1,3 +1,5 @@
+import com.android.build.api.artifact.SingleArtifact
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -129,4 +131,32 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+
+// Export only packaged APK artifacts. Failed compilation/packaging prevents the
+// copy dependency from running; debug/release and split names remain distinct.
+val apkExportDirectory = providers.gradleProperty("shiftreport.apkExportDir")
+    .orElse(providers.systemProperty("user.home").map { "$it/Desktop/ShiftReport" })
+val apkExportVersion = android.defaultConfig.versionName.orEmpty()
+    .replace(Regex("[^A-Za-z0-9._-]"), "_")
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        val variantName = variant.name
+        val variantTaskName = variantName.replaceFirstChar { it.uppercaseChar() }
+        val exportApk = tasks.register<Copy>("export${variantTaskName}Apk") {
+            group = "build"
+            description = "Copy $variantName APKs to the user's Desktop/ShiftReport folder."
+            from(variant.artifacts.get(SingleArtifact.APK))
+            include("*.apk")
+            into(apkExportDirectory.map { "$it/$variantName" })
+            rename { originalName ->
+                "ShiftReport-v$apkExportVersion-${originalName.removePrefix("app-")}"
+            }
+        }
+        tasks.matching { it.name == "assemble$variantTaskName" }.configureEach {
+            dependsOn(exportApk)
+        }
+    }
 }

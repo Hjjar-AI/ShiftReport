@@ -29,24 +29,30 @@ class PatientRounds:
 def patient_details(owner,row):
     import desktop_widgets as ctk
     from desktop_widgets import set_readonly_text
-    from desktop_forms import modal,guarded
+    from desktop_forms import modal,guarded,dialog_actions
     from desktop_model import patient_text
     from desktop_activity import activity_center
     owner.ready(False)
     shift=owner.store.read()
     rounds=PatientRounds(owner.client.project_id,shift['meta']['shiftId'],
                         [patient['externalId'] for _,_,patient in owner.patient_display(shift)],row['externalId'])
-    window=modal(owner,'تفاصيل المريض — جولة قراءة','880x760')
+    window=modal(owner,'ملف المريض الكامل — جولة قراءة','880x760')
     title=ctk.CTkLabel(window,text='',anchor='e',justify='right',wraplength=700)
     title.pack(fill='x',padx=10,pady=5)
     controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
     content=ctk.CTkTextbox(window,wrap='word');content.pack(fill='both',expand=True,padx=8,pady=5)
     edit_key=[None]
-    scroll_positions={}
+    scope=(owner.client.project_id,shift['meta']['shiftId'])
+    if getattr(owner,'detail_scroll_scope',None)!=scope:
+        owner.detail_scroll_scope=scope;owner.detail_scroll_positions={}
+    scroll_positions=owner.detail_scroll_positions
+    def close_details():
+        if content.winfo_exists():scroll_positions[rounds.selected]=content.yview()[0]
+        window.destroy()
 
     def access():
         admin=not owner.demo and is_admin(local_identity(owner.store,owner.client) or {})
-        if admin:activity.grid(row=1,column=2,sticky='ew',padx=4,pady=5)
+        if admin:activity.grid(row=2,column=0,columnspan=2,sticky='ew',padx=8,pady=4)
         else:activity.grid_remove()
 
     def show(delta=0):
@@ -70,7 +76,7 @@ def patient_details(owner,row):
             if content.winfo_exists():content.yview_moveto(scroll_positions.get(rounds.selected,0))
         content.after_idle(scroll)
         previous.configure(state='normal' if index>0 else 'disabled')
-        next_button.configure(state='normal' if index+1<len(ids) else 'disabled')
+        next_button.configure(text='التالي' if index+1<len(ids) else 'نهاية الجولة',state='normal' if index+1<len(ids) else 'disabled')
         edit.configure(state='normal' if current['meta']['shiftDate']==current_date(owner.client.zone) else 'disabled')
         access()
 
@@ -85,21 +91,24 @@ def patient_details(owner,row):
         rounds.patients(owner.client.project_id,current)
         require(any(patient['externalId']==rounds.selected for patient in current['patients']), 'المريض لم يعد متاحاً')
         edit_key[0]=rounds.selected
-        window.destroy()
+        close_details()
 
     previous=ctk.CTkButton(controls,text='السابق',height=48,width=100,command=guarded(lambda:show(-1)))
     next_button=ctk.CTkButton(controls,text='التالي',height=48,width=100,command=guarded(lambda:show(1)))
-    edit=ctk.CTkButton(controls,text='تحرير',height=48,width=100,command=guarded(open_edit))
     activity=ctk.CTkButton(controls,text='نشاط المريض',height=48,width=120,command=guarded(open_activity))
-    for column,widget in enumerate((previous,next_button,edit)):
+    for column,widget in enumerate((next_button,previous)):
         controls.grid_columnconfigure(column,weight=1,uniform='rounds')
-        widget.grid(row=0,column=column,sticky='ew',padx=4,pady=5)
-    ctk.CTkButton(controls,text='إغلاق',height=48,width=100,command=window.destroy).grid(row=1,column=0,sticky='ew',padx=4,pady=5)
+        widget.grid(row=0,column=column,sticky='ew',padx=8,pady=4)
+    footer=ctk.CTkFrame(controls,fg_color='transparent')
+    footer.grid(row=1,column=0,columnspan=2,sticky='ew')
+    actions=dialog_actions(footer,primary=('تحرير',guarded(open_edit)),cancel=('إغلاق',close_details))
+    edit=actions['تحرير']
     def mapped(event):
         if event.widget is window and not owner.locked:access()
     window.bind('<Map>',mapped,add='+')
     window.bind('<Configure>',lambda event:title.configure(wraplength=max(240,event.width-24))
                 if event.widget is window else None,add='+')
+    window.protocol('WM_DELETE_WINDOW',close_details)
     show()
     owner.root.wait_window(window)
     if edit_key[0]:

@@ -21,7 +21,7 @@ from desktop_model import (LABELS, carry_forward, doctor_label, new_patient, tas
 from desktop_settings import read_settings, raw_config
 from desktop_store import Workspace
 from desktop_platform import data_directory, open_pdf, acquire_instance_lock
-from desktop_forms import button, combo, edit_patient, modal, guarded
+from desktop_forms import dialog_actions, button, combo, edit_patient, modal, guarded
 from desktop_onboarding import create_project, export_project_join
 from desktop_admin_ui import administer
 from desktop_reports import (options_dialog, report_text, export_supervisor_pdfs,
@@ -71,10 +71,21 @@ class Window:
         self.status_label = ctk.CTkLabel(root,textvariable=self.status,anchor='e',justify='right',wraplength=1000)
         self.status_label.pack(side='bottom',fill='x',padx=14,pady=8)
         body = ctk.CTkFrame(root); body.pack(fill='both',expand=True,padx=8,pady=4)
-        sidebar = ctk.CTkScrollableFrame(body,width=295); sidebar.pack(side='right',fill='y',padx=5,pady=5)
+        sidebar = ctk.CTkScrollableFrame(body,width=205); sidebar.pack(side='right',fill='y',padx=5,pady=5)
         self.content = ctk.CTkFrame(body); self.content.pack(side='left',fill='both',expand=True,padx=5,pady=5)
-        def section(title, expanded=True):
-            panel=Disclosure(sidebar,title,expanded=expanded)
+        self.settings_window=ctk.CTkToplevel(root)
+        self.settings_window.title('تفضيلات الجهاز والعمل اليومي')
+        self.settings_window.geometry('620x680')
+        self.settings_window.minsize(480,430)
+        self.settings_window.geometry('{}x{}'.format(min(620,root.winfo_screenwidth()-60),min(680,root.winfo_screenheight()-100)))
+        self.settings_window.transient(root)
+        self.settings_window.protocol('WM_DELETE_WINDOW',self.settings_window.withdraw)
+        settings_area=ctk.CTkScrollableFrame(self.settings_window)
+        settings_area.pack(fill='both',expand=True,padx=8,pady=8)
+        self.settings_window.withdraw()
+        self.settings_button=ctk.CTkButton(sidebar,text='الإعدادات',height=48,command=self.open_settings)
+        def section(title, expanded=True, parent=None):
+            panel=Disclosure(parent if parent is not None else sidebar,title,expanded=expanded)
             panel.pack(fill='x',padx=3,pady=3)
             return panel.content
         identity=ctk.CTkFrame(sidebar)
@@ -82,58 +93,87 @@ class Window:
         ctk.CTkLabel(identity,text='الطبيب الحالي',anchor='e').pack(fill='x',padx=8)
         self.actor=ctk.CTkComboBox(identity,values=['اختر الطبيب'],state='readonly',justify='right',height=48)
         self.actor.pack(fill='x',padx=8,pady=4)
-        project=section('المشروع والإعدادات', expanded=not bool(settings) and not demo)
+        self.project_window,self.project_area=self.tool_window('إدارة المشروع')
+        self.diagnostics_window,diagnostics_area=self.tool_window('التشخيص ومعلومات الجهاز')
+        diagnostics=section('معلومات التشخيص — افتح للعرض',expanded=False,parent=diagnostics_area)
+        self.diagnostics_text=ctk.CTkLabel(diagnostics,text='',anchor='e',justify='right',wraplength=500)
+        self.diagnostics_text.pack(fill='x',padx=8,pady=4)
+        project=section('الاتصال والفريق ووجهات التقارير',parent=self.project_area)
+        preferences=section('المظهر والتقارير',parent=settings_area)
+        security=section('القفل والمنطقة الزمنية',expanded=False,parent=settings_area)
         if demo:
             button(project,'إعادة ضبط البيانات التجريبية',lambda:self.run(self.reset_demo))
         else:
             button(project,'الاتصال بالمشروع / إعادة الاتصال',lambda:self.run(self.connect))
             button(project,'فتح وضع تجريبي مستقل',self.open_demo)
-            button(project,'إعداد PIN والقفل التلقائي',lambda:self.run(lambda:configure_pin(self)))
+            button(security,'إعداد PIN والقفل التلقائي',lambda:self.run(lambda:configure_pin(self)))
             button(identity,'قفل الشاشة',lambda:self.run(lambda:lock_screen(self)))
         self.creation_button = None
         if settings.get('CONNECTION_MODE') == 'raw':
             self.creation_button = button(project,'إنشاء مشروع جديد',lambda:self.run(lambda:create_project(self)))
         self.join_export_button = ctk.CTkButton(project,text='تصدير ملف انضمام محمي',height=48,
             command=lambda:self.run(lambda:export_project_join(self)))
-        self.admin_button = ctk.CTkButton(project,text='إدارة الأطباء والفرق والصلاحيات',height=48,
+        self.admin_button = ctk.CTkButton(project,text='الأطباء والفرق ووجهات التقارير',height=48,
             command=lambda:self.run(lambda:administer(self)))
         self.activity_button = ctk.CTkButton(project,text='مركز النشاط والسجل المحلي',height=48,
             command=lambda:self.run(lambda:activity_center(self)))
         self.announcement_button = ctk.CTkButton(project,text='إدارة إعلان المشروع',height=48,
             command=lambda:self.run(lambda:administer_announcement(self)))
-        ctk.CTkLabel(project,text='المنطقة الزمنية نفسها في Android',anchor='e').pack(fill='x',padx=10)
-        ctk.CTkEntry(project,textvariable=self.zone,justify='right').pack(fill='x',padx=8,pady=4)
+        ctk.CTkLabel(security,text='المنطقة الزمنية نفسها في Android',anchor='e').pack(fill='x',padx=10)
+        ctk.CTkEntry(security,textvariable=self.zone,justify='right').pack(fill='x',padx=8,pady=4)
         if not demo:
             button(project,'تحديث سجل الأطباء',lambda:self.run(self.refresh_identity))
             button(identity,'إثبات الهوية برمز تليجرام',lambda:self.run(self.login))
-        data=section('١ · البيانات والنشر')
-        ctk.CTkLabel(data,text='يحفظ تحرير المريض محلياً. النشر يستبدل النسخة الكاملة على تليجرام.',wraplength=265,justify='right').pack(fill='x',padx=8)
+        self.data_window=ctk.CTkToplevel(root)
+        self.data_window.title('إدارة البيانات')
+        self.data_window.geometry('{}x{}'.format(min(640,root.winfo_screenwidth()-60),min(720,root.winfo_screenheight()-100)))
+        self.data_window.minsize(480,430)
+        self.data_window.transient(root)
+        self.data_window.protocol('WM_DELETE_WINDOW',self.data_window.withdraw)
+        data_area=ctk.CTkScrollableFrame(self.data_window)
+        data_area.pack(fill='both',expand=True,padx=8,pady=8)
+        self.data_status_label=ctk.CTkLabel(self.data_window,textvariable=self.status,anchor='e',justify='right',wraplength=550)
+        self.data_status_label.pack(side='bottom',fill='x',padx=10,pady=4)
+        self.data_window.withdraw()
+        button(sidebar,'إدارة البيانات',self.open_data_tools)
+        data=section('الجلب والمراجعة والنشر',parent=data_area)
+        self.data_description=ctk.CTkLabel(data,text='يحفظ تحرير المريض محلياً. النشر يستبدل النسخة الكاملة على تليجرام.',wraplength=550,justify='right')
+        self.data_description.pack(fill='x',padx=8)
+        self.data_window.bind('<Configure>',self.resize_data_tools,add='+')
         if not demo:
-            for label,action in [('جلب نسخة كاملة / اختيار مناوبة',self.download),
-                                 ('التراجع عن آخر تنزيل',self.undo_download),
-                                 ('بدء مناوبة اليوم من السابقة',self.start_shift),
-                                 ('مراجعة النسخة الكاملة',self.review),('نشر النسخة المراجعة',self.publish)]:
+            for label,action in [('جلب نسخة كاملة',self.download),
+                                 ('بدء مناوبة اليوم',self.start_shift),
+                                 ('مراجعة البيانات',self.review),('نشر النسخة المراجعة',self.publish)]:
                 button(data,label,lambda f=action:self.run(f))
-        button(data,'استئناف مسودة إدخال المريض',lambda:self.run(lambda:resume_patient(self)))
-        button(data,'سلة المرضى المحذوفين',lambda:self.run(self.recycle_bin))
-        button(project,'المظهر والخط',lambda:self.run(lambda:appearance_dialog(self)))
-        reports=section('٢ · التقارير')
-        ctk.CTkLabel(reports,text='الحفظ المحلي يشمل التعديلات غير المنشورة. الإرسال يراجع البيانات وينشرها عند الحاجة قبل تسليم التقرير.',wraplength=265,justify='right').pack(fill='x',padx=8)
-        ctk.CTkLabel(reports,textvariable=self.report_summary,wraplength=265,justify='right',anchor='e').pack(fill='x',padx=8,pady=3)
-        self.supervisor = ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right'); self.supervisor.pack(fill='x',padx=8,pady=6)
-        button(reports,'حفظ تقرير المسودة محلياً',lambda:self.run(lambda:self.report(export_only=True)))
+        local_tools=section('المسودات والتراجع',expanded=False,parent=data_area)
+        if not demo:button(local_tools,'التراجع عن آخر تنزيل',lambda:self.run(self.undo_download))
+        button(local_tools,'استئناف مسودة إدخال المريض',lambda:self.run(lambda:resume_patient(self)))
+        button(local_tools,'سلة المرضى المحذوفين',lambda:self.run(self.recycle_bin))
+        button(preferences,'المظهر والخط',lambda:self.run(lambda:appearance_dialog(self)))
+        from desktop_pdf_settings import pdf_settings
+        button(preferences,'إعدادات PDF',lambda:self.run(lambda:pdf_settings(self)))
+        reports=section('التقارير')
+        ctk.CTkLabel(reports,text='الحفظ المحلي يشمل التعديلات غير المنشورة. الإرسال يراجع البيانات وينشرها عند الحاجة قبل تسليم التقرير.',wraplength=175,justify='right').pack(fill='x',padx=8)
+        ctk.CTkLabel(reports,textvariable=self.report_summary,wraplength=175,justify='right',anchor='e').pack(fill='x',padx=8,pady=3)
+        self.supervisor = ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right'); # Scope is selected inside the report workspace.
+        button(reports,'حفظ تقرير محلي',lambda:self.run(lambda:self.report(export_only=True)))
         if not demo:
-            button(reports,'إرسال تقرير — معاينة وتأكيد',lambda:self.run(self.report))
-            button(reports,'إرسال إلى مجموعات المشرفين (PDF)',lambda:self.run(self.report_batch))
-        self.assignments_button = ctk.CTkButton(reports,text='حفظ توزيع الفرق بالأسماء فقط (PDF)',height=48,
+            button(reports,'إرسال تقرير',lambda:self.run(self.report))
+            button(reports,'تقارير المشرفين (PDF)',lambda:self.run(self.report_batch))
+        self.assignments_button = ctk.CTkButton(reports,text='توزيع الفرق (PDF)',height=48,
             command=lambda:self.run(self.export_assignments))
         if not demo:
-            files=section('الملفات والاسترداد', expanded=False)
+            files=section('النسخ الاحتياطي والملفات وسجل التسليم', expanded=False, parent=data_area)
             button(files,'أدوات CSV',lambda:self.run(lambda:csv_tools(self)))
             button(files,'نسخة احتياطية مشتركة (Android / PC)',lambda:self.run(lambda:backup_dialog(self)))
             button(files,'حفظ استرداد سطح المكتب (.srdraft)',lambda:self.run(self.export_draft))
             button(files,'استعادة نسخة مشفرة (.rpb / .srdraft)',lambda:self.run(self.import_draft))
             button(files,'سجل العمليات والتسليم',lambda:self.run(self.resolve))
+        button(settings_area,'إدارة البيانات',self.open_data_tools)
+        button(settings_area,'إدارة المشروع',self.open_project_tools)
+        button(settings_area,'التشخيص ومعلومات الجهاز',self.open_diagnostics)
+        self.settings_button.pack(fill='x',padx=8,pady=4)
+        button(sidebar,'إدارة المشروع',self.open_project_tools)
         build_ward_controls(self)
         self.patients = ctk.CTkScrollableFrame(self.content); self.patients.pack(fill='both',expand=True,padx=5,pady=4)
         self.content.bind('<Configure>',self.resize_content)
@@ -152,6 +192,55 @@ class Window:
             root.bind_all('<Motion>',self.note_activity,add='+')
             root.after(1000,self.check_lock)
         self.clock_after_id=root.after(60_000,self.clock_tick)
+
+    def tool_window(self,title):
+        window=ctk.CTkToplevel(self.root)
+        window.title(title)
+        window.geometry('{}x{}'.format(min(640,self.root.winfo_screenwidth()-60),min(680,self.root.winfo_screenheight()-100)))
+        window.minsize(480,430);window.transient(self.root)
+        window.protocol('WM_DELETE_WINDOW',window.withdraw)
+        area=ctk.CTkScrollableFrame(window);area.pack(fill='both',expand=True,padx=8,pady=8)
+        window.withdraw()
+        return window,area
+
+    def open_project_tools(self):
+        if self.locked or self.busy:return
+        self.project_window.deiconify();self.project_window.lift();self.project_window.focus_set()
+
+    def open_diagnostics(self):
+        if self.locked or self.busy:return
+        import platform
+        draft=self.store.read() if self.store and self.store.state.get('draft') else None
+        text='النظام: {}\nPython: {}\nالوضع: {}\nالمشروع متصل: {}\nسجلات المناوبة المحلية: {}'.format(
+            platform.system(),platform.python_version(),'تجريبي' if self.demo else 'فعلي',
+            'نعم' if self.client else 'لا',len(draft['patients']) if draft else 0)
+        self.diagnostics_text.configure(text=text)
+        self.diagnostics_window.deiconify();self.diagnostics_window.lift();self.diagnostics_window.focus_set()
+
+    def resize_data_tools(self,event):
+        if event.widget is self.data_window:
+            width=max(240,event.width-48)
+            self.data_description.configure(wraplength=width)
+            self.data_status_label.configure(wraplength=width)
+
+    def open_data_tools(self):
+        if self.locked or self.busy:return
+        self.data_window.deiconify()
+        self.data_window.lift()
+        self.data_window.focus_set()
+
+    def notify_success(self,message):
+        self.status.set(message)
+        def clear():
+            if not self.closed and self.status.get()==message:
+                self.status.set('DEMO — بيانات في الذاكرة' if self.demo else 'التحرير محلي؛ راجع البيانات قبل النشر أو إرسال التقرير.')
+        self.root.after(5_000,clear)
+
+    def open_settings(self):
+        if self.locked or self.busy:return
+        self.settings_window.deiconify()
+        self.settings_window.lift()
+        self.settings_window.focus_set()
 
     def clock_tick(self):
         try:
@@ -181,6 +270,7 @@ class Window:
 
     def resize_content(self,event):
         width=max(240,event.width-40)
+        self.operation_notice_text.configure(wraplength=width)
         self.workflow.configure(wraplength=max(150,width-170))
         self.metrics.configure(wraplength=width)
         self.sort_status.configure(wraplength=width)
@@ -244,7 +334,7 @@ class Window:
         ordered(draft,self.client.doctors,self.client.zone)
         self.io(lambda:self.store.save_clinical_draft(self.client,draft,expected))
         self.plan=None; self.raw_draft=None
-        self.status.set('DEMO — حُفظ التعديل في الذاكرة فقط.' if self.demo else 'حفظت المسودة المشفرة محليا؛ راجعها قبل النشر.')
+        self.notify_success('DEMO — حُفظ التعديل في الذاكرة فقط.' if self.demo else 'تم الحفظ محلياً؛ التعديلات تحتاج إلى مراجعة ونشر.')
         self.render()
 
     def set_doctors(self):
@@ -503,14 +593,18 @@ class Window:
         active=filter_summary(self)
         grouping=self.grouping.get()
         view_summary=' · '.join(active + ([grouping] if grouping!=GROUPS['NONE'] else []))
-        self.view_controls.refresh('التصفية والعرض والترتيب' + (' ({})'.format(len(active)) if active else ''))
+        self.view_controls.refresh('خيارات العرض' + (' ({})'.format(len(active)) if active else ''))
         self.view_summary.configure(text=view_summary)
         self.reset_view_button.configure(state='normal' if active and not self.busy else 'disabled')
         summary,action=workflow_status(self.client,self.store,self.demo)
         self.workflow.configure(text=summary)
+        if action is WorkflowAction.DELIVERY_HISTORY and not self.demo:
+            self.operation_notice_text.configure(text='توجد عملية غير محسومة. افحص تليجرام وسجل العمليات قبل إعادة النشر أو الإرسال.')
+            if not self.operation_notice.winfo_manager():self.operation_notice.pack(fill='x',padx=5,pady=4,before=self.ward_toolbar)
+        else:self.operation_notice.pack_forget()
         self.workflow_action.configure(text=action.value, state='disabled' if self.busy or self.demo or self.store is None else 'normal')
-        for child in self.patients.winfo_children():child.destroy()
         if self.store is None or self.store.state['draft'] is None:
+            self.update_patient_list([],False,None)
             self.sort_status.configure(text='التجميع للعرض فقط؛ الترتيب المحفوظ يستخدم في التقارير وCSV.')
             self.metrics.configure(text='افتح المشروع واجلب مناوبة، أو ابدأ مناوبة اليوم من السابقة.');return
         draft=self.store.read(); rows=draft['patients']; pending,overdue=task_counts(rows)
@@ -520,16 +614,64 @@ class Window:
         roster=' / '.join(self.client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in draft['meta'].get('doctors','').split(',') if key)
         self.metrics.configure(text='{} · {} من {} مريض · مهام الجناح المعلقة {} (منها متأخرة {})\nأطباء المناوبة: {}'.format(draft['meta']['shiftDate'],len(display),len(rows),pending,overdue,roster or 'لم تحدد'))
         movement_allowed=self.manual_movement_allowed()
-        if not display:
-            ctk.CTkLabel(self.patients,text='لا توجد نتائج مطابقة. امسح التصفية أو غيّر البحث.' if rows else 'لا يوجد مرضى. أضف مريضاً للبدء.',
-                anchor='e',justify='right',wraplength=max(240,self.content.winfo_width()-40)).pack(fill='x',padx=10,pady=12)
-        last_group=None
+        self.update_patient_list(display,movement_allowed,draft)
+
+    def update_patient_list(self,display,movement_allowed,draft):
+        """Reuse unchanged cards; list state never changes clinical ordering."""
+        scope=(self.client.project_id,draft['meta']['shiftId']) if draft else None
+        if getattr(self,'list_scope',None)!=scope:
+            for child in self.patients.winfo_children():child.destroy()
+            self.patient_widgets={};self.list_order=[];self.list_scope=scope
+            self.list_filtered=False;self.unfiltered_scroll=0
+        if not hasattr(self,'patient_widgets'):self.patient_widgets={};self.list_order=[]
+        canvas=self.patients._parent_canvas
+        scroll=canvas.yview()[0]
+        filtered=bool(filter_summary(self))
+        if filtered and not getattr(self,'list_filtered',False):self.unfiltered_scroll=scroll
+        if not filtered and getattr(self,'list_filtered',False):scroll=getattr(self,'unfiltered_scroll',0)
+        self.list_filtered=filtered
+        entries=[];last_group=None;current_group=None
         for heading,index,row in display:
             if heading is not None:current_group=heading
             if current_group and current_group!=last_group:
-                ctk.CTkLabel(self.patients,text=current_group,font=('Arial',18,'bold'),anchor='e',justify='right',wraplength=max(240,self.content.winfo_width()-40)).pack(fill='x',padx=10,pady=8)
+                entries.append((('group',current_group),current_group,None))
                 last_group=current_group
-            patient_card(self,self.patients,row,index,len(rows),movement_allowed)
+            key=row['externalId']
+            # A minute refresh keeps deadline/task summaries current.
+            signature=(row,index,len(draft['patients']),key in self.cards.expanded,
+                       key in self.cards.pinned,self.client.doctors,self.client.zone,self.card_density.get(),int(time.time()//60))
+            entries.append((('patient',key),signature,(row,index)))
+        if not entries:
+            text=('لا توجد نتائج مطابقة. امسح التصفية أو غيّر البحث.' if draft and draft['patients']
+                  else 'لا يوجد مرضى. أضف مريضاً للبدء.' if draft else 'افتح المشروع للبدء.')
+            entries.append((('empty',),text,None))
+        order=[key for key,_,_ in entries]
+        changed=order!=self.list_order
+        for key in list(self.patient_widgets):
+            if key not in order:
+                self.patient_widgets.pop(key)[1].destroy()
+        for key,signature,payload in entries:
+            previous=self.patient_widgets.get(key)
+            if previous and previous[0]==signature and previous[1].winfo_exists():
+                if payload:previous[1].refresh_movement(movement_allowed)
+                continue
+            if previous:previous[1].destroy()
+            if payload:
+                row,index=payload
+                widget=patient_card(self,self.patients,row,index,len(draft['patients']),movement_allowed)
+            else:
+                widget=ctk.CTkLabel(self.patients,text=signature,anchor='e',justify='right',
+                    wraplength=max(240,self.content.winfo_width()-40),font=('Arial',18,'bold') if key[0]=='group' else ('Arial',14))
+            self.patient_widgets[key]=(copy.deepcopy(signature),widget)
+            changed=True
+        if changed:
+            for _,widget in self.patient_widgets.values():widget.pack_forget()
+            for key in order:self.patient_widgets[key][1].pack(fill='x',padx=3,pady=2 if self.card_density.get()=='مضغوطة' else 4)
+            self.list_order=order
+            def restore_scroll():
+                if self.patients.winfo_exists() and self.list_scope==scope:
+                    canvas.yview_moveto(scroll)
+            self.root.after_idle(restore_scroll)
 
     def reset_patient_filters(self):
         self.filter.set(CLINICAL_FILTERS[0])
@@ -572,7 +714,15 @@ class Window:
         else:self.download()
 
     def details(self,row):
-        patient_details(self,row)
+        scope=self.cards.scope
+        canvas=self.patients._parent_canvas
+        position=canvas.yview()[0]
+        try:patient_details(self,row)
+        finally:
+            def restore():
+                if not self.closed and not self.locked and self.cards.scope==scope and self.patients.winfo_exists():
+                    canvas.yview_moveto(position)
+            if not self.closed:self.root.after_idle(restore)
 
     def add_patient(self):
         self.editable(); edit_patient(self,new_patient(self.client.zone),True)
@@ -642,7 +792,7 @@ class Window:
             if not values or any(key not in self.client.doctors for key in values):
                 messagebox.showerror('المناوبة','حدد أطباء نشطين للمناوبة');return
             draft['meta']['doctors']=','.join(values); self.save_draft(draft,expected);window.destroy()
-        button(controls,'حفظ أطباء المناوبة',guarded(save));button(controls,'إلغاء',window.destroy)
+        dialog_actions(controls,primary=('حفظ أطباء المناوبة',guarded(save)),cancel=('إلغاء',window.destroy))
         self.root.wait_window(window)
 
     def export_draft(self):
@@ -668,11 +818,10 @@ class Window:
         controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
         widget=ctk.CTkTextbox(window,wrap='word',font=('Arial',15));widget.pack(fill='both',expand=True,padx=8,pady=8)
         copy_original=set_readonly_text(widget,text)
-        button(controls,'نسخ النص الكامل',copy_original)
         accepted=[]
         def accept():accepted.append(True);window.destroy()
-        if approve:button(controls,approval_label,accept)
-        button(controls,'إغلاق / إلغاء',window.destroy)
+        dialog_actions(controls,primary=(approval_label,accept) if approve else None,
+            cancel=('إلغاء' if approve else 'إغلاق',window.destroy),secondary=[('نسخ النص الكامل',copy_original)])
         self.root.wait_window(window);return bool(accepted)
 
     def show_review(self,text):
@@ -799,7 +948,7 @@ class Window:
         def confirm_repeat(supervisor):
             return messagebox.askyesno('نسخة إضافية','هذا التقرير سلم سابقا إلى الوجهة نفسها. هل تؤكد إرسال نسخة إضافية بعد المراجعة؟',default='no')
         sent=delivery.send([(supervisor,options['format'],text if text is not None else raw)],confirm_repeat)
-        if sent:messagebox.showinfo('تم التسليم','تم تسليم التقرير إلى الوجهة المعروضة.')
+        if sent:self.notify_success('تم تسليم التقرير إلى الوجهة التي راجعتها.')
 
     def resolve(self):
         self.ready(False)

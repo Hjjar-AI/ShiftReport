@@ -1,0 +1,84 @@
+package com.hos.rushdpatients.ui.setup
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import com.hos.rushdpatients.ui.theme.UiBorder
+import com.hos.rushdpatients.ui.theme.UiLayout
+import com.hos.rushdpatients.ui.theme.UiSpacing
+
+@Composable
+internal fun ProjectSetupChoices(
+    selected: ProjectSetupMode,
+    enabled: Boolean,
+    onSelect: (ProjectSetupMode) -> Unit
+) {
+    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+    BoxWithConstraints(Modifier.fillMaxWidth().selectableGroup()) {
+        if (maxWidth >= UiLayout.splitMinWidth * fontScale) {
+            Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
+                ProjectSetupMode.entries.forEach { mode ->
+                    SetupChoice(mode, selected == mode, enabled, { onSelect(mode) }, Modifier.weight(1f))
+                }
+            }
+        } else Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            ProjectSetupMode.entries.forEach { mode ->
+                SetupChoice(mode, selected == mode, enabled, { onSelect(mode) }, Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetupChoice(
+    mode: ProjectSetupMode,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier
+) {
+    val (title, description) = when (mode) {
+        ProjectSetupMode.DEMO -> "تجربة التطبيق" to "ابدأ فوراً ببيانات تجريبية"
+        ProjectSetupMode.JOIN -> "الانضمام لمشروع" to "باستخدام ملف الانضمام من المدير"
+        ProjectSetupMode.CREATE -> "إنشاء مشروع" to "إعداد مجموعة جديدة وإدارة الفريق"
+    }
+    Surface(
+        modifier = modifier.heightIn(min = UiSpacing.touchTarget)
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick),
+        shape = MaterialTheme.shapes.large,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(if (selected) UiBorder.selectedWidth else UiBorder.normalWidth,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(UiSpacing.screen),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                RadioButton(selected = selected, onClick = null, enabled = enabled)
+                Text(title, style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            }
+            Text(description, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+        }
+    }
+}

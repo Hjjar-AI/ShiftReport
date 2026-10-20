@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +23,6 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -58,7 +58,7 @@ internal fun WardFormDialog(
                         modifier = Modifier.fillMaxSize(), primaryTitle = "تحرير المريض",
                         primary = {
                             Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
-                                Column(Modifier.widthIn(max = 840.dp).fillMaxWidth().fillMaxHeight()) {
+                                Column(Modifier.widthIn(max = UiLayout.patientFormMaxWidth).fillMaxWidth().fillMaxHeight()) {
                                     Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny)) { title() }
                                     Divider()
                                     Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { text() }

@@ -1,33 +1,34 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
 import androidx.compose.runtime.CompositionLocalProvider
 import com.hos.rushdpatients.ui.components.LocalFieldEnabled
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
-import com.hos.rushdpatients.ui.components.AppButton
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import com.hos.rushdpatients.ui.components.AppDialogDismissAction
+import com.hos.rushdpatients.ui.components.AppDialogHeader
+import com.hos.rushdpatients.ui.components.appDialogBody
+import com.hos.rushdpatients.ui.theme.UiDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.domain.sort.SortDirection
@@ -35,6 +36,7 @@ import com.hos.rushdpatients.domain.sort.SortField
 import com.hos.rushdpatients.domain.sort.SortLevel
 import com.hos.rushdpatients.domain.sort.SortSpec
 
+/** Standalone host retained for the in-memory demo; the ward embeds the same editor. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SortSheet(
@@ -45,7 +47,25 @@ fun SortSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val maximumHeight = LocalConfiguration.current.screenHeightDp.dp * 0.85f
+    ModalBottomSheet(onDismissRequest = { if (!saving) onDismiss() }, sheetState = sheetState) {
+        Column(Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight).padding(UiSpacing.screen)) {
+            AppDialogHeader("ترتيب المرضى")
+            Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                PatientSortOptions(initial, initialRevision, saving, onApply)
+            }
+            AppDialogDismissAction(onClick = onDismiss, enabled = !saving)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PatientSortOptions(
+    initial: SortSpec,
+    initialRevision: Long,
+    saving: Boolean = false,
+    onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit
+) {
     var levels by remember { mutableStateOf(initial.levels) }
 
     var revision by remember { mutableStateOf(initialRevision) }
@@ -61,95 +81,85 @@ fun SortSheet(
     }
 
     CompositionLocalProvider(LocalFieldEnabled provides !saving) {
-        ModalBottomSheet(
-            onDismissRequest = { if (!saving) onDismiss() },
-            sheetState = sheetState
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = UiSpacing.tiny),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = maximumHeight)
-                    .padding(UiSpacing.screen),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
-                Text("ترتيب المرضى", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-
-                Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                ) {
-                    if (rejected != null) {
-                        AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                            Text("مراجعة الترتيب المرفوض")
-                        }
+                if (rejected != null) {
+                    AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
+                        Text("مراجعة الترتيب المرفوض")
                     }
-                    levels.forEachIndexed { index, level ->
-                        Text("المستوى " + when (index) {
-                            0 -> "الأول"
-                            1 -> "الثاني"
-                            2 -> "الثالث"
-                            else -> "الرابع"
-                        }, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                        ) {
-                            FieldDropdown(
-                                selected = level.field,
-                                onSelected = { f ->
-                                    levels = levels.toMutableList().also { it[index] = level.copy(field = f) }
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            DirectionDropdown(
-                                selected = level.direction,
-                                onSelected = { d ->
-                                    levels = levels.toMutableList().also { it[index] = level.copy(direction = d) }
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            AppTextButton(onClick = {
-                                levels = levels.toMutableList().also { it.removeAt(index) }
-                            }) { Text("حذف") }
-                        }
-                    }
-
-                    if (levels.size < 4) {
-                        AppOutlinedButton(
-                            onClick = {
-                                levels = levels + SortLevel(SortField.NAME, SortDirection.ASC)
+                }
+                levels.forEachIndexed { index, level ->
+                    Text("المستوى " + when (index) {
+                        0 -> "الأول"
+                        1 -> "الثاني"
+                        2 -> "الثالث"
+                        else -> "الرابع"
+                    }, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
+                    ) {
+                        FieldDropdown(
+                            selected = level.field,
+                            onSelected = { f ->
+                                levels = levels.toMutableList().also { it[index] = level.copy(field = f) }
                             },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("إضافة مستوى") }
+                            modifier = Modifier.weight(1f)
+                        )
+                        DirectionDropdown(
+                            selected = level.direction,
+                            onSelected = { d ->
+                                levels = levels.toMutableList().also { it[index] = level.copy(direction = d) }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        AppTextButton(onClick = {
+                            levels = levels.toMutableList().also { it.removeAt(index) }
+                        }) { Text("حذف") }
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                ) {
-                    AppButton(
-                        onClick = { apply(SortSpec(levels)) },
-                        enabled = !saving,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("تطبيق") }
+                if (levels.size < 4) {
                     AppOutlinedButton(
-                        onClick = { apply(SortSpec.DEFAULT) },
-                        enabled = !saving,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("افتراضي") }
+                        onClick = {
+                            levels = levels + SortLevel(SortField.NAME, SortDirection.ASC)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("إضافة مستوى") }
                 }
-                AppTextButton(
-                    onClick = { apply(SortSpec.EMPTY) },
-                    enabled = !saving,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("الترتيب الأصلي") }
-                AppTextButton(onClick = { apply(SortSpec.WORKBOOK) }, enabled = !saving,
-                    modifier = Modifier.fillMaxWidth()) { Text("ترتيب Excel: الجنس ← التشخيص ← أيام الدخول ← الاسم") }
             }
-        }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
+            ) {
+                AppDialogConfirmAction(text = "حفظ الترتيب", loading = saving,
+                    onClick = { apply(SortSpec(levels)) },
+                    enabled = !saving,
+                    modifier = Modifier.weight(1f)
+                )
+                AppOutlinedButton(
+                    onClick = { apply(SortSpec.DEFAULT) },
+                    enabled = !saving,
+                    modifier = Modifier.weight(1f)
+                ) { Text("افتراضي") }
+            }
+            AppTextButton(
+                onClick = { apply(SortSpec.EMPTY) },
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("الترتيب الأصلي") }
+            AppTextButton(onClick = { apply(SortSpec.WORKBOOK) }, enabled = !saving,
+                modifier = Modifier.fillMaxWidth()) { Text("ترتيب Excel: الجنس ← التشخيص ← أيام الدخول ← الاسم") }
+        }
     }
     if (reviewing) {
         val saved = latest

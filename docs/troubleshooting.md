@@ -1,12 +1,52 @@
 # Android troubleshooting
 
 [Current state and verification limits](current-state.md) ·
-[Windows/Linux desktop troubleshooting](../desktop/TROUBLESHOOTING.md)
+[Windows/Linux desktop troubleshooting](../desktop/TROUBLESHOOTING.md) ·
+[Windows EXE packaging guide](windows-exe-packaging.md)
 
 Use an already installed development app. These recipes do not authorize builds,
 compilation, test-suite work, migrations, destructive device actions or data resets;
 follow [AGENTS.md](../AGENTS.md). Keep clinical captures local and redacted.
 A clean Logcat is not proof that an operation succeeded.
+
+## Reuse the workstation Gradle cache
+
+For the encountered failures, causes and final fixes, see
+[Shared-workstation build issues](android-shared-workstation-build-fixes.md).
+
+The POSIX `android/gradlew` launcher automatically uses
+`/opt/android-shared/.gradle` when that directory exists, is writable and
+`GRADLE_USER_HOME` is unset or points to the normal `$HOME/.gradle` location.
+This also handles development environments that pre-export the ordinary home cache.
+The shared cache contains the project's Gradle 8.7 distribution. A genuinely custom
+`GRADLE_USER_HOME` takes precedence; other machines
+keep Gradle's normal per-user cache. The wrapper version and distribution checksum
+are unchanged. This setting applies to the shell launcher; Android Studio has its
+own Gradle user-home setting.
+
+The POSIX launcher also defaults the project cache to
+`$HOME/.gradle/shiftreport-project-cache`, isolating configuration-cache permissions
+between accounts sharing this checkout. An explicit `--project-cache-dir` is
+preserved. Use the ordinary `./gradlew assembleDebug` command from `android/`;
+this documentation does not authorize the agent to run a build.
+
+The launcher also supplies `shiftreport.buildRoot` so generated resources, Kotlin
+output and APKs use account-local directories rather than another account's
+`app/build`. Its default debug APK is
+`$HOME/.gradle/shiftreport-project-cache/build-output/app/outputs/apk/debug/app-debug.apk`.
+An explicit `-Pshiftreport.buildRoot=/your/path` overrides that output root.
+Android Studio and callers without the property retain standard output directories.
+Old shared build directories are left untouched; they are no longer used by the
+POSIX launcher's default build.
+
+Successful assemble tasks also export versioned APK copies into
+`Desktop/ShiftReport/<variant>/`, for example
+`ShiftReport-v1.1.1.20261007-debug.apk`. The shell uses the current user's XDG Desktop
+location when available; otherwise it uses `$HOME/Desktop`. Use
+`-Pshiftreport.apkExportDir=/your/folder` to change that export root. These names
+separate output files, while Android app IDs and installation behavior remain unchanged.
+
+
 
 ## Capture one failure
 

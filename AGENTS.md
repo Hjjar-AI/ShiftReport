@@ -60,7 +60,7 @@ These instructions apply to the entire repository. Before work, check for additi
 - Keep per-patient task counts on cards and ward totals on the dashboard. Optional task ownership must not become a required save or report-readiness condition.
 - Preserve top-bar expand/collapse-all and individual card expansion, plus an actionable shift-doctor selector as the first report-preview section, available before the roster is set. Do not restore a fixed maximum roster size in the picker, sync, or reports; retain active-doctor validation and stale-edit protection.
 - Preserve Arabic user-facing text, RTL layout, labelled 48dp targets, readable wrapping at large font sizes, semantic states, and adaptive/fold-safe placement.
-- Keep the splash responsive and dismissible by any tap or after 10 seconds, including across Activity recreation. Preserve the white-field emblem and existing About/credit content unless explicitly asked to change them.
+- Keep the splash responsive: keep the five-second timer running while held for reading, defer dismissal until release if the timer has expired, and allow a quick tap to skip, including across Activity recreation. Preserve the white-field emblem and existing About/credit content unless explicitly asked to change them.
 
 ## Work tracking
 

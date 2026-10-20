@@ -10,7 +10,7 @@ from desktop_delivery import ReportDelivery
 def select_supervisors(owner, shift, doctors):
     import tkinter as tk
     import desktop_widgets as ctk
-    from desktop_forms import button, modal
+    from desktop_forms import button, modal, dialog_actions
     counts = {}
     for patient in shift['patients']:
         key = patient.get('responsibleSupervisorId')
@@ -31,8 +31,7 @@ def select_supervisors(owner, shift, doctors):
         selected = [key for key,v in variables.items() if v.get()]
         if not selected:return
         result.extend(selected);window.destroy()
-    button(controls,'متابعة إلى معاينة كل PDF',submit)
-    button(controls,'إلغاء',window.destroy)
+    dialog_actions(controls,primary=('متابعة إلى معاينة كل PDF',submit),cancel=('إلغاء',window.destroy))
     owner.root.wait_window(window)
     return result
 

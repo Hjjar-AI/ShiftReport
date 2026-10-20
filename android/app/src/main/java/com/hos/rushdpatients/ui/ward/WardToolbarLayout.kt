@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiLayout
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clipToBounds
@@ -13,14 +14,13 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.unit.dp
 import androidx.window.layout.FoldingFeature
 
 /** Measure natural toolbar content; keep it together on one safe side of an intersecting hinge. */
 @Composable
 internal fun WardToolbarLayout(foldingFeature: FoldingFeature?, content: @Composable () -> Unit) {
     var origin by remember { mutableStateOf<Offset?>(null) }
-    val gap = with(LocalDensity.current) { 8.dp.roundToPx() }
+    val gap = with(LocalDensity.current) { UiLayout.foldClearance.roundToPx() }
     Layout(content = content, modifier = Modifier.fillMaxWidth().clipToBounds().onGloballyPositioned { origin = it.positionInWindow() }) { children, constraints ->
         val location = origin
         val fold = foldingFeature
@@ -60,7 +60,7 @@ internal fun WardToolbarContent(title: @Composable () -> Unit, navigation: @Comp
     actions: @Composable () -> Unit) {
     val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
     BoxWithConstraints(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = UiSpacing.small)) {
-        if (maxWidth < 240.dp * scale.coerceAtMost(1.3f)) {
+        if (maxWidth < UiLayout.toolbarActionsMinWidth * scale.coerceAtMost(1.3f)) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     navigation()

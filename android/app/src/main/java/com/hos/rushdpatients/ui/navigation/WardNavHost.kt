@@ -16,6 +16,7 @@ import com.hos.rushdpatients.ui.announcement.AnnouncementScreen
 import com.hos.rushdpatients.ui.doctors.DoctorsScreen
 import com.hos.rushdpatients.ui.report.ReportPreviewScreen
 import com.hos.rushdpatients.ui.settings.SettingsScreen
+import com.hos.rushdpatients.ui.settings.SettingsWorkspace
 import com.hos.rushdpatients.ui.ward.WardScreen
 
 @Composable
@@ -37,8 +38,9 @@ fun WardNavHost(
                 },
                 onOpenAdmin = { navController.navigate(Routes.ADMIN) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
-                onOpenVbaImport = { navController.navigate(Routes.VBA_IMPORT) }
+                onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) }
             )
         }
 
@@ -69,16 +71,27 @@ fun WardNavHost(
             else LaunchedEffect(Unit) { navController.popBackStack() }
         }
 
-        composable(Routes.SETTINGS) {
-            SettingsScreen(
-                isAdmin = session.isAdmin,
-                onBack = { navController.popBackStack() },
-                onSignOut = {
-                    onSignOut()
-                    navController.popBackStack(Routes.WARD, inclusive = false)
-                },
-                onOpenVbaImport = { navController.navigate(Routes.VBA_IMPORT) }
-            )
+        listOf(
+            Routes.SETTINGS to SettingsWorkspace.PREFERENCES,
+            Routes.DATA_MANAGEMENT to SettingsWorkspace.DATA,
+            Routes.PROJECT_SETTINGS to SettingsWorkspace.PROJECT,
+            Routes.DIAGNOSTICS to SettingsWorkspace.DIAGNOSTICS
+        ).forEach { (route, workspace) ->
+            composable(route) {
+                SettingsScreen(
+                    isAdmin = session.isAdmin,
+                    workspace = workspace,
+                    onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
+                    onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
+                    onOpenDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
+                    onBack = { navController.popBackStack() },
+                    onSignOut = {
+                        onSignOut()
+                        navController.popBackStack(Routes.WARD, inclusive = false)
+                    },
+                    onOpenVbaImport = { navController.navigate(Routes.VBA_IMPORT) }
+                )
+            }
         }
 
         composable(Routes.VBA_IMPORT) {

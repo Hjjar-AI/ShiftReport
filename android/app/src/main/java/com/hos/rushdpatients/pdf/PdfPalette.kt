@@ -1,10 +1,12 @@
 package com.hos.rushdpatients.pdf
 
+import android.graphics.Color
+
 object PdfPalette {
     const val HEADER_TEAL = 0xFF146474.toInt()       // RGB(20, 100, 116)
-    const val SUMMARY_BLUE = 0xFFE0F2FE.toInt()      // RGB(224, 242, 254)
-    const val ZEBRA = 0xFFF2F2F2.toInt()             // RGB(242, 242, 242)
-    const val CREAM = 0xFFFFFDF5.toInt()             // RGB(255, 253, 245)
+    const val SUMMARY_BACKGROUND = 0xFFF8FAFC.toInt()      // Neutral summary and footer band.
+    const val ZEBRA = 0xFFF8FAFC.toInt()             // Subtle alternating rows.
+    const val CREAM = 0xFFFFFFFF.toInt()             // White alternate group rows.
 
     val GROUP_PALETTE: IntArray = intArrayOf(
         0xFFCFE8F0.toInt(),  // RGB(207, 232, 240) pale teal-blue
@@ -23,10 +25,19 @@ object PdfPalette {
         val border: Int,
         val zebra: Int,
         val cream: Int,
-        val groups: IntArray
+        val groups: IntArray,
+        val ruleColor: Int,
+        val ruleWidth: Float,
+        val rowShading: PdfRowShading
     ) {
         fun group(index: Int): Int =
             groups[((index % groups.size) + groups.size) % groups.size]
+
+        val teamSubheader: Int get() = Color.rgb(
+            (Color.red(titleHeader) * .12f + Color.red(pageBackground) * .88f).toInt(),
+            (Color.green(titleHeader) * .12f + Color.green(pageBackground) * .88f).toInt(),
+            (Color.blue(titleHeader) * .12f + Color.blue(pageBackground) * .88f).toInt()
+        )
     }
 
     fun resolve(options: PdfExportOptions): Resolved {
@@ -45,18 +56,18 @@ object PdfPalette {
             )
             else -> GROUP_PALETTE.copyOf()
         }
-        val lightSummary = when (options.colorPreset) {
-            PdfColorPreset.PASTEL_RAINBOW -> 0xFFFFFDFC.toInt()
-            else -> SUMMARY_BLUE
-        }
+        val lightSummary = SUMMARY_BACKGROUND
         return if (options.darkMode) {
             Resolved(
                 titleHeader = headerColors.first,
                 tableHeader = headerColors.second,
-                summary = 0xFF343B42.toInt(),
+                summary = 0xFF272C31.toInt(),
                 pageBackground = 0xFF202428.toInt(),
                 text = 0xFFF7F9FA.toInt(),
-                border = 0xFFB8C0C8.toInt(),
+                border = 0xFF475569.toInt(),
+                ruleColor = options.ruleContrast.dark,
+                ruleWidth = options.ruleWeight.points,
+                rowShading = options.rowShading,
                 zebra = 0xFF2B3137.toInt(),
                 cream = 0xFF272C31.toInt(),
                 groups = intArrayOf(
@@ -73,8 +84,11 @@ object PdfPalette {
                 tableHeader = headerColors.second,
                 summary = lightSummary,
                 pageBackground = 0xFFFFFFFF.toInt(),
-                text = 0xFF000000.toInt(),
-                border = 0xFF000000.toInt(),
+                text = 0xFF1E293B.toInt(),
+                border = 0xFFE2E8F0.toInt(),
+                ruleColor = options.ruleContrast.light,
+                ruleWidth = options.ruleWeight.points,
+                rowShading = options.rowShading,
                 zebra = ZEBRA,
                 cream = CREAM,
                 groups = lightGroups

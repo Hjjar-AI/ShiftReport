@@ -10,18 +10,19 @@ fun ConfirmDialog(
     message: String,
     confirmText: String = "تأكيد",
     dismissText: String = "إلغاء",
+    destructive: Boolean = false,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { AppDialogHeader(title) },
         text = { Text(message) },
         confirmButton = {
-            AppTextButton(onClick = onConfirm) { Text(confirmText) }
+            AppDialogConfirmAction(text = confirmText, onClick = onConfirm, destructive = destructive)
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss) { Text(dismissText) }
+            AppDialogDismissAction(onClick = onDismiss, text = dismissText)
         }
     )
 }

@@ -72,16 +72,16 @@ def sort_description(shift):
     return 'الترتيب المحفوظ: '+(' ← '.join(FIELDS[level['field']]+' '+('↓' if level.get('direction')=='DESC' else '↑') for level in levels) if levels else 'يدوي')+' · الأولوية أولاً'
 
 
-def sorting_dialog(owner):
-    import desktop_widgets as ctk
-    from desktop_forms import modal, combo, button, guarded
+def sorting_editor(owner, body, controls, on_saved, embedded=False):
+    """Same revision-checked editor for an embedded options panel or modal host."""
+    from desktop_forms import combo, guarded, dialog_actions
     draft=owner.editable()
     expected=fingerprint(draft)
     existing=levels_for(draft)
-    window=modal(owner,'ترتيب متعدد المستويات','680x680')
-    controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
-    body=ctk.CTkScrollableFrame(window);body.pack(fill='both',expand=True)
-    ctk.CTkLabel(body,text='المستوى الأول ثم الثاني… مرضى الأولوية أولاً.\nيحفظ الترتيب للعرض وCSV والتقارير والنشر.',justify='right').pack(fill='x',padx=10,pady=8)
+    for parent in (body,controls):
+        for child in parent.winfo_children():child.destroy()
+    import desktop_widgets as ctk
+    ctk.CTkLabel(body,text='المستوى الأول ثم الثاني… مرضى الأولوية أولاً.\nيحفظ الترتيب للعرض وCSV والتقارير والنشر.',justify='right',wraplength=440).pack(fill='x',padx=10,pady=8)
     inputs=[]
     for index in range(len(FIELDS)):
         current=existing[index] if index<len(existing) else {}
@@ -92,12 +92,25 @@ def sorting_dialog(owner):
         levels=[dict(field=field(),direction=direction()) for field,direction in inputs if field()!='NONE']
         require(len({level['field'] for level in levels})==len(levels),'اختر كل حقل مرة واحدة')
         ordered(draft,owner.client.doctors,owner.client.zone,levels)
-        owner.save_draft(draft,expected);window.destroy()
+        owner.save_draft(draft,expected);on_saved()
     def workbook_default():
         ordered(draft,owner.client.doctors,owner.client.zone,[dict(level) for level in WORKBOOK_LEVELS])
-        owner.save_draft(draft,expected);window.destroy()
-    button(controls,'ترتيب Excel الافتراضي: الجنس ← التشخيص ← أيام القبول ← الاسم',guarded(workbook_default))
-    button(controls,'حفظ الترتيب',guarded(save));button(controls,'إلغاء',window.destroy)
+        owner.save_draft(draft,expected);on_saved()
+    def action(callback):
+        return guarded(lambda:owner.run(callback)) if embedded else guarded(callback)
+    dialog_actions(controls,primary=('حفظ الترتيب',action(save)),
+        secondary=[('ترتيب Excel الافتراضي: الجنس ← التشخيص ← أيام القبول ← الاسم',action(workbook_default))])
+
+
+def sorting_dialog(owner):
+    import desktop_widgets as ctk
+    from desktop_forms import modal,button
+    owner.editable()
+    window=modal(owner,'ترتيب متعدد المستويات','680x680')
+    controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
+    body=ctk.CTkScrollableFrame(window);body.pack(fill='both',expand=True)
+    sorting_editor(owner,body,controls,window.destroy)
+    button(window,'إلغاء',window.destroy)
     owner.root.wait_window(window)
 
 

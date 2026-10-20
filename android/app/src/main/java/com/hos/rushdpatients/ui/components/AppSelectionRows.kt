@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
@@ -21,7 +22,7 @@ fun AppChoiceRow(label: String, selected: Boolean, onClick: () -> Unit,
         .padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         RadioButton(selected = selected, onClick = null, enabled = active)
-        Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (active) 1f else .38f))
+        Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))
     }
 }
 
@@ -34,7 +35,7 @@ fun AppCheckRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> U
         .padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         Checkbox(checked = checked, onCheckedChange = null, enabled = active)
-        Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (active) 1f else .38f))
+        Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))
     }
 }
 
@@ -49,9 +50,9 @@ fun AppToggleRow(title: String, checked: Boolean, onCheckedChange: ((Boolean) ->
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (active) 1f else .38f))
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))
             subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (active) 1f else .38f)) }
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = UiOpacity.content(active))) }
         }
         Switch(checked = checked, onCheckedChange = null, enabled = active)
     }

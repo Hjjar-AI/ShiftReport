@@ -1,9 +1,12 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiAction
+import com.hos.rushdpatients.ui.components.AppActionLabel
+import com.hos.rushdpatients.ui.components.AppClinicalSection
+import com.hos.rushdpatients.ui.theme.UiElevation
 import com.hos.rushdpatients.ui.components.uiDateTime
 import com.hos.rushdpatients.ui.components.relativeFreshness
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
-import com.hos.rushdpatients.ui.components.AppSection
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppButton
@@ -21,7 +24,6 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -44,7 +46,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.window.layout.FoldingFeature
@@ -71,7 +72,7 @@ internal fun PatientDetailsScreen(
 ) {
     val haptics = LocalHapticFeedback.current
     var section by rememberSaveable(patient.id, key = "patient-detail-section") {
-        mutableStateOf(PatientDetailSection.OVERVIEW)
+        mutableStateOf(PatientDetailSection.CLINICAL)
     }
     val detailScroll = rememberSaveable(patient.id, key = "patient-detail-scroll", saver = ScrollState.Saver) { ScrollState(0) }
     val content: @Composable () -> Unit = {
@@ -81,18 +82,8 @@ internal fun PatientDetailsScreen(
                 Column {
                     TopAppBar(
                         title = {
-                            Column {
-                                Text(
-                                    patient.name,
-                                    modifier = Modifier.semantics { heading() },
-                                    maxLines = 2
-                                )
-                                Text(
-                                    "رقم القبول الحالي ${com.hos.rushdpatients.ui.components.uiNumber(patient.admittanceNumber)} · ${relativeFreshness(patient.updatedAt)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            PatientIdentityHeading(patient, showFreshness = true,
+                                nameStyle = MaterialTheme.typography.titleLarge)
                         },
                         navigationIcon = {
                             IconButton(onClick = onDismiss) {
@@ -103,7 +94,7 @@ internal fun PatientDetailsScreen(
                     roundsNavigation?.let { navigation ->
                         PatientRoundsBar(navigation, enabled = navigationEnabled, onNavigate = onNavigateToPatient)
                     }
-                    Surface(tonalElevation = 2.dp) {
+                    Surface(tonalElevation = UiElevation.navigation) {
                         FlowRow(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -131,15 +122,14 @@ internal fun PatientDetailsScreen(
             },
             bottomBar = {
                 if (!readOnly) {
-                    Surface(tonalElevation = 3.dp) {
+                    Surface(tonalElevation = UiElevation.actionBar) {
                         AppButton(
                             onClick = onEdit,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(UiPadding.content)
                         ) {
-                            Icon(Icons.Filled.Edit, contentDescription = null)
-                            Text("تعديل بيانات المريض", Modifier.padding(start = UiSpacing.small))
+                            AppActionLabel(UiAction.EDIT)
                         }
                     }
                 }
@@ -154,14 +144,14 @@ internal fun PatientDetailsScreen(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 when (section) {
-                    PatientDetailSection.OVERVIEW,
                     PatientDetailSection.CLINICAL -> PatientCard(
                         patient = patient,
-                        expanded = section == PatientDetailSection.CLINICAL,
+                        expanded = true,
                         twoColumn = true,
                         doctorNames = doctorNames,
                         readOnly = true,
                         showViewControls = false,
+                        showIdentity = false,
                         onClick = {},
                         onDelete = {}
                     )
@@ -251,12 +241,13 @@ private fun meaningfulTimeline(patient: Patient, activity: List<AuditEntryEntity
 
 @Composable
 private fun DetailTextSection(title: String, content: String) {
-    AppSection(title) { Text(content, style = MaterialTheme.typography.bodyLarge) }
+    com.hos.rushdpatients.ui.components.AppCard {
+        AppClinicalSection(title, content, modifier = Modifier.padding(UiPadding.content), emptyText = "لا توجد بيانات مسجلة")
+    }
 }
 
 private enum class PatientDetailSection(val arabicLabel: String) {
-    OVERVIEW("نظرة عامة"),
-    CLINICAL("سريري"),
+    CLINICAL("الملف السريري"),
     TASKS("المهام"),
     WARNINGS("الشارة"),
     HISTORY("السجل")

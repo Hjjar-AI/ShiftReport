@@ -7,7 +7,16 @@ from desktop_tasks import read_tasks, ordered_for_display, task_text
 
 PAPERS = {'A4': (595, 842), 'Letter': (612, 792), 'A5': (420, 595), 'A3': (842, 1191)}
 DEFAULT_OPTIONS = dict(layout='table', paper='A4', orientation='portrait', color='teal', dark=False,
-                       separate=False, ward='')
+                       separate=False, ward='', rule_weight='medium', rule_contrast='medium', row_shading='auto')
+
+RULE_WEIGHTS = {'thin': .75, 'medium': 1.5, 'thick': 2.25}
+RULE_CONTRASTS = {'light': ('#CBD5E1', '#475569'), 'medium': ('#94A3B8', '#64748B'),
+                  'strong': ('#64748B', '#94A3B8')}
+PRESENTATION_PRESETS = {
+    'balanced': dict(rule_weight='medium', rule_contrast='medium', row_shading='auto'),
+    'clear': dict(rule_weight='thick', rule_contrast='strong', row_shading='zebra'),
+    'print': dict(rule_weight='medium', rule_contrast='strong', row_shading='none', dark=False),
+}
 
 
 def normalize_options(options=None):
@@ -17,6 +26,8 @@ def normalize_options(options=None):
             result['orientation'] in {'portrait','landscape'} and result['color'] in
             {'teal','blue','green','purple','pastel'}, 'خيارات PDF غير صالحة')
     require(type(result['dark']) is bool and type(result['separate']) is bool, 'خيارات PDF غير صالحة')
+    require(result['rule_weight'] in RULE_WEIGHTS and result['rule_contrast'] in RULE_CONTRASTS and
+            result['row_shading'] in {'auto','zebra','none'}, 'خيارات فواصل PDF غير صالحة')
     return result
 
 
@@ -27,6 +38,8 @@ def roster_label(doctors):
 
 def row_backgrounds(patients, colors):
     """Contiguous supervisor groups use group/cream stripes; other orders use zebra."""
+    if colors['shading']=='none':return [colors['page'] for _ in patients]
+    if colors['shading']=='zebra':return [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(patients))]
     seen=set();last=object();group=-1;position=0;grouped=True
     for patient in patients:
         key=patient.get('responsibleSupervisorId') or ''
@@ -45,18 +58,21 @@ def row_backgrounds(patients, colors):
 
 def palette(options):
     # Same colors and group sequence as Android PdfPalette.resolve.
+    options=normalize_options(options)
+    rules=dict(rule=RULE_CONTRASTS[options['rule_contrast']][int(options['dark'])],
+               rule_width=RULE_WEIGHTS[options['rule_weight']],shading=options['row_shading'])
     title, header = {'teal':('#0D5663','#146474'), 'blue':('#123F70','#174A7E'),
                      'green':('#214D39','#285943'), 'purple':('#493269','#563D7C'),
                      'pastel':('#8F2450','#4E568F')}[options['color']]
     if options['dark']:
-        return dict(title=title, header=header, summary='#343B42', page='#202428', text='#F7F9FA',
-                    border='#B8C0C8', zebra='#2B3137', cream='#272C31',
-                    groups=['#304850','#344A40','#4A4632','#4D3936','#3D3E52'])
+        return dict(title=title, header=header, summary='#272C31', page='#202428', text='#F7F9FA',
+                    border='#475569', zebra='#2B3137', cream='#272C31',
+                    groups=['#304850','#344A40','#4A4632','#4D3936','#3D3E52'], **rules)
     groups = ['#CFE8F0','#D8EEE2','#F0F0D2','#FAE3DC','#E0E2F4']
     if options['color'] == 'pastel':
         groups = ['#FFADAD','#FFD6A5','#FDFFB6','#CAFFBF','#9BF6FF','#A0C4FF','#BDB2FF','#FFC6FF','#FFFFFC']
-    return dict(title=title, header=header, summary='#FFFDFC' if options['color']=='pastel' else '#E0F2FE',
-                page='#FFFFFF', text='#000000', border='#000000', zebra='#F2F2F2', cream='#FFFDF5', groups=groups)
+    return dict(title=title, header=header, summary='#F8FAFC',
+                page='#FFFFFF', text='#1E293B', border='#E2E8F0', zebra='#F8FAFC', cream='#FFFFFF', groups=groups, **rules)
 
 
 def context_lines(client, shift, options, now, include_shift_date=True):

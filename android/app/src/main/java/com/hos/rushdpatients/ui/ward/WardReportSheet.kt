@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiAction
+import com.hos.rushdpatients.ui.theme.UiDialog
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
@@ -8,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,7 +23,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.window.layout.FoldingFeature
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,7 +38,7 @@ internal fun WardReportSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
             listFraction = .42f, onListFractionChange = {},
-            modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp), primary = {
+            modifier = Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight), primary = {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -59,9 +60,9 @@ internal fun WardReportSheet(
                     onClick = onReviewReport,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Filled.Send, contentDescription = null)
+                    Icon(UiAction.REVIEW.icon, contentDescription = null)
                     Text(
-                        "مراجعة التقرير",
+                        UiAction.REVIEW.label + " التقرير",
                         modifier = Modifier.padding(start = UiSpacing.small)
                     )
                 }

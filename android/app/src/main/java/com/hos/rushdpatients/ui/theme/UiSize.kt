@@ -10,5 +10,6 @@ object UiSize {
     val iconSmall = 16.dp
     val iconMedium = 20.dp
     val icon = 24.dp
+    val loadingIndicator = 40.dp
     val progressStroke = 2.dp
 }

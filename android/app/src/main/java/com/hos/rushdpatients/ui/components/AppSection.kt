@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -28,6 +30,7 @@ import androidx.compose.ui.semantics.stateDescription
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppSectionHeader(
     title: String,
@@ -36,7 +39,8 @@ fun AppSectionHeader(
     complete: Boolean? = null,
     expanded: Boolean? = null,
     onToggle: (() -> Unit)? = null,
-    titleColor: Color = MaterialTheme.colorScheme.primary
+    titleColor: Color = MaterialTheme.colorScheme.primary,
+    summary: String? = null
 ) {
     val interaction = if (onToggle != null) Modifier.heightIn(min = UiSpacing.touchTarget)
         .clickable(role = Role.Button, onClick = onToggle) else Modifier
@@ -50,8 +54,18 @@ fun AppSectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
     ) {
-        Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
-            color = titleColor)
+        if (summary == null) {
+            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
+                color = titleColor)
+        } else {
+            FlowRow(modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, color = titleColor)
+                Text(summary, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         count?.let { Text(uiNumber(it), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (complete == true) Icon(Icons.Filled.Check, contentDescription = null,

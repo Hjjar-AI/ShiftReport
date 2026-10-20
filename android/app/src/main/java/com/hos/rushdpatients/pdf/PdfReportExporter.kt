@@ -3,7 +3,8 @@ package com.hos.rushdpatients.pdf
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Typeface
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import android.graphics.pdf.PdfDocument
 import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
@@ -23,7 +24,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PdfReportExporter @Inject constructor() {
+class PdfReportExporter @Inject constructor(@ApplicationContext context: Context) {
+
+    private val fonts by lazy { PdfFonts(context) }
 
     private val exportMutex = Mutex()
     private var documentLabel: String? = null
@@ -58,42 +61,37 @@ class PdfReportExporter @Inject constructor() {
     private val dateFmt: DateTimeFormatter =
         DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale("ar"))
 
-    private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val titlePaint by lazy { Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textSize = 14f
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        typeface = fonts.bold
         textAlign = Paint.Align.CENTER
-    }
-    private val summaryPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    } }
+    private val summaryPaint by lazy { Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.BLACK
         textSize = 10f
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        typeface = fonts.bold
         textAlign = Paint.Align.CENTER
-    }
-    private val headerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    } }
+    private val headerPaint by lazy { Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textSize = 9.5f
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        typeface = fonts.bold
         textAlign = Paint.Align.CENTER
-    }
-    private val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    } }
+    private val bodyPaint by lazy { Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.BLACK
         textSize = 9f
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        typeface = fonts.regular
         textAlign = Paint.Align.CENTER
-    }
-    private val bodyCenterPaint = Paint(bodyPaint).apply {
+    } }
+    private val bodyCenterPaint by lazy { Paint(bodyPaint).apply {
         textAlign = Paint.Align.CENTER
-    }
+    } }
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.BLACK
         style = Paint.Style.STROKE
-        strokeWidth = 0.5f
-    }
-    private val mediumBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
-        style = Paint.Style.STROKE
-        strokeWidth = 1.0f
+        strokeWidth = PdfRuleWeight.MEDIUM.points
     }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -112,7 +110,7 @@ class PdfReportExporter @Inject constructor() {
     ): File = exportMutex.withLock {
         withContext(Dispatchers.IO) {
             if (elegant) {
-                return@withContext PdfPatientCardsRenderer().export(
+                return@withContext PdfPatientCardsRenderer(fonts).export(
                     patients, doctors, summary, residentNames, supervisorNames,
                     options, outputFile, documentLabel
                 )
@@ -165,7 +163,8 @@ class PdfReportExporter @Inject constructor() {
                 y += headerHeight
 
                 val timestampPaint = Paint(summaryPaint).apply { textSize = 8.5f; textAlign = Paint.Align.RIGHT }
-                val timestampSpace = 10f + PdfTextWrapper.lineHeight(timestampPaint)
+                val timestampGap = 30f
+                val timestampSpace = timestampGap + PdfTextWrapper.lineHeight(timestampPaint)
                 val bottomLimit = pageHeight - marginBottom - summaryBandHeight - 2f - timestampSpace
 
                 val stripes = PdfTableStriping.colors(patients, palette)
@@ -217,7 +216,7 @@ class PdfReportExporter @Inject constructor() {
                     y = marginTop
                 }
                 drawSummaryBand(canvas, y, summary)
-                y += summaryBandHeight + 10f
+                y += summaryBandHeight + timestampGap
                 canvas.drawText(bidiFormatter.unicodeWrap(PdfReportContext.createdAt(options)), contentRight,
                     y - timestampPaint.fontMetrics.top, timestampPaint)
 
@@ -264,8 +263,8 @@ class PdfReportExporter @Inject constructor() {
         summaryPaint.color = palette.text
         bodyPaint.color = palette.text
         bodyCenterPaint.color = palette.text
-        borderPaint.color = palette.border
-        mediumBorderPaint.color = palette.border
+        borderPaint.color = palette.ruleColor
+        borderPaint.strokeWidth = palette.ruleWidth
     }
 
     private fun drawPageBackground(canvas: Canvas) {
@@ -288,7 +287,7 @@ class PdfReportExporter @Inject constructor() {
                 paint = paint, maxWidth = contentWidth - 2 * cellPadding
             )
         }
-        canvas.drawRect(contentLeft, y, contentRight, y + height, mediumBorderPaint)
+        canvas.drawLine(contentLeft, y + height, contentRight, y + height, borderPaint)
         return height
     }
 
@@ -338,9 +337,7 @@ class PdfReportExporter @Inject constructor() {
             c3End - c3 - 2 * cellPadding
         )
 
-        canvas.drawRect(contentLeft, y, contentRight, y + summaryBandHeight, mediumBorderPaint)
-        canvas.drawLine(c1End, y, c1End, y + summaryBandHeight, borderPaint)
-        canvas.drawLine(c2End, y, c2End, y + summaryBandHeight, borderPaint)
+        canvas.drawLine(contentLeft, y + summaryBandHeight, contentRight, y + summaryBandHeight, borderPaint)
     }
 
     private fun drawHeaderRow(canvas: Canvas, y: Float): Float {
@@ -379,9 +376,8 @@ class PdfReportExporter @Inject constructor() {
                 )
                 baseline += lineHeight
             }
-            canvas.drawRect(xStart, y, xEnd, y + height, borderPaint)
         }
-        canvas.drawRect(contentLeft, y, contentRight, y + height, mediumBorderPaint)
+        canvas.drawLine(contentLeft, y + height, contentRight, y + height, borderPaint)
         return height
     }
 
@@ -444,9 +440,8 @@ class PdfReportExporter @Inject constructor() {
                 else canvas.drawText(autoDirection(line), xAnchor, baseline, paint)
                 baseline += lineHeight
             }
-            canvas.drawRect(xStart, y, xEnd, y + height, borderPaint)
         }
-        canvas.drawRect(contentLeft, y, contentRight, y + height, mediumBorderPaint)
+        canvas.drawLine(contentLeft, y + height, contentRight, y + height, borderPaint)
     }
 
     private fun autoDirection(text: String): String = bidiFormatter.unicodeWrap(

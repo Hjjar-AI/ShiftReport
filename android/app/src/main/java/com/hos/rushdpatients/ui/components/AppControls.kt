@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
+import com.hos.rushdpatients.ui.theme.UiElevation
+import com.hos.rushdpatients.ui.theme.UiBorder
 import androidx.compose.ui.graphics.Color
 import com.hos.rushdpatients.ui.theme.UiPadding
 import androidx.compose.foundation.BorderStroke
@@ -19,7 +22,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @Composable
@@ -50,6 +52,7 @@ fun AppOutlinedButton(
     OutlinedButton(
         onClick = onClick, modifier = modifier.heightIn(min = UiSpacing.touchTarget),
         enabled = enabled && LocalFieldEnabled.current, shape = MaterialTheme.shapes.small,
+        colors = ButtonDefaults.outlinedButtonColors(disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContent)),
         contentPadding = UiPadding.content,
         content = content
     )
@@ -60,7 +63,8 @@ fun AppTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = LocalFieldEnabled.current,
-    colors: ButtonColors = ButtonDefaults.textButtonColors(),
+    colors: ButtonColors = ButtonDefaults.textButtonColors(
+        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContent)),
     contentPadding: PaddingValues = UiPadding.content,
     content: @Composable RowScope.() -> Unit
 ) {
@@ -76,8 +80,8 @@ fun AppTextButton(
 fun AppCard(
     modifier: Modifier = Modifier,
     colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = UiElevation.flat),
+    border: BorderStroke? = UiBorder.stroke(),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -91,4 +95,4 @@ data class AppActionColors(val container: Color, val content: Color, val disable
 
 @Composable
 fun appActionColors() = AppActionColors(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary,
-    MaterialTheme.colorScheme.onSurface.copy(alpha = .12f), MaterialTheme.colorScheme.onSurface.copy(alpha = .38f))
+    MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContainer), MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContent))

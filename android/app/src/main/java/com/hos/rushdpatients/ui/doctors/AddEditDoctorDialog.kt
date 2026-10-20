@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.UiAction
+import com.hos.rushdpatients.ui.components.AppDialogDismissAction
+import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
+import com.hos.rushdpatients.ui.components.AppDialogHeader
 import androidx.compose.runtime.CompositionLocalProvider
 import com.hos.rushdpatients.ui.components.LocalFieldEnabled
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -74,7 +78,7 @@ fun AddEditDoctorDialog(
     CompositionLocalProvider(LocalFieldEnabled provides !saving) {
         AlertDialog(
             onDismissRequest = { if (!saving) onDismiss() },
-            title = { Text(if (existing == null) "إضافة طبيب" else "تعديل بيانات الطبيب") },
+            title = { AppDialogHeader(if (existing == null) "إضافة طبيب" else "تحرير الطبيب") },
             text = {
                 Column(
                     modifier = Modifier
@@ -168,13 +172,13 @@ fun AddEditDoctorDialog(
                 }
             },
             confirmButton = {
-                AppButton(
+                AppDialogConfirmAction(text = UiAction.SAVE.label, loading = saving,
                     enabled = !saving,
                     onClick = {
                         val telegramId = ArabicNumbers.parseLongOrNull(telegramIdText)
                         if (telegramIdText.isNotBlank() && (telegramId == null || telegramId <= 0)) {
                             telegramIdError = true
-                            return@AppButton
+                            return@AppDialogConfirmAction
                         }
                         val input = DoctorEditInput(
                             firstName, lastName, gender, clinicalRole,
@@ -190,10 +194,10 @@ fun AddEditDoctorDialog(
                         }
                     },
                     modifier = Modifier.padding(horizontal = UiSpacing.tiny)
-                ) { Text(if (saving) "جار الحفظ…" else "حفظ") }
+                )
             },
             dismissButton = {
-                AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
+                AppDialogDismissAction(onClick = onDismiss, enabled = !saving)
             }
         )
 

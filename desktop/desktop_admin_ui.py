@@ -2,7 +2,7 @@
 from __future__ import annotations
 import desktop_widgets as ctk
 from desktop_doctors import Administration, rank, permanent
-from desktop_forms import button, combo, entry, guarded, modal
+from desktop_forms import button, combo, entry, guarded, modal, dialog_actions
 from desktop_model import GENDER, doctor_label
 
 
@@ -33,8 +33,7 @@ def doctor_form(owner, doctor=None, registry=None):
         from desktop_doctors import profile
         profile(values, doctor or None)
         result.append(values); window.destroy()
-    button(actions, 'مراجعة التغيير', guarded(submit))
-    button(actions, 'إلغاء', window.destroy)
+    dialog_actions(actions,primary=('مراجعة التغيير',guarded(submit)),cancel=('إلغاء',window.destroy))
     owner.root.wait_window(window)
     return result[0] if result else None
 
@@ -97,6 +96,6 @@ def team_form(owner,doctors):
     def submit():
         changes={key:get() for key,get in fields.items() if get()!=(doctors[key].get('teamSupervisorId') or '')}
         result.append(changes);window.destroy()
-    button(actions,'مراجعة تغييرات الفرق',guarded(submit));button(actions,'إلغاء',window.destroy)
+    dialog_actions(actions,primary=('مراجعة تغييرات الفرق',guarded(submit)),cancel=('إلغاء',window.destroy))
     owner.root.wait_window(window)
     return result[0] if result else None

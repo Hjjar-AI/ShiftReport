@@ -44,9 +44,16 @@ internal const val introOriginalAuthorName = "الطبيب الاختصاصي ن
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IntroAboutScreen(splash: Boolean, onBack: (() -> Unit)? = null, remainingSeconds: Int = 10) {
+fun IntroAboutScreen(
+    splash: Boolean,
+    onBack: (() -> Unit)? = null,
+    remainingSeconds: Int = 5,
+    splashHeld: Boolean = false,
+    onSplashHeldChange: (Boolean) -> Unit = {}
+) {
     if (splash) {
-        SplashIntroScreen(onSkip = { onBack?.invoke() }, remainingSeconds = remainingSeconds)
+        SplashIntroScreen(onSkip = { onBack?.invoke() }, remainingSeconds = remainingSeconds,
+            held = splashHeld, onHeldChange = onSplashHeldChange)
         return
     }
     Scaffold(topBar = {

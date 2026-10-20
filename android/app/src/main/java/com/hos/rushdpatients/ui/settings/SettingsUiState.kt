@@ -3,6 +3,9 @@ package com.hos.rushdpatients.ui.settings
 import android.net.Uri
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.pdf.PdfColorPreset
+import com.hos.rushdpatients.pdf.PdfRuleWeight
+import com.hos.rushdpatients.pdf.PdfRuleContrast
+import com.hos.rushdpatients.pdf.PdfRowShading
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
@@ -24,6 +27,9 @@ data class SettingsUiState(
     val pdfOrientation: PdfOrientation = PdfOrientation.PORTRAIT,
     val pdfPaperSize: PdfPaperSize = PdfPaperSize.A4,
     val pdfColorPreset: PdfColorPreset = PdfColorPreset.TEAL,
+    val pdfRuleWeight: PdfRuleWeight = PdfRuleWeight.MEDIUM,
+    val pdfRuleContrast: PdfRuleContrast = PdfRuleContrast.MEDIUM,
+    val pdfRowShading: PdfRowShading = PdfRowShading.AUTO,
     val pdfDarkMode: Boolean = false,
     val pdfSeparateBySupervisor: Boolean = false,
     val appearance: AppAppearance = AppAppearance.SYSTEM,
@@ -42,6 +48,7 @@ data class SettingsUiState(
     val lastCsvSync: String? = null,
     val lastDoctorsSync: String? = null,
     val syncing: Boolean = false,
+    val canUndoDownload: Boolean = false,
     val publicationReviewText: String? = null,
     val exportingCsv: Boolean = false,
     val backupBusy: Boolean = false,

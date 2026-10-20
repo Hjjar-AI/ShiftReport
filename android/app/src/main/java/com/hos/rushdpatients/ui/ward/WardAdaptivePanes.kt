@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiBorder
+import com.hos.rushdpatients.ui.theme.UiLayout
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.theme.UiSize
 import android.app.Activity
@@ -119,28 +121,28 @@ internal fun WardAdaptivePanes(
                 val start = (bounds.left - offset.x) / density
                 val end = (bounds.right - offset.x) / density
                 if (end >= 0f && start <= width) listOf(
-                    PaneRegion(0f, 0f, (start - 8f).coerceIn(0f, width), height),
-                    PaneRegion((end + 8f).coerceIn(0f, width), 0f, (width - end - 8f).coerceIn(0f, width), height)
+                    PaneRegion(0f, 0f, (start - UiLayout.foldClearance.value).coerceIn(0f, width), height),
+                    PaneRegion((end + UiLayout.foldClearance.value).coerceIn(0f, width), 0f, (width - end - UiLayout.foldClearance.value).coerceIn(0f, width), height)
                 ) else emptyList()
             } else {
                 val start = (bounds.top - offset.y) / density
                 val end = (bounds.bottom - offset.y) / density
                 if (end >= 0f && start <= height) listOf(
-                    PaneRegion(0f, 0f, width, (start - 8f).coerceIn(0f, height)),
-                    PaneRegion(0f, (end + 8f).coerceIn(0f, height), width, (height - end - 8f).coerceIn(0f, height))
+                    PaneRegion(0f, 0f, width, (start - UiLayout.foldClearance.value).coerceIn(0f, height)),
+                    PaneRegion(0f, (end + UiLayout.foldClearance.value).coerceIn(0f, height), width, (height - end - UiLayout.foldClearance.value).coerceIn(0f, height))
                 ) else emptyList()
             }
         } else emptyList()
         val foldSplit = regions.size == 2 && enableSplit && regions.all {
-            it.width >= 360f && it.height >= 360f
+            it.width >= UiLayout.foldPaneMinWidth.value && it.height >= UiLayout.paneMinHeight.value
         }
-        val regularSplit = enableSplit && regions.isEmpty() && width >= 760f && height >= 360f
+        val regularSplit = enableSplit && regions.isEmpty() && width >= UiLayout.splitMinWidth.value && height >= UiLayout.paneMinHeight.value
         val mediumSupport = enableSplit && allowMediumSupport && regions.isEmpty() &&
-            !regularSplit && width >= 520f && height >= 640f
+            !regularSplit && width >= UiLayout.mediumSupportMinWidth.value && height >= UiLayout.mediumSupportMinHeight.value
         val split = foldSplit || regularSplit || mediumSupport
-        val total = (width - 48f).coerceAtLeast(1f)
-        val minimum = (320f / total).coerceIn(0f, 1f)
-        val maximum = (1f - 360f / total).coerceIn(minimum, 1f)
+        val total = (width - UiSpacing.touchTarget.value).coerceAtLeast(1f)
+        val minimum = (UiLayout.primaryPaneMinWidth.value / total).coerceIn(0f, 1f)
+        val maximum = (1f - UiLayout.supportingPaneMinWidth.value / total).coerceIn(minimum, 1f)
         val fraction = listFraction.coerceIn(minimum, maximum)
         LaunchedEffect(width, height, regularSplit) {
             if (regularSplit && fraction != listFraction) onListFractionChange(fraction)
@@ -149,14 +151,14 @@ internal fun WardAdaptivePanes(
         val primaryRegion = when {
             foldSplit -> if (fold?.orientation == FoldingFeature.Orientation.VERTICAL && rtl) regions[1] else regions[0]
             regularSplit -> PaneRegion(if (rtl) width - listWidth else 0f, 0f, listWidth, height)
-            mediumSupport -> PaneRegion(0f, 0f, width, height - 240f)
+            mediumSupport -> PaneRegion(0f, 0f, width, height - UiLayout.mediumSupportHeight.value)
             regions.isNotEmpty() -> regions.maxBy { it.width * it.height }
             else -> full
         }
         val supportingRegion = when {
             foldSplit -> regions.first { it != primaryRegion }
-            regularSplit -> PaneRegion(if (rtl) 0f else listWidth + 48f, 0f, total - listWidth, height)
-            mediumSupport -> PaneRegion(0f, height - 240f, width, 240f)
+            regularSplit -> PaneRegion(if (rtl) 0f else listWidth + UiSpacing.touchTarget.value, 0f, total - listWidth, height)
+            mediumSupport -> PaneRegion(0f, height - UiLayout.mediumSupportHeight.value, width, UiLayout.mediumSupportHeight.value)
             else -> full
         }
         PaneRegionBox(primaryRegion, primaryTitle, 0f) { primary(split) }
@@ -169,8 +171,7 @@ internal fun WardAdaptivePanes(
                 Box(
                     Modifier.absoluteOffset(x = dividerX.dp).width(UiSpacing.touchTarget).height(height.dp)
                         .background(if (dividerFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                        .border(if (dividerFocused) 2.dp else 1.dp,
-                            if (dividerFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                        .border(UiBorder.stroke(focused = dividerFocused))
                         .semantics {
                             contentDescription = "تغيير عرض قائمة المرضى"
                             stateDescription = "عرض القائمة ${(fraction * 100).toInt()} بالمئة"

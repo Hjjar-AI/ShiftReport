@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.connection
 
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.components.AppBusyIndicator
 import com.hos.rushdpatients.ui.components.PasswordField
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
@@ -134,7 +136,7 @@ fun ProjectConnectionAction(
                             }
                         }
                     }
-                    if (state.busy) CircularProgressIndicator()
+                    if (state.busy) AppBusyIndicator(size = UiSize.loadingIndicator, color = MaterialTheme.colorScheme.primary)
                     (state.message ?: pickerError)?.let {
                         AppNotice(it, kind = if (state.applied) NoticeKind.SUCCESS else NoticeKind.ERROR)
                     }

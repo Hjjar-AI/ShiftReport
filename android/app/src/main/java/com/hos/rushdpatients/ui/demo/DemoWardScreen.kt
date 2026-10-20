@@ -1,6 +1,9 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.ui.components.appDialogBody
+import com.hos.rushdpatients.ui.theme.UiPatientCard
 import com.hos.rushdpatients.ui.components.AppCompactTopBar
+import com.hos.rushdpatients.ui.ward.wardPatientFilterSummary
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppTabBar
 import com.hos.rushdpatients.ui.components.AppTabItem
@@ -36,13 +39,16 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.report.ReportReadiness
 import com.hos.rushdpatients.domain.task.PatientTasks
 import com.hos.rushdpatients.pdf.PdfColorPreset
+import com.hos.rushdpatients.pdf.PdfRuleWeight
+import com.hos.rushdpatients.pdf.PdfRuleContrast
+import com.hos.rushdpatients.pdf.PdfRowShading
+import com.hos.rushdpatients.ui.components.AppPdfAppearanceControls
 import com.hos.rushdpatients.pdf.PdfExportOptions
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.ui.components.ConfirmDialog
@@ -99,8 +105,12 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     var pdfStyle by rememberSaveable { mutableStateOf(PdfStyle.CLASSIC) }
     var landscape by rememberSaveable { mutableStateOf(false) }
     var pdfColor by rememberSaveable { mutableStateOf(PdfColorPreset.TEAL) }
+    var pdfWeight by rememberSaveable { mutableStateOf(PdfRuleWeight.MEDIUM) }
+    var pdfContrast by rememberSaveable { mutableStateOf(PdfRuleContrast.MEDIUM) }
+    var pdfShading by rememberSaveable { mutableStateOf(PdfRowShading.AUTO) }
+    var advancedPdf by rememberSaveable { mutableStateOf(false) }
     val options = PdfExportOptions(orientation = if (landscape) PdfOrientation.LANDSCAPE else PdfOrientation.PORTRAIT,
-        colorPreset = pdfColor)
+        colorPreset = pdfColor, ruleWeight = pdfWeight, ruleContrast = pdfContrast, rowShading = pdfShading)
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
         viewModel.exportPdf(uri, options, pdfStyle == PdfStyle.CARDS)
     }
@@ -180,7 +190,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 top = padding.calculateTopPadding(),
                 end = padding.calculateEndPadding(layoutDirection)
             )).padding(horizontal = UiSpacing.medium), state = patientListState,
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                verticalArrangement = Arrangement.spacedBy(UiPatientCard.listGap),
                 contentPadding = PaddingValues(top = UiSpacing.small, bottom = padding.calculateBottomPadding() + UiSpacing.small)) {
                 item {
                     AppNotice("بيانات وهمية للتجربة. التعديلات مؤقتة؛ لا حفظ في قاعدة المرضى ولا رفع. تصدير PDF محلي متاح.")
@@ -188,20 +198,26 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 when (tab) {
                     DemoTab.PATIENTS -> {
                         item {
-                            AppSearchField(query, { query = it }, label = "بحث بالاسم أو رقم القبول أو المحتوى الطبي")
+                            AppSearchField(query, { query = it }, label = "بحث عن مريض")
+                            Text(wardPatientFilterSummary(visible.size, state.patients.size, buildList {
+                                if (filter != DemoFilter.ALL) add(filter.label)
+                                if (query.isNotBlank()) add("بحث: $query")
+                            }), style = MaterialTheme.typography.bodyMedium)
+                            if (query.isNotBlank() || filter != DemoFilter.ALL) AppTextButton(
+                                onClick = { query = ""; filter = DemoFilter.ALL }) { Text("مسح التصفية") }
                             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                 DemoFilter.entries.forEach { value -> FilterChip(selected = filter == value,
                                     onClick = { filter = value }, label = { Text(value.label) }) }
                             }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                AppTextButton(onClick = { compact = !compact }) { Text(if (compact) "بطاقات مريحة" else "بطاقات مدمجة") }
+                                AppTextButton(onClick = { compact = !compact }) { Text(if (compact) "عرض مريح" else "عرض مضغوط") }
                                 FilterChip(selected = state.saveAndNext,
                                     onClick = { viewModel.setSaveAndNext(!state.saveAndNext) },
                                     label = { Text("حفظ والتالي") })
                                 AppTextButton(onClick = { showRecycle = true }) { Text("المحذوفات (${uiNumber(state.deleted.size)})") }
                             }
                         }
-                        if (visible.isEmpty()) item { EmptyState("لا توجد نتائج مطابقة", actionLabel = "مسح البحث والتصفية", onAction = { query = ""; filter = DemoFilter.ALL }) }
+                        if (visible.isEmpty()) item { EmptyState("لا توجد نتائج مطابقة") }
                         items(visible, key = { it.id }) { patient ->
                             PatientCard(patient = patient, expanded = if (expanded) patient.id !in expandedIds else patient.id in expandedIds,
                                 twoColumn = false, doctorNames = state.names, compact = compact,
@@ -265,6 +281,16 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                                 PdfColorPreset.entries.forEach { value -> FilterChip(selected = pdfColor == value,
                                     onClick = { pdfColor = value }, label = { Text(value.arabicLabel) }) }
                             }
+                            AppTextButton(onClick = { advancedPdf = !advancedPdf }) {
+                                Text(if (advancedPdf) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة")
+                            }
+                            if (advancedPdf) AppPdfAppearanceControls(
+                                weight = pdfWeight, contrast = pdfContrast, shading = pdfShading, dark = false,
+                                onWeight = { pdfWeight = it }, onContrast = { pdfContrast = it },
+                                onShading = { pdfShading = it }, onPreset = {
+                                    pdfWeight = it.weight; pdfContrast = it.contrast; pdfShading = it.shading
+                                }, enabled = !state.exporting, showShading = pdfStyle != PdfStyle.CARDS
+                            )
                             AppButton(onClick = {
                                 try { export.launch("ShiftReport_DEMO_${state.date}.pdf") }
                                 catch (e: Exception) { viewModel.message("تعذر فتح مكان الحفظ") }
@@ -323,18 +349,20 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
         }
         copy?.let { patient -> CopyPatientDialog(patient, state.doctors,
             onConfirm = { if (viewModel.save(it)) copy = null }, onDismiss = { copy = null }) }
-        deleting?.let { patient -> ConfirmDialog("حذف تجريبي", "نقل ${patient.name} إلى المحذوفات؟",
+        deleting?.let { patient -> ConfirmDialog("نقل إلى السلة", "سيُنقل ${patient.name} إلى سلة المحذوفات التجريبية.",
+            confirmText = "نقل إلى السلة", destructive = true,
             onConfirm = { viewModel.delete(patient); deleting = null }, onDismiss = { deleting = null }) }
         if (showSort) SortSheet(initial = state.sort, initialRevision = 0,
             onApply = { spec, _, _ -> viewModel.sort(spec); showSort = false }, onDismiss = { showSort = false })
         if (showDoctors) ShiftDoctorPicker(allDoctors = state.doctors, initialSelected = state.shiftDoctorIds, initialRevision = 0,
             onConfirm = { ids, _, _ -> viewModel.selectDoctors(ids); showDoctors = false }, onDismiss = { showDoctors = false })
-        if (showReset) ConfirmDialog("إعادة ضبط التجربة", "إلغاء التعديلات المؤقتة واستعادة الأمثلة؟",
+        if (showReset) ConfirmDialog("إعادة ضبط التجربة", "ستُلغى التعديلات المؤقتة وتُستعاد الأمثلة التجريبية.",
+            confirmText = "إعادة الضبط", destructive = true,
             onConfirm = { viewModel.reset(); expandedIds = emptyList(); pinnedIds = emptyList(); detailId = null; showReset = false },
             onDismiss = { showReset = false })
         if (showRecycle) AlertDialog(onDismissRequest = { showRecycle = false }, title = { Text("المحذوفات التجريبية") },
             text = {
-                Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) {
                     if (state.deleted.isEmpty()) Text("المحذوفات فارغة")
                     state.deleted.forEach { patient ->
                         AppTextButton(onClick = { viewModel.restore(patient) }) { Text("استعادة ${patient.name}") }

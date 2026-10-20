@@ -26,13 +26,51 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Clinical data and reports
 
+- Reorganized Android ward controls, patient-card hierarchy, display options,
+  report setup with basic scope/destination/format before Advanced PDF styling,
+  and rounds save-and-next discovery. Separated preferences, Data Management,
+  Project Management and collapsed Diagnostics into dedicated routes; unified
+  filters/grouping/card layout/saved sorting in View Options while retaining
+  revision review and admin gates. Added wrapping current-value headers, a real-card
+  dummy appearance preview (with the Material API opt-in required by the owner's
+  compile log), fixed patient/section orientation, explicit local-save
+  feedback and restored View Options/filter/group state; loading preserves card
+  expansion and publication status stays visible beside delivery warnings. Desktop now has a slimmer daily-action sidebar, separate settings/tools,
+  compact toolbar/cards, report scope selection inside report setup and reusable
+  patient widgets with filter/reset scroll preservation. Desktop now separates
+  preferences, project tools and collapsed diagnostics; unifies View Options with
+  inline guarded sorting and local card density; adds a dummy-card appearance
+  preview, fixed patient/section headings, brief local-save feedback and session
+  retention of dialog sizes, detail/list scroll and selected options. Consolidated data/recovery
+  tools, standardized common desktop dialog footers, distinguished clinical card
+  expansion from the full patient record, and added persistent actionable uncertainty
+  notices with brief routine-success feedback. Android polish adds slightly roomier
+  neutral cards, shorter form/action labels, one filter summary/reset and explicit
+  routine confirmation actions. Shared semantic tokens now cover density, adaptive
+  dialog caps, borders/elevation, disabled opacity, motion and layout thresholds;
+  see [token details](current-state.md#android-semantic-ui-tokens). Unified dialog
+  headers/actions, patient identity, clinical sections, action vocabulary and stable
+  loading slots. Added a [design catalog](design-catalog.md) with typed spare style
+  profiles; a future local picker remains a proposal. Review and authorization paths remain; [implementation and verification limits](current-state.md#ward-interface-and-desktop-workflow-organization).
+
+- Modernized Android/desktop PDFs with bundled Tajawal Regular/Bold, centered bold
+  headers, darker configurable horizontal separators and neutral summary bands. Assignment
+  overviews use centered equal-width columns, tinted subheaders and filler rows
+  for level bottoms. A5 cards have 1.5 cm margins, a thin frame, two-column patient/
+  admission details, section dividers and dated page-count footers. Regenerated
+  dummy samples; desktop rendering/content/link checks and Android source-only
+  limits are recorded in [current state](current-state.md#modern-pdf-presentation).
+  PDF settings now offer thickness, contrast, row shading, separator previews and
+  Balanced/Clear/Print presets; see [preferences](current-state.md#pdf-appearance-preferences).
+
 - Compacted Classic PDF headers, changed card index returns to full-page fit, and
   corrected assignment tables to right-side Arabic numbering and RTL team flow,
   with thin vertical gutters separating supervisor tables.
   Removed hospital/ward names from every PDF and the shift date from assignment
   PDFs. Separated roster titles from small metadata, simplified index/assignment
-  headings and shortened repeated explanatory text. Creation timestamps appear
-  once below the final content, with spacing and reserved pagination room.
+  headings and shortened repeated explanatory text. Table/assignment creation
+  timestamps appear once below the final content with a 30-point gap (about 1 cm)
+  and matching reserved pagination room.
   Cards retain enforced A5
   portrait. Samples and verification limits are in
   [current state](current-state.md#compact-classic-header-page-fit-card-index-and-rtl-assignment-layout).
@@ -150,8 +188,13 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   drawer, admin-only Activity, adaptive/fold-safe panes and patient rounds.
 - Compact card headers, full expanded content, immediate bulk expansion, retained
   filters and saved-patient return/highlight.
-- Animated grouped splash credits with 120dp emblem, automatic version and
-  dismissible ten-second deadline; existing logo/About preserved.
+- Animated grouped splash credits with 120dp emblem and automatic version now
+  use a five-second countdown that continues while held: hold keeps the splash
+  open, release dismisses once expired, and a quick tap skips. The saved deadline
+  survives recreation. Existing logo/About preserved. Setup
+  defaults to Demo, with centered prominent Demo/Join/Create cards, focused forms,
+  optional help and a fixed primary action. Source/timer checks passed; device
+  behavior and Android compilation remain unverified.
 
 ## Team and workflow consolidation
 
@@ -222,6 +265,23 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Repository organization
 
+- The POSIX Gradle wrapper reuses the writable workstation cache under
+  `/opt/android-shared/.gradle` when the cache variable is unset or set to the
+  normal home cache; custom locations retain precedence. Gradle stays at 8.7;
+  shell syntax and cache-selection checks passed without running Gradle. Project
+  caches default to a per-account home directory, retaining explicit overrides so
+  both accounts can use the ordinary wrapper command. The launcher also routes
+  generated resource/Kotlin/APK output to an account-local build root, avoiding
+  shared `app/build` ownership failures. Explicit output-root overrides and IDE
+  defaults remain available; source/shell checks passed without a build. Documented
+  the encountered download/ownership failures and fixes in the
+  [shared-workstation build guide](android-shared-workstation-build-fixes.md). Assemble tasks now export
+  project/version/variant-named APK copies into the current user's Desktop/ShiftReport
+  folder, with XDG Desktop discovery in the POSIX launcher and an explicit export
+  override. Source/path probes passed; Gradle export execution remains unverified. The guide
+  includes a reusable preference checklist, project-name/path adaptation table,
+  cross-PC notes and a request template for future projects.
+
 - Grouped the complete Android project/settings/caches under `android/`, retained
   the PC client under `desktop/`, and moved private Excel artifacts to ignored
   `local/excel/`. Shared Git/docs/tooling stay at root.
@@ -241,3 +301,10 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 - Consolidated configuration guidance into `.env.example`; removed the extra raw
   template and Android README. Removed obsolete Excel tools/guides, duplicate
   protocol notes and completed-review docs; retained unresolved findings.
+
+## Packaging documentation
+
+- Added the [Windows EXE packaging guide](windows-exe-packaging.md), covering
+  isolated setup, folder output, bundled resources, single-file caveats,
+  distribution, updates and troubleshooting. Commands are documented but have
+  not been executed on Windows; no application artifact was produced.

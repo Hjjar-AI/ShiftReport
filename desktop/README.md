@@ -279,9 +279,18 @@ candidate against Telegram before replacing the live client. Drafts and receipts
 are retained; clinician verification must be repeated. Revocation is in BotFather.
 There is no manual token-entry endpoint.
 
-PDF generation uses ReportLab, Arabic shaping/bidi and an embedded TTF. The default
-is Windows `Fonts\arial.ttf` or a common Linux DejaVu Sans/Noto Naskh Arabic
-path; `PDF_FONT` can select another Arabic-capable TrueType font. Reports paginate full clinical content/tasks/badges and omit patient last-edit,
+«إعدادات PDF» under project/settings saves the default layout, paper, orientation,
+color, appearance and local per-supervisor-file choice. Advanced options include
+separator thickness/contrast and automatic, neutral zebra or no row shading, with
+Balanced/Clear/Print presets and a separator preview. Print selects light appearance
+without row shading. Report-review dialogs share these controls; Cancel saves
+nothing. Card paper/margins stay fixed, with shading controls hidden. These
+preferences are local to the encrypted project workspace (in-memory in demo).
+
+PDF generation uses ReportLab, Arabic shaping/bidi and embedded Tajawal Regular/
+Bold from `fonts/`, with its SIL Open Font License alongside. `PDF_FONT` can select
+another Arabic-capable TrueType font; a matching `-Bold.ttf` sibling is used when
+available. Reports paginate full clinical content/tasks/badges and omit patient last-edit,
 routine-priority and unassigned labels. Preview files are temporary and removed on
 normal interpreter exit; a crash can leave a readable PDF in the system temp folder.
 
@@ -289,7 +298,7 @@ normal interpreter exit; a crash can leave a readable PDF in the system temp fol
 
 Use this folder as the source entry, with `desktop_gui.py` as the entry point.
 Preserve CustomTkinter data/fonts/themes, certifi CA data and tzdata, together with
-the chosen Arabic font if not using Windows Arial. Build for each intended machine
+the desktop `fonts/` directory and its license. Build for each intended machine
 architecture using Python 3.8.10; x64 executables cannot run on 32-bit Windows.
 No bundler dependency or packaging task is included. Keep secrets and clinical
 workspace files out of any bundle.

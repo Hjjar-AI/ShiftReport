@@ -4,8 +4,9 @@ import copy
 from desktop_model import shift_text
 from desktop_protocol import require
 
-DEFAULTS = dict(format='pdf', layout='table', paper='A4', orientation='portrait', color='teal',
-                dark=False, separate=False, ward='')
+from desktop_pdf_content import DEFAULT_OPTIONS
+
+DEFAULTS = dict(DEFAULT_OPTIONS, format='pdf')
 
 
 def readiness_warnings(patients):
@@ -25,15 +26,16 @@ def readiness_notes(patients):
     return ('ملاحظات اكتمال غير مانعة:\n' + '\n'.join(warnings)) if warnings else 'لا توجد ملاحظات اكتمال للحقول الأساسية.'
 
 
-def options_dialog(owner, export_only=False, assignments=False, force_pdf=False):
+def options_dialog(owner, export_only=False, assignments=False, force_pdf=False, settings_only=False):
     import desktop_widgets as ctk
-    from desktop_forms import button, combo, modal, guarded
+    from desktop_forms import button, combo, modal, guarded, dialog_actions
     from desktop_pdf_content import normalize_options
+    if settings_only:export_only=True
     previous = normalize_options(dict(DEFAULTS, **owner.io(owner.store.report_preferences)))
-    window = modal(owner, 'توزيع المرضى بالأسماء فقط' if assignments else 'خيارات التقرير', '740x680')
+    window = modal(owner, 'إعدادات PDF' if settings_only else 'توزيع المرضى بالأسماء فقط' if assignments else 'خيارات التقرير', '740x680')
     actions = ctk.CTkFrame(window); actions.pack(side='bottom', fill='x')
     area = ctk.CTkScrollableFrame(window); area.pack(fill='both', expand=True)
-    if not assignments:
+    if not assignments and not settings_only:
         from desktop_protocol import current_date
         from desktop_model import doctor_label
         source = owner.store.read()
@@ -57,15 +59,21 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False)
         button(area, 'اختيار أطباء المناوبة', guarded(choose_roster),
                state='normal' if source['meta']['shiftDate'] == current_date(owner.client.zone) else 'disabled')
         update_roster()
+    scope_get=None
+    if not assignments and not settings_only and not force_pdf:
+        scopes={None:'التقرير العام'}
+        scopes.update({key:doctor_label(owner.client.doctors,key) for key in owner.destinations[1:]})
+        scope_get=combo(area,'نطاق التقرير والوجهة',scopes,owner.selected_supervisor(),
+                        on_change=lambda:refresh_options())
     from desktop_layout import Disclosure
     formats = {'pdf':'PDF', 'text':'نص'}
-    format_get = (lambda:'pdf') if assignments or force_pdf or getattr(owner,'demo',False) else combo(
+    format_get = (lambda:'pdf') if assignments or force_pdf or settings_only or getattr(owner,'demo',False) else combo(
         area, 'صيغة التقرير', formats, previous['format'], on_change=lambda:refresh_options())
     pdf_area=ctk.CTkFrame(area)
     layout = (lambda:previous['layout']) if assignments else combo(pdf_area, 'نمط PDF',
         {'table':'جدول كلاسيكي', 'cards':'بطاقات ملونة مع فهرس', 'paragraphs':'فقرات'},
         previous['layout'], on_change=lambda:refresh_options())
-    advanced=Disclosure(pdf_area,'خيارات PDF المتقدمة')
+    advanced=Disclosure(pdf_area,'تخصيص التقرير · الورق والمظهر')
     advanced.pack(fill='x',padx=8,pady=4)
     page_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
     page_area.pack(fill='x')
@@ -73,13 +81,14 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False)
     orientation = (lambda:'portrait') if assignments else combo(page_area, 'الاتجاه', {'portrait':'عمودي', 'landscape':'أفقي'}, previous['orientation'])
     appearance_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
     appearance_area.pack(fill='x')
-    color = combo(appearance_area, 'اللون', {'teal':'فيروزي', 'blue':'أزرق', 'green':'أخضر', 'purple':'بنفسجي', 'pastel':'باستيل'}, previous['color'])
-    dark = combo(appearance_area, 'مظهر PDF', {False:'فاتح', True:'داكن'}, previous['dark'])
+    from desktop_pdf_settings import appearance_controls
+    appearance = appearance_controls(appearance_area, previous)
     separate = combo(appearance_area, 'ملف PDF لكل مشرف عند الحفظ المحلي', {False:'ملف واحد', True:'ملف لكل مشرف'}, previous['separate']) if export_only and not assignments else lambda:previous['separate']
     description=ctk.CTkLabel(area,text='',wraplength=620,justify='right',anchor='e')
     description.pack(fill='x',padx=10,pady=8)
     def refresh_options():
         if format_get()=='pdf':
+            appearance.set_layout('assignments' if assignments else layout())
             pdf_area.pack(fill='x',padx=4,pady=3,before=description)
             if not assignments and layout()=='cards':page_area.pack_forget()
             elif not page_area.winfo_manager():page_area.pack(fill='x',before=appearance_area)
@@ -94,21 +103,28 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False)
         else:
             pdf_area.pack_forget()
             text='تقرير نصي؛ يُرسل كملف مشفر عند تفعيل تشفير المشروع.'
-        description.configure(text=text+('' if export_only else '\nإرسال التقرير يتطلب معاينة وموافقة صريحة.'))
+        if scope_get is not None:
+            supervisor=scope_get()
+            destination=('حفظ محلي على هذا الجهاز' if export_only else
+                         'موضوع التقارير العام' if supervisor is None else
+                         'مجموعة المشرف: '+doctor_label(owner.client.doctors,supervisor))
+            text='النطاق: '+('جميع المرضى' if supervisor is None else doctor_label(owner.client.doctors,supervisor))+'\nالوجهة: '+destination+'\n'+text
+        description.configure(text=text+('\nتُحفظ الخيارات لهذا المشروع وتُستخدم افتراضياً في التقارير.' if settings_only else '' if export_only else '\nإرسال التقرير يتطلب معاينة وموافقة صريحة.'))
     refresh_options()
     result = []
     def submit():
-        if not assignments: update_roster()
-        options = dict(format=format_get(), layout=layout(), paper=paper(), orientation=orientation(), color=color(),
-                       dark=dark(), separate=separate(), ward=previous['ward'])
-        preferences = dict(previous, color=options['color'],dark=options['dark'],ward=options['ward']) if assignments else dict(options)
-        if force_pdf:preferences['format']=previous['format']
+        if not assignments and not settings_only: update_roster()
+        options = dict(format=format_get(), layout=layout(), paper=paper(), orientation=orientation(),
+                       separate=separate(), ward=previous['ward'], **appearance())
+        preferences = dict(previous, **appearance()) if assignments else dict(options)
+        if force_pdf or settings_only:preferences['format']=previous['format']
         owner.io(lambda:owner.store.save_report_preferences(preferences))
         if not window.winfo_exists():return
+        if scope_get is not None:owner.supervisor.set(scopes[scope_get()])
         result.append(options)
         window.destroy()
-    button(actions, 'متابعة إلى الحفظ' if export_only else 'متابعة إلى المعاينة', guarded(submit))
-    button(actions, 'إلغاء', window.destroy)
+    dialog_actions(actions,primary=('حفظ الإعدادات' if settings_only else 'متابعة إلى الحفظ' if export_only else 'متابعة إلى المعاينة',guarded(submit)),
+                   cancel=('إلغاء',window.destroy))
     owner.root.wait_window(window)
     return result[0] if result else None
 

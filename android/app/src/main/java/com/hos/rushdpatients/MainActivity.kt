@@ -40,27 +40,36 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             var showingSplash by rememberSaveable { mutableStateOf(true) }
-            val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 10_000L) }
+            val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 5_000L) }
+            // A physical press cannot survive Activity recreation; the deadline does.
+            var splashHeld by remember { mutableStateOf(false) }
             var splashSecondsRemaining by remember(splashDeadline) {
                 mutableIntStateOf(((splashDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
                     .let { (it + 999L) / 1_000L }).toInt())
             }
-            LaunchedEffect(showingSplash, splashDeadline) {
+            fun setSplashHeld(held: Boolean) {
+                splashHeld = held
+                if (!held && SystemClock.elapsedRealtime() >= splashDeadline) showingSplash = false
+            }
+            LaunchedEffect(showingSplash, splashDeadline, splashHeld) {
                 while (showingSplash) {
                     val remaining = (splashDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
                     splashSecondsRemaining = ((remaining + 999L) / 1_000L).toInt()
-                    if (remaining == 0L) {
+                    if (remaining == 0L && !splashHeld) {
                         showingSplash = false
                         break
                     }
-                    // Re-read the clock instead of accumulating tick delays; retain the saved deadline.
-                    delay(minOf(remaining, 250L))
+                    // Keep counting while held; wait without spinning once the deadline expires.
+                    delay(if (remaining == 0L) 250L else minOf(remaining, 250L))
                 }
             }
+
             if (showingSplash) {
                 RushdPatientsTheme(darkTheme = false) {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        IntroAboutScreen(splash = true, onBack = { showingSplash = false }, remainingSeconds = splashSecondsRemaining)
+                        IntroAboutScreen(splash = true, onBack = { showingSplash = false },
+                            remainingSeconds = splashSecondsRemaining, splashHeld = splashHeld,
+                            onSplashHeldChange = ::setSplashHeld)
                     }
                 }
                 return@setContent

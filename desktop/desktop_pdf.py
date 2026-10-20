@@ -11,22 +11,32 @@ from reportlab.lib.colors import HexColor, white
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Flowable, SimpleDocTemplate, Spacer, Table, TableStyle, PageBreak
+from reportlab.platypus import HRFlowable
 from desktop_protocol import ZoneInfo, require
 from desktop_platform import default_pdf_fonts
 from desktop_model import task_counts
 
 
+END_TIMESTAMP_GAP = 30  # Points between final report content and its creation date.
+
+
+_reshaper = arabic_reshaper.ArabicReshaper(configuration={'use_unshaped_instead_of_isolated': True})
+
+
 def visual(text):
-    return get_display(arabic_reshaper.reshape(str(text)), base_dir='R')
+    # Tajawal maps isolated letters through base Unicode rather than presentation forms.
+    return get_display(_reshaper.reshape(str(text)), base_dir='R')
 
 
 class RTLText(Flowable):
-    def __init__(self, text='', size=11, lines=None, link=None, anchor=None, color=None, align='right'):
+    def __init__(self, text='', size=11, lines=None, link=None, anchor=None, color=None, align='right', bold=False):
         Flowable.__init__(self)
         self.text, self.size, self.lines = str(text), size, lines
         self.leading = size * 1.65
         self.link, self.anchor, self.color = link, anchor, color
         self.align = align
+        self.bold = bold
+        self.font = 'ArabicBold' if bold else 'Arabic'
 
     def wrap(self, available_width, available_height):
         self.width = available_width
@@ -37,7 +47,7 @@ class RTLText(Flowable):
                 # Character wrapping also handles long identifiers/URLs without truncation.
                 for character in paragraph:
                     candidate = current + character
-                    if current and pdfmetrics.stringWidth(visual(candidate), 'Arabic', self.size) > available_width:
+                    if current and pdfmetrics.stringWidth(visual(candidate), self.font, self.size) > available_width:
                         # Prefer a word boundary; preserve all whitespace and remaining characters.
                         boundary = current.rfind(' ')
                         if boundary > len(current)//2:
@@ -55,8 +65,8 @@ class RTLText(Flowable):
         count = int(height // self.leading)
         if count < 1 or count >= len(self.lines):
             return []
-        return [RTLText(size=self.size, lines=self.lines[:count], link=self.link, anchor=self.anchor, color=self.color, align=self.align),
-                RTLText(size=self.size, lines=self.lines[count:], link=self.link, color=self.color, align=self.align)]
+        return [RTLText(size=self.size, lines=self.lines[:count], link=self.link, anchor=self.anchor, color=self.color, align=self.align, bold=self.bold),
+                RTLText(size=self.size, lines=self.lines[count:], link=self.link, color=self.color, align=self.align, bold=self.bold)]
 
     def draw(self):
         if self.anchor:
@@ -67,7 +77,7 @@ class RTLText(Flowable):
         if self.link:
             self.canv.linkRect('', self.link, (0, 0, self.width, self.height), relative=1, thickness=0)
         self.canv.setFillColor(self.color or HexColor('#111111'))
-        self.canv.setFont('Arabic', self.size)
+        self.canv.setFont(self.font, self.size)
         for index, line in enumerate(self.lines):
             if self.align == 'center':
                 self.canv.drawCentredString(self.width/2, self.height - (index+1)*self.leading + 3, visual(line))
@@ -80,6 +90,9 @@ def register_font(font_path=None):
     font = next((p for p in candidates if p.is_file()), None)
     require(font is not None, 'اختر خط TTF يدعم العربية في PDF_FONT داخل .env')
     pdfmetrics.registerFont(TTFont('Arabic', str(font)))
+    bold_stem = font.stem.replace('Regular', 'Bold') if 'Regular' in font.stem else font.stem+'-Bold'
+    bold = font.with_name(bold_stem + font.suffix)
+    pdfmetrics.registerFont(TTFont('ArabicBold', str(bold if bold != font and bold.is_file() else font)))
 
 
 def temporary_pdf():
@@ -100,7 +113,7 @@ class EndTimestamp(Flowable):
         return width,0
 
     def draw(self):
-        self.label.drawOn(self.canv,0,-10-self.label.height)
+        self.label.drawOn(self.canv,0,-END_TIMESTAMP_GAP-self.label.height)
 
 
 class ReportTable(Table):
@@ -114,7 +127,7 @@ class ReportTable(Table):
 
 def styled_table(data, widths, colors, repeat=0, backgrounds=None):
     table = ReportTable(data, colWidths=widths, repeatRows=repeat, splitInRow=1)
-    commands = [('VALIGN',(0,0),(-1,-1),'TOP'), ('GRID',(0,0),(-1,-1),.5,HexColor(colors['border'])),
+    commands = [('VALIGN',(0,0),(-1,-1),'TOP'), ('LINEBELOW',(0,0),(-1,-1),colors['rule_width'],HexColor(colors['rule'])),
                 ('LEFTPADDING',(0,0),(-1,-1),3), ('RIGHTPADDING',(0,0),(-1,-1),3),
                 ('TOPPADDING',(0,0),(-1,-1),3), ('BOTTOMPADDING',(0,0),(-1,-1),3)]
     for index, color in enumerate(backgrounds or []):
@@ -133,11 +146,11 @@ class ReportDocument(SimpleDocTemplate):
         index = getattr(self, 'patient_index', None)
         if not getattr(self, 'cards', False) or index is None:return
         patient = self.patients[index]
-        name = RTLText(patient['name'], 15, link='entry-'+str(index), color=white)
-        name.wrap(self.width-8, 100000)
+        name = RTLText(patient['name'], 14, link='entry-'+str(index), color=white, align='center', bold=True)
+        name.wrap(self.width-12, 100000)
         self.canv.setFillColor(HexColor(self.colors['title']))
-        self.canv.rect(self.leftMargin, self.pagesize[1]-self.topMargin+4, self.width, self.topMargin-14, fill=1, stroke=0)
-        name.drawOn(self.canv, self.leftMargin+4, self.pagesize[1]-18-name.height)
+        self.canv.rect(self.leftMargin, self.pagesize[1]-self.card_margin-name.height-12, self.width, name.height+12, fill=1, stroke=0)
+        name.drawOn(self.canv, self.leftMargin+6, self.pagesize[1]-self.card_margin-6-name.height)
         labels = [('السابق','patient-'+str(index-1)) if index>0 else ('—',None),
                   ('الفهرس','entry-'+str(index)),
                   ('التالي','patient-'+str(index+1)) if index+1<len(self.patients) else ('—',None)]
@@ -145,22 +158,27 @@ class ReportDocument(SimpleDocTemplate):
         for column,(label,target) in enumerate(labels):
             link = RTLText(label, 10, link=target, color=HexColor(self.colors['text']))
             link.wrap(self.width/3, 30)
-            link.drawOn(self.canv, self.leftMargin+self.width-(column+1)*self.width/3, 27)
+            link.drawOn(self.canv, self.leftMargin+self.width-(column+1)*self.width/3, self.card_margin+35)
 
 
 def render_report(client, shift, supervisor=None, font_path=None, options=None):
+    return _render_report(client, shift, supervisor, font_path, options,
+                          datetime.now(ZoneInfo(client.zone)))
+
+
+def _render_report(client, shift, supervisor, font_path, options, now, total_pages=None):
     from desktop_pdf_content import normalize_options, palette, PAPERS, context_lines, patient_content, row_backgrounds, roster_label, created_at
     options = normalize_options(options)
     colors = palette(options)
     cards = options['layout']=='cards'
     page_size = PAPERS['A5'] if cards else PAPERS[options['paper']]
     if not cards and options['orientation']=='landscape':page_size=page_size[::-1]
-    margin = 9 if cards else 8.5
+    card_margin = 15*72/25.4
+    margin = card_margin+8 if cards else 8.5
     width = page_size[0]-2*margin
     register_font(font_path)
     patients=[p for p in shift['patients'] if supervisor is None or p.get('responsibleSupervisorId')==supervisor]
     require(patients,'لا يوجد مرضى في التقرير المختار')
-    now=datetime.now(ZoneInfo(client.zone))
     text_color=HexColor(colors['text'])
     heading_color=text_color if options['dark'] else HexColor(colors['title'])
     def text(value,size=11,color=None,**kwargs):return RTLText(value,size,color=color or text_color,**kwargs)
@@ -173,7 +191,7 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
         sum(p['hasCompanion']=='Y' for p in patients),pending,overdue)
     story=[]
     if cards:
-        story.append(text('فهرس المرضى',14,heading_color,anchor='index'))
+        story.append(text('فهرس المرضى',16,heading_color,anchor='index',bold=True,align='center'))
         story.append(text(' · '.join(context),9))
         story.extend([text(summary,10),text(roster_heading,11,heading_color),text(roster,11),
                       text('اضغط المريض لفتح البطاقة؛ زر الفهرس يعيدك إلى صفحته.',9)])
@@ -185,7 +203,12 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
             marker=text('',1,anchor='patient-'+str(index));marker.patient_index=index
             story.append(marker)
             content=patient_content(patient,client.doctors,client.zone,now)
-            sections=[('بيانات المريض',content['personal']),('القبول',content['admit']),('الفريق المسؤول',content['team']),
+            intro=styled_table([
+                [text('القبول',11,heading_color,bold=True,align='center'),text('بيانات المريض',11,heading_color,bold=True,align='center')],
+                [text(content['admit'],10.5),text(content['personal'],10.5)]
+            ],[width/2,width/2],colors)
+            story.extend([intro,Spacer(1,8)])
+            sections=[('الفريق المسؤول',content['team']),
                       ('التشخيص / التنبيهات',content['diagnosis']),('الخطة العلاجية',content['treatment']),('المتابعة',content['followUp'])]
             sections += [('المهام',task) for task in content['tasks']]
             sections += [('التحاليل',content['labs'])]
@@ -193,18 +216,20 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
                 if not value:continue
                 urgent=title=='المهام' and (value.startswith('متأخرة') or not value.startswith('مكتملة') and 'أولوية عالية' in value)
                 color=HexColor('#FFB4AB' if options['dark'] else '#8B1E1E') if urgent else heading_color
-                title_text=text(title,12,color);title_text.keepWithNext=True
-                story.extend([title_text,text(value,12),Spacer(1,3)])
+                divider=HRFlowable(width='100%',thickness=colors['rule_width'],color=HexColor(colors['rule']),spaceBefore=4,spaceAfter=6)
+                divider.keepWithNext=True
+                title_text=text(title,11,color,bold=True);title_text.keepWithNext=True
+                story.extend([divider,title_text,text(value,10.5),Spacer(1,4)])
     elif options['layout']=='table':
-        heading=styled_table([[text(roster_heading+': '+roster,11,white)],
-                              [text(' · '.join(context),8.5,white)]],[width],colors,
+        heading=styled_table([[text(roster_heading+': '+roster,11,white,bold=True,align='center')],
+                              [text(' · '.join(context),8.5,white,align='center')]],[width],colors,
                              backgrounds=[colors['title'],colors['title']])
         heading.setStyle(TableStyle([('TOPPADDING',(0,0),(-1,-1),1.5),('BOTTOMPADDING',(0,0),(-1,-1),1.5),
                                      ('LINEBELOW',(0,0),(-1,0),0,HexColor(colors['title']))]))
         story.append(heading)
         story.append(styled_table([[text(summary,10)]],[width],colors,backgrounds=[colors['summary']]))
         headers=['#','المريض','التشخيص / التنبيهات','رقم القبول الحالي\nالتاريخ / الأيام','الاختصاصي / المقيم','الخطة العلاجية','المتابعة / التحاليل']
-        data=[[[text(label,9.5,white)] for label in reversed(headers)]]
+        data=[[[text(label,9.5,white,bold=True,align='center')] for label in reversed(headers)]]
         backgrounds=[colors['header']]
         stripes=row_backgrounds(patients,colors)
         for index,patient in enumerate(patients,1):
@@ -216,34 +241,49 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None):
         story.append(styled_table(data,[width*w/sum(weights) for w in weights],colors,repeat=1,backgrounds=backgrounds))
         story.append(styled_table([[text(summary,10)]],[width],colors,backgrounds=[colors['summary']]))
     else:
-        story.extend([text('تقرير المناوبة',14,heading_color),text(' · '.join(context),9),
+        story.extend([text('تقرير المناوبة',16,heading_color,bold=True,align='center'),text(' · '.join(context),9),
                       text(roster_heading+': '+roster,11),text(summary,10)])
         for index,patient in enumerate(patients,1):
             content=patient_content(patient,client.doctors,client.zone,now)
-            story.extend([Spacer(1,12),text(str(index)+': '+patient['name'],14,heading_color)])
+            divider=HRFlowable(width='100%',thickness=colors['rule_width'],color=HexColor(colors['rule']),spaceBefore=8,spaceAfter=6)
+            divider.keepWithNext=True
+            story.extend([divider,text(str(index)+': '+patient['name'],14,heading_color,bold=True)])
             for key,label in [('personal','بيانات المريض'),('admit','القبول'),('team','الفريق المسؤول'),('diagnosis','التشخيص / التنبيهات'),('treatment','العلاج'),('notes','المتابعة / المهام / التحاليل')]:
                 if content[key]:story.append(text(label+': '+content[key]))
     timestamp=text(created_at(now),8.5)
     timestamp.wrap(width,100000)
-    story.append(EndTimestamp(timestamp))
+    if not cards:story.append(EndTimestamp(timestamp))
     path=temporary_pdf()
     top_margin=18
     if cards:
         # Reserve enough header space for the longest patient name, including continuations.
         heights=[]
         for patient in patients:
-            name=text(patient['name'],15);name.wrap(width-8,100000);heights.append(name.height)
-        top_margin=max(heights)+27
+            name=text(patient['name'],14,bold=True);name.wrap(width-12,100000);heights.append(name.height)
+        top_margin=card_margin+max(heights)+24
         require(top_margin+100<page_size[1], 'اسم المريض أطول من مساحة بطاقة A5؛ استخدم الجدول لحفظ كامل المحتوى')
     document=ReportDocument(str(path),pagesize=page_size,leftMargin=margin,rightMargin=margin,
-                            topMargin=top_margin,bottomMargin=(52 if cards else 35)+timestamp.height+10,title='DEMO — ShiftReport' if getattr(client,'demo',False) else 'ShiftReport',author='ShiftReport')
+                            topMargin=top_margin,bottomMargin=card_margin+68 if cards else 35+timestamp.height+END_TIMESTAMP_GAP,title='DEMO — ShiftReport' if getattr(client,'demo',False) else 'ShiftReport',author='ShiftReport')
     document.cards,document.patients,document.colors=cards,patients,colors
+    document.card_margin=card_margin
     def page_background(canvas,doc):
-        canvas.setFillColor(HexColor(colors['cream'] if cards else colors['page']))
+        canvas.setFillColor(HexColor(colors['page']))
         canvas.rect(0,0,page_size[0],page_size[1],fill=1,stroke=0)
+        if cards:
+            canvas.setStrokeColor(HexColor(colors['border']));canvas.setLineWidth(.5)
+            canvas.roundRect(card_margin,card_margin,page_size[0]-2*card_margin,page_size[1]-2*card_margin,5,stroke=1,fill=0)
+            card_footer(canvas,total_pages or '…')
+            return
         footer=text('{}{} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',shift['meta']['shiftDate'],doc.page),8)
         footer.wrap(width,30);footer.drawOn(canvas,margin,10)
+    def card_footer(canvas,total):
+        footer=text('{}ShiftReport · صفحة {} من {}\n{}'.format('DEMO · ' if getattr(client,'demo',False) else '',canvas._pageNumber,total,created_at(now)),7.5,align='center')
+        footer.wrap(width,100000);footer.drawOn(canvas,margin,card_margin+8)
     document.build(story,onFirstPage=page_background,onLaterPages=page_background)
+    if cards and total_pages is None:
+        # A pagination pass supplies totals without deferring PDF bookmark creation.
+        return _render_report(client,shift,supervisor,font_path,options,now,total_pages=document.page)
+    if cards:require(document.page==total_pages,'تغير عدد صفحات التقرير؛ أعد التصدير')
     return path
 
 
@@ -262,10 +302,10 @@ def render_assignments(client,shift,font_path=None,options=None):
     margin=(width-3*table_width-2*column_gap)/2
     number_width=7*72/25.4
     gap,top=12,20
-    def text(value,size=9,color=None,align='right'):return RTLText(value,size,color=HexColor(color or colors['text']),align=align)
+    def text(value,size=9,color=None,align='right',bold=False):return RTLText(value,size,color=HexColor(color or colors['text']),align=align,bold=bold)
     from desktop_protocol import current_date
     roster_note='مناوبة محفوظة · الفرق حسب السجل الحالي\n' if shift['meta']['shiftDate']!=current_date(client.zone) else ''
-    context_title=text('توزيع المرضى حسب المشرف',12)
+    context_title=text('توزيع المرضى حسب المشرف',18,align='center',bold=True)
     context_title.wrap(3*table_width+2*column_gap,100000)
     context=text(roster_note+'\n'.join(context_lines(client,shift,options,datetime.now(ZoneInfo(client.zone)),include_shift_date=False)),8.5)
     context.wrap(3*table_width+2*column_gap,100000)
@@ -273,29 +313,48 @@ def render_assignments(client,shift,font_path=None,options=None):
     timestamp=text(created_at(datetime.now(ZoneInfo(client.zone))),8.5)
     timestamp.wrap(3*table_width+2*column_gap,100000)
     table_top=height-top-context_title.height-context_height-gap
-    available=table_top-24-timestamp.height-gap
-    def team_table(group,rows,index):
-        data=[[text(group['supervisor'],10,'#FFFFFF'),''],
-              [text('، '.join(group['residents']) or 'لم يُحدد مقيم',8.5),'']]
-        data += [[text(name),text(str(number).translate(str.maketrans('0123456789','٠١٢٣٤٥٦٧٨٩')),align='center')] for number,name in rows]
-        backgrounds=[colors['title'],colors['groups'][index%len(colors['groups'])]]
-        backgrounds += [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(rows))]
+    available=table_top-24-timestamp.height-END_TIMESTAMP_GAP
+    subheader = '#' + ''.join('{:02X}'.format(int(int(colors['title'][i:i+2],16)*.12 +
+                        int(colors['page'][i:i+2],16)*.88)) for i in (1,3,5))
+    # Pre-number by team, then use equal row heights across each three-column band.
+    def team_table(group,rows,row_heights=None):
+        data=[[text(group['supervisor'],11,'#FFFFFF',align='center',bold=True),''],
+              [text('، '.join(group['residents']) or 'لم يُحدد مقيم',9,align='center'),'']]
+        data += [[text(name),text(str(number).translate(str.maketrans('0123456789','٠١٢٣٤٥٦٧٨٩')),align='center') if number else ''] for number,name in rows]
+        backgrounds=[colors['title'], subheader]
+        backgrounds += [colors['page'] if options['row_shading']=='none' or i%2==0 else colors['zebra'] for i in range(len(rows))]
         table=styled_table(data,[table_width-number_width,number_width],colors,backgrounds=backgrounds)
+        if row_heights is not None:
+            table=ReportTable(data,colWidths=[table_width-number_width,number_width],rowHeights=row_heights)
+            table.setStyle(TableStyle([
+                ('VALIGN',(0,0),(-1,-1),'TOP'),('LINEBELOW',(0,0),(-1,-1),colors['rule_width'],HexColor(colors['rule'])),
+                ('LEFTPADDING',(0,0),(-1,-1),3),('RIGHTPADDING',(0,0),(-1,-1),3),
+                ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),
+            ]+ [('BACKGROUND',(0,i),(-1,i),HexColor(color)) for i,color in enumerate(backgrounds)]))
         table.setStyle(TableStyle([('SPAN',(0,0),(1,0)),('SPAN',(0,1),(1,1))]))
-        return table,table.wrap(table_width,1000000)[1]
-    tables=[];number=1
-    for index,group in enumerate(groups):
-        rows=[]
-        for name in group['patients']:
-            candidate,measured=team_table(group,rows+[(number,name)],index)
-            if measured>available and rows:
-                tables.append(team_table(group,rows,index));rows=[]
-                candidate,measured=team_table(group,[(number,name)],index)
-            require(measured<=available,'اسم المريض أو أسماء الفريق أطول من مساحة جدول A4؛ راجع الأسماء قبل التصدير')
-            rows.append((number,name));number+=1
-        table,measured=team_table(group,rows,index)
-        require(measured<=available,'أسماء الفريق أطول من مساحة جدول A4')
-        tables.append((table,measured))
+        table.wrap(table_width,1000000)
+        return table
+    numbered=[];number=1
+    for group in groups:
+        rows=[(number+i,name) for i,name in enumerate(group['patients'])]
+        number+=len(rows)
+        numbered.append((group,rows))
+    bands=[]
+    for start in range(0,len(numbered),3):
+        band=numbered[start:start+3]
+        # Rows of each logical band align, including wrapped names and filler rows.
+        count=max(1,max(len(rows) for _,rows in band))
+        padded=[(group,rows+[(None,'')]*(count-len(rows))) for group,rows in band]
+        measured=[team_table(group,rows) for group,rows in padded]
+        heights=[max(table._rowHeights[i] for table in measured) for i in range(count+2)]
+        header=heights[:2];offset=0
+        while offset<count:
+            end=offset;used=sum(header)
+            while end<count and used+heights[end+2]<=available:
+                used+=heights[end+2];end+=1
+            require(end>offset,'اسم المريض أو أسماء الفريق أطول من مساحة جدول A4؛ راجع الأسماء قبل التصدير')
+            bands.append([(team_table(group,rows[offset:end],header+heights[offset+2:end+2]),used) for group,rows in padded])
+            offset=end
     path=temporary_pdf()
     canvas=pdfcanvas.Canvas(str(path),pagesize=(width,height))
     canvas.setTitle('ShiftReport — توزيع المرضى بالأسماء فقط')
@@ -310,13 +369,15 @@ def render_assignments(client,shift,font_path=None,options=None):
         canvas.setFont('Arabic',8);canvas.setFillColor(HexColor(colors['text']))
         canvas.drawCentredString(width/2,10,('DEMO — ' if getattr(client,'demo',False) else '')+str(page))
     new_page();y=table_top
-    for start in range(0,len(tables),3):
-        row=tables[start:start+3];row_height=max(h for _,h in row)
-        if y-row_height<24+timestamp.height+gap:new_page();y=table_top
+    for row in bands:
+        row_height=max(h for _,h in row)
+        if y-row_height<24+timestamp.height+END_TIMESTAMP_GAP:new_page();y=table_top
+        band_width=len(row)*table_width+(len(row)-1)*column_gap
+        band_left=(width-band_width)/2
         for column,(table,table_height) in enumerate(row):
-            table.drawOn(canvas,width-margin-table_width-column*(table_width+column_gap),y-table_height)
+            table.drawOn(canvas,band_left+band_width-table_width-column*(table_width+column_gap),y-table_height)
         y-=row_height+gap
-    timestamp.drawOn(canvas,margin,y-timestamp.height)
+    timestamp.drawOn(canvas,margin,y+gap-END_TIMESTAMP_GAP-timestamp.height)
     require(client.require_admin()['uid']==actor_id,'تغيّر المستخدم؛ أعد تصدير توزيع المرضى')
     canvas.showPage();canvas.save()
     return path

@@ -13,12 +13,15 @@ import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 
 @Composable
-fun EditPatientDialog(
+internal fun EditPatientDialog(
     patient: Patient,
     doctors: List<Doctor>,
     saving: Boolean = false,
     onConfirm: (Patient, (Patient?) -> Unit) -> Unit,
     onConfirmAndNext: ((Patient, (Patient?) -> Unit) -> Unit)? = null,
+    roundsNavigation: PatientRoundsNavigation? = null,
+    saveAndNextEnabled: Boolean = false,
+    onSaveAndNextChanged: (Boolean) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     var initial by remember(patient.id) { mutableStateOf(patient) }
@@ -42,6 +45,16 @@ fun EditPatientDialog(
         doctors = doctors,
         saving = saving,
         reviewAction = {
+            roundsNavigation?.let { navigation ->
+                Text("المريض ${com.hos.rushdpatients.ui.components.uiNumber(navigation.index + 1)} من ${com.hos.rushdpatients.ui.components.uiNumber(navigation.total)}",
+                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                com.hos.rushdpatients.ui.components.AppToggleRow(
+                    title = "حفظ والتالي أثناء الجولة", checked = saveAndNextEnabled,
+                    onCheckedChange = onSaveAndNextChanged, enabled = !saving)
+                if (navigation.nextId == null) Text("آخر مريض في القائمة الحالية؛ الحفظ ينهي الجولة.",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+            }
+
             if (rejected != null) {
                 AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
                     Text("مراجعة المسودة المرفوضة والنسخة المحفوظة")

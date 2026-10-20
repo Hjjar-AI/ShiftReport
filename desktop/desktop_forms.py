@@ -4,7 +4,7 @@ import copy
 from datetime import datetime
 import json
 import tkinter as tk
-from desktop_widgets import messagebox, visual_text
+from desktop_widgets import messagebox
 from desktop_input import ArabicEntry, ArabicTextbox
 import uuid
 import desktop_widgets as ctk
@@ -18,6 +18,34 @@ def button(parent, text, command, **kwargs):
     widget = ctk.CTkButton(parent, text=text, command=command, height=48, **kwargs)
     widget.pack(fill='x', padx=8, pady=4)
     return widget
+
+
+def dialog_actions(parent, primary=None, cancel=None, secondary=()):
+    """Fixed dialog footer: primary on the right, cancel on the left, extras above.
+
+    Long labels use a full row; callbacks retain the caller's validation/review.
+    """
+    widgets={}
+    quiet=dict(fg_color='transparent',border_width=1,text_color=('gray20','gray90'))
+    for index,(label,command) in enumerate(secondary):
+        widget=ctk.CTkButton(parent,text=label,command=command,height=48,**quiet)
+        widget.grid(row=index,column=0,columnspan=2,sticky='ew',padx=8,pady=4)
+        widgets[label]=widget
+    row=len(secondary)
+    stacked=bool(primary and len(primary[0])>28)
+    parent.grid_columnconfigure(0,weight=1,uniform='dialog-actions')
+    parent.grid_columnconfigure(1,weight=1,uniform='dialog-actions')
+    if primary:
+        label,command=primary
+        widget=ctk.CTkButton(parent,text=label,command=command,height=48)
+        widget.grid(row=row,column=0 if stacked else 1,columnspan=2 if stacked else 1,sticky='ew',padx=8,pady=4)
+        widgets[label]=widget
+    if cancel:
+        label,command=cancel
+        widget=ctk.CTkButton(parent,text=label,command=command,height=48,**quiet)
+        widget.grid(row=row+int(stacked),column=0,sticky='ew',padx=8,pady=4)
+        widgets[label]=widget
+    return widgets
 
 
 def entry(parent, label, value='', multiline=False):
@@ -54,7 +82,16 @@ def modal(owner, title, geometry='820x680'):
     width,height=(int(value) for value in geometry.split('x'))
     width=min(width,max(580,owner.root.winfo_screenwidth()-60))
     height=min(height,max(430,owner.root.winfo_screenheight()-100))
+    if not hasattr(owner,'dialog_sizes'):owner.dialog_sizes={}
+    saved=owner.dialog_sizes.get(title)
+    if saved:
+        width=min(saved[0],max(580,owner.root.winfo_screenwidth()-60))
+        height=min(saved[1],max(430,owner.root.winfo_screenheight()-100))
     window.title(title); window.geometry('{}x{}'.format(width,height)); window.minsize(580,430)
+    def remember_size(event):
+        if event.widget is window and event.width>=580 and event.height>=430:
+            owner.dialog_sizes[title]=(event.width,event.height)
+    window.bind('<Configure>',remember_size,add='+')
     window.transient(owner.root); window.grab_set()
     return window
 
@@ -111,8 +148,7 @@ def edit_task(owner, parent, task, save):
         from desktop_tasks import validate as validate_tasks
         validate_tasks([result], require_completion=False)
         save(result); window.destroy(); parent.grab_set()
-    button(controls, 'حفظ المهمة', guarded(commit))
-    button(controls, 'إلغاء', window.destroy)
+    dialog_actions(controls,primary=('حفظ المهمة',guarded(commit)),cancel=('إلغاء',window.destroy))
     owner.root.wait_window(window)
     if parent.winfo_exists(): parent.grab_set()
 
@@ -131,11 +167,25 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     window = modal(owner, 'مريض جديد' if is_new else 'تحرير المريض')
     controls = ctk.CTkFrame(window); controls.pack(side='bottom', fill='x')
     advance=[False]
-    tabs = ctk.CTkTabview(window); tabs.pack(fill='both', expand=True, padx=8, pady=4)
+    identity=ctk.CTkLabel(window,text='',anchor='e',justify='right',font=('Arial',18,'bold'),wraplength=700)
+    identity.pack(fill='x',padx=12,pady=4)
+    section_hint=ctk.CTkLabel(window,text='',anchor='e')
+    section_hint.pack(fill='x',padx=12)
+    from desktop_sections import SectionPages
+    tabs = SectionPages(window); tabs.pack(fill='both', expand=True, padx=8, pady=4)
     order = ['البيانات الشخصية', 'السريرية', 'المهام', 'الشارات'] if is_new else ['السريرية', 'المهام', 'الشارات', 'البيانات الشخصية']
     areas = {}
     for title in order:
-        tabs.add(visual_text(title)); areas[title] = ctk.CTkScrollableFrame(tabs.tab(visual_text(title))); areas[title].pack(fill='both', expand=True)
+        tabs.add(title,'البيانات' if title=='البيانات الشخصية' else title)
+        areas[title] = ctk.CTkScrollableFrame(tabs.tab(title)); areas[title].pack(fill='both', expand=True)
+    def show_section():
+        selected=tabs.get()
+        section_hint.configure(text='القسم الحالي: '+selected)
+    tabs.on_change=show_section
+    show_section()
+    def size_heading(event):
+        if event.widget is window:identity.configure(wraplength=max(240,event.width-28))
+    window.bind('<Configure>',size_heading,add='+')
     widgets, getters = {}, {}
     widgets['initialDiagnosis']=entry(areas['السريرية'],LABELS['initialDiagnosis'],row.get('initialDiagnosis',''),True)
     from desktop_clinical_fields import ClinicalField
@@ -145,7 +195,7 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
         for field in fields.values():field.show(mode)
         for key,widget in mode_buttons.items():widget.configure(state='disabled' if key==mode else 'normal')
     mode_buttons={}
-    for mode,label in [('GENERAL','حقول إدخال عامة'),('ADVANCED','حقول إدخال مفصلة')]:
+    for mode,label in [('GENERAL','عام'),('ADVANCED','متقدم')]:
         widget=ctk.CTkButton(modes,text=label,height=48,command=lambda m=mode:set_mode(m))
         widget.pack(side='right',fill='x',expand=True,padx=4,pady=3);mode_buttons[mode]=widget
     for key in ['treatmentPlan','followUp','labs']:
@@ -162,6 +212,11 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     for key in ['name','admitNum','admitDate','birthDate']:
         label=LABELS[key] + ' أو يوم/شهر/سنة' if key=='admitDate' else LABELS[key]
         widgets[key] = entry(areas['البيانات الشخصية'], label, row.get(key,''))
+    def update_heading(event=None):
+        identity.configure(text=widgets['name'].get().strip() or 'مريض جديد')
+    widgets['name'].bind('<KeyRelease>',update_heading,add='+')
+    widgets['name'].bind('<FocusOut>',update_heading,add='+')
+    update_heading()
     position=None
     numeric = (window.register(lambda text: not text or all(ch.isdecimal() for ch in text)), '%P')
     for key in ['admitNum','birthDate']:
@@ -306,10 +361,8 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
             finish()
         finally: saving[0] = False
     draft_timer[0] = window.after(500,autosave)
-    button(controls,'حفظ المريض',guarded(save))
-    if allow_next and not is_new:
-        button(controls,'حفظ والتالي',guarded(lambda:save(True)))
-    button(controls,'إلغاء',close)
+    dialog_actions(controls,primary=('حفظ المريض',guarded(save)),cancel=('إلغاء',close),
+        secondary=[('حفظ والتالي',guarded(lambda:save(True)))] if allow_next and not is_new else [])
     window.protocol('WM_DELETE_WINDOW',close)
     owner.root.wait_window(window)
     return advance[0]

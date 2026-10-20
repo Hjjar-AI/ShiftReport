@@ -459,6 +459,20 @@ class WardViewModel @Inject constructor(
         }
     }
 
+    fun setSaveAndNext(enabled: Boolean) {
+        _state.update { it.copy(saveAndNext = enabled) }
+        viewModelScope.launch {
+            settingsRepository.putBoolean(AppConstants.SETTING_SAVE_AND_NEXT, enabled)
+        }
+    }
+
+    fun setTwoColumn(enabled: Boolean) {
+        _state.update { it.copy(twoColumn = enabled) }
+        viewModelScope.launch {
+            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_TWO_COLUMN, enabled)
+        }
+    }
+
     fun setCompactCards(compact: Boolean) {
         _state.update { it.copy(compactCards = compact) }
         viewModelScope.launch {
@@ -604,7 +618,10 @@ class WardViewModel @Inject constructor(
                 showError("تم الوصول إلى الحد الأقصى لعدد المرضى")
                 return@launch
             }
-            saveAction(onSuccess) {
+            saveAction(onSuccess = {
+                _state.update { it.copy(snackbar = "تم الحفظ محلياً") }
+                onSuccess()
+            }) {
                 requireEditableShift(shiftId)
                 wardMutations.addPatient(patient, shiftId, sessionManager.current(), position, expectedPatients, expectedShiftRevision)
                 clearDraft()
@@ -620,7 +637,10 @@ class WardViewModel @Inject constructor(
         val shiftId = editableShiftId() ?: return
         viewModelScope.launch {
             if (!validateForSave(patient)) return@launch
-            saveAction(onSuccess, onStale = { error ->
+            saveAction(onSuccess = {
+                _state.update { it.copy(snackbar = "تم الحفظ محلياً") }
+                onSuccess()
+            }, onStale = { error ->
                 if (error !is StalePatientEditException) false else {
                     val latest = patientRepository.getById(patient.id)
                     onStale(latest?.takeIf { patientRepository.getShiftId(it.id) == shiftId })

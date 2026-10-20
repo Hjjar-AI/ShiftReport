@@ -47,10 +47,26 @@ compile/target SDK 34. Application version `1.1.1.20261007`, code 2; debug adds
 project setup if needed, clinician login/PIN unlock, and ward navigation.
 
 - Splash: dark gradient, unchanged emblem on a 120dp white field, animated grouped
-  credit cards, consistent names and automatic app version. Any tap skips;
-  a saved monotonic deadline limits it to ten seconds across Activity recreation.
+  credit cards, consistent names and automatic app version. A quick tap skips;
+  the saved monotonic deadline runs for five seconds, including while held.
+  A hold/scroll only prevents automatic dismissal: release closes immediately if
+  time has expired, otherwise the original countdown continues. Pointer input
+  observes initial events without consuming scrolling and releases its hold on
+  cancellation. Activity recreation retains the deadline and clears the physical
+  hold rather than restarting five seconds. Accessibility actions offer skip and
+  keep-open/end-reading controls.
   Existing About content and logo are preserved.
-- Setup: in-memory Demo, protected-file Join (default), or Create. Demo uses
+- Setup: in-memory Demo (selected by default), protected-file Join, or Create.
+  A centered welcome/choice area uses large labelled radio cards with prominent
+  selected styling; wide screens show three columns and narrow/large-font screens
+  stack them. Mode-specific forms follow the choices, optional help follows forms,
+  and the fixed keyboard-safe action/status area stays within the same centered
+  content width. Demo is selected without being launched automatically; creation
+  and protected-file validation still require their existing deliberate actions.
+  Source/delimiter and Git whitespace checks passed; a disposable timer arithmetic
+  probe covered expiry during a hold, early/late release and recreation. Android compilation, touch rendering
+  and accessibility on devices remain unverified; no build/test-suite work ran.
+  Demo uses
   hot-beverage patients/tree-named doctors, real offline forms/cards and explicit
   per-page-labelled local PDF export; it writes no clinical database or Telegram
   data. Reset/exit discards it; process death starts a new demo.
@@ -1352,7 +1368,7 @@ page-fit links, Python grammar, affected Kotlin source and Git whitespace were
 checked; no Android build or viewer interaction was performed.
 
 The creation timestamp is now omitted from every PDF header/index and rendered
-once below the final content, separated by about 10–12 points. Desktop flow-based
+once below the final content, separated by 30 points (about 1 cm). Desktop flow-based
 reports reserve a small area above the ordinary footer and use a zero-height end
 marker to draw the timestamp there after the last content; assignment grids reserve
 the same space beneath the final grid row. Android Classic, Cards and
@@ -1365,6 +1381,9 @@ were extracted with page/line coordinates; each creation label occurred exactly
 once on the last page, below the final report content. Python grammar, Kotlin
 source/delimiter and Git whitespace checks passed. Demo page labels, A5 cards and
 index return links were retained. Android rendering/builds remain unverified.
+The later increase to 30-point spacing was checked through Python grammar and
+focused source inspection, including matching pagination reservations; Git
+whitespace checks passed. Updated rendering and Android builds were not performed.
 
 ### Unified compact table PDF and sample cleanup
 
@@ -1386,9 +1405,381 @@ retained above, but those generated artifacts are no longer available.
 Verification: Python 3.8 grammar, desktop option normalization and headless report
 callbacks passed, including retained choices, forced-PDF behavior and assignment
 defaults. Affected Kotlin delimiter/source checks and Git whitespace checks passed.
-The reports folder is empty. No replacement samples, Android builds, compilation,
-test-suite work or live operations ran; rendered behavior after this consolidation
-is unverified.
+At cleanup completion the reports folder was empty. No replacement samples,
+Android builds, compilation, test-suite work or live operations ran at that step.
+
+At the owner's subsequent request, generated ten current-desktop samples in
+`reports/pdf-samples-2026-10-19/`: light/dark Classic A4 portrait and landscape,
+linked A5 cards, A4 paragraphs and A4 names-only team overviews. Fabricated beverage
+patients/tree doctors include pending, overdue and completed tasks, badges and an
+unassigned patient. PDF extraction confirmed DEMO on all 42 pages; Classic
+landscape/light and team-overview/dark first pages were visually inspected.
+The folder includes a sample index. No real settings, clinical storage, Telegram,
+Android builds, compilation, packaging or test-suite work was used. Android output
+and interactive viewer behavior remain unverified.
+
+### Modern PDF presentation
+
+Android and desktop PDF exporters now use bundled Tajawal Regular/Bold, with the
+upstream SIL Open Font License in each font directory. Font files came from
+[Google Fonts](https://github.com/google/fonts/tree/main/ofl/tajawal). Desktop
+retains explicit `PDF_FONT` overrides and uses base Unicode for isolated Arabic
+letters so Tajawal's glyph mapping renders correctly. Android loads the faces
+from assets during IO export; the app's ordinary typography is unchanged.
+
+Table grids default to 1.5-point horizontal rules (`#94A3B8` in light mode), with
+bold centered white header text and neutral summary bands. Dark appearance keeps
+contrasting text and subdued separators. Assignment overviews center each band
+of equal-width columns, use a larger centered bold title, tinted team subheaders,
+white/light-gray alternating rows and blank fillers to align column bottoms.
+Continuous RTL team numbering and overflow headers remain.
+
+A5 portrait cards now have equal 15 mm margins, an inset thin frame, admission
+details on the left and patient identity on the right, followed by section
+1.5-point dividers. The page frame stays thin. Long content continues at readable sizes. Every card/index page has
+the generation date/time, ShiftReport and page X of Y in its footer; this replaces
+the card report's previous single end timestamp. Both exporters use a pagination
+pass before writing the final card PDF so page totals preserve index/previous/
+next destinations and index-page-fit returns.
+
+Regenerated the ten demo samples in `reports/pdf-samples-2026-10-19/` using only
+fabricated beverage/tree records. PDF extraction confirmed DEMO on all 42 pages.
+Visually inspected light Classic, light/dark assignment and first/continuation
+card pages, including neutral summary/footer areas. Production-renderer probes
+retained 100 unique clinical markers in long table/card/paragraph exports and all
+200 names in an overflowing assignment overview. Card PDF destinations include
+six distinct patient targets and page-fit returns to the index; paper is A5.
+Sample Arabic glyph coverage, identical bundled font/license copies, Python 3.8
+grammar and Git whitespace checks passed. Android was inspected at source level
+only: no Gradle, builds, compilation, packaging, test-suite work or live Telegram
+operations ran. Android rendering and actual viewer clicks remain unverified.
+
+The requested thicker separators use 1.5 points across tables, assignments and
+card sections on both platforms, preserving the thin outer card frame. The ten
+desktop samples were regenerated; all 42 pages retain DEMO. The updated assignment
+page was visually inspected, and Python grammar/Git whitespace checks passed.
+Android remains source-checked only; no build or test-suite work ran.
+
+### PDF appearance preferences
+
+Android Settings → Report → Advanced PDF options now includes independent
+separator thickness (0.75/1.5/2.25 points), contrast (light/medium/strong) and row
+shading (automatic supervisor groups, neutral zebra or none). Balanced, Clear
+separators and Print presets adjust those choices together; Print also selects
+light appearance. A separator preview reflects the selected weight/contrast.
+Shading controls are hidden for cards while retaining their saved choice. The
+ordinary color, paper, orientation and report-layout choices remain available.
+Horizontal rules now default to darker slate gray instead of the earlier pale
+gray; the thin outer card frame retains its own color/weight.
+
+Android stores the three choices in existing local key/value settings and loads
+them into the reviewed PDF options for general, supervisor and assignment exports.
+The demo uses the same controls in memory. Desktop adds «إعدادات PDF» under
+project/settings and shares its appearance controls with report-review dialogs.
+Preferences use the existing encrypted project workspace; Cancel does not save.
+Opening PDF settings or an assignment export preserves the ordinary Text/PDF
+preference, and assignment choices preserve the full-report paper/layout settings.
+Desktop paragraph reports also use the selected horizontal separators between
+patients. No clinical fields, schema/version or publication rules changed.
+
+Regenerated 12 demo PDFs (46 pages), including Classic A4 portrait Clear/Print
+comparisons; all pages retain DEMO. The darker Classic portrait sample and both
+preset first pages were visually inspected. Production callback probes with
+in-memory widget substitutes passed preset selection, preview callbacks, settings/
+assignment save and Cancel, preference preservation, validation and shading.
+Renderer probes confirmed the Clear preset's 2.25-point stroke and selected gray
+in table/card/paragraph/assignment PDF drawing operators, retained 100 long
+paragraph markers and round-tripped the new preferences through the real demo
+workspace in memory.
+Python 3.8 grammar, Kotlin delimiter/source wiring and Git whitespace checks
+passed. The desktop display was unavailable, so actual dialog rendering/interaction
+is unverified; Android rendering/compilation and live Telegram remain unverified.
+No builds, packaging, migration or test-suite work ran.
+
+### Ward interface and desktop workflow organization
+
+Android ward controls now place search before the compact patient-count/options
+row, use «خيارات العرض», retain quick filters and summarize active filters once, and
+separate temporary filtering/grouping from saved sorting in the options dialog.
+Patient cards keep the name prominent, show quieter team metadata, use a neutral
+number surface and place pending/overdue task badges consistently before diagnosis.
+Clinical severity colors, individual/bulk expansion and full saved content remain.
+
+Report preview keeps the actionable shift roster first, compacts scope/format/
+destination/count information, and collapses change details and PDF customization.
+Customization reuses existing PDF preferences and appearance controls; saving is
+excluded from concurrent report operations, clears reviewed PDF artifacts, and
+retains the existing exact-file/options checks before sending. Report setup shows
+roster first, followed by counts and scope/destination/format. The general report's
+PDF layout stays directly available; paper/orientation and visual tuning are under
+Advanced. Supervisor-group selection is exposed in setup and retains per-target
+PDF preview and final confirmation.
+
+Android preferences, Data Management, Project Management and Diagnostics now have
+separate navigation routes using shared settings content and ViewModel operations.
+Preferences contains appearance/font, patient cards, rounds/shifts, reports and app
+lock. Project Management groups same-project reconnect with live-admin join export
+and supervisor destinations; non-admin users retain file reconnect. Diagnostics
+keeps storage/device details collapsed until opened. The drawer keeps patients,
+report and data access direct, with preferences/project/About under a secondary
+submenu. Excel import is accessible inside Data Management and remains admin-only.
+Section definitions drive both visible categories and their shortcuts.
+
+View Options contains live search/filters, inline grouping choices, card expansion,
+two-column layout and density, plus the saved-sort editor in the same scrollable
+surface. It distinguishes temporary filtering/grouping from persisted ordering.
+Sorting retains expected revision, stale-edit review and export ordering; read-only
+shifts hide sort mutation controls. The standalone demo sort host reuses the editor
+with memory-only callbacks. Bulk card expansion clears per-card overrides immediately.
+The patient editor exposes save-and-next beside rounds position, preserving the
+shared draft, validation and expected-revision save path.
+
+Collapsed settings headers place current values alongside their titles, wrapping on
+narrow screens; appearance includes accent and font, and text reports omit irrelevant
+PDF style. Appearance controls show a noninteractive sample rendered by the real
+patient-card component: beverage patient/tree doctors, memory only, no repository or
+sync calls. It sits beside controls when space/font size permit and below them on
+narrow screens; card-layout settings also show the sample. Font scaling follows the
+same app-wide density provider as the ward.
+
+Patient forms keep the patient name and explicit current-section label above their
+existing clinical/lab/task/personal shortcuts and fixed Save/Cancel footer. Patient
+add/update success now reports «تم الحفظ محلياً» only after the guarded mutation
+succeeds. Publication status remains visible alongside unresolved-delivery warnings.
+View Options has four sections and restores its last selected section; filters and
+collapsed group keys are saveable. Existing saved grid position and per-card
+expansion are retained, and loading no longer prunes restored card state against an
+empty initial patient list. Return-to-edited-patient behavior and conflict review remain.
+
+Source checks confirmed retained Settings ViewModel callbacks, navigation/role
+bindings, report confirmation paths and sort conflict-review callbacks. Refinement
+checks also covered preview isolation, save-success placement and saveable UI state. The later
+owner-run build passed resource tasks and reached Kotlin compilation, reporting
+missing Material API opt-in at the appearance/font FilterChips. The appearance
+section now opts into `ExperimentalMaterial3Api`; source/whitespace checks passed,
+but no subsequent build has been run by the agent. Kotlin
+delimiter/import and Git whitespace checks passed. These checks do not establish
+Android compilation, rendered accessibility, device behavior or live Telegram
+behavior; no builds or test-suite work ran for this reorganization.
+
+Desktop uses a narrower right sidebar with a single data-management entry and
+report actions. Retrieve, review/publish, undo, drafts, backup/restore, files and
+operation receipts share a reusable data window. Device/workflow preferences now
+contain appearance, PDF defaults, PIN/lock and timezone controls, with shortcuts to
+Data Management, Project Management and collapsed Diagnostics. The separate
+Project Management window groups reconnect, protected join export, doctor/team/
+report destinations and project announcements. Diagnostics only displays OS/Python,
+connection mode and local row counts; it does not print credentials. Existing
+lock-screen hiding covers these child windows and live admin gating remains.
+Search, Add and display options share a toolbar, with compact ward actions and
+summary information below it. Cards emphasize patient names, quieten metadata and
+use secondary detail/expansion buttons plus an Arabic-aware «المزيد» action menu.
+Manual-movement availability updates with filtering without rebuilding the card.
+The ordinary report dialog now contains scope/destination selection alongside
+format and collapsed paper/appearance settings. Existing publication review,
+preview, file identity checks and final delivery confirmation remain in place.
+
+The desktop list reuses unchanged visible cards, retaining expansion by patient ID,
+restoring the pre-filter scroll position when filters clear and discarding widgets
+when project/shift scope changes. Changed content, doctor data and the periodic
+minute refresh still rebuild affected cards so task/deadline summaries stay current.
+The unselected desktop split-pane proposal was not implemented.
+
+Desktop View Options uses retained sections for filtering, grouping, cards and
+stored sorting. The sort editor now embeds in that panel, preserving the original
+expected-content check, priority-first ordering and workbook defaults. Embedded
+save callbacks pass through the busy/lock guard; stale saves leave the editor open.
+Card spacing is a local Normal/Compact preference in the existing encrypted
+appearance dictionary (memory only in demo), included in card reuse signatures.
+
+Appearance offers a live dummy-card preview beside controls on wide windows and
+below them on narrow windows. It reuses the real card renderer without action
+buttons and supplies beverage/tree dummy identities. Mode/accent/font/spacing
+changes update only the preview until Apply and Save; opening/canceling performs
+no persistence or clinical mutation. Clinical severity and PDF preferences remain
+separate. Patient forms use the same RTL section control with labelled 48px targets,
+short General/Advanced labels, a fixed patient/current-section heading and existing
+Save/Cancel controls. Form drafts, lab access and conflict handling are preserved.
+
+Patient saves briefly report «تم الحفظ محلياً» (five-second routine feedback), while
+publication state remains in the ward workflow area. Main-list scroll is explicitly
+restored after details when scope still matches; per-patient detail scroll is also
+retained within the project/shift. Dialog dimensions, expanded cards and selected
+View Options section persist during the running desktop session. Window/view state
+is not saved across application restarts, and no clinical/interchange version changes
+were made.
+
+Disposable production-source probes with widget substitutes passed preview creation
+with zero writes, dummy-card action exclusion, retained/bounded modal dimensions,
+embedded sort save/stale rejection/busy routing, section controls and View Options
+selection retention. Source parsing with Python 3.8 grammar, callback comparisons
+and Git whitespace checks passed. No real display is available here; rendered
+layout, keyboard/accessibility, Windows behavior and live Telegram remain unverified.
+No builds, packaging, migrations or test-suite work ran for this desktop alignment.
+
+
+Further consolidation groups Android retrieve/review/publish, CSV, confirmed
+download undo and encrypted backup/restore on the «إدارة البيانات» screen, directly
+reachable from the drawer and its status header. The separate backup category and
+duplicate restored-data publication button are removed; publication still requires
+review. Ward lifecycle, the confirmed previous-publication fetch/snapshot picker
+and recycle-bin shortcuts remain available. Settings undo delegates to the existing
+stale-state-protected service and keeps cancellation distinct from failure.
+
+Common desktop patient/task, report, roster, sorting, doctor/team, onboarding,
+appearance, review and full-details dialogs share a fixed footer: primary action
+on the right, quieter Cancel/Close on the left, secondary actions above, and long
+primary labels spanning a full row. Callbacks, validation, explicit review and
+minimum 48px controls are preserved. Android retains its shared dialog conventions.
+
+Expanded desktop cards now render the complete clinical fields, doctor assignments,
+badges and tasks without repeating the personal record; «الملف الكامل» opens the
+complete read-only record and rounds controls. Full report/text exports retain
+their original complete representation. Android removes the extra overview tab,
+opens the expanded clinical record directly, avoids repeating the patient-name
+header, and links list-card expansion explicitly to the full record. Full clinical
+content, task/warning/history tabs and stale-edit guards remain accessible.
+
+Android delivery uncertainty/log failures use one persistent actionable ward notice.
+Desktop unresolved local operation receipts likewise display an actionable notice,
+including uncertain publication/registry operations; the notice clears when receipts
+are resolved. Routine patient-save and single-report success use a short-lived
+status message. Existing conflict review and uncertain-delivery restrictions remain.
+
+The consolidation was checked with disposable source probes and fabricated records:
+shared footer callback/position/long-label handling, full-details/data-window
+construction, clinical field/task retention, report scope/preferences, patient-widget
+reuse, filter/reset scroll and unresolved-operation/cleared-receipt behavior passed.
+Python 3.8 grammar, affected Kotlin delimiters/navigation/action bindings and Git
+whitespace checks passed. The desktop display remains unavailable; rendered layout,
+keyboard/accessibility, Android builds/device behavior and live Telegram are still
+unverified. No builds, packaging, migrations or test-suite work ran.
+
+Verification: disposable production-source probes with fabricated beverage/tree
+records and widget substitutes passed main-window/sidebar/settings construction,
+unchanged-card reuse, filter/reset scroll, expansion, empty results, shift isolation,
+report scope/destination/submission and preference separation. Existing disposable
+PDF-settings probes passed preset callbacks and settings/assignment save/cancel
+preference preservation. Changed Python sources parse with Python 3.8 grammar;
+focused Kotlin API/delimiter inspection and Git whitespace checks passed. A real
+Tk probe could not connect to the available display; rendered desktop layout,
+keyboard/accessibility behavior, Android compilation/device rendering and live
+Telegram interaction remain unverified. No builds, packaging, migrations or
+test-suite work ran.
+
+### Android visual polish and shorter controls
+
+Patient-form navigation uses «السريري»، «التحاليل»، «المهام» and «البيانات» with a
+stronger selected label; input modes are «عام»/«متقدم». Section order, the shared
+draft, labs in both modes and fixed keyboard-safe Save/Cancel remain unchanged.
+
+Patient cards use roughly 2dp more vertical separation between cards/sections,
+slightly larger local padding and neutral section labels/dividers. Normal task
+counts and diagnosis categories are quieter; clinical badge/overdue colors,
+selection feedback, complete expanded clinical fields and task content remain.
+Compact mode retains a smaller spacing than normal mode. Demo cards use the same
+renderer and updated list spacing.
+
+Ward and demo filters use one wrapping Arabic-numbered count/active-filter summary
+and a single clear-filter action, retaining quick presets. Grouping is labelled
+separately as a display choice; clearing filters does not change saved ordering or
+grouping. Individual filters are changed through the existing display-options
+controls, with no duplicated removable-chip row. Duplicate empty-result reset
+buttons were removed because the header reset remains available.
+
+Patient actions use shorter labels such as «تحرير»، «الملف الكامل» and
+«تثبيت للعرض». Routine retrieve, restore, patient/doctor deletion, demo reset and
+draft-discard confirmations name their concrete action. Destructive confirmations
+use the shared theme error color; report/publication/conflict review paths retain
+their detailed confirmation and existing authorization/revision checks.
+
+Verification: affected Kotlin delimiters, shared component parameters, filter-label
+and reset wiring, compact/normal spacing, retained clinical fields/severity mapping,
+form section/mode/save controls and routine confirmation call sites were inspected.
+Git whitespace checks passed. No Android build, compilation, device rendering,
+accessibility interaction or test-suite work ran; large-font wrapping and final
+appearance remain unverified on-device.
+
+### Android semantic UI tokens
+
+`ui/theme/UiTokens.kt` centralizes patient-card density and list gaps (`UiPatientCard`),
+neutral/selected/focused borders (`UiBorder`), surface elevation (`UiElevation`),
+disabled content/container opacity (`UiOpacity`), individual expansion/collapse and
+return-highlight timing (`UiMotion`), dialog caps (`UiDialog`) and purpose-specific
+field/card/form/navigation/pane thresholds (`UiLayout`). Shared fields, choices,
+tabs/buttons, patient cards and ward/demo layouts consume those values. The existing
+card spacing, border widths, opacity, animation timing and layout thresholds are
+preserved; badge/overdue severity colors remain separately mapped.
+
+`ui/components/AppDialogLayout.kt` supplies `Modifier.appDialogBody` to scrollable
+report/review/picker/settings/task dialogs and sort/group/support sheets. It measures
+a finite cap against 85% of the actual available parent height, obeys explicit
+incoming minimums and retains the caller's width constraints, scrolling and action
+callbacks. Standard bodies share a 420dp cap; compact lists, longer reviews and
+sheets retain semantic 260/440/640dp caps. Former 400dp picker caps use the standard
+420dp role. The full-screen patient editor keeps its keyboard-safe fixed actions;
+fold coordinate handling and distinct pane thresholds are unchanged. Immediate
+bulk expansion remains independent of the individual-motion tokens.
+
+Verification: delimiter and token/member/import checks covered 28 affected Kotlin
+sources. Source inspection covered card content/severity preservation, shared
+density, existing motion values/instant bulk behavior, fold thresholds and dialog
+constraint handling. Sampled height-cap arithmetic stayed within incoming bounds,
+including explicit minima. Git whitespace checks passed. No Gradle, Android builds,
+compilation, device/keyboard/fold/accessibility interaction, packaging or test-suite
+work ran. Static checks do not establish compilation or rendered behavior.
+
+### Shared Android presentation components and design catalog
+
+Routine confirmations, shift-doctor/doctor pickers and sort/group sheets share
+`AppDialogHeader`, `AppDialogConfirmAction` and `AppDialogDismissAction`. Primary
+save/apply and quieter cancel actions retain their original validation, stale-state
+review and busy guards; sort/group sheets now expose an explicit Cancel action.
+Specialized publication/report/conflict review flows retain their own content and
+callbacks.
+
+Patient cards and details share `PatientIdentityHeading`/`PatientIdentityText`,
+and the editor's saved-name context uses the same `PatientName`. Admission numbers,
+optional personal metadata, priority/pin flags and freshness are composed for the
+view's purpose. Clinical card sections and task/warning/history detail sections
+use `AppClinicalSection`; lab text direction/monospace and date-marker display
+formatting are centralized without rewriting patient fields or export formatting.
+`UiAction` pairs the common Arabic action labels and icons, including the unchanged
+«إرسال تقرير» label across drawer, ward and report preview.
+
+`AppBusyIndicator` shares the inline/page progress style. `AppActionContent` reserves
+its inline progress slot whether idle or busy, keeping button text from shifting.
+Loading buttons, long-press report actions, shared dialog actions and project setup
+reuse it; login/connection/loading screens reuse the same indicator. Callers still
+own busy flags and their operation lifecycle.
+
+The [design catalog](design-catalog.md) lists current spacing, density, typography,
+shapes, borders, motion, opacity, dialog/layout roles and component/action vocabulary.
+`UiStyleCatalog` adds the current profile plus spare «أوسع»، «هادئ» and «أوضح»
+profiles as typed design samples. No runtime theme reads those profiles. A possible
+advanced local personalisation picker is documented as a proposal only: no picker,
+new preference key, schema change, synchronization or clinical mutation was added.
+The existing local appearance controls and clinical severity palette remain active.
+
+Verification: affected Kotlin delimiters/imports, shared-component references,
+patient/clinical content mappings, original validation/stale callbacks, consistent
+report label, reserved loading slots and inactive catalog boundaries were inspected.
+Catalog values/links and Git whitespace were checked. No Android build/compilation,
+rendered device/large-font/keyboard/accessibility interaction, packaging, live
+Telegram or test-suite work ran. Source checks do not establish compilation or
+rendered usability.
+
+### Windows EXE packaging documentation
+
+[Windows EXE packaging guide](windows-exe-packaging.md) documents an isolated
+CPython 3.8.10/PyInstaller 5.13.2 environment, recommended folder output, resource
+collection, an explicitly experimental single-file variant, dummy-data checks,
+distribution, private runtime settings/workspaces, updates and diagnostic output.
+It preserves the existing Windows dependency file and README build instructions.
+Windows 7 compatibility is explicitly unverified; vendor requirements and the
+project target are distinguished. Local links, source paths, command structure
+and Git whitespace were checked. No packaging commands, EXE/installer creation,
+Android builds or test-suite tasks were run for this documentation change.
 
 ## Verification and limits
 

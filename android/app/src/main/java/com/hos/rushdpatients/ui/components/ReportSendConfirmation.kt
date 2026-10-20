@@ -7,14 +7,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @Composable
 fun ReportSendConfirmation(destinations: List<String>, format: String, warningCount: Int,
     enabled: Boolean, unavailableReason: String? = null, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(onDismissRequest = onDismiss, title = { Text("إرسال التقرير") }, text = {
-        Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+        Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             unavailableReason?.let { AppNotice(it, kind = NoticeKind.WARNING) }
             Text("الصيغة: $format")

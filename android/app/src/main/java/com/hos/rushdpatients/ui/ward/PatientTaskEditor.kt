@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppButton
 import com.hos.rushdpatients.ui.components.NoticeKind
@@ -25,7 +26,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -50,7 +50,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.PatientTask
 import com.hos.rushdpatients.data.model.TaskPriority
@@ -184,7 +183,7 @@ private fun TaskDraftDialog(
         onDismissRequest = { if (enabled) onDismiss() },
         title = { Text(if (initial == null) "مهمة جديدة" else "تعديل المهمة", Modifier.semantics { heading() }) },
         text = {
-            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppTextField(description, { description = it; error = null }, label = { Text("وصف المهمة") },
                     modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = error != null)
                 DoctorDropdown(label = "مسؤول المهمة", undefinedLabel = "غير معيّنة", selectedId = owner,

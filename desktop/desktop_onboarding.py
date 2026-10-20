@@ -5,7 +5,7 @@ from tkinter import filedialog
 import uuid
 import desktop_widgets as ctk
 from desktop_widgets import messagebox, simpledialog
-from desktop_forms import button, combo, entry, guarded, modal
+from desktop_forms import button, combo, entry, guarded, modal, dialog_actions
 from desktop_model import GENDER
 from desktop_project import ProjectCreator, export_join
 from desktop_protocol import ZoneInfo, fingerprint, require
@@ -36,8 +36,7 @@ def first_admin_form(owner, previous=None):
         result.append(ProjectCreator.validate_profile(dict(name=name.get(), telegram_id=identity.get(),
                       gender=gender(), clinicalRole=role())))
         window.destroy()
-    button(actions, 'طلب رمز تليجرام للتحقق', guarded(submit))
-    button(actions, 'إلغاء', window.destroy)
+    dialog_actions(actions,primary=('طلب رمز تليجرام للتحقق',guarded(submit)),cancel=('إلغاء',window.destroy))
     owner.root.wait_window(window)
     return result[0] if result else None
 

@@ -44,9 +44,10 @@ def open_pdf(path):
 
 
 def default_pdf_fonts():
+    bundled = Path(__file__).resolve().parent / 'fonts' / 'Tajawal-Regular.ttf'
     if os.name == 'nt':
-        return [Path(os.environ.get('WINDIR', 'C:/Windows')) / 'Fonts' / 'arial.ttf']
-    return [Path(path) for path in [
+        return [bundled, Path(os.environ.get('WINDIR', 'C:/Windows')) / 'Fonts' / 'arial.ttf']
+    return [bundled] + [Path(path) for path in [
         '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
         '/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf',
         '/usr/share/fonts/noto/NotoNaskhArabic-Regular.ttf',
