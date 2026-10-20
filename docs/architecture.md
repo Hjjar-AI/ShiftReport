@@ -6,6 +6,13 @@ This file records the accepted architecture scope and external design basis. The
 
 Telegram remains the shared storage and delivery channel. Users retrieve published data and publish updates; the last successful pinned-state write wins. Simultaneous collaborative editing and guaranteed preservation of competing remote publications are outside the required scope. Telegram pinned state is not an atomic multi-writer database; this limitation is accepted, not a release blocker. A separate authoritative service is not required. Downloads and publications transfer complete snapshots; remote field-by-field merging is removed. Local stale-edit checks, explicit replacement review, authorization and report confirmation remain in place. Report/publication confirmation may explicitly select the complete local patient copy over competing patient publications; this never bypasses clinician authorization, doctor-registry checks or delivery uncertainty guards. Synchronization is manual on both platforms; there is no periodic background upload/download.
 
+The permanent-superadmin empty-start operation is a separate, explicitly reviewed
+patient/shift reset. It replaces patient publication/recovery pointers with a new
+empty shift, then clears the requesting device's reviewed clinical records after
+remote confirmation. It preserves doctors/accounts, connection/key, audit/delivery
+records and Telegram history. It adds no project epoch or collaboration guarantee;
+other devices must retrieve the new snapshot before editing or publishing.
+
 ## Current architecture decisions
 
 - Keep Room/SQLCipher as the working device-local store, with repositories and ViewModels separating clinical mutations from Compose screens. Preserve expected revisions, atomic local mutation/audit/pending state, and explicit conflict review.

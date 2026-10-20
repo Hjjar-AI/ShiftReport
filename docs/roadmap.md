@@ -2,14 +2,12 @@
 
 This file contains only unfinished implementation work and explicitly deferred proposals. Verification evidence and limitations are recorded in [Current state](current-state.md). Completed items are tracked in [Changelog](changelog.md). Design and architecture basis are documented in [Architecture](architecture.md).
 
-## Active — owner-requested workflow refresh
+## Active — Android doctor CSV import
 
-- Add permanent-superadmin empty patient/shift seed while retaining doctors,
-  accounts, connection and Telegram history.
-- Resolve the supplied Android doctor CSV import failure (file is structurally valid;
-  exact observed failure pending).
-- Default to Light/Turquoise and separate the other named palettes.
-- Reorder report preview and drawer; place ward tasks inside filter controls only.
+- Identify and fix the original device-side failure after selecting the supplied
+  doctor CSV. Its 33 rows meet the current field rules. Persistent progress/error
+  feedback is implemented; the original exception is still unavailable. Preserve
+  identity, clinical-reference and authorization checks while resolving the cause.
 
 ## P0 — production signing
 

@@ -99,11 +99,14 @@ controls. Retry retains its timed hold with native button/keyboard semantics.
 Settings content and shortcuts share an ordered definition; filters apply live
 and retain patient scope. Arabic number/time/role terminology is shared.
 
-Appearance (System/Light/Dark/AMOLED) is independent of Atlas, Forest, Amethyst,
-Amber, Cherry, Turquoise, Copper or Olive accents. Tinted surfaces replace the
-plain white canvas; severity uses shared `patientBadgeColors`, and diagnosis
-categories do not use error colors. Static checks covered 82 theme text pairs
-(minimum 5.43:1); this is not rendered-accessibility verification.
+Appearance (System/Light/Dark/AMOLED) is independent of the accent. Fresh settings
+and demo now default to Light/Turquoise, with white/light-neutral surfaces. Stored
+choices remain respected. The eight stable palette IDs now display Lapis, Emerald,
+Iris, Saffron, Dragonfruit, Turquoise, Graphite and Poppy; desktop uses the same
+names/primary colors and Light/Turquoise startup defaults. Severity still uses
+shared `patientBadgeColors`; diagnosis categories do not use error colors. Source
+contrast calculations covered 32 accent/text pairs (minimum 6.08:1), without
+establishing rendered accessibility.
 
 Input fills contrast subtly with the background in every state. `AppField` paints
 fill behind the measured native container while its decoration stays transparent,
@@ -246,6 +249,62 @@ Verification: Python AST parsing and focused production-source/call-site inspect
 plus `git diff --check`. No test-suite/migration inspection or work, builds,
 compilation, packaging, GUI/device execution or live Telegram verification was
 performed for this change.
+
+### Permanent-superadmin empty start
+
+Project Management on Android and desktop now offers a separately reviewed empty
+start, visible only to the permanent superadmin. The service rechecks the signed-in
+actor against the published doctor registry and rejects ordinary admins. It uploads
+one empty current-shift snapshot (the actor is its initial roster), replaces the
+current/recovery patient pointers and starts a fresh publication journal. It never
+deletes Telegram messages/files or sends a report. Doctor accounts/PINs, connection,
+topics, encryption key, preferences, audit and delivery records remain intact.
+No database/interchange version changes were made.
+
+After confirmed remote publication, Android transactionally removes local shifts
+and their cascading patients/recycle rows, clears the saved patient form/download
+undo/freshness/baselines, and installs the empty shift. Desktop similarly replaces
+its clinical workspace and keeps a durable reset receipt. Both recheck the reviewed
+local state before removal; a racing local change is retained with an explicit
+remote-success/local-failure message. Android's ward observer rebinds to the new
+shift. Review tokens are held in memory and consumed before transport. Normal
+publication keeps its existing history-merging behavior; only the reviewed reset
+uses the explicit history-replacement path.
+
+This is a new empty working snapshot, not a project-generation barrier. Other
+devices must retrieve it before continuing; publishing an older local copy can
+restore its contents under the accepted last-successful-write-wins model. Telegram
+history and separately exported backups remain available for deliberate recovery.
+The feature was implemented but never run on the owner's data.
+
+### Report, navigation and doctor-import feedback refresh
+
+Android report preview keeps the shift-doctor selector first, then summary/outcomes,
+readiness and changes, general-report configuration/PDF options, preview/send,
+supervisor reports, collapsed local exports and delivery history. Sending retains
+explicit confirmation; supervisor delivery has its own visible section. The drawer
+now exposes daily ward/filter/report actions directly and groups data/recovery and
+preferences/project tools separately. Activity remains admin-only. Desktop groups
+reports before data/recovery and settings/project links. Ward-task actions are
+available inside filter controls only on both clients, with Android disabled for an
+empty ward; per-patient task counts and dashboard totals remain.
+
+The ignored `android/doctors-import.local.csv` contains 33 records (5 supervisors,
+28 residents), all with 16 columns and the supported schema. Source-level field
+checks found no missing names, forbidden name/title characters, duplicate IDs/names/
+Telegram IDs, invalid role/gender/rank/permanent flags or malformed numeric/date
+fields. The file was not changed or imported into a real project. The owner's
+reported symptom is no visible result after file selection. Import failures
+previously used a transient snackbar; Android now shows persistent error dialogs,
+a modal progress state and explicit feedback if another operation blocks reading.
+The underlying device-side failure is not yet identified; identity collisions,
+clinical-reference and permission guards have intentionally not been bypassed.
+
+Checks for this refresh: edited Python production modules parsed with Python 3.8
+syntax rules; Kotlin delimiters/call sites, reset authority/retention paths, CSV
+fields and palette contrast were inspected; Git whitespace checks passed. No test
+suite work, Gradle, compilation, build, packaging, GUI/device or live Telegram
+verification was performed. Source completion is not runtime verification.
 
 ## Reports and exports
 

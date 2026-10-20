@@ -5,6 +5,11 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Project access and protection
 
+- Added a permanent-superadmin reviewed empty patient/shift seed on Android and
+  desktop, retaining doctors/accounts, connection/key and Telegram history. Local
+  stale-state checks preserve racing edits; audit/delivery records remain.
+  Scope and runtime limits are in [current state](current-state.md#permanent-superadmin-empty-start).
+
 - Hospital-independent Demo/Join/Create, protected `.srjoin.json`, optional
   Telegram AES-GCM encryption and deliberate readable-PDF exception.
 - Verified join staging, direct Android 10+ Downloads saving and shared/picker
@@ -195,6 +200,14 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   with clinical columns/decoder/schema versions preserved.
 
 ## Interface
+
+- Defaulted fresh settings/demo to Light/Turquoise with white surfaces and eight
+  more distinct named palettes. Reordered Android report preview and daily/data/
+  project drawer groups, grouped desktop sidebar actions, and moved ward tasks
+  into filter controls. Doctor import now gives persistent errors and visible
+  progress instead of only a transient failure snackbar. The supplied CSV is
+  structurally valid; its original device-side failure remains under investigation.
+  Source checks and limits are in [current state](current-state.md#report-navigation-and-doctor-import-feedback-refresh).
 
 - Shared fields/actions/choices/search/notices/indexes/metrics/loading/review
   components, consistent busy guards, accessible Retry and Arabic formatting.
