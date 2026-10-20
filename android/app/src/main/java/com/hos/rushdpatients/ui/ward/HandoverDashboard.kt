@@ -39,7 +39,8 @@ internal fun HandoverDashboard(
     onSync: () -> Unit,
     onActivity: () -> Unit,
     modifier: Modifier = Modifier,
-    bottomClearance: Dp = UiSpacing.screen
+    bottomClearance: Dp = UiSpacing.screen,
+    showSynchronization: Boolean = true
 ) {
     val mine = patients.count {
         it.responsibleResidentId == currentDoctorId || it.responsibleSpecialistId == currentDoctorId ||
@@ -65,11 +66,12 @@ internal fun HandoverDashboard(
     ) {
         Text("لوحة تسليم المناوبة", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "ملخص سريع قبل مراجعة المرضى أو نشر التقرير",
+            if (showSynchronization) "ملخص سريع قبل مراجعة المرضى أو نشر التقرير"
+            else "ملخص المرضى والمهام في المناوبة التجريبية",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppTextButton(onClick = onSync) { Text("مزامنة") }
+            if (showSynchronization) AppTextButton(onClick = onSync) { Text("مزامنة") }
             if (isAdmin) AppTextButton(onClick = onActivity) { Text("مركز النشاط") }
             AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
         }
@@ -87,7 +89,7 @@ internal fun HandoverDashboard(
                 AppMetricRow("دخول اليوم", newAdmissions, compact = true) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
             }
         }
-        Surface(
+        if (showSynchronization) Surface(
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.fillMaxWidth()

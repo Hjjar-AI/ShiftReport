@@ -1,4 +1,6 @@
 import com.android.build.api.artifact.SingleArtifact
+import java.io.StringReader
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -7,6 +9,18 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
+
+val appVersionProperties = Properties().apply {
+    load(StringReader(providers.fileContents(
+        rootProject.layout.projectDirectory.file("gradle/app-version.properties")
+    ).asText.get()))
+}
+val currentAppVersionCode = providers.gradleProperty("shiftreport.versionCode")
+    .orElse(appVersionProperties.getProperty("versionCode")).get().toInt()
+val currentAppVersionName = providers.gradleProperty("shiftreport.versionName")
+    .orElse(appVersionProperties.getProperty("versionName")).get()
+require(currentAppVersionCode in 1..2_100_000_000) { "Invalid app versionCode" }
+require(currentAppVersionName.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(?:\\.[0-9]+)*"))) { "Invalid app versionName" }
 
 android {
     namespace = "com.hos.rushdpatients"
@@ -25,8 +39,8 @@ android {
         applicationId = "com.hos.rushdpatients"
         minSdk = 23
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.1.20261007"
+        versionCode = currentAppVersionCode
+        versionName = currentAppVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -150,10 +164,9 @@ androidComponents {
             description = "Copy $variantName APKs to the user's Desktop/ShiftReport folder."
             from(variant.artifacts.get(SingleArtifact.APK))
             include("*.apk")
-            into(apkExportDirectory.map { "$it/$variantName" })
-            rename { originalName ->
-                "ShiftReport-v$apkExportVersion-${originalName.removePrefix("app-")}"
-            }
+            into("${apkExportDirectory.get()}/$variantName")
+            // Built-in regex mapping stores strings, not a script-capturing lambda.
+            rename("^(?:app-)?(.+\\.apk)$", "ShiftReport-v$apkExportVersion-\$1")
         }
         tasks.matching { it.name == "assemble$variantTaskName" }.configureEach {
             dependsOn(exportApk)

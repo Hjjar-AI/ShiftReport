@@ -55,6 +55,7 @@ A density choice changes padding/gaps, not font size or minimum action targets.
 | Role | Current value |
 |---|---|
 | Normal border | 1dp, theme outline variant |
+| Patient card border | 1dp, outline variant blended 22% toward the theme accent; selected/highlighted cards retain the stronger selected border |
 | Selected border | 2dp, theme primary |
 | Focused border | 2dp, theme primary |
 | Flat surface elevation | 0dp |

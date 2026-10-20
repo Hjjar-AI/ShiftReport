@@ -36,8 +36,10 @@ internal data class DemoWardState(
     val date: LocalDate = LocalDate.now(),
     val exporting: Boolean = false,
     val saveAndNext: Boolean = false,
+    val actorId: String = doctors.first().id,
     val message: String? = null
 ) {
+    val actor: Doctor get() = doctors.firstOrNull { it.id == actorId } ?: doctors.first()
     val names: Map<String, String> get() = doctors.associate { it.id to it.fullName }
     val shiftDoctors: List<Doctor> get() = shiftDoctorIds.mapNotNull { id -> doctors.find { it.id == id } }
     val ordered: List<Patient> get() = PatientComparators.ordered(patients, sort, names)
@@ -55,8 +57,14 @@ class DemoWardViewModel @Inject constructor(
     private val _state = MutableStateFlow(DemoWardState())
     internal val state = _state.asStateFlow()
 
-    internal fun endSession() { _state.value = DemoWardState() }
-    internal fun reset() { if (!_state.value.exporting) _state.value = DemoWardState(message = "أُعيدت البيانات التجريبية") }
+    private var pendingExport: Pair<PdfExportOptions, Boolean>? = null
+    internal fun endSession() { pendingExport = null; _state.value = DemoWardState() }
+    internal fun reset() {
+        if (!_state.value.exporting) { pendingExport = null; _state.value = DemoWardState(message = "أُعيدت البيانات التجريبية") }
+    }
+    internal fun selectActor(id: String) {
+        if (_state.value.doctors.any { it.id == id && !it.isDeleted }) _state.update { it.copy(actorId = id) }
+    }
     internal fun setSaveAndNext(enabled: Boolean) = _state.update { it.copy(saveAndNext = enabled) }
     internal fun dismissMessage() = _state.update { it.copy(message = null) }
     internal fun message(value: String) = _state.update { it.copy(message = value) }
@@ -76,7 +84,7 @@ class DemoWardViewModel @Inject constructor(
             onStale(before)
             return false
         }
-        val actor = current.doctors.first()
+        val actor = current.actor
         val oldTasks = before?.tasks.orEmpty().associateBy { it.id }
         val prepared = patient.copy(
             revision = (before?.revision ?: 0) + 1, updatedAt = Instant.now(),
@@ -105,7 +113,19 @@ class DemoWardViewModel @Inject constructor(
             deleted = current.deleted.filterNot { it.id == patient.id }, message = "استُعيد المريض التجريبي")
     }
 
-    internal fun exportPdf(uri: Uri?, options: PdfExportOptions, elegant: Boolean) {
+    internal fun preparePdfExport(options: PdfExportOptions, elegant: Boolean) {
+        if (!_state.value.exporting) pendingExport = options to elegant
+    }
+
+    internal fun exportPreparedPdf(uri: Uri?) {
+        val prepared = pendingExport
+        pendingExport = null
+        if (uri == null) return
+        if (prepared == null) { message("أعد اختيار حفظ PDF من معاينة التقرير"); return }
+        exportPdf(uri, prepared.first, prepared.second)
+    }
+
+    private fun exportPdf(uri: Uri?, options: PdfExportOptions, elegant: Boolean) {
         if (uri == null || _state.value.exporting) return
         val snapshot = _state.value
         if (snapshot.patients.isEmpty() || snapshot.shiftDoctors.isEmpty()) {

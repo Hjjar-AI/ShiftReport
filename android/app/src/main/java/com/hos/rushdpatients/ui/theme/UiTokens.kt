@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -17,6 +18,14 @@ object UiPatientCard {
         PaddingValues(horizontal = UiSpacing.medium, vertical = UiSpacing.small), UiSpacing.medium)
     val listGap = UiSpacing.medium
     fun density(compact: Boolean): PatientCardDensity = if (compact) this.compact else normal
+
+    const val borderAccentFraction = .22f
+
+    @Composable
+    fun border(selected: Boolean = false): BorderStroke =
+        if (selected) UiBorder.stroke(selected = true)
+        else BorderStroke(UiBorder.normalWidth,
+            lerp(MaterialTheme.colorScheme.outlineVariant, MaterialTheme.colorScheme.primary, borderAccentFraction))
 }
 
 /** Neutral surfaces and interactive emphasis; clinical severity has its own palette. */

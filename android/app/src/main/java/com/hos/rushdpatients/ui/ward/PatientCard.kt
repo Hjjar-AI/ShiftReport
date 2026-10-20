@@ -159,7 +159,7 @@ fun PatientCard(
             }
             .combinedClickable(enabled = showViewControls, onClick = onClick, onLongClick = onLongClick),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = cardColor),
-        border = UiBorder.stroke(selected = selected || recentlyEdited)
+        border = UiPatientCard.border(selected = selected || recentlyEdited)
     ) {
         Column(
             modifier = Modifier

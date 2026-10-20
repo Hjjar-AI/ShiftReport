@@ -46,6 +46,16 @@ location when available; otherwise it uses `$HOME/Desktop`. Use
 `-Pshiftreport.apkExportDir=/your/folder` to change that export root. These names
 separate output files, while Android app IDs and installation behavior remain unchanged.
 
+The POSIX launcher now increments the app patch/version code before normal debug/
+release packaging. Failed attempts consume a number; help/dry runs do not. Keep
+`android/gradle/app-version.properties` when sharing the project with another PC.
+IDE/direct Gradle and Windows launchers do not reserve new versions. See the
+[automatic versioning details](android-shared-workstation-build-fixes.md#automatic-app-patch-and-version-code-increments).
+The export task uses built-in regex naming to avoid the script-object capture
+reported during configuration-cache storage. New version properties can cause
+normal cache invalidation; that is not a cache-storage failure.
+
+
 
 
 ## Capture one failure

@@ -40,7 +40,7 @@ The owner generally starts fresh projects after edits. Do not treat historical-p
 
 ## Offline demonstration
 
-Demo is an isolated in-memory workspace using the real offline patient forms, cards, task controls, roster picker, sorting, and PDF renderer. It has no clinical repository or Telegram dependency. Local PDF export is explicitly available for demonstrating reports, with a demo label on every page; exit/reset discards the temporary session. Drawer density preserves 48dp targets while using a two-column context header and compact wrapping rows.
+Demo is an isolated in-memory workspace using the real offline patient forms, cards, task controls, roster picker, sorting, and PDF renderer. Android also reuses the real Patients/Dashboard navigation, metrics and list controls while separating report review, team/actor selection and temporary preferences into focused destinations. Omit unsupported network/admin actions; do not implement fake synchronization or invoke production settings/session ViewModels. See [Android demo](android-demo.md). It has no clinical repository or Telegram dependency. Local PDF export is explicitly available for demonstrating reports, with a demo label on every page; exit/reset discards the temporary session. Drawer density preserves 48dp targets while using a two-column context header and compact wrapping rows.
 
 ## Standalone desktop client
 

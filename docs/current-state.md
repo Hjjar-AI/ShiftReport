@@ -70,6 +70,14 @@ project setup if needed, clinician login/PIN unlock, and ward navigation.
   hot-beverage patients/tree-named doctors, real offline forms/cards and explicit
   per-page-labelled local PDF export; it writes no clinical database or Telegram
   data. Reset/exit discards it; process death starts a new demo.
+  The [organized Android demo](android-demo.md) now shares the real Patients/
+  Dashboard bar/rail, dashboard/filter controls, fold-aware content, cards/forms,
+  roster and sort editor. Secondary tools live in a drawer; report review and
+  temporary settings are separate destinations. The selected dummy actor drives
+  “My patients” and completion attribution; report export remains local PDF only.
+  PDF options survive the file picker in the ViewModel without a settings store.
+  Source/whitespace checks passed; this demo reorganization has no build/device
+  verification.
 - Ward: Patients/Dashboard, plus Activity only for admins across all entry points.
   Compact floating rounded bottom tabs retain 48dp targets and transparent side
   gutters; list content scrolls behind them with end clearance. From 600dp a rail
@@ -1780,6 +1788,29 @@ Windows 7 compatibility is explicitly unverified; vendor requirements and the
 project target are distinguished. Local links, source paths, command structure
 and Git whitespace were checked. No packaging commands, EXE/installer creation,
 Android builds or test-suite tasks were run for this documentation change.
+
+### Workstation APK export and app build versions
+
+The owner's export-task configuration-cache error was traced to the custom rename
+callback reading a Kotlin script property. APK export now uses a built-in regex
+rename rule and a destination resolved during configuration; configuration caching
+remains enabled. The POSIX wrapper reserves an increasing app patch/version code
+for normal packaging invocations through a Python 3 helper and tracked project
+counter. It locks the shared metadata directory and replaces the counter atomically;
+Gradle properties carry that command's reserved pair to Android and APK naming.
+The original major/minor/patch/date format and debug suffix are retained; the date
+is regenerated at reservation from the build-start date in Asia/Damascus, using
+the host timezone database rather than its local timezone or a fixed offset.
+Same-day rebuilds still advance patch/code. No toolchain or
+database/interchange version changes are involved. Failed attempts consume a code;
+help/dry runs skip reservation. IDE/direct Gradle/Windows use the recorded version
+without a new reservation. Sharing the latest counter between PCs remains explicit.
+
+Source/shell and disposable temporary-counter probes passed task-selection/override
+cases, concurrent reservations and malformed-counter rejection. The actual project
+counter was left at its seed during verification. No Gradle/build or packaging ran;
+configuration-cache storage and the produced APK still require an owner-run build.
+See [build fixes and reusable preferences](android-shared-workstation-build-fixes.md).
 
 ## Verification and limits
 

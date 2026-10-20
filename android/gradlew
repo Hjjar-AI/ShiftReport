@@ -140,6 +140,43 @@ APP_BASE_NAME=${0##*/}
 # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
 APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
 
+# Reserve a fresh app patch/code for packaging requests, never for help or dry runs.
+shiftreport_packaging=false
+shiftreport_skip_version=false
+shiftreport_code_override=false
+shiftreport_name_override=false
+for shiftreport_arg in "$@"; do
+    case "$shiftreport_arg" in
+        --dry-run|-m|--help|-h|--version|-v|-Pshiftreport.autoVersion=false) shiftreport_skip_version=true ;;
+        -Pshiftreport.versionCode=*) shiftreport_code_override=true ;;
+        -Pshiftreport.versionName=*) shiftreport_name_override=true ;;
+        -*) ;;
+        *)
+            case "${shiftreport_arg##*:}" in
+                assemble|assembleDebug|assembleRelease|build|buildDebug|buildRelease|bundle|bundleDebug|bundleRelease|packageDebug|packageRelease|exportDebugApk|exportReleaseApk)
+                    shiftreport_packaging=true ;;
+            esac
+            ;;
+    esac
+done
+if [ "$shiftreport_code_override" != "$shiftreport_name_override" ]; then
+    echo "Supply both shiftreport.versionCode and shiftreport.versionName, or neither." >&2
+    exit 1
+fi
+if [ "$shiftreport_packaging" = true ] && [ "$shiftreport_skip_version" = false ] && [ "$shiftreport_code_override" = false ]; then
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "Python 3 is required to reserve the app build version." >&2
+        exit 1
+    fi
+    shiftreport_reserved_version=$(python3 "$APP_HOME/gradle/next_app_version.py" "$APP_HOME/gradle/app-version.properties") || exit 1
+    shiftreport_version_code=${shiftreport_reserved_version%% *}
+    shiftreport_version_name=${shiftreport_reserved_version#* }
+    set -- "-Pshiftreport.versionCode=$shiftreport_version_code" "-Pshiftreport.versionName=$shiftreport_version_name" "$@"
+    echo "ShiftReport build: $shiftreport_version_name (code $shiftreport_version_code)" >&2
+fi
+unset shiftreport_packaging shiftreport_skip_version shiftreport_code_override shiftreport_name_override
+unset shiftreport_arg shiftreport_reserved_version shiftreport_version_code shiftreport_version_name
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 

@@ -26,6 +26,13 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Clinical data and reports
 
+- Organized the [Android demo](android-demo.md) around shared Patients/Dashboard
+  navigation, a secondary-tools drawer, real dashboard/options components and
+  separate report/team/preferences screens. Added memory-only actor selection,
+  temporary font/card options and confirmed reset/exit; retained real forms,
+  task/revision handling and labelled local PDF export. Source checks passed;
+  no build/device verification ran. Desktop demo is unchanged by this work.
+
 - Reorganized Android ward controls, patient-card hierarchy, display options,
   report setup with basic scope/destination/format before Advanced PDF styling,
   and rounds save-and-next discovery. Separated preferences, Data Management,
@@ -35,7 +42,9 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   dummy appearance preview (with the Material API opt-in required by the owner's
   compile log), fixed patient/section orientation, explicit local-save
   feedback and restored View Options/filter/group state; loading preserves card
-  expansion and publication status stays visible beside delivery warnings. Desktop now has a slimmer daily-action sidebar, separate settings/tools,
+  expansion and publication status stays visible beside delivery warnings. Patient
+  cards now use a thin, softly accent-tinted border in real/demo/preview views,
+  retaining stronger selection/highlight emphasis. Source/whitespace checks only. Desktop now has a slimmer daily-action sidebar, separate settings/tools,
   compact toolbar/cards, report scope selection inside report setup and reusable
   patient widgets with filter/reset scroll preservation. Desktop now separates
   preferences, project tools and collapsed diagnostics; unifies View Options with
@@ -280,7 +289,15 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   folder, with XDG Desktop discovery in the POSIX launcher and an explicit export
   override. Source/path probes passed; Gradle export execution remains unverified. The guide
   includes a reusable preference checklist, project-name/path adaptation table,
-  cross-PC notes and a request template for future projects.
+  cross-PC notes and a request template for future projects. Replaced the APK
+  rename callback with a regex rule after the owner's cache-serialization failure.
+  Added explicit owner-requested patch/version-code reservation for POSIX debug/
+  release packaging, with a locked atomic project counter and documented gaps,
+  overrides and launcher/PC scope. The date suffix is regenerated from each build's
+  start date in Asia/Damascus, rather than preserving the old date. Source/date/
+  concurrency probes passed; no build ran. The consolidated guide now includes
+  daily debug/release/both commands, Desktop/original APK paths, complete overrides,
+  build-date rules, encountered source/warning messages and cross-PC reuse steps.
 
 - Grouped the complete Android project/settings/caches under `android/`, retained
   the PC client under `desktop/`, and moved private Excel artifacts to ignored
