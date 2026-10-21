@@ -357,9 +357,11 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 ## Repository organization
 
 - Separated Android settings content/operations, ward filtering/grid/review dialogs,
+  Ward ViewModel preferences/patient/shift/activity operations and shared save guard,
   patient demographics/validation/submission, report PDF artifacts/exports, and
-  patient retrieval/publication. Desktop shell/list/patient/data/report actions now
-  use focused modules. Existing entry points, draft/lifecycle ownership, review
+  patient retrieval/publication. Desktop shell/list/patient/data/report actions,
+  protocol layers, and form controls/pickers/editors now use focused modules.
+  Existing entry points, draft/lifecycle ownership, review
   guards and shared synchronization locks remain; source-preservation evidence and
   runtime limits are in [current state](current-state.md#source-ownership-after-logical-separation).
 

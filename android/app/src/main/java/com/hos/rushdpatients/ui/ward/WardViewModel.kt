@@ -1,18 +1,12 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.components.uiNumber
-import com.hos.rushdpatients.domain.task.PatientTasks
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.config.ProjectConfigStore
-import com.hos.rushdpatients.data.model.Doctor
-import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Shift
-import com.hos.rushdpatients.data.repository.StalePatientEditException
-import com.hos.rushdpatients.data.repository.StaleShiftEditException
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
@@ -24,11 +18,7 @@ import com.hos.rushdpatients.data.model.SyncChannel
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
-import com.hos.rushdpatients.domain.patient.PatientValidationError
-import com.hos.rushdpatients.domain.patient.PatientValidationResult
-import com.hos.rushdpatients.domain.patient.PatientValidator
 import com.hos.rushdpatients.domain.sort.GroupByMode
-import com.hos.rushdpatients.domain.sort.PatientComparators
 import com.hos.rushdpatients.domain.sort.SortSpec
 import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.sync.KnownShiftSnapshot
@@ -57,8 +47,6 @@ import com.hos.rushdpatients.domain.report.ReportDeliveryLedger
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import java.util.UUID
-import java.time.Instant
 
 @HiltViewModel
 class WardViewModel @Inject constructor(
@@ -87,7 +75,21 @@ class WardViewModel @Inject constructor(
         viewModelScope, SharingStarted.WhileSubscribed(0), NetworkStatus.isOnline(context)
     )
     private var observationJob: Job? = null
-    private var draftSaveJob: Job? = null
+
+    private val saveGuard = WardSaveGuard(
+        _state, shiftRepository)
+
+    private val preferences = WardPreferences(
+        _state, viewModelScope, settingsRepository)
+
+    private val patientActions = WardPatientActions(
+        _state, viewModelScope, shiftRepository, patientRepository, wardMutations, settingsRepository, sessionManager, json, saveGuard)
+
+    private val shiftOperations = WardShiftOperations(
+        _state, viewModelScope, context, shiftRepository, patientRepository, wardMutations, syncService, settingsRepository, csvExporter, sessionManager, saveGuard, ::observeShift)
+
+    private val activityOperations = WardActivityOperations(
+        _state, viewModelScope, syncService, auditRepository, adminAuthorizer)
 
     init {
         viewModelScope.launch {
@@ -165,81 +167,11 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    private fun loadDraft() {
-        viewModelScope.launch {
-            val draft = settingsRepository.get(AppConstants.SETTING_PATIENT_DRAFT)
-                ?.let { runCatching { json.decodeFromString<PatientDraft>(it) }.getOrNull() }
-                ?.takeUnless { it.isEmpty }
-            _state.update { it.copy(patientDraft = draft) }
-        }
-    }
+    private fun loadDraft() = patientActions.loadDraft()
 
-    fun saveDraft(draft: PatientDraft) {
-        _state.update { it.copy(patientDraft = draft.takeUnless { value -> value.isEmpty }) }
-        draftSaveJob?.cancel()
-        draftSaveJob = viewModelScope.launch {
-            delay(350)
-            if (draft.isEmpty) settingsRepository.delete(AppConstants.SETTING_PATIENT_DRAFT)
-            else settingsRepository.put(
-                AppConstants.SETTING_PATIENT_DRAFT,
-                json.encodeToString(PatientDraft.serializer(), draft)
-            )
-        }
-    }
+    fun saveDraft(draft: PatientDraft) = patientActions.saveDraft(draft)
 
-    private suspend fun clearDraft() {
-        draftSaveJob?.cancel()
-        settingsRepository.delete(AppConstants.SETTING_PATIENT_DRAFT)
-        _state.update { it.copy(patientDraft = null) }
-    }
-
-    private fun observePreferences() {
-        viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED)
-                .collect { stored ->
-                    _state.update {
-                        it.copy(patientDetailsExpanded = stored?.toBooleanStrictOrNull() ?: false)
-                    }
-                }
-        }
-        viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_PATIENT_TWO_COLUMN)
-                .collect { stored ->
-                    _state.update {
-                        it.copy(twoColumn = stored?.toBooleanStrictOrNull() ?: false)
-                    }
-                }
-        }
-        viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_PATIENT_COMPACT_DENSITY)
-                .collect { stored ->
-                    _state.update {
-                        it.copy(compactCards = stored?.toBooleanStrictOrNull() ?: false)
-                    }
-                }
-        }
-        viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_SAVE_AND_NEXT).collect { stored ->
-                _state.update { it.copy(saveAndNext = stored?.toBooleanStrictOrNull() ?: false) }
-            }
-        }
-        viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_GROUP_BY_MODE)
-                .collect { stored ->
-                    val mode = GroupByMode.fromSetting(stored)
-                    _state.update { current ->
-                        current.copy(
-                            groupByMode = mode,
-                            groupedPatients = groupPatients(
-                                current.patients,
-                                current.doctors,
-                                mode
-                            )
-                        )
-                    }
-                }
-        }
-    }
+    private fun observePreferences() = preferences.observePreferences()
 
     fun load() {
         viewModelScope.launch {
@@ -309,403 +241,62 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun bringLatestData() = fetchRemoteData(previous = false)
+    fun bringLatestData() = shiftOperations.bringLatestData()
 
-    private suspend fun rolloverSourceLabel(source: com.hos.rushdpatients.data.model.Shift): String {
-        val at = settingsRepository.get(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + source.id)?.toLongOrNull()
-        val message = settingsRepository.get(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + source.id)?.toLongOrNull()
-        val downloaded = if (at != null && message != null && source.csvMessageId == message) {
-            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z")
-                .format(java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()))
-        } else "غير معروف؛ قد تكون نسخة محلية لم تُنزّل على هذا الجهاز"
-        return "المصدر: مناوبة ${source.date} المحفوظة على هذا الجهاز\nآخر تنزيل لهذه الحزمة: $downloaded\n" +
-            "لم يُفحص تليجرام الآن؛ قد توجد نسخة أحدث. ألغِ واجلب أحدث البيانات أولاً إذا أردت تحديث المصدر."
-    }
+    private suspend fun rolloverSourceLabel(source: com.hos.rushdpatients.data.model.Shift): String = shiftOperations.rolloverSourceLabel(source)
 
-    fun offerPreviousShift() {
-        val shiftId = editableShiftId() ?: return
-        if (_state.value.saving || _state.value.syncing) return
-        viewModelScope.launch {
-            try {
-                require(patientRepository.countForShift(shiftId) == 0) { "مناوبة اليوم تحتوي مرضى؛ لن تُستبدل" }
-                val shift = shiftRepository.getById(shiftId) ?: error("المناوبة غير موجودة")
-                val previous = shiftRepository.getRecent(12).firstOrNull { it.date < shift.date }
-                val candidates = previous?.let { patientRepository.getForShift(it.id) }.orEmpty()
-                require(candidates.isNotEmpty()) { "لا توجد مناوبة سابقة تحتوي مرضى لنسخهم؛ يمكنك جلب البيانات من تليجرام أولاً" }
-                val sourceLabel = rolloverSourceLabel(requireNotNull(previous))
-                _state.update { it.copy(rolloverPatients = candidates, rolloverTarget = shift, rolloverSourceLabel = sourceLabel) }
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: "تعذر تحضير المناوبة الجديدة") } }
-        }
-    }
+    fun offerPreviousShift() = shiftOperations.offerPreviousShift()
 
-    fun dismissRollover() = _state.update { it.copy(rolloverPatients = emptyList(), rolloverTarget = null, rolloverSourceLabel = "") }
+    fun dismissRollover() = shiftOperations.dismissRollover()
 
-    private var activityJob: Job? = null
+    fun loadLocalActivity() = activityOperations.loadLocalActivity()
 
-    fun loadLocalActivity() {
-        viewModelScope.launch {
-            try {
-                val activity = auditRepository.getRecent()
-                _state.update { it.copy(recentActivity = activity) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(activityError = e.message ?: "تعذر تحميل النشاط المحلي") }
-            }
-        }
-    }
+    fun loadRecentActivity() = activityOperations.loadRecentActivity()
 
-    fun loadRecentActivity() {
-        if (activityJob?.isActive == true) return
-        activityJob = viewModelScope.launch {
-            try {
-                adminAuthorizer.requireAdmin()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(recentActivity = emptyList(), publications = emptyList(),
-                    activityLoading = false, activityError = e.message) }
-                return@launch
-            }
-            _state.update { it.copy(activityLoading = true, activityError = null) }
-            try {
-                val activity = auditRepository.getRecent()
-                _state.update { it.copy(recentActivity = activity) }
-                val publications = syncService.getPublicationJournal()
-                _state.update { it.copy(publications = publications) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(activityError = e.message ?: "تعذر تحديث النشاط والمنشورات") }
-            } finally {
-                _state.update { it.copy(activityLoading = false) }
-            }
-        }
-    }
+    fun applyRollover(keepAssignments: Boolean) = shiftOperations.applyRollover(keepAssignments)
 
-    fun applyRollover(keepAssignments: Boolean) {
-        val shiftId = editableShiftId() ?: return
-        if (_state.value.saving || _state.value.syncing) return
-        _state.update { it.copy(saving = true) }
-        viewModelScope.launch {
-            saveAction(onSuccess = {}) {
-                val expected = requireNotNull(_state.value.rolloverTarget) { "أعد فتح نسخ المناوبة" }
-                require(expected.id == shiftId) { "تغيرت المناوبة؛ أعد فتح النسخ" }
-                val candidates = _state.value.rolloverPatients
-                require(candidates.isNotEmpty()) { "لا توجد سجلات لنسخها" }
-                val selected = candidates.mapIndexed { index, patient ->
-                    patient.copy(
-                        id = UUID.randomUUID().toString(),
-                        tasks = PatientTasks.carryForward(patient.tasks, clearOwners = !keepAssignments),
-                        sortOrder = index + 1, revision = 1, updatedAt = Instant.now(),
-                        lastEditedByDoctorId = sessionManager.current()?.doctorId,
-                        lastEditedByName = sessionManager.current()?.doctorName,
-                        responsibleResidentId = patient.responsibleResidentId.takeIf { keepAssignments },
-                        responsibleSpecialistId = patient.responsibleSpecialistId.takeIf { keepAssignments }
-                    )
-                }
-                wardMutations.rollover(selected, shiftId, expected.revision,
-                    candidates.map { it to if (keepAssignments) "continue" else "reassign" }, sessionManager.current())
-                _state.update { it.copy(rolloverPatients = emptyList(), rolloverTarget = null, rolloverSourceLabel = "",
-                    snackbar = "نُسخ جميع المرضى (${uiNumber(selected.size)}) محلياً؛ حدد أطباء المناوبة ثم راجع وانشر") }
-            }
-        }
-    }
+    fun bringPreviousData() = shiftOperations.bringPreviousData()
 
-    fun bringPreviousData() = fetchRemoteData(previous = true)
+    fun showDownloadedSnapshots() = shiftOperations.showDownloadedSnapshots()
 
-    fun showDownloadedSnapshots() {
-        if (_state.value.syncing) return
-        viewModelScope.launch {
-            val downloaded = shiftRepository.getRecent(12)
-                .filter { it.csvMessageId != null }
-            val latestBundleMessageId = downloaded.maxOfOrNull { it.csvMessageId ?: Long.MIN_VALUE }
-            val choices = downloaded
-                .filter { it.csvMessageId == latestBundleMessageId }
-                .sortedByDescending { it.date }
-                .take(AppConstants.CSV_BUNDLE_SHIFT_COUNT)
-                .map { shift ->
-                    ShiftSnapshotOption(
-                        shiftId = shift.id,
-                        date = shift.date,
-                        patientCount = patientRepository.countForShift(shift.id)
-                    )
-                }
-            if (choices.isEmpty()) {
-                _state.update {
-                    it.copy(snackbar = "نزّل أحدث ملف أولاً لعرض المناوبات المحفوظة فيه")
-                }
-            } else {
-                _state.update { it.copy(snapshotChoices = choices, showSnapshotPicker = true) }
-            }
-        }
-    }
+    fun dismissSnapshotPicker() = shiftOperations.dismissSnapshotPicker()
 
-    fun dismissSnapshotPicker() {
-        _state.update { it.copy(showSnapshotPicker = false) }
-    }
+    fun selectDownloadedSnapshot(shiftId: String) = shiftOperations.selectDownloadedSnapshot(shiftId)
 
-    fun selectDownloadedSnapshot(shiftId: String) {
-        val selected = _state.value.snapshotChoices.firstOrNull { it.shiftId == shiftId } ?: return
-        observeShift(shiftId)
-        _state.update {
-            it.copy(
-                showSnapshotPicker = false,
-                snackbar = "تم عرض مناوبة ${selected.date}"
-            )
-        }
-    }
+    fun togglePatientDetails() = preferences.togglePatientDetails()
 
-    fun togglePatientDetails() = setPatientDetailsExpanded(!_state.value.patientDetailsExpanded)
+    fun setPatientDetailsExpanded(expanded: Boolean) = preferences.setPatientDetailsExpanded(expanded)
 
-    fun setPatientDetailsExpanded(expanded: Boolean) {
-        _state.update { it.copy(patientDetailsExpanded = expanded) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED, expanded)
-        }
-    }
+    fun setSaveAndNext(enabled: Boolean) = preferences.setSaveAndNext(enabled)
 
-    fun setSaveAndNext(enabled: Boolean) {
-        _state.update { it.copy(saveAndNext = enabled) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_SAVE_AND_NEXT, enabled)
-        }
-    }
+    fun setTwoColumn(enabled: Boolean) = preferences.setTwoColumn(enabled)
 
-    fun setTwoColumn(enabled: Boolean) {
-        _state.update { it.copy(twoColumn = enabled) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_TWO_COLUMN, enabled)
-        }
-    }
+    fun setCompactCards(compact: Boolean) = preferences.setCompactCards(compact)
 
-    fun setCompactCards(compact: Boolean) {
-        _state.update { it.copy(compactCards = compact) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, compact)
-        }
-    }
+    fun setGroupByMode(mode: GroupByMode) = preferences.setGroupByMode(mode)
 
-    fun setGroupByMode(mode: GroupByMode) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_GROUP_BY_MODE, mode.name)
-            _state.update { current ->
-                current.copy(
-                    groupByMode = mode,
-                    groupedPatients = groupPatients(current.patients, current.doctors, mode)
-                )
-            }
-        }
-    }
+    fun exportCsv() = shiftOperations.exportCsv()
 
-    fun exportCsv() {
-        if (_state.value.exportingCsv) return
-        val shiftId = _state.value.shift?.id
-        if (shiftId == null) {
-            _state.update { it.copy(snackbar = "لا توجد وردية للتصدير") }
-            return
-        }
-        _state.update { it.copy(exportingCsv = true, snackbar = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                when (val result = csvExporter.exportShift(shiftId)) {
-                    is PatientCsvExporter.Result.Success -> _state.update {
-                        it.copy(
-                            exportingCsv = false,
-                            snackbar = "تم حفظ ${result.patientCount} مريض في ${result.fileName}",
-                            lastOperation = "آخر عملية ناجحة: حفظ ${result.fileName}"
-                        )
-                    }
-                    is PatientCsvExporter.Result.Failure -> _state.update {
-                        it.copy(
-                            exportingCsv = false,
-                            snackbar = result.message,
-                            retryAction = WardRetryAction.EXPORT_CSV
-                        )
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        exportingCsv = false,
-                        snackbar = e.message ?: "فشل تصدير CSV",
-                        retryAction = WardRetryAction.EXPORT_CSV
-                    )
-                }
-            }
-        }
-    }
-
-    private fun fetchRemoteData(previous: Boolean) {
-        if (_state.value.syncing) return
-        val retry = if (previous) WardRetryAction.FETCH_PREVIOUS
-        else WardRetryAction.FETCH_LATEST
-        if (!NetworkStatus.isOnline(context)) {
-            _state.update {
-                it.copy(
-                    snackbar = "لا يوجد اتصال بالإنترنت — أعد المحاولة عند توفر الشبكة",
-                    retryAction = retry
-                )
-            }
-            return
-        }
-        _state.update {
-            it.copy(
-                syncing = true,
-                snackbar = null,
-                retryAction = null
-            )
-        }
-        viewModelScope.launch {
-            // Refresh the complete registry; pending local changes require explicit handling.
-            val doctorsResult = syncService.refreshDoctorsFromRemote()
-            if (doctorsResult.isFailure) {
-                _state.update {
-                    it.copy(
-                        syncing = false,
-                        snackbar = doctorsResult.exceptionOrNull()?.message
-                            ?: "فشل جلب سجل الأطباء",
-                        retryAction = retry
-                    )
-                }
-                return@launch
-            }
-
-            val result = if (previous) {
-                syncService.fetchPreviousCsv()
-            } else {
-                syncService.fetchLatestCsv()
-            }
-            result.onSuccess { fetched ->
-                observeShift(fetched.shiftId)
-                val source = if (previous) "النسخة السابقة" else "أحدث نسخة"
-                _state.update {
-                    it.copy(
-                        syncing = false,
-                        snackbar = "تم استبدال البيانات المحلية بـ$source",
-                        lastOperation = "آخر عملية ناجحة: جلب $source",
-                        retryAction = null
-                    )
-                }
-            }.onFailure { error ->
-                _state.update {
-                    val message = error.message ?: "فشل جلب البيانات"
-                    it.copy(
-                        syncing = false,
-                        snackbar = message,
-                        retryAction = retry
-                    )
-                }
-            }
-        }
-    }
-
-    fun undoLastDownload() {
-        if (_state.value.syncing || _state.value.saving) return
-        _state.update { it.copy(syncing = true) }
-        viewModelScope.launch {
-            try {
-                syncService.undoLastDownload().onSuccess { id ->
-                    observeShift(id)
-                    _state.update { it.copy(snackbar = "استُعيدت البيانات المحلية قبل التنزيل؛ راجعها قبل النشر") }
-                }.onFailure { error -> showError(error.message ?: "تعذر التراجع عن التنزيل") }
-            } finally { _state.update { it.copy(syncing = false) } }
-        }
-    }
+    fun undoLastDownload() = shiftOperations.undoLastDownload()
 
     fun addPatient(patient: Patient, position: Int? = null, expectedPatients: List<Patient>? = null,
-        expectedShiftRevision: Long? = null, onSuccess: () -> Unit = {}) {
-        val shiftId = editableShiftId() ?: return
-        viewModelScope.launch {
-            if (!validateForSave(patient)) return@launch
-            if (patientRepository.countForShift(shiftId) >= AppConstants.MAX_PATIENTS_PER_SHIFT) {
-                showError("تم الوصول إلى الحد الأقصى لعدد المرضى")
-                return@launch
-            }
-            saveAction(onSuccess = {
-                _state.update { it.copy(snackbar = "تم الحفظ محلياً") }
-                onSuccess()
-            }) {
-                requireEditableShift(shiftId)
-                wardMutations.addPatient(patient, shiftId, sessionManager.current(), position, expectedPatients, expectedShiftRevision)
-                clearDraft()
-            }
-        }
-    }
+        expectedShiftRevision: Long? = null, onSuccess: () -> Unit = {}) = patientActions.addPatient(patient, position, expectedPatients, expectedShiftRevision, onSuccess)
 
     fun updatePatient(
         patient: Patient,
         onStale: (Patient?) -> Unit = {},
         onSuccess: () -> Unit = {}
-    ) {
-        val shiftId = editableShiftId() ?: return
-        viewModelScope.launch {
-            if (!validateForSave(patient)) return@launch
-            saveAction(onSuccess = {
-                _state.update { it.copy(snackbar = "تم الحفظ محلياً") }
-                onSuccess()
-            }, onStale = { error ->
-                if (error !is StalePatientEditException) false else {
-                    val latest = patientRepository.getById(patient.id)
-                    onStale(latest?.takeIf { patientRepository.getShiftId(it.id) == shiftId })
-                    true
-                }
-            }) {
-                requireEditableShift(shiftId)
-                wardMutations.updatePatient(patient, shiftId, sessionManager.current())
-            }
-        }
-    }
+    ) = patientActions.updatePatient(patient, onStale, onSuccess)
 
-    fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {}) {
-        val shiftId = editableShiftId() ?: return
-        var deleted: Patient? = null
-        viewModelScope.launch {
-            saveAction(onSuccess = { deleted?.let(onSuccess) }) {
-                requireEditableShift(shiftId)
-                deleted = wardMutations.deletePatient(patient, shiftId, sessionManager.current())
-            }
-        }
-    }
+    fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {}) = patientActions.deletePatient(patient, onSuccess)
 
-    fun loadRecycleBin() {
-        val shiftId = _state.value.shift?.id ?: return
-        viewModelScope.launch {
-            _state.update { it.copy(deletedPatients = patientRepository.getSoftDeletedForShift(shiftId)) }
-        }
-    }
+    fun loadRecycleBin() = patientActions.loadRecycleBin()
 
-    fun restorePatient(patient: Patient) {
-        val shiftId = editableShiftId() ?: return
-        viewModelScope.launch {
-            saveAction(onSuccess = { loadRecycleBin() }) {
-                requireEditableShift(shiftId)
-                wardMutations.restorePatient(patient, shiftId, sessionManager.current())
-            }
-        }
-    }
+    fun restorePatient(patient: Patient) = patientActions.restorePatient(patient)
 
-    fun setPriority(patient: Patient, priority: Boolean) {
-        val shiftId = editableShiftId() ?: return
-        viewModelScope.launch {
-            saveAction(onSuccess = {}) {
-                requireEditableShift(shiftId)
-                wardMutations.updatePatient(
-                    patient.copy(isPriority = priority), shiftId, sessionManager.current()
-                )
-            }
-        }
-    }
+    fun setPriority(patient: Patient, priority: Boolean) = patientActions.setPriority(patient, priority)
 
-    fun dismissSyncHint() {
-        _state.update { it.copy(showSyncHint = false) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_SYNC_LONG_PRESS_HINT_SHOWN, true)
-        }
-    }
+    fun dismissSyncHint() = preferences.dismissSyncHint()
 
     fun retryLastAction() {
         when (_state.value.retryAction) {
@@ -721,222 +312,19 @@ class WardViewModel @Inject constructor(
         expectedRevision: Long,
         onStale: (Shift?) -> Unit,
         onSuccess: () -> Unit = {}
-    ) {
-        val shiftId = editableShiftId() ?: return
-        val shift = _state.value.shift?.takeIf { it.id == shiftId } ?: return
-        val activeIds = _state.value.doctors.filterNot { it.isDeleted }.mapTo(mutableSetOf()) { it.id }
-        when {
-            ids.size < AppConstants.MIN_SHIFT_DOCTORS -> {
-                showError("اختر طبيباً واحداً على الأقل")
-                return
-            }
-            ids.distinct().size != ids.size || ids.any { it !in activeIds } -> {
-                showError("اختيار أطباء المناوبة غير صالح")
-                return
-            }
-        }
-        viewModelScope.launch {
-            saveAction(onSuccess, onStale = { error ->
-                if (error !is StaleShiftEditException) false else {
-                    onStale(shiftRepository.getById(shiftId))
-                    true
-                }
-            }) {
-                requireEditableShift(shiftId)
-                wardMutations.setShiftDoctors(
-                    shiftId = shift.id,
-                    doctorIds = ids,
-                    expectedRevision = expectedRevision,
-                    actor = sessionManager.current()
-                )
-            }
-        }
-    }
+    ) = patientActions.setShiftDoctors(ids, expectedRevision, onStale, onSuccess)
 
     fun applySort(
         spec: SortSpec,
         expectedRevision: Long,
         onStale: (Shift?) -> Unit,
         onSuccess: () -> Unit = {}
-    ) {
-        val shiftId = editableShiftId() ?: return
-        viewModelScope.launch {
-            saveAction(onSuccess, onStale = { error ->
-                if (error !is StaleShiftEditException) false else {
-                    onStale(shiftRepository.getById(shiftId))
-                    true
-                }
-            }) {
-                requireEditableShift(shiftId)
-                wardMutations.setShiftSort(
-                    shiftId = shiftId,
-                    sortSpecJson = SortSpecCodec.encode(spec),
-                    expectedRevision = expectedRevision,
-                    actor = sessionManager.current()
-                )
-            }
-        }
-    }
+    ) = patientActions.applySort(spec, expectedRevision, onStale, onSuccess)
 
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
 
-    private fun editableShiftId(): String? {
-        val shift = _state.value.shift ?: return null
-        if (shift.date != ShiftDate.current()) {
-            showError("هذه مناوبة محفوظة للعرض والاستعادة فقط ولا يمكن تعديلها")
-            return null
-        }
-        return shift.id
-    }
+    private fun editableShiftId(): String? = saveGuard.editableShiftId()
 
-    private suspend fun requireEditableShift(shiftId: String) {
-        val shift = shiftRepository.getById(shiftId)
-        require(shift != null && shift.date == ShiftDate.current()) {
-            "هذه مناوبة محفوظة للعرض والاستعادة فقط ولا يمكن تعديلها"
-        }
-    }
+    private fun showError(message: String) = saveGuard.showError(message)
 
-    private suspend fun validateForSave(patient: Patient): Boolean {
-        val result = PatientValidator.validate(patient)
-        if (result is PatientValidationResult.Invalid) {
-            showError(validationMessage(result))
-            return false
-        }
-        val doctorsById = _state.value.doctors.associateBy { it.id }
-        val resident = patient.responsibleResidentId?.let(doctorsById::get)
-        val specialist = patient.responsibleSpecialistId?.let(doctorsById::get)
-        if (!patient.responsibleResidentId.isNullOrBlank() &&
-            (resident == null || !resident.clinicalRole.canBeResident())
-        ) {
-            showError("اختر طبيباً مصنفاً كمقيم")
-            return false
-        }
-        if (!patient.responsibleSpecialistId.isNullOrBlank() &&
-            (specialist == null || !specialist.clinicalRole.canBeSupervisor())
-        ) {
-            showError("اختر طبيباً مصنفاً كاختصاصي")
-            return false
-        }
-        return true
-    }
-
-    private suspend fun saveAction(
-        onSuccess: () -> Unit,
-        onStale: suspend (Exception) -> Boolean = { false },
-        action: suspend () -> Unit
-    ) {
-        _state.update { it.copy(saving = true) }
-        try {
-            action()
-            _state.update { it.copy(saving = false) }
-            onSuccess()
-        } catch (e: CancellationException) {
-            _state.update { it.copy(saving = false) }
-            throw e
-        } catch (e: Exception) {
-            _state.update { it.copy(saving = false) }
-            try {
-                if (!onStale(e)) showError(e.message ?: "تعذر حفظ التغييرات")
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (reloadError: Exception) {
-                showError(reloadError.message ?: "تعذر تحميل أحدث نسخة؛ المسودة باقية")
-            }
-        }
-    }
-
-    private fun showError(message: String) = _state.update { it.copy(snackbar = message) }
-
-    private fun sortPatients(
-        patients: List<Patient>,
-        doctors: List<Doctor>,
-        spec: SortSpec
-    ): List<Patient> {
-        return PatientComparators.ordered(patients, spec, doctors.associate { it.id to it.fullName })
-    }
-
-    private fun groupPatients(
-        patients: List<Patient>,
-        doctors: List<Doctor>,
-        mode: GroupByMode
-    ): List<PatientGroup> {
-        if (mode == GroupByMode.NONE || patients.isEmpty()) return emptyList()
-        val names = doctors.associate { it.id to it.fullName }
-
-        return when (mode) {
-            GroupByMode.NONE -> emptyList()
-
-            GroupByMode.SUPERVISOR -> patients
-                .groupBy { it.responsibleSpecialistId }
-                .map { (id, list) ->
-                    PatientGroup(
-                        key = id,
-                        name = id?.let(names::get) ?: "بدون اختصاصي",
-                        patients = list
-                    )
-                }
-                .sortedWith(compareBy({ it.key == null }, { it.name }))
-
-            GroupByMode.RESIDENT -> patients
-                .groupBy { it.responsibleResidentId }
-                .map { (id, list) ->
-                    PatientGroup(
-                        key = id,
-                        name = id?.let(names::get) ?: "بدون مقيم",
-                        patients = list
-                    )
-                }
-                .sortedWith(compareBy({ it.key == null }, { it.name }))
-
-            GroupByMode.DIAGNOSIS -> patients
-                .groupBy { it.diagnosisType }
-                .map { (type, list) ->
-                    PatientGroup(
-                        key = type.code,
-                        name = type.arabicLabel,
-                        patients = list
-                    )
-                }
-                .sortedBy { it.name }
-
-            GroupByMode.GENDER -> patients
-                .groupBy { it.gender }
-                .map { (gender, list) ->
-                    PatientGroup(
-                        key = gender.code,
-                        name = if (gender == Gender.MALE) "ذكر" else "أنثى",
-                        patients = list
-                    )
-                }
-                .sortedBy { it.name }
-
-            GroupByMode.ADMISSION_DATE -> patients
-                .groupBy { it.admittanceDate }
-                .map { (date, list) ->
-                    PatientGroup(
-                        key = date?.toString(),
-                        name = date?.toString() ?: "بدون تاريخ دخول",
-                        patients = list
-                    )
-                }
-                .sortedWith(
-                    compareBy<PatientGroup> { it.key == null }
-                        .thenByDescending { it.key ?: "" }
-                )
-        }
-    }
-
-    private fun validationMessage(result: PatientValidationResult.Invalid): String =
-        when (result.errors.firstOrNull()) {
-            PatientValidationError.NAME_EMPTY -> "اسم المريض مطلوب"
-            PatientValidationError.ADMITTANCE_NUMBER_EMPTY -> "رقم القبول الحالي مطلوب"
-            PatientValidationError.ADMITTANCE_DATE_INVALID -> "تاريخ الدخول غير صحيح"
-            PatientValidationError.BIRTH_DATE_INVALID -> "تاريخ الميلاد غير صحيح"
-            PatientValidationError.INITIAL_DIAGNOSIS_EMPTY -> "التشخيص الأولي مطلوب"
-            PatientValidationError.TREATMENT_PLAN_EMPTY -> "الخطة العلاجية مطلوبة"
-            PatientValidationError.FOLLOW_UP_EMPTY -> "المتابعة مطلوبة"
-            PatientValidationError.TASKS_INVALID -> "بيانات المهام غير صالحة"
-            PatientValidationError.RESIDENT_EQUALS_SUPERVISOR -> "المقيم والمشرف يجب أن يكونا مختلفين"
-            null -> "بيانات المريض غير صحيحة"
-        }
 }

@@ -53,6 +53,13 @@ The existing entry points remain, with implementation split by responsibility:
   rendering, controlled options and retrieval review. Grouped/ungrouped lists reuse
   one patient-card slot, with the same keys, header item and return indices. Filter
   callbacks update the current screen-owned values, avoiding stale snapshot writes.
+- `WardViewModel` retains the shared state, online/shift/workflow observers and
+  public action signatures. `WardPreferences`, `WardPatientActions`,
+  `WardShiftOperations` and `WardActivityOperations` use its scope/state.
+  `WardSaveGuard` is one shared instance for patient and rollover saves, including
+  stale revisions, validation, error handling and cancellation. Draft/activity jobs
+  move with their respective operations; the shift-observation job stays in the
+  ViewModel. `WardPatientOrdering` contains the unchanged pure sorting/grouping.
 - `PatientFormDialog` retains the one draft, autosave, discard checks and fixed
   actions. `PatientDemographicFields` renders controlled demographic fields;
   `PatientFormValidation` and `PatientFormSubmission` hold the existing validation
@@ -71,6 +78,18 @@ The existing entry points remain, with implementation split by responsibility:
   its method signatures. `desktop_shell_layout`, `desktop_patient_list`,
   `desktop_patient_actions`, `desktop_data_actions` and `desktop_report_actions`
   receive that owner explicitly; callbacks and initialization order are preserved.
+- Desktop `desktop_protocol` remains the public facade and `Client` remains the
+  sole session/baseline owner. Shared constants/errors/utilities, encryption/join
+  decoding, Telegram transport, wire codecs, reviewed publication and report
+  delivery are separated into `desktop_protocol_common`, `desktop_crypto`,
+  `desktop_telegram_transport`, `desktop_wire`, `desktop_publication` and
+  `desktop_report_transport`. Compatibility exports preserve existing imports and
+  the common exception/Review definitions. Formats, keys and review rules do not change.
+- Desktop `desktop_forms` re-exports its original functions from
+  `desktop_form_controls`, `desktop_doctor_picker`, `desktop_task_editor` and
+  `desktop_patient_editor`. The complete patient-editing function moves intact:
+  it retains one draft, autosave timer, stale-save review, Save-next and discard
+  handling. Pickers and reusable controls do not persist patients independently.
 
 Verification for this separation: source-token comparison of 68 moved Kotlin
 operations (the explicit review-invalidation callback is the sole substitution),
@@ -78,7 +97,13 @@ public facade signature/default checks, AST comparison of 31 desktop actions and
 shell construction order, Python 3.8 grammar/global-binding inspection, exact
 patient validation/submission comparison, Kotlin delimiter/import and focused
 type/callback checks, shared-state/lock/artifact ownership checks, and staged plus
-unstaged Git whitespace checks. These establish source-level preservation only;
+unstaged Git whitespace checks. The remaining Ward/protocol/forms split also
+preserves 41 Kotlin operation token sequences (shared-guard calls qualified), 18
+desktop protocol definitions, 13 form functions and six delegated Client methods;
+Client/default signatures and the other Client methods are unchanged. Python 3.8
+grammar/global bindings, existing facade imports and acyclic top-level import
+paths were checked without importing/executing the UI or transport. These establish
+source-level preservation only;
 no Gradle, compilation, build, packaging, test-suite work, GUI/device execution or
 live Telegram operation ran. No schema, version or toolchain changes were made.
 
