@@ -53,6 +53,10 @@ The existing entry points remain, with implementation split by responsibility:
   rendering, controlled options and retrieval review. Grouped/ungrouped lists reuse
   one patient-card slot, with the same keys, header item and return indices. Filter
   callbacks update the current screen-owned values, avoiding stale snapshot writes.
+  `WardNavigationChrome` renders the controlled header/bottom navigation;
+  `WardPatientDialogs` renders edit/copy/delete dialogs. Search/workflow effects,
+  rendered-patient Save-next/stale-edit handling and delete/undo coordination stay
+  in the screen, with the same patient keys and callbacks.
 - `WardViewModel` retains the shared state, online/shift/workflow observers and
   public action signatures. `WardPreferences`, `WardPatientActions`,
   `WardShiftOperations` and `WardActivityOperations` use its scope/state.
@@ -67,8 +71,10 @@ The existing entry points remain, with implementation split by responsibility:
   editors and section order.
 - `ReportPdfWorkspace` owns the single reviewed-artifact map, exact-file hashing,
   preview checks, PDF options/rendering and local export helpers. The report
-  ViewModel retains publication/delivery ordering, authorization and UI operations;
-  existing invalidation paths reference that same artifact map.
+  ViewModel retains publication/delivery ordering, authorization and the reviewed
+  report. `ReportLocalActions` handles local preview/share/export operations using
+  that same ViewModel state/scope and PDF workspace. Existing invalidation paths
+  reference the same artifact map; local actions cannot bypass reviewed sending.
 - `SyncService` remains the singleton public facade. `PatientRetrievalCoordinator`
   and `PatientPublicationCoordinator` receive its original shared patient mutex and
   the existing singleton remote store. Undo shares that mutex too; no additional
@@ -90,6 +96,13 @@ The existing entry points remain, with implementation split by responsibility:
   `desktop_patient_editor`. The complete patient-editing function moves intact:
   it retains one draft, autosave timer, stale-save review, Save-next and discard
   handling. Pickers and reusable controls do not persist patients independently.
+- Desktop `Workspace` retains its public methods, clinical state, encrypted
+  encode/decode and single SQLite commit path. `desktop_workspace_keys` holds the
+  unchanged Windows DPAPI and Linux PBKDF2/AES-GCM device-key functions, re-exported
+  through `desktop_store`. `desktop_workspace_receipts` receives the existing
+  workspace owner; live authorization, uncertainty checks, receipt cursor and
+  persistence still use that owner's state/methods. No new key or receipt store is
+  created and no storage format/SQL/schema change is made.
 
 Verification for this separation: source-token comparison of 68 moved Kotlin
 operations (the explicit review-invalidation callback is the sole substitution),
@@ -103,8 +116,14 @@ desktop protocol definitions, 13 form functions and six delegated Client methods
 Client/default signatures and the other Client methods are unchanged. Python 3.8
 grammar/global bindings, existing facade imports and acyclic top-level import
 paths were checked without importing/executing the UI or transport. These establish
-source-level preservation only;
-no Gradle, compilation, build, packaging, test-suite work, GUI/device execution or
+source-level preservation only. The report/ward-presentation/workspace split also
+preserves nine local report actions (PDF workspace calls qualified), nine existing
+report publication/delivery/review operations, the ward search/workflow/Save-next/
+delete-undo callback bodies, two device-key functions and seven receipt actions.
+The other Workspace methods, signatures, encryption and commit bodies are
+unchanged; Python syntax/global bindings, import paths, Kotlin delimiters/imports
+and single-state/artifact ownership received source checks too.
+No Gradle, compilation, build, packaging, test-suite work, GUI/device execution or
 live Telegram operation ran. No schema, version or toolchain changes were made.
 
 Current stack: Java 17, Kotlin 1.9.0, AGP 8.5.0, Compose BOM 2023.10.01,

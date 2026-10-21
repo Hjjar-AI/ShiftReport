@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.report
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired
 import com.hos.rushdpatients.config.ProjectConfigStore
 import android.content.Context
-import androidx.core.content.FileProvider
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -83,6 +82,10 @@ class ReportPreviewViewModel @Inject constructor(
     private val pdfWorkspace = ReportPdfWorkspace(context, settingsRepository, projectConfigStore,
         classicPdfExporter, cardsPdfExporter, mediaStoreSaver)
     private val reviewedPdfs = pdfWorkspace.reviewedPdfs
+
+    private val localActions = ReportLocalActions(_state, viewModelScope, shiftId,
+        context, reportBuilder, settingsRepository, assignmentPdfExporter, mediaStoreSaver,
+        adminAuthorizer, pdfWorkspace)
 
     init {
         viewModelScope.launch {
@@ -411,100 +414,17 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun previewPdf() = previewPdfFor(null)
+    fun previewPdf() = localActions.previewPdf()
 
-    fun previewSupervisorPdf(supervisorId: String) = previewPdfFor(supervisorId)
-
-    private fun previewPdfFor(supervisorId: String?) {
-        val current = _state.value
-        if (current.savingPdfOptions || current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
-        _state.update { it.copy(previewingPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                val built = reportBuilder.build(shiftId)
-                val prepared = withContext(Dispatchers.IO) {
-                    val selected = if (supervisorId == null) built else supervisorPdfReport(built, supervisorId)
-                    val options = loadPdfOptions()
-                    val style = PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE))
-                    val dir = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
-                    val file = File.createTempFile("reviewed_report_", ".pdf", dir)
-                    try {
-                        renderPdf(selected.patients, selected.doctors, selected.summary,
-                            selected.doctorNames, selected.doctorNames, options, file, style)
-                        ReviewedPdf(file, pdfDigest(file), ReportReview.fingerprint(built), options, style, built)
-                    } catch (e: Exception) { file.delete(); throw e }
-                }
-                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", prepared.file)
-                reviewedPdfs[pdfKey(supervisorId)] = prepared
-                _state.update { it.copy(previewingPdf = false, pdfPreviewUri = uri) }
-            } catch (e: CancellationException) {
-                reviewedPdfs.remove(pdfKey(supervisorId))
-                _state.update { it.copy(previewingPdf = false) }; throw e
-            } catch (e: Exception) {
-                reviewedPdfs.remove(pdfKey(supervisorId))
-                _state.update { it.copy(previewingPdf = false, error = e.message ?: "تعذر إنشاء معاينة PDF",
-                    retryAction = if (supervisorId == null) ReportRetryAction.PREVIEW else null) }
-            }
-        }
-    }
-
-    private fun pdfKey(supervisorId: String?) = pdfWorkspace.pdfKey(supervisorId)
-
-    private fun pdfDigest(file: File): String = pdfWorkspace.pdfDigest(file)
+    fun previewSupervisorPdf(supervisorId: String) = localActions.previewSupervisorPdf(supervisorId)
 
     private suspend fun checkedPdf(built: BuiltReport, supervisorId: String? = null): File = pdfWorkspace.checkedPdf(built, supervisorId)
 
-    private fun supervisorPdfReport(built: BuiltReport, supervisorId: String): BuiltReport = pdfWorkspace.supervisorPdfReport(built, supervisorId)
+    fun consumePdfPreview() = localActions.consumePdfPreview()
 
-    fun consumePdfPreview() = _state.update { it.copy(pdfPreviewUri = null) }
+    fun sharePdf() = localActions.sharePdf()
 
-    fun sharePdf() {
-        val current = _state.value
-        if (current.savingPdfOptions || current.savingDoctors || current.sharingPdf || current.exportingLocalPdf || current.previewingPdf ||
-            current.sending || current.shift == null
-        ) return
-        _state.update { it.copy(sharingPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                val built = reportBuilder.build(shiftId)
-                val shareDir = File(context.cacheDir, "shared_reports").apply { mkdirs() }
-                shareDir.listFiles()?.forEach { it.delete() }
-                val file = File(shareDir, reportFileName(built.shift.date))
-                renderPdf(
-                    patients = built.patients,
-                    doctors = built.doctors,
-                    summary = built.summary,
-                    residentNames = built.doctorNames,
-                    supervisorNames = built.doctorNames,
-                    options = loadPdfOptions(),
-                    outputFile = file
-                )
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
-                _state.update {
-                    it.copy(
-                        sharingPdf = false,
-                        pdfShareUri = uri,
-                        lastOperation = "آخر عملية ناجحة: تجهيز PDF للمشاركة",
-                        retryAction = null
-                    )
-                }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        sharingPdf = false,
-                        error = e.message ?: "تعذر تجهيز ملف المشاركة",
-                        retryAction = ReportRetryAction.SHARE
-                    )
-                }
-            }
-        }
-    }
-
-    fun consumePdfShare() = _state.update { it.copy(pdfShareUri = null) }
+    fun consumePdfShare() = localActions.consumePdfShare()
 
     fun retryLastAction() {
         when (_state.value.retryAction) {
@@ -517,84 +437,11 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun exportAssignments() {
-        val current = _state.value
-        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf ||
-            current.sharingPdf || current.sending || current.shift == null) return
-        _state.update { it.copy(exportingLocalPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                withContext(Dispatchers.IO) {
-                    val actorId = adminAuthorizer.requireAdmin().id
-                    val built = reportBuilder.buildAssignments(shiftId)
-                    val tmp = File.createTempFile("rushd_assignments_", ".pdf", context.cacheDir)
-                    try {
-                        assignmentPdfExporter.export(built.patients, built.doctorNames, built.registryDoctors, built.summary,
-                            loadPdfOptions(), tmp)
-                        require(adminAuthorizer.requireAdmin().id == actorId) { "تغيّر المستخدم؛ أعد تصدير توزيع المرضى" }
-                        checkNotNull(mediaStoreSaver.savePdf(context, tmp, reportFileName(built.shift.date, "Names"),
-                            verifyContents = true)) {
-                            "تعذر حفظ توزيع المرضى"
-                        }
-                    } finally {
-                        tmp.delete()
-                    }
-                }
-                _state.update { it.copy(exportingLocalPdf = false, snackbar = "تم حفظ توزيع المرضى بالأسماء فقط",
-                    lastOperation = "آخر عملية ناجحة: حفظ توزيع المرضى", retryAction = null) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(exportingLocalPdf = false, error = e.message ?: "تعذر حفظ توزيع المرضى",
-                    retryAction = ReportRetryAction.ASSIGNMENTS) }
-            }
-        }
-    }
+    fun exportAssignments() = localActions.exportAssignments()
 
-    fun exportLocally() {
-        val current = _state.value
-        if (current.savingPdfOptions || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf || current.sharingPdf || current.sending || current.shift == null) return
-        _state.update { it.copy(exportingLocalPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                val built = reportBuilder.build(shiftId)
-                val options = loadPdfOptions()
-                val separate = settingsRepository.getBoolean(
-                    AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR,
-                    false
-                )
-                val count = if (separate) {
-                    saveSupervisorPdfs(built, options)
-                } else {
-                    saveCombinedPdf(built, options)
-                    1
-                }
-                _state.update {
-                    it.copy(
-                        exportingLocalPdf = false,
-                        snackbar = "تم حفظ $count ملف PDF محلياً",
-                        lastOperation = "آخر عملية ناجحة: حفظ PDF على الجهاز",
-                        retryAction = null
-                    )
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        exportingLocalPdf = false,
-                        error = e.message ?: "تعذر حفظ ملفات PDF",
-                        retryAction = ReportRetryAction.SAVE
-                    )
-                }
-            }
-        }
-    }
+    fun exportLocally() = localActions.exportLocally()
 
-    fun onPdfViewerUnavailable() {
-        reviewedPdfs.clear()
-        _state.update { it.copy(pdfPreviewUri = null, error = "لا يوجد تطبيق مثبت لعرض ملفات PDF؛ لم تعتمد المعاينة") }
-    }
+    fun onPdfViewerUnavailable() = localActions.onPdfViewerUnavailable()
 
     private suspend fun sendText(built: BuiltReport, actor: com.hos.rushdpatients.data.model.Doctor?) {
         reportSender.sendTextReport(
@@ -638,17 +485,6 @@ class ReportPreviewViewModel @Inject constructor(
 
     private suspend fun loadPdfOptions(): PdfExportOptions = pdfWorkspace.loadPdfOptions()
 
-    private suspend fun renderPdf(
-        patients: List<com.hos.rushdpatients.data.model.Patient>,
-        doctors: List<com.hos.rushdpatients.data.model.Doctor>,
-        summary: com.hos.rushdpatients.domain.report.ReportSummary,
-        residentNames: Map<String, String>,
-        supervisorNames: Map<String, String>,
-        options: PdfExportOptions,
-        outputFile: File,
-        reviewedStyle: PdfStyle? = null
-    ) = pdfWorkspace.renderPdf(patients, doctors, summary, residentNames, supervisorNames, options, outputFile, reviewedStyle)
-
     private fun buildSupervisorTargets(built: BuiltReport): List<SupervisorReportTarget> =
         built.patients
             .groupBy { it.responsibleSpecialistId }
@@ -678,8 +514,6 @@ class ReportPreviewViewModel @Inject constructor(
             supervisor = supervisor, chatId = requireNotNull(target.chatId),
             contentKey = ReportReview.supervisorFingerprint(built, target.doctorId))
     }
-
-    private suspend fun saveCombinedPdf(built: BuiltReport, options: PdfExportOptions) = pdfWorkspace.saveCombinedPdf(built, options)
 
     private suspend fun saveSupervisorPdfs(
         built: BuiltReport,

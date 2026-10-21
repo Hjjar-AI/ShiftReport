@@ -1,7 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.settings.SettingsWorkspace
-import com.hos.rushdpatients.ui.components.AppCompactTopBar
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
@@ -35,19 +34,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -73,7 +65,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -82,7 +73,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.report.ReportReadiness
-import com.hos.rushdpatients.ui.components.ConfirmDialog
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.launch
@@ -390,56 +380,26 @@ fun WardScreen(
     ) {
         Scaffold(
             topBar = {
-                Column {
-                WardToolbarLayout(foldingFeature) {
-                    AppCompactTopBar(title = {
-                        Text(when (viewMode) {
-                            WardViewMode.ALL, WardViewMode.MINE -> "المرضى · ${uiNumber(state.patients.size)}"
-                            WardViewMode.DASHBOARD -> "تسليم المناوبة"
-                            WardViewMode.ACTIVITY -> "النشاط"
-                        }, style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.semantics { heading() }, maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        state.shift?.date?.let { Text(uiNumber(it), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
-                    }, navigation = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Filled.Menu, contentDescription = "القائمة")
+                WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
+                    onMenu = { scope.launch { drawerState.open() } }, onToggleCards = ::toggleAllCards,
+                    onAdd = { showAdd = true }, onSearch = {
+                        if (patientDestination && showSearch && searchQuery.isBlank()) {
+                            showSearch = false
+                            requestSearchFocus = false
+                            focusManager.clearFocus()
+                        } else {
+                            if (!patientDestination) viewMode = WardViewMode.ALL
+                            showSearch = true
+                            requestSearchFocus = true
+                            scope.launch { patientGridState.animateScrollToItem(0) }
                         }
-                    }, actions = {
-                        if (patientDestination && state.patients.isNotEmpty()) {
-                            IconButton(onClick = ::toggleAllCards) {
-                                Icon(if (anyCardsExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                                    contentDescription = if (anyCardsExpanded) "طي جميع بطاقات المرضى" else "توسيع جميع بطاقات المرضى")
-                            }
+                    }, onWorkflow = {
+                        when (state.workflowAction) {
+                            WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
+                            WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
+                            WardWorkflowAction.DOWNLOAD -> confirmLatest = true
                         }
-                        if (!state.isReadOnly && (!patientDestination || state.patients.isNotEmpty())) {
-                            IconButton(onClick = { showAdd = true }) {
-                                Icon(Icons.Filled.Add, contentDescription = "إضافة مريض")
-                            }
-                        }
-                        if (!patientDestination || state.patients.isNotEmpty()) IconButton(onClick = {
-                            if (patientDestination && showSearch && searchQuery.isBlank()) {
-                                showSearch = false
-                                requestSearchFocus = false
-                                focusManager.clearFocus()
-                            } else {
-                                if (!patientDestination) viewMode = WardViewMode.ALL
-                                showSearch = true
-                                requestSearchFocus = true
-                                scope.launch { patientGridState.animateScrollToItem(0) }
-                            }
-                        }) { Icon(Icons.Filled.Search, contentDescription = "بحث عن مريض") }
                     })
-                }
-                if (state.syncing || state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) WardWorkflowStrip(state, onNext = {
-                    when (state.workflowAction) {
-                        WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
-                        WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
-                        WardWorkflowAction.DOWNLOAD -> confirmLatest = true
-                    }
-                })
-                }
             },
             floatingActionButton = {
                 state.shift?.takeIf { (!patientDestination || selectedPatient == null) &&
@@ -467,14 +427,8 @@ fun WardScreen(
                 }
             },
             bottomBar = {
-                if (!expandedWindow) {
-                    WardToolbarLayout(foldingFeature) {
-                        PrimaryNavigationBar(viewMode = viewMode, isAdmin = isAdmin,
-                            onPatients = { viewMode = WardViewMode.ALL },
-                            onDashboard = { viewMode = WardViewMode.DASHBOARD },
-                            onActivity = { viewMode = WardViewMode.ACTIVITY })
-                    }
-                }
+                WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
+                    onDestination = { viewMode = it })
             },
             snackbarHost = { SnackbarHost(snackbarHost) }
         ) { padding ->
@@ -720,76 +674,41 @@ fun WardScreen(
     WardDataReviewDialogs(state, viewModel, confirmLatest, confirmPrevious,
         onDismissLatest = { confirmLatest = false }, onDismissPrevious = { confirmPrevious = false })
 
-    editTarget?.let { p ->
-        fun saveEdited(draft: Patient, onStale: (Patient?) -> Unit, advance: Boolean) {
-            // Capture the displayed successor before saving can change filters/order.
-            val nextId = if (advance) patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId else null
-            viewModel.updatePatient(draft, onStale) {
-                val current = viewModel.state.value
-                val next = nextId?.takeIf { !current.isReadOnly && current.shift?.id == state.shift?.id }
-                    ?.let { id -> current.patients.firstOrNull { it.id == id && !it.isDeleted } }
-                if (next != null) {
-                    returnTarget = null
-                    editTarget = next
-                    if (detailsTargetId != null) detailsTargetId = next.id
-                } else {
-                    returnTarget = PatientReturnTarget(draft.id, draft.revision)
-                    editTarget = null
-                }
+    fun saveEdited(p: Patient, draft: Patient, onStale: (Patient?) -> Unit, advance: Boolean) {
+        // Capture the displayed successor before saving can change filters/order.
+        val nextId = if (advance) patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId else null
+        viewModel.updatePatient(draft, onStale) {
+            val current = viewModel.state.value
+            val next = nextId?.takeIf { !current.isReadOnly && current.shift?.id == state.shift?.id }
+                ?.let { id -> current.patients.firstOrNull { it.id == id && !it.isDeleted } }
+            if (next != null) {
+                returnTarget = null
+                editTarget = next
+                if (detailsTargetId != null) detailsTargetId = next.id
+            } else {
+                returnTarget = PatientReturnTarget(draft.id, draft.revision)
+                editTarget = null
             }
         }
-        key(p.id) {
-            EditPatientDialog(
-                patient = p,
-                doctors = state.doctors,
-                saving = state.saving,
-                onConfirm = { draft, onStale -> saveEdited(draft, onStale, false) },
-                onConfirmAndNext = if (state.saveAndNext &&
-                    patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId != null)
-                    { draft, onStale -> saveEdited(draft, onStale, true) } else null,
-                roundsNavigation = patientRoundsNavigation(roundsPatients.map { it.id }, p.id),
-                saveAndNextEnabled = state.saveAndNext,
-                onSaveAndNextChanged = viewModel::setSaveAndNext,
-                onDismiss = { editTarget = null }
-            )
-        }
     }
-
-    copyTarget?.let { source ->
-        CopyPatientDialog(
-            source = source,
-            doctors = state.doctors,
-            saving = state.saving,
-            onConfirm = { patient ->
-                viewModel.addPatient(patient) { copyTarget = null }
-            },
-            onDismiss = { copyTarget = null }
-        )
-    }
-
-    deleteTarget?.let { p ->
-        ConfirmDialog(
-            title = "نقل إلى السلة",
-            message = "سيُنقل ${p.name} إلى سلة المحذوفات. يمكنك استعادته من السلة.",
-            confirmText = "نقل إلى السلة",
-            destructive = true,
-            onConfirm = {
-                viewModel.deletePatient(p) { deletedPatient ->
-                    deleteTarget = null
-                    scope.launch {
-                        val result = snackbarHost.showSnackbar(
-                            message = "تم نقل ${p.name} إلى سلة المحذوفات",
-                            actionLabel = "تراجع"
-                        )
-                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                            viewModel.restorePatient(deletedPatient)
-                        }
+    WardPatientDialogs(state, editTarget, copyTarget, deleteTarget, roundsPatients.map { it.id },
+        onSaveEdited = ::saveEdited, onSaveAndNextChanged = viewModel::setSaveAndNext,
+        onDismissEdit = { editTarget = null },
+        onCopyConfirmed = { patient -> viewModel.addPatient(patient) { copyTarget = null } },
+        onDismissCopy = { copyTarget = null }, onDeleteConfirmed = { p ->
+            viewModel.deletePatient(p) { deletedPatient ->
+                deleteTarget = null
+                scope.launch {
+                    val result = snackbarHost.showSnackbar(
+                        message = "تم نقل ${p.name} إلى سلة المحذوفات",
+                        actionLabel = "تراجع"
+                    )
+                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                        viewModel.restorePatient(deletedPatient)
                     }
                 }
-            },
-            onDismiss = { deleteTarget = null }
-        )
-    }
+            }
+        }, onDismissDelete = { deleteTarget = null })
 
     if (showFilters) WardViewOptionsDialog(state, viewModel,
         filters = WardFilterOptions(searchQuery, viewMode, priorityOnly, warningsOnly,

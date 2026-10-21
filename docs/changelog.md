@@ -358,9 +358,11 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 - Separated Android settings content/operations, ward filtering/grid/review dialogs,
   Ward ViewModel preferences/patient/shift/activity operations and shared save guard,
-  patient demographics/validation/submission, report PDF artifacts/exports, and
+  patient demographics/validation/submission, ward navigation/dialog presentation,
+  local report actions/PDF artifacts/exports, and
   patient retrieval/publication. Desktop shell/list/patient/data/report actions,
-  protocol layers, and form controls/pickers/editors now use focused modules.
+  protocol layers, form controls/pickers/editors, and device-key/receipt operations
+  now use focused modules while Workspace keeps its original encrypted commit path.
   Existing entry points, draft/lifecycle ownership, review
   guards and shared synchronization locks remain; source-preservation evidence and
   runtime limits are in [current state](current-state.md#source-ownership-after-logical-separation).

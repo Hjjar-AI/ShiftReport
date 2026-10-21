@@ -14,6 +14,10 @@ not introduce independent sessions, draft copies, review bypasses or sync locks.
 Desktop protocol/form facades keep their public imports while implementations
 depend on shared utilities and receive the existing session/draft owner. Keep
 optional high-level imports deferred where needed to avoid module cycles.
+Device-key protection and receipt operations may live in separate modules, while
+the workspace remains the sole owner of encrypted state and its atomic commit
+path. Local report actions share the report owner's reviewed-artifact workspace;
+separating them must not create a second review state or bypass delivery checks.
 See [implemented source boundaries](current-state.md#source-ownership-after-logical-separation).
 
 Telegram remains the shared storage and delivery channel. Users retrieve published data and publish updates; the last successful pinned-state write wins. Simultaneous collaborative editing and guaranteed preservation of competing remote publications are outside the required scope. Telegram pinned state is not an atomic multi-writer database; this limitation is accepted, not a release blocker. A separate authoritative service is not required. Downloads and publications transfer complete snapshots; remote field-by-field merging is removed. Local stale-edit checks, explicit replacement review, authorization and report confirmation remain in place. Report/publication confirmation may explicitly select the complete local patient copy over competing patient publications; this never bypasses clinician authorization, published assignment validity, registry-pointer freshness or delivery uncertainty guards. Unrelated pending doctor edits do not block this confirmed patient replacement, and it does not publish doctor-account changes. Synchronization is manual on both platforms; there is no periodic background upload/download.
