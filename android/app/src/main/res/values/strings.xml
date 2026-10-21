@@ -1,4 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">تقرير المناوبة</string>
+    <plurals name="patient_badges">
+        <item quantity="zero">لا شارات</item>
+        <item quantity="one">شارة واحدة</item>
+        <item quantity="two">شارتان</item>
+        <item quantity="few">%1$s شارات</item>
+        <item quantity="many">%1$s شارة</item>
+        <item quantity="other">%1$s شارة</item>
+    </plurals>
+    <plurals name="patient_badges_more">
+        <item quantity="zero">لا شارات أخرى</item>
+        <item quantity="one">شارة أخرى</item>
+        <item quantity="two">شارتان أخريان</item>
+        <item quantity="few">%1$s شارات أخرى</item>
+        <item quantity="many">%1$s شارة أخرى</item>
+        <item quantity="other">%1$s شارة أخرى</item>
+    </plurals>
+    <plurals name="patient_tasks_pending">
+        <item quantity="zero">لا مهام معلقة</item>
+        <item quantity="one">مهمة معلقة</item>
+        <item quantity="two">مهمتان معلقتان</item>
+        <item quantity="few">%1$s مهام معلقة</item>
+        <item quantity="many">%1$s مهمة معلقة</item>
+        <item quantity="other">%1$s مهمة معلقة</item>
+    </plurals>
+    <plurals name="patient_tasks_overdue">
+        <item quantity="zero">لا مهام متأخرة</item>
+        <item quantity="one">مهمة متأخرة</item>
+        <item quantity="two">مهمتان متأخرتان</item>
+        <item quantity="few">%1$s مهام متأخرة</item>
+        <item quantity="many">%1$s مهمة متأخرة</item>
+        <item quantity="other">%1$s مهمة متأخرة</item>
+    </plurals>
+    <plurals name="ward_task_count">
+        <item quantity="zero">لا مهام</item>
+        <item quantity="one">مهمة واحدة</item>
+        <item quantity="two">مهمتان</item>
+        <item quantity="few">%1$s مهام</item>
+        <item quantity="many">%1$s مهمة</item>
+        <item quantity="other">%1$s مهمة</item>
+    </plurals>
 </resources>

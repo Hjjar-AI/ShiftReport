@@ -11,7 +11,6 @@ import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.BootstrapManager
 import com.hos.rushdpatients.domain.auth.BootstrapResult
-import com.hos.rushdpatients.domain.auth.BootstrapSeeder
 import com.hos.rushdpatients.domain.auth.LoginVerificationResult
 import com.hos.rushdpatients.domain.auth.LocalPinLoginManager
 import com.hos.rushdpatients.domain.auth.PasswordHasher
@@ -36,7 +35,6 @@ class LoginViewModel @Inject constructor(
     private val doctorRepository: DoctorRepository,
     private val sessionManager: SessionManager,
     private val bootstrapManager: BootstrapManager,
-    private val bootstrapSeeder: BootstrapSeeder,
     private val loginManager: TelegramLoginManager,
     private val localPinLogin: LocalPinLoginManager,
     private val hasher: PasswordHasher,
@@ -88,39 +86,6 @@ class LoginViewModel @Inject constructor(
                 }
                 is BootstrapResult.Failed -> _state.update {
                     it.copy(step = LoginStep.BootstrapFailed(result.message), busy = false)
-                }
-            }
-        }
-    }
-
-    /**
-     * Hidden recovery path. Uploads and pins the initial administrator stored by project setup.
-     *
-     * After a successful seed, press the retry button normally to load it.
-     */
-    fun seedBootstrap() {
-        if (_state.value.seeding) return
-        _state.update { it.copy(seeding = true, error = null) }
-        viewModelScope.launch {
-            when (val result = bootstrapSeeder.seed()) {
-                is BootstrapSeeder.Result.Success -> {
-                    _state.update {
-                        it.copy(
-                            seeding = false,
-                            step = LoginStep.BootstrapFailed(
-                                "تم رفع سجل الأطباء الأولي وتثبيته (${result.messageId}). " +
-                                        "اضغط إعادة المحاولة."
-                            )
-                        )
-                    }
-                }
-                is BootstrapSeeder.Result.Failure -> {
-                    _state.update {
-                        it.copy(
-                            seeding = false,
-                            step = LoginStep.BootstrapFailed(result.message)
-                        )
-                    }
                 }
             }
         }

@@ -1,11 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.settings.SettingsWorkspace
-import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.theme.UiLayout
-import com.hos.rushdpatients.ui.components.noticeColors
 import com.hos.rushdpatients.ui.components.uiNumber
 import androidx.compose.foundation.rememberScrollState
 import com.hos.rushdpatients.ui.components.rememberFloatingActionSpace
@@ -34,9 +32,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Badge
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -65,14 +62,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.sort.GroupByMode
-import com.hos.rushdpatients.domain.report.ReportReadiness
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.launch
@@ -111,10 +105,6 @@ fun WardScreen(
         state.doctors.associate { it.id to it.fullName }
     }
     val patientGridState = rememberLazyGridState()
-    val reportReadinessIssueCount = remember(state.patients) {
-        ReportReadiness.warnings(state.patients).size
-    }
-
     var showAdd by remember { mutableStateOf(false) }
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var editTarget by remember { mutableStateOf<Patient?>(null) }
@@ -188,7 +178,10 @@ fun WardScreen(
 
     val patientDestination = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE
     val selectedPatient = state.patients.firstOrNull { it.id == detailsTargetId }
-    val reportActionSpace = rememberFloatingActionSpace(state.shift != null && (!patientDestination || selectedPatient == null))
+    val showAddFloatingAction = state.shift != null && !state.isReadOnly &&
+        (!patientDestination || selectedPatient == null) &&
+        (!patientDestination || state.patients.isNotEmpty())
+    val addActionSpace = rememberFloatingActionSpace(showAddFloatingAction)
     val roundsPatients = if (state.groupByMode != GroupByMode.NONE && state.groupedPatients.isNotEmpty()) {
         state.groupedPatients.flatMap { group ->
             group.patients.filter { it in visiblePatients }.sortedByDescending { it.id in pinnedPatientIds }
@@ -230,7 +223,7 @@ fun WardScreen(
         }
     }
     if (showWardTasks) WardTaskBoard(state.patients, state.doctors, state.taskNowEpochMillis,
-        onDismiss = { showWardTasks = false }, onPatient = { id ->
+        currentDoctorId = currentDoctorId, onDismiss = { showWardTasks = false }, onPatient = { id ->
             if (!state.saving && !state.syncing && !showAdd && editTarget == null && copyTarget == null && state.patients.any { it.id == id }) {
                 showWardTasks = false
                 viewMode = WardViewMode.ALL
@@ -382,6 +375,7 @@ fun WardScreen(
             topBar = {
                 WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
                     onMenu = { scope.launch { drawerState.open() } }, onToggleCards = ::toggleAllCards,
+                    showAddAction = !showAddFloatingAction,
                     onAdd = { showAdd = true }, onSearch = {
                         if (patientDestination && showSearch && searchQuery.isBlank()) {
                             showSearch = false
@@ -402,27 +396,16 @@ fun WardScreen(
                     })
             },
             floatingActionButton = {
-                state.shift?.takeIf { (!patientDestination || selectedPatient == null) &&
-                    (!patientDestination || state.patients.isNotEmpty()) }?.let {
+                if (showAddFloatingAction) {
                     AppButton(
-                        onClick = {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            state.shift?.id?.let(onOpenReport)
-                        },
+                        onClick = { showAdd = true },
+                        enabled = !state.loading && !state.saving && !state.syncing &&
+                            !showAdd && editTarget == null && copyTarget == null,
                         contentPadding = UiPadding.content,
-                        modifier = reportActionSpace.measure.heightIn(min = UiSpacing.touchTarget).semantics {
-                            stateDescription = if (reportReadinessIssueCount == 0) "التقرير جاهز"
-                                else "${uiNumber(reportReadinessIssueCount)} ملاحظات جاهزية"
-                        }
+                        modifier = addActionSpace.measure.heightIn(min = UiSpacing.touchTarget)
                     ) {
-                        Icon(Icons.Filled.Send, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
-                        Text(UiAction.SEND_REPORT.label, Modifier.padding(start = UiSpacing.small))
-                        if (reportReadinessIssueCount > 0) {
-                            Badge(modifier = Modifier.padding(start = UiSpacing.small),
-                                containerColor = noticeColors(NoticeKind.WARNING).first,
-                                contentColor = noticeColors(NoticeKind.WARNING).second
-                            ) { Text(uiNumber(reportReadinessIssueCount)) }
-                        }
+                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
+                        Text("إضافة مريض", Modifier.padding(start = UiSpacing.small))
                     }
                 }
             },
@@ -435,7 +418,7 @@ fun WardScreen(
             val layoutDirection = LocalLayoutDirection.current
             // Draw behind the transparent pill gutters; reserve its height in scroll content instead.
             val navigationClearance = if (expandedWindow) 0.dp else padding.calculateBottomPadding()
-            val scrollBottomClearance = reportActionSpace.bottomPadding + navigationClearance
+            val scrollBottomClearance = addActionSpace.bottomPadding + navigationClearance
             Row(
                 modifier = Modifier
                     .fillMaxSize()

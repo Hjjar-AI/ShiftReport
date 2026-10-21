@@ -23,8 +23,8 @@ object UiStyleCatalog {
     val relaxed = current.copy(
         id = "relaxed", label = "أوسع", description = "مسافات أكبر بين المحتوى والبطاقات",
         compactDensity = PatientCardDensity(PaddingValues(horizontal = UiSpacing.medium, vertical = UiSpacing.small), UiSpacing.medium),
-        normalDensity = PatientCardDensity(PaddingValues(horizontal = UiSpacing.screen, vertical = UiSpacing.medium), UiSpacing.screen),
-        listGap = UiSpacing.screen)
+        normalDensity = PatientCardDensity(PaddingValues(horizontal = UiSpacing.largeSection, vertical = UiSpacing.section), UiSpacing.section),
+        listGap = UiSpacing.section)
     val quiet = current.copy(
         id = "quiet", label = "هادئ", description = "أسطح مسطحة وحركة أقصر",
         navigationElevation = UiElevation.flat, actionBarElevation = UiElevation.flat,

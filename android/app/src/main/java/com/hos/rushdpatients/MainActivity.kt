@@ -36,6 +36,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
@@ -74,34 +75,45 @@ class MainActivity : FragmentActivity() {
                 }
                 return@setContent
             }
-            val themeViewModel: ThemeViewModel = hiltViewModel()
-            val themePreset by themeViewModel.preset.collectAsStateWithLifecycle()
-            val appearance by themeViewModel.appearance.collectAsStateWithLifecycle()
-            val fontScale by themeViewModel.fontScale.collectAsStateWithLifecycle()
-
-            val baseDensity = LocalDensity.current
-            // Only fontScale changes; density (px per dp) stays as the system set it.
-            // The multiplier stacks on top of any system font scale the user has set.
-            val scaledDensity = remember(baseDensity, fontScale) {
-                Density(
-                    density = baseDensity.density,
-                    fontScale = (baseDensity.fontScale * fontScale.multiplier)
-                        .coerceIn(0.85f, 2.0f)
-                )
-            }
-
-            RushdPatientsTheme(preset = themePreset, appearance = appearance) {
-                CompositionLocalProvider(
-                    LocalLayoutDirection provides LayoutDirection.Rtl,
-                    LocalDensity provides scaledDensity
-                ) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        WardAppRoot(activity = this)
+            RushdPatientsTheme {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    com.hos.rushdpatients.ui.StorageAccessGate {
+                        AppContent()
                     }
                 }
+            }
+        }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun MainActivity.AppContent() {
+    val themeViewModel: ThemeViewModel = hiltViewModel()
+    val themePreset by themeViewModel.preset.collectAsStateWithLifecycle()
+    val appearance by themeViewModel.appearance.collectAsStateWithLifecycle()
+    val fontScale by themeViewModel.fontScale.collectAsStateWithLifecycle()
+
+    val baseDensity = LocalDensity.current
+    // Only fontScale changes; density (px per dp) stays as the system set it.
+    // The multiplier stacks on top of any system font scale the user has set.
+    val scaledDensity = remember(baseDensity, fontScale) {
+        Density(
+            density = baseDensity.density,
+            fontScale = (baseDensity.fontScale * fontScale.multiplier)
+                .coerceIn(0.85f, 2.0f)
+        )
+    }
+
+    RushdPatientsTheme(preset = themePreset, appearance = appearance) {
+        CompositionLocalProvider(
+            LocalLayoutDirection provides LayoutDirection.Rtl,
+            LocalDensity provides scaledDensity
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                WardAppRoot(activity = this@AppContent)
             }
         }
     }

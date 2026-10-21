@@ -199,7 +199,7 @@ project setup if needed, clinician login/PIN unlock, and ward navigation.
 Shared fields, pickers, actions, notices, section indexes, searches, whole-row
 choices/toggles, loading/metric/comparison rows and PDF-style controls use theme
 shapes, typography and `UiSpacing`. Busy form state also gates locally enabled
-controls. Retry retains its timed hold with native button/keyboard semantics.
+controls. Login retry is an ordinary button and never creates or pins a registry.
 Settings content and shortcuts share an ordered definition; filters apply live
 and retain patient scope. Arabic number/time/role terminology is shared.
 
@@ -587,17 +587,12 @@ changes were made for this pass; unrelated working-tree edits were preserved.
 
 ### Report, navigation and doctor-import feedback refresh
 
-All ward report entry points now open Android report preview directly; the
-redundant readiness sheet is removed. Readiness notes remain in preview and the
-ward report action still exposes its readiness count. The first section shows a
-compact two-name roster summary with optional full expansion and the existing
-revision-protected roster editor. A single General/Supervisor choice determines
-scope, format and selected destinations; supervisor PDF styling remains available
-independently of the general-report format. Preview/Send stay in a fixed footer
-with navigation/keyboard insets. General text must be opened before sending, and
-existing ViewModel guards still require exact reviewed PDFs for every selected
-destination. Final send/force-local confirmation and delivery resolution remain.
-Local exports, advanced PDF settings and delivery history remain available.
+Android's «إرسال تقرير» drawer/status actions now open the four-stage flow described
+in [Android review corrections](#android-review-corrections): Doctors → Destination
+→ Preview → Send. The ward floating button now adds a patient. Readiness notes,
+revision-protected roster editing, General/Supervisor selection, optional PDF
+customization, local exports and delivery history remain. Final confirmation,
+exact-file checks and delivery resolution still use the existing ViewModel paths.
 
 Desktop normal and supervisor-batch sending now share one options/change-review/
 preview workspace. Roster summaries expand on demand; batch destinations are
@@ -1857,7 +1852,10 @@ upstream SIL Open Font License in each font directory. Font files came from
 [Google Fonts](https://github.com/google/fonts/tree/main/ofl/tajawal). Desktop
 retains explicit `PDF_FONT` overrides and uses base Unicode for isolated Arabic
 letters so Tajawal's glyph mapping renders correctly. Android loads the faces
-from assets during IO export; the app's ordinary typography is unchanged.
+during IO export. The faces were subsequently moved unchanged to Android font
+resources and reused by shared app typography, as documented under
+[Android review corrections](#android-review-corrections); the bundled license
+remains under `assets/fonts/OFL.txt`.
 
 Table grids default to 1.5-point horizontal rules (`#94A3B8` in light mode), with
 bold centered white header text and neutral summary bands. Dark appearance keeps
@@ -2249,6 +2247,100 @@ counter was left at its seed during verification. No Gradle/build or packaging r
 configuration-cache storage and the produced APK still require an owner-run build.
 See [build fixes and reusable preferences](android-shared-workstation-build-fixes.md).
 
+### Android review corrections
+
+The supplied Android review was checked finding by finding against current source;
+[the disposition record](reviews/android-ui-reliability-review.md) distinguishes
+confirmed defects, implemented presentation changes, existing behavior, optional
+redesign proposals and excluded work.
+
+Login no longer exposes registry seeding. New-project creation retains its seeder
+with pre-upload/pre-pin empty-pin checks; Telegram still provides no atomic pin
+transaction. Database key creation refuses existing database/WAL/SHM/journal files
+without a stored key. After the unchanged splash, StorageAccessGate resolves
+encrypted key/project/session storage on IO and opens an existing live database
+before repository-backed ViewModels. Failure gives a scrollable Arabic retry and
+preservation screen; no automatic deletion, key replacement, restore/refetch over
+unsent records or claim to recover a lost key. Demo does not open the clinical
+database through this check. MainActivity sets FLAG_SECURE before content;
+external PDF viewers and deliberate exports are outside that window's control.
+
+Private PDF previews are retained for the existing exact-file/hash-checked send,
+then asynchronously deleted when replaced, invalidated or their ViewModel ends.
+Failed/cancelled previews clean temporary files. Startup cleanup completes before
+normal content; sign-out also clears private preview/share caches. Cleanup is best
+effort and leaves explicit exported files alone. Sharing file work runs on IO and
+propagates cancellation. Release now reads ignored local/CI signing inputs with no
+debug fallback; the owner must still provide production credentials. See
+[release signing](android-shared-workstation-build-fixes.md#production-release-signing).
+No database/interchange/toolchain/app versions changed.
+
+Grid filtering/pin ordering uses remembered ID sets/groups; focused IME observation
+uses snapshotFlow outside composition. Arabic count resources cover card badges,
+pending/overdue tasks and task-board totals, independent of system locale. Real
+field validation errors reach semantics. Card names gain space from a 32dp ordinal
+while actions retain 48dp targets; priority has a text label. Shared Arabic line
+spacing, normal card spacing, diagnosis outline, neutral dark foundations,
+distinct Material color roles, quieter metrics and error notices are updated in the
+[design catalog](design-catalog.md). The owner also chose bundled Arabic typography:
+Tajawal Regular/Bold now live once in `res/font`, preserving their original bytes,
+and supply shared Compose text styles through asynchronous font loading. PDF
+export loads the same resources through ResourcesCompat during its existing IO
+path. The original SIL license remains bundled under `assets/fonts/OFL.txt`.
+Explicit monospace overrides, font-scale controls, text sizes/line heights and
+About/credit content are retained; no download/dependency/version change was added.
+Font table/weight/Arabic-and-Latin-coverage, byte-identity and resource-reference
+checks passed; Android shaping, startup font loading and final wrapping have not
+been rendered or verified on a device.
+
+Rail selected icons match the dock; its
+indicator padding is shorter. The existing splash/logo/About, report review,
+clinical severity and fixed editor controls remain.
+
+Ward tasks have sticky deadline groups, overdue emphasis, optional My tasks and
+filter chips, with unchanged shared task rules and patient-file completion. Details
+use a growing title, horizontally scrolling section chips and actual matching
+history counts. Login search is remembered, unavailable doctors are dimmed/disabled,
+the nonce reads LTR and countdown/group/task/detail numbers use Arabic digits.
+The owner retained 4–8-digit PINs and selected Add patient for the floating action.
+Ward/demo now open the existing patient form; ward hides Add for read-only shifts
+and disables it during loading/save/sync. A single inline Add remains in empty
+wards, and toolbar Add appears only where the floating Add is absent. Measured
+clearance follows the Add button. Report access stays labelled «إرسال تقرير» in
+the drawer and continues through publication/delivery review.
+
+The owner also selected Doctors → Destination → Preview → Send. ReportFlowStep
+provides a wrapping Arabic progress indicator; fixed Previous/Next controls and
+per-stage scroll positions retain the screen's selections. The first stage keeps
+the revision-checked roster picker available before a report exists. Destination
+chooses General/Supervisor targets and format; Preview retains optional PDF
+customization, readiness/publication notes and actual text/PDF openers. Advancing
+requires the text or every selected current PDF to have been opened. PDF UI state
+maps each destination to its current private preview URI; re-rendering, failure,
+option/roster reload and unavailable viewers invalidate readiness. A generation
+check rejects previews completed after review invalidation. Opening status stays
+in memory and is cleared by recreation, requiring preview again. Backend file
+hash/content/revision and delivery checks remain authoritative.
+
+The final stage lists roster/destinations and opens the existing explicit
+publication/delivery confirmation. Retry returns to the appropriate review stage;
+no stage transition publishes or sends. Busy state blocks step navigation, and
+historical reports retain local preview/export with sending disabled. Demo keeps
+its deliberate local-only report export. An in-memory preview gallery covers real
+card/task-row rendering, notices and empty state in RTL/dark/2× text; it has not
+been rendered.
+
+Verification: focused source checks covered the four stage transitions, retained
+selections/scroll states, per-destination opened-file requirements, invalidation,
+confirmation-only send calls, guarded Add buttons, retained report route and 4–8
+PIN limits. Other checks covered production call sites/parameters, storage guards,
+publication entry points, cleanup/cancellation ownership, XML plural forms,
+resource references, signing inputs, delimiters, contrast arithmetic and Git
+whitespace checks. No Gradle, build, compilation, packaging, test-suite/migration
+inspection, device/rendered-preview or live Telegram verification ran. Lost-key
+recovery, file cleanup, screenshots/Recents, Arabic wrapping, keyboard/fold/TalkBack
+and actual production signing remain runtime limitations, not completed checks.
+
 ## Verification and limits
 
 - Owner-supplied 20 October debug build `1.1.4.20261020` (code 5) reached Kotlin
@@ -2300,6 +2392,7 @@ See [build fixes and reusable preferences](android-shared-workstation-build-fixe
   build instructions and deferred roadmap content, and confirmed private docs remain
   ignored. The updated Windows package passed manifest/CRC/link checks using the
   existing workbook bytes; no workbook rebuild or macro execution was performed.
-- Release still uses debug signing. Production signing is the active near-term
-  [roadmap](roadmap.md) item; voice/templates remain deferred. Source completion
-  does not imply runtime verification.
+- Release uses protected local/CI signing inputs with no debug-key fallback.
+  Supplying the production key remains a [roadmap](roadmap.md) item; no signed
+  release was produced or verified. Voice/templates remain deferred. Source
+  completion does not imply runtime verification.

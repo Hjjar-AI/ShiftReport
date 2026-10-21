@@ -2,12 +2,21 @@ package com.hos.rushdpatients.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import com.hos.rushdpatients.R
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontLoadingStrategy
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+/** The same bundled faces serve Compose and PDF exports; UI loading runs asynchronously. */
+private val ArabicFontFamily = FontFamily(
+    Font(R.font.tajawal_regular, FontWeight.Normal, loadingStrategy = FontLoadingStrategy.Async),
+    Font(R.font.tajawal_bold, FontWeight.Bold, loadingStrategy = FontLoadingStrategy.Async)
+)
+
 private fun textStyle(size: Int, height: Int, weight: FontWeight = FontWeight.Normal) = TextStyle(
-    fontFamily = FontFamily.Default,
+    fontFamily = ArabicFontFamily,
     fontWeight = weight,
     fontSize = size.sp,
     lineHeight = height.sp,
@@ -22,12 +31,12 @@ val Typography = Typography(
     headlineMedium = textStyle(26, 32, FontWeight.Bold),
     headlineSmall = textStyle(24, 30, FontWeight.Bold),
     titleLarge = textStyle(22, 28, FontWeight.SemiBold),
-    titleMedium = textStyle(16, 22, FontWeight.SemiBold),
-    titleSmall = textStyle(14, 18, FontWeight.SemiBold),
-    bodyLarge = textStyle(16, 22),
-    bodyMedium = textStyle(15, 20),
-    bodySmall = textStyle(14, 18),
-    labelLarge = textStyle(14, 18, FontWeight.SemiBold),
-    labelMedium = textStyle(13, 17, FontWeight.Medium),
-    labelSmall = textStyle(12, 16, FontWeight.Medium)
+    titleMedium = textStyle(16, 25, FontWeight.SemiBold),
+    titleSmall = textStyle(14, 22, FontWeight.SemiBold),
+    bodyLarge = textStyle(16, 25),
+    bodyMedium = textStyle(15, 24),
+    bodySmall = textStyle(14, 22),
+    labelLarge = textStyle(14, 22, FontWeight.SemiBold),
+    labelMedium = textStyle(13, 20, FontWeight.Medium),
+    labelSmall = textStyle(12, 18, FontWeight.Medium)
 )

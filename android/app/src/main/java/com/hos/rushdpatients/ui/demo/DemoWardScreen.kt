@@ -69,7 +69,9 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val patientListState = rememberLazyListState()
     val mainDestination = tab == DemoDestination.PATIENTS || tab == DemoDestination.DASHBOARD
-    val actionSpace = rememberFloatingActionSpace(mainDestination)
+    val showAddFloatingAction = mainDestination && detailId == null &&
+        (tab != DemoDestination.PATIENTS || state.patients.isNotEmpty())
+    val actionSpace = rememberFloatingActionSpace(showAddFloatingAction)
     val baseDensity = LocalDensity.current
     val demoDensity = remember(baseDensity, font) {
         Density(baseDensity.density, (baseDensity.fontScale * font.multiplier).coerceIn(0.85f, 2f))
@@ -155,7 +157,6 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                                         Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                                             if (expanded) "طي جميع البطاقات" else "توسيع جميع البطاقات")
                                     }
-                                    IconButton(onClick = { showAdd = true }) { Icon(Icons.Filled.Add, "إضافة مريض") }
                                 }
                             })
                             Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
@@ -170,9 +171,12 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                             isAdmin = false, onPatients = { navigate(DemoDestination.PATIENTS) },
                             onDashboard = { navigate(DemoDestination.DASHBOARD) }, onActivity = {})
                     }, floatingActionButton = {
-                        if (mainDestination) ExtendedFloatingActionButton(onClick = { navigate(DemoDestination.REPORT) }, modifier = actionSpace.measure) {
-                            Icon(UiAction.SEND_REPORT.icon, contentDescription = null)
-                            Text(UiAction.SEND_REPORT.label, Modifier.padding(start = UiSpacing.small))
+                        if (showAddFloatingAction) AppButton(onClick = { showAdd = true },
+                            enabled = !showAdd && edit == null && copy == null,
+                            contentPadding = UiPadding.content,
+                            modifier = actionSpace.measure.heightIn(min = UiSpacing.touchTarget)) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
+                            Text("إضافة مريض", Modifier.padding(start = UiSpacing.small))
                         }
                     }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
                         Row(Modifier.fillMaxSize().padding(padding)) {

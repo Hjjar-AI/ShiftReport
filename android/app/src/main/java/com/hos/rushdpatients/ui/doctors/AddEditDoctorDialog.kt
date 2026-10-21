@@ -179,6 +179,7 @@ fun AddEditDoctorDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Ltr),
                         isError = telegramIdError,
+                        errorMessage = "أدخل معرّفاً رقمياً موجباً أو اترك الحقل فارغاً",
                         supportingText = { if (telegramIdError) Text("أدخل معرّفاً رقمياً موجباً أو اترك الحقل فارغاً") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()

@@ -14,7 +14,7 @@ import javax.inject.Singleton
 
 @Singleton
 class SessionManager @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext private val context: Context
 ) {
 
     private val masterKeyAlias: String =
@@ -47,6 +47,7 @@ class SessionManager @Inject constructor(
     fun clear() {
         prefs.edit().clear().apply()
         _sessionFlow.value = null
+        com.hos.rushdpatients.pdf.ClinicalPdfCache.clear(context)
     }
 
     fun markUnlocked() {

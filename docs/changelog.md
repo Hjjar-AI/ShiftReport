@@ -5,6 +5,18 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Project access and protection
 
+- Removed hidden login registry publication, guarded creation against existing
+  pins, added encrypted-storage failure preservation/retry and screenshot-window
+  protection, cleaned private PDF caches, and separated release signing from debug
+  keys. Corrected grid/IME work, Arabic counts/errors, card/task/detail presentation
+  and added in-memory design previews. Kept the owner's 4–8-digit PIN choice,
+  changed ward/demo floating actions to Add patient and organized report sending
+  into Doctors → Destination → Preview → Send, retaining final confirmation and
+  current-file preview requirements. Shared UI typography now uses bundled Tajawal
+  Regular/Bold, reusing the unchanged licensed PDF faces through common font
+  resources. Finding decisions and source-only limits are
+  in [current state](current-state.md#android-review-corrections).
+
 - Added a permanent-superadmin reviewed empty patient/shift seed on Android and
   desktop, retaining doctors/accounts, connection/key and Telegram history. Local
   stale-state checks preserve racing edits; audit/delivery records remain.

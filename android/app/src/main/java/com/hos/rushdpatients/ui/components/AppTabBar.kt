@@ -33,7 +33,7 @@ data class AppTabItem(
 @Composable
 fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Unit) {
     Box(Modifier.fillMaxWidth().navigationBarsPadding()
-        .padding(horizontal = UiSpacing.section, vertical = UiSpacing.small), contentAlignment = Alignment.Center) {
+        .padding(horizontal = UiSpacing.section, vertical = UiSpacing.tiny), contentAlignment = Alignment.Center) {
         Surface(modifier = Modifier.widthIn(max = UiLayout.navigationBarMaxWidth).fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface,
@@ -54,7 +54,7 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                         verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         (if (selected) item.selectedIcon else item.icon)?.let { icon ->
                             Box(Modifier.clip(MaterialTheme.shapes.extraLarge).background(indicator)
-                                .padding(horizontal = UiSpacing.section, vertical = UiSpacing.small),
+                                .padding(horizontal = UiSpacing.section, vertical = UiSpacing.tiny),
                                 contentAlignment = Alignment.Center) {
                                 Icon(icon, contentDescription = null,
                                     tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else color,

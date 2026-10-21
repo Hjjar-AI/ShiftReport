@@ -158,7 +158,7 @@ internal fun PatientSortOptions(
                 modifier = Modifier.fillMaxWidth()
             ) { Text("الترتيب الأصلي") }
             AppTextButton(onClick = { apply(SortSpec.WORKBOOK) }, enabled = !saving,
-                modifier = Modifier.fillMaxWidth()) { Text("ترتيب Excel: الجنس ← التشخيص ← أيام الدخول ← الاسم") }
+                modifier = Modifier.fillMaxWidth()) { Text("الترتيب الافتراضي: الجنس ← التشخيص ← أيام الدخول ← الاسم") }
         }
     }
     if (reviewing) {

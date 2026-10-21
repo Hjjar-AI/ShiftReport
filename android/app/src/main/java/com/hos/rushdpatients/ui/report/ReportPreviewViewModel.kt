@@ -81,7 +81,6 @@ class ReportPreviewViewModel @Inject constructor(
     private var reviewedReport: BuiltReport? = null
     private val pdfWorkspace = ReportPdfWorkspace(context, settingsRepository, projectConfigStore,
         classicPdfExporter, cardsPdfExporter, mediaStoreSaver)
-    private val reviewedPdfs = pdfWorkspace.reviewedPdfs
 
     private val localActions = ReportLocalActions(_state, viewModelScope, shiftId,
         context, reportBuilder, settingsRepository, assignmentPdfExporter, mediaStoreSaver,
@@ -105,9 +104,20 @@ class ReportPreviewViewModel @Inject constructor(
         load()
     }
 
+    override fun onCleared() {
+        pdfWorkspace.clearReviews()
+        super.onCleared()
+    }
+
+    private fun clearPdfReviews() {
+        pdfWorkspace.clearReviews()
+        _state.update { it.copy(pdfReviewGeneration = it.pdfReviewGeneration + 1,
+            pdfPreviewUri = null, pdfReviewUris = emptyMap()) }
+    }
+
     fun load(reviewNotice: String? = null) {
         if (_state.value.sending || _state.value.savingDoctors || _state.value.savingPdfOptions) return
-        reviewedPdfs.clear()
+        clearPdfReviews()
         reviewedReport = null
         viewModelScope.launch {
             _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
@@ -172,7 +182,7 @@ class ReportPreviewViewModel @Inject constructor(
             var fetched = false
             try {
                 syncService.refreshDoctorsFromRemote().getOrThrow()
-                reviewedPdfs.clear()
+                clearPdfReviews()
                 reviewedReport = null
                 fetched = true
             } catch (e: CancellationException) { throw e }
@@ -237,7 +247,7 @@ class ReportPreviewViewModel @Inject constructor(
                     AppConstants.SETTING_PDF_RULE_CONTRAST to options.ruleContrast.name,
                     AppConstants.SETTING_PDF_ROW_SHADING to options.rowShading.name
                 ))
-                reviewedPdfs.clear()
+                clearPdfReviews()
                 _state.update { it.copy(pdfStyle = style, pdfOptions = options) }
             } catch (e: CancellationException) {
                 throw e

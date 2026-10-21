@@ -190,7 +190,7 @@ private fun TaskDraftDialog(
         text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppTextField(description, { description = it; error = null }, label = { Text("وصف المهمة") },
-                    modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = error != null)
+                    modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = error != null, errorMessage = error)
                 SectionTitle("موعد المهمة")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskDeadline.entries.forEach { option ->

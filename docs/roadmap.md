@@ -11,8 +11,11 @@ This file contains only unfinished implementation work and explicitly deferred p
 
 ## P0 — production signing
 
-1. Configure production signing before distribution.
-   - Release currently uses the debug signing configuration. Configure a protected release keystore through local/CI secrets without committing keys or passwords.
+1. Supply the protected production signing key before distribution.
+   - Release now reads an ignored local keystore configuration or CI environment
+     inputs, with no debug-key fallback. The owner must supply the key/certificate;
+     no production-signed artifact has been verified. See the
+     [signing inputs](android-shared-workstation-build-fixes.md#production-release-signing).
 
 ## Far future — optional voice dictation
 

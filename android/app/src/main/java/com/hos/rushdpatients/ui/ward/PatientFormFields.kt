@@ -75,14 +75,15 @@ internal fun DateField(
     supportingText: String?,
     modifier: Modifier = Modifier,
     enabled: Boolean = LocalFieldEnabled.current,
-    isError: Boolean = false
+    isError: Boolean = false,
+    errorMessage: String? = null
 ) {
     var open by remember { mutableStateOf(false) }
     AppPickerField(
         value = value?.toString().orEmpty(), label = label,
         placeholder = "اختر التاريخ", icon = Icons.Filled.CalendarMonth, valueTextDirection = TextDirection.Ltr,
         onClick = { open = true }, modifier = modifier,
-        supportingText = supportingText, enabled = enabled, isError = isError
+        supportingText = supportingText, enabled = enabled, isError = isError, errorMessage = errorMessage
     )
     if (open && enabled) {
         val state = rememberDatePickerState(
@@ -113,7 +114,8 @@ internal fun MultilineField(
     textStyle: TextStyle,
     isError: Boolean = false,
     placeholder: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    errorMessage: String? = null
 ) {
     AppTextField(
         value = value,
@@ -124,7 +126,7 @@ internal fun MultilineField(
         minLines = 1,
         maxLines = 4,
         textStyle = textStyle,
-        isError = isError
+        isError = isError, errorMessage = errorMessage
     )
 }
 
@@ -170,7 +172,8 @@ internal fun MultiValueEditor(
     onAddDate: ((LocalDate) -> Unit)?,
     textStyle: TextStyle,
     isError: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    errorMessage: String? = null
 ) {
     var tools by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -181,7 +184,7 @@ internal fun MultiValueEditor(
         if (!tools) MultilineField(
             value = (items + draft).filter(String::isNotBlank).joinToString("\n"),
             onValueChange = onReplaceAll, label = if (label == "التحاليل") label else "$label *",
-            textStyle = textStyle, isError = isError)
+            textStyle = textStyle, isError = isError, errorMessage = errorMessage)
         else {
             Text(
                 "$label${if (label == "التحاليل") "" else " *"}",
@@ -223,7 +226,7 @@ internal fun MultiValueEditor(
                 minLines = 1,
                 maxLines = 2,
                 textStyle = textStyle,
-                isError = isError
+                isError = isError, errorMessage = errorMessage
             )
 
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
@@ -429,14 +432,15 @@ internal fun DoctorDropdown(
     enabled: Boolean = LocalFieldEnabled.current,
     isError: Boolean = false,
     supportingText: String? = null,
-    registry: List<Doctor> = doctors
+    registry: List<Doctor> = doctors,
+    errorMessage: String? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val selectedName = doctors.firstOrNull { it.id == selectedId }?.fullName
     AppPickerField(value = selectedName.orEmpty(), label = label, placeholder = undefinedLabel,
         onClick = { query = ""; expanded = true }, modifier = modifier.fillMaxWidth(),
-        enabled = enabled, isError = isError, supportingText = supportingText)
+        enabled = enabled, isError = isError, errorMessage = errorMessage, supportingText = supportingText)
     if (expanded && enabled) AlertDialog(onDismissRequest = { expanded = false },
         title = { Text(label) }, text = {
             Column(Modifier.appDialogBody(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {

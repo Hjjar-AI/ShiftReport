@@ -348,6 +348,7 @@ internal fun PatientFormDialog(
                         "التشخيص الأولي",
                         autoStyle,
                         isError = validationMessages.any { it.field == PatientFormField.DIAGNOSIS },
+                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.DIAGNOSIS }?.message,
                         modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.DIAGNOSIS)),
                         placeholder = when (diagnosisType) {
                             DiagnosisType.PSYCHIATRIC -> "مثال: Psychosis، Bipolar II disorder"
@@ -384,6 +385,7 @@ internal fun PatientFormDialog(
                         onAddDate = null,
                         textStyle = autoStyle,
                         isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
+                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TREATMENT }?.message,
                         modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
                     )
                     MultiValueEditor(
@@ -412,6 +414,7 @@ internal fun PatientFormDialog(
                         onAddDate = null,
                         textStyle = autoStyle,
                         isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
+                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.FOLLOW_UP }?.message,
                         modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
                     )
                     MultiValueEditor(
@@ -458,6 +461,7 @@ internal fun PatientFormDialog(
                             DoctorDropdown(
                                 label = "المقيم",
                                 isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
                                 undefinedLabel = "مقيم غير محدد",
                                 selectedId = residentId,
                                 doctors = residentDoctors, registry = doctors,
@@ -469,6 +473,7 @@ internal fun PatientFormDialog(
                             DoctorDropdown(
                                 label = "المشرف",
                                 isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
                                 undefinedLabel = "مشرف غير محدد",
                                 selectedId = specialistId,
                                 doctors = specialistDoctors, registry = doctors,

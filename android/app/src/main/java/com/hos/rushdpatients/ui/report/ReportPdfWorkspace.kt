@@ -36,7 +36,24 @@ internal class ReportPdfWorkspace(
     private val projectConfigStore: ProjectConfigStore, private val classicPdfExporter: PdfReportExporter,
     private val cardsPdfExporter: PdfCardsExporter, private val mediaStoreSaver: MediaStoreSaver
 ) {
-    val reviewedPdfs = java.util.concurrent.ConcurrentHashMap<String, ReviewedPdf>()
+    private val reviewedPdfs = java.util.concurrent.ConcurrentHashMap<String, ReviewedPdf>()
+
+    @Synchronized
+    fun clearReviews() {
+        val files = reviewedPdfs.values.map { it.file }
+        reviewedPdfs.clear()
+        com.hos.rushdpatients.pdf.ClinicalPdfCache.delete(files)
+    }
+
+    @Synchronized
+    fun removeReview(key: String) {
+        reviewedPdfs.remove(key)?.let { com.hos.rushdpatients.pdf.ClinicalPdfCache.delete(listOf(it.file)) }
+    }
+
+    @Synchronized
+    fun replaceReview(key: String, artifact: ReviewedPdf) {
+        reviewedPdfs.put(key, artifact)?.let { com.hos.rushdpatients.pdf.ClinicalPdfCache.delete(listOf(it.file)) }
+    }
 
     fun pdfKey(supervisorId: String?) = supervisorId?.let { "supervisor:$it" } ?: "general"
 

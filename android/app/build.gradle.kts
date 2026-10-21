@@ -22,6 +22,16 @@ val currentAppVersionName = providers.gradleProperty("shiftreport.versionName")
 require(currentAppVersionCode in 1..2_100_000_000) { "Invalid app versionCode" }
 require(currentAppVersionName.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(?:\\.[0-9]+)*"))) { "Invalid app versionName" }
 
+// Local file and CI environment inputs only; signing credentials never enter source.
+val releaseSigningProperties = Properties().apply {
+    load(StringReader(providers.fileContents(
+        rootProject.layout.projectDirectory.file("keystore.properties")
+    ).asText.orElse("").get()))
+}
+fun releaseSigningValue(environmentName: String, propertyName: String): String? =
+    providers.environmentVariable(environmentName).orNull?.takeIf { it.isNotBlank() }
+        ?: releaseSigningProperties.getProperty(propertyName)?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "com.hos.rushdpatients"
     compileSdk = 34
@@ -46,6 +56,15 @@ android {
 
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = releaseSigningValue("SHIFTREPORT_KEYSTORE_FILE", "storeFile")?.let { rootProject.file(it) }
+            storePassword = releaseSigningValue("SHIFTREPORT_KEYSTORE_PASSWORD", "storePassword")
+            keyAlias = releaseSigningValue("SHIFTREPORT_KEY_ALIAS", "keyAlias")
+            keyPassword = releaseSigningValue("SHIFTREPORT_KEY_PASSWORD", "keyPassword")
+        }
+    }
+
     buildTypes {
         debug {
             versionNameSuffix = "-debug"
@@ -58,7 +77,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

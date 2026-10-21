@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
@@ -67,15 +69,17 @@ fun AppTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     singleLine: Boolean = false,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
-    minLines: Int = 1
+    minLines: Int = 1,
+    errorMessage: String? = null
 ) {
     val active = enabled && LocalFieldEnabled.current
     val interactionSource = remember { MutableInteractionSource() }
     val fieldVisibility = remember { BringIntoViewRequester() }
     var focused by remember { mutableStateOf(false) }
-    val keyboardInset = WindowInsets.ime.getBottom(LocalDensity.current)
-    LaunchedEffect(focused, keyboardInset) {
-        if (focused) {
+    val density = LocalDensity.current
+    val ime = WindowInsets.ime
+    LaunchedEffect(focused, density, ime) {
+        if (focused) snapshotFlow { ime.getBottom(density) }.collectLatest {
             withFrameNanos { }
             fieldVisibility.bringIntoView()
         }
@@ -85,7 +89,7 @@ fun AppTextField(
     BasicTextField(
         value = value, onValueChange = onValueChange,
         modifier = modifier.bringIntoViewRequester(fieldVisibility)
-            .onFocusChanged { focused = it.isFocused }.appFieldLayout(label != null, isError),
+            .onFocusChanged { focused = it.isFocused }.appFieldLayout(label != null, isError, errorMessage),
         enabled = active, textStyle = textStyle.copy(color = textColor),
         keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
         singleLine = singleLine, maxLines = maxLines, minLines = minLines,
@@ -103,9 +107,9 @@ fun AppTextField(
     )
 }
 
-internal fun Modifier.appFieldLayout(hasLabel: Boolean, isError: Boolean): Modifier =
+internal fun Modifier.appFieldLayout(hasLabel: Boolean, isError: Boolean, errorMessage: String? = null): Modifier =
     semantics(mergeDescendants = true) {
-        if (isError) error("إدخال غير صالح")
+        if (isError) error(errorMessage?.takeIf { it.isNotBlank() } ?: "إدخال غير صالح")
     }.padding(top = if (hasLabel) UiSize.fieldLabelInset else 0.dp)
         .defaultMinSize(minHeight = UiSize.fieldMinHeight)
 

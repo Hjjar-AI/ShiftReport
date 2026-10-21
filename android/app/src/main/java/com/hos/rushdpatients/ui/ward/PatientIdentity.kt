@@ -43,16 +43,23 @@ internal fun PatientName(name: String, modifier: Modifier = Modifier,
         maxLines = 2, overflow = TextOverflow.Ellipsis)
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modifier, pinned: Boolean = false,
     showFreshness: Boolean = false, nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
     showPersonal: Boolean = false) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PatientName(patient.name, style = nameStyle)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+        FlowRow(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny),
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             if (pinned) Icon(Icons.Filled.Bookmark, contentDescription = "مثبت للعرض", modifier = Modifier.size(UiSize.iconSmall))
-            if (patient.isPriority) Icon(Icons.Filled.Star, contentDescription = "مريض ذو أولوية",
-                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(UiSize.iconSmall))
+            if (patient.isPriority) Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                Icon(Icons.Filled.Star, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(UiSize.iconSmall))
+                Text("أولوية", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary)
+            }
             val metadata = if (showPersonal) PatientIdentityText.details(patient) else PatientIdentityText.admission(patient)
             Text(metadata + if (showFreshness) " · ${relativeFreshness(patient.updatedAt)}" else "",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

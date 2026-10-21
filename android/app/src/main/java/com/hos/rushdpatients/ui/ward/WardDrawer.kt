@@ -197,13 +197,13 @@ private fun DrawerToolGroup(label: String, icon: ImageVector, expanded: Boolean,
                     .semantics { stateDescription = if (expanded) "مفتوح" else "مطوي" }) {
                 Row(Modifier.padding(UiSpacing.section), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(UiSpacing.section)) {
-                    Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp),
+                    Icon(icon, contentDescription = null, modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold)
                     Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                         contentDescription = if (expanded) "طي $label" else "فتح $label",
-                        modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (expanded) Column(Modifier.padding(start = UiSpacing.section, end = UiSpacing.small,
@@ -227,7 +227,7 @@ private fun WardDrawerRow(label: String, icon: ImageVector,
         Row(Modifier.padding(horizontal = UiSpacing.section, vertical = UiSpacing.screen),
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.section),
             verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp),
+            Icon(icon, contentDescription = null, modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium),
                 tint = if (selected) LocalContentColor.current
                     else colors.onSurfaceVariant.copy(alpha = if (enabled) 1f else UiOpacity.disabledContent))
             Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,

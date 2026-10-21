@@ -28,12 +28,13 @@ fun AppPickerField(
     supportingText: String? = null,
     placeholder: String? = null,
     icon: ImageVector = Icons.Filled.ArrowDropDown,
-    valueTextDirection: TextDirection = TextDirection.ContentOrRtl
+    valueTextDirection: TextDirection = TextDirection.ContentOrRtl,
+    errorMessage: String? = null
 ) {
     val active = enabled && LocalFieldEnabled.current
     val interactionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = modifier.fillMaxWidth().appFieldLayout(hasLabel = true, isError = isError)
+        modifier = modifier.fillMaxWidth().appFieldLayout(hasLabel = true, isError = isError, errorMessage = errorMessage)
             .clickable(interactionSource = interactionSource, indication = null,
                 enabled = active, role = Role.Button, onClickLabel = label, onClick = onClick)
     ) {

@@ -16,14 +16,7 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Hidden recovery tool: upload and pin a minimal doctors registry so the
- * bootstrap flow on the login screen can proceed.
- *
- * Triggered by long-pressing the retry button for 15 seconds on the
- * bootstrap-failed screen. Requires the bot to be a chat admin with
- * "Pin Messages" permission in the main group.
- */
+/** Initial project creation only. Login/retry never publishes or pins a registry. */
 @Singleton
 class BootstrapSeeder @Inject constructor(
     private val telegram: TelegramClient,
@@ -38,7 +31,12 @@ class BootstrapSeeder @Inject constructor(
 
     suspend fun seed(): Result = withContext(Dispatchers.IO) {
         try {
-            val admin = projectConfigStore.current().initialAdmin
+            val config = projectConfigStore.current()
+            check(!config.initialized && !config.demoMode) { "إنشاء السجل متاح أثناء إعداد مشروع جديد فقط" }
+            require(telegram.getChat(topics.chatId).pinnedMessage == null) {
+                "توجد رسالة مثبّتة؛ استخدم الانضمام إلى المشروع ولا تستبدل سجل الفريق"
+            }
+            val admin = config.initialAdmin
             val telegramId = admin.telegramId
             require(telegramId > 0L) {
                 "معرف تليجرام للمدير الأول غير مضبوط"
@@ -67,9 +65,8 @@ class BootstrapSeeder @Inject constructor(
 
             val text = DoctorsRegistryCodec.encode(listOf(doctor))
             val file = File.createTempFile("bootstrap_registry_", ".txt")
-            file.writeText(text, Charsets.UTF_8)
-
             val msg = try {
+                file.writeText(text, Charsets.UTF_8)
                 telegram.sendDocument(
                     chatId = topics.chatId,
                     file = file,
@@ -82,6 +79,10 @@ class BootstrapSeeder @Inject constructor(
                 file.delete()
             }
 
+            check(projectConfigStore.current() == config) { "تغير إعداد المشروع؛ أعد مراجعته" }
+            require(telegram.getChat(topics.chatId).pinnedMessage == null) {
+                "ظهرت رسالة مثبّتة أثناء الإعداد؛ لم يُستبدل سجل الفريق"
+            }
             telegram.pinMessage(topics.chatId, msg.messageId, disableNotification = true)
 
             Result.Success(msg.messageId, 1)

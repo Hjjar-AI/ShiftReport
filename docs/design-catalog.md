@@ -37,14 +37,16 @@ settings remain separate choices.
 | `medium` | 6dp | Normal compact-app rhythm |
 | `screen` | 8dp | Screen gutter |
 | `section` | 12dp | Separation between larger sections |
+| `largeSection` | 16dp | Larger section separation |
+| `pageSection` | 24dp | Page-level separation |
 | `touchTarget` | 48dp minimum | Interactive controls; can grow for labels/fonts |
 
 | Patient-card metric | Compact | Normal |
 |---|---|---|
-| Horizontal padding | 4dp | 6dp |
-| Vertical padding | 2dp | 4dp |
-| Section gap | 4dp | 6dp |
-| List gap | 6dp | 6dp |
+| Horizontal padding | 4dp | 12dp |
+| Vertical padding | 2dp | 8dp |
+| Section gap | 4dp | 8dp |
+| List gap | 8dp | 8dp |
 
 Other padding: general content is 4dp horizontal / 2dp vertical; compact content
 is 2dp / 1dp. Fields use 4dp horizontal, 8dp above the floating label and 2dp below.
@@ -72,6 +74,7 @@ A density choice changes padding/gaps, not font size or minimum action targets.
 Shapes use the shared theme: extra-small 4dp, small 8dp, medium 12dp, large 16dp,
 extra-large 24dp corner radii. Control icons are 16/20/24dp by role; inline progress
 uses a 16dp slot, page/loading progress uses 40dp, and the ring stroke is 2dp.
+The noninteractive patient ordinal uses 32dp; patient actions retain 48dp targets.
 The reserved inline slot keeps a button label from shifting when its spinner appears.
 
 Clinical urgency, overdue tasks and badge severity keep their existing semantic
@@ -87,10 +90,10 @@ implemented and checked.
 
 | Profile | Arabic name | Density/list gap | Border normal/selected | Elevation navigation/action | Expand/collapse/highlight |
 |---|---|---|---|---|---|
-| `current` | الحالي | Current table above; list 6dp | 1/2dp | 2/3dp | 160/130/220ms |
-| `relaxed` | أوسع | Compact: padding 6h/4v, gap 6dp; normal: 8h/6v, gap 8dp; list 8dp | 1/2dp | 2/3dp | 160/130/220ms |
-| `quiet` | هادئ | Current density; list 6dp | 1/2dp | 0/0dp | 120/100/180ms |
-| `clear` | أوضح | Current density; list 6dp | 1.5/2dp | 2/3dp | 160/130/220ms |
+| `current` | الحالي | Current table above; list 8dp | 1/2dp | 2/3dp | 160/130/220ms |
+| `relaxed` | أوسع | Compact: padding 6h/4v, gap 6dp; normal: 16h/12v, gap 12dp; list 12dp | 1/2dp | 2/3dp | 160/130/220ms |
+| `quiet` | هادئ | Current density; list 8dp | 1/2dp | 0/0dp | 120/100/180ms |
+| `clear` | أوضح | Current density; list 8dp | 1.5/2dp | 2/3dp | 160/130/220ms |
 
 `h` and `v` mean horizontal and vertical padding. These are complete examples,
 not promises that increasing every value improves usability. `current` references
@@ -111,10 +114,17 @@ val sample = UiStyleCatalog.relaxed
 |---|---|---|
 | Display large / medium / small | 40/48 · 34/42 · 30/38 | Bold |
 | Headline large / medium / small | 28/34 · 26/32 · 24/30 | Bold |
-| Title large / medium / small | 22/28 · 16/22 · 14/18 | SemiBold |
-| Body large / medium / small | 16/22 · 15/20 · 14/18 | Normal |
-| Label large | 14/18 | SemiBold |
-| Label medium / small | 13/17 · 12/16 | Medium |
+| Title large / medium / small | 22/28 · 16/25 · 14/22 | SemiBold |
+| Body large / medium / small | 16/25 · 15/24 · 14/22 | Normal |
+| Label large | 14/22 | SemiBold |
+| Label medium / small | 13/20 · 12/18 | Medium |
+
+Shared app typography uses bundled Tajawal Regular/Bold from `res/font`, with
+asynchronous Compose font loading and the existing bundled SIL Open Font License
+in `assets/fonts/OFL.txt`. PDF export resolves the same resources during IO export.
+No runtime font download is needed. Explicit monospace technical/lab fields keep
+their existing font family; system/app font scaling and the sizes above remain.
+Rendered Arabic shaping and large-font wrapping require device verification.
 
 Patient names use the shared name component with a bold role appropriate to their
 context. Card names, the details top bar and the editor's saved-name context do not

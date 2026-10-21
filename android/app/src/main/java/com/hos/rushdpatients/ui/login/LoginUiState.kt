@@ -20,6 +20,5 @@ data class LoginUiState(
     val projectName: String = "",
     val step: LoginStep = LoginStep.Bootstrapping,
     val busy: Boolean = false,
-    val seeding: Boolean = false,
     val error: String? = null
 )

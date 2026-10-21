@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 internal fun WardHeader(
     state: WardUiState, viewMode: WardViewMode, patientDestination: Boolean,
     anyCardsExpanded: Boolean, foldingFeature: androidx.window.layout.FoldingFeature?,
+    showAddAction: Boolean,
     onMenu: () -> Unit, onToggleCards: () -> Unit, onAdd: () -> Unit,
     onSearch: () -> Unit, onWorkflow: () -> Unit
 ) {
@@ -51,8 +52,9 @@ internal fun WardHeader(
                         contentDescription = if (anyCardsExpanded) "طي جميع بطاقات المرضى" else "توسيع جميع بطاقات المرضى")
                 }
             }
-            if (!state.isReadOnly && (!patientDestination || state.patients.isNotEmpty())) {
-                IconButton(onClick = onAdd) {
+            if (showAddAction && !state.isReadOnly && (!patientDestination || state.patients.isNotEmpty())) {
+                IconButton(onClick = onAdd, enabled = state.shift != null &&
+                    !state.loading && !state.saving && !state.syncing) {
                     Icon(Icons.Filled.Add, contentDescription = "إضافة مريض")
                 }
             }

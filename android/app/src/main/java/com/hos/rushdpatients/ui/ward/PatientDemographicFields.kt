@@ -56,6 +56,7 @@ internal fun PatientDemographicFields(
                 singleLine = true,
                 textStyle = autoStyle,
                 isError = validationMessages.any { it.field == PatientFormField.ADMISSION_NUMBER },
+                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_NUMBER }?.message,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
             )
         },
@@ -65,6 +66,7 @@ internal fun PatientDemographicFields(
                 onValueChange = onAdmissionDateChanged,
                 label = "تاريخ الدخول *",
                 isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
+                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,
                 supportingText = admissionDays?.let { "مدة الإقامة: ${uiNumber(it)} يوم" },
                 modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
             )
@@ -83,6 +85,7 @@ internal fun PatientDemographicFields(
         singleLine = true,
         textStyle = autoStyle,
         isError = validationMessages.any { it.field == PatientFormField.NAME },
+        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.NAME }?.message,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
     )
     AppFieldPair(
@@ -106,6 +109,7 @@ internal fun PatientDemographicFields(
                 singleLine = true,
                 textStyle = autoStyle,
                 isError = validationMessages.any { it.field == PatientFormField.AGE },
+                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.AGE }?.message,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -130,6 +134,7 @@ internal fun PatientDemographicFields(
                 singleLine = true,
                 textStyle = autoStyle,
                 isError = validationMessages.any { it.field == PatientFormField.BIRTH_YEAR },
+                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.BIRTH_YEAR }?.message,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Next

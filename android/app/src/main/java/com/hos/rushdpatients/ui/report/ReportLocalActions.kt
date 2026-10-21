@@ -28,7 +28,6 @@ internal class ReportLocalActions(
     private val assignmentPdfExporter: PdfAssignmentExporter, private val mediaStoreSaver: MediaStoreSaver,
     private val adminAuthorizer: AdminAuthorizer, private val pdfWorkspace: ReportPdfWorkspace
 ) {
-    private val reviewedPdfs = pdfWorkspace.reviewedPdfs
 
     fun previewPdf() = previewPdfFor(null)
 
@@ -37,8 +36,11 @@ internal class ReportLocalActions(
     private fun previewPdfFor(supervisorId: String?) {
         val current = _state.value
         if (current.savingPdfOptions || current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
-        _state.update { it.copy(previewingPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
+        val reviewGeneration = current.pdfReviewGeneration
+        _state.update { it.copy(previewingPdf = true, error = null, doctorRegistryAction = null, retryAction = null,
+            pdfReviewUris = it.pdfReviewUris - pdfWorkspace.pdfKey(supervisorId)) }
         viewModelScope.launch {
+            var temporary: File? = null
             try {
                 val built = reportBuilder.build(shiftId)
                 val prepared = withContext(Dispatchers.IO) {
@@ -47,6 +49,7 @@ internal class ReportLocalActions(
                     val style = PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE))
                     val dir = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
                     val file = File.createTempFile("reviewed_report_", ".pdf", dir)
+                    temporary = file
                     try {
                         pdfWorkspace.renderPdf(selected.patients, selected.doctors, selected.summary,
                             selected.doctorNames, selected.doctorNames, options, file, style)
@@ -54,15 +57,22 @@ internal class ReportLocalActions(
                     } catch (e: Exception) { file.delete(); throw e }
                 }
                 val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", prepared.file)
-                reviewedPdfs[pdfWorkspace.pdfKey(supervisorId)] = prepared
-                _state.update { it.copy(previewingPdf = false, pdfPreviewUri = uri) }
+                check(_state.value.pdfReviewGeneration == reviewGeneration) {
+                    "تغيّرت بيانات التقرير أو خياراته؛ عاين الملف من جديد"
+                }
+                pdfWorkspace.replaceReview(pdfWorkspace.pdfKey(supervisorId), prepared)
+                temporary = null
+                _state.update { it.copy(previewingPdf = false, pdfPreviewUri = uri,
+                    pdfReviewUris = it.pdfReviewUris + (pdfWorkspace.pdfKey(supervisorId) to uri.toString())) }
             } catch (e: CancellationException) {
-                reviewedPdfs.remove(pdfWorkspace.pdfKey(supervisorId))
+                pdfWorkspace.removeReview(pdfWorkspace.pdfKey(supervisorId))
                 _state.update { it.copy(previewingPdf = false) }; throw e
             } catch (e: Exception) {
-                reviewedPdfs.remove(pdfWorkspace.pdfKey(supervisorId))
+                pdfWorkspace.removeReview(pdfWorkspace.pdfKey(supervisorId))
                 _state.update { it.copy(previewingPdf = false, error = e.message ?: "تعذر إنشاء معاينة PDF",
                     retryAction = if (supervisorId == null) ReportRetryAction.PREVIEW else null) }
+            } finally {
+                temporary?.let { com.hos.rushdpatients.pdf.ClinicalPdfCache.delete(listOf(it)) }
             }
         }
     }
@@ -78,23 +88,22 @@ internal class ReportLocalActions(
         viewModelScope.launch {
             try {
                 val built = reportBuilder.build(shiftId)
-                val shareDir = File(context.cacheDir, "shared_reports").apply { mkdirs() }
-                shareDir.listFiles()?.forEach { it.delete() }
-                val file = File(shareDir, pdfWorkspace.reportFileName(built.shift.date))
-                pdfWorkspace.renderPdf(
-                    patients = built.patients,
-                    doctors = built.doctors,
-                    summary = built.summary,
-                    residentNames = built.doctorNames,
-                    supervisorNames = built.doctorNames,
-                    options = pdfWorkspace.loadPdfOptions(),
-                    outputFile = file
-                )
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
+                val uri = withContext(Dispatchers.IO) {
+                    val shareDir = File(context.cacheDir, "shared_reports").apply { mkdirs() }
+                    shareDir.listFiles()?.forEach { it.delete() }
+                    val file = File(shareDir, pdfWorkspace.reportFileName(built.shift.date))
+                    try {
+                        pdfWorkspace.renderPdf(
+                            patients = built.patients, doctors = built.doctors, summary = built.summary,
+                            residentNames = built.doctorNames, supervisorNames = built.doctorNames,
+                            options = pdfWorkspace.loadPdfOptions(), outputFile = file
+                        )
+                        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                    } catch (e: Exception) {
+                        file.delete()
+                        throw e
+                    }
+                }
                 _state.update {
                     it.copy(
                         sharingPdf = false,
@@ -103,6 +112,9 @@ internal class ReportLocalActions(
                         retryAction = null
                     )
                 }
+            } catch (e: CancellationException) {
+                _state.update { it.copy(sharingPdf = false) }
+                throw e
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
@@ -192,7 +204,9 @@ internal class ReportLocalActions(
     }
 
     fun onPdfViewerUnavailable() {
-        reviewedPdfs.clear()
-        _state.update { it.copy(pdfPreviewUri = null, error = "لا يوجد تطبيق مثبت لعرض ملفات PDF؛ لم تعتمد المعاينة") }
+        pdfWorkspace.clearReviews()
+        _state.update { it.copy(pdfPreviewUri = null, pdfReviewUris = emptyMap(),
+            pdfReviewGeneration = it.pdfReviewGeneration + 1,
+            error = "لا يوجد تطبيق مثبت لعرض ملفات PDF؛ لم تعتمد المعاينة") }
     }
 }

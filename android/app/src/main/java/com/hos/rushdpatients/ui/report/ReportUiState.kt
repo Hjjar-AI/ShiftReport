@@ -41,6 +41,8 @@ data class ReportUiState(
     val exportingLocalPdf: Boolean = false,
     val sharingPdf: Boolean = false,
     val pdfPreviewUri: Uri? = null,
+    val pdfReviewUris: Map<String, String> = emptyMap(),
+    val pdfReviewGeneration: Long = 0L,
     val pdfShareUri: Uri? = null,
     val sending: Boolean = false,
     val publicationOutcome: ReportStepOutcome? = null,

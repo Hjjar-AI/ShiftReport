@@ -64,7 +64,6 @@ internal fun HandoverDashboard(
             .verticalScroll(rememberScrollState()).padding(bottom = bottomClearance),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
-        Text("لوحة تسليم المناوبة", style = MaterialTheme.typography.headlineSmall)
         Text(
             if (showSynchronization) "ملخص سريع قبل مراجعة المرضى أو نشر التقرير"
             else "ملخص المرضى والمهام في المناوبة التجريبية",

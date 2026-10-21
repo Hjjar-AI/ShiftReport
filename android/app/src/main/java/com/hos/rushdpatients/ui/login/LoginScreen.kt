@@ -26,6 +26,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextDirection
+import com.hos.rushdpatients.ui.components.uiNumber
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -43,10 +49,6 @@ import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.connection.ProjectConnectionAction
-import com.hos.rushdpatients.ui.components.LongPressTriggerButton
-
-/** Seconds the retry button must be held to fire the hidden seed. */
-private const val HIDDEN_SEED_HOLD_MS = 15_000L
 
 @Composable
 fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
@@ -55,25 +57,9 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
         Box(Modifier.weight(1f)) {
             when (val step = state.step) {
                 is LoginStep.Bootstrapping -> Centered { com.hos.rushdpatients.ui.components.AppLoadingState("جار تحميل سجل الأطباء…") }
-                is LoginStep.BootstrapFailed -> Centered {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("تعذر تحميل سجل الأطباء", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            step.message,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(UiSpacing.screen)
-                        )
-                        if (state.seeding) {
-                            com.hos.rushdpatients.ui.components.AppLoadingState("جار تهيئة سجل الأطباء…")
-                        } else {
-                            LongPressTriggerButton(
-                                text = "إعادة المحاولة",
-                                holdDurationMs = HIDDEN_SEED_HOLD_MS,
-                                onClick = viewModel::boot,
-                                onHoldTriggered = viewModel::seedBootstrap
-                            )
-                        }
-                    }
+                is LoginStep.BootstrapFailed -> AppCenteredContent {
+                    AppNotice("تعذر تحميل سجل الأطباء\n${step.message}", kind = NoticeKind.ERROR)
+                    AppButton(onClick = viewModel::boot) { Text("إعادة المحاولة") }
                 }
                 is LoginStep.PickDoctor -> PickDoctorList(
                     projectName = state.projectName,
@@ -128,7 +114,9 @@ private fun PickDoctorList(
     onPick: (Doctor) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val matchingDoctors = doctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
+    val matchingDoctors = remember(doctors, query) {
+        doctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(UiSpacing.screen),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
@@ -159,7 +147,8 @@ private fun PickDoctorList(
             AppCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = enabled) { onPick(doctor) }
+                    .alpha(UiOpacity.content(enabled))
+                    .clickable(enabled = enabled, role = Role.Button) { onPick(doctor) }
             ) {
                 Column(modifier = Modifier.padding(UiSpacing.screen)) {
                     Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
@@ -192,7 +181,7 @@ private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
         Text(
             text = step.nonce,
             fontFamily = FontFamily.Monospace,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineMedium.copy(textDirection = TextDirection.Ltr),
             modifier = Modifier.padding(vertical = UiSpacing.screen)
         )
         Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
@@ -201,7 +190,7 @@ private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
             }) { Text("نسخ") }
         }
         Text(
-            "الوقت المتبقي: ${step.remainingSeconds} ثانية",
+            "الوقت المتبقي: ${uiNumber(step.remainingSeconds)} ثانية",
             modifier = Modifier.padding(top = UiSpacing.section),
             style = MaterialTheme.typography.bodySmall
         )

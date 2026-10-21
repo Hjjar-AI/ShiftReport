@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppCompactTopBar
+import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppActionLabel
 import com.hos.rushdpatients.ui.components.AppClinicalSection
@@ -20,6 +22,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -80,12 +85,12 @@ internal fun PatientDetailsScreen(
             modifier = (if (embedded) Modifier else Modifier.safeDrawingPadding()).imePadding(),
             topBar = {
                 Column {
-                    TopAppBar(
+                    AppCompactTopBar(
                         title = {
                             PatientIdentityHeading(patient, showFreshness = true,
                                 nameStyle = MaterialTheme.typography.titleLarge)
                         },
-                        navigationIcon = {
+                        navigation = {
                             IconButton(onClick = onDismiss) {
                                 Icon(Icons.Filled.Close, contentDescription = "إغلاق ملف المريض")
                             }
@@ -95,9 +100,10 @@ internal fun PatientDetailsScreen(
                         PatientRoundsBar(navigation, enabled = navigationEnabled, onNavigate = onNavigateToPatient)
                     }
                     Surface(tonalElevation = UiElevation.navigation) {
-                        FlowRow(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
                                 .padding(UiPadding.content),
                             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                         ) {
@@ -105,14 +111,14 @@ internal fun PatientDetailsScreen(
                                 val count = when (option) {
                                     PatientDetailSection.TASKS -> patient.tasks.count { !it.done }
                                     PatientDetailSection.WARNINGS -> patient.badges.size
-                                    PatientDetailSection.HISTORY -> activity.size.coerceAtLeast(1)
+                                    PatientDetailSection.HISTORY -> activity.count { it.patientId == patient.id }
                                     else -> 0
                                 }
                                 FilterChip(
                                     selected = section == option,
                                     onClick = { section = option },
                                     label = {
-                                        Text(option.arabicLabel + if (count > 0) " $count" else "")
+                                        Text(option.arabicLabel + if (count > 0) " ${uiNumber(count)}" else "")
                                     }
                                 )
                             }

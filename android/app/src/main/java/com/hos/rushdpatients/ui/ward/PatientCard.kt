@@ -54,6 +54,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.uiPlural
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -108,9 +110,12 @@ fun PatientCard(
 ) {
     val cardDensity = UiPatientCard.density(compact)
     val sectionGap = cardDensity.sectionGap
-    val taskCounts = PatientTasks.counts(patient.tasks, taskNowEpochMillis)
+    val taskCounts = remember(patient.tasks, taskNowEpochMillis) { PatientTasks.counts(patient.tasks, taskNowEpochMillis) }
+    val badgesLabel = uiPlural(R.plurals.patient_badges, patient.badges.size)
     val clinicalColors = LocalClinicalColors.current
-    val visibleBadges = if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
+    val visibleBadges = remember(patient.badges, expanded) {
+        if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
+    }
     val residentName = patient.responsibleResidentId?.let(doctorNames::get)
     val supervisorName = patient.responsibleSpecialistId?.let(doctorNames::get)
 
@@ -131,7 +136,7 @@ fun PatientCard(
                         doctorNames[id]?.let { append("، المقيم ").append(it) }
                     }
                     if (patient.badges.isNotEmpty()) {
-                        append("، ").append(patient.badges.size).append(" شارات")
+                        append("، ").append(badgesLabel)
                     }
                     if (patient.tasks.isNotEmpty()) append("، مهام معلقة ${uiNumber(taskCounts.pending)}، منها متأخرة ${uiNumber(taskCounts.overdue)}")
                     if (pinned) append("، مثبت مؤقتاً")
@@ -198,7 +203,7 @@ fun PatientCard(
                         )
                     }
                     if (!expanded && visibleBadges.size < patient.badges.size) SmallChip(
-                        "${patient.badges.size - visibleBadges.size} شارات أخرى",
+                        uiPlural(R.plurals.patient_badges_more, patient.badges.size - visibleBadges.size),
                         MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -227,9 +232,9 @@ fun PatientCard(
 
             if (taskCounts.pending > 0) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    SmallChip("${uiNumber(taskCounts.pending)} مهمة معلقة", MaterialTheme.colorScheme.surfaceVariant,
+                    SmallChip(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending), MaterialTheme.colorScheme.surfaceVariant,
                         MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (taskCounts.overdue > 0) SmallChip("${uiNumber(taskCounts.overdue)} متأخرة",
+                    if (taskCounts.overdue > 0) SmallChip(uiPlural(R.plurals.patient_tasks_overdue, taskCounts.overdue),
                         clinicalColors.urgentContainer, clinicalColors.onUrgentContainer)
                 }
             }
@@ -259,7 +264,7 @@ fun PatientCard(
             }
             if (expanded) patient.lastEditedByName?.let { editor ->
                 val time = remember(patient.updatedAt) {
-                    uiDateTime(patient.updatedAt, "MM-dd HH:mm")
+                    uiDateTime(patient.updatedAt)
                 }
                 Text(
                     text = "آخر تعديل: $editor · $time · ${relativeFreshness(patient.updatedAt)}",
@@ -294,7 +299,7 @@ private fun PatientIdentityHeader(
     ) {
         Surface(color = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant, shape = MaterialTheme.shapes.small,
-            modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)) {
+            modifier = Modifier.sizeIn(minWidth = UiSize.patientOrdinal, minHeight = UiSize.patientOrdinal)) {
             Box(contentAlignment = Alignment.Center) {
                 Text(com.hos.rushdpatients.ui.components.uiNumber(patient.sortOrder), fontWeight = FontWeight.Bold)
             }
@@ -409,13 +414,14 @@ private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
 @Composable
 private fun DiagnosisChip(type: DiagnosisType) {
     SmallChip(text = type.arabicLabel, container = Color.Transparent,
-        content = MaterialTheme.colorScheme.onSurfaceVariant)
+        content = MaterialTheme.colorScheme.onSurfaceVariant, outlined = true)
 }
 
 @Composable
-private fun SmallChip(text: String, container: Color, content: Color) {
+private fun SmallChip(text: String, container: Color, content: Color, outlined: Boolean = false) {
     Surface(
         color = container,
+        border = if (outlined) UiBorder.stroke() else null,
         shape = MaterialTheme.shapes.small
     ) {
         Text(

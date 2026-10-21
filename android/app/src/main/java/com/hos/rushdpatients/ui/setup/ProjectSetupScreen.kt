@@ -120,7 +120,7 @@ fun ProjectSetupScreen(
                     if (state.importedProvisioning) {
                         SetupSection("٢. مراجعة المشروع") {
                             Text(state.hospitalName, fontWeight = FontWeight.Bold)
-                            Text("المجموعة: ${state.chatId}")
+                            Text("المجموعة: ${com.hos.rushdpatients.ui.components.uiNumber(state.chatId)}")
                             Text(if (state.encryptTelegram) "تشفير بيانات تليجرام: مفعّل" else "تشفير بيانات تليجرام: غير مفعّل")
                             Text("تم استيراد إعدادات الاتصال والمواضيع تلقائياً؛ لا يلزم إدخال معرّفات المواضيع.",
                                 style = MaterialTheme.typography.bodySmall)

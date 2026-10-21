@@ -27,8 +27,9 @@ To build both with **one shared version reservation**:
 The POSIX launcher handles cache selection, per-account generated directories,
 app version reservation and the Desktop export destination. No `sudo` or extra
 flags are needed for the normal commands. It prints the reserved version/code
-before Gradle starts. Release still uses the project's configured signing; the
-current debug signing configuration has not been replaced by production signing.
+before Gradle starts. Release now reads separate protected signing inputs; supply
+production credentials as described under [Production release signing](#production-release-signing).
+No production-signed release has been verified.
 
 ## Find the APK
 
@@ -513,3 +514,25 @@ APK export configuration-cache error (also corrected in source).
 **No successful APK build after these changes has been recorded.** The agent did not launch Gradle, compile, package or
 run a test suite. The next owner-run `./gradlew assembleDebug` is needed to verify
 that the build proceeds and reveal any later, independent source errors.
+
+## Production release signing
+
+Release selects its own signing configuration and no longer falls back to the
+public Android debug key. Supply an existing private production keystore through
+ignored `android/keystore.properties` or CI environment variables:
+
+| Local property | Environment variable (takes precedence) |
+|---|---|
+| `storeFile` | `SHIFTREPORT_KEYSTORE_FILE` |
+| `storePassword` | `SHIFTREPORT_KEYSTORE_PASSWORD` |
+| `keyAlias` | `SHIFTREPORT_KEY_ALIAS` |
+| `keyPassword` | `SHIFTREPORT_KEY_PASSWORD` |
+
+The file path can be absolute or relative to `android/`. Keep the keystore,
+passwords and properties outside tracked source; the local file and common signing
+extensions are already ignored. Do not send signing passwords through build logs.
+Debug retains its existing development signing. No key was created or inspected,
+no build ran, and no production-signed artifact has been verified. Without complete
+valid inputs production signing is unavailable; do not treat an unsigned artifact
+as a distributable signed release. Existing installations signed with another
+certificate need a deliberate distribution decision by the owner.

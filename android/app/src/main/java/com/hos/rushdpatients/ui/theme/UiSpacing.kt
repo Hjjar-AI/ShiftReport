@@ -10,5 +10,7 @@ object UiSpacing {
     val medium = 6.dp
     val screen = 8.dp
     val section = 12.dp
+    val largeSection = 16.dp
+    val pageSection = 24.dp
     val touchTarget = 48.dp
 }

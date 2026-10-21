@@ -32,10 +32,8 @@ internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit) {
                     else state.syncStatus.arabicLabel,
                     Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) {
-                    AppTextButton(onClick = onNext, enabled = state.shift != null && !state.syncing && !state.saving) {
-                        Text(state.workflowAction.label)
-                    }
+                AppTextButton(onClick = onNext, enabled = state.shift != null && !state.syncing && !state.saving) {
+                    Text(state.workflowAction.label)
                 }
                 IconButton(onClick = { details = !details }, modifier = Modifier.semantics {
                     stateDescription = if (details) "تفاصيل موسعة" else "تفاصيل مطوية"

@@ -20,7 +20,7 @@ private data class Accent(
     val darkPrimary: Color, val darkContainer: Color
 )
 
-// Distinct hue families with tinted surfaces; clinical severity uses its separate palette.
+// Distinct accent hue families; clinical severity uses its separate palette.
 private fun accent(preset: AppThemePreset) = when (preset) {
     AppThemePreset.SYSTEM -> Accent(Color(0xFF2346B5), Color(0xFFDFE5FF), Color(0xFF122459), Color(0xFFB5C4FF), Color(0xFF243C80))
     AppThemePreset.SAGE -> Accent(Color(0xFF006B3F), Color(0xFFBCF1D1), Color(0xFF003D23), Color(0xFF77DDA4), Color(0xFF004F30))
@@ -34,18 +34,9 @@ private fun accent(preset: AppThemePreset) = when (preset) {
 
 private data class Surfaces(val background: Color, val surface: Color, val variant: Color)
 
-private fun surfaces(preset: AppThemePreset, dark: Boolean, amoled: Boolean): Surfaces = when {
+private fun surfaces(dark: Boolean, amoled: Boolean): Surfaces = when {
     amoled -> Surfaces(Color.Black, Color.Black, Color(0xFF15171B))
-    dark -> when (preset) {
-        AppThemePreset.SYSTEM -> Surfaces(Color(0xFF101B2B), Color(0xFF19283D), Color(0xFF2A3C55))
-        AppThemePreset.SAGE -> Surfaces(Color(0xFF101E16), Color(0xFF1A2D20), Color(0xFF2B4232))
-        AppThemePreset.COASTAL -> Surfaces(Color(0xFF21152D), Color(0xFF30203E), Color(0xFF443054))
-        AppThemePreset.SUNSET -> Surfaces(Color(0xFF291C10), Color(0xFF3B2A19), Color(0xFF513D28))
-        AppThemePreset.FUCHSIA -> Surfaces(Color(0xFF2B131D), Color(0xFF3C1E2B), Color(0xFF532C3D))
-        AppThemePreset.VANILLA -> Surfaces(Color(0xFF0B2327), Color(0xFF15363B), Color(0xFF275057))
-        AppThemePreset.CHOCOLATE -> Surfaces(Color(0xFF171D24), Color(0xFF252F3A), Color(0xFF394655))
-        AppThemePreset.CREAM -> Surfaces(Color(0xFF291810), Color(0xFF3B251B), Color(0xFF51372A))
-    }
+    dark -> Surfaces(Color(0xFF171D24), Color(0xFF252F3A), Color(0xFF394655))
     else -> Surfaces(Color(0xFFF8FAFC), Color.White, Color(0xFFE8EEF2))
 }
 
@@ -74,16 +65,16 @@ fun RushdPatientsTheme(
     }
     val amoled = appearance == AppAppearance.AMOLED
     val a = accent(preset)
-    val surfaces = surfaces(preset, dark, amoled)
+    val surfaces = surfaces(dark, amoled)
     val scheme = if (dynamicColor && !amoled && preset == AppThemePreset.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (dark) dynamicDarkColorScheme(LocalContext.current) else dynamicLightColorScheme(LocalContext.current)
     } else if (dark) darkColorScheme(
         primary = a.darkPrimary, onPrimary = Color(0xFF172125),
         primaryContainer = a.darkContainer, onPrimaryContainer = a.container,
-        secondary = a.darkPrimary, onSecondary = Color(0xFF172125),
-        secondaryContainer = a.darkContainer, onSecondaryContainer = a.container,
-        tertiary = a.darkPrimary, onTertiary = Color(0xFF172125),
-        tertiaryContainer = a.darkContainer, onTertiaryContainer = a.container,
+        secondary = Color(0xFFC1CAD4), onSecondary = Color(0xFF253238),
+        secondaryContainer = Color(0xFF3B4852), onSecondaryContainer = Color(0xFFDFE5ED),
+        tertiary = Color(0xFFD0BCFF), onTertiary = Color(0xFF33264D),
+        tertiaryContainer = Color(0xFF4A3D65), onTertiaryContainer = Color(0xFFEADDFF),
         background = surfaces.background, onBackground = Color(0xFFE8EDF4),
         surface = surfaces.surface, onSurface = Color(0xFFE8EDF4),
         surfaceVariant = surfaces.variant, onSurfaceVariant = Color(0xFFC8CFD8),
@@ -96,10 +87,10 @@ fun RushdPatientsTheme(
     ) else lightColorScheme(
         primary = a.primary, onPrimary = Color.White,
         primaryContainer = a.container, onPrimaryContainer = a.onContainer,
-        secondary = a.primary, onSecondary = Color.White,
-        secondaryContainer = a.container, onSecondaryContainer = a.onContainer,
-        tertiary = a.primary, onTertiary = Color.White,
-        tertiaryContainer = a.container, onTertiaryContainer = a.onContainer,
+        secondary = Color(0xFF4D5965), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFDFE5ED), onSecondaryContainer = Color(0xFF202D3C),
+        tertiary = Color(0xFF65558F), onTertiary = Color.White,
+        tertiaryContainer = Color(0xFFEADDFF), onTertiaryContainer = Color(0xFF2A1745),
         background = surfaces.background, onBackground = Color(0xFF202832),
         surface = surfaces.surface, onSurface = Color(0xFF202832),
         surfaceVariant = surfaces.variant, onSurfaceVariant = Color(0xFF485360),

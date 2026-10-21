@@ -49,13 +49,13 @@ fun AppNotice(
         NoticeKind.WARNING -> Icons.Filled.Warning
         NoticeKind.ERROR -> Icons.Filled.ErrorOutline
     }
-    Surface(modifier = modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+    Surface(modifier = modifier.fillMaxWidth().semantics { liveRegion = if (kind == NoticeKind.ERROR) LiveRegionMode.Assertive else LiveRegionMode.Polite },
         shape = MaterialTheme.shapes.small, color = colors.first, contentColor = colors.second) {
-        Row(Modifier.fillMaxWidth().padding(UiPadding.content),
+        Row(Modifier.fillMaxWidth().padding(if (compact) UiPadding.compact else UiPadding.content),
             verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             Icon(symbol, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
             Column(Modifier.weight(1f)) {
-                Text(message, style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall)
+                Text(message, style = MaterialTheme.typography.bodySmall)
                 if (actionLabel != null && onAction != null) {
                     AppTextButton(onClick = onAction, enabled = actionEnabled,
                         colors = ButtonDefaults.textButtonColors(contentColor = colors.second)) { Text(actionLabel) }

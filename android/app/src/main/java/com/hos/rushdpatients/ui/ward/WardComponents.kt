@@ -88,19 +88,19 @@ internal fun PrimaryNavigationRail(
         NavigationRailItem(
             selected = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE,
             onClick = onPatients,
-            icon = { Icon(Icons.Filled.ViewAgenda, contentDescription = null) },
+            icon = { Icon(if (viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE) Icons.Filled.ViewAgenda else Icons.Outlined.ViewAgenda, contentDescription = null) },
             label = { Text("المرضى") }
         )
         NavigationRailItem(
             selected = viewMode == WardViewMode.DASHBOARD,
             onClick = onDashboard,
-            icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
+            icon = { Icon(if (viewMode == WardViewMode.DASHBOARD) Icons.Filled.Dashboard else Icons.Outlined.Dashboard, contentDescription = null) },
             label = { Text("اللوحة") }
         )
         if (isAdmin) NavigationRailItem(
             selected = viewMode == WardViewMode.ACTIVITY,
             onClick = onActivity,
-            icon = { Icon(Icons.Filled.History, contentDescription = null) },
+            icon = { Icon(if (viewMode == WardViewMode.ACTIVITY) Icons.Filled.History else Icons.Outlined.History, contentDescription = null) },
             label = { Text("النشاط") }
         )
     }

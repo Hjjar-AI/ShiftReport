@@ -15,8 +15,8 @@ object UiPatientCard {
     val compact = PatientCardDensity(
         PaddingValues(horizontal = UiSpacing.small, vertical = UiSpacing.tiny), UiSpacing.small)
     val normal = PatientCardDensity(
-        PaddingValues(horizontal = UiSpacing.medium, vertical = UiSpacing.small), UiSpacing.medium)
-    val listGap = UiSpacing.medium
+        PaddingValues(horizontal = UiSpacing.section, vertical = UiSpacing.screen), UiSpacing.screen)
+    val listGap = UiSpacing.screen
     fun density(compact: Boolean): PatientCardDensity = if (compact) this.compact else normal
 
     const val borderAccentFraction = .22f

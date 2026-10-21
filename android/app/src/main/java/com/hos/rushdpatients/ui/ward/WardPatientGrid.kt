@@ -12,7 +12,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.data.model.Patient
@@ -27,6 +27,13 @@ internal fun WardPatientGrid(
     collapsedGroups: List<String>, onToggleGroup: (String) -> Unit, onResetFilters: () -> Unit,
     headerContent: @Composable () -> Unit, patientCard: @Composable (Patient) -> Unit
 ) {
+    val visibleIds = remember(visiblePatients) { visiblePatients.mapTo(HashSet()) { it.id } }
+    val pinnedIds = remember(pinnedPatientIds) { pinnedPatientIds.toHashSet() }
+    val visibleGroups = remember(state.groupedPatients, visibleIds, pinnedIds) {
+        state.groupedPatients.map { group ->
+            group to group.patients.filter { it.id in visibleIds }.sortedByDescending { it.id in pinnedIds }
+        }.filter { it.second.isNotEmpty() }
+    }
     LazyVerticalGrid(
         columns = if (dualPane) GridCells.Fixed(1) else GridCells.Adaptive(minSize = UiLayout.patientGridMinWidth),
         state = patientGridState,
@@ -52,11 +59,7 @@ internal fun WardPatientGrid(
         } else if (state.groupByMode != GroupByMode.NONE &&
             state.groupedPatients.isNotEmpty()
         ) {
-            state.groupedPatients.forEach { group ->
-                val groupPatients = group.patients
-                    .filter { it in visiblePatients }
-                    .sortedByDescending { it.id in pinnedPatientIds }
-                if (groupPatients.isEmpty()) return@forEach
+            visibleGroups.forEach { (group, groupPatients) ->
                 item(
                     key = "grp-${group.key ?: "none"}",
                     span = { GridItemSpan(maxLineSpan) }
