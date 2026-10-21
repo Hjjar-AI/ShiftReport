@@ -38,6 +38,14 @@ Current documentation and entry points use the platform folders.
 
 ### Source ownership after logical separation
 
+The owner's subsequent Android build reached Kotlin compilation and reported four
+missing Material 3 experimental opt-ins in extracted security/report settings.
+`SettingsSecurityContent` and `SettingsReportContent` now carry their own
+`ExperimentalMaterial3Api` opt-in alongside the layout opt-in. Other extracted
+Material chip callers were inspected for the same omission. This correction
+received source/whitespace checks only; compilation of the corrected snapshot has
+not been rerun. The supplied log does not establish a successful build or device run.
+
 The existing entry points remain, with implementation split by responsibility:
 
 - Settings uses `SettingsPreferenceSections`, `SettingsReportSection`,

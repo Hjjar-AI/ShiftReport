@@ -356,6 +356,10 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Repository organization
 
+- Restored function-level Material 3 opt-ins for the extracted security/report
+  settings sections, fixing the four `FilterChip` errors in the supplied Android
+  build log. Source/whitespace checks only; the corrected snapshot was not rebuilt.
+
 - Separated Android settings content/operations, ward filtering/grid/review dialogs,
   Ward ViewModel preferences/patient/shift/activity operations and shared save guard,
   patient demographics/validation/submission, ward navigation/dialog presentation,
