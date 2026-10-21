@@ -1,14 +1,22 @@
 package com.hos.rushdpatients.ui.ward
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.sync.KnownShiftState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-internal enum class WardWorkflowAction(val label: String) {
-    DELIVERY_HISTORY("سجل التسليم"),
-    REVIEW_PUBLICATION("مراجعة ونشر"),
-    DOWNLOAD("جلب البيانات")
+internal enum class WardWorkflowAction(@StringRes private val labelRes: Int) {
+    DELIVERY_HISTORY(R.string.ui_ward_synchronization_006),
+    REVIEW_PUBLICATION(R.string.ui_ward_synchronization_007),
+    DOWNLOAD(R.string.ui_handover_dashboard_003);
+
+    fun label(uiText: UiStrings): String = uiText(labelRes)
 }
 
 /** Device publication metadata and selected-shift download metadata have different scopes. */
@@ -35,15 +43,15 @@ data class WardSynchronization(
         else -> WardWorkflowAction.DOWNLOAD
     }
 
-    fun description(syncing: Boolean, currentMessage: Long?): String = buildString {
-        append(status(syncing).arabicLabel)
-        if (selectedSnapshot == KnownShiftState.UNKNOWN) append(" · حالة النشر غير معروفة")
-        append("\nآخر نشر على هذا الجهاز: ")
-        append(publishedAt?.let(::formatTime) ?: "غير معروف")
-        append(" · آخر جلب: ")
+    fun description(uiText: UiStrings, syncing: Boolean, currentMessage: Long?): String = buildString {
+        append(status(syncing).arabicLabel(uiText))
+        if (selectedSnapshot == KnownShiftState.UNKNOWN) append(uiText(R.string.ui_ward_synchronization_001))
+        append(uiText(R.string.ui_ward_synchronization_002))
+        append(publishedAt?.let(::formatTime) ?: uiText(R.string.ui_unknown))
+        append(uiText(R.string.ui_ward_synchronization_004))
         append(downloadedAt?.let {
-            formatTime(it) + if (downloadedMessage != null && downloadedMessage == currentMessage) "" else " (نسخة سابقة)"
-        } ?: "غير معروف")
+            formatTime(it) + if (downloadedMessage != null && downloadedMessage == currentMessage) "" else uiText(R.string.ui_ward_synchronization_005)
+        } ?: uiText(R.string.ui_unknown))
     }
 
     private fun formatTime(value: Long): String = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")

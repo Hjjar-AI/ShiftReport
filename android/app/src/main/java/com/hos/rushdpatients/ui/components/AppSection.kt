@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.R
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,14 +44,15 @@ fun AppSectionHeader(
     titleColor: Color = MaterialTheme.colorScheme.primary,
     summary: String? = null
 ) {
+    val uiText = rememberUiStrings()
     val interaction = if (onToggle != null) Modifier.heightIn(min = UiSpacing.touchTarget)
         .clickable(role = Role.Button, onClick = onToggle) else Modifier
     Row(
         modifier = modifier.fillMaxWidth().then(interaction).padding(UiPadding.compact)
             .semantics {
                 heading()
-                if (expanded != null) stateDescription = if (expanded) "موسع" else "مطوي"
-                else if (complete == true) stateDescription = "مكتمل"
+                if (expanded != null) stateDescription = if (expanded) uiText(R.string.ui_patient_form_dialog_023) else uiText(R.string.ui_patient_form_dialog_024)
+                else if (complete == true) stateDescription = uiText(R.string.ui_app_section_001)
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)

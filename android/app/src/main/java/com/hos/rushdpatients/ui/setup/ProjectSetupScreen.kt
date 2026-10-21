@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppActionContent
 import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.NoticeKind
@@ -54,6 +57,7 @@ import com.hos.rushdpatients.ui.components.PasswordField
 fun ProjectSetupScreen(
     viewModel: ProjectSetupViewModel = hiltViewModel()
 ) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showTopics by rememberSaveable(state.mode) { mutableStateOf(false) }
     var showInstructions by rememberSaveable(state.mode) { mutableStateOf(false) }
@@ -73,14 +77,14 @@ fun ProjectSetupScreen(
             verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
             Text(
-                "مرحباً بك في ShiftReport",
+                uiText(R.string.ui_project_setup_screen_001),
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
             Text(
-                "تقرير المناوبة · اختر طريقة البدء",
+                uiText(R.string.ui_project_setup_screen_002),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -89,9 +93,9 @@ fun ProjectSetupScreen(
                 onSelect = viewModel::setMode)
 
             if (state.mode == ProjectSetupMode.DEMO) {
-                SetupSection("اكتشف التطبيق قبل إعداد المشروع") {
-                    Text("مرضى وأطباء تجريبيون لتجربة البطاقات والجولات والتقارير.")
-                    Text("لا تحتاج إلى حساب أو رمز بوت. تبقى التجربة في الذاكرة دون حفظ أو مزامنة.",
+                SetupSection(uiText(R.string.ui_project_setup_screen_003)) {
+                    Text(uiText(R.string.ui_project_setup_screen_004))
+                    Text(uiText(R.string.ui_project_setup_screen_005),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -99,41 +103,41 @@ fun ProjectSetupScreen(
 
             if (state.mode != ProjectSetupMode.DEMO) {
                 if (state.mode == ProjectSetupMode.JOIN) {
-                    SetupSection("١. ملف الانضمام من المدير") {
+                    SetupSection(uiText(R.string.ui_project_setup_screen_006)) {
                         Text(
-                            "اطلب الملف من المدير وعبارة مروره عبر قناة منفصلة. لا تُرسل العبارة مع الملف.",
+                            uiText(R.string.ui_project_setup_screen_007),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         PasswordField(
                             value = state.provisioningPassphrase,
                             onValueChange = viewModel::setProvisioningPassphrase,
-                            label = "عبارة مرور الملف (10 محارف على الأقل)",
+                            label = uiText(R.string.ui_project_setup_screen_008),
                             enabled = !state.busy
                         )
                         AppButton(
                             onClick = { openProvisioning.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
                             enabled = !state.busy && state.provisioningPassphrase.length >= 10,
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (state.importedProvisioning) "اختيار ملف انضمام آخر" else "اختيار ملف الانضمام") }
+                        ) { Text(if (state.importedProvisioning) uiText(R.string.ui_project_setup_screen_009) else uiText(R.string.ui_project_setup_screen_010)) }
                     }
                     if (state.importedProvisioning) {
-                        SetupSection("٢. مراجعة المشروع") {
+                        SetupSection(uiText(R.string.ui_project_setup_screen_011)) {
                             Text(state.hospitalName, fontWeight = FontWeight.Bold)
-                            Text("المجموعة: ${com.hos.rushdpatients.ui.components.uiNumber(state.chatId)}")
-                            Text(if (state.encryptTelegram) "تشفير بيانات تليجرام: مفعّل" else "تشفير بيانات تليجرام: غير مفعّل")
-                            Text("تم استيراد إعدادات الاتصال والمواضيع تلقائياً؛ لا يلزم إدخال معرّفات المواضيع.",
+                            Text(uiText(R.string.ui_project_setup_screen_012, com.hos.rushdpatients.ui.components.uiNumber(state.chatId)))
+                            Text(if (state.encryptTelegram) uiText(R.string.ui_project_setup_screen_013) else uiText(R.string.ui_project_setup_screen_014))
+                            Text(uiText(R.string.ui_project_setup_screen_015),
                                 style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
 
                 if (state.mode == ProjectSetupMode.CREATE) {
-                    SetupSection("بيانات الاتصال بالمشروع") {
+                    SetupSection(uiText(R.string.ui_project_setup_screen_016)) {
                         AppTextField(
                             value = state.hospitalName,
                             onValueChange = viewModel::setHospitalName,
-                            label = { Text("اسم المستشفى أو المشروع") },
+                            label = { Text(uiText(R.string.ui_project_setup_screen_017)) },
                             singleLine = true,
                             enabled = !state.busy,
                             modifier = Modifier.fillMaxWidth()
@@ -141,49 +145,49 @@ fun ProjectSetupScreen(
                         PasswordField(
                             value = state.botToken,
                             onValueChange = viewModel::setBotToken,
-                            label = "رمز البوت من BotFather",
+                            label = uiText(R.string.ui_project_setup_screen_018),
                             enabled = !state.busy
                         )
                         NumberField(
                             value = state.chatId,
                             onValueChange = viewModel::setChatId,
-                            label = "معرف المجموعة الرئيسي (رقم سالب)",
+                            label = uiText(R.string.ui_project_setup_screen_019),
                             signed = true,
                             enabled = !state.busy
                         )
 
                         AppTextButton(onClick = { showTopics = !showTopics }) {
-                            Text(if (showTopics) "إخفاء إعدادات المواضيع" else "إعدادات المواضيع المتقدمة (اختياري)")
+                            Text(if (showTopics) uiText(R.string.ui_project_setup_screen_020) else uiText(R.string.ui_project_setup_screen_021))
                         }
                         if (showTopics) {
                             Text(
-                                "اختيارية. اترك الحقول فارغة للنشر في General.",
+                                uiText(R.string.ui_project_setup_screen_022),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, "موضوع التقارير", enabled = !state.busy)
-                            NumberField(state.announcementsTopicId, viewModel::setAnnouncementsTopicId, "موضوع الإعلانات", enabled = !state.busy)
-                            NumberField(state.csvTopicId, viewModel::setCsvTopicId, "موضوع بيانات المناوبات", enabled = !state.busy)
-                            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, "موضوع سجل الأطباء", enabled = !state.busy)
+                            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, uiText(R.string.ui_project_setup_screen_023), enabled = !state.busy)
+                            NumberField(state.announcementsTopicId, viewModel::setAnnouncementsTopicId, uiText(R.string.ui_project_setup_screen_024), enabled = !state.busy)
+                            NumberField(state.csvTopicId, viewModel::setCsvTopicId, uiText(R.string.ui_project_setup_screen_025), enabled = !state.busy)
+                            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, uiText(R.string.ui_project_setup_screen_026), enabled = !state.busy)
                         }
                     }
                 }
             }
 
             if (state.mode == ProjectSetupMode.CREATE) {
-                SetupSection("حماية بيانات تليجرام") {
-                    AppToggleRow(title = "تشفير البيانات بمفتاح عشوائي", checked = state.encryptTelegram,
+                SetupSection(uiText(R.string.ui_project_setup_screen_027)) {
+                    AppToggleRow(title = uiText(R.string.ui_project_setup_screen_028), checked = state.encryptTelegram,
                         onCheckedChange = viewModel::setEncryptTelegram, enabled = !state.busy)
-                    Text("اختياري عند إنشاء المشروع. يُنشأ مفتاح عشوائي ويُنقل للأعضاء داخل ملف الانضمام المحمي. يفك التطبيق البيانات محلياً؛ التقارير النصية تُرسل كملفات مشفرة. استخدم PDF للقراءة في تليجرام.",
+                    Text(uiText(R.string.ui_project_setup_screen_029),
                         style = MaterialTheme.typography.bodySmall)
-                    Text("احتفظ بملف الانضمام وعبارة مروره؛ استعادة البيانات المشفرة تحتاج مفتاح المشروع.",
+                    Text(uiText(R.string.ui_project_setup_screen_030),
                         style = MaterialTheme.typography.bodySmall)
                 }
-                SetupSection("المدير الأول") {
+                SetupSection(uiText(R.string.ui_project_setup_screen_031)) {
                     AppTextField(
                         value = state.adminName,
                         onValueChange = viewModel::setAdminName,
-                        label = { Text("الاسم الكامل") },
+                        label = { Text(uiText(R.string.ui_project_setup_screen_032)) },
                         singleLine = true,
                         enabled = !state.busy,
                         modifier = Modifier.fillMaxWidth()
@@ -191,32 +195,32 @@ fun ProjectSetupScreen(
                     NumberField(
                         state.adminTelegramId,
                         viewModel::setAdminTelegramId,
-                        "معرف مستخدم تليجرام",
+                        uiText(R.string.ui_project_setup_screen_033),
                         enabled = !state.busy
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         FilterChip(
                             selected = state.adminGenderCode == "M",
                             onClick = { viewModel.setAdminGender("M") },
-                            label = { Text("ذكر") },
+                            label = { Text(uiText(R.string.ui_male)) },
                             enabled = !state.busy
                         )
                         FilterChip(
                             selected = state.adminGenderCode == "F",
                             onClick = { viewModel.setAdminGender("F") },
-                            label = { Text("أنثى") },
+                            label = { Text(uiText(R.string.ui_female)) },
                             enabled = !state.busy
                         )
                         FilterChip(
                             selected = state.adminClinicalRoleCode == "RESIDENT",
                             onClick = { viewModel.setAdminClinicalRole("RESIDENT") },
-                            label = { Text("مقيم") },
+                            label = { Text(uiText(R.string.ui_project_setup_screen_034)) },
                             enabled = !state.busy
                         )
                         FilterChip(
                             selected = state.adminClinicalRoleCode == "SUPERVISOR",
                             onClick = { viewModel.setAdminClinicalRole("SUPERVISOR") },
-                            label = { Text("مشرف") },
+                            label = { Text(uiText(R.string.ui_project_setup_screen_035)) },
                             enabled = !state.busy
                         )
                     }
@@ -225,7 +229,7 @@ fun ProjectSetupScreen(
             }
             AppTextButton(onClick = { showInstructions = !showInstructions },
                 enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                Text(if (showInstructions) "إخفاء المساعدة" else "خطوات الإعداد والمساعدة")
+                Text(if (showInstructions) uiText(R.string.ui_project_setup_screen_036) else uiText(R.string.ui_project_setup_screen_037))
             }
             if (showInstructions) InstructionCard(state.mode)
         }
@@ -245,9 +249,9 @@ fun ProjectSetupScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 AppActionContent(text = when (state.mode) {
-                    ProjectSetupMode.DEMO -> "بدء التجربة"
-                    ProjectSetupMode.JOIN -> "التحقق والانضمام"
-                    ProjectSetupMode.CREATE -> "إنشاء وتهيئة المشروع"
+                    ProjectSetupMode.DEMO -> uiText(R.string.ui_project_setup_screen_038)
+                    ProjectSetupMode.JOIN -> uiText(R.string.ui_project_setup_screen_039)
+                    ProjectSetupMode.CREATE -> uiText(R.string.ui_project_setup_screen_040)
                 }, loading = state.busy)
             }
         }
@@ -256,13 +260,14 @@ fun ProjectSetupScreen(
 
 @Composable
 private fun InstructionCard(mode: ProjectSetupMode) {
+    val uiText = rememberUiStrings()
     val text = when (mode) {
         ProjectSetupMode.DEMO ->
-            "شاهد التطبيق فوراً بمرضى وهميين بأسماء المشروبات الساخنة وأطباء بأسماء الأشجار. لا يحتاج رمز بوت، ولا يحفظ أو يزامن أي بيانات. يمكنك الخروج والعودة للتهيئة الحقيقية في أي وقت."
+            uiText(R.string.ui_project_setup_screen_041)
         ProjectSetupMode.JOIN ->
-            "اطلب ملف الانضمام من المدير وعبارة مروره عبر قناة منفصلة. يستورد الملف بيانات الاتصال والمواضيع ومفتاح المشروع إن كان التشفير مفعلاً. راجع اسم المشروع ثم اضغط التحقق والانضمام."
+            uiText(R.string.ui_project_setup_screen_042)
         ProjectSetupMode.CREATE ->
-            "١. أنشئ بوتاً عبر BotFather.\n٢. أنشئ مجموعة Supergroup وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل.\n٣. أنشئ المواضيع المطلوبة إن رغبت، ثم أدخل المعرفات أدناه.\n٤. استخدم مجموعة جديدة لا تحتوي رسالة مشروع مثبّتة.\n٥. بعد التهيئة، صدّر ملف انضمام مشفراً للأعضاء من إعدادات المدير."
+            uiText(R.string.ui_project_setup_screen_043)
     }
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,

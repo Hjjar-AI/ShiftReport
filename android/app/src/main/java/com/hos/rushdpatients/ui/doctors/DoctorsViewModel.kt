@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
@@ -37,6 +41,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DoctorsViewModel @Inject constructor(
+    private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
     private val doctorRepository: DoctorRepository,
     private val settingsRepository: SettingsRepository,
@@ -80,12 +85,12 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.add(input)
-                finishLocally("تم إضافة الطبيب", onSuccess)
+                finishLocally(uiText(R.string.ui_doctors_view_model_001), onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }
                 throw e
             } catch (e: Exception) {
-                fail(e.message ?: "تعذر إضافة الطبيب")
+                fail(e.message ?: uiText(R.string.ui_doctors_view_model_002))
             }
         }
     }
@@ -100,7 +105,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.edit(expected, input)
-                finishLocally("تم تحديث الطبيب", onSuccess)
+                finishLocally(uiText(R.string.ui_doctors_view_model_003), onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }
                 throw e
@@ -113,10 +118,10 @@ class DoctorsViewModel @Inject constructor(
                     _state.update { it.copy(saving = false) }
                     throw cancelled
                 } catch (reloadError: Exception) {
-                    fail(reloadError.message ?: "تعذر تحميل أحدث سجل؛ المسودة باقية")
+                    fail(reloadError.message ?: uiText(R.string.ui_doctors_view_model_004))
                 }
             } catch (e: Exception) {
-                fail(e.message ?: "تعذر تحديث الطبيب")
+                fail(e.message ?: uiText(R.string.ui_doctors_view_model_005))
             }
         }
     }
@@ -127,10 +132,10 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.updateTeams(expected, assignments)
-                finishLocally("حُفظت تغييرات الفرق", onSuccess)
+                finishLocally(uiText(R.string.ui_doctors_view_model_006), onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }; throw e
-            } catch (e: Exception) { fail(e.message ?: "تعذر حفظ الفرق") }
+            } catch (e: Exception) { fail(e.message ?: uiText(R.string.ui_doctors_view_model_007)) }
         }
     }
 
@@ -140,12 +145,12 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.delete(expected)
-                finishLocally("تم حذف الطبيب", onSuccess)
+                finishLocally(uiText(R.string.ui_doctors_view_model_008), onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }
                 throw e
             } catch (e: Exception) {
-                fail(e.message ?: "تعذر حذف الطبيب")
+                fail(e.message ?: uiText(R.string.ui_doctors_view_model_009))
             }
         }
     }
@@ -166,9 +171,9 @@ class DoctorsViewModel @Inject constructor(
                     }
                     syncService.uploadDoctors(reviewed).getOrThrow()
                 } else syncService.refreshDoctorsFromRemote().getOrThrow()
-                _state.update { it.copy(snackbar = if (publish) "نُشر سجل الأطباء" else "جُلب سجل الأطباء") }
+                _state.update { it.copy(snackbar = if (publish) uiText(R.string.ui_doctors_view_model_010) else uiText(R.string.ui_doctors_view_model_011)) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: "تعذر إتمام عملية سجل الأطباء") } }
+            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_doctors_view_model_012)) } }
             finally { _state.update { it.copy(saving = false) } }
         }
     }
@@ -182,7 +187,7 @@ class DoctorsViewModel @Inject constructor(
             try {
                 adminAuthorizer.requireAdmin()
                 val doctors = doctorRepository.getAllIncludingDeleted()
-                require(doctors.isNotEmpty()) { "لا يوجد أطباء للتصدير" }
+                require(doctors.isNotEmpty()) { uiText(R.string.ui_doctors_view_model_013) }
                 val bytes = withContext(Dispatchers.IO) {
                     ("\uFEFF" + DoctorCsvCodec.encode(doctors)).toByteArray(Charsets.UTF_8)
                 }
@@ -200,7 +205,7 @@ class DoctorsViewModel @Inject constructor(
             } catch (e: Exception) {
                 clearPendingExport()
                 _state.update { it.copy(exporting = false, exportReady = false) }
-                _state.update { it.copy(snackbar = e.message ?: "تعذر تجهيز سجل الأطباء") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_doctors_view_model_014)) }
             }
         }
     }
@@ -217,7 +222,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             clearPendingExport()
             _state.update { it.copy(exporting = false, exportReady = false,
-                snackbar = "تعذر فتح مكان الحفظ؛ أعد تصدير سجل الأطباء") }
+                snackbar = uiText(R.string.ui_doctors_view_model_015)) }
         }
     }
 
@@ -228,18 +233,18 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 if (uri == null) return@launch
-                check(id != null) { "انتهت جلسة التصدير؛ أعد تصدير سجل الأطباء" }
+                check(id != null) { uiText(R.string.ui_doctors_view_model_016) }
                 val actor = adminAuthorizer.requireAdmin()
                 pendingExports.write(uri, id)
                 auditRepository.record(actor.id, actor.fullName,
                     AppConstants.AUDIT_DOCTORS_EXPORTED, "export_csv:$count")
-                _state.update { it.copy(snackbar = "تم تصدير $count سجل طبيب والتحقق من الملف") }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_doctors_view_model_017, count)) }
             } catch (e: CancellationException) {
                 if (uri != null) pendingExports.discardDestination(uri)
                 throw e
             } catch (e: Exception) {
                 if (uri != null) pendingExports.discardDestination(uri)
-                _state.update { it.copy(snackbar = e.message ?: "تعذر تصدير سجل الأطباء") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_doctors_view_model_018)) }
             } finally {
                 clearPendingExport()
                 _state.update { it.copy(exporting = false) }
@@ -249,7 +254,7 @@ class DoctorsViewModel @Inject constructor(
 
     fun prepareDoctorImport(uri: Uri) {
         if (_state.value.saving || _state.value.exporting || _state.value.importing) {
-            _state.update { it.copy(importError = "توجد عملية أخرى قيد التنفيذ؛ انتظر اكتمالها ثم اختر ملف الأطباء مجدداً") }
+            _state.update { it.copy(importError = uiText(R.string.ui_doctors_view_model_019)) }
             return
         }
         pendingImportPlan = null
@@ -302,7 +307,7 @@ class DoctorsViewModel @Inject constructor(
                     it.copy(
                         importing = false,
                         importPreview = null,
-                        importError = e.message ?: "تعذر قراءة ملف الأطباء"
+                        importError = e.message ?: uiText(R.string.ui_doctors_view_model_020)
                     )
                 }
             }
@@ -331,9 +336,9 @@ class DoctorsViewModel @Inject constructor(
                 val sync = uploadRegistry()
                 _state.update {
                     it.copy(importing = false, snackbar = if (sync.isSuccess) {
-                        "تم استيراد $count سجل ومزامنة سجل الأطباء"
+                        uiText(R.string.ui_doctors_view_model_021, count)
                     } else {
-                        "تم الاستيراد محلياً، وتعذرت مزامنة تليجرام: " + sync.exceptionOrNull()?.message.orEmpty()
+                        uiText(R.string.ui_doctors_view_model_022) + sync.exceptionOrNull()?.message.orEmpty()
                     })
                 }
             } catch (e: CancellationException) {
@@ -343,14 +348,14 @@ class DoctorsViewModel @Inject constructor(
                 pendingImportPlan = null
                 _state.update { it.copy(importing = false, importPreview = null, snackbar = e.message) }
             } catch (e: Exception) {
-                _state.update { it.copy(importing = false, snackbar = e.message ?: "تعذر استيراد سجل الأطباء") }
+                _state.update { it.copy(importing = false, snackbar = e.message ?: uiText(R.string.ui_doctors_view_model_023)) }
             }
         }
     }
 
     private fun readCsv(uri: Uri): String {
         val stream = context.contentResolver.openInputStream(uri)
-            ?: error("تعذر فتح ملف الاستيراد")
+            ?: error(uiText(R.string.ui_doctors_view_model_024))
         return stream.bufferedReader(Charsets.UTF_8).use { reader ->
             val result = StringBuilder()
             val buffer = CharArray(8_192)
@@ -358,14 +363,14 @@ class DoctorsViewModel @Inject constructor(
                 val count = reader.read(buffer)
                 if (count < 0) break
                 result.append(buffer, 0, count)
-                require(result.length <= 2_000_000) { "ملف الأطباء أكبر من الحد المسموح" }
+                require(result.length <= 2_000_000) { uiText(R.string.ui_doctors_view_model_025) }
             }
             result.toString()
         }
     }
 
     private fun finishLocally(localMessage: String, onSuccess: () -> Unit) {
-        _state.update { it.copy(saving = false, snackbar = "$localMessage على الجهاز؛ اختر «نشر سجل الأطباء» لمشاركته") }
+        _state.update { it.copy(saving = false, snackbar = uiText(R.string.ui_doctors_view_model_026, localMessage)) }
         onSuccess()
     }
 

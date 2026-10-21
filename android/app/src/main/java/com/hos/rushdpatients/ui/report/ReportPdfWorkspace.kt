@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.config.ProjectConfigStore
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -28,10 +32,11 @@ import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 
 internal data class ReviewedPdf(val file: File, val digest: String, val reportKey: String, val options: PdfExportOptions, val style: PdfStyle, val reviewed: BuiltReport)
-internal class PdfReviewRequiredException : IllegalStateException("عاين PDF لهذه الوجهة أولاً؛ تغيّر الملف أو البيانات أو خيارات PDF يتطلب معاينة جديدة")
+internal class PdfReviewRequiredException(uiText: UiStrings) : IllegalStateException(uiText(R.string.ui_report_pdf_workspace_003))
 
 /** One reviewed-artifact store for this ViewModel; publication/delivery stay with its owner. */
 internal class ReportPdfWorkspace(
+    private val uiText: UiStrings,
     private val context: Context, private val settingsRepository: SettingsRepository,
     private val projectConfigStore: ProjectConfigStore, private val classicPdfExporter: PdfReportExporter,
     private val cardsPdfExporter: PdfCardsExporter, private val mediaStoreSaver: MediaStoreSaver
@@ -67,20 +72,20 @@ internal class ReportPdfWorkspace(
     }
 
     suspend fun checkedPdf(built: BuiltReport, supervisorId: String? = null): File = withContext(Dispatchers.IO) {
-        val artifact = reviewedPdfs[pdfKey(supervisorId)] ?: throw PdfReviewRequiredException()
+        val artifact = reviewedPdfs[pdfKey(supervisorId)] ?: throw PdfReviewRequiredException(uiText)
         ReportReview.requireMatches(artifact.reviewed, built)
         if (artifact.style != PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE)) ||
             artifact.reportKey != ReportReview.fingerprint(built) ||
             artifact.options.copy(generatedAtEpochMillis = 0) != loadPdfOptions().copy(generatedAtEpochMillis = 0) ||
-            !artifact.file.isFile || pdfDigest(artifact.file) != artifact.digest) throw PdfReviewRequiredException()
+            !artifact.file.isFile || pdfDigest(artifact.file) != artifact.digest) throw PdfReviewRequiredException(uiText)
         artifact.file
     }
 
     fun supervisorPdfReport(built: BuiltReport, supervisorId: String): BuiltReport {
         val supervisor = built.registryDoctors.firstOrNull { it.id == supervisorId && !it.isDeleted }
-            ?: error("المشرف غير موجود")
+            ?: error(uiText(R.string.ui_report_preview_view_model_030))
         val patients = built.patients.filter { it.responsibleSpecialistId == supervisorId }
-        require(patients.isNotEmpty()) { "لا يوجد مرضى لهذا المشرف" }
+        require(patients.isNotEmpty()) { uiText(R.string.ui_report_pdf_workspace_001) }
         return built.copy(patients = patients, doctors = listOf(supervisor), summary = built.summary.copy(
             patientCount = patients.size, psychoCount = patients.count { it.diagnosisType == DiagnosisType.PSYCHIATRIC || it.diagnosisType == DiagnosisType.DUAL },
             escortCount = patients.count { it.hasCompanion }, doctors = listOf(supervisor)))
@@ -155,7 +160,7 @@ internal class ReportPdfWorkspace(
                 outputFile = tmp
             )
             val name = reportFileName(built.shift.date)
-            checkNotNull(mediaStoreSaver.savePdf(context, tmp, name)) { "تعذر حفظ ملف PDF" }
+            checkNotNull(mediaStoreSaver.savePdf(context, tmp, name)) { uiText(R.string.ui_report_preview_view_model_028) }
         } finally {
             tmp.delete()
         }
@@ -195,7 +200,7 @@ internal class ReportPdfWorkspace(
                     .take(60)
                 val displayName = reportFileName(built.shift.date, safeName)
                 checkNotNull(mediaStoreSaver.savePdf(context, tmp, displayName)) {
-                    "تعذر حفظ ملف PDF للمشرف ${supervisor?.fullName.orEmpty()}"
+                    uiText(R.string.ui_report_pdf_workspace_002, supervisor?.fullName.orEmpty())
                 }
                 saved++
             } finally {

@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.R
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -29,11 +31,12 @@ fun AppCompactTopBar(title: @Composable () -> Unit, navigation: @Composable () -
 
 @Composable
 fun AppTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
+    val uiText = rememberUiStrings()
     AppCompactTopBar(title = {
         Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }, navigation = {
         IconButton(onClick = onBack) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = "رجوع",
+            Icon(Icons.Filled.ArrowBack, contentDescription = uiText(R.string.ui_patient_form_fields_019),
                 modifier = Modifier.rotate(if (LocalLayoutDirection.current == LayoutDirection.Rtl) 180f else 0f))
         }
     }, actions = actions)

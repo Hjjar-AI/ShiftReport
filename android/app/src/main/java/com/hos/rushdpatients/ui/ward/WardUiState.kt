@@ -1,5 +1,11 @@
 package com.hos.rushdpatients.ui.ward
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Shift
@@ -20,11 +26,13 @@ data class ShiftSnapshotOption(
     val patientCount: Int
 )
 
-enum class PatientSyncStatus(val arabicLabel: String) {
-    LOCAL("محفوظ على الجهاز"),
-    PENDING("تعديلات لم تُنشر"),
-    BACKED_UP("مطابق لآخر نسخة معروفة على هذا الجهاز"),
-    SYNCING("جار جلب أو نشر البيانات")
+enum class PatientSyncStatus(@StringRes private val arabicLabelRes: Int) {
+    LOCAL(R.string.ui_ward_ui_state_001),
+    PENDING(R.string.ui_ward_ui_state_002),
+    BACKED_UP(R.string.ui_ward_ui_state_003),
+    SYNCING(R.string.ui_ward_ui_state_004);
+
+    fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }
 
 enum class WardRetryAction { FETCH_LATEST, FETCH_PREVIOUS, EXPORT_CSV }
@@ -67,7 +75,7 @@ data class WardUiState(
     val snackbar: String? = null
 ) {
     val syncStatus: PatientSyncStatus get() = synchronization.status(syncing)
-    val freshnessLabel: String get() = synchronization.description(syncing, shift?.csvMessageId)
+    fun freshnessLabel(uiText: UiStrings): String = synchronization.description(uiText, syncing, shift?.csvMessageId)
     internal val workflowAction: WardWorkflowAction get() = synchronization.nextAction(isReadOnly)
     val unresolvedDeliveries: Int get() = synchronization.unresolvedDeliveries
     val deliveryLogUnavailable: Boolean get() = synchronization.deliveryLogUnavailable

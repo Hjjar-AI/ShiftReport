@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import java.time.LocalDate
 
 internal enum class PatientFormField {
@@ -8,33 +12,33 @@ internal enum class PatientFormField {
 
 internal data class PatientFormError(val field: PatientFormField, val message: String)
 
-internal fun validatePatientForm(
+internal fun validatePatientForm(uiText: UiStrings,
     admittanceNumber: String, admittanceDate: LocalDate?, today: LocalDate, name: String,
     ageText: String, birthYear: Int?, currentYear: Int, age: Int?, initialDiagnosis: String,
     resolvedTreatments: List<String>, resolvedFollowUp: List<String>, residentId: String?, specialistId: String?
 ): List<PatientFormError> = buildList {
-    if (admittanceNumber.isBlank()) add(PatientFormError(PatientFormField.ADMISSION_NUMBER, "رقم القبول الحالي مطلوب"))
-    if (admittanceDate == null) add(PatientFormError(PatientFormField.ADMISSION_DATE, "اختر تاريخ الدخول"))
+    if (admittanceNumber.isBlank()) add(PatientFormError(PatientFormField.ADMISSION_NUMBER, uiText(R.string.ui_ward_save_guard_007)))
+    if (admittanceDate == null) add(PatientFormError(PatientFormField.ADMISSION_DATE, uiText(R.string.ui_patient_form_validation_001)))
     if (admittanceDate?.isAfter(today) == true) {
-        add(PatientFormError(PatientFormField.ADMISSION_DATE, "تاريخ الدخول لا يمكن أن يكون في المستقبل"))
+        add(PatientFormError(PatientFormField.ADMISSION_DATE, uiText(R.string.ui_patient_form_validation_002)))
     }
-    if (name.isBlank()) add(PatientFormError(PatientFormField.NAME, "اسم المريض مطلوب"))
+    if (name.isBlank()) add(PatientFormError(PatientFormField.NAME, uiText(R.string.ui_ward_save_guard_006)))
     if (ageText.toIntOrNull()?.let { it !in 0..120 } == true) {
-        add(PatientFormError(PatientFormField.AGE, "العمر يجب أن يكون بين 0 و120 سنة"))
+        add(PatientFormError(PatientFormField.AGE, uiText(R.string.ui_patient_form_validation_003)))
     }
-    if (birthYear == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "أدخل سنة الميلاد أو العمر"))
+    if (birthYear == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, uiText(R.string.ui_patient_form_validation_004)))
     if (birthYear != null && birthYear > currentYear) {
-        add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد لا يمكن أن تكون في المستقبل"))
+        add(PatientFormError(PatientFormField.BIRTH_YEAR, uiText(R.string.ui_patient_form_validation_005)))
     }
-    if (birthYear != null && age == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد تنتج عمراً غير صحيح"))
-    if (initialDiagnosis.isBlank()) add(PatientFormError(PatientFormField.DIAGNOSIS, "التشخيص الأولي مطلوب"))
+    if (birthYear != null && age == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, uiText(R.string.ui_patient_form_validation_006)))
+    if (initialDiagnosis.isBlank()) add(PatientFormError(PatientFormField.DIAGNOSIS, uiText(R.string.ui_ward_save_guard_010)))
     if (resolvedTreatments.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-        add(PatientFormError(PatientFormField.TREATMENT, "الخطة العلاجية مطلوبة"))
+        add(PatientFormError(PatientFormField.TREATMENT, uiText(R.string.ui_ward_save_guard_011)))
     }
     if (resolvedFollowUp.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-        add(PatientFormError(PatientFormField.FOLLOW_UP, "المتابعة مطلوبة"))
+        add(PatientFormError(PatientFormField.FOLLOW_UP, uiText(R.string.ui_ward_save_guard_012)))
     }
     if (residentId != null && residentId == specialistId) {
-        add(PatientFormError(PatientFormField.TEAM, "يجب اختيار طبيبين مختلفين للمقيم والمشرف"))
+        add(PatientFormError(PatientFormField.TEAM, uiText(R.string.ui_patient_form_validation_007)))
     }
 }

@@ -221,6 +221,17 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 
 ## Interface
 
+- Corrected the storage-access entry point's Hilt annotation import after the
+  owner-supplied KSP failure. Source checks passed; a successful rebuild remains
+  unverified. See [verification limits](current-state.md#verification-and-limits).
+
+- Moved remaining active Android UI Arabic wording into shared string resources,
+  including state messages, enum labels and accessibility text. Preserved literal
+  content, placeholders, Arabic plurals and portable clinical/export values.
+  Corrected a missed workflow-action `label(uiText)` call reported by compilation.
+  Source checks passed; compilation and rendering remain unverified. See
+  [implementation and limits](current-state.md#android-ui-string-resources).
+
 - Clarified unsaved patient edits beside Android/desktop Save controls and report
   publication versus delivery outcomes. Grouped report errors with specific next
   actions; made Android editor/report actions adaptive and the doctor picker use
@@ -367,6 +378,13 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   rewritten due filesystem permissions. See [current state](current-state.md).
 
 ## Repository organization
+
+- Configured the Kotlin daemon's `java.io` access for the reported KSP
+  incremental-cache reflection failure, without changing toolchain versions or
+  clearing caches. A subsequent unreadable debug lookup cache was moved to a
+  preserved backup for regeneration; incremental processing remains enabled.
+  Rebuild remains unverified; see
+  [troubleshooting](troubleshooting.md#ksp-lookup-cache-cannot-be-read).
 
 - Restored function-level Material 3 opt-ins for the extracted security/report
   settings sections, fixing the four `FilterChip` errors in the supplied Android

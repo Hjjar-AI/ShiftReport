@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,8 +17,9 @@ import com.hos.rushdpatients.ui.components.LoadingButton
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsConnectionContent(canManageProject: Boolean) {
+    val uiText = rememberUiStrings()
     Text(
-        "إعادة الاتصال بالمشروع الحالي باستخدام ملف انضمام محمي، أو استبدال رمز البوت بصلاحية المدير.",
+        uiText(R.string.ui_settings_project_sections_001),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
@@ -25,13 +29,14 @@ internal fun SettingsConnectionContent(canManageProject: Boolean) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsResetContent(state: SettingsUiState, viewModel: SettingsViewModel) {
+    val uiText = rememberUiStrings()
     if (state.isPermanentAdmin) {
-        SettingsSubheading("بداية فارغة للمشروع")
-        Text("مسح المرضى والمناوبات فقط مع إبقاء الأطباء والحسابات والاتصال وسجل تليجرام. لا يتطلب جلب بيانات المرضى أو مراجعة تقرير؛ ستظهر رسالة تأكيد المسح.",
+        SettingsSubheading(uiText(R.string.ui_settings_project_sections_002))
+        Text(uiText(R.string.ui_settings_project_sections_003),
             style = MaterialTheme.typography.bodySmall)
         AppOutlinedButton(onClick = viewModel::prepareEmptyStart,
             enabled = !state.emptyStartBusy && !state.syncing && !state.backupBusy && !state.provisioningBusy,
-            modifier = Modifier.fillMaxWidth()) { Text("بدء بداية فارغة…", color = MaterialTheme.colorScheme.error) }
+            modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_project_sections_004), color = MaterialTheme.colorScheme.error) }
         Divider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
@@ -39,14 +44,15 @@ internal fun SettingsResetContent(state: SettingsUiState, viewModel: SettingsVie
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsInvitationsContent(state: SettingsUiState, onCreateInvitation: () -> Unit) {
-    Text("ضم أجهزة جديدة", style = MaterialTheme.typography.labelMedium)
+    val uiText = rememberUiStrings()
+    Text(uiText(R.string.ui_settings_project_sections_005), style = MaterialTheme.typography.labelMedium)
     Text(
-        "أنشئ ملفاً مشفراً يعبئ إعدادات المستشفى والبوت على جهاز العضو. أرسل عبارة المرور إليه عبر قناة منفصلة.",
+        uiText(R.string.ui_settings_project_sections_006),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     LoadingButton(
-        text = "إنشاء ملف انضمام مشفر",
+        text = uiText(R.string.ui_settings_project_sections_007),
         outlined = true,
         loading = state.provisioningBusy,
         onClick = onCreateInvitation,
@@ -57,16 +63,17 @@ internal fun SettingsInvitationsContent(state: SettingsUiState, onCreateInvitati
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsDestinationsContent(state: SettingsUiState, viewModel: SettingsViewModel, onOpenDoctors: () -> Unit) {
-    AppOutlinedButton(onClick = onOpenDoctors) { Text("سجل الأطباء — مراجعة ونشر الوجهات المحفوظة") }
-    Text("مجموعات المشرفين", style = MaterialTheme.typography.labelMedium)
+    val uiText = rememberUiStrings()
+    AppOutlinedButton(onClick = onOpenDoctors) { Text(uiText(R.string.ui_settings_project_sections_008)) }
+    Text(uiText(R.string.ui_settings_project_sections_009), style = MaterialTheme.typography.labelMedium)
     Text(
-        "معرّفات مجموعات تليجرام لاستقبال تقارير كل مشرف.",
+        uiText(R.string.ui_settings_project_sections_010),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     if (state.supervisors.isEmpty()) {
         Text(
-            "لا يوجد مشرفون",
+            uiText(R.string.ui_settings_project_sections_011),
             style = MaterialTheme.typography.bodySmall
         )
     } else {

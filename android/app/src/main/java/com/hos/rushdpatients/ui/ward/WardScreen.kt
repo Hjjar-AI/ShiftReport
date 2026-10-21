@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.settings.SettingsWorkspace
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
@@ -86,6 +91,7 @@ fun WardScreen(
     onOpenAnnouncement: () -> Unit = {},
     viewModel: WardViewModel = hiltViewModel()
 ) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val online by viewModel.online.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
@@ -100,7 +106,7 @@ fun WardScreen(
     var listFraction by rememberSaveable { mutableStateOf(.42f) }
     var showSupportingSheet by rememberSaveable { mutableStateOf(false) }
     val expandedWindow = LocalConfiguration.current.screenWidthDp >= 600
-    val freshnessLabel = state.freshnessLabel
+    val freshnessLabel = state.freshnessLabel(uiText)
     val doctorNames = remember(state.doctors) {
         state.doctors.associate { it.id to it.fullName }
     }
@@ -197,7 +203,7 @@ fun WardScreen(
         if (saved.revision <= target.previousRevision) return@LaunchedEffect
         if (visiblePatients.none { it.id == target.id }) {
             returnTarget = null
-            scope.launch { snackbarHost.showSnackbar("تم حفظ ${saved.name} محلياً؛ لا يطابق التصفية الحالية") }
+            scope.launch { snackbarHost.showSnackbar(uiText(R.string.ui_ward_screen_001, saved.name)) }
             return@LaunchedEffect
         }
         val groups = if (state.groupByMode == GroupByMode.NONE) emptyList() else state.groupedPatients.map { group ->
@@ -298,7 +304,7 @@ fun WardScreen(
         state.snackbar?.let {
             val result = snackbarHost.showSnackbar(
                 message = it,
-                actionLabel = if (state.retryAction != null) "إعادة المحاولة" else null
+                actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null
             )
             viewModel.dismissSnackbar()
             if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
@@ -405,7 +411,7 @@ fun WardScreen(
                         modifier = addActionSpace.measure.heightIn(min = UiSpacing.touchTarget)
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
-                        Text("إضافة مريض", Modifier.padding(start = UiSpacing.small))
+                        Text(uiText(R.string.ui_add_patient), Modifier.padding(start = UiSpacing.small))
                     }
                 }
             },
@@ -432,7 +438,7 @@ fun WardScreen(
                 if (expandedWindow) {
                     WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
                         listFraction = .42f, onListFractionChange = {},
-                        modifier = Modifier.width(UiLayout.navigationRailWidth).fillMaxHeight(), primaryTitle = "التنقل الرئيسي", primary = {
+                        modifier = Modifier.width(UiLayout.navigationRailWidth).fillMaxHeight(), primaryTitle = uiText(R.string.ui_ward_screen_002), primary = {
                         PrimaryNavigationRail(
                             viewMode = viewMode,
                             isAdmin = isAdmin,
@@ -451,8 +457,8 @@ fun WardScreen(
                     listFraction = listFraction,
                     onListFractionChange = { listFraction = it },
                     modifier = Modifier.weight(1f).fillMaxHeight(),
-                    primaryTitle = if (patientDestination) "قائمة المرضى" else if (viewMode == WardViewMode.ACTIVITY) "مركز النشاط" else "لوحة المناوبة",
-                    supportingTitle = if (selectedPatient == null) "جاهزية التقرير والنشاط" else "ملف المريض",
+                    primaryTitle = if (patientDestination) uiText(R.string.ui_handover_dashboard_004) else if (viewMode == WardViewMode.ACTIVITY) uiText(R.string.ui_ward_activity_screen_003) else uiText(R.string.ui_ward_screen_003),
+                    supportingTitle = if (selectedPatient == null) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_screen_005),
                     supporting = {
                         Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
                             if (selectedPatient != null && editTarget == null && copyTarget == null) detailContent(true)
@@ -465,13 +471,13 @@ fun WardScreen(
                     primary = { dualPane ->
                     Box(Modifier.fillMaxSize()) {
                         if (state.loading) {
-                            com.hos.rushdpatients.ui.components.AppLoadingState("جار تحميل بيانات المناوبة…", Modifier.align(Alignment.Center))
+                            com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_ward_screen_006), Modifier.align(Alignment.Center))
                         } else if (state.error != null) {
                             AppNotice(
-                                message = "تعذر تحميل بيانات المناوبة\n${state.error.orEmpty()}",
+                                message = uiText(R.string.ui_ward_screen_007, state.error.orEmpty()),
                                 kind = NoticeKind.ERROR,
                                 modifier = Modifier.align(Alignment.Center).padding(UiPadding.content),
-                                actionLabel = if (state.retryAction != null) "إعادة المحاولة" else null,
+                                actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null,
                                 onAction = if (state.retryAction != null) viewModel::retryLastAction else null,
                                 actionEnabled = !state.syncing && !state.saving
                             )
@@ -535,17 +541,17 @@ fun WardScreen(
                                                                                 })
                                                                             }
                                                                             val activeFilters = buildList<String> {
-                                                                                if (viewMode == WardViewMode.MINE) add("مرضاي")
-                                                                                if (searchQuery.isNotBlank()) add("بحث: $searchQuery")
-                                                                                if (priorityOnly) add("أولوية")
-                                                                                if (warningsOnly) add("مع شارة")
-                                                                                if (unassignedOnly) add("غير معيّن")
-                                                                                if (urgentOnly) add("عاجل")
-                                                                                if (newAdmissionsOnly) add("دخول اليوم")
+                                                                                if (viewMode == WardViewMode.MINE) add(uiText(R.string.ui_handover_dashboard_011))
+                                                                                if (searchQuery.isNotBlank()) add(uiText(R.string.ui_ward_screen_008, searchQuery))
+                                                                                if (priorityOnly) add(uiText(R.string.ui_patient_identity_002))
+                                                                                if (warningsOnly) add(uiText(R.string.ui_ward_screen_009))
+                                                                                if (unassignedOnly) add(uiText(R.string.ui_ward_screen_010))
+                                                                                if (urgentOnly) add(uiText(R.string.ui_ward_patient_list_controls_007))
+                                                                                if (newAdmissionsOnly) add(uiText(R.string.ui_handover_dashboard_016))
                                                                                 val taskLabel = when (taskFilter) {
-                                                                                    DashboardFilter.TASK_PENDING -> "مهام معلقة"
-                                                                                    DashboardFilter.TASK_OVERDUE -> "مهام متأخرة"
-                                                                                    DashboardFilter.TASK_UNASSIGNED -> "مهام غير معيّنة"
+                                                                                    DashboardFilter.TASK_PENDING -> uiText(R.string.ui_ward_screen_011)
+                                                                                    DashboardFilter.TASK_OVERDUE -> uiText(R.string.ui_ward_patient_list_controls_008)
+                                                                                    DashboardFilter.TASK_UNASSIGNED -> uiText(R.string.ui_ward_screen_012)
                                                                                     else -> null
                                                                                 }
                                                                                 taskLabel?.let { add(it) }
@@ -560,7 +566,7 @@ fun WardScreen(
                                                                             }
                                                                             WardPatientListControls(
                                                                                 visibleCount = visiblePatients.size, totalCount = state.patients.size,
-                                                                                groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.arabicLabel,
+                                                                                groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText),
                                                                                 activeFilters = activeFilters, selectedPreset = selectedPreset,
                                                                                 onPreset = ::applyDashboardFilter,
                                                                                 onOptions = { showFilters = true }, onReset = ::resetPatientFilters,
@@ -569,7 +575,7 @@ fun WardScreen(
                                                                                 onFocusRequested = { requestSearchFocus = false }
                                                                             )
                                                                             if (state.isReadOnly) {
-                                                                                AppNotice("نسخة محفوظة — للعرض والاستعادة فقط", icon = Icons.Filled.Lock)
+                                                                                AppNotice(uiText(R.string.ui_ward_screen_013), icon = Icons.Filled.Lock)
                                                                             }
                                                                         }
                                 }, patientCard = { patient ->
@@ -683,8 +689,8 @@ fun WardScreen(
                 deleteTarget = null
                 scope.launch {
                     val result = snackbarHost.showSnackbar(
-                        message = "تم نقل ${p.name} إلى سلة المحذوفات",
-                        actionLabel = "تراجع"
+                        message = uiText(R.string.ui_ward_screen_014, p.name),
+                        actionLabel = uiText(R.string.ui_ward_screen_015)
                     )
                     if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
                         viewModel.restorePatient(deletedPatient)

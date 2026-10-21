@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired
 import com.hos.rushdpatients.config.ProjectConfigStore
 import android.content.Context
@@ -54,6 +58,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ReportPreviewViewModel @Inject constructor(
+    private val uiText: UiStrings,
     savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context,
     private val reportBuilder: ReportBuilder,
@@ -79,17 +84,17 @@ class ReportPreviewViewModel @Inject constructor(
     private val _state = MutableStateFlow(ReportUiState())
     val state: StateFlow<ReportUiState> = _state.asStateFlow()
     private var reviewedReport: BuiltReport? = null
-    private val pdfWorkspace = ReportPdfWorkspace(context, settingsRepository, projectConfigStore,
+    private val pdfWorkspace = ReportPdfWorkspace(uiText, context, settingsRepository, projectConfigStore,
         classicPdfExporter, cardsPdfExporter, mediaStoreSaver)
 
-    private val localActions = ReportLocalActions(_state, viewModelScope, shiftId,
+    private val localActions = ReportLocalActions(uiText, _state, viewModelScope, shiftId,
         context, reportBuilder, settingsRepository, assignmentPdfExporter, mediaStoreSaver,
         adminAuthorizer, pdfWorkspace)
 
     init {
         viewModelScope.launch {
             deliveryLedger.observe().catch {
-                _state.update { it.copy(error = "تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد حتى إصلاح السجل", retryAction = null) }
+                _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_001), retryAction = null) }
             }.collect { rows ->
                 _state.update { it.copy(deliveryRecords = rows.filter { row -> row.shiftId == shiftId }) }
             }
@@ -122,12 +127,12 @@ class ReportPreviewViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
             try {
-                check(shiftId.isNotBlank()) { "معرف المناوبة غير موجود" }
+                check(shiftId.isNotBlank()) { uiText(R.string.ui_report_preview_view_model_002) }
                 val pdfOptions = loadPdfOptions()
                 val pdfStyle = PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE))
                 _state.update { it.copy(pdfOptions = pdfOptions, pdfStyle = pdfStyle) }
                 // Keep the selector available even when an empty roster prevents report building.
-                val shift = requireNotNull(shiftRepository.getById(shiftId)) { "المناوبة غير موجودة" }
+                val shift = requireNotNull(shiftRepository.getById(shiftId)) { uiText(R.string.ui_ward_shift_operations_005) }
                 val available = doctorRepository.getAll().filterNot { it.isDeleted }
                 _state.update { it.copy(shift = shift, availableDoctors = available,
                     doctors = available.filter { doctor -> doctor.id in shift.doctorIds },
@@ -141,9 +146,9 @@ class ReportPreviewViewModel @Inject constructor(
                 val supervisorTargets = buildSupervisorTargets(built)
                 val changes = syncService.describeLocalChanges(shiftId)
                 val briefing = buildList {
-                    changes.added.forEach { add("مريض جديد: $it") }
-                    changes.changed.forEach { add("تم تعديل: $it") }
-                    changes.removed.forEach { add("تمت إزالة: $it") }
+                    changes.added.forEach { add(uiText(R.string.ui_report_preview_view_model_003, it)) }
+                    changes.changed.forEach { add(uiText(R.string.ui_report_preview_view_model_004, it)) }
+                    changes.removed.forEach { add(uiText(R.string.ui_report_preview_view_model_005, it)) }
                 }
                 reviewedReport = built
                 _state.update {
@@ -167,7 +172,7 @@ class ReportPreviewViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(loading = false, error = e.message ?: "خطأ في بناء التقرير")
+                    it.copy(loading = false, error = e.message ?: uiText(R.string.ui_report_preview_view_model_006))
                 }
             }
         }
@@ -187,10 +192,10 @@ class ReportPreviewViewModel @Inject constructor(
                 fetched = true
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
-                _state.update { it.copy(error = e.message ?: "تعذر جلب سجل الأطباء",
+                _state.update { it.copy(error = e.message ?: uiText(R.string.ui_report_preview_view_model_007),
                     doctorRegistryAction = (e as? DoctorRegistryActionRequired)?.action) }
             } finally { _state.update { it.copy(savingDoctors = false) } }
-            if (fetched) load("جُلب سجل الأطباء؛ راجع التقرير وعاينه مجدداً قبل الإرسال.")
+            if (fetched) load(uiText(R.string.ui_report_preview_view_model_008))
         }
     }
 
@@ -216,7 +221,7 @@ class ReportPreviewViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر حفظ أطباء المناوبة") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_report_preview_view_model_009)) }
             } finally {
                 _state.update { it.copy(savingDoctors = false) }
             }
@@ -252,7 +257,7 @@ class ReportPreviewViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر حفظ تخصيص التقرير") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_report_preview_view_model_010)) }
             } finally {
                 _state.update { it.copy(savingPdfOptions = false) }
             }
@@ -263,7 +268,7 @@ class ReportPreviewViewModel @Inject constructor(
         activeSendingActor()
         val beforeSync = reportBuilder.build(shiftId)
         check(beforeSync.shift.date == ShiftDate.current()) {
-            "لا يمكن إرسال أو نشر تقرير مناوبة محفوظة"
+            uiText(R.string.ui_report_preview_view_model_011)
         }
         ReportReview.requireMatches(reviewed, beforeSync)
         // Registry fetch/publication is explicit; publication validates current published identities.
@@ -276,14 +281,14 @@ class ReportPreviewViewModel @Inject constructor(
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.CONFIRMED) }
         val accepted = reportBuilder.build(shiftId)
         ReportReview.requireMatches(reviewed, accepted)
-        check(accepted.shift.date == ShiftDate.current()) { "انتهت المناوبة؛ أعد مراجعة التقرير" }
+        check(accepted.shift.date == ShiftDate.current()) { uiText(R.string.ui_report_preview_view_model_012) }
         return accepted
     }
 
     private suspend fun activeSendingActor(): com.hos.rushdpatients.data.model.Doctor {
-        val session = sessionManager.current() ?: error("يجب تسجيل الدخول قبل إرسال التقرير")
+        val session = sessionManager.current() ?: error(uiText(R.string.ui_report_preview_view_model_013))
         return doctorRepository.getActiveById(session.doctorId)
-            ?: error("المستخدم الحالي لم يعد نشطاً؛ أعد تسجيل الدخول")
+            ?: error(uiText(R.string.ui_report_preview_view_model_014))
     }
 
     private fun reloadChangedReport(error: ReportChangedSinceReviewException) {
@@ -296,9 +301,9 @@ class ReportPreviewViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deliveryLedger.resolve(record.id, record.status, resolution)
-                _state.update { it.copy(snackbar = "حُفظ قرار التسليم؛ أي إرسال جديد يمر بالمراجعة والتأكيد", retryAction = null) }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_report_preview_view_model_015), retryAction = null) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(error = e.message ?: "تعذر حسم التسليم", retryAction = null) } }
+            catch (e: Exception) { _state.update { it.copy(error = e.message ?: uiText(R.string.ui_report_preview_view_model_016), retryAction = null) } }
         }
     }
 
@@ -312,11 +317,11 @@ class ReportPreviewViewModel @Inject constructor(
                 else -> ReportStepOutcome.NOT_STARTED
             }
             val next = when {
-                delivery == ReportStepOutcome.UNCERTAIN -> "افحص وصول التقرير في تليجرام قبل إعادة الإرسال."
-                publication == ReportStepOutcome.UNCERTAIN -> "لم يتأكد نشر البيانات؛ اجلب الحالة الحالية وراجعها قبل الإعادة."
-                delivered > 0 -> "تم تأكيد $delivered تقارير؛ راجع الوجهات المستلمة ولا تُعد إرسالها."
-                publication == ReportStepOutcome.CONFIRMED -> "البيانات منشورة؛ لم يبدأ تسليم التقرير. عالج السبب ثم راجع وأرسل."
-                else -> "لم يبدأ تسليم التقرير؛ عالج السبب ثم راجع العملية."
+                delivery == ReportStepOutcome.UNCERTAIN -> uiText(R.string.ui_report_preview_view_model_017)
+                publication == ReportStepOutcome.UNCERTAIN -> uiText(R.string.ui_report_preview_view_model_018)
+                delivered > 0 -> uiText(R.string.ui_report_preview_view_model_019, delivered)
+                publication == ReportStepOutcome.CONFIRMED -> uiText(R.string.ui_report_preview_view_model_020)
+                else -> uiText(R.string.ui_report_preview_view_model_021)
             }
             current.copy(sending = false, publicationOutcome = publication, deliveryOutcome = delivery,
                 doctorRegistryAction = (error as? DoctorRegistryActionRequired)?.action,
@@ -334,16 +339,16 @@ class ReportPreviewViewModel @Inject constructor(
         if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
             current.sharingPdf || current.shift == null) return
         if (current.isReadOnly) {
-            _state.update { it.copy(error = "لا يمكن إرسال أو نشر تقرير مناوبة محفوظة") }
+            _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_011)) }
             return
         }
         if (!NetworkStatus.isOnline(context)) {
-            _state.update { it.copy(error = "لا يوجد اتصال بالإنترنت — بقي التقرير محفوظاً محلياً", retryAction = null) }
+            _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_022), retryAction = null) }
             return
         }
         val selected = current.supervisorTargets.filter { it.doctorId in supervisorIds && it.chatId != null }
         if (selected.isEmpty()) {
-            _state.update { it.copy(error = "اختر مجموعة مشرف واحدة على الأقل") }
+            _state.update { it.copy(error = uiText(R.string.ui_report_preview_screen_004)) }
             return
         }
         _state.update { it.copy(sending = true, error = null, doctorRegistryAction = null, retryAction = null,
@@ -361,15 +366,15 @@ class ReportPreviewViewModel @Inject constructor(
                 val targets = buildSupervisorTargets(built).filter {
                     it.doctorId in supervisorIds && it.chatId != null
                 }
-                check(targets.size == selected.size) { "تغيّرت مجموعات المشرفين؛ أعد مراجعة الاختيار" }
+                check(targets.size == selected.size) { uiText(R.string.ui_report_preview_view_model_023) }
                 for (target in targets) {
                     _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
                     sendSupervisorPdf(built, target, actor)
                     delivered++
                 }
                 _state.update {
-                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = "تم إرسال $delivered تقرير PDF ونشر بيانات CSV الكاملة",
-                        lastOperation = "آخر عملية ناجحة: إرسال تقارير المشرفين", retryAction = null)
+                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = uiText(R.string.ui_report_preview_view_model_024, delivered),
+                        lastOperation = uiText(R.string.ui_report_preview_view_model_025), retryAction = null)
                 }
             } catch (e: ReportChangedSinceReviewException) {
                 recordSendFailure(e, delivered)
@@ -390,11 +395,11 @@ class ReportPreviewViewModel @Inject constructor(
         if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
             current.sharingPdf || current.shift == null) return
         if (current.isReadOnly) {
-            _state.update { it.copy(error = "لا يمكن إرسال أو نشر تقرير مناوبة محفوظة") }
+            _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_011)) }
             return
         }
         if (!NetworkStatus.isOnline(context)) {
-            _state.update { it.copy(error = "لا يوجد اتصال بالإنترنت — أعد المحاولة عند توفر الشبكة", retryAction = ReportRetryAction.SEND) }
+            _state.update { it.copy(error = uiText(R.string.ui_ward_shift_operations_018), retryAction = ReportRetryAction.SEND) }
             return
         }
         _state.update { it.copy(sending = true, error = null, doctorRegistryAction = null, retryAction = null,
@@ -409,8 +414,8 @@ class ReportPreviewViewModel @Inject constructor(
                 _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
                 if (current.reportAsPdf) sendPdf(built, actor) else sendText(built, actor)
                 _state.update {
-                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = "تم إرسال التقرير ونشر أحدث بيانات المرضى",
-                        lastOperation = "آخر عملية ناجحة: إرسال التقرير ونشر بيانات المرضى", retryAction = null)
+                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = uiText(R.string.ui_report_preview_view_model_026),
+                        lastOperation = uiText(R.string.ui_report_preview_view_model_027), retryAction = null)
                 }
             } catch (e: ReportChangedSinceReviewException) {
                 recordSendFailure(e)
@@ -477,10 +482,10 @@ class ReportPreviewViewModel @Inject constructor(
                         sourceFile = tmp,
                         displayName = reportFileName(built.shift.date)
                     )
-                    checkNotNull(savedUri) { "تعذر حفظ ملف PDF" }
+                    checkNotNull(savedUri) { uiText(R.string.ui_report_preview_view_model_028) }
                 }
 
-                val caption = Markdown.escape("تقرير المناوبة: ${built.shift.date} · ${built.doctors.size} أطباء؛ الأسماء داخل الملف")
+                val caption = Markdown.escape(uiText(R.string.ui_report_preview_view_model_029, built.shift.date, built.doctors.size))
                 reportSender.sendPdfReport(
                     shift = built.shift,
                     pdfFile = tmp,
@@ -517,7 +522,7 @@ class ReportPreviewViewModel @Inject constructor(
         actor: com.hos.rushdpatients.data.model.Doctor?
     ) {
         val supervisor = built.registryDoctors.firstOrNull { it.id == target.doctorId && !it.isDeleted }
-            ?: error("المشرف غير موجود")
+            ?: error(uiText(R.string.ui_report_preview_view_model_030))
         val reviewedFile = checkedPdf(built, target.doctorId)
         reportSender.sendSupervisorPdfReport(shift = built.shift, pdfFile = reviewedFile,
             caption = textReportBuilder.buildTitle(built.shift, listOf(supervisor)), actor = actor,

@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import androidx.compose.foundation.verticalScroll
@@ -38,66 +43,67 @@ internal fun WardViewOptionsDialog(
     onShowTasks: () -> Unit, onSetAllExpanded: (Boolean) -> Unit,
     onResetFilters: () -> Unit, onClose: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     AlertDialog(
         onDismissRequest = { if (!state.saving) onClose() },
         title = {
             Column {
-                Text("خيارات العرض")
+                Text(uiText(R.string.ui_ward_patient_list_controls_004))
                 AppSectionIndex(sections = WardViewOption.entries.toList(), selected = selectedViewOption,
-                    label = { it.label }, enabled = !state.saving, onSelect = onSelectOption)
+                    label = { it.label(uiText) }, enabled = !state.saving, onSelect = onSelectOption)
             }
         },
         text = {
             Column(Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight)
                 .verticalScroll(viewOptionsScroll), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text("البحث والتصفية والتجميع للعرض فقط؛ الترتيب يُحفظ ويستخدم في التقارير وCSV. مرضى الأولوية أولاً.", style = MaterialTheme.typography.bodySmall)
+                Text(uiText(R.string.ui_ward_view_options_dialog_001), style = MaterialTheme.typography.bodySmall)
                 if (selectedViewOption == WardViewOption.FILTERS) {
-                    AppSearchField(query = filters.searchQuery, onQueryChange = { query -> onFiltersChanged { it.copy(searchQuery = query) } }, label = "بحث")
-                    Text("تصفية · للعرض فقط", style = MaterialTheme.typography.titleSmall)
+                    AppSearchField(query = filters.searchQuery, onQueryChange = { query -> onFiltersChanged { it.copy(searchQuery = query) } }, label = uiText(R.string.ui_search))
+                    Text(uiText(R.string.ui_ward_view_options_dialog_003), style = MaterialTheme.typography.titleSmall)
                     AppOutlinedButton(onClick = onShowTasks,
                         enabled = state.patients.isNotEmpty() && !state.loading && !state.saving && !state.syncing,
-                        modifier = Modifier.fillMaxWidth()) { Text("مهام الجناح") }
+                        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_ward_view_options_dialog_004)) }
                     CompactFilterChip(filters.viewMode == WardViewMode.MINE,
                         { onFiltersChanged { it.copy(viewMode = if (it.viewMode == WardViewMode.MINE) WardViewMode.ALL else WardViewMode.MINE) } },
-                        "مرضاي ومهامي")
+                        uiText(R.string.ui_ward_view_options_dialog_005))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        CompactFilterChip(filters.priorityOnly, { onFiltersChanged { it.copy(priorityOnly = !it.priorityOnly) } }, "أولوية فقط")
-                        CompactFilterChip(filters.warningsOnly, { onFiltersChanged { it.copy(warningsOnly = !it.warningsOnly) } }, "مع شارة")
-                        CompactFilterChip(filters.unassignedOnly, { onFiltersChanged { it.copy(unassignedOnly = !it.unassignedOnly) } }, "غير معيّن")
-                        CompactFilterChip(filters.urgentOnly, { onFiltersChanged { it.copy(urgentOnly = !it.urgentOnly) } }, "عاجل")
-                        CompactFilterChip(filters.newAdmissionsOnly, { onFiltersChanged { it.copy(newAdmissionsOnly = !it.newAdmissionsOnly) } }, "دخول اليوم")
-                        listOf(DashboardFilter.TASK_PENDING to "مهام معلقة",
-                            DashboardFilter.TASK_OVERDUE to "مهام متأخرة",
-                            DashboardFilter.TASK_UNASSIGNED to "مهام غير معيّنة").forEach { (value, label) ->
+                        CompactFilterChip(filters.priorityOnly, { onFiltersChanged { it.copy(priorityOnly = !it.priorityOnly) } }, uiText(R.string.ui_ward_view_options_dialog_006))
+                        CompactFilterChip(filters.warningsOnly, { onFiltersChanged { it.copy(warningsOnly = !it.warningsOnly) } }, uiText(R.string.ui_ward_screen_009))
+                        CompactFilterChip(filters.unassignedOnly, { onFiltersChanged { it.copy(unassignedOnly = !it.unassignedOnly) } }, uiText(R.string.ui_ward_screen_010))
+                        CompactFilterChip(filters.urgentOnly, { onFiltersChanged { it.copy(urgentOnly = !it.urgentOnly) } }, uiText(R.string.ui_ward_patient_list_controls_007))
+                        CompactFilterChip(filters.newAdmissionsOnly, { onFiltersChanged { it.copy(newAdmissionsOnly = !it.newAdmissionsOnly) } }, uiText(R.string.ui_handover_dashboard_016))
+                        listOf(DashboardFilter.TASK_PENDING to uiText(R.string.ui_ward_screen_011),
+                            DashboardFilter.TASK_OVERDUE to uiText(R.string.ui_ward_patient_list_controls_008),
+                            DashboardFilter.TASK_UNASSIGNED to uiText(R.string.ui_ward_screen_012)).forEach { (value, label) ->
                             CompactFilterChip(selected = filters.taskFilter == value,
                                 onClick = { onFiltersChanged { it.copy(taskFilter = if (it.taskFilter == value) null else value) } }, label = label)
                         }
                     }
                 }
                 if (selectedViewOption == WardViewOption.GROUPING) {
-                    Text("تجميع · للعرض فقط", style = MaterialTheme.typography.titleSmall)
+                    Text(uiText(R.string.ui_ward_view_options_dialog_007), style = MaterialTheme.typography.titleSmall)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         com.hos.rushdpatients.domain.sort.GroupByMode.entries.forEach { mode ->
                             CompactFilterChip(state.groupByMode == mode,
-                                { viewModel.setGroupByMode(mode) }, mode.arabicLabel)
+                                { viewModel.setGroupByMode(mode) }, mode.uiLabel(uiText))
                         }
                     }
                 }
                 if (selectedViewOption == WardViewOption.CARDS) {
-                    Text("بطاقات المرضى · تفضيلات الجهاز", style = MaterialTheme.typography.titleSmall)
-                    AppToggleRow(title = "عرض التفاصيل", checked = state.patientDetailsExpanded,
+                    Text(uiText(R.string.ui_ward_view_options_dialog_008), style = MaterialTheme.typography.titleSmall)
+                    AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_009), checked = state.patientDetailsExpanded,
                         onCheckedChange = onSetAllExpanded)
-                    AppToggleRow(title = "بطاقة بعمودين عند توفر المساحة", checked = state.twoColumn,
+                    AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_010), checked = state.twoColumn,
                         onCheckedChange = viewModel::setTwoColumn)
-                    AppToggleRow(title = "بطاقات مضغوطة", checked = state.compactCards,
+                    AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_011), checked = state.compactCards,
                         onCheckedChange = viewModel::setCompactCards)
                 }
                 if (selectedViewOption == WardViewOption.SORT) {
-                    Text("ترتيب · يُحفظ مع المناوبة", style = MaterialTheme.typography.titleSmall)
-                    Text(sortReviewLabel(state.sortSpec), style = MaterialTheme.typography.bodySmall)
+                    Text(uiText(R.string.ui_ward_view_options_dialog_012), style = MaterialTheme.typography.titleSmall)
+                    Text(sortReviewLabel(uiText, state.sortSpec), style = MaterialTheme.typography.bodySmall)
                     if (!state.isReadOnly) {
                         AppTextButton(onClick = { onSortExpandedChange(!showSort) }, enabled = !state.saving) {
-                            Text(if (showSort) "طي خيارات الترتيب" else "تعديل ترتيب المرضى")
+                            Text(if (showSort) uiText(R.string.ui_ward_view_options_dialog_013) else uiText(R.string.ui_ward_view_options_dialog_014))
                         }
                         if (showSort) PatientSortOptions(
                             initial = state.sortSpec,
@@ -112,9 +118,9 @@ internal fun WardViewOptionsDialog(
             }
         },
         confirmButton = { AppTextButton(onClick = onClose,
-            enabled = !state.saving) { Text("تم") } },
+            enabled = !state.saving) { Text(uiText(R.string.ui_done)) } },
         dismissButton = {
-            AppTextButton(onClick = onResetFilters) { Text("مسح عوامل التصفية") }
+            AppTextButton(onClick = onResetFilters) { Text(uiText(R.string.ui_ward_view_options_dialog_016)) }
         }
     )
 }

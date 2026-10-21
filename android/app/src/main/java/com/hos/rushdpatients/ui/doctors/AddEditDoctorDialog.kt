@@ -1,5 +1,12 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.appDialogBody
@@ -57,6 +64,7 @@ fun AddEditDoctorDialog(
     saving: Boolean = false,
     doctors: List<Doctor> = emptyList()
 ) {
+    val uiText = rememberUiStrings()
     var baseline by remember(existing?.id) { mutableStateOf(existing) }
     var rejectedInput by remember(existing?.id) { mutableStateOf<DoctorEditInput?>(null) }
     var rejectedBaseline by remember(existing?.id) { mutableStateOf<Doctor?>(null) }
@@ -93,7 +101,7 @@ fun AddEditDoctorDialog(
     CompositionLocalProvider(LocalFieldEnabled provides !saving) {
         if (!reviewing && !confirmDiscard) AlertDialog(
             onDismissRequest = requestDismiss,
-            title = { AppDialogHeader(if (existing == null) "إضافة طبيب" else "تحرير الطبيب") },
+            title = { AppDialogHeader(if (existing == null) uiText(R.string.ui_add_edit_doctor_dialog_001) else uiText(R.string.ui_add_edit_doctor_dialog_002)) },
             text = {
                 Column(
                     modifier = Modifier
@@ -103,21 +111,21 @@ fun AddEditDoctorDialog(
                 ) {
                     if (rejectedInput != null) {
                         AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                            Text("مراجعة المسودة المرفوضة والنسخة المحفوظة")
+                            Text(uiText(R.string.ui_edit_patient_dialog_004))
                         }
                     }
-                    AppSectionHeader(title = "البيانات الشخصية")
+                    AppSectionHeader(title = uiText(R.string.ui_patient_demographic_fields_005))
                     AppTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
-                        label = { Text("الاسم الأول") },
+                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_003)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     AppTextField(
                         value = lastName,
                         onValueChange = { lastName = it },
-                        label = { Text("اسم العائلة") },
+                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_004)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -129,65 +137,65 @@ fun AddEditDoctorDialog(
                             enabled = !saving,
                             selected = gender == Gender.MALE,
                             onClick = { gender = Gender.MALE },
-                            label = { Text("ذكر") }
+                            label = { Text(uiText(R.string.ui_male)) }
                         )
                         FilterChip(
                             enabled = !saving,
                             selected = gender == Gender.FEMALE,
                             onClick = { gender = Gender.FEMALE },
-                            label = { Text("أنثى") }
+                            label = { Text(uiText(R.string.ui_female)) }
                         )
                     }
                     AppTextField(
                         value = customTitle,
                         onValueChange = { if (it.length <= 16) customTitle = it },
-                        label = { Text("لقب مخصص (اختياري)") },
+                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_005)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    AppSectionHeader(title = "الدور السريري والفريق")
+                    AppSectionHeader(title = uiText(R.string.ui_add_edit_doctor_dialog_006))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         ClinicalRole.entries.forEach { role ->
                             FilterChip(
                             enabled = !saving,
                                 selected = clinicalRole == role,
                                 onClick = { clinicalRole = role },
-                                label = { Text(role.arabicLabel) }
+                                label = { Text(role.uiLabel(uiText)) }
                             )
                         }
                     }
                     if (clinicalRole == ClinicalRole.RESIDENT) {
-                        DoctorDropdown(label = "مشرف الفريق", undefinedLabel = "دون فريق",
+                        DoctorDropdown(label = uiText(R.string.ui_add_edit_doctor_dialog_007), undefinedLabel = uiText(R.string.ui_team_management_dialog_001),
                             selectedId = teamSupervisorId,
                             doctors = doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.SUPERVISOR && it.id != existing?.id },
                             onSelected = { teamSupervisorId = it }, enabled = !saving,
-                            supportingText = "فريق الطبيب الثابت؛ تعيين مريض للتغطية لا يغير هذا الفريق.")
+                            supportingText = uiText(R.string.ui_add_edit_doctor_dialog_008))
                     }
-                    AppSectionHeader(title = "الحساب والتحقق")
-                    Text("صلاحية الإدارة مستقلة عن الدور السريري؛ تُعدّل من صفحة صلاحيات المديرين.")
+                    AppSectionHeader(title = uiText(R.string.ui_add_edit_doctor_dialog_009))
+                    Text(uiText(R.string.ui_add_edit_doctor_dialog_010))
                     PasswordField(
                         keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next,
                         value = pin,
                         onValueChange = { pin = it.filter(Char::isDigit).take(8) },
-                        label = if (existing == null) "الرقم السري (4-8 أرقام)"
-                        else "رقم سري جديد (اتركه فارغاً دون تغيير)"
+                        label = if (existing == null) uiText(R.string.ui_set_pin_screen_003)
+                        else uiText(R.string.ui_add_edit_doctor_dialog_011)
                     )
                     AppTextField(
                         value = telegramIdText,
                         onValueChange = { telegramIdText = it; telegramIdError = false },
-                        label = { Text("معرف تليجرام (اختياري)") },
+                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_012)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Ltr),
                         isError = telegramIdError,
-                        errorMessage = "أدخل معرّفاً رقمياً موجباً أو اترك الحقل فارغاً",
-                        supportingText = { if (telegramIdError) Text("أدخل معرّفاً رقمياً موجباً أو اترك الحقل فارغاً") },
+                        errorMessage = uiText(R.string.ui_add_edit_doctor_dialog_013),
+                        supportingText = { if (telegramIdError) Text(uiText(R.string.ui_add_edit_doctor_dialog_013)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                AppDialogConfirmAction(text = UiAction.SAVE.label, loading = saving,
+                AppDialogConfirmAction(text = UiAction.SAVE.label(uiText), loading = saving,
                     enabled = !saving,
                     onClick = {
                         val telegramId = ArabicNumbers.parseLongOrNull(telegramIdText)
@@ -217,9 +225,9 @@ fun AddEditDoctorDialog(
         )
 
     }
-    if (confirmDiscard) ConfirmDialog(title = "تجاهل التغييرات؟",
-        message = "لم تُحفظ تعديلات الطبيب. هل تريد الخروج دون حفظ؟",
-        confirmText = "تجاهل والخروج", dismissText = "متابعة التحرير", destructive = true,
+    if (confirmDiscard) ConfirmDialog(title = uiText(R.string.ui_patient_form_dialog_039),
+        message = uiText(R.string.ui_add_edit_doctor_dialog_014),
+        confirmText = uiText(R.string.ui_patient_task_editor_029), dismissText = uiText(R.string.ui_patient_task_editor_030), destructive = true,
         onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
     if (reviewing) {
         val draft = rejectedInput ?: return
@@ -227,23 +235,23 @@ fun AddEditDoctorDialog(
         val differences = saved?.let {
             val savedInput = doctorInput(it)
             val draftValues = listOf(draft.firstName, draft.lastName,
-                if (draft.gender == Gender.MALE) "ذكر" else "أنثى", draft.clinicalRole.arabicLabel,
+                if (draft.gender == Gender.MALE) uiText(R.string.ui_male) else uiText(R.string.ui_female), draft.clinicalRole.uiLabel(uiText),
                 draft.customTitle.orEmpty(), draft.telegramId?.toString().orEmpty(),
                 doctors.firstOrNull { it.id == draft.teamSupervisorId }?.fullName ?: draft.teamSupervisorId.orEmpty())
             val savedValues = listOf(savedInput.firstName, savedInput.lastName,
-                if (savedInput.gender == Gender.MALE) "ذكر" else "أنثى", savedInput.clinicalRole.arabicLabel,
+                if (savedInput.gender == Gender.MALE) uiText(R.string.ui_male) else uiText(R.string.ui_female), savedInput.clinicalRole.uiLabel(uiText),
                 savedInput.customTitle.orEmpty(), savedInput.telegramId?.toString().orEmpty(),
                 doctors.firstOrNull { it.id == savedInput.teamSupervisorId }?.fullName ?: savedInput.teamSupervisorId.orEmpty())
-            val labels = listOf("الاسم الأول", "اسم العائلة", "الجنس", "التصنيف السريري", "اللقب", "معرّف تليجرام", "مشرف الفريق")
+            val labels = listOf(uiText(R.string.ui_add_edit_doctor_dialog_003), uiText(R.string.ui_add_edit_doctor_dialog_004), uiText(R.string.ui_patient_demographic_fields_010), uiText(R.string.ui_add_edit_doctor_dialog_015), uiText(R.string.ui_add_edit_doctor_dialog_016), uiText(R.string.ui_add_edit_doctor_dialog_017), uiText(R.string.ui_add_edit_doctor_dialog_007))
             buildList {
                 labels.indices.forEach { index ->
                     if (draftValues[index] != savedValues[index]) add(Triple(labels[index], draftValues[index], savedValues[index]))
                 }
                 val previous = rejectedBaseline
                 if (previous?.rank != it.rank || previous.isPermanentAdmin != it.isPermanentAdmin) {
-                    add(Triple("صلاحيات المدير (تُحفظ الصلاحيات الأحدث)", doctorPermissionLabel(previous), doctorPermissionLabel(it)))
+                    add(Triple(uiText(R.string.ui_add_edit_doctor_dialog_018), doctorPermissionLabel(uiText, previous), doctorPermissionLabel(uiText, it)))
                 }
-                if (draft.pin != null) add(Triple("الرقم السري", "تعيين رقم جديد؛ لا يُعرض هنا", "الرقم الحالي لا يُعرض هنا"))
+                if (draft.pin != null) add(Triple(uiText(R.string.ui_local_pin_login_screen_003), uiText(R.string.ui_add_edit_doctor_dialog_019), uiText(R.string.ui_add_edit_doctor_dialog_020)))
             }
         }.orEmpty()
         StaleEditReviewDialog(
@@ -273,9 +281,9 @@ private fun doctorInput(doctor: Doctor) = DoctorEditInput(
     null, doctor.customTitle, doctor.telegramId, doctor.teamSupervisorId
 )
 
-private fun doctorPermissionLabel(doctor: Doctor?): String = when {
-    doctor == null -> "غير متاح"
-    doctor.isPermanentAdmin -> "مدير دائم؛ رتبة ${doctor.rank}"
-    doctor.isAdmin -> "مدير؛ رتبة ${doctor.rank}"
-    else -> "دون صلاحية مدير"
+private fun doctorPermissionLabel(uiText: UiStrings, doctor: Doctor?): String = when {
+    doctor == null -> uiText(R.string.ui_add_edit_doctor_dialog_021)
+    doctor.isPermanentAdmin -> uiText(R.string.ui_add_edit_doctor_dialog_022, doctor.rank)
+    doctor.isAdmin -> uiText(R.string.ui_add_edit_doctor_dialog_023, doctor.rank)
+    else -> uiText(R.string.ui_add_edit_doctor_dialog_024)
 }

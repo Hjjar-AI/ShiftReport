@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -36,14 +39,15 @@ internal fun PatientRoundsBar(
     enabled: Boolean,
     onNavigate: (String) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     Row(Modifier.padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         AppOutlinedButton(onClick = { navigation.previousId?.let(onNavigate) },
-            enabled = enabled && navigation.previousId != null, modifier = Modifier.weight(1f)) { Text("السابق") }
+            enabled = enabled && navigation.previousId != null, modifier = Modifier.weight(1f)) { Text(uiText(R.string.ui_previous)) }
         Text(ArabicNumbers.toArabicDigits("${navigation.index + 1} / ${navigation.total}"),
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.semantics { contentDescription = "المريض ${navigation.index + 1} من ${navigation.total}" })
+            modifier = Modifier.semantics { contentDescription = uiText(R.string.ui_patient_rounds_navigation_002, navigation.index + 1, navigation.total) })
         AppOutlinedButton(onClick = { navigation.nextId?.let(onNavigate) },
-            enabled = enabled && navigation.nextId != null, modifier = Modifier.weight(1f)) { Text(if (navigation.nextId == null) "نهاية الجولة" else "التالي") }
+            enabled = enabled && navigation.nextId != null, modifier = Modifier.weight(1f)) { Text(if (navigation.nextId == null) uiText(R.string.ui_patient_rounds_navigation_003) else uiText(R.string.ui_next)) }
     }
 }

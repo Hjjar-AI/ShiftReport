@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiBorder
 import com.hos.rushdpatients.ui.theme.UiLayout
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -96,12 +99,13 @@ internal fun WardAdaptivePanes(
     listFraction: Float,
     onListFractionChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
-    primaryTitle: String = "محتوى المناوبة",
-    supportingTitle: String = "ملف المريض وجاهزية التقرير",
+    primaryTitle: String = androidx.compose.ui.res.stringResource(R.string.ui_ward_adaptive_panes_001),
+    supportingTitle: String = androidx.compose.ui.res.stringResource(R.string.ui_ward_adaptive_panes_002),
     primary: @Composable (Boolean) -> Unit,
     supporting: @Composable () -> Unit = {},
     compactOverlay: @Composable () -> Unit = {}
 ) {
+    val uiText = rememberUiStrings()
     val density = LocalDensity.current.density
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     var origin by remember { mutableStateOf<Offset?>(null) }
@@ -173,14 +177,14 @@ internal fun WardAdaptivePanes(
                         .background(if (dividerFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
                         .border(UiBorder.stroke(focused = dividerFocused))
                         .semantics {
-                            contentDescription = "تغيير عرض قائمة المرضى"
-                            stateDescription = "عرض القائمة ${(fraction * 100).toInt()} بالمئة"
+                            contentDescription = uiText(R.string.ui_ward_adaptive_panes_003)
+                            stateDescription = uiText(R.string.ui_ward_adaptive_panes_004, (fraction * 100).toInt())
                             progressBarRangeInfo = ProgressBarRangeInfo(fraction, minimum..maximum)
                             setProgress { adjust(it); true }
                             customActions = listOf(
-                                CustomAccessibilityAction("توسيع القائمة") { adjust(fraction + .05f); true },
-                                CustomAccessibilityAction("تضييق القائمة") { adjust(fraction - .05f); true },
-                                CustomAccessibilityAction("إعادة توزيع العرض") { adjust(.42f); true }
+                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_005)) { adjust(fraction + .05f); true },
+                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_006)) { adjust(fraction - .05f); true },
+                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_007)) { adjust(.42f); true }
                             )
                         }
                         .onKeyEvent { event ->

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.components.AppCenteredContent
@@ -29,29 +32,30 @@ fun PinUnlockScreen(
     onBiometric: (() -> Unit)?,
     onSignOut: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var pin by remember { mutableStateOf("") }
 
     AppCenteredContent() {
         Text(doctorName, style = MaterialTheme.typography.titleLarge)
-        Text("أدخل رقمك السري", modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section))
+        Text(uiText(R.string.ui_pin_unlock_screen_001), modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section))
         PasswordField(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(8) },
-            label = "الرقم السري",
+            label = uiText(R.string.ui_local_pin_login_screen_003),
             keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done, enabled = !busy
         )
         error?.let {
             AppNotice(it, kind = NoticeKind.ERROR, modifier = Modifier.padding(top = UiSpacing.tiny))
         }
         LoadingButton(
-            text = "فتح",
+            text = uiText(R.string.ui_pin_unlock_screen_002),
             loading = busy,
             onClick = { onUnlock(pin) },
             modifier = Modifier.fillMaxWidth().padding(top = UiSpacing.screen)
         )
         onBiometric?.let { bio ->
-            AppTextButton(onClick = bio, enabled = !busy) { Text("فتح بالبصمة") }
+            AppTextButton(onClick = bio, enabled = !busy) { Text(uiText(R.string.ui_pin_unlock_screen_003)) }
         }
-        AppTextButton(onClick = onSignOut, enabled = !busy) { Text("تسجيل الخروج") }
+        AppTextButton(onClick = onSignOut, enabled = !busy) { Text(uiText(R.string.ui_settings_preference_sections_019)) }
     }
 }

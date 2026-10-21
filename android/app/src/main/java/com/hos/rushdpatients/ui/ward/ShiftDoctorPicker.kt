@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppDialogDismissAction
@@ -44,6 +47,7 @@ fun ShiftDoctorPicker(
     onConfirm: (List<String>, Long, (Shift?) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var selected by remember { mutableStateOf(initialSelected.toList()) }
     var revision by remember { mutableStateOf(initialRevision) }
     var rejected by remember { mutableStateOf<List<String>?>(null) }
@@ -59,7 +63,7 @@ fun ShiftDoctorPicker(
     }
     if (!reviewing && !confirmDiscard) AlertDialog(
         onDismissRequest = requestDismiss,
-        title = { AppDialogHeader("أطباء المناوبة") },
+        title = { AppDialogHeader(uiText(R.string.ui_shift_doctor_picker_001)) },
         text = {
             Column(
                 modifier = Modifier
@@ -68,15 +72,15 @@ fun ShiftDoctorPicker(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 Text(
-                    "المختارون: ${uiNumber(selected.size)} · الحفظ يحدّث أطباء هذه المناوبة",
+                    uiText(R.string.ui_shift_doctor_picker_002, uiNumber(selected.size)),
                     style = MaterialTheme.typography.bodySmall
                 )
                 AppSearchField(query = query, onQueryChange = { query = it },
-                    label = "بحث باسم الطبيب", enabled = !saving)
+                    label = uiText(R.string.ui_shift_doctor_picker_003), enabled = !saving)
 
                 if (rejected != null) {
                     AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                        Text("مراجعة الاختيار المرفوض")
+                        Text(uiText(R.string.ui_shift_doctor_picker_004))
                     }
                 }
                 Column(
@@ -84,10 +88,10 @@ fun ShiftDoctorPicker(
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     if (matchingDoctors.isEmpty()) {
-                        EmptyState(title = if (activeDoctors.isEmpty()) "لا يوجد أطباء متاحون" else "لا توجد أسماء مطابقة",
-                            actionLabel = if (query.isBlank()) null else "مسح البحث", onAction = { query = "" })
+                        EmptyState(title = if (activeDoctors.isEmpty()) uiText(R.string.ui_shift_doctor_picker_005) else uiText(R.string.ui_shift_doctor_picker_006),
+                            actionLabel = if (query.isBlank()) null else uiText(R.string.ui_shift_doctor_picker_007), onAction = { query = "" })
                     }
-                    doctorChoiceGroups(matchingDoctors, activeDoctors).forEach { (team, members) ->
+                    doctorChoiceGroups(uiText, matchingDoctors, activeDoctors).forEach { (team, members) ->
                         SectionTitle(team)
                         members.forEach { doctor ->
                             AppCheckRow(label = doctor.fullName, checked = doctor.id in selected, enabled = !saving,
@@ -100,7 +104,7 @@ fun ShiftDoctorPicker(
             }
         },
         confirmButton = {
-            AppDialogConfirmAction(text = UiAction.SAVE.label, loading = saving,
+            AppDialogConfirmAction(text = UiAction.SAVE.label(uiText), loading = saving,
                 onClick = {
                     val draft = selected.toList()
                     onConfirm(draft, revision) { saved ->
@@ -116,18 +120,18 @@ fun ShiftDoctorPicker(
             AppDialogDismissAction(onClick = requestDismiss, enabled = !saving)
         }
     )
-    if (confirmDiscard) ConfirmDialog(title = "تجاهل التغييرات؟",
-        message = "لم يُحفظ اختيار أطباء المناوبة.", confirmText = "تجاهل والخروج",
-        dismissText = "متابعة الاختيار", destructive = true,
+    if (confirmDiscard) ConfirmDialog(title = uiText(R.string.ui_patient_form_dialog_039),
+        message = uiText(R.string.ui_shift_doctor_picker_008), confirmText = uiText(R.string.ui_patient_task_editor_029),
+        dismissText = uiText(R.string.ui_shift_doctor_picker_009), destructive = true,
         onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
     if (reviewing) {
         val saved = latest
         val draft = rejected.orEmpty()
-        fun names(ids: List<String>) = ids.joinToString("، ") { id ->
+        fun names(ids: List<String>) = ids.joinToString(uiText(R.string.ui_patient_card_002)) { id ->
             allDoctors.firstOrNull { it.id == id }?.fullName ?: id
         }
         StaleEditReviewDialog(
-            differences = listOf(Triple("أطباء المناوبة", names(draft), names(saved?.doctorIds.orEmpty()))),
+            differences = listOf(Triple(uiText(R.string.ui_shift_doctor_picker_001), names(draft), names(saved?.doctorIds.orEmpty()))),
             available = saved != null,
             onKeepDraft = {
                 if (saved != null) {

@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.domain.patient.PatientValidationError
@@ -12,6 +16,7 @@ import kotlinx.coroutines.flow.update
 
 /** Shared save/revision/error handling; callers retain their existing coroutine ownership. */
 internal class WardSaveGuard(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<WardUiState>,
     private val shiftRepository: ShiftRepository
 ) {
@@ -19,7 +24,7 @@ internal class WardSaveGuard(
     fun editableShiftId(): String? {
         val shift = _state.value.shift ?: return null
         if (shift.date != ShiftDate.current()) {
-            showError("هذه مناوبة محفوظة للعرض والاستعادة فقط ولا يمكن تعديلها")
+            showError(uiText(R.string.ui_ward_save_guard_001))
             return null
         }
         return shift.id
@@ -28,7 +33,7 @@ internal class WardSaveGuard(
     suspend fun requireEditableShift(shiftId: String) {
         val shift = shiftRepository.getById(shiftId)
         require(shift != null && shift.date == ShiftDate.current()) {
-            "هذه مناوبة محفوظة للعرض والاستعادة فقط ولا يمكن تعديلها"
+            uiText(R.string.ui_ward_save_guard_001)
         }
     }
 
@@ -44,13 +49,13 @@ internal class WardSaveGuard(
         if (!patient.responsibleResidentId.isNullOrBlank() &&
             (resident == null || !resident.clinicalRole.canBeResident())
         ) {
-            showError("اختر طبيباً مصنفاً كمقيم")
+            showError(uiText(R.string.ui_ward_save_guard_002))
             return false
         }
         if (!patient.responsibleSpecialistId.isNullOrBlank() &&
             (specialist == null || !specialist.clinicalRole.canBeSupervisor())
         ) {
-            showError("اختر طبيباً مصنفاً كاختصاصي")
+            showError(uiText(R.string.ui_ward_save_guard_003))
             return false
         }
         return true
@@ -72,11 +77,11 @@ internal class WardSaveGuard(
         } catch (e: Exception) {
             _state.update { it.copy(saving = false) }
             try {
-                if (!onStale(e)) showError(e.message ?: "تعذر حفظ التغييرات")
+                if (!onStale(e)) showError(e.message ?: uiText(R.string.ui_ward_save_guard_004))
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (reloadError: Exception) {
-                showError(reloadError.message ?: "تعذر تحميل أحدث نسخة؛ المسودة باقية")
+                showError(reloadError.message ?: uiText(R.string.ui_ward_save_guard_005))
             }
         }
     }
@@ -85,15 +90,15 @@ internal class WardSaveGuard(
 
     fun validationMessage(result: PatientValidationResult.Invalid): String =
         when (result.errors.firstOrNull()) {
-            PatientValidationError.NAME_EMPTY -> "اسم المريض مطلوب"
-            PatientValidationError.ADMITTANCE_NUMBER_EMPTY -> "رقم القبول الحالي مطلوب"
-            PatientValidationError.ADMITTANCE_DATE_INVALID -> "تاريخ الدخول غير صحيح"
-            PatientValidationError.BIRTH_DATE_INVALID -> "تاريخ الميلاد غير صحيح"
-            PatientValidationError.INITIAL_DIAGNOSIS_EMPTY -> "التشخيص الأولي مطلوب"
-            PatientValidationError.TREATMENT_PLAN_EMPTY -> "الخطة العلاجية مطلوبة"
-            PatientValidationError.FOLLOW_UP_EMPTY -> "المتابعة مطلوبة"
-            PatientValidationError.TASKS_INVALID -> "بيانات المهام غير صالحة"
-            PatientValidationError.RESIDENT_EQUALS_SUPERVISOR -> "المقيم والمشرف يجب أن يكونا مختلفين"
-            null -> "بيانات المريض غير صحيحة"
+            PatientValidationError.NAME_EMPTY -> uiText(R.string.ui_ward_save_guard_006)
+            PatientValidationError.ADMITTANCE_NUMBER_EMPTY -> uiText(R.string.ui_ward_save_guard_007)
+            PatientValidationError.ADMITTANCE_DATE_INVALID -> uiText(R.string.ui_ward_save_guard_008)
+            PatientValidationError.BIRTH_DATE_INVALID -> uiText(R.string.ui_ward_save_guard_009)
+            PatientValidationError.INITIAL_DIAGNOSIS_EMPTY -> uiText(R.string.ui_ward_save_guard_010)
+            PatientValidationError.TREATMENT_PLAN_EMPTY -> uiText(R.string.ui_ward_save_guard_011)
+            PatientValidationError.FOLLOW_UP_EMPTY -> uiText(R.string.ui_ward_save_guard_012)
+            PatientValidationError.TASKS_INVALID -> uiText(R.string.ui_ward_save_guard_013)
+            PatientValidationError.RESIDENT_EQUALS_SUPERVISOR -> uiText(R.string.ui_ward_save_guard_014)
+            null -> uiText(R.string.ui_ward_save_guard_015)
         }
 }

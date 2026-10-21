@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppChoiceRow
 import androidx.compose.foundation.selection.selectableGroup
 import com.hos.rushdpatients.ui.theme.UiPadding
@@ -35,11 +38,12 @@ fun AssignAdminDialog(
     onDismiss: () -> Unit,
     saving: Boolean = false
 ) {
+    val uiText = rememberUiStrings()
     var selected by remember { mutableStateOf<Doctor?>(null) }
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("ترقية إلى مدير") },
+        title = { Text(uiText(R.string.ui_assign_admin_dialog_001)) },
         text = {
             Column(
                 modifier = Modifier
@@ -49,7 +53,7 @@ fun AssignAdminDialog(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 if (candidates.isEmpty()) {
-                    Text("لا يوجد أطباء متاحون للترقية")
+                    Text(uiText(R.string.ui_assign_admin_dialog_002))
                 } else {
                     candidates.forEach { doctor ->
                         val isSelected = selected?.id == doctor.id
@@ -79,10 +83,10 @@ fun AssignAdminDialog(
             AppButton(
                 onClick = { selected?.let { onConfirm(it) } },
                 enabled = selected != null && !saving
-            ) { Text("ترقية") }
+            ) { Text(uiText(R.string.ui_assign_admin_dialog_003)) }
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
+            AppTextButton(onClick = onDismiss, enabled = !saving) { Text(uiText(R.string.ui_cancel)) }
         }
     )
 }
@@ -94,11 +98,12 @@ fun RemoveAdminDialog(
     onDismiss: () -> Unit,
     saving: Boolean = false
 ) {
+    val uiText = rememberUiStrings()
     var selected by remember { mutableStateOf<Doctor?>(null) }
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("إزالة من المديرين") },
+        title = { Text(uiText(R.string.ui_assign_admin_dialog_005)) },
         text = {
             Column(
                 modifier = Modifier
@@ -108,7 +113,7 @@ fun RemoveAdminDialog(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 if (admins.isEmpty()) {
-                    Text("لا يوجد مديرون")
+                    Text(uiText(R.string.ui_assign_admin_dialog_006))
                 } else {
                     admins.forEach { doctor ->
                         val isSelected = selected?.id == doctor.id
@@ -126,7 +131,7 @@ fun RemoveAdminDialog(
                                     .fillMaxWidth()
                                     .padding(UiPadding.compact)
                             ) {
-                                AppChoiceRow(label = "${doctor.fullName} (رتبة ${doctor.rank})", selected = isSelected,
+                                AppChoiceRow(label = uiText(R.string.ui_assign_admin_dialog_007, doctor.fullName, doctor.rank), selected = isSelected,
                                     onClick = { selected = doctor }, enabled = !saving)
                             }
                         }
@@ -138,10 +143,10 @@ fun RemoveAdminDialog(
             AppButton(
                 onClick = { selected?.let { onConfirm(it) } },
                 enabled = selected != null && !saving
-            ) { Text("إزالة") }
+            ) { Text(uiText(R.string.ui_assign_admin_dialog_008)) }
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") }
+            AppTextButton(onClick = onDismiss, enabled = !saving) { Text(uiText(R.string.ui_cancel)) }
         }
     )
 }

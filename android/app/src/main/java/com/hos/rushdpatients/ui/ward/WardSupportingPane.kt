@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
@@ -32,32 +35,33 @@ internal fun WardSupportingPane(
     onActivity: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val uiText = rememberUiStrings()
     val warnings = ReportReadiness.warnings(state.patients)
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)) {
-        Text(if (isAdmin) "جاهزية التقرير والنشاط" else "جاهزية التقرير", style = MaterialTheme.typography.headlineSmall,
+        Text(if (isAdmin) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_supporting_pane_001), style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() })
-        Text("${uiNumber(state.patients.size)} مريض")
+        Text(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)))
         PatientSyncNotice(state.syncStatus, freshnessLabel, online)
-        if (warnings.isEmpty()) Text("لا توجد ملاحظات اكتمال في الفحص الحالي")
+        if (warnings.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_002))
         warnings.forEach { Text("• $it") }
         AppButton(onClick = onReviewReport, enabled = state.shift != null, modifier = Modifier.fillMaxWidth()) {
-            Text("مراجعة التقرير")
+            Text(uiText(R.string.ui_ward_supporting_pane_003))
         }
         if (isAdmin) {
             Divider()
-            Text("النشاط المحلي الأخير", style = MaterialTheme.typography.titleMedium,
+            Text(uiText(R.string.ui_ward_supporting_pane_004), style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() })
             state.activityError?.let { AppNotice(it, kind = NoticeKind.ERROR,
-                actionLabel = "فتح مركز النشاط", onAction = onActivity) }
+                actionLabel = uiText(R.string.ui_ward_supporting_pane_005), onAction = onActivity) }
             val recent = state.recentActivity.filter { it.patientId != null }.take(5)
-            if (recent.isEmpty()) Text("لا توجد تغييرات محلية مسجلة")
+            if (recent.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_006))
             recent.forEach { entry ->
                 ActivityEntry(entry, state.patients.firstOrNull { it.id == entry.patientId }?.name)
                 Divider()
             }
-            AppTextButton(onClick = onActivity) { Text("فتح مركز النشاط") }
+            AppTextButton(onClick = onActivity) { Text(uiText(R.string.ui_ward_supporting_pane_005)) }
         }
-        Text("اختر مريضاً من القائمة لعرض ملفه هنا.", style = MaterialTheme.typography.bodySmall)
+        Text(uiText(R.string.ui_ward_supporting_pane_007), style = MaterialTheme.typography.bodySmall)
     }
 }

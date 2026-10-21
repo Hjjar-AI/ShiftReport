@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
@@ -53,6 +57,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val doctorRepository: DoctorRepository,
@@ -81,12 +86,12 @@ class SettingsViewModel @Inject constructor(
 
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
-    private val preferences = SettingsPreferences(_state, viewModelScope, settingsRepository)
-    private val dataOperations = SettingsDataOperations(_state, viewModelScope, context,
+    private val preferences = SettingsPreferences(uiText, _state, viewModelScope, settingsRepository)
+    private val dataOperations = SettingsDataOperations(uiText, _state, viewModelScope, context,
         syncService, shiftRepository, csvExporter, ::format)
-    private val backupOperations = SettingsBackupOperations(_state, viewModelScope,
+    private val backupOperations = SettingsBackupOperations(uiText, _state, viewModelScope,
         encryptedBackupManager, savedStateHandle, pendingExports, settingsRepository, ::refreshStorageHealth)
-    private val projectOperations = SettingsProjectOperations(_state, viewModelScope,
+    private val projectOperations = SettingsProjectOperations(uiText, _state, viewModelScope,
         emptyStart, sessionManager, doctorMutations, provisioningManager, projectConfigStore,
         adminAuthorizer, savedStateHandle, ::load, dataOperations::invalidateReview)
 
@@ -138,8 +143,8 @@ class SettingsViewModel @Inject constructor(
                         doctorName = session?.doctorName ?: "",
                         role = when {
                             session == null -> ""
-                            session.isAdmin -> "مدير"
-                            else -> "غير مدير"
+                            session.isAdmin -> uiText(R.string.ui_ward_drawer_004)
+                            else -> uiText(R.string.ui_settings_view_model_001)
                         },
                         reportAsPdf = settingsRepository.isReportAsPdf(),
                         reportWardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
@@ -201,7 +206,7 @@ class SettingsViewModel @Inject constructor(
                 }
                 refreshStorageHealth()
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر تحميل الإعدادات") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_view_model_002)) }
             }
         }
     }

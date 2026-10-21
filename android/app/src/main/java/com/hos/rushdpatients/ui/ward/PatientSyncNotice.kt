@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudUpload
@@ -25,6 +28,7 @@ internal fun PatientSyncNotice(
     onDetails: (() -> Unit)? = null,
     compact: Boolean = false
 ) {
+    val uiText = rememberUiStrings()
     val kind = patientSyncNoticeKind(status, online)
     val icon = if (!online) Icons.Filled.WifiOff else when (status) {
         PatientSyncStatus.LOCAL -> Icons.Filled.Save
@@ -33,15 +37,15 @@ internal fun PatientSyncNotice(
         PatientSyncStatus.SYNCING -> Icons.Filled.Sync
     }
     var expanded by rememberSaveable { mutableStateOf(false) }
-    val canShowDetails = freshnessLabel != status.arabicLabel
+    val canShowDetails = freshnessLabel != status.arabicLabel(uiText)
     Column {
         AppNotice(message = buildString {
-            if (!online) append("غير متصل · تُعرض البيانات المحلية\n")
-            append(status.arabicLabel)
+            if (!online) append(uiText(R.string.ui_patient_sync_notice_001))
+            append(status.arabicLabel(uiText))
         }, kind = kind, icon = icon, compact = compact,
             actionLabel = when {
-                onDetails != null -> "تفاصيل البيانات"
-                canShowDetails -> if (expanded) "طي التفاصيل" else "التفاصيل"
+                onDetails != null -> uiText(R.string.ui_patient_sync_notice_002)
+                canShowDetails -> if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_sync_notice_003)
                 else -> null
             }, onAction = when {
                 onDetails != null -> onDetails

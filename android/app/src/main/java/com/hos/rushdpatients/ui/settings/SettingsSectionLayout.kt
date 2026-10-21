@@ -1,5 +1,14 @@
 package com.hos.rushdpatients.ui.settings
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.components.AppTextField
@@ -66,6 +75,7 @@ internal fun SupervisorGroupEditor(
     enabled: Boolean,
     onSave: (Doctor, String) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var baseline by remember(supervisor.id) { mutableStateOf(supervisor) }
     var chatId by remember(supervisor.id) {
         mutableStateOf(supervisor.supervisorGroupChatId?.toString().orEmpty())
@@ -82,22 +92,22 @@ internal fun SupervisorGroupEditor(
             onValueChange = { value ->
                 chatId = value.filter { it.isDigit() || it == '-' }
             },
-            label = { Text("معرف مجموعة تليجرام") },
+            label = { Text(uiText(R.string.ui_settings_section_layout_001)) },
             supportingText = { Text("-1001234567890") },
             singleLine = true,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         )
         if (supervisor != baseline) {
-            AppNotice("تغيّر سجل المشرف؛ راجع النسخة المحفوظة قبل الحفظ", kind = com.hos.rushdpatients.ui.components.NoticeKind.WARNING)
+            AppNotice(uiText(R.string.ui_settings_section_layout_002), kind = com.hos.rushdpatients.ui.components.NoticeKind.WARNING)
             AppTextButton(onClick = {
                 baseline = supervisor
                 chatId = supervisor.supervisorGroupChatId?.toString().orEmpty()
-            }, enabled = enabled) { Text("تحميل النسخة المحفوظة") }
+            }, enabled = enabled) { Text(uiText(R.string.ui_settings_section_layout_003)) }
         }
         LoadingButton(
             outlined = true,
-            text = if (chatId.isBlank()) "إزالة المعرف" else "حفظ",
+            text = if (chatId.isBlank()) uiText(R.string.ui_settings_section_layout_004) else uiText(R.string.ui_save),
             loading = saving,
             onClick = { onSave(baseline, chatId) },
             enabled = enabled && supervisor == baseline && chatId.trim() != supervisor.supervisorGroupChatId?.toString().orEmpty(),
@@ -107,42 +117,44 @@ internal fun SupervisorGroupEditor(
 }
 
 internal enum class SettingsSectionId(
-    val title: String,
+    @StringRes private val titleRes: Int,
     val workspace: SettingsWorkspace,
     val adminOnly: Boolean = false
 ) {
-    APPEARANCE("المظهر والخط", SettingsWorkspace.APPEARANCE),
-    PATIENT_CARDS("بطاقات المرضى", SettingsWorkspace.APPEARANCE),
-    WORKFLOW("الجولات والمناوبات", SettingsWorkspace.WORKFLOW),
-    REPORT("التقارير وملفات PDF", SettingsWorkspace.REPORTS),
-    SYNC("جلب البيانات ونشرها", SettingsWorkspace.DATA),
-    FILES("ملفات المرضى", SettingsWorkspace.FILES),
-    BACKUP("النسخ الاحتياطي والاستعادة", SettingsWorkspace.BACKUP),
-    CONNECTION("اتصال المشروع", SettingsWorkspace.PROJECT),
-    INVITATIONS("ضم جهاز جديد", SettingsWorkspace.INVITATIONS, true),
-    DESTINATIONS("مجموعات تقارير المشرفين", SettingsWorkspace.DESTINATIONS, true),
-    RESET("بداية فارغة", SettingsWorkspace.RESET, true),
-    SECURITY("الحساب وقفل التطبيق", SettingsWorkspace.SECURITY),
-    STORAGE("التخزين ومعلومات الجهاز", SettingsWorkspace.DIAGNOSTICS)
+    APPEARANCE(R.string.ui_demo_secondary_screens_014, SettingsWorkspace.APPEARANCE),
+    PATIENT_CARDS(R.string.ui_settings_section_layout_028, SettingsWorkspace.APPEARANCE),
+    WORKFLOW(R.string.ui_settings_section_layout_029, SettingsWorkspace.WORKFLOW),
+    REPORT(R.string.ui_settings_section_layout_030, SettingsWorkspace.REPORTS),
+    SYNC(R.string.ui_ward_drawer_013, SettingsWorkspace.DATA),
+    FILES(R.string.ui_ward_drawer_014, SettingsWorkspace.FILES),
+    BACKUP(R.string.ui_settings_section_layout_031, SettingsWorkspace.BACKUP),
+    CONNECTION(R.string.ui_ward_drawer_019, SettingsWorkspace.PROJECT),
+    INVITATIONS(R.string.ui_ward_drawer_022, SettingsWorkspace.INVITATIONS, true),
+    DESTINATIONS(R.string.ui_ward_drawer_021, SettingsWorkspace.DESTINATIONS, true),
+    RESET(R.string.ui_ward_drawer_025, SettingsWorkspace.RESET, true),
+    SECURITY(R.string.ui_settings_section_layout_032, SettingsWorkspace.SECURITY),
+    STORAGE(R.string.ui_settings_section_layout_033, SettingsWorkspace.DIAGNOSTICS);
+
+    fun title(uiText: UiStrings): String = uiText(titleRes)
 }
 
-internal fun SettingsSectionId.summary(state: SettingsUiState): String = when (this) {
-    SettingsSectionId.APPEARANCE -> "${state.appearance.arabicLabel} · ${state.appTheme.arabicLabel} · خط ${state.fontScale.arabicLabel}"
+internal fun SettingsSectionId.summary(uiText: UiStrings, state: SettingsUiState): String = when (this) {
+    SettingsSectionId.APPEARANCE -> uiText(R.string.ui_settings_section_layout_005, state.appearance.arabicLabel(uiText), state.appTheme.arabicLabel(uiText), state.fontScale.arabicLabel(uiText))
     SettingsSectionId.PATIENT_CARDS -> listOf(
-        if (state.patientDetailsExpanded) "التفاصيل موسعة" else "التفاصيل مطوية",
-        if (state.patientTwoColumn) "عمودان عند توفر المساحة" else "عمود واحد",
-        if (state.patientCompactDensity) "مسافات مضغوطة" else "مسافات عادية"
+        if (state.patientDetailsExpanded) uiText(R.string.ui_settings_section_layout_006) else uiText(R.string.ui_settings_section_layout_007),
+        if (state.patientTwoColumn) uiText(R.string.ui_settings_section_layout_008) else uiText(R.string.ui_settings_section_layout_009),
+        if (state.patientCompactDensity) uiText(R.string.ui_settings_section_layout_010) else uiText(R.string.ui_settings_section_layout_011)
     ).joinToString(" · ")
-    SettingsSectionId.WORKFLOW -> "حفظ والتالي: " + (if (state.saveAndNext) "مفعل" else "متوقف") +
-        " · اقتراح نسخ المناوبة: " + if (state.guidedRollover) "مفعل" else "متوقف"
-    SettingsSectionId.REPORT -> if (state.reportAsPdf) "PDF · ${state.pdfStyle.arabicLabel}" else "إرسال كنص"
-    SettingsSectionId.SYNC -> "جلب نسخة كاملة · مراجعة ونشر · تراجع عن الجلب"
-    SettingsSectionId.FILES -> "تصدير CSV · استيراد مرضى"
-    SettingsSectionId.BACKUP -> "نسخة مشفرة · استعادة نسخة محفوظة"
-    SettingsSectionId.CONNECTION -> "إعادة الاتصال بالمشروع الحالي"
-    SettingsSectionId.INVITATIONS -> "ملف انضمام محمي بكلمة مرور"
-    SettingsSectionId.DESTINATIONS -> "وجهة تقرير كل مشرف"
-    SettingsSectionId.RESET -> "المدير الدائم فقط · مراجعة وتأكيد"
-    SettingsSectionId.SECURITY -> "قفل تلقائي: ${state.autoLockMinutes} د · " + if (state.biometricEnabled) "البصمة مفعلة" else "البصمة متوقفة"
-    SettingsSectionId.STORAGE -> "${state.databaseSize} · ${state.storedShifts} مناوبة محفوظة"
+    SettingsSectionId.WORKFLOW -> uiText(R.string.ui_settings_section_layout_012) + (if (state.saveAndNext) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014)) +
+        uiText(R.string.ui_settings_section_layout_015) + if (state.guidedRollover) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014)
+    SettingsSectionId.REPORT -> if (state.reportAsPdf) "PDF · ${state.pdfStyle.uiLabel(uiText)}" else uiText(R.string.ui_settings_section_layout_016)
+    SettingsSectionId.SYNC -> uiText(R.string.ui_settings_section_layout_017)
+    SettingsSectionId.FILES -> uiText(R.string.ui_settings_section_layout_018)
+    SettingsSectionId.BACKUP -> uiText(R.string.ui_settings_section_layout_019)
+    SettingsSectionId.CONNECTION -> uiText(R.string.ui_settings_section_layout_020)
+    SettingsSectionId.INVITATIONS -> uiText(R.string.ui_settings_section_layout_021)
+    SettingsSectionId.DESTINATIONS -> uiText(R.string.ui_settings_section_layout_022)
+    SettingsSectionId.RESET -> uiText(R.string.ui_settings_section_layout_023)
+    SettingsSectionId.SECURITY -> uiText(R.string.ui_settings_section_layout_024, state.autoLockMinutes) + if (state.biometricEnabled) uiText(R.string.ui_settings_section_layout_025) else uiText(R.string.ui_settings_section_layout_026)
+    SettingsSectionId.STORAGE -> uiText(R.string.ui_settings_section_layout_027, state.databaseSize, state.storedShifts)
 }

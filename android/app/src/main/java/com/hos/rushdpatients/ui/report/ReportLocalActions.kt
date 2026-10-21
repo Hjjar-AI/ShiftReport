@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import androidx.core.content.FileProvider
 import com.hos.rushdpatients.config.AppConstants
@@ -21,6 +25,7 @@ import java.io.File
 
 /** Local file actions share the ViewModel state/scope and its single reviewed-artifact store. */
 internal class ReportLocalActions(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<ReportUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val shiftId: String, private val context: Context,
@@ -58,7 +63,7 @@ internal class ReportLocalActions(
                 }
                 val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", prepared.file)
                 check(_state.value.pdfReviewGeneration == reviewGeneration) {
-                    "تغيّرت بيانات التقرير أو خياراته؛ عاين الملف من جديد"
+                    uiText(R.string.ui_report_local_actions_001)
                 }
                 pdfWorkspace.replaceReview(pdfWorkspace.pdfKey(supervisorId), prepared)
                 temporary = null
@@ -69,7 +74,7 @@ internal class ReportLocalActions(
                 _state.update { it.copy(previewingPdf = false) }; throw e
             } catch (e: Exception) {
                 pdfWorkspace.removeReview(pdfWorkspace.pdfKey(supervisorId))
-                _state.update { it.copy(previewingPdf = false, error = e.message ?: "تعذر إنشاء معاينة PDF",
+                _state.update { it.copy(previewingPdf = false, error = e.message ?: uiText(R.string.ui_report_local_actions_002),
                     retryAction = if (supervisorId == null) ReportRetryAction.PREVIEW else null) }
             } finally {
                 temporary?.let { com.hos.rushdpatients.pdf.ClinicalPdfCache.delete(listOf(it)) }
@@ -108,7 +113,7 @@ internal class ReportLocalActions(
                     it.copy(
                         sharingPdf = false,
                         pdfShareUri = uri,
-                        lastOperation = "آخر عملية ناجحة: تجهيز PDF للمشاركة",
+                        lastOperation = uiText(R.string.ui_report_local_actions_003),
                         retryAction = null
                     )
                 }
@@ -119,7 +124,7 @@ internal class ReportLocalActions(
                 _state.update {
                     it.copy(
                         sharingPdf = false,
-                        error = e.message ?: "تعذر تجهيز ملف المشاركة",
+                        error = e.message ?: uiText(R.string.ui_report_local_actions_004),
                         retryAction = ReportRetryAction.SHARE
                     )
                 }
@@ -143,21 +148,21 @@ internal class ReportLocalActions(
                     try {
                         assignmentPdfExporter.export(built.patients, built.doctorNames, built.registryDoctors, built.summary,
                             pdfWorkspace.loadPdfOptions(), tmp)
-                        require(adminAuthorizer.requireAdmin().id == actorId) { "تغيّر المستخدم؛ أعد تصدير توزيع المرضى" }
+                        require(adminAuthorizer.requireAdmin().id == actorId) { uiText(R.string.ui_report_local_actions_005) }
                         checkNotNull(mediaStoreSaver.savePdf(context, tmp, pdfWorkspace.reportFileName(built.shift.date, "Names"),
                             verifyContents = true)) {
-                            "تعذر حفظ توزيع المرضى"
+                            uiText(R.string.ui_report_local_actions_006)
                         }
                     } finally {
                         tmp.delete()
                     }
                 }
-                _state.update { it.copy(exportingLocalPdf = false, snackbar = "تم حفظ توزيع المرضى بالأسماء فقط",
-                    lastOperation = "آخر عملية ناجحة: حفظ توزيع المرضى", retryAction = null) }
+                _state.update { it.copy(exportingLocalPdf = false, snackbar = uiText(R.string.ui_report_local_actions_007),
+                    lastOperation = uiText(R.string.ui_report_local_actions_008), retryAction = null) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(exportingLocalPdf = false, error = e.message ?: "تعذر حفظ توزيع المرضى",
+                _state.update { it.copy(exportingLocalPdf = false, error = e.message ?: uiText(R.string.ui_report_local_actions_006),
                     retryAction = ReportRetryAction.ASSIGNMENTS) }
             }
         }
@@ -184,8 +189,8 @@ internal class ReportLocalActions(
                 _state.update {
                     it.copy(
                         exportingLocalPdf = false,
-                        snackbar = "تم حفظ $count ملف PDF محلياً",
-                        lastOperation = "آخر عملية ناجحة: حفظ PDF على الجهاز",
+                        snackbar = uiText(R.string.ui_report_local_actions_009, count),
+                        lastOperation = uiText(R.string.ui_report_local_actions_010),
                         retryAction = null
                     )
                 }
@@ -195,7 +200,7 @@ internal class ReportLocalActions(
                 _state.update {
                     it.copy(
                         exportingLocalPdf = false,
-                        error = e.message ?: "تعذر حفظ ملفات PDF",
+                        error = e.message ?: uiText(R.string.ui_report_local_actions_011),
                         retryAction = ReportRetryAction.SAVE
                     )
                 }
@@ -207,6 +212,6 @@ internal class ReportLocalActions(
         pdfWorkspace.clearReviews()
         _state.update { it.copy(pdfPreviewUri = null, pdfReviewUris = emptyMap(),
             pdfReviewGeneration = it.pdfReviewGeneration + 1,
-            error = "لا يوجد تطبيق مثبت لعرض ملفات PDF؛ لم تعتمد المعاينة") }
+            error = uiText(R.string.ui_report_local_actions_012)) }
     }
 }

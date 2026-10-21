@@ -2341,7 +2341,66 @@ inspection, device/rendered-preview or live Telegram verification ran. Lost-key
 recovery, file cleanup, screenshots/Recents, Arabic wrapping, keyboard/fold/TalkBack
 and actual production signing remain runtime limitations, not completed checks.
 
+### Android UI string resources
+
+Owner-approved extraction moves remaining active-screen Arabic wording into
+`android/app/src/main/res/values/strings_ui.xml`: 1,291 deduplicated resources for
+labels, notices, validation, confirmation, accessibility descriptions and UI state
+messages. Existing six-form Arabic plurals remain in `strings.xml`. Numbered
+placeholders retain interpolation order and callers retain their number formatting.
+
+`UiStrings` resolves resources for composables, captured callbacks and injected UI
+state producers; `rememberUiStrings` observes configuration changes. Composable
+default arguments use `stringResource`. UI-specific enums store resource IDs;
+13 exhaustive `uiLabel` bridges resolve model/PDF labels for display without
+changing portable enum names, model definitions or export wording.
+
+About/credits, demo clinical fixtures, inactive style-catalog samples, shared
+clinical/export/protocol values and PDF filename components remain unchanged.
+This is wording extraction; patient mutations, report review and authorization
+continue through their existing handlers.
+
+Source checks verified all 1,291 values against the original literal parts,
+including whitespace and escapes; 1,457 direct calls match numbered placeholder
+arity. Resource references, resolver scopes, Kotlin delimiter nesting and Git
+whitespace checks passed. No Gradle, compilation, packaging, test-suite/migration
+inspection, rendered preview or device checks ran for this extraction. Compilation,
+Android resource processing and rendered Arabic wrapping remain unverified.
+
 ## Verification and limits
+
+- Owner-supplied 22 October debug build `1.1.17.20261022` (code 18) failed
+  while reading the KSP incremental symbol lookup cache with
+  `NegativeArraySizeException`. Moved only the reporting account's generated
+  debug KSP cache to a preserved sibling backup; confirmed the original path
+  is absent. No Gradle, compilation or packaging ran during recovery. Cache
+  regeneration and successful build remain unverified. See
+  [cache recovery details](troubleshooting.md#ksp-lookup-cache-cannot-be-read).
+
+- Owner-supplied 22 October debug build `1.1.16.20261022` (code 17)
+  progressed past KSP and failed during Kotlin compilation on the workflow-strip
+  label. Resource extraction had changed `WardWorkflowAction.label` into a
+  function; corrected its remaining property-style use to `label(uiText)`.
+  Workflow-action references and resource/source checks passed. No agent-run
+  Gradle or compilation followed; successful compilation and packaging remain
+  unverified.
+
+- Owner-supplied 22 October debug build `1.1.15.20261022` (code 16) failed
+  during KSP incremental-cache persistence: modular-JDK access rules blocked
+  reflection on `java.io.FilterOutputStream.out`. Added the specific `java.io`
+  opening to `kotlin.daemon.jvmargs`; versions, incremental settings and caches
+  remain intact. Configuration and Git whitespace were checked without Gradle,
+  compilation or packaging. The subsequent owner-run code 17 build progressed
+  past KSP to Kotlin compilation. See
+  [diagnosis and configuration](troubleshooting.md#ksp-cannot-access-filteroutputstreamout).
+
+- Owner-supplied 22 October debug build `1.1.14.20261022` (code 15) failed
+  during KSP because `StorageAccessEntryPoint` imported `dagger.EntryPoint`
+  instead of Hilt's `dagger.hilt.EntryPoint`. Corrected the annotation import;
+  the interface, singleton installation and storage-preservation behavior remain.
+  Production entry-point imports and Git whitespace were checked. No agent-run
+  Gradle or compilation followed; the subsequent owner-run code 17 build
+  progressed past KSP. APK generation remains unverified.
 
 - Owner-supplied 20 October debug build `1.1.4.20261020` (code 5) reached Kotlin
   compilation, then failed on the ward-filter task button's missing

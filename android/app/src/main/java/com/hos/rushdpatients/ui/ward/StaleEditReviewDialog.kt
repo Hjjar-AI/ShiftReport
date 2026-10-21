@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.AppValueComparison
@@ -23,9 +26,10 @@ internal fun StaleEditReviewDialog(
     onUseSaved: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("مراجعة تغييرات أحدث") },
+        title = { Text(uiText(R.string.ui_stale_edit_review_dialog_001)) },
         text = {
             Column(
                 Modifier.fillMaxWidth().appDialogBody(UiDialog.reviewBodyMaxHeight)
@@ -33,23 +37,23 @@ internal fun StaleEditReviewDialog(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 Text(if (available)
-                    "لم تُحفظ المسودة. راجع الفروق قبل المتابعة؛ الاحتفاظ بالمسودة سيستبدل القيم المحفوظة المعروضة عند الحفظ التالي. لن يتم الحفظ تلقائياً."
-                else "السجل لم يعد متاحاً للتعديل. المسودة باقية في المحرر؛ لا يمكن حفظها فوق سجل محذوف أو غير موجود.")
+                    uiText(R.string.ui_stale_edit_review_dialog_002)
+                else uiText(R.string.ui_stale_edit_review_dialog_003))
                 differences.forEach { (label, draft, saved) ->
-                    AppValueComparison(title = label, firstLabel = "المحفوظ الآن", firstValue = saved,
-                        secondLabel = "مسودتي", secondValue = draft)
+                    AppValueComparison(title = label, firstLabel = uiText(R.string.ui_stale_edit_review_dialog_004), firstValue = saved,
+                        secondLabel = uiText(R.string.ui_stale_edit_review_dialog_005), secondValue = draft)
                 }
-                if (available && differences.isEmpty()) Text("القيم متطابقة؛ تغيّر إصدار السجل فقط.")
+                if (available && differences.isEmpty()) Text(uiText(R.string.ui_stale_edit_review_dialog_006))
                 AppTextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                    Text("العودة دون تغيير المسودة")
+                    Text(uiText(R.string.ui_stale_edit_review_dialog_007))
                 }
             }
         },
         confirmButton = {
-            AppTextButton(onClick = onKeepDraft, enabled = available) { Text("متابعة بمسودتي بعد المراجعة") }
+            AppTextButton(onClick = onKeepDraft, enabled = available) { Text(uiText(R.string.ui_stale_edit_review_dialog_008)) }
         },
         dismissButton = {
-            AppTextButton(onClick = onUseSaved, enabled = available) { Text("استخدام النسخة المحفوظة") }
+            AppTextButton(onClick = onUseSaved, enabled = available) { Text(uiText(R.string.ui_stale_edit_review_dialog_009)) }
         }
     )
 }

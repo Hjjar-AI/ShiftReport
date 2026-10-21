@@ -1,5 +1,11 @@
 package com.hos.rushdpatients.ui.report
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.net.Uri
 import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
 import com.hos.rushdpatients.data.model.Doctor
@@ -14,9 +20,11 @@ data class SupervisorReportTarget(
     val patientCount: Int
 )
 
-enum class ReportStepOutcome(val arabicLabel: String) {
-    NOT_STARTED("لم يبدأ"), IN_PROGRESS("جارٍ"), CONFIRMED("مؤكد"),
-    PARTIAL("مؤكد لبعض الوجهات"), UNCERTAIN("غير مؤكد")
+enum class ReportStepOutcome(@StringRes private val arabicLabelRes: Int) {
+    NOT_STARTED(R.string.ui_report_ui_state_001), IN_PROGRESS(R.string.ui_report_ui_state_002), CONFIRMED(R.string.ui_report_ui_state_003),
+    PARTIAL(R.string.ui_report_ui_state_004), UNCERTAIN(R.string.ui_report_preview_screen_084);
+
+    fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }
 
 enum class ReportRetryAction { SEND, PREVIEW, SAVE, SHARE, ASSIGNMENTS }

@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import com.hos.rushdpatients.config.AppConstants
@@ -16,6 +20,7 @@ import java.time.Instant
 
 /** Shares the screen state and ViewModel scope; does not create a second lifecycle. */
 internal class SettingsBackupOperations(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<SettingsUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val encryptedBackupManager: EncryptedBackupManager,
@@ -44,7 +49,7 @@ internal class SettingsBackupOperations(
             } catch (e: Exception) {
                 clearPendingBackup()
                 _state.update { it.copy(backupBusy = false, backupReady = false,
-                    snackbar = e.message ?: "فشل تجهيز النسخة المشفرة") }
+                    snackbar = e.message ?: uiText(R.string.ui_settings_backup_operations_001)) }
             } finally {
                 password.fill('\u0000')
             }
@@ -57,7 +62,7 @@ internal class SettingsBackupOperations(
         viewModelScope.launch {
             clearPendingBackup()
             _state.update { it.copy(backupBusy = false, backupReady = false,
-                snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء النسخة المشفرة") }
+                snackbar = uiText(R.string.ui_settings_backup_operations_002)) }
         }
     }
 
@@ -68,18 +73,18 @@ internal class SettingsBackupOperations(
         viewModelScope.launch {
             try {
                 if (uri == null) return@launch
-                check(id != null) { "انتهت جلسة التصدير؛ أعد إنشاء النسخة المشفرة" }
+                check(id != null) { uiText(R.string.ui_settings_backup_operations_003) }
                 pendingExports.write(uri, id)
                 settingsRepository.putLong(AppConstants.SETTING_LAST_ENCRYPTED_BACKUP_AT,
                     Instant.now().toEpochMilli())
-                _state.update { it.copy(snackbar = "تم حفظ نسخة مشفرة لـ$count مريض والتحقق منها") }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_settings_backup_operations_004, count)) }
                 refreshStorageHealth()
             } catch (e: CancellationException) {
                 if (uri != null) pendingExports.discardDestination(uri)
                 throw e
             } catch (e: Exception) {
                 if (uri != null) pendingExports.discardDestination(uri)
-                _state.update { it.copy(snackbar = e.message ?: "فشل إنشاء النسخة المشفرة") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_backup_operations_005)) }
             } finally {
                 clearPendingBackup()
                 _state.update { it.copy(backupBusy = false) }
@@ -100,13 +105,13 @@ internal class SettingsBackupOperations(
             runCatching { encryptedBackupManager.restore(uri, password.toCharArray()) }
                 .onSuccess { count ->
                     _state.update {
-                        it.copy(backupBusy = false, snackbar = "تمت استعادة $count مريض من النسخة المشفرة")
+                        it.copy(backupBusy = false, snackbar = uiText(R.string.ui_settings_backup_operations_006, count))
                     }
                     refreshStorageHealth()
                 }
                 .onFailure { error ->
                     _state.update {
-                        it.copy(backupBusy = false, snackbar = error.message ?: "فشلت استعادة النسخة")
+                        it.copy(backupBusy = false, snackbar = error.message ?: uiText(R.string.ui_settings_backup_operations_007))
                     }
                 }
         }

@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -51,6 +55,7 @@ internal data class DemoWardState(
 /** Deliberately has no clinical repository, settings store, session, or network dependencies. */
 @HiltViewModel
 class DemoWardViewModel @Inject constructor(
+    private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
     private val pdfExporter: PdfReportExporter
 ) : ViewModel() {
@@ -60,7 +65,7 @@ class DemoWardViewModel @Inject constructor(
     private var pendingExport: Pair<PdfExportOptions, Boolean>? = null
     internal fun endSession() { pendingExport = null; _state.value = DemoWardState() }
     internal fun reset() {
-        if (!_state.value.exporting) { pendingExport = null; _state.value = DemoWardState(message = "أُعيدت البيانات التجريبية") }
+        if (!_state.value.exporting) { pendingExport = null; _state.value = DemoWardState(message = uiText(R.string.ui_demo_ward_view_model_001)) }
     }
     internal fun selectActor(id: String) {
         if (_state.value.doctors.any { it.id == id && !it.isDeleted }) _state.update { it.copy(actorId = id) }
@@ -100,17 +105,17 @@ class DemoWardViewModel @Inject constructor(
         )
         PatientTasks.requireValid(prepared.tasks)
         _state.update { it.copy(patients = it.patients.filterNot { row -> row.id == prepared.id } + prepared,
-            message = "حُفظ التغيير في الجلسة التجريبية فقط") }
+            message = uiText(R.string.ui_demo_ward_view_model_002)) }
         return true
     }
 
     internal fun delete(patient: Patient) = _state.update { current ->
         current.copy(patients = current.patients.filterNot { it.id == patient.id },
-            deleted = current.deleted + patient, message = "نُقل إلى المحذوفات التجريبية")
+            deleted = current.deleted + patient, message = uiText(R.string.ui_demo_ward_view_model_003))
     }
     internal fun restore(patient: Patient) = _state.update { current ->
         current.copy(patients = current.patients + patient,
-            deleted = current.deleted.filterNot { it.id == patient.id }, message = "استُعيد المريض التجريبي")
+            deleted = current.deleted.filterNot { it.id == patient.id }, message = uiText(R.string.ui_demo_ward_view_model_004))
     }
 
     internal fun preparePdfExport(options: PdfExportOptions, elegant: Boolean) {
@@ -121,7 +126,7 @@ class DemoWardViewModel @Inject constructor(
         val prepared = pendingExport
         pendingExport = null
         if (uri == null) return
-        if (prepared == null) { message("أعد اختيار حفظ PDF من معاينة التقرير"); return }
+        if (prepared == null) { message(uiText(R.string.ui_demo_ward_view_model_005)); return }
         exportPdf(uri, prepared.first, prepared.second)
     }
 
@@ -129,7 +134,7 @@ class DemoWardViewModel @Inject constructor(
         if (uri == null || _state.value.exporting) return
         val snapshot = _state.value
         if (snapshot.patients.isEmpty() || snapshot.shiftDoctors.isEmpty()) {
-            message("أضف مرضى واختر أطباء المناوبة أولاً")
+            message(uiText(R.string.ui_demo_ward_view_model_006))
             return
         }
         _state.update { it.copy(exporting = true) }
@@ -142,22 +147,22 @@ class DemoWardViewModel @Inject constructor(
                             summary = snapshot.summary, residentNames = snapshot.names, supervisorNames = snapshot.names,
                             options = options.copy(hospitalName = "مشفى تجريبي", wardName = "جناح تجريبي"), elegant = elegant, documentLabel = "عرض تجريبي — بيانات وهمية وغير طبية",
                             outputFile = file)
-                        check(file.length() > 0) { "تعذر إنشاء التقرير التجريبي" }
+                        check(file.length() > 0) { uiText(R.string.ui_demo_ward_view_model_007) }
                         context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
                             file.inputStream().use { it.copyTo(output) }
                             output.flush()
-                        } ?: error("تعذر فتح ملف PDF")
+                        } ?: error(uiText(R.string.ui_demo_ward_view_model_008))
                         val expected = file.readBytes()
                         val saved = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                            ?: error("تعذر التحقق من ملف PDF")
-                        check(saved.contentEquals(expected)) { "لم يُحفظ التقرير كاملاً؛ أعد التصدير" }
+                            ?: error(uiText(R.string.ui_demo_ward_view_model_009))
+                        check(saved.contentEquals(expected)) { uiText(R.string.ui_demo_ward_view_model_010) }
                     } finally { file.delete() }
                 }
-                message("حُفظ تقرير PDF التجريبي؛ لم تُرفع أي بيانات")
+                message(uiText(R.string.ui_demo_ward_view_model_011))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                message(e.message ?: "تعذر تصدير التقرير التجريبي")
+                message(e.message ?: uiText(R.string.ui_demo_ward_view_model_012))
             } finally { _state.update { it.copy(exporting = false) } }
         }
     }

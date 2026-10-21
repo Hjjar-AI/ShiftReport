@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.components
 
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.ui.graphics.lerp
 
@@ -72,6 +75,7 @@ fun AppTextField(
     minLines: Int = 1,
     errorMessage: String? = null
 ) {
+    val uiText = rememberUiStrings()
     val active = enabled && LocalFieldEnabled.current
     val interactionSource = remember { MutableInteractionSource() }
     val fieldVisibility = remember { BringIntoViewRequester() }
@@ -89,7 +93,7 @@ fun AppTextField(
     BasicTextField(
         value = value, onValueChange = onValueChange,
         modifier = modifier.bringIntoViewRequester(fieldVisibility)
-            .onFocusChanged { focused = it.isFocused }.appFieldLayout(label != null, isError, errorMessage),
+            .onFocusChanged { focused = it.isFocused }.appFieldLayout(uiText, label != null, isError, errorMessage),
         enabled = active, textStyle = textStyle.copy(color = textColor),
         keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
         singleLine = singleLine, maxLines = maxLines, minLines = minLines,
@@ -107,9 +111,9 @@ fun AppTextField(
     )
 }
 
-internal fun Modifier.appFieldLayout(hasLabel: Boolean, isError: Boolean, errorMessage: String? = null): Modifier =
+internal fun Modifier.appFieldLayout(uiText: UiStrings, hasLabel: Boolean, isError: Boolean, errorMessage: String? = null): Modifier =
     semantics(mergeDescendants = true) {
-        if (isError) error(errorMessage?.takeIf { it.isNotBlank() } ?: "إدخال غير صالح")
+        if (isError) error(errorMessage?.takeIf { it.isNotBlank() } ?: uiText(R.string.ui_app_field_001))
     }.padding(top = if (hasLabel) UiSize.fieldLabelInset else 0.dp)
         .defaultMinSize(minHeight = UiSize.fieldMinHeight)
 

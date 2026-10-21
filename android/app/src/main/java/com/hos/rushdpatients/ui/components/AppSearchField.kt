@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.R
+
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
@@ -20,6 +22,7 @@ import androidx.compose.ui.text.input.ImeAction
 @Composable
 fun AppSearchField(query: String, onQueryChange: (String) -> Unit, label: String,
     modifier: Modifier = Modifier, enabled: Boolean = true) {
+    val uiText = rememberUiStrings()
     val active = enabled && LocalFieldEnabled.current
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -28,6 +31,6 @@ fun AppSearchField(query: String, onQueryChange: (String) -> Unit, label: String
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focus.clearFocus() }),
         trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { onQueryChange("") }, enabled = active) {
-            Icon(Icons.Filled.Close, contentDescription = "مسح البحث")
+            Icon(Icons.Filled.Close, contentDescription = uiText(R.string.ui_shift_doctor_picker_007))
         } })
 }

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.components.AppBusyIndicator
 import com.hos.rushdpatients.ui.components.AppSearchField
@@ -52,14 +55,15 @@ import com.hos.rushdpatients.ui.connection.ProjectConnectionAction
 
 @Composable
 fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         Box(Modifier.weight(1f)) {
             when (val step = state.step) {
-                is LoginStep.Bootstrapping -> Centered { com.hos.rushdpatients.ui.components.AppLoadingState("جار تحميل سجل الأطباء…") }
+                is LoginStep.Bootstrapping -> Centered { com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_login_screen_001)) }
                 is LoginStep.BootstrapFailed -> AppCenteredContent {
-                    AppNotice("تعذر تحميل سجل الأطباء\n${step.message}", kind = NoticeKind.ERROR)
-                    AppButton(onClick = viewModel::boot) { Text("إعادة المحاولة") }
+                    AppNotice(uiText(R.string.ui_login_screen_002, step.message), kind = NoticeKind.ERROR)
+                    AppButton(onClick = viewModel::boot) { Text(uiText(R.string.ui_retry)) }
                 }
                 is LoginStep.PickDoctor -> PickDoctorList(
                     projectName = state.projectName,
@@ -113,6 +117,7 @@ private fun PickDoctorList(
     error: String?,
     onPick: (Doctor) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var query by rememberSaveable { mutableStateOf("") }
     val matchingDoctors = remember(doctors, query) {
         doctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
@@ -127,18 +132,18 @@ private fun PickDoctorList(
                     Text(projectName, style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary)
                 }
-                Text("اختر اسمك", style = MaterialTheme.typography.headlineSmall)
+                Text(uiText(R.string.ui_login_screen_003), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "المشروع محفوظ. اختر اسمك للدخول مجدداً؛ ملف الانضمام مطلوب لإعداد جهاز جديد.",
+                    uiText(R.string.ui_login_screen_004),
                     style = MaterialTheme.typography.bodySmall
                 )
-                AppSearchField(query = query, onQueryChange = { query = it }, label = "بحث باسم الطبيب")
+                AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_shift_doctor_picker_003))
                 error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
             }
         }
         if (matchingDoctors.isEmpty()) {
             item {
-                Text(if (doctors.isEmpty()) "لا يوجد أطباء في السجل" else "لا توجد أسماء مطابقة")
+                Text(if (doctors.isEmpty()) uiText(R.string.ui_login_screen_005) else uiText(R.string.ui_shift_doctor_picker_006))
             }
         }
         items(matchingDoctors, key = { it.id }) { doctor ->
@@ -154,9 +159,9 @@ private fun PickDoctorList(
                     Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
                     Text(
                         text = when {
-                            !enabled -> "لم يتم ربط حساب تليجرام — تواصل مع المدير"
-                            hasPin -> "اضغط للدخول برقمك السري على هذا الجهاز"
-                            else -> "اضغط للتحقق عبر تليجرام"
+                            !enabled -> uiText(R.string.ui_login_screen_006)
+                            hasPin -> uiText(R.string.ui_login_screen_007)
+                            else -> uiText(R.string.ui_login_screen_008)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (enabled) MaterialTheme.colorScheme.primary
@@ -170,11 +175,12 @@ private fun PickDoctorList(
 
 @Composable
 private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
+    val uiText = rememberUiStrings()
     val clipboard = LocalClipboardManager.current
     AppCenteredContent() {
-        Text("التحقق عبر تليجرام", style = MaterialTheme.typography.headlineSmall)
+        Text(uiText(R.string.ui_login_screen_009), style = MaterialTheme.typography.headlineSmall)
         Text(
-            "أرسل الرمز التالي إلى البوت في قسم General",
+            uiText(R.string.ui_login_screen_010),
             modifier = Modifier.padding(top = UiSpacing.screen),
             textAlign = TextAlign.Center
         )
@@ -187,15 +193,15 @@ private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             AppOutlinedButton(onClick = {
                 clipboard.setText(AnnotatedString(step.nonce))
-            }) { Text("نسخ") }
+            }) { Text(uiText(R.string.ui_copy)) }
         }
         Text(
-            "الوقت المتبقي: ${uiNumber(step.remainingSeconds)} ثانية",
+            uiText(R.string.ui_login_screen_011, uiNumber(step.remainingSeconds)),
             modifier = Modifier.padding(top = UiSpacing.section),
             style = MaterialTheme.typography.bodySmall
         )
         AppBusyIndicator(modifier = Modifier.padding(top = UiSpacing.screen), size = UiSize.loadingIndicator, color = MaterialTheme.colorScheme.primary)
-        AppTextButton(onClick = onCancel, modifier = Modifier.padding(top = UiSpacing.screen)) { Text("إلغاء") }
+        AppTextButton(onClick = onCancel, modifier = Modifier.padding(top = UiSpacing.screen)) { Text(uiText(R.string.ui_cancel)) }
     }
 }
 
@@ -205,10 +211,11 @@ private fun VerifyFailedView(
     onRetry: (Doctor) -> Unit,
     onBack: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     AppCenteredContent() {
-        Text("فشل التحقق", style = MaterialTheme.typography.headlineSmall)
+        Text(uiText(R.string.ui_login_screen_012), style = MaterialTheme.typography.headlineSmall)
         AppNotice(step.message, kind = NoticeKind.ERROR)
-        AppButton(onClick = { onRetry(step.doctor) }) { Text("إعادة المحاولة") }
-        AppTextButton(onClick = onBack) { Text("رجوع") }
+        AppButton(onClick = { onRetry(step.doctor) }) { Text(uiText(R.string.ui_retry)) }
+        AppTextButton(onClick = onBack) { Text(uiText(R.string.ui_patient_form_fields_019)) }
     }
 }

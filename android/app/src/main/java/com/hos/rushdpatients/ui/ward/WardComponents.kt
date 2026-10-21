@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.components.AppTabBar
 import com.hos.rushdpatients.ui.components.AppTabItem
@@ -67,10 +70,11 @@ internal fun PrimaryNavigationBar(
     onDashboard: () -> Unit,
     onActivity: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val items = listOf(
-        AppTabItem("المرضى", Icons.Outlined.ViewAgenda, Icons.Filled.ViewAgenda) to onPatients,
-        AppTabItem("اللوحة", Icons.Outlined.Dashboard, Icons.Filled.Dashboard) to onDashboard
-    ) + if (isAdmin) listOf(AppTabItem("النشاط", Icons.Outlined.History, Icons.Filled.History) to onActivity) else emptyList()
+        AppTabItem(uiText(R.string.ui_patients), Icons.Outlined.ViewAgenda, Icons.Filled.ViewAgenda) to onPatients,
+        AppTabItem(uiText(R.string.ui_ward_components_002), Icons.Outlined.Dashboard, Icons.Filled.Dashboard) to onDashboard
+    ) + if (isAdmin) listOf(AppTabItem(uiText(R.string.ui_ward_navigation_chrome_003), Icons.Outlined.History, Icons.Filled.History) to onActivity) else emptyList()
     val selectedIndex = when (viewMode) { WardViewMode.ALL, WardViewMode.MINE -> 0; WardViewMode.DASHBOARD -> 1; else -> 2 }
     AppTabBar(items = items.map { it.first }, selectedIndex = selectedIndex,
         onSelect = { items[it].second() })
@@ -84,24 +88,25 @@ internal fun PrimaryNavigationRail(
     onDashboard: () -> Unit,
     onActivity: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     NavigationRail {
         NavigationRailItem(
             selected = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE,
             onClick = onPatients,
             icon = { Icon(if (viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE) Icons.Filled.ViewAgenda else Icons.Outlined.ViewAgenda, contentDescription = null) },
-            label = { Text("المرضى") }
+            label = { Text(uiText(R.string.ui_patients)) }
         )
         NavigationRailItem(
             selected = viewMode == WardViewMode.DASHBOARD,
             onClick = onDashboard,
             icon = { Icon(if (viewMode == WardViewMode.DASHBOARD) Icons.Filled.Dashboard else Icons.Outlined.Dashboard, contentDescription = null) },
-            label = { Text("اللوحة") }
+            label = { Text(uiText(R.string.ui_ward_components_002)) }
         )
         if (isAdmin) NavigationRailItem(
             selected = viewMode == WardViewMode.ACTIVITY,
             onClick = onActivity,
             icon = { Icon(if (viewMode == WardViewMode.ACTIVITY) Icons.Filled.History else Icons.Outlined.History, contentDescription = null) },
-            label = { Text("النشاط") }
+            label = { Text(uiText(R.string.ui_ward_navigation_chrome_003)) }
         )
     }
 }
@@ -119,6 +124,7 @@ internal fun DrawerSubmenuHeader(
     expanded: Boolean,
     onClick: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     CompactDrawerItem(
         label = { Text(label, fontWeight = FontWeight.SemiBold) },
         selected = false,
@@ -126,7 +132,7 @@ internal fun DrawerSubmenuHeader(
         badge = {
             Icon(
                 imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = if (expanded) "طي $label" else "فتح $label"
+                contentDescription = if (expanded) uiText(R.string.ui_ward_drawer_030, label) else uiText(R.string.ui_ward_drawer_031, label)
             )
         },
         modifier = Modifier.padding(horizontal = UiSpacing.small)

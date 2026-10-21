@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -55,10 +58,11 @@ private fun SetupChoice(
     onClick: () -> Unit,
     modifier: Modifier
 ) {
+    val uiText = rememberUiStrings()
     val (title, description) = when (mode) {
-        ProjectSetupMode.DEMO -> "تجربة التطبيق" to "ابدأ فوراً ببيانات تجريبية"
-        ProjectSetupMode.JOIN -> "الانضمام لمشروع" to "باستخدام ملف الانضمام من المدير"
-        ProjectSetupMode.CREATE -> "إنشاء مشروع" to "إعداد مجموعة جديدة وإدارة الفريق"
+        ProjectSetupMode.DEMO -> uiText(R.string.ui_project_setup_choices_001) to uiText(R.string.ui_project_setup_choices_002)
+        ProjectSetupMode.JOIN -> uiText(R.string.ui_project_setup_choices_003) to uiText(R.string.ui_project_setup_choices_004)
+        ProjectSetupMode.CREATE -> uiText(R.string.ui_project_setup_choices_005) to uiText(R.string.ui_project_setup_choices_006)
     }
     Surface(
         modifier = modifier.heightIn(min = UiSpacing.touchTarget)

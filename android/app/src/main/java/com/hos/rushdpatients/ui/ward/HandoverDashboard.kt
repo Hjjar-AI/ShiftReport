@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.ui.unit.Dp
 import com.hos.rushdpatients.ui.components.AppMetricRow
 import com.hos.rushdpatients.ui.components.NoticeKind
@@ -42,6 +45,7 @@ internal fun HandoverDashboard(
     bottomClearance: Dp = UiSpacing.screen,
     showSynchronization: Boolean = true
 ) {
+    val uiText = rememberUiStrings()
     val mine = patients.count {
         it.responsibleResidentId == currentDoctorId || it.responsibleSpecialistId == currentDoctorId ||
             it.tasks.any { task -> !task.done && task.ownerDoctorId == currentDoctorId }
@@ -65,30 +69,30 @@ internal fun HandoverDashboard(
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
         Text(
-            if (showSynchronization) "ملخص سريع قبل مراجعة المرضى أو نشر التقرير"
-            else "ملخص المرضى والمهام في المناوبة التجريبية",
+            if (showSynchronization) uiText(R.string.ui_handover_dashboard_001)
+            else uiText(R.string.ui_handover_dashboard_002),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            if (showSynchronization) AppTextButton(onClick = onSync) { Text("جلب البيانات") }
-            if (isAdmin) AppTextButton(onClick = onActivity) { Text("مركز النشاط") }
-            AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
+            if (showSynchronization) AppTextButton(onClick = onSync) { Text(uiText(R.string.ui_handover_dashboard_003)) }
+            if (isAdmin) AppTextButton(onClick = onActivity) { Text(uiText(R.string.ui_ward_activity_screen_003)) }
+            AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text(uiText(R.string.ui_handover_dashboard_004)) }
         }
-        Text("يحتاج انتباهك", style = MaterialTheme.typography.titleMedium)
-        if (urgent > 0) AppMetricRow("عاجل أو أولوية", urgent, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.URGENT) }
-        if (taskCounts.overdue > 0) AppMetricRow("المهام المتأخرة (ضمن المعلقة)", taskCounts.overdue, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.TASK_OVERDUE) }
-        if (urgent == 0 && taskCounts.overdue == 0) Text("لا توجد حالات عاجلة أو مهام متأخرة",
+        Text(uiText(R.string.ui_handover_dashboard_005), style = MaterialTheme.typography.titleMedium)
+        if (urgent > 0) AppMetricRow(uiText(R.string.ui_handover_dashboard_006), urgent, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.URGENT) }
+        if (taskCounts.overdue > 0) AppMetricRow(uiText(R.string.ui_handover_dashboard_007), taskCounts.overdue, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.TASK_OVERDUE) }
+        if (urgent == 0 && taskCounts.overdue == 0) Text(uiText(R.string.ui_handover_dashboard_008),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("ملخص المناوبة", style = MaterialTheme.typography.titleMedium)
+        Text(uiText(R.string.ui_handover_dashboard_009), style = MaterialTheme.typography.titleMedium)
         Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
             Column(Modifier.fillMaxWidth().padding(UiSpacing.tiny)) {
-                AppMetricRow("إجمالي المرضى", patients.size, compact = true) { onFilter(DashboardFilter.ALL) }
-                AppMetricRow("مرضاي", mine, compact = true) { onFilter(DashboardFilter.MINE) }
-                AppMetricRow("المهام المعلقة", taskCounts.pending, compact = true) { onFilter(DashboardFilter.TASK_PENDING) }
-                AppMetricRow("مرضى لديهم شارات", warnings, compact = true) { onFilter(DashboardFilter.WARNINGS) }
-                AppMetricRow("بحاجة إلى تعيين طبيب", unassigned, compact = true) { onFilter(DashboardFilter.UNASSIGNED) }
-                AppMetricRow("مهام معلقة غير معيّنة", taskCounts.unassigned, compact = true) { onFilter(DashboardFilter.TASK_UNASSIGNED) }
-                AppMetricRow("دخول اليوم", newAdmissions, compact = true) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
+                AppMetricRow(uiText(R.string.ui_handover_dashboard_010), patients.size, compact = true) { onFilter(DashboardFilter.ALL) }
+                AppMetricRow(uiText(R.string.ui_handover_dashboard_011), mine, compact = true) { onFilter(DashboardFilter.MINE) }
+                AppMetricRow(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending, compact = true) { onFilter(DashboardFilter.TASK_PENDING) }
+                AppMetricRow(uiText(R.string.ui_handover_dashboard_013), warnings, compact = true) { onFilter(DashboardFilter.WARNINGS) }
+                AppMetricRow(uiText(R.string.ui_handover_dashboard_014), unassigned, compact = true) { onFilter(DashboardFilter.UNASSIGNED) }
+                AppMetricRow(uiText(R.string.ui_handover_dashboard_015), taskCounts.unassigned, compact = true) { onFilter(DashboardFilter.TASK_UNASSIGNED) }
+                AppMetricRow(uiText(R.string.ui_handover_dashboard_016), newAdmissions, compact = true) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
             }
         }
         if (showSynchronization) Surface(
@@ -97,9 +101,9 @@ internal fun HandoverDashboard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                Text("حفظ البيانات ونشرها", style = MaterialTheme.typography.titleSmall)
+                Text(uiText(R.string.ui_handover_dashboard_017), style = MaterialTheme.typography.titleSmall)
                 PatientSyncNotice(syncStatus, freshnessLabel, online)
-                Text("استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر")
+                Text(uiText(R.string.ui_handover_dashboard_018))
             }
         }
     }

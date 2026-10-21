@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -23,12 +24,13 @@ import com.hos.rushdpatients.ui.theme.appAccentColor
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AppPalettePicker(selected: AppThemePreset, onSelected: (AppThemePreset) -> Unit) {
+    val uiText = rememberUiStrings()
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         AppThemePreset.entries.forEach { option ->
             FilterChip(selected = selected == option, onClick = { onSelected(option) },
-                label = { Text(option.arabicLabel) },
+                label = { Text(option.arabicLabel(uiText)) },
                 leadingIcon = {
                     Box(Modifier.size(UiSize.iconSmall).clip(CircleShape).background(appAccentColor(option, dark)))
                 })

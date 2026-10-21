@@ -1,5 +1,12 @@
 package com.hos.rushdpatients.ui.ward
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -32,26 +39,27 @@ internal fun WardPatientListControls(
     requestFocus: Boolean,
     onFocusRequested: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         if (showSearch || query.isNotBlank()) {
             WardPatientSearchField(query, onQueryChange, requestFocus, onFocusRequested)
         }
 
-        Text("${uiNumber(visibleCount)} من ${uiNumber(totalCount)} مريض",
+        Text(uiText(R.string.ui_ward_patient_list_controls_001, uiNumber(visibleCount), uiNumber(totalCount)),
             modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold)
-        if (activeFilters.isNotEmpty()) Text("التصفية: ${activeFilters.distinct().joinToString(" · ")}",
+        if (activeFilters.isNotEmpty()) Text(uiText(R.string.ui_ward_patient_list_controls_002, activeFilters.distinct().joinToString(" · ")),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        groupingLabel?.let { Text("تجميع: $it", style = MaterialTheme.typography.labelSmall,
+        groupingLabel?.let { Text(uiText(R.string.ui_ward_patient_list_controls_003, it), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
         FlowRow(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppTextButton(onClick = onOptions) { Text("خيارات العرض") }
-            if (activeFilters.isNotEmpty()) AppTextButton(onClick = onReset) { Text("مسح التصفية") }
+            AppTextButton(onClick = onOptions) { Text(uiText(R.string.ui_ward_patient_list_controls_004)) }
+            if (activeFilters.isNotEmpty()) AppTextButton(onClick = onReset) { Text(uiText(R.string.ui_ward_patient_list_controls_005)) }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-            listOf(DashboardFilter.ALL to "الكل", DashboardFilter.MINE to "مرضاي",
-                DashboardFilter.URGENT to "عاجل", DashboardFilter.TASK_OVERDUE to "مهام متأخرة"
+            listOf(DashboardFilter.ALL to uiText(R.string.ui_all), DashboardFilter.MINE to uiText(R.string.ui_handover_dashboard_011),
+                DashboardFilter.URGENT to uiText(R.string.ui_ward_patient_list_controls_007), DashboardFilter.TASK_OVERDUE to uiText(R.string.ui_ward_patient_list_controls_008)
             ).forEach { (preset, label) ->
                 CompactFilterChip(selectedPreset == preset, { onPreset(preset) }, label)
             }
@@ -60,14 +68,16 @@ internal fun WardPatientListControls(
 }
 
 /** One wrapping summary; grouping remains a display choice, not a patient filter. */
-internal fun wardPatientFilterSummary(
+internal fun wardPatientFilterSummary(uiText: UiStrings,
     visibleCount: Int, totalCount: Int, activeFilters: List<String>, groupingLabel: String? = null
 ): String = buildList {
-    add("${uiNumber(visibleCount)} من ${uiNumber(totalCount)} مريض")
+    add(uiText(R.string.ui_ward_patient_list_controls_001, uiNumber(visibleCount), uiNumber(totalCount)))
     addAll(activeFilters.filter(String::isNotBlank).distinct())
-    groupingLabel?.takeIf(String::isNotBlank)?.let { add("تجميع: $it") }
+    groupingLabel?.takeIf(String::isNotBlank)?.let { add(uiText(R.string.ui_ward_patient_list_controls_003, it)) }
 }.joinToString(" · ")
 
-internal enum class WardViewOption(val label: String) {
-    FILTERS("التصفية"), GROUPING("التجميع"), CARDS("البطاقات"), SORT("الترتيب")
+internal enum class WardViewOption(@StringRes private val labelRes: Int) {
+    FILTERS(R.string.ui_ward_patient_list_controls_009), GROUPING(R.string.ui_ward_patient_list_controls_010), CARDS(R.string.ui_ward_patient_list_controls_011), SORT(R.string.ui_ward_patient_list_controls_012);
+
+    fun label(uiText: UiStrings): String = uiText(labelRes)
 }

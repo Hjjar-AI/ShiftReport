@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -31,6 +35,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
+    private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
     private val doctorRepository: DoctorRepository,
     private val sessionManager: SessionManager,
@@ -71,7 +76,7 @@ class LoginViewModel @Inject constructor(
                 is BootstrapResult.NoPin -> _state.update {
                     it.copy(
                         step = LoginStep.BootstrapFailed(
-                            "لا توجد رسالة مثبّتة في المجموعة. اطلب من المالك تثبيت ملف bootstrap."
+                            uiText(R.string.ui_login_view_model_001)
                         ),
                         busy = false
                     )
@@ -79,7 +84,7 @@ class LoginViewModel @Inject constructor(
                 is BootstrapResult.UnrecognizedPin -> _state.update {
                     it.copy(
                         step = LoginStep.BootstrapFailed(
-                            "الرسالة المثبّتة غير معروفة. تأكد من تثبيت ملف bootstrap الصحيح."
+                            uiText(R.string.ui_login_view_model_002)
                         ),
                         busy = false
                     )
@@ -114,7 +119,7 @@ class LoginViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update {
                     it.copy(error = if (e is IllegalArgumentException || e is IllegalStateException)
-                        e.message ?: "تعذر تسجيل الدخول" else "تعذر تسجيل الدخول؛ أعد المحاولة")
+                        e.message ?: uiText(R.string.ui_login_view_model_003) else uiText(R.string.ui_login_view_model_004))
                 }
             } finally {
                 _state.update { it.copy(busy = false) }
@@ -126,7 +131,7 @@ class LoginViewModel @Inject constructor(
         if (_state.value.busy) return
         val telegramId = doctor.telegramId
         if (telegramId == null) {
-            _state.update { it.copy(error = "لم يتم ربط حساب تليجرام لهذا الطبيب") }
+            _state.update { it.copy(error = uiText(R.string.ui_login_view_model_005)) }
             return
         }
         val nonce = loginManager.generateNonce()
@@ -152,13 +157,13 @@ class LoginViewModel @Inject constructor(
                 is LoginVerificationResult.Success -> onVerified(doctor, telegramId)
                 is LoginVerificationResult.WrongUser -> _state.update {
                     it.copy(
-                        step = LoginStep.VerifyFailed(doctor, "الرسالة وصلت من حساب مختلف"),
+                        step = LoginStep.VerifyFailed(doctor, uiText(R.string.ui_login_view_model_006)),
                         busy = false
                     )
                 }
                 is LoginVerificationResult.Timeout -> _state.update {
                     it.copy(
-                        step = LoginStep.VerifyFailed(doctor, "انتهى الوقت. حاول مرة أخرى"),
+                        step = LoginStep.VerifyFailed(doctor, uiText(R.string.ui_login_view_model_007)),
                         busy = false
                     )
                 }
@@ -205,11 +210,11 @@ class LoginViewModel @Inject constructor(
         if (pin.length !in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH ||
             !pin.all(Char::isDigit)
         ) {
-            _state.update { it.copy(error = "الرقم السري يجب أن يكون من 4 إلى 8 أرقام") }
+            _state.update { it.copy(error = uiText(R.string.ui_login_view_model_008)) }
             return
         }
         if (pin != confirm) {
-            _state.update { it.copy(error = "الرقم السري وتأكيده غير متطابقين") }
+            _state.update { it.copy(error = uiText(R.string.ui_login_view_model_009)) }
             return
         }
         viewModelScope.launch {

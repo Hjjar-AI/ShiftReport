@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppFieldPair
 import com.hos.rushdpatients.ui.components.AppToggleRow
@@ -40,8 +43,9 @@ internal fun PatientDemographicFields(
     onAgeAndYearChanged: (String, String) -> Unit, onGenderChanged: (Gender) -> Unit,
     onCompanionChanged: (Boolean) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     SectionTitle(
-        "بيانات الدخول",
+        uiText(R.string.ui_patient_demographic_fields_001),
         complete = admittanceNumber.isNotBlank() && admittanceDate != null,
         modifier = personalAnchor
     )
@@ -51,7 +55,7 @@ internal fun PatientDemographicFields(
             AppTextField(
                 value = admittanceNumber,
                 onValueChange = onAdmissionNumberChanged,
-                label = { Text("رقم القبول الحالي *") },
+                label = { Text(uiText(R.string.ui_patient_demographic_fields_002)) },
                 modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
                 singleLine = true,
                 textStyle = autoStyle,
@@ -64,23 +68,23 @@ internal fun PatientDemographicFields(
             DateField(
                 value = admittanceDate,
                 onValueChange = onAdmissionDateChanged,
-                label = "تاريخ الدخول *",
+                label = uiText(R.string.ui_patient_demographic_fields_003),
                 isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
                 errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,
-                supportingText = admissionDays?.let { "مدة الإقامة: ${uiNumber(it)} يوم" },
+                supportingText = admissionDays?.let { uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)) },
                 modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
             )
         }
     )
 
     SectionTitle(
-        "البيانات الشخصية",
+        uiText(R.string.ui_patient_demographic_fields_005),
         complete = name.isNotBlank() && birthYear != null && age != null
     )
     AppTextField(
         value = name,
         onValueChange = onNameChanged,
-        label = { Text("اسم المريض *") },
+        label = { Text(uiText(R.string.ui_patient_demographic_fields_006)) },
         modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.NAME)),
         singleLine = true,
         textStyle = autoStyle,
@@ -90,7 +94,7 @@ internal fun PatientDemographicFields(
     )
     AppFieldPair(
         stackWhenNarrow = true,
-        separator = "أو",
+        separator = uiText(R.string.ui_or),
         first = { fieldModifier ->
             AppTextField(
                 value = ageText,
@@ -104,7 +108,7 @@ internal fun PatientDemographicFields(
                         .orEmpty()
                     onAgeAndYearChanged(nextAge, nextYear)
                 },
-                label = { Text("العمر *") },
+                label = { Text(uiText(R.string.ui_patient_demographic_fields_008)) },
                 modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.AGE)),
                 singleLine = true,
                 textStyle = autoStyle,
@@ -129,7 +133,7 @@ internal fun PatientDemographicFields(
                         .orEmpty()
                     onAgeAndYearChanged(nextAge, nextYear)
                 },
-                label = { Text("سنة الميلاد *") },
+                label = { Text(uiText(R.string.ui_patient_demographic_fields_009)) },
                 modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.BIRTH_YEAR)),
                 singleLine = true,
                 textStyle = autoStyle,
@@ -145,21 +149,21 @@ internal fun PatientDemographicFields(
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         FlowRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            Text("الجنس", style = MaterialTheme.typography.labelMedium)
+            Text(uiText(R.string.ui_patient_demographic_fields_010), style = MaterialTheme.typography.labelMedium)
             FilterChip(
                 enabled = !saving,
                 selected = gender == Gender.MALE,
                 onClick = { onGenderChanged(Gender.MALE) },
-                label = { Text("ذكر") }
+                label = { Text(uiText(R.string.ui_male)) }
             )
             FilterChip(
                 enabled = !saving,
                 selected = gender == Gender.FEMALE,
                 onClick = { onGenderChanged(Gender.FEMALE) },
-                label = { Text("أنثى") }
+                label = { Text(uiText(R.string.ui_female)) }
             )
         }
-        AppToggleRow(title = "يوجد مرافق", checked = hasCompanion,
+        AppToggleRow(title = uiText(R.string.ui_patient_demographic_fields_013), checked = hasCompanion,
             onCheckedChange = onCompanionChanged, enabled = !saving, modifier = Modifier.weight(.85f))
     }
 }

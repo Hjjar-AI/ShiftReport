@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppCompactTopBar
 import com.hos.rushdpatients.ui.components.uiNumber
 import androidx.compose.foundation.layout.Column
@@ -29,13 +32,14 @@ internal fun WardHeader(
     onMenu: () -> Unit, onToggleCards: () -> Unit, onAdd: () -> Unit,
     onSearch: () -> Unit, onWorkflow: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     Column {
     WardToolbarLayout(foldingFeature) {
         AppCompactTopBar(title = {
             Text(when (viewMode) {
-                WardViewMode.ALL, WardViewMode.MINE -> "المرضى · ${uiNumber(state.patients.size)}"
-                WardViewMode.DASHBOARD -> "تسليم المناوبة"
-                WardViewMode.ACTIVITY -> "النشاط"
+                WardViewMode.ALL, WardViewMode.MINE -> uiText(R.string.ui_ward_navigation_chrome_001, uiNumber(state.patients.size))
+                WardViewMode.DASHBOARD -> uiText(R.string.ui_ward_navigation_chrome_002)
+                WardViewMode.ACTIVITY -> uiText(R.string.ui_ward_navigation_chrome_003)
             }, style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.semantics { heading() }, maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
@@ -43,22 +47,22 @@ internal fun WardHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
         }, navigation = {
             IconButton(onClick = onMenu) {
-                Icon(Icons.Filled.Menu, contentDescription = "القائمة")
+                Icon(Icons.Filled.Menu, contentDescription = uiText(R.string.ui_ward_navigation_chrome_004))
             }
         }, actions = {
             if (patientDestination && state.patients.isNotEmpty()) {
                 IconButton(onClick = onToggleCards) {
                     Icon(if (anyCardsExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (anyCardsExpanded) "طي جميع بطاقات المرضى" else "توسيع جميع بطاقات المرضى")
+                        contentDescription = if (anyCardsExpanded) uiText(R.string.ui_ward_navigation_chrome_005) else uiText(R.string.ui_ward_navigation_chrome_006))
                 }
             }
             if (showAddAction && !state.isReadOnly && (!patientDestination || state.patients.isNotEmpty())) {
                 IconButton(onClick = onAdd, enabled = state.shift != null &&
                     !state.loading && !state.saving && !state.syncing) {
-                    Icon(Icons.Filled.Add, contentDescription = "إضافة مريض")
+                    Icon(Icons.Filled.Add, contentDescription = uiText(R.string.ui_add_patient))
                 }
             }
-            if (!patientDestination || state.patients.isNotEmpty()) IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, contentDescription = "بحث عن مريض") }
+            if (!patientDestination || state.patients.isNotEmpty()) IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, contentDescription = uiText(R.string.ui_ward_navigation_chrome_007)) }
         })
     }
     if (state.syncing || state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) WardWorkflowStrip(state, onNext = onWorkflow)

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.layout.Arrangement
@@ -18,27 +21,28 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsPatientCardsContent(state: SettingsUiState, viewModel: SettingsViewModel) {
-    SettingsSubheading("عرض قائمة المرضى")
+    val uiText = rememberUiStrings()
+    SettingsSubheading(uiText(R.string.ui_settings_preference_sections_001))
     Text(
-        "تستخدم شاشة المناوبة بطاقة سريرية موحّدة حتى تبقى الشارات والأولوية واضحة بنفس المعنى للجميع.",
+        uiText(R.string.ui_settings_preference_sections_002),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     AppToggleRow(
-        title = "عرض التفاصيل افتراضياً",
-        subtitle = "يمكن تغييره من شريط شاشة المرضى",
+        title = uiText(R.string.ui_settings_preference_sections_003),
+        subtitle = uiText(R.string.ui_settings_preference_sections_004),
         checked = state.patientDetailsExpanded,
         onCheckedChange = viewModel::setPatientDetailsExpanded
     )
     AppToggleRow(
-        title = "بطاقة بعمودين",
-        subtitle = "تعمل عند توفر عرض كافٍ وتعود لعمود واحد على الشاشة الضيقة",
+        title = uiText(R.string.ui_settings_preference_sections_005),
+        subtitle = uiText(R.string.ui_settings_preference_sections_006),
         checked = state.patientTwoColumn,
         onCheckedChange = viewModel::setPatientTwoColumn
     )
     AppToggleRow(
-        title = "عرض مضغوط",
-        subtitle = "مسافات أصغر لعرض عدد أكبر من المرضى دون تصغير الخط",
+        title = uiText(R.string.ui_settings_preference_sections_007),
+        subtitle = uiText(R.string.ui_settings_preference_sections_008),
         checked = state.patientCompactDensity,
         onCheckedChange = viewModel::setPatientCompactDensity
     )
@@ -48,18 +52,19 @@ internal fun SettingsPatientCardsContent(state: SettingsUiState, viewModel: Sett
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsWorkflowContent(state: SettingsUiState, viewModel: SettingsViewModel) {
-    SettingsSubheading("أثناء الجولة")
+    val uiText = rememberUiStrings()
+    SettingsSubheading(uiText(R.string.ui_settings_preference_sections_009))
     AppToggleRow(
-        title = "حفظ والتالي أثناء الجولة",
-        subtitle = "يُظهر زرّاً اختيارياً يحفظ المريض ويفتح التالي حسب التصفية والترتيب الحالي؛ متوقف افتراضياً",
+        title = uiText(R.string.ui_edit_patient_dialog_002),
+        subtitle = uiText(R.string.ui_settings_preference_sections_010),
         checked = state.saveAndNext,
         onCheckedChange = viewModel::setSaveAndNext
     )
     Divider(color = MaterialTheme.colorScheme.outlineVariant)
-    SettingsSubheading("عند بدء مناوبة جديدة")
+    SettingsSubheading(uiText(R.string.ui_settings_preference_sections_011))
     AppToggleRow(
-        title = "اقتراح نسخ المناوبة السابقة كاملة",
-        subtitle = "عند بدء مناوبة فارغة، اعرض تأكيد نسخ جميع المرضى والمهام غير المكتملة؛ مستقل عن جلب تليجرام",
+        title = uiText(R.string.ui_settings_preference_sections_012),
+        subtitle = uiText(R.string.ui_settings_preference_sections_013),
         checked = state.guidedRollover,
         onCheckedChange = viewModel::setGuidedRollover
     )
@@ -68,23 +73,24 @@ internal fun SettingsWorkflowContent(state: SettingsUiState, viewModel: Settings
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsSecurityContent(state: SettingsUiState, viewModel: SettingsViewModel, onSignOut: () -> Unit) {
+    val uiText = rememberUiStrings()
     AppToggleRow(
-        title = "التحقق بالبصمة",
-        subtitle = if (state.biometricAvailable) "استخدم بصمتك لفتح التطبيق"
-        else "غير متوفرة على هذا الجهاز",
+        title = uiText(R.string.ui_settings_preference_sections_014),
+        subtitle = if (state.biometricAvailable) uiText(R.string.ui_settings_preference_sections_015)
+        else uiText(R.string.ui_settings_preference_sections_016),
         checked = state.biometricEnabled,
         onCheckedChange = if (state.biometricAvailable) viewModel::setBiometric else null
     )
 
-    Text("القفل التلقائي", style = MaterialTheme.typography.labelMedium)
+    Text(uiText(R.string.ui_settings_preference_sections_017), style = MaterialTheme.typography.labelMedium)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         listOf(1, 5, 15, 30).forEach { minutes ->
             FilterChip(
                 selected = state.autoLockMinutes == minutes,
                 onClick = { viewModel.setAutoLockMinutes(minutes) },
-                label = { Text("$minutes د") }
+                label = { Text(uiText(R.string.ui_settings_preference_sections_018, minutes)) }
             )
         }
     }
-    AppOutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) { Text("تسجيل الخروج") }
+    AppOutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_preference_sections_019)) }
 }

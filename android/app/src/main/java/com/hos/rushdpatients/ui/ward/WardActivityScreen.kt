@@ -1,5 +1,12 @@
 package com.hos.rushdpatients.ui.ward
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.uiDateTime
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,8 +43,10 @@ import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.sync.PublicationJournalEntry
 import java.time.Instant
 
-internal enum class ActivityFilter(val arabicLabel: String) {
-    ALL("الكل"), PATIENTS("المرضى"), SYNC("المزامنة والتقارير"), ACCESS("الدخول"), PUBLICATIONS("المنشورات")
+internal enum class ActivityFilter(@StringRes private val arabicLabelRes: Int) {
+    ALL(R.string.ui_all), PATIENTS(R.string.ui_patients), SYNC(R.string.ui_ward_activity_screen_015), ACCESS(R.string.ui_ward_activity_screen_016), PUBLICATIONS(R.string.ui_ward_activity_screen_017);
+
+    fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -58,6 +67,7 @@ internal fun WardActivityScreen(
     modifier: Modifier = Modifier,
     bottomClearance: Dp = UiSpacing.screen
 ) {
+    val uiText = rememberUiStrings()
     val filtered = remember(activity, patientNames, query, filter) {
         activity.filter { entry ->
             val matchesType = when (filter) {
@@ -73,7 +83,7 @@ internal fun WardActivityScreen(
     }
     val filteredPublications = remember(publications, query) {
         publications.filter { query.isBlank() || ArabicSearchNormalizer.matches(query,
-            if (it.forced) "نشر إجباري" else "نشر عادي", activityTime(it.at)) }
+            if (it.forced) uiText(R.string.ui_ward_activity_screen_001) else uiText(R.string.ui_ward_activity_screen_002), activityTime(it.at)) }
     }
     LazyColumn(
         contentPadding = PaddingValues(bottom = bottomClearance),
@@ -82,41 +92,41 @@ internal fun WardActivityScreen(
         verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
     ) {
         item(key = "activity-heading") {
-            Text("مركز النشاط", style = MaterialTheme.typography.headlineSmall,
+            Text(uiText(R.string.ui_ward_activity_screen_003), style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(top = UiSpacing.medium).semantics { heading() })
             AppTextButton(onClick = onRefresh, enabled = !loading,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-                Text(if (loading) "جار تحديث النشاط…" else "تحديث النشاط")
+                Text(if (loading) uiText(R.string.ui_ward_activity_screen_004) else uiText(R.string.ui_ward_activity_screen_005))
             }
-            error?.let { AppNotice(it, kind = NoticeKind.ERROR, actionLabel = "إعادة المحاولة",
+            error?.let { AppNotice(it, kind = NoticeKind.ERROR, actionLabel = uiText(R.string.ui_retry),
                 onAction = onRefresh, actionEnabled = !loading) }
         }
         item(key = "activity-search") {
-            AppSearchField(query = query, onQueryChange = onQueryChange, label = "بحث بالمريض أو الطبيب أو العملية")
+            AppSearchField(query = query, onQueryChange = onQueryChange, label = uiText(R.string.ui_ward_activity_screen_006))
         }
         item(key = "activity-filters") {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 ActivityFilter.entries.forEach { option ->
                     FilterChip(selected = filter == option, onClick = { onFilterChange(option) },
-                        label = { Text(option.arabicLabel) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
+                        label = { Text(option.arabicLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
                 }
             }
         }
         if (filter == ActivityFilter.PUBLICATIONS) {
-            if (filteredPublications.isEmpty()) item { com.hos.rushdpatients.ui.components.EmptyState("لا توجد منشورات مطابقة",
-                actionLabel = "مسح البحث والتصفية", onAction = { onQueryChange(""); onFilterChange(ActivityFilter.ALL) }) }
+            if (filteredPublications.isEmpty()) item { com.hos.rushdpatients.ui.components.EmptyState(uiText(R.string.ui_ward_activity_screen_007),
+                actionLabel = uiText(R.string.ui_ward_activity_screen_008), onAction = { onQueryChange(""); onFilterChange(ActivityFilter.ALL) }) }
             items(filteredPublications, key = { "publication-${it.messageId}" }) { publication ->
                 Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    Text(if (publication.forced) "نشر إجباري" else "نشر عادي", style = MaterialTheme.typography.titleSmall)
+                    Text(if (publication.forced) uiText(R.string.ui_ward_activity_screen_001) else uiText(R.string.ui_ward_activity_screen_002), style = MaterialTheme.typography.titleSmall)
                     Text(activityTime(publication.at), style = MaterialTheme.typography.bodySmall)
-                    Text("محفوظ في تليجرام", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(uiText(R.string.ui_ward_activity_screen_009), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Divider()
             }
         } else {
-            if (filtered.isEmpty()) item { com.hos.rushdpatients.ui.components.EmptyState("لا يوجد نشاط مطابق",
-                actionLabel = if (query.isNotBlank() || filter != ActivityFilter.ALL) "مسح البحث والتصفية" else null,
+            if (filtered.isEmpty()) item { com.hos.rushdpatients.ui.components.EmptyState(uiText(R.string.ui_ward_activity_screen_010),
+                actionLabel = if (query.isNotBlank() || filter != ActivityFilter.ALL) uiText(R.string.ui_ward_activity_screen_008) else null,
                 onAction = { onQueryChange(""); onFilterChange(ActivityFilter.ALL) }) }
             items(filtered, key = { "audit-${it.id}" }) { entry ->
                 ActivityEntry(entry, entry.patientId?.let(patientNames::get))
@@ -124,7 +134,7 @@ internal fun WardActivityScreen(
             }
         }
         item(key = "activity-footer") {
-            Text("يعرض النشاط المحلي الأخير وسجل المنشورات المتاح؛ لا يمثل إقراراً باستلام المناوبة.",
+            Text(uiText(R.string.ui_ward_activity_screen_011),
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = UiSpacing.small))
         }
     }
@@ -132,14 +142,15 @@ internal fun WardActivityScreen(
 
 @Composable
 internal fun ActivityEntry(entry: AuditEntryEntity, patientName: String? = null) {
+    val uiText = rememberUiStrings()
     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         patientName?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
-        Text(entry.actorName ?: "النظام", style = MaterialTheme.typography.labelLarge)
+        Text(entry.actorName ?: uiText(R.string.ui_ward_activity_screen_012), style = MaterialTheme.typography.labelLarge)
         Text(entry.detail.ifBlank { entry.action })
         Text(activityTime(entry.atEpochMillis), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        entry.beforeValue?.takeIf { it.isNotBlank() }?.let { Text("قبل: $it", style = MaterialTheme.typography.bodySmall) }
-        entry.afterValue?.takeIf { it.isNotBlank() }?.let { Text("بعد: $it", style = MaterialTheme.typography.bodySmall) }
+        entry.beforeValue?.takeIf { it.isNotBlank() }?.let { Text(uiText(R.string.ui_ward_activity_screen_013, it), style = MaterialTheme.typography.bodySmall) }
+        entry.afterValue?.takeIf { it.isNotBlank() }?.let { Text(uiText(R.string.ui_ward_activity_screen_014, it), style = MaterialTheme.typography.bodySmall) }
     }
 }
 

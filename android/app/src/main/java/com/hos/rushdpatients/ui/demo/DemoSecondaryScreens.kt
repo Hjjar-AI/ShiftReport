@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +25,7 @@ internal fun DemoReportContent(
     onExport: (PdfExportOptions, PdfStyle) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val uiText = rememberUiStrings()
     var style by rememberSaveable { mutableStateOf(PdfStyle.CLASSIC) }
     var orientation by rememberSaveable { mutableStateOf(PdfOrientation.PORTRAIT) }
     var color by rememberSaveable { mutableStateOf(PdfColorPreset.TEAL) }
@@ -33,36 +37,36 @@ internal fun DemoReportContent(
     val warnings = ReportReadiness.warnings(state.patients)
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        AppSection("أطباء المناوبة", colors = CardDefaults.cardColors(
+        AppSection(uiText(R.string.ui_shift_doctor_picker_001), colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer),
             titleColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-            Text(state.shiftDoctors.joinToString("، ") { it.fullName }.ifBlank { "اختر أطباء المناوبة" })
+            Text(state.shiftDoctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName }.ifBlank { uiText(R.string.ui_demo_secondary_screens_001) })
             AppOutlinedButton(onClick = onDoctors, enabled = !state.exporting, modifier = Modifier.fillMaxWidth()) {
-                Text("اختيار أطباء المناوبة")
+                Text(uiText(R.string.ui_report_preview_screen_022))
             }
         }
-        AppSection("النطاق والوجهة والصيغة") {
-            Text("${state.date} · ${uiNumber(state.summary.patientCount)} مريض · ${uiNumber(state.summary.escortCount)} مرافق")
-            Text("جميع مرضى المناوبة · حفظ ملف PDF محلي فقط", style = MaterialTheme.typography.bodySmall)
+        AppSection(uiText(R.string.ui_demo_secondary_screens_002)) {
+            Text(uiText(R.string.ui_demo_secondary_screens_003, state.date, uiNumber(state.summary.patientCount), uiNumber(state.summary.escortCount)))
+            Text(uiText(R.string.ui_demo_secondary_screens_004), style = MaterialTheme.typography.bodySmall)
             AppPdfStylePicker(selected = style, onSelected = { style = it }, enabled = !state.exporting)
-            Text("لا يوجد نشر أو إرسال في التجربة. تحمل كل صفحة علامة عرض تجريبي.",
+            Text(uiText(R.string.ui_demo_secondary_screens_005),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (warnings.isNotEmpty()) AppSection("ملاحظات جاهزية التقرير") {
+        if (warnings.isNotEmpty()) AppSection(uiText(R.string.ui_report_preview_screen_046)) {
             warnings.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
         }
         AppTextButton(onClick = { advanced = !advanced }, enabled = !state.exporting) {
-            Text(if (advanced) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة")
+            Text(if (advanced) uiText(R.string.ui_settings_report_section_004) else uiText(R.string.ui_settings_report_section_005))
         }
-        if (advanced) AppSection("خيارات PDF المتقدمة") {
-            if (style != PdfStyle.CARDS) AppToggleRow("صفحة أفقية",
+        if (advanced) AppSection(uiText(R.string.ui_settings_report_section_005)) {
+            if (style != PdfStyle.CARDS) AppToggleRow(uiText(R.string.ui_demo_secondary_screens_006),
                 checked = orientation == PdfOrientation.LANDSCAPE,
                 onCheckedChange = { orientation = if (it) PdfOrientation.LANDSCAPE else PdfOrientation.PORTRAIT },
                 enabled = !state.exporting)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 PdfColorPreset.entries.forEach { value ->
                     FilterChip(selected = color == value, onClick = { color = value },
-                        enabled = !state.exporting, label = { Text(value.arabicLabel) })
+                        enabled = !state.exporting, label = { Text(value.uiLabel(uiText)) })
                 }
             }
             AppPdfAppearanceControls(weight, contrast, shading, dark = false,
@@ -70,21 +74,21 @@ internal fun DemoReportContent(
                 onPreset = { weight = it.weight; contrast = it.contrast; shading = it.shading },
                 enabled = !state.exporting, showShading = style != PdfStyle.CARDS)
         }
-        LoadingButton(text = "حفظ PDF تجريبي", loading = state.exporting,
+        LoadingButton(text = uiText(R.string.ui_demo_secondary_screens_007), loading = state.exporting,
             enabled = !state.exporting && state.patients.isNotEmpty() && state.shiftDoctorIds.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(), onClick = {
                 onExport(PdfExportOptions(orientation = orientation, colorPreset = color,
                     ruleWeight = weight, ruleContrast = contrast, rowShading = shading), style)
             })
         AppTextButton(onClick = { showContents = !showContents }) {
-            Text(if (showContents) "طي محتوى التقرير" else "مراجعة محتوى التقرير")
+            Text(if (showContents) uiText(R.string.ui_demo_secondary_screens_008) else uiText(R.string.ui_demo_secondary_screens_009))
         }
         if (showContents) state.ordered.forEach { patient ->
             AppSection("${uiNumber(patient.sortOrder)}. ${patient.name}") {
-                AppClinicalSection("التشخيص", patient.initialDiagnosis)
-                AppClinicalSection("العلاج", patient.treatmentPlan)
-                AppClinicalSection("المتابعة", patient.followUp)
-                AppClinicalSection("التحاليل", patient.labs, kind = ClinicalTextKind.LABS)
+                AppClinicalSection(uiText(R.string.ui_patient_card_024), patient.initialDiagnosis)
+                AppClinicalSection(uiText(R.string.ui_demo_secondary_screens_010), patient.treatmentPlan)
+                AppClinicalSection(uiText(R.string.ui_patient_form_dialog_012), patient.followUp)
+                AppClinicalSection(uiText(R.string.ui_labs), patient.labs, kind = ClinicalTextKind.LABS)
                 Text(PatientTasks.summary(patient.tasks, state.names), style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -95,16 +99,17 @@ internal fun DemoReportContent(
 internal fun DemoTeamContent(
     state: DemoWardState, onDoctors: () -> Unit, onActor: (String) -> Unit, modifier: Modifier = Modifier
 ) {
+    val uiText = rememberUiStrings()
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        AppSection("أطباء المناوبة") {
-            Text(state.shiftDoctors.joinToString("، ") { it.fullName })
-            AppOutlinedButton(onClick = onDoctors, modifier = Modifier.fillMaxWidth()) { Text("تعديل أطباء المناوبة") }
+        AppSection(uiText(R.string.ui_shift_doctor_picker_001)) {
+            Text(state.shiftDoctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
+            AppOutlinedButton(onClick = onDoctors, modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_023)) }
         }
-        AppSection("الطبيب الحالي في التجربة") {
-            Text("اختيار الطبيب يغيّر «مرضاي» وهوية إتمام المهام في الجلسة فقط.", style = MaterialTheme.typography.bodySmall)
+        AppSection(uiText(R.string.ui_demo_secondary_screens_011)) {
+            Text(uiText(R.string.ui_demo_secondary_screens_012), style = MaterialTheme.typography.bodySmall)
             state.doctors.forEach { doctor ->
-                AppChoiceRow(label = "${doctor.fullName} · ${doctor.clinicalRole.arabicLabel}",
+                AppChoiceRow(label = "${doctor.fullName} · ${doctor.clinicalRole.uiLabel(uiText)}",
                     selected = state.actorId == doctor.id, onClick = { onActor(doctor.id) })
             }
         }
@@ -120,18 +125,19 @@ internal fun DemoPreferencesContent(
     saveAndNext: Boolean, onSaveAndNext: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val uiText = rememberUiStrings()
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        AppNotice("تفضيلات مؤقتة لهذه التجربة؛ إعدادات مشروعك لا تتغير.")
-        AppSection("المظهر والخط") {
+        AppNotice(uiText(R.string.ui_demo_secondary_screens_013))
+        AppSection(uiText(R.string.ui_demo_secondary_screens_014)) {
             SettingsAppearanceSection(SettingsUiState(appearance = appearance, appTheme = accent,
                 fontScale = font, patientDetailsExpanded = expanded,
                 patientTwoColumn = twoColumn, patientCompactDensity = compact),
                 onAppearance = onAppearance, onTheme = onAccent, onFont = onFont)
         }
-        AppSection("الجولات") {
-            AppToggleRow("حفظ والتالي أثناء الجولة", checked = saveAndNext, onCheckedChange = onSaveAndNext)
-            Text("خيارات البطاقات والترتيب متاحة من «خيارات العرض» في قائمة المرضى.",
+        AppSection(uiText(R.string.ui_demo_secondary_screens_015)) {
+            AppToggleRow(uiText(R.string.ui_edit_patient_dialog_002), checked = saveAndNext, onCheckedChange = onSaveAndNext)
+            Text(uiText(R.string.ui_demo_secondary_screens_016),
                 style = MaterialTheme.typography.bodySmall)
         }
     }

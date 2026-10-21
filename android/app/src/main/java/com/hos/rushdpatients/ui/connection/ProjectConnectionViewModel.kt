@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.connection
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.net.Uri
 import android.content.Context
 import android.provider.OpenableColumns
@@ -27,6 +31,7 @@ data class ProjectConnectionUiState(
 
 @HiltViewModel
 class ProjectConnectionViewModel @Inject constructor(
+    private val uiText: UiStrings,
     private val connections: ProjectConnectionManager,
     @ApplicationContext private val context: Context,
     private val dispatchers: DispatcherProvider
@@ -87,7 +92,7 @@ class ProjectConnectionViewModel @Inject constructor(
                 pending = null
                 _state.update {
                     it.copy(reviewProject = null, applied = true,
-                        message = "تم تحديث الاتصال مع الاحتفاظ بالمرضى والمناوبات ومفتاح التشفير. على المدير تصدير ملف انضمام جديد لبقية الأجهزة.")
+                        message = uiText(R.string.ui_project_connection_view_model_001))
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -107,7 +112,7 @@ class ProjectConnectionViewModel @Inject constructor(
     }
 
     private fun safeMessage(error: Exception): String = when (error) {
-        is IllegalArgumentException, is IllegalStateException -> error.message ?: "تعذر تحديث الاتصال"
-        else -> "تعذر التحقق من الاتصال. تأكد من الإنترنت وصلاحيات البوت والرمز الجديد، ثم أعد المحاولة."
+        is IllegalArgumentException, is IllegalStateException -> error.message ?: uiText(R.string.ui_project_connection_view_model_002)
+        else -> uiText(R.string.ui_project_connection_view_model_003)
     }
 }

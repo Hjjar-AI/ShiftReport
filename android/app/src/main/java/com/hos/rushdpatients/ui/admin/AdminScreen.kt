@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.theme.UiPadding
@@ -39,6 +42,7 @@ fun AdminScreen(
     onOpenDoctors: () -> Unit,
     viewModel: AdminViewModel = hiltViewModel()
 ) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -52,7 +56,7 @@ fun AdminScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = "الأطباء والفرق والصلاحيات", onBack = onBack)
+            AppTopBar(title = uiText(R.string.ui_admin_screen_001), onBack = onBack)
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
@@ -72,10 +76,10 @@ fun AdminScreen(
                     )
                 ) {
                     Column(modifier = Modifier.padding(UiPadding.content)) {
-                        Text("المدير الحالي: ${actor.fullName}")
-                        Text("الرتبة: ${actor.rank}")
+                        Text(uiText(R.string.ui_admin_screen_002, actor.fullName))
+                        Text(uiText(R.string.ui_admin_screen_003, actor.rank))
                         Text(
-                            "تؤثر الإجراءات في هذه الشاشة على جميع مستخدمي المشروع.",
+                            uiText(R.string.ui_admin_screen_004),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -83,21 +87,21 @@ fun AdminScreen(
                 }
             }
 
-            AppSection(title = "ملخص الصلاحيات") {
-                Text("المديرون: ${uiNumber(state.admins.size)} · الأطباء الآخرون: ${uiNumber(state.nonAdmins.size)}")
+            AppSection(title = uiText(R.string.ui_admin_screen_005)) {
+                Text(uiText(R.string.ui_admin_screen_006, uiNumber(state.admins.size), uiNumber(state.nonAdmins.size)))
             }
 
             AdminActionCard(
-                title = "الأطباء والحسابات",
-                description = "إضافة الأطباء وتعديل بياناتهم واستيراد أو تصدير سجل CSV.",
-                actionLabel = "فتح سجل الأطباء",
+                title = uiText(R.string.ui_admin_screen_007),
+                description = uiText(R.string.ui_admin_screen_008),
+                actionLabel = uiText(R.string.ui_admin_screen_009),
                 onClick = onOpenDoctors,
                 primary = true
             )
 
-            AppSection(title = "صلاحيات المديرين") {
+            AppSection(title = uiText(R.string.ui_admin_screen_010)) {
                 Text(
-                    "الترقية تمنح أدوات الإدارة. أزل الصلاحية قبل حذف حساب مدير.",
+                    uiText(R.string.ui_admin_screen_011),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -105,12 +109,12 @@ fun AdminScreen(
                     onClick = { showAssignAdmin = true },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("ترقية طبيب إلى مدير") }
+                ) { Text(uiText(R.string.ui_admin_screen_012)) }
                 AppOutlinedButton(
                     onClick = { showRemoveAdmin = true },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("إزالة صلاحية مدير") }
+                ) { Text(uiText(R.string.ui_admin_screen_013)) }
             }
         }
     }

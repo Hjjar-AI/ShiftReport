@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +39,7 @@ internal fun WardFormDialog(
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val fold = rememberWardFoldingFeature()
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(
@@ -55,7 +59,7 @@ internal fun WardFormDialog(
                     WardAdaptivePanes(
                         enableSplit = false, foldingFeature = fold,
                         listFraction = .42f, onListFractionChange = {},
-                        modifier = Modifier.fillMaxSize(), primaryTitle = "تحرير المريض",
+                        modifier = Modifier.fillMaxSize(), primaryTitle = uiText(R.string.ui_ward_form_dialog_001),
                         primary = {
                             Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
                                 Column(Modifier.widthIn(max = UiLayout.patientFormMaxWidth).fillMaxWidth().fillMaxHeight()) {

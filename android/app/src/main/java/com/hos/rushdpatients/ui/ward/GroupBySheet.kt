@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppDialogDismissAction
 import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
 import com.hos.rushdpatients.ui.components.AppDialogHeader
@@ -35,6 +40,7 @@ fun GroupBySheet(
     onApply: (GroupByMode) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val sheetState = rememberModalBottomSheetState()
     var selected by remember { mutableStateOf(initial) }
 
@@ -49,17 +55,17 @@ fun GroupBySheet(
                 .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
         ) {
-            AppDialogHeader("تجميع المرضى", modifier = Modifier.padding(bottom = UiSpacing.small))
+            AppDialogHeader(uiText(R.string.ui_group_by_sheet_001), modifier = Modifier.padding(bottom = UiSpacing.small))
 
             Column(Modifier.fillMaxWidth().weight(1f, fill = false)
                 .verticalScroll(rememberScrollState()).selectableGroup()) {
                 GroupByMode.entries.forEach { option ->
-                    AppChoiceRow(label = option.arabicLabel, selected = selected == option,
+                    AppChoiceRow(label = option.uiLabel(uiText), selected = selected == option,
                         onClick = { selected = option })
                 }
             }
 
-            AppDialogConfirmAction(text = "تطبيق", onClick = { onApply(selected) },
+            AppDialogConfirmAction(text = uiText(R.string.ui_group_by_sheet_002), onClick = { onApply(selected) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = UiSpacing.medium, bottom = UiSpacing.small)

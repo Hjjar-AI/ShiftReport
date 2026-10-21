@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -15,12 +18,13 @@ import com.hos.rushdpatients.sync.CsvSchema
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsSyncContent(state: SettingsUiState, viewModel: SettingsViewModel, showRecovery: Boolean, onToggleRecovery: () -> Unit, onUndoRequested: () -> Unit) {
-    SettingsSubheading("جلب البيانات ونشرها")
-    Text("التعديلات محفوظة على الجهاز. «مراجعة ونشر» تشارك النسخة المحلية؛ «جلب البيانات» يسترجع النسخة المنشورة بعد التأكيد.")
+    val uiText = rememberUiStrings()
+    SettingsSubheading(uiText(R.string.ui_ward_drawer_013))
+    Text(uiText(R.string.ui_settings_data_sections_001))
 
     state.lastCsvSync?.let {
         Text(
-            "آخر اتصال ببيانات المرضى: $it",
+            uiText(R.string.ui_settings_data_sections_002, it),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -28,7 +32,7 @@ internal fun SettingsSyncContent(state: SettingsUiState, viewModel: SettingsView
     state.lastOperation?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
 
     LoadingButton(
-        text = "جلب أحدث البيانات من تليجرام",
+        text = uiText(R.string.ui_settings_data_sections_003),
         outlined = true,
         loading = state.syncing,
         enabled = !state.exportingCsv && !state.backupBusy,
@@ -36,7 +40,7 @@ internal fun SettingsSyncContent(state: SettingsUiState, viewModel: SettingsView
         modifier = Modifier.fillMaxWidth()
     )
     LoadingButton(
-        text = "مراجعة ونشر بيانات المناوبة",
+        text = uiText(R.string.ui_settings_data_sections_004),
         outlined = true,
         loading = state.syncing,
         enabled = !state.exportingCsv && !state.backupBusy,
@@ -45,14 +49,14 @@ internal fun SettingsSyncContent(state: SettingsUiState, viewModel: SettingsView
     )
     if (state.canUndoDownload) {
         AppTextButton(onClick = onToggleRecovery) {
-            Text(if (showRecovery) "إغلاق أدوات الاستعادة" else "استعادة بيانات قبل آخر جلب")
+            Text(if (showRecovery) uiText(R.string.ui_settings_data_sections_005) else uiText(R.string.ui_settings_data_sections_006))
         }
         if (showRecovery) {
-            Text("يعيد العرض المحلي قبل آخر جلب؛ لا يغيّر النسخة المنشورة أو سجل التسليم.",
+            Text(uiText(R.string.ui_settings_data_sections_007),
                 style = MaterialTheme.typography.bodySmall)
             AppOutlinedButton(onClick = onUndoRequested,
                 enabled = !state.syncing && !state.backupBusy,
-                modifier = Modifier.fillMaxWidth()) { Text("مراجعة الاستعادة المحلية") }
+                modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_data_sections_008)) }
         }
     }
 }
@@ -60,10 +64,11 @@ internal fun SettingsSyncContent(state: SettingsUiState, viewModel: SettingsView
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsFilesContent(state: SettingsUiState, viewModel: SettingsViewModel, canManageProject: Boolean, onOpenVbaImport: () -> Unit) {
-    SettingsSubheading("ملفات المرضى")
-    Text("الاستيراد: اختيار ملف ← مراجعة التغييرات ← تأكيد الحفظ المحلي. النشر إلى المشروع خطوة مستقلة.", style = MaterialTheme.typography.bodySmall)
+    val uiText = rememberUiStrings()
+    SettingsSubheading(uiText(R.string.ui_ward_drawer_014))
+    Text(uiText(R.string.ui_settings_data_sections_009), style = MaterialTheme.typography.bodySmall)
     LoadingButton(
-        text = "حفظ بيانات المرضى CSV",
+        text = uiText(R.string.ui_settings_data_sections_010),
         outlined = true,
         loading = state.exportingCsv,
         onClick = viewModel::exportCsv,
@@ -74,21 +79,22 @@ internal fun SettingsFilesContent(state: SettingsUiState, viewModel: SettingsVie
         AppOutlinedButton(
             onClick = onOpenVbaImport,
             modifier = Modifier.fillMaxWidth()
-        ) { Text("استيراد بيانات من الإكسل") }
+        ) { Text(uiText(R.string.ui_settings_data_sections_011)) }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () -> Unit, onRestoreBackup: () -> Unit) {
-    SettingsSubheading("نسخة مشفرة في ملف")
+    val uiText = rememberUiStrings()
+    SettingsSubheading(uiText(R.string.ui_ward_drawer_015))
     Text(
-        "لحفظ بيانات المناوبة في ملف أو استعادتها محلياً؛ النشر إلى المشروع خطوة مستقلة.",
+        uiText(R.string.ui_settings_data_sections_012),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     LoadingButton(
-        text = "إنشاء نسخة مشفرة",
+        text = uiText(R.string.ui_settings_data_sections_013),
         outlined = true,
         loading = state.backupBusy,
         enabled = !state.syncing,
@@ -99,11 +105,11 @@ internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () ->
         onClick = onRestoreBackup,
         enabled = !state.backupBusy && !state.syncing,
         modifier = Modifier.fillMaxWidth()
-    ) { Text("استعادة نسخة مشفرة") }
+    ) { Text(uiText(R.string.ui_settings_data_sections_014)) }
     Divider(color = MaterialTheme.colorScheme.outlineVariant)
-    SettingsSubheading("بعد الاستعادة المحلية")
+    SettingsSubheading(uiText(R.string.ui_settings_data_sections_015))
     Text(
-        "بعد الاستعادة افتح «جلب البيانات ونشرها» لعرض النسخة المحلية الكاملة ومراجعتها قبل النشر. يشمل الاستبدال الحذف والترتيب وأطباء المناوبة، ويتوقف إذا تغيرت البيانات بعد المراجعة.",
+        uiText(R.string.ui_settings_data_sections_016),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.error
     )
@@ -112,14 +118,15 @@ internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () ->
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsStorageContent(state: SettingsUiState) {
-    Text("حجم قاعدة البيانات: ${state.databaseSize}")
-    Text("إصدار تنسيق CSV: v${CsvSchema.CURRENT_VERSION}")
-    Text("المناوبات المحفوظة: ${state.storedShifts}")
-    Text("سجلات المرضى: ${state.totalStoredPatients}")
-    Text("في سلة المحذوفات: ${state.deletedPatients}")
-    Text("معرّف الجهاز: ${state.deviceId}", style = MaterialTheme.typography.bodySmall)
+    val uiText = rememberUiStrings()
+    Text(uiText(R.string.ui_settings_data_sections_017, state.databaseSize))
+    Text(uiText(R.string.ui_settings_data_sections_018, CsvSchema.CURRENT_VERSION))
+    Text(uiText(R.string.ui_settings_data_sections_019, state.storedShifts))
+    Text(uiText(R.string.ui_settings_data_sections_020, state.totalStoredPatients))
+    Text(uiText(R.string.ui_settings_data_sections_021, state.deletedPatients))
+    Text(uiText(R.string.ui_settings_data_sections_022, state.deviceId), style = MaterialTheme.typography.bodySmall)
     Text(
-        "آخر نسخة مشفرة: ${state.lastEncryptedBackup ?: "لم تُنشأ نسخة بعد"}",
+        uiText(R.string.ui_settings_data_sections_024, state.lastEncryptedBackup ?: uiText(R.string.ui_settings_data_sections_023)),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.bodySmall
     )

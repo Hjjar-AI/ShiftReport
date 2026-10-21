@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.components.AppCenteredContent
@@ -32,27 +35,28 @@ fun LocalPinLoginScreen(
     onTelegram: () -> Unit,
     onBack: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     // A submitted PIN never enters saved UI state or the ViewModel state.
     var pin by remember(doctorId) { mutableStateOf("") }
     AppCenteredContent(
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small, Alignment.CenterVertically)
     ) {
         Text(doctorName, style = MaterialTheme.typography.titleLarge)
-        Text("الدخول بالرقم السري", style = MaterialTheme.typography.titleMedium)
+        Text(uiText(R.string.ui_local_pin_login_screen_001), style = MaterialTheme.typography.titleMedium)
         Text(
-            "المشروع محفوظ على هذا الجهاز. لا تحتاج إلى ملف انضمام أو اتصال بتليجرام للدخول برقمك السري السابق.",
+            uiText(R.string.ui_local_pin_login_screen_002),
             style = MaterialTheme.typography.bodySmall
         )
         PasswordField(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(AppConstants.PIN_MAX_LENGTH) },
-            label = "الرقم السري",
+            label = uiText(R.string.ui_local_pin_login_screen_003),
             keyboardType = KeyboardType.NumberPassword,
             enabled = !busy
         )
         error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
         LoadingButton(
-            text = "تسجيل الدخول",
+            text = uiText(R.string.ui_local_pin_login_screen_004),
             loading = busy,
             enabled = pin.length >= AppConstants.PIN_MIN_LENGTH,
             onClick = {
@@ -66,11 +70,11 @@ fun LocalPinLoginScreen(
             enabled = !busy,
             onClick = { pin = ""; onTelegram() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
-        ) { Text("نسيت الرقم السري؟ تحقق عبر تليجرام") }
+        ) { Text(uiText(R.string.ui_local_pin_login_screen_005)) }
         AppTextButton(
             enabled = !busy,
             onClick = { pin = ""; onBack() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
-        ) { Text("اختيار طبيب آخر") }
+        ) { Text(uiText(R.string.ui_local_pin_login_screen_006)) }
     }
 }

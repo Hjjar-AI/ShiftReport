@@ -32,7 +32,7 @@ snippet and device-check recommendations refer to the decisions below.
 | D3: name width | Confirmed 48dp noninteractive ordinal plus two 48dp actions. Ordinal is now 32dp; expand/menu targets remain 48dp. Pinning was already in the menu, so no duplicate pin button was removed or merged. |
 | D4: star-only priority | Confirmed; added a visible Arabic priority label beside the decorative star. Identity metadata can wrap. |
 | D5: count grammar | Confirmed; card badge/hidden-badge/pending/overdue counts and task-board total use six-form Arabic resources. uiPlural explicitly selects Arabic grammar even on a non-Arabic system locale and passes Arabic-formatted digits. |
-| D6: literal strings | True as a general source characteristic; the supplied counts were not used as evidence of defects. Count grammar is corrected. Repository-wide resource extraction is an optional localization refactor, not a correctness fix; no parallel string system was imposed. |
+| D6: literal strings | Owner subsequently approved UI resource extraction. Remaining active-screen Arabic wording now uses 1,291 shared/default Arabic string resources, including UI state messages and enum labels. Numbered placeholders preserve interpolation order; six-form count grammar remains. About/credits, sample clinical content and portable clinical/export/protocol values are preserved. See [implementation and limits](../current-state.md#android-ui-string-resources). |
 | D7: identical Material color roles/tinted dark surfaces | Confirmed; secondary is neutral, tertiary distinct, and Android dark foundations neutral across accents. Primary accent IDs, appearance choices and clinical severity mappings are retained. |
 | D8: transparent diagnosis chip | Confirmed; added a neutral outline. No clinical error color is used. |
 | D9: notices | Confirmed polite-only announcements and 12sp compact style; errors now announce assertively and messages use body text. Automatic dismissal/one-banner enforcement would hide caller-owned clinical/error information; not applied. Dismissibility belongs to individual message lifecycle, including the existing dismissible fetch reminder. |
@@ -77,14 +77,16 @@ snippet and device-check recommendations refer to the decisions below.
 | P2: quadratic grid membership and pin sort | Confirmed; remembered ID/pin hash sets replace deep list membership. Filtered/sorted visible groups are remembered outside the lazy content builder; ordering and collapse behavior retained. |
 | P3: state-holder extraction | State counts/line counts alone are not defects. Current focused navigation/action modules already exist. No broad screen rewrite without an evidenced state-loss issue. |
 | P4: previews | Confirmed no source previews; added an in-memory gallery for collapsed/expanded long-name cards, notices, empty state and real task-row rendering, with Arabic RTL, dark and 2× text variants. Previews have not been rendered. Suite/device work remains excluded. |
-| P5: dimensions/resources | Corrected the specified drawer dimensions, ordinal size, shared density/spacing and plural resources. Hardcoded dp/string counts alone do not justify rewriting every purpose-specific value/literal. |
+| P5: dimensions/resources | Corrected the specified drawer dimensions, ordinal size, shared density/spacing and plural resources. Owner-approved UI string extraction is recorded under D6; purpose-specific dimensions remain. |
 | P6: TalkBack/decorative descriptions | Potential duplicate announcements remain a device-verification item, not confirmed behavior. Existing custom actions/clinical content remain accessible; decorative adjacent icons remain undescribed. |
 
 ## Verification limits
 
 Production-source call sites, imports, new helper parameters, XML plural forms,
 protected signing inputs, cancellation/cleanup ownership and key preservation were
-inspected, with lightweight delimiter/reference/contrast checks and Git whitespace
+inspected. UI resource checks also covered literal/whitespace/escape preservation,
+numbered placeholder arity, resolver scope and retained model labels, with
+lightweight delimiter/reference/contrast checks and Git whitespace
 checks. No Gradle, builds, compilation, packaging, test-suite/migration review,
 physical device, rendered preview, hospital-policy or live Telegram work ran.
 Source changes do not establish compilation, rendered accessibility, keystore

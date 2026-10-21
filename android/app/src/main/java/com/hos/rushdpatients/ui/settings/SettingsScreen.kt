@@ -1,5 +1,12 @@
 package com.hos.rushdpatients.ui.settings
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Route
@@ -61,20 +68,23 @@ import com.hos.rushdpatients.config.ProjectProvisioningManager
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import kotlinx.coroutines.CancellationException
 
-enum class SettingsWorkspace(val title: String, val description: String) {
-    PREFERENCES("إعداداتي", "اختر نوع التفضيلات. هذه الخيارات تخص هذا الجهاز والعمل اليومي."),
-    APPEARANCE("المظهر والعرض", "ألوان التطبيق والخط وشكل بطاقات المرضى."),
-    WORKFLOW("الجولات والمناوبات", "خيارات الحفظ والتنقل وبدء المناوبة."),
-    REPORTS("تفضيلات التقارير", "الصيغة الافتراضية وتخطيط ملفات التقارير."),
-    SECURITY("الحساب وقفل التطبيق", "التحقق المحلي والقفل التلقائي وتسجيل الخروج."),
-    DATA("جلب البيانات ونشرها", "جلب النسخة المنشورة أو مراجعة تعديلات المرضى ونشرها."),
-    FILES("ملفات المرضى", "تصدير بيانات المرضى أو استيراد ملف مرضى بعد المراجعة."),
-    BACKUP("النسخ الاحتياطي والاستعادة", "حفظ نسخة مشفرة أو استعادة نسخة محفوظة."),
-    PROJECT("اتصال المشروع", "إعادة الاتصال بالمشروع الحالي. لا تتغير بيانات المرضى عند إعادة الاتصال."),
-    INVITATIONS("ضم جهاز جديد", "إنشاء ملف انضمام محمي لأحد أعضاء المشروع."),
-    DESTINATIONS("مجموعات تقارير المشرفين", "تحديد مجموعة استقبال تقرير كل مشرف."),
-    RESET("بداية فارغة", "مسح المرضى والمناوبات بعد تأكيد المدير الدائم."),
-    DIAGNOSTICS("التشخيص ومعلومات الجهاز", "معلومات التخزين والجهاز للمساعدة في التشخيص.")
+enum class SettingsWorkspace(@StringRes private val titleRes: Int, @StringRes private val descriptionRes: Int) {
+    PREFERENCES(R.string.ui_ward_drawer_018, R.string.ui_settings_screen_034),
+    APPEARANCE(R.string.ui_settings_screen_035, R.string.ui_settings_screen_036),
+    WORKFLOW(R.string.ui_settings_section_layout_029, R.string.ui_settings_screen_037),
+    REPORTS(R.string.ui_settings_screen_038, R.string.ui_settings_screen_039),
+    SECURITY(R.string.ui_settings_section_layout_032, R.string.ui_settings_screen_040),
+    DATA(R.string.ui_ward_drawer_013, R.string.ui_settings_screen_041),
+    FILES(R.string.ui_ward_drawer_014, R.string.ui_settings_screen_042),
+    BACKUP(R.string.ui_settings_section_layout_031, R.string.ui_settings_screen_043),
+    PROJECT(R.string.ui_ward_drawer_019, R.string.ui_settings_screen_044),
+    INVITATIONS(R.string.ui_ward_drawer_022, R.string.ui_settings_screen_045),
+    DESTINATIONS(R.string.ui_ward_drawer_021, R.string.ui_settings_screen_046),
+    RESET(R.string.ui_ward_drawer_025, R.string.ui_settings_screen_047),
+    DIAGNOSTICS(R.string.ui_ward_drawer_027, R.string.ui_settings_screen_048);
+
+    fun title(uiText: UiStrings): String = uiText(titleRes)
+    fun description(uiText: UiStrings): String = uiText(descriptionRes)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -89,6 +99,7 @@ fun SettingsScreen(
     onOpenDoctors: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val canManageProject = isAdmin && state.isAdmin
     val context = LocalContext.current
@@ -98,28 +109,28 @@ fun SettingsScreen(
     val sections = remember(canManageProject, state.isPermanentAdmin, workspace) {
         SettingsSectionId.entries.filter { it.workspace == workspace && (canManageProject || !it.adminOnly) && (it != SettingsSectionId.RESET || state.isPermanentAdmin) }
     }
-    val sectionTitles = sections.map { it.title }
+    val sectionTitles = sections.map { it.title(uiText) }
     val settingsScope = rememberCoroutineScope()
     state.emptyStartReview?.takeIf { canManageProject && state.isPermanentAdmin }?.let { review ->
         AlertDialog(onDismissRequest = viewModel::dismissEmptyStart,
-            title = { Text("مسح المرضى والمناوبات؟") },
+            title = { Text(uiText(R.string.ui_settings_screen_001)) },
             text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(review) } },
             confirmButton = { AppTextButton(onClick = viewModel::confirmEmptyStart, enabled = !state.emptyStartBusy) {
-                Text("مسح المرضى والمناوبات", color = MaterialTheme.colorScheme.error)
-            } }, dismissButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text("إلغاء") } })
+                Text(uiText(R.string.ui_settings_screen_002), color = MaterialTheme.colorScheme.error)
+            } }, dismissButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text(uiText(R.string.ui_cancel)) } })
     }
-    if (state.emptyStartBusy) AlertDialog(onDismissRequest = {}, title = { Text("البداية الفارغة") },
-        text = { com.hos.rushdpatients.ui.components.AppLoadingState("جار التحقق وتنفيذ العملية…") }, confirmButton = {})
+    if (state.emptyStartBusy) AlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_settings_screen_003)) },
+        text = { com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_settings_screen_004)) }, confirmButton = {})
     state.emptyStartResult?.let { result ->
-        AlertDialog(onDismissRequest = viewModel::dismissEmptyStart, title = { Text("نتيجة البداية الفارغة") },
-            text = { Text(result) }, confirmButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text("فهمت") } })
+        AlertDialog(onDismissRequest = viewModel::dismissEmptyStart, title = { Text(uiText(R.string.ui_settings_screen_005)) },
+            text = { Text(result) }, confirmButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text(uiText(R.string.ui_settings_screen_006)) } })
     }
     var showRecovery by rememberSaveable { mutableStateOf(false) }
     var confirmUndoDownload by remember { mutableStateOf(false) }
     if (confirmUndoDownload) com.hos.rushdpatients.ui.components.ConfirmDialog(
-        title = "التراجع عن آخر تنزيل",
-        message = "استعادة البيانات المحلية قبل آخر تنزيل؟ لن يتغير تليجرام أو سجل التسليم. يُرفض التراجع إذا تغيرت البيانات بعد التنزيل؛ راجع المستعاد قبل النشر.",
-        confirmText = "استعادة ما قبل التنزيل",
+        title = uiText(R.string.ui_settings_screen_007),
+        message = uiText(R.string.ui_settings_screen_008),
+        confirmText = uiText(R.string.ui_settings_screen_009),
         onConfirm = { confirmUndoDownload = false; viewModel.undoLastDownload() },
         onDismiss = { confirmUndoDownload = false })
 
@@ -182,10 +193,10 @@ fun SettingsScreen(
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = ProjectProvisioningManager.EXPORT_MIME_TYPE
                 putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newUri(context.contentResolver, "ملف الانضمام", uri)
+                clipData = ClipData.newUri(context.contentResolver, uiText(R.string.ui_settings_screen_010), uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, "مشاركة ملف الانضمام المشفر"))
+            context.startActivity(Intent.createChooser(intent, uiText(R.string.ui_settings_screen_011)))
             viewModel.provisioningShareHandled(failed = false)
         } catch (e: CancellationException) {
             throw e
@@ -198,7 +209,7 @@ fun SettingsScreen(
         state.snackbar?.let {
             val result = snackbar.showSnackbar(
                 message = it,
-                actionLabel = if (state.retryAction != null) "إعادة المحاولة" else null
+                actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null
             )
             viewModel.dismissSnackbar()
             if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
@@ -209,7 +220,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = workspace.title, onBack = onBack)
+            AppTopBar(title = workspace.title(uiText), onBack = onBack)
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
@@ -251,14 +262,14 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "الدور: ${state.role.ifBlank { "—" }}",
+                            text = uiText(R.string.ui_settings_screen_012, state.role.ifBlank { "—" }),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
 
                 Text(
-                    workspace.description,
+                    workspace.description(uiText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = UiSpacing.tiny)
@@ -266,12 +277,12 @@ fun SettingsScreen(
 
                 sections.forEach { section ->
                     SettingsSection(
-                        title = section.title,
+                        title = section.title(uiText),
                         showHeader = sections.size > 1,
-                        summary = section.summary(state),
+                        summary = section.summary(uiText, state),
                         expanded = true,
                         onToggle = null,
-                        onPositioned = { sectionOffsets[section.title] = it }
+                        onPositioned = { sectionOffsets[section.title(uiText)] = it }
                     ) {
                         when (section) {
                             SettingsSectionId.APPEARANCE -> SettingsAppearanceSection(
@@ -299,7 +310,7 @@ fun SettingsScreen(
                 if (workspace == SettingsWorkspace.PREFERENCES) {
                     listOf(SettingsWorkspace.APPEARANCE, SettingsWorkspace.WORKFLOW,
                         SettingsWorkspace.REPORTS, SettingsWorkspace.SECURITY).forEach { destination ->
-                        AppDestinationRow(title = destination.title, summary = destination.description,
+                        AppDestinationRow(title = destination.title(uiText), summary = destination.description(uiText),
                             icon = when (destination) {
                                 SettingsWorkspace.APPEARANCE -> Icons.Filled.Palette
                                 SettingsWorkspace.WORKFLOW -> Icons.Filled.Route
@@ -309,7 +320,7 @@ fun SettingsScreen(
                     }
                 }
                 if (sections.isEmpty() && workspace != SettingsWorkspace.PREFERENCES) {
-                    AppNotice("هذه الصفحة غير متاحة لصلاحية الحساب الحالية.")
+                    AppNotice(uiText(R.string.ui_settings_screen_013))
                 }
                 Spacer(Modifier.height(UiSpacing.small))
             }
@@ -324,13 +335,13 @@ fun SettingsScreen(
                 if (mode == "restore") pendingImportUri = null
             },
             title = {
-                Text(if (mode == "export") "حماية النسخة الاحتياطية" else "فتح النسخة الاحتياطية")
+                Text(if (mode == "export") uiText(R.string.ui_settings_screen_014) else uiText(R.string.ui_settings_screen_015))
             },
             text = {
                 PasswordField(
                     value = backupPassword,
                     onValueChange = { backupPassword = it },
-                    label = "كلمة المرور (8 محارف على الأقل)"
+                    label = uiText(R.string.ui_settings_screen_016)
                 )
             },
             confirmButton = {
@@ -346,14 +357,14 @@ fun SettingsScreen(
                         backupPassword = ""
                         backupDialogMode = null
                     }
-                ) { Text(if (mode == "export") "إنشاء" else "استعادة") }
+                ) { Text(if (mode == "export") uiText(R.string.ui_settings_screen_017) else uiText(R.string.ui_restore)) }
             },
             dismissButton = {
                 AppTextButton(onClick = {
                     backupDialogMode = null
                     backupPassword = ""
                     if (mode == "restore") pendingImportUri = null
-                }) { Text("إلغاء") }
+                }) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }
@@ -365,18 +376,18 @@ fun SettingsScreen(
                 provisioningDialog = false
                 provisioningPassphrase = ""
             },
-            title = { Text("حماية ملف الانضمام") },
+            title = { Text(uiText(R.string.ui_settings_screen_019)) },
             text = {
                 Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text("ملف JSON محمي بكلمة مرور، بلا بيانات مرضى. اختر عبارة قوية من 10 محارف على الأقل، وأرسلها منفصلة عن الملف.")
+                    Text(uiText(R.string.ui_settings_screen_020))
                     PasswordField(
                         value = provisioningPassphrase,
                         onValueChange = { provisioningPassphrase = it },
-                        label = "عبارة المرور"
+                        label = uiText(R.string.ui_settings_screen_021)
                     )
-                    Text(if (directDownloads) "يُحفظ الملف كاملاً في التنزيلات/ShiftReport، ويُتحقق من حجمه ومحتواه قبل إعلان النجاح."
-                        else "يمكن مشاركة الملف الجاهز مباشرة أو اختيار مكان لحفظه.",
+                    Text(if (directDownloads) uiText(R.string.ui_settings_screen_022)
+                        else uiText(R.string.ui_settings_screen_023),
                         style = MaterialTheme.typography.bodySmall)
                     if (directDownloads) AppTextButton(
                         enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
@@ -385,7 +396,7 @@ fun SettingsScreen(
                             provisioningPassphrase = ""
                             provisioningDialog = false
                         }, modifier = Modifier.fillMaxWidth()
-                    ) { Text("مشاركة الملف مباشرة") }
+                    ) { Text(uiText(R.string.ui_settings_screen_024)) }
                     AppTextButton(
                         enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
                         onClick = {
@@ -394,7 +405,7 @@ fun SettingsScreen(
                             provisioningDialog = false
                         },
                         modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-                    ) { Text("اختيار مكان آخر للحفظ") }
+                    ) { Text(uiText(R.string.ui_settings_screen_025)) }
                 }
             },
             confirmButton = {
@@ -406,13 +417,13 @@ fun SettingsScreen(
                         provisioningPassphrase = ""
                         provisioningDialog = false
                     }
-                ) { Text(if (directDownloads) "حفظ إلى التنزيلات" else "مشاركة الملف") }
+                ) { Text(if (directDownloads) uiText(R.string.ui_settings_screen_026) else uiText(R.string.ui_settings_screen_027)) }
             },
             dismissButton = {
                 AppTextButton(onClick = {
                     provisioningDialog = false
                     provisioningPassphrase = ""
-                }) { Text("إلغاء") }
+                }) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }
@@ -420,21 +431,21 @@ fun SettingsScreen(
     state.publicationReviewText?.let { reviewText ->
         AlertDialog(
             onDismissRequest = viewModel::cancelPublicationReview,
-            title = { Text("مراجعة نشر النسخة الكاملة") },
+            title = { Text(uiText(R.string.ui_settings_screen_028)) },
             text = {
                 Column(Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text(reviewText)
-                    Text("التأكيد ينشر البيانات فقط؛ إرسال التقرير إجراء منفصل يتطلب معاينته.")
+                    Text(uiText(R.string.ui_settings_screen_029))
                 }
             },
             confirmButton = {
                 AppTextButton(onClick = viewModel::confirmPublication, enabled = !state.syncing) {
-                    Text("راجعت النسخة وأؤكد نشرها")
+                    Text(uiText(R.string.ui_settings_screen_030))
                 }
             },
             dismissButton = {
-                AppTextButton(onClick = viewModel::cancelPublicationReview, enabled = !state.syncing) { Text("إلغاء") }
+                AppTextButton(onClick = viewModel::cancelPublicationReview, enabled = !state.syncing) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }
@@ -446,9 +457,9 @@ fun SettingsScreen(
                 pendingRestorePassword = ""
                 pendingImportUri = null
             },
-            title = { Text("تأكيد استعادة النسخة") },
+            title = { Text(uiText(R.string.ui_settings_screen_031)) },
             text = {
-                Text("ستستبدل النسخة الاحتياطية البيانات المحلية الحالية. لا يمكن التراجع عن هذه العملية من داخل التطبيق.")
+                Text(uiText(R.string.ui_settings_screen_032))
             },
             confirmButton = {
                 AppTextButton(onClick = {
@@ -458,14 +469,14 @@ fun SettingsScreen(
                     pendingImportUri = null
                     pendingRestorePassword = ""
                     if (uri != null) viewModel.restoreEncryptedBackup(uri, password)
-                }) { Text("استعادة واستبدال") }
+                }) { Text(uiText(R.string.ui_settings_screen_033)) }
             },
             dismissButton = {
                 AppTextButton(onClick = {
                     confirmBackupRestore = false
                     pendingRestorePassword = ""
                     pendingImportUri = null
-                }) { Text("إلغاء") }
+                }) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }

@@ -28,6 +28,6 @@ fun AppDialogConfirmAction(text: String, onClick: () -> Unit, modifier: Modifier
 }
 
 @Composable
-fun AppDialogDismissAction(onClick: () -> Unit, text: String = UiAction.CANCEL.label, enabled: Boolean = true) {
+fun AppDialogDismissAction(onClick: () -> Unit, text: String = androidx.compose.ui.res.stringResource(com.hos.rushdpatients.R.string.ui_cancel), enabled: Boolean = true) {
     AppTextButton(onClick = onClick, enabled = enabled) { Text(text) }
 }

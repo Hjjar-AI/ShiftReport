@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -33,22 +36,23 @@ internal fun SettingsAppearanceSection(
     onTheme: (AppThemePreset) -> Unit,
     onFont: (AppFontScale) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val controls: @Composable (Modifier) -> Unit = { modifier ->
         Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-            Text("المظهر", style = MaterialTheme.typography.labelMedium)
+            Text(uiText(R.string.ui_settings_appearance_section_001), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppAppearance.entries.forEach { option ->
                     FilterChip(selected = state.appearance == option,
-                        onClick = { onAppearance(option) }, label = { Text(option.arabicLabel) })
+                        onClick = { onAppearance(option) }, label = { Text(option.arabicLabel(uiText)) })
                 }
             }
-            Text("اللون الأساسي", style = MaterialTheme.typography.labelMedium)
+            Text(uiText(R.string.ui_settings_appearance_section_002), style = MaterialTheme.typography.labelMedium)
             AppPalettePicker(selected = state.appTheme, onSelected = onTheme)
-            Text("حجم الخط", style = MaterialTheme.typography.labelMedium)
+            Text(uiText(R.string.ui_settings_appearance_section_003), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppFontScale.entries.forEach { option ->
                     FilterChip(selected = state.fontScale == option,
-                        onClick = { onFont(option) }, label = { Text(option.arabicLabel) })
+                        onClick = { onFont(option) }, label = { Text(option.arabicLabel(uiText)) })
                 }
             }
         }
@@ -70,22 +74,23 @@ internal fun SettingsAppearanceSection(
 /** A real card renderer with fixed, memory-only dummy content and no clinical actions. */
 @Composable
 internal fun SettingsPatientCardPreview(state: SettingsUiState, modifier: Modifier = Modifier) {
+    val uiText = rememberUiStrings()
     val sample = remember {
-        Patient(id = "appearance-preview", name = "شاي بالنعناع", admittanceNumber = "١٢٣",
-            initialDiagnosis = "نص تشخيص تجريبي لمعاينة الخط",
-            treatmentPlan = "نص تجريبي لخطة العلاج",
-            followUp = "نص تجريبي للمتابعة", labs = "Hb: 12.5 g/dL",
+        Patient(id = "appearance-preview", name = uiText(R.string.ui_settings_appearance_section_004), admittanceNumber = uiText(R.string.ui_settings_appearance_section_005),
+            initialDiagnosis = uiText(R.string.ui_settings_appearance_section_006),
+            treatmentPlan = uiText(R.string.ui_settings_appearance_section_007),
+            followUp = uiText(R.string.ui_settings_appearance_section_008), labs = "Hb: 12.5 g/dL",
             responsibleResidentId = "preview-resident", responsibleSpecialistId = "preview-supervisor")
     }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        Text("معاينة البطاقة · بيانات تجريبية فقط", style = MaterialTheme.typography.labelLarge)
-        Text("تتبع المعاينة المظهر والخط ومسافات البطاقات المختارة.",
+        Text(uiText(R.string.ui_settings_appearance_section_009), style = MaterialTheme.typography.labelLarge)
+        Text(uiText(R.string.ui_settings_appearance_section_010),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         // Font scale comes from the same app-wide density provider as the ward.
         RushdPatientsTheme(preset = state.appTheme, appearance = state.appearance) {
             PatientCard(patient = sample, expanded = true, twoColumn = state.patientTwoColumn,
                 compact = state.patientCompactDensity,
-                doctorNames = mapOf("preview-resident" to "سنديان", "preview-supervisor" to "صنوبر"),
+                doctorNames = mapOf("preview-resident" to uiText(R.string.ui_settings_appearance_section_011), "preview-supervisor" to uiText(R.string.ui_settings_appearance_section_012)),
                 readOnly = true, showViewControls = false, onClick = {}, onDelete = {})
         }
     }

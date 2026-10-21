@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+
 import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,10 +32,11 @@ fun AppPickerField(
     valueTextDirection: TextDirection = TextDirection.ContentOrRtl,
     errorMessage: String? = null
 ) {
+    val uiText = rememberUiStrings()
     val active = enabled && LocalFieldEnabled.current
     val interactionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = modifier.fillMaxWidth().appFieldLayout(hasLabel = true, isError = isError, errorMessage = errorMessage)
+        modifier = modifier.fillMaxWidth().appFieldLayout(uiText, hasLabel = true, isError = isError, errorMessage = errorMessage)
             .clickable(interactionSource = interactionSource, indication = null,
                 enabled = active, role = Role.Button, onClickLabel = label, onClick = onClick)
     ) {

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,6 +32,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Boolean,
     bottomClearance: Dp, onAdd: () -> Unit, onFetch: () -> Unit, onCopyPrevious: () -> Unit,
     topContent: @Composable () -> Unit = {}) {
+    val uiText = rememberUiStrings()
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.emptyWardMaxWidth)
             .fillMaxWidth().verticalScroll(rememberScrollState())
@@ -42,31 +46,31 @@ internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Bool
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(UiSpacing.section).size(UiSize.icon))
             }
-            Text(if (isReadOnly) "لا يوجد مرضى في هذه المناوبة" else "ابدأ قائمة مرضى المناوبة",
+            Text(if (isReadOnly) uiText(R.string.ui_empty_ward_patients_001) else uiText(R.string.ui_empty_ward_patients_002),
                 style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { heading() })
-            Text(if (isReadOnly) "هذه مناوبة محفوظة للعرض فقط."
-                else "قائمة هذه المناوبة على جهازك فارغة. اختر كيف تريد البدء.",
+            Text(if (isReadOnly) uiText(R.string.ui_empty_ward_patients_003)
+                else uiText(R.string.ui_empty_ward_patients_004),
                 style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!isReadOnly) {
                 AppButton(onClick = onAdd, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
-                    Text("إضافة أول مريض", Modifier.padding(start = UiSpacing.small))
+                    Text(uiText(R.string.ui_empty_ward_patients_005), Modifier.padding(start = UiSpacing.small))
                 }
-                Text("لإدخال مريض جديد يدوياً", style = MaterialTheme.typography.bodySmall,
+                Text(uiText(R.string.ui_empty_ward_patients_006), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("هل لديك بيانات جاهزة؟", modifier = Modifier.fillMaxWidth()
+                Text(uiText(R.string.ui_empty_ward_patients_007), modifier = Modifier.fillMaxWidth()
                     .padding(top = UiSpacing.screen).semantics { heading() },
                     style = MaterialTheme.typography.titleSmall)
                 Surface(shape = MaterialTheme.shapes.medium, border = com.hos.rushdpatients.ui.theme.UiBorder.stroke()) {
-                    AppDestinationRow(title = "جلب بيانات الفريق", icon = Icons.Filled.CloudDownload,
-                        summary = "استرجع أحدث نسخة منشورة على تليجرام بعد التأكيد.",
+                    AppDestinationRow(title = uiText(R.string.ui_empty_ward_patients_008), icon = Icons.Filled.CloudDownload,
+                        summary = uiText(R.string.ui_empty_ward_patients_009),
                         enabled = !busy, onClick = onFetch)
                 }
                 Surface(shape = MaterialTheme.shapes.medium, border = com.hos.rushdpatients.ui.theme.UiBorder.stroke()) {
-                    AppDestinationRow(title = "نسخ المناوبة السابقة", icon = Icons.Filled.History,
-                        summary = "ابدأ اليوم بنسخة من المرضى والمهام غير المكتملة؛ تراجعها قبل الحفظ.",
+                    AppDestinationRow(title = uiText(R.string.ui_empty_ward_patients_010), icon = Icons.Filled.History,
+                        summary = uiText(R.string.ui_empty_ward_patients_011),
                         enabled = !busy && canCopy, onClick = onCopyPrevious)
                 }
             }

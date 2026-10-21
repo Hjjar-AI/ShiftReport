@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import com.hos.rushdpatients.config.ProjectConfigStore
@@ -19,6 +23,7 @@ import kotlinx.coroutines.launch
 
 /** Shares the screen state and ViewModel scope; does not create a second lifecycle. */
 internal class SettingsProjectOperations(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<SettingsUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val emptyStart: EmptyStartCoordinator, private val sessionManager: SessionManager,
@@ -38,7 +43,7 @@ internal class SettingsProjectOperations(
                 emptyStartToken = emptyStart.prepare()
                 _state.update { it.copy(emptyStartReview = emptyStartToken?.text) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: "تعذر إعداد البداية الفارغة") } }
+            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: uiText(R.string.ui_settings_project_operations_001)) } }
             finally { _state.update { it.copy(emptyStartBusy = false) } }
         }
     }
@@ -59,9 +64,9 @@ internal class SettingsProjectOperations(
             try {
                 emptyStart.confirm(review)
                 load()
-                _state.update { it.copy(emptyStartResult = "تم نشر البداية الفارغة ومسح المرضى والمناوبات على هذا الجهاز. بقي الأطباء والاتصال وسجل تليجرام. على الأجهزة الأخرى جلب البيانات قبل العمل.") }
+                _state.update { it.copy(emptyStartResult = uiText(R.string.ui_settings_project_operations_002)) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: "تعذر إكمال البداية الفارغة؛ افحص النسخة الحالية قبل الإعادة") } }
+            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: uiText(R.string.ui_settings_project_operations_003)) } }
             finally { _state.update { it.copy(emptyStartBusy = false) } }
         }
     }
@@ -70,14 +75,14 @@ internal class SettingsProjectOperations(
         if (_state.value.savingSupervisorGroupId != null) return
         val session = sessionManager.current()
         if (session?.isAdmin != true) {
-            _state.update { it.copy(snackbar = "هذه الإعدادات متاحة للمدير فقط") }
+            _state.update { it.copy(snackbar = uiText(R.string.ui_settings_project_operations_004)) }
             return
         }
         val trimmed = rawValue.trim()
         val chatId = if (trimmed.isEmpty()) null else trimmed.toLongOrNull()
         if (trimmed.isNotEmpty() && (chatId == null || chatId >= 0L)) {
             _state.update {
-                it.copy(snackbar = "معرف مجموعة تليجرام يجب أن يكون رقماً سالباً")
+                it.copy(snackbar = uiText(R.string.ui_settings_project_operations_005))
             }
             return
         }
@@ -86,7 +91,7 @@ internal class SettingsProjectOperations(
             try {
                 doctorMutations.setSupervisorGroup(expected, chatId)
                 _state.update { it.copy(savingSupervisorGroupId = null,
-                    snackbar = "حُفظت وجهة المشرف محلياً؛ افتح سجل الأطباء واختر «نشر سجل الأطباء» لمشاركتها") }
+                    snackbar = uiText(R.string.ui_settings_project_operations_006)) }
             } catch (e: CancellationException) {
                 _state.update { it.copy(savingSupervisorGroupId = null) }
                 throw e
@@ -94,7 +99,7 @@ internal class SettingsProjectOperations(
                 _state.update {
                     it.copy(
                         savingSupervisorGroupId = null,
-                        snackbar = e.message ?: "تعذر حفظ معرف المجموعة"
+                        snackbar = e.message ?: uiText(R.string.ui_settings_project_operations_007)
                     )
                 }
             }
@@ -120,7 +125,7 @@ internal class SettingsProjectOperations(
                     val saved = provisioningManager.saveStagedToDownloads(id)
                     clearPendingProvisioning()
                     _state.update { it.copy(provisioningBusy = false,
-                        snackbar = "تم حفظ ملف الانضمام والتحقق من ${com.hos.rushdpatients.ui.components.uiNumber(saved.byteCount)} بايت في التنزيلات/ShiftReport. شارك عبارة المرور عبر قناة منفصلة.") }
+                        snackbar = uiText(R.string.ui_settings_project_operations_008, com.hos.rushdpatients.ui.components.uiNumber(saved.byteCount))) }
                 } else if (share) {
                     adminAuthorizer.requireAdmin()
                     val id = checkNotNull(savedStateHandle.get<String>(PENDING_PROVISIONING_ID))
@@ -138,7 +143,7 @@ internal class SettingsProjectOperations(
                 clearPendingProvisioning()
                 _state.update {
                     it.copy(provisioningBusy = false, provisioningReady = false,
-                        snackbar = e.message ?: "فشل تجهيز ملف الانضمام")
+                        snackbar = e.message ?: uiText(R.string.ui_settings_project_operations_009))
                 }
             } finally {
                 password.fill('\u0000')
@@ -153,8 +158,8 @@ internal class SettingsProjectOperations(
     fun provisioningShareHandled(failed: Boolean) {
         _state.update {
             it.copy(provisioningShareUri = null,
-                snackbar = if (failed) "تعذر فتح المشاركة؛ جرّب حفظ الملف من نافذة إنشاء ملف الانضمام"
-                else "ملف الانضمام المشفر جاهز. شارك عبارة المرور عبر قناة منفصلة.")
+                snackbar = if (failed) uiText(R.string.ui_settings_project_operations_010)
+                else uiText(R.string.ui_settings_project_operations_011))
         }
     }
 
@@ -163,7 +168,7 @@ internal class SettingsProjectOperations(
             clearPendingProvisioning()
             _state.update {
                 it.copy(provisioningBusy = false, provisioningReady = false,
-                    snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء ملف الانضمام")
+                    snackbar = uiText(R.string.ui_settings_project_operations_012))
             }
         }
     }
@@ -174,11 +179,11 @@ internal class SettingsProjectOperations(
         viewModelScope.launch {
             try {
                 if (uri == null) return@launch
-                check(exportId != null) { "انتهت جلسة التصدير؛ أعد إنشاء ملف الانضمام" }
+                check(exportId != null) { uiText(R.string.ui_settings_project_operations_013) }
                 adminAuthorizer.requireAdmin()
                 provisioningManager.writeStagedExport(uri, exportId)
                 _state.update {
-                    it.copy(snackbar = "تم حفظ ملف الانضمام المشفر والتحقق منه. شارك عبارة المرور عبر قناة منفصلة.")
+                    it.copy(snackbar = uiText(R.string.ui_settings_project_operations_014))
                 }
             } catch (e: CancellationException) {
                 withContext(NonCancellable) {
@@ -187,7 +192,7 @@ internal class SettingsProjectOperations(
                 throw e
             } catch (e: Exception) {
                 if (uri != null) provisioningManager.discardFailedDestination(uri)
-                _state.update { it.copy(snackbar = e.message ?: "فشل حفظ ملف الانضمام") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_project_operations_015)) }
             } finally {
                 clearPendingProvisioning()
                 _state.update { it.copy(provisioningBusy = false) }

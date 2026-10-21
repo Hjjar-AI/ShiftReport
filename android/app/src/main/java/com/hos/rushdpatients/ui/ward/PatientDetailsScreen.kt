@@ -1,5 +1,14 @@
 package com.hos.rushdpatients.ui.ward
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppCompactTopBar
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.UiAction
@@ -75,6 +84,7 @@ internal fun PatientDetailsScreen(
     navigationEnabled: Boolean = true,
     onNavigateToPatient: (String) -> Unit = {}
 ) {
+    val uiText = rememberUiStrings()
     val haptics = LocalHapticFeedback.current
     var section by rememberSaveable(patient.id, key = "patient-detail-section") {
         mutableStateOf(PatientDetailSection.CLINICAL)
@@ -92,7 +102,7 @@ internal fun PatientDetailsScreen(
                         },
                         navigation = {
                             IconButton(onClick = onDismiss) {
-                                Icon(Icons.Filled.Close, contentDescription = "إغلاق ملف المريض")
+                                Icon(Icons.Filled.Close, contentDescription = uiText(R.string.ui_patient_details_screen_001))
                             }
                         }
                     )
@@ -118,7 +128,7 @@ internal fun PatientDetailsScreen(
                                     selected = section == option,
                                     onClick = { section = option },
                                     label = {
-                                        Text(option.arabicLabel + if (count > 0) " ${uiNumber(count)}" else "")
+                                        Text(option.arabicLabel(uiText) + if (count > 0) " ${uiNumber(count)}" else "")
                                     }
                                 )
                             }
@@ -162,26 +172,26 @@ internal fun PatientDetailsScreen(
                         onDelete = {}
                     )
                     PatientDetailSection.TASKS -> DetailTextSection(
-                        title = "مهام المريض",
+                        title = uiText(R.string.ui_patient_details_screen_002),
                         content = PatientTasks.summary(patient.tasks, doctorNames)
-                            .ifBlank { "لا توجد مهام مسجلة" }
+                            .ifBlank { uiText(R.string.ui_patient_details_screen_003) }
                     )
                     PatientDetailSection.WARNINGS -> DetailTextSection(
-                        title = "شارة المريض",
+                        title = uiText(R.string.ui_patient_details_screen_004),
                         content = patient.badges.joinToString("\n") { badge ->
-                            val level = badge.priority?.let { " · أولوية ${it.arabicLabel}" }.orEmpty()
+                            val level = badge.priority?.let { uiText(R.string.ui_patient_details_screen_005, it.uiLabel(uiText)) }.orEmpty()
                             "• ${badge.text}$level"
-                        }.ifBlank { "لا توجد شارات" }
+                        }.ifBlank { uiText(R.string.ui_patient_details_screen_006) }
                     )
                     PatientDetailSection.HISTORY -> DetailTextSection(
-                        title = "السجل الزمني المهم",
-                        content = meaningfulTimeline(patient, activity)
+                        title = uiText(R.string.ui_patient_details_screen_007),
+                        content = meaningfulTimeline(uiText, patient, activity)
                     )
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     AppOutlinedButton(onClick = onCopy) {
                         Icon(Icons.Filled.ContentCopy, contentDescription = null)
-                        Text("نسخ", Modifier.padding(start = UiSpacing.small))
+                        Text(uiText(R.string.ui_copy), Modifier.padding(start = UiSpacing.small))
                     }
                     if (!readOnly) {
                         AppOutlinedButton(onClick = {
@@ -193,7 +203,7 @@ internal fun PatientDetailsScreen(
                                 contentDescription = null
                             )
                             Text(
-                                if (patient.isPriority) "إلغاء الأولوية" else "تحديد أولوية",
+                                if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018),
                                 Modifier.padding(start = UiSpacing.small)
                             )
                         }
@@ -209,14 +219,14 @@ internal fun PatientDetailsScreen(
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
             Surface(Modifier.fillMaxSize()) {
                 WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
-                    listFraction = .42f, onListFractionChange = {}, modifier = Modifier.fillMaxSize(), primaryTitle = "ملف المريض",
+                    listFraction = .42f, onListFractionChange = {}, modifier = Modifier.fillMaxSize(), primaryTitle = uiText(R.string.ui_ward_screen_005),
                     primary = { content() })
             }
         }
     }
 }
 
-private fun meaningfulTimeline(patient: Patient, activity: List<AuditEntryEntity>): String {
+private fun meaningfulTimeline(uiText: UiStrings, patient: Patient, activity: List<AuditEntryEntity>): String {
     val matching = activity.filter { it.patientId == patient.id }
         .sortedByDescending { it.atEpochMillis }
         .take(20)
@@ -224,22 +234,22 @@ private fun meaningfulTimeline(patient: Patient, activity: List<AuditEntryEntity
         return matching.joinToString("\n\n") { entry ->
             buildString {
                 append(uiDateTime(Instant.ofEpochMilli(entry.atEpochMillis)))
-                append(" · ").append(entry.actorName ?: "النظام")
+                append(" · ").append(entry.actorName ?: uiText(R.string.ui_ward_activity_screen_012))
                 append("\n").append(entry.detail.ifBlank { entry.action })
-                entry.beforeValue?.takeIf(String::isNotBlank)?.let { append("\nقبل: ").append(it) }
-                entry.afterValue?.takeIf(String::isNotBlank)?.let { append("\nبعد: ").append(it) }
+                entry.beforeValue?.takeIf(String::isNotBlank)?.let { append(uiText(R.string.ui_patient_details_screen_010)).append(it) }
+                entry.afterValue?.takeIf(String::isNotBlank)?.let { append(uiText(R.string.ui_patient_details_screen_011)).append(it) }
             }
         }
     }
     return buildString {
-        append("آخر تعديل محلي · ")
-        append(patient.lastEditedByName ?: "غير محدد")
+        append(uiText(R.string.ui_patient_details_screen_012))
+        append(patient.lastEditedByName ?: uiText(R.string.ui_unspecified))
         append("\n")
         append(uiDateTime(patient.updatedAt))
-        if (patient.isPriority) append("\nالمريض محدد كأولوية")
+        if (patient.isPriority) append(uiText(R.string.ui_patient_details_screen_013))
         if (patient.badges.isNotEmpty()) {
-            append("\nشارات: ")
-            append(patient.badges.joinToString("، ") { it.text })
+            append(uiText(R.string.ui_patient_details_screen_014))
+            append(patient.badges.joinToString(uiText(R.string.ui_patient_card_002)) { it.text })
         }
     }
 }
@@ -247,14 +257,17 @@ private fun meaningfulTimeline(patient: Patient, activity: List<AuditEntryEntity
 
 @Composable
 private fun DetailTextSection(title: String, content: String) {
+    val uiText = rememberUiStrings()
     com.hos.rushdpatients.ui.components.AppCard {
-        AppClinicalSection(title, content, modifier = Modifier.padding(UiPadding.content), emptyText = "لا توجد بيانات مسجلة")
+        AppClinicalSection(title, content, modifier = Modifier.padding(UiPadding.content), emptyText = uiText(R.string.ui_patient_details_screen_009))
     }
 }
 
-private enum class PatientDetailSection(val arabicLabel: String) {
-    CLINICAL("الملف السريري"),
-    TASKS("المهام"),
-    WARNINGS("الشارة"),
-    HISTORY("السجل")
+private enum class PatientDetailSection(@StringRes private val arabicLabelRes: Int) {
+    CLINICAL(R.string.ui_patient_details_screen_015),
+    TASKS(R.string.ui_tasks),
+    WARNINGS(R.string.ui_patient_details_screen_016),
+    HISTORY(R.string.ui_patient_details_screen_017);
+
+    fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }

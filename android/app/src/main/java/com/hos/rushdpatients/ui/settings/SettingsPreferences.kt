@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
@@ -20,6 +24,7 @@ import kotlinx.coroutines.launch
 
 /** Shares the screen state and ViewModel scope; does not create a second lifecycle. */
 internal class SettingsPreferences(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<SettingsUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val settingsRepository: SettingsRepository
@@ -166,7 +171,7 @@ internal class SettingsPreferences(
     fun setReportWardName(value: String) {
         viewModelScope.launch {
             settingsRepository.put(AppConstants.SETTING_REPORT_WARD_NAME, value.trim())
-            _state.update { it.copy(reportWardName = value.trim(), snackbar = "حُفظ اسم الجناح للتقارير") }
+            _state.update { it.copy(reportWardName = value.trim(), snackbar = uiText(R.string.ui_settings_preferences_001)) }
         }
     }
 

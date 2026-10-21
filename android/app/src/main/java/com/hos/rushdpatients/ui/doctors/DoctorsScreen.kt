@@ -1,5 +1,14 @@
 package com.hos.rushdpatients.ui.doctors
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.rememberFloatingActionSpace
@@ -75,6 +84,7 @@ fun DoctorsScreen(
     onBack: () -> Unit,
     viewModel: DoctorsViewModel = hiltViewModel()
 ) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
@@ -136,14 +146,14 @@ fun DoctorsScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = "سجل الأطباء", onBack = onBack)
+            AppTopBar(title = uiText(R.string.ui_doctors_screen_001), onBack = onBack)
         },
         floatingActionButton = {
             if (!busy) ExtendedFloatingActionButton(
                 onClick = { showAdd = true },
                 modifier = actionSpace.measure,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("إضافة طبيب") }
+                text = { Text(uiText(R.string.ui_add_edit_doctor_dialog_001)) }
             )
         },
         snackbarHost = { SnackbarHost(snackbar) }
@@ -154,7 +164,7 @@ fun DoctorsScreen(
                 .padding(padding)
         ) {
             when {
-                state.loading && state.doctors.isEmpty() -> AppLoadingState("جار تحميل سجل الأطباء…", Modifier.align(Alignment.Center))
+                state.loading && state.doctors.isEmpty() -> AppLoadingState(uiText(R.string.ui_login_screen_001), Modifier.align(Alignment.Center))
                 else -> LazyColumn(
                     contentPadding = PaddingValues(bottom = actionSpace.bottomPadding),
                     modifier = Modifier
@@ -164,29 +174,29 @@ fun DoctorsScreen(
                 ) {
                     if (state.loading || state.importing || state.exporting) item {
                         AppLoadingState(when {
-                            state.importing -> "جار استيراد سجل الأطباء…"
-                            state.exporting -> "جار تصدير سجل الأطباء…"
-                            else -> "جار تحديث سجل الأطباء…"
+                            state.importing -> uiText(R.string.ui_doctors_screen_002)
+                            state.exporting -> uiText(R.string.ui_doctors_screen_003)
+                            else -> uiText(R.string.ui_doctors_screen_004)
                         })
                     }
                     item {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                             AppOutlinedButton(onClick = { registryAction = "fetch" },
-                                enabled = !busy && state.pendingRegistrySummary == null) { Text("جلب سجل الأطباء") }
-                            AppOutlinedButton(onClick = { registryReview = state.doctors.toList(); registryAction = "publish" }, enabled = !busy) { Text("نشر سجل الأطباء") }
+                                enabled = !busy && state.pendingRegistrySummary == null) { Text(uiText(R.string.ui_doctors_screen_005)) }
+                            AppOutlinedButton(onClick = { registryReview = state.doctors.toList(); registryAction = "publish" }, enabled = !busy) { Text(uiText(R.string.ui_doctors_screen_006)) }
                         }
                         state.pendingRegistrySummary?.let { summary ->
-                            com.hos.rushdpatients.ui.components.AppNotice("سجل الأطباء محفوظ محلياً وينتظر النشر.",
-                                actionLabel = if (pendingDetails) "طي التعديلات" else "عرض التعديلات",
+                            com.hos.rushdpatients.ui.components.AppNotice(uiText(R.string.ui_doctors_screen_007),
+                                actionLabel = if (pendingDetails) uiText(R.string.ui_doctors_screen_008) else uiText(R.string.ui_doctors_screen_009),
                                 onAction = { pendingDetails = !pendingDetails })
                             if (pendingDetails) Text(summary, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     item {
-                        AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy) { Text("إدارة الفرق معاً") }
+                        AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy) { Text(uiText(R.string.ui_team_management_dialog_002)) }
                     }
                     item {
-                        AppSearchField(query = query, onQueryChange = { query = it }, label = "البحث بالاسم أو معرف تليجرام")
+                        AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_doctors_screen_010))
                     }
                     item {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
@@ -194,7 +204,7 @@ fun DoctorsScreen(
                                 FilterChip(
                                     selected = filter == option,
                                     onClick = { filter = option },
-                                    label = { Text(option.label) }
+                                    label = { Text(option.label(uiText)) }
                                 )
                             }
                         }
@@ -208,9 +218,9 @@ fun DoctorsScreen(
                                 AppTextButton(
                                     onClick = { transferExpanded = !transferExpanded },
                                     modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-                                        .semantics { stateDescription = if (transferExpanded) "موسّعة" else "مطوية" }
+                                        .semantics { stateDescription = if (transferExpanded) uiText(R.string.ui_doctors_screen_011) else uiText(R.string.ui_doctors_screen_012) }
                                 ) {
-                                    Text("نقل سجل الأطباء", modifier = Modifier.weight(1f),
+                                    Text(uiText(R.string.ui_doctors_screen_013), modifier = Modifier.weight(1f),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold)
                                     Icon(if (transferExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -218,7 +228,7 @@ fun DoctorsScreen(
                                 }
                                 if (transferExpanded) {
                                     Text(
-                                        "الاستيراد: اختيار ملف ← مراجعة التغييرات ← تأكيد الحفظ والنشر إلى المشروع. التصدير يحفظ ملفاً محلياً فقط.",
+                                        uiText(R.string.ui_doctors_screen_014),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -227,14 +237,14 @@ fun DoctorsScreen(
                                             AppOutlinedButton(onClick = { importLauncher.launch(arrayOf("*/*")) },
                                                 enabled = !busy, modifier = fieldModifier) {
                                                 Icon(Icons.Default.FolderOpen, contentDescription = null)
-                                                Text("استيراد CSV", Modifier.padding(start = UiSpacing.small))
+                                                Text(uiText(R.string.ui_doctors_screen_015), Modifier.padding(start = UiSpacing.small))
                                             }
                                         },
                                         second = { fieldModifier ->
                                             AppOutlinedButton(onClick = viewModel::prepareDoctorExport,
                                                 enabled = !busy, modifier = fieldModifier) {
                                                 Icon(Icons.Default.Save, contentDescription = null)
-                                                Text("تصدير CSV", Modifier.padding(start = UiSpacing.small))
+                                                Text(uiText(R.string.ui_doctors_screen_016), Modifier.padding(start = UiSpacing.small))
                                             }
                                         }
                                     )
@@ -245,13 +255,13 @@ fun DoctorsScreen(
                     if (visibleDoctors.isEmpty()) {
                         item {
                             EmptyState(
-                                title = if (state.doctors.isEmpty()) "لا يوجد أطباء" else "لا توجد نتائج",
+                                title = if (state.doctors.isEmpty()) uiText(R.string.ui_doctors_screen_017) else uiText(R.string.ui_doctors_screen_018),
                                 subtitle = if (state.doctors.isEmpty()) {
-                                    "استورد سجل CSV أو أضف طبيباً جديداً"
+                                    uiText(R.string.ui_doctors_screen_019)
                                 } else {
-                                    "غيّر البحث أو مرشح الدور"
+                                    uiText(R.string.ui_doctors_screen_020)
                                 },
-                                actionLabel = if (state.doctors.isNotEmpty()) "مسح البحث والتصفية" else null,
+                                actionLabel = if (state.doctors.isNotEmpty()) uiText(R.string.ui_ward_activity_screen_008) else null,
                                 onAction = { query = ""; filter = DoctorListFilter.ALL }
                             )
                         }
@@ -296,9 +306,9 @@ fun DoctorsScreen(
 
     deleteTarget?.let { d ->
         ConfirmDialog(
-            title = "حذف طبيب",
-            message = "سيُحذف ${d.fullName} من سجل الأطباء بعد التحقق من الصلاحية.",
-            confirmText = "حذف الطبيب",
+            title = uiText(R.string.ui_doctors_screen_021),
+            message = uiText(R.string.ui_doctors_screen_022, d.fullName),
+            confirmText = uiText(R.string.ui_doctors_screen_023),
             destructive = true,
             onConfirm = {
                 viewModel.deleteDoctor(d) { deleteTarget = null }
@@ -308,66 +318,66 @@ fun DoctorsScreen(
     }
 
     if (state.importing) {
-        AlertDialog(onDismissRequest = {}, title = { Text("استيراد سجل الأطباء") },
-            text = { AppLoadingState("جار قراءة السجل أو حفظ الاستيراد ونشره…") },
+        AlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_doctors_screen_024)) },
+            text = { AppLoadingState(uiText(R.string.ui_doctors_screen_025)) },
             confirmButton = {})
     }
     state.importError?.let { message ->
         AlertDialog(onDismissRequest = viewModel::dismissImportError,
-            title = { Text("تعذر استيراد ملف الأطباء") }, text = { Text(message) },
-            confirmButton = { AppTextButton(onClick = viewModel::dismissImportError) { Text("فهمت") } })
+            title = { Text(uiText(R.string.ui_doctors_screen_026)) }, text = { Text(message) },
+            confirmButton = { AppTextButton(onClick = viewModel::dismissImportError) { Text(uiText(R.string.ui_settings_screen_006)) } })
     }
 
     registryAction?.let { action ->
         AlertDialog(onDismissRequest = { registryAction = null },
-            title = { Text(if (action == "publish") "نشر سجل الأطباء" else "جلب سجل الأطباء") },
+            title = { Text(if (action == "publish") uiText(R.string.ui_doctors_screen_006) else uiText(R.string.ui_doctors_screen_005)) },
             text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(if (action == "publish") "ستُنشر النسخة المحلية الكاملة لسجل الأطباء؛ آخر نشر ناجح هو المعتمد."
-                    else "ستُستبدل بيانات الأطباء على الجهاز بالسجل المنشور؛ تبقى أرقام PIN المحلية للهويات نفسها.")
+                Text(if (action == "publish") uiText(R.string.ui_doctors_screen_027)
+                    else uiText(R.string.ui_doctors_screen_028))
                 if (action == "publish") {
                     state.pendingRegistrySummary?.let { Text(it) }
                     Text(registryReview.joinToString("\n") { it.fullName })
-                    if (registryReview != state.doctors) Text("تغيّر السجل أثناء المراجعة؛ أغلق هذه النافذة وأعد النشر.")
+                    if (registryReview != state.doctors) Text(uiText(R.string.ui_doctors_screen_029))
                 }
             } }, confirmButton = { AppTextButton(enabled = !busy && (action != "publish" || registryReview == state.doctors), onClick = {
                 registryAction = null
                 if (action == "publish") viewModel.publishDoctors(registryReview) else viewModel.fetchDoctors()
-            }) { Text(if (action == "publish") "تأكيد النشر" else "جلب السجل") } },
-            dismissButton = { AppTextButton(onClick = { registryAction = null }) { Text("إلغاء") } })
+            }) { Text(if (action == "publish") uiText(R.string.ui_doctors_screen_030) else uiText(R.string.ui_doctors_screen_031)) } },
+            dismissButton = { AppTextButton(onClick = { registryAction = null }) { Text(uiText(R.string.ui_cancel)) } })
     }
     state.importPreview?.takeUnless { state.importing }?.let { preview ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDoctorImport,
-            title = { Text("مراجعة التغييرات قبل حفظ سجل الأطباء ونشره") },
+            title = { Text(uiText(R.string.ui_doctors_screen_032)) },
             text = {
                 Column(modifier = Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text("الأطباء الفعّالون: ${preview.activeCount}")
-                    listOf("إضافات" to preview.added, "تعديلات" to preview.changed,
-                        "صفوف مستوردة دون تغيير" to preview.unchanged,
-                        "سجلات غائبة عن الملف محفوظة كما هي" to preview.retained).forEach { (label, names) ->
-                        Text("$label (${names.size}): " + names.joinToString("، ").ifBlank { "لا يوجد" })
+                    Text(uiText(R.string.ui_doctors_screen_033, preview.activeCount))
+                    listOf(uiText(R.string.ui_doctors_screen_034) to preview.added, uiText(R.string.ui_doctors_screen_035) to preview.changed,
+                        uiText(R.string.ui_doctors_screen_036) to preview.unchanged,
+                        uiText(R.string.ui_doctors_screen_037) to preview.retained).forEach { (label, names) ->
+                        Text("$label (${names.size}): " + names.joinToString(uiText(R.string.ui_patient_card_002)).ifBlank { uiText(R.string.ui_doctors_screen_038) })
                     }
-                    Text("المديرون: ${preview.adminCount}")
-                    Text("السجلات المحذوفة: ${preview.deletedCount}")
+                    Text(uiText(R.string.ui_doctors_screen_039, preview.adminCount))
+                    Text(uiText(R.string.ui_doctors_screen_040, preview.deletedCount))
                     if (preview.newWithoutPinCount > 0) {
                         Text(
-                            "${preview.newWithoutPinCount} أطباء جدد سيختار كل منهم رقماً سرياً بعد أول تحقق عبر تليجرام. لا تُصدّر أرقام PIN أو مشتقاتها إلى CSV.",
+                            uiText(R.string.ui_doctors_screen_041, preview.newWithoutPinCount),
                             color = MaterialTheme.colorScheme.tertiary
                         )
                     }
                     Text(
-                        "الاستيراد يضيف ويحدّث حسب المعرّف أو تليجرام أو الاسم ويحفظ الغائبين. بعد الموافقة يُحفظ محلياً ويُنشر السجل الكامل على تليجرام. يبقى المدير الحالي والمديرون الدائمون محميين.",
+                        uiText(R.string.ui_doctors_screen_042),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
             },
             confirmButton = {
-                AppTextButton(onClick = viewModel::confirmDoctorImport, enabled = !busy) { Text("حفظ الاستيراد ونشر السجل الكامل") }
+                AppTextButton(onClick = viewModel::confirmDoctorImport, enabled = !busy) { Text(uiText(R.string.ui_doctors_screen_043)) }
             },
             dismissButton = {
-                AppTextButton(onClick = viewModel::dismissDoctorImport, enabled = !busy) { Text("إلغاء") }
+                AppTextButton(onClick = viewModel::dismissDoctorImport, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }
@@ -381,6 +391,7 @@ private fun DoctorCard(
     enabled: Boolean = true,
     teamSupervisorName: String? = null
 ) {
+    val uiText = rememberUiStrings()
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -391,39 +402,41 @@ private fun DoctorCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(doctor.fullName, style = MaterialTheme.typography.bodyLarge)
                 val accessText = when {
-                    doctor.isPermanentAdmin -> "مدير دائم"
-                    doctor.isAdmin -> "مدير"
-                    else -> "عضو طبي"
+                    doctor.isPermanentAdmin -> uiText(R.string.ui_doctors_screen_044)
+                    doctor.isAdmin -> uiText(R.string.ui_ward_drawer_004)
+                    else -> uiText(R.string.ui_doctors_screen_045)
                 }
                 Text(
-                    doctor.clinicalRole.arabicLabel,
+                    doctor.clinicalRole.uiLabel(uiText),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
                 if (doctor.clinicalRole == com.hos.rushdpatients.data.model.ClinicalRole.RESIDENT) {
-                    Text("مشرف الفريق: " + (teamSupervisorName ?: "دون فريق"), style = MaterialTheme.typography.bodySmall)
+                    Text(uiText(R.string.ui_doctors_screen_046) + (teamSupervisorName ?: uiText(R.string.ui_team_management_dialog_001)), style = MaterialTheme.typography.bodySmall)
                 }
-                Text("صلاحية التطبيق: $accessText", style = MaterialTheme.typography.bodySmall)
+                Text(uiText(R.string.ui_doctors_screen_047, accessText), style = MaterialTheme.typography.bodySmall)
                 doctor.telegramId?.let {
-                    Text("تليجرام: $it", style = MaterialTheme.typography.bodySmall)
+                    Text(uiText(R.string.ui_doctors_screen_048, it), style = MaterialTheme.typography.bodySmall)
                 }
                 doctor.customTitle?.let {
-                    Text("اللقب: $it", style = MaterialTheme.typography.bodySmall)
+                    Text(uiText(R.string.ui_doctors_screen_049, it), style = MaterialTheme.typography.bodySmall)
                 }
             }
             IconButton(onClick = onEdit, enabled = enabled) {
-                Icon(Icons.Default.Edit, contentDescription = "تعديل ${doctor.fullName}")
+                Icon(Icons.Default.Edit, contentDescription = uiText(R.string.ui_doctors_screen_050, doctor.fullName))
             }
             IconButton(onClick = onDelete, enabled = enabled) {
-                Icon(Icons.Default.Delete, contentDescription = "حذف ${doctor.fullName}")
+                Icon(Icons.Default.Delete, contentDescription = uiText(R.string.ui_doctors_screen_051, doctor.fullName))
             }
         }
     }
 }
 
-private enum class DoctorListFilter(val label: String) {
-    ALL("الكل"),
-    RESIDENTS("المقيمون"),
-    SUPERVISORS("المشرفون"),
-    ADMINS("المديرون")
+private enum class DoctorListFilter(@StringRes private val labelRes: Int) {
+    ALL(R.string.ui_all),
+    RESIDENTS(R.string.ui_doctors_screen_052),
+    SUPERVISORS(R.string.ui_doctor_choice_groups_001),
+    ADMINS(R.string.ui_doctors_screen_053);
+
+    fun label(uiText: UiStrings): String = uiText(labelRes)
 }

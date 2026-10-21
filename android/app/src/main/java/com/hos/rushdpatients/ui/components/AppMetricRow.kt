@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.R
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -13,10 +15,11 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @Composable
 fun AppMetricRow(label: String, count: Int, compact: Boolean = false, kind: NoticeKind = NoticeKind.INFO,
     onClick: () -> Unit) {
+    val uiText = rememberUiStrings()
     val colors = noticeColors(kind)
     val urgent = kind == NoticeKind.ERROR || kind == NoticeKind.WARNING
     Surface(modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-        .clickable(role = Role.Button, onClickLabel = "عرض $label", onClick = onClick),
+        .clickable(role = Role.Button, onClickLabel = uiText(R.string.ui_app_metric_row_001, label), onClick = onClick),
         shape = MaterialTheme.shapes.medium, color = if (urgent) colors.first else MaterialTheme.colorScheme.surface,
         contentColor = if (urgent) colors.second else MaterialTheme.colorScheme.onSurface) {
         Row(Modifier.padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,

@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.announcement
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.domain.announcement.AnnouncementPublisher
@@ -18,6 +22,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AnnouncementViewModel @Inject constructor(
+    private val uiText: UiStrings,
     private val publisher: AnnouncementPublisher,
     ledger: ReportDeliveryLedger
 ) : ViewModel() {
@@ -30,7 +35,7 @@ class AnnouncementViewModel @Inject constructor(
         refresh()
         viewModelScope.launch {
             ledger.observe().catch {
-                _state.update { it.copy(ledgerUnavailable = true, snackbar = "تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد") }
+                _state.update { it.copy(ledgerUnavailable = true, snackbar = uiText(R.string.ui_announcement_view_model_001)) }
             }.collect { records ->
                 _state.update { it.copy(ledgerUnavailable = false,
                     deliveryRecords = records.filter { row -> row.shiftId == AnnouncementPublisher.SCOPE && row.format == AnnouncementPublisher.SCOPE && row.status == "UNKNOWN" }) }
@@ -47,7 +52,7 @@ class AnnouncementViewModel @Inject constructor(
                 _state.update { it.copy(lastMessageId = messageId, loading = false) }
             }
             catch (e: CancellationException) { _state.update { it.copy(loading = false) }; throw e }
-            catch (e: Exception) { _state.update { it.copy(loading = false, snackbar = e.message ?: "تعذر قراءة فهرس الإعلان") } }
+            catch (e: Exception) { _state.update { it.copy(loading = false, snackbar = e.message ?: uiText(R.string.ui_announcement_view_model_002)) } }
         }
     }
 
@@ -68,7 +73,7 @@ class AnnouncementViewModel @Inject constructor(
                 _state.update { it.copy(reviewing = false, reviewText = prepared.text,
                     reviewExisting = prepared.existingMessageId != null, lastMessageId = prepared.existingMessageId) }
             } catch (e: CancellationException) { _state.update { it.copy(reviewing = false) }; throw e }
-            catch (e: Exception) { _state.update { it.copy(reviewing = false, snackbar = e.message ?: "تعذرت مراجعة الإعلان") } }
+            catch (e: Exception) { _state.update { it.copy(reviewing = false, snackbar = e.message ?: uiText(R.string.ui_announcement_view_model_003)) } }
         }
     }
 
@@ -87,10 +92,10 @@ class AnnouncementViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val messageId = publisher.publish(review)
-                _state.update { it.copy(sending = false, lastMessageId = messageId, snackbar = "تم نشر الإعلان وتأكيد الفهرس") }
+                _state.update { it.copy(sending = false, lastMessageId = messageId, snackbar = uiText(R.string.ui_announcement_view_model_004)) }
             } catch (e: CancellationException) { _state.update { it.copy(sending = false) }; throw e }
             catch (e: Exception) { _state.update { it.copy(sending = false,
-                snackbar = (e.message ?: "لم يتأكد النشر") + "؛ راجع سجل التسليم قبل الإعادة") } }
+                snackbar = (e.message ?: uiText(R.string.ui_announcement_view_model_005)) + uiText(R.string.ui_announcement_view_model_006)) } }
         }
     }
 
@@ -100,10 +105,10 @@ class AnnouncementViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 publisher.resolve(record, messageId)
-                _state.update { it.copy(resolving = false, snackbar = "حُسمت العملية؛ أعد مراجعة النص قبل أي نشر جديد") }
+                _state.update { it.copy(resolving = false, snackbar = uiText(R.string.ui_announcement_view_model_007)) }
                 refresh()
             } catch (e: CancellationException) { _state.update { it.copy(resolving = false) }; throw e }
-            catch (e: Exception) { _state.update { it.copy(resolving = false, snackbar = e.message ?: "تعذر حسم التسليم") } }
+            catch (e: Exception) { _state.update { it.copy(resolving = false, snackbar = e.message ?: uiText(R.string.ui_report_preview_view_model_016)) } }
         }
     }
 

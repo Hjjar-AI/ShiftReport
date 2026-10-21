@@ -84,6 +84,39 @@ normal cache invalidation; that is not a cache-storage failure.
 
 
 
+## KSP cannot access FilterOutputStream.out
+
+The owner-supplied 22 October build failed in KSP incremental-cache persistence
+with `InaccessibleObjectException`: `java.base` did not open `java.io` to the
+compiler's unnamed module. `android/gradle.properties` now supplies
+`--add-opens=java.base/java.io=ALL-UNNAMED` through `kotlin.daemon.jvmargs` so the
+option reaches the Kotlin compiler daemon. No toolchain versions or incremental
+cache settings changed, and no cache deletion is needed for this fix.
+
+Kotlin documents this daemon-specific property in
+[compilation and caches](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments).
+The subsequent owner-run code 17 build progressed past KSP. Packaging remains
+unverified.
+
+## KSP lookup cache cannot be read
+
+The owner-run code 18 build failed while reading `LookupSymbolExternalizer`
+and `FileToSymbolsMap`, with `NegativeArraySizeException` in `IOUtil.readString`.
+This indicates an unreadable incremental lookup cache; the trace does not establish
+what corrupted it. The earlier interrupted cache write is a possible cause.
+
+Moved only the reporting account's generated debug KSP cache from
+`/home/mhmmd/.gradle/shiftreport-project-cache/build-output/app/kspCaches/debug`
+to sibling `debug.corrupt-backup-20261021T230137Z`. The original path is absent,
+allowing regeneration on the next owner-run build. No dependency caches, generated
+sources, application data, versions or incremental settings were changed.
+The backup is preserved for diagnosis; regeneration and build success are unverified.
+
+KSP documents incremental lookup tracking and cache locations in its
+[incremental processing guide](https://kotlinlang.org/docs/ksp-incremental.html).
+If the same failure returns, capture the new trace and actual output path before
+changing further settings or clearing broader caches.
+
 ## Capture one failure
 
 Install Android platform-tools using your normal SDK setup; enable USB debugging,

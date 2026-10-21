@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
@@ -15,6 +19,7 @@ import java.time.Instant
 
 /** Shares the screen state and ViewModel scope; does not create a second lifecycle. */
 internal class SettingsDataOperations(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<SettingsUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val context: Context, private val syncService: SyncService,
@@ -30,7 +35,7 @@ internal class SettingsDataOperations(
         if (!NetworkStatus.isOnline(context)) {
             _state.update {
                 it.copy(
-                    snackbar = "لا يوجد اتصال بالإنترنت — أعد المحاولة لاحقاً",
+                    snackbar = uiText(R.string.ui_settings_data_operations_001),
                     retryAction = SettingsRetryAction.FETCH
                 )
             }
@@ -46,7 +51,7 @@ internal class SettingsDataOperations(
                     it.copy(
                         syncing = false,
                         snackbar = doctorsResult.exceptionOrNull()?.message
-                            ?: "فشل جلب سجل الأطباء",
+                            ?: uiText(R.string.ui_ward_shift_operations_019),
                         retryAction = SettingsRetryAction.FETCH
                     )
                 }
@@ -57,8 +62,8 @@ internal class SettingsDataOperations(
                     _state.update {
                         it.copy(
                             syncing = false,
-                            snackbar = "تم جلب البيانات: جديد ${r.inserted}، محدّث ${r.updated}",
-                            lastOperation = "آخر عملية ناجحة: تنزيل بيانات المرضى",
+                            snackbar = uiText(R.string.ui_settings_data_operations_002, r.inserted, r.updated),
+                            lastOperation = uiText(R.string.ui_settings_data_operations_003),
                             retryAction = null,
                             lastCsvSync = format(Instant.now().toEpochMilli())
                         )
@@ -68,7 +73,7 @@ internal class SettingsDataOperations(
                     _state.update {
                         it.copy(
                             syncing = false,
-                            snackbar = e.message ?: "فشل جلب البيانات",
+                            snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_024),
                             retryAction = SettingsRetryAction.FETCH
                         )
                     }
@@ -85,11 +90,11 @@ internal class SettingsDataOperations(
         viewModelScope.launch {
             try {
                 syncService.undoLastDownload().getOrThrow()
-                _state.update { it.copy(snackbar = "استُعيدت البيانات المحلية قبل التنزيل؛ راجعها قبل النشر") }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_ward_shift_operations_025)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر التراجع عن التنزيل") }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_026)) }
             } finally { _state.update { it.copy(syncing = false) } }
         }
     }
@@ -102,15 +107,15 @@ internal class SettingsDataOperations(
         _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
         viewModelScope.launch {
             try {
-                check(NetworkStatus.isOnline(context)) { "لا يوجد اتصال بالإنترنت؛ بقيت البيانات محفوظة محلياً" }
-                val shiftId = shiftRepository.getByDate(ShiftDate.current())?.id ?: error("لا توجد مناوبة حالية")
+                check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_004) }
+                val shiftId = shiftRepository.getByDate(ShiftDate.current())?.id ?: error(uiText(R.string.ui_settings_data_operations_005))
                 val review = syncService.prepareCsvPublication(shiftId, forceLocal = true)
                 publicationReview = review
                 _state.update { it.copy(publicationReviewText = review.text) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر إعداد مراجعة النشر", retryAction = SettingsRetryAction.UPLOAD) }
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_data_operations_006), retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
                 _state.update { it.copy(syncing = false) }
             }
@@ -130,14 +135,14 @@ internal class SettingsDataOperations(
         _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
         viewModelScope.launch {
             try {
-                check(NetworkStatus.isOnline(context)) { "لا يوجد اتصال بالإنترنت؛ أعد مراجعة النشر عند الاتصال" }
+                check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_007) }
                 val result = syncService.uploadReviewedCsv(review, forceLocal = true).getOrThrow()
-                _state.update { it.copy(snackbar = "نُشرت النسخة المراجعة (${result.patientCount} مريض)",
-                    lastOperation = "آخر عملية: نشر النسخة الكاملة المراجعة") }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_settings_data_operations_008, result.patientCount),
+                    lastOperation = uiText(R.string.ui_settings_data_operations_009)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر تأكيد النشر؛ افحص النسخة المنشورة قبل الإعادة",
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_data_operations_010),
                     retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
                 _state.update { it.copy(syncing = false) }
@@ -154,8 +159,8 @@ internal class SettingsDataOperations(
                     is PatientCsvExporter.Result.Success -> _state.update {
                         it.copy(
                             exportingCsv = false,
-                            snackbar = "تم حفظ ${result.patientCount} مريض في ${result.fileName}",
-                            lastOperation = "آخر عملية ناجحة: حفظ ${result.fileName}"
+                            snackbar = uiText(R.string.ui_ward_shift_operations_015, result.patientCount, result.fileName),
+                            lastOperation = uiText(R.string.ui_ward_shift_operations_016, result.fileName)
                         )
                     }
                     is PatientCsvExporter.Result.Failure -> _state.update {
@@ -172,7 +177,7 @@ internal class SettingsDataOperations(
                 _state.update {
                     it.copy(
                         exportingCsv = false,
-                        snackbar = e.message ?: "فشل تصدير CSV",
+                        snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_017),
                         retryAction = SettingsRetryAction.EXPORT
                     )
                 }

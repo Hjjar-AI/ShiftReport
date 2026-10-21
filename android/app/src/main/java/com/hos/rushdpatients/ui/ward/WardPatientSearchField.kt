@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppSearchField
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,10 +24,11 @@ internal fun WardPatientSearchField(
     requestFocus: Boolean,
     onFocusRequested: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     AppSearchField(query = query, onQueryChange = onQueryChange,
-        label = "بحث بالاسم أو رقم القبول الحالي أو المحتوى الطبي",
+        label = uiText(R.string.ui_ward_patient_search_field_001),
         modifier = Modifier.fillMaxWidth().focusRequester(focus))
     // Only an explicit toolbar action opens the keyboard; restoring a query does not.
     LaunchedEffect(requestFocus) {

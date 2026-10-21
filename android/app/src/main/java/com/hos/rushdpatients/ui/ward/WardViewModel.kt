@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -50,6 +54,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class WardViewModel @Inject constructor(
+    private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
     private val shiftRepository: ShiftRepository,
     private val patientRepository: PatientRepository,
@@ -76,19 +81,19 @@ class WardViewModel @Inject constructor(
     )
     private var observationJob: Job? = null
 
-    private val saveGuard = WardSaveGuard(
+    private val saveGuard = WardSaveGuard(uiText,
         _state, shiftRepository)
 
-    private val preferences = WardPreferences(
+    private val preferences = WardPreferences(uiText,
         _state, viewModelScope, settingsRepository)
 
-    private val patientActions = WardPatientActions(
+    private val patientActions = WardPatientActions(uiText,
         _state, viewModelScope, shiftRepository, patientRepository, wardMutations, settingsRepository, sessionManager, json, saveGuard)
 
-    private val shiftOperations = WardShiftOperations(
+    private val shiftOperations = WardShiftOperations(uiText,
         _state, viewModelScope, context, shiftRepository, patientRepository, wardMutations, syncService, settingsRepository, csvExporter, sessionManager, saveGuard, ::observeShift)
 
-    private val activityOperations = WardActivityOperations(
+    private val activityOperations = WardActivityOperations(uiText,
         _state, viewModelScope, syncService, auditRepository, adminAuthorizer)
 
     init {
@@ -192,7 +197,7 @@ class WardViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(loading = false, error = e.message ?: "خطأ") }
+                _state.update { it.copy(loading = false, error = e.message ?: uiText(R.string.ui_ward_view_model_001)) }
             }
         }
     }
@@ -214,7 +219,7 @@ class WardViewModel @Inject constructor(
                                     rolloverPatients = emptyList(), rolloverTarget = null, patients = emptyList(), groupedPatients = emptyList()) }
                                 observeShift(replacement.id)
                             } else _state.update { it.copy(loading = false, shift = null, patients = emptyList(),
-                                groupedPatients = emptyList(), error = "المناوبة غير موجودة") }
+                                groupedPatients = emptyList(), error = uiText(R.string.ui_ward_shift_operations_005)) }
                             return@collect
                         }
                         val spec = SortSpecCodec.decode(shift.sortSpecJson)
@@ -226,7 +231,7 @@ class WardViewModel @Inject constructor(
                                 shift = shift,
                                 isReadOnly = shift.date != ShiftDate.current(),
                                 patients = sorted,
-                                groupedPatients = groupPatients(sorted, doctors, mode),
+                                groupedPatients = groupPatients(uiText, sorted, doctors, mode),
                                 doctors = doctors,
                                 sortSpec = spec,
                                 error = null
@@ -236,7 +241,7 @@ class WardViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(loading = false, error = e.message ?: "خطأ") }
+                _state.update { it.copy(loading = false, error = e.message ?: uiText(R.string.ui_ward_view_model_001)) }
             }
         }
     }

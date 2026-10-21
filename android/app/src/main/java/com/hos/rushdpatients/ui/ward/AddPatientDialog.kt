@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -29,9 +32,10 @@ fun AddPatientDialog(
     onConfirm: (Patient) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var insertionExpanded by rememberSaveable { mutableStateOf(position.isNotBlank()) }
     PatientFormDialog(
-        title = "إضافة مريض",
+        title = uiText(R.string.ui_add_patient),
         initial = null,
         restoredDraft = draft,
         doctors = doctors,
@@ -39,17 +43,17 @@ fun AddPatientDialog(
         entryOptions = {
             if (positionLimit != null) Column(Modifier.fillMaxWidth()) {
                 AppSectionHeader(
-                    title = "موضع الإدراج — " + if (position.isBlank()) "اختياري" else uiNumber(position),
+                    title = uiText(R.string.ui_add_patient_dialog_002) + if (position.isBlank()) uiText(R.string.ui_add_patient_dialog_003) else uiNumber(position),
                     expanded = insertionExpanded, onToggle = { insertionExpanded = !insertionExpanded })
                 if (insertionExpanded) {
                     com.hos.rushdpatients.ui.components.AppTextField(
                         value = position, onValueChange = onPositionChange,
-                        label = { Text("الموضع ضمن القائمة: ${uiNumber(1)}–${uiNumber(positionLimit)}") },
-                        supportingText = { Text("اتركه فارغاً للإضافة المعتادة؛ اختيار موضع يمسح الترتيب التلقائي ويحافظ على الأولوية أولاً") },
+                        label = { Text(uiText(R.string.ui_add_patient_dialog_004, uiNumber(1), uiNumber(positionLimit))) },
+                        supportingText = { Text(uiText(R.string.ui_add_patient_dialog_005)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         enabled = !saving, singleLine = true)
                     if (position.isNotBlank()) AppTextButton(onClick = { onPositionChange("") }, enabled = !saving) {
-                        Text("إلغاء الموضع والإضافة المعتادة")
+                        Text(uiText(R.string.ui_add_patient_dialog_006))
                     }
                 }
             }
@@ -68,6 +72,7 @@ fun CopyPatientDialog(
     onConfirm: (Patient) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val copy = remember(source) {
         source.copy(
             id = java.util.UUID.randomUUID().toString(),
@@ -83,7 +88,7 @@ fun CopyPatientDialog(
         )
     }
     PatientFormDialog(
-        title = "نسخ بيانات مريض",
+        title = uiText(R.string.ui_add_patient_dialog_007),
         initial = copy,
         restoredDraft = null,
         doctors = doctors,

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import android.content.Context
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -8,7 +11,7 @@ import com.hos.rushdpatients.config.ProjectConfigStore
 import com.hos.rushdpatients.data.db.DatabaseKeyProvider
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.ui.components.*
-import dagger.EntryPoint
+import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
@@ -26,6 +29,7 @@ internal interface StorageAccessEntryPoint {
 /** Resolve encrypted storage before any repository-backed ViewModel is constructed. */
 @Composable
 internal fun StorageAccessGate(content: @Composable () -> Unit) {
+    val uiText = rememberUiStrings()
     val context = LocalContext.current.applicationContext
     var attempt by remember { mutableIntStateOf(0) }
     var ready by remember { mutableStateOf(false) }
@@ -46,13 +50,13 @@ internal fun StorageAccessGate(content: @Composable () -> Unit) {
         ready -> content()
         failed -> AppCenteredContent {
             AppNotice(
-                "تعذر فتح التخزين المشفر على هذا الجهاز. لم تُحذف البيانات ولم يُستبدل مفتاح قاعدة موجودة.",
+                uiText(R.string.ui_storage_access_gate_001),
                 kind = NoticeKind.ERROR
             )
-            Text("افتح قفل الجهاز ثم أعد المحاولة أو أعد تشغيله. إذا استمرت المشكلة، احتفظ ببيانات التطبيق وراجع مسؤول المشروع لاستعادة الوصول؛ لا تمسح التخزين، فقد توجد تعديلات لم تُنشر بعد.")
-            AppButton(onClick = { attempt++ }) { Text("إعادة المحاولة") }
+            Text(uiText(R.string.ui_storage_access_gate_002))
+            AppButton(onClick = { attempt++ }) { Text(uiText(R.string.ui_retry)) }
         }
-        else -> AppCenteredContent { AppLoadingState("جار فتح التخزين المشفر…") }
+        else -> AppCenteredContent { AppLoadingState(uiText(R.string.ui_storage_access_gate_004)) }
     }
 }
 

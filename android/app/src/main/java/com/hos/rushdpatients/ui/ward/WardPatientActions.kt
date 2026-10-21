@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Shift
@@ -21,6 +25,7 @@ import kotlinx.coroutines.launch
 
 /** Uses the owning ViewModel state/scope; repository guards remain unchanged. */
 internal class WardPatientActions(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<WardUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val shiftRepository: ShiftRepository,
@@ -67,11 +72,11 @@ internal class WardPatientActions(
         viewModelScope.launch {
             if (!saveGuard.validateForSave(patient)) return@launch
             if (patientRepository.countForShift(shiftId) >= AppConstants.MAX_PATIENTS_PER_SHIFT) {
-                saveGuard.showError("تم الوصول إلى الحد الأقصى لعدد المرضى")
+                saveGuard.showError(uiText(R.string.ui_ward_patient_actions_001))
                 return@launch
             }
             saveGuard.saveAction(onSuccess = {
-                _state.update { it.copy(snackbar = "تم الحفظ محلياً") }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_ward_patient_actions_002)) }
                 onSuccess()
             }) {
                 saveGuard.requireEditableShift(shiftId)
@@ -90,7 +95,7 @@ internal class WardPatientActions(
         viewModelScope.launch {
             if (!saveGuard.validateForSave(patient)) return@launch
             saveGuard.saveAction(onSuccess = {
-                _state.update { it.copy(snackbar = "تم الحفظ محلياً") }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_ward_patient_actions_002)) }
                 onSuccess()
             }, onStale = { error ->
                 if (error !is StalePatientEditException) false else {
@@ -156,11 +161,11 @@ internal class WardPatientActions(
         val activeIds = _state.value.doctors.filterNot { it.isDeleted }.mapTo(mutableSetOf()) { it.id }
         when {
             ids.size < AppConstants.MIN_SHIFT_DOCTORS -> {
-                saveGuard.showError("اختر طبيباً واحداً على الأقل")
+                saveGuard.showError(uiText(R.string.ui_ward_patient_actions_003))
                 return
             }
             ids.distinct().size != ids.size || ids.any { it !in activeIds } -> {
-                saveGuard.showError("اختيار أطباء المناوبة غير صالح")
+                saveGuard.showError(uiText(R.string.ui_ward_patient_actions_004))
                 return
             }
         }

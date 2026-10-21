@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.components
 
+
+import com.hos.rushdpatients.R
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -23,40 +26,41 @@ fun AppPdfAppearanceControls(
     onShading: (PdfRowShading) -> Unit, onPreset: (PdfPresentationPreset) -> Unit,
     enabled: Boolean = true, showShading: Boolean = true
 ) {
-    Text("اختيار سريع", style = MaterialTheme.typography.labelMedium)
+    val uiText = rememberUiStrings()
+    Text(uiText(R.string.ui_app_pdf_appearance_controls_001), style = MaterialTheme.typography.labelMedium)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PdfPresentationPreset.entries.forEach { preset ->
             FilterChip(selected = weight == preset.weight && contrast == preset.contrast && shading == preset.shading &&
                 (!preset.lightOnly || !dark), onClick = { onPreset(preset) }, enabled = enabled,
-                label = { Text(preset.arabicLabel) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
+                label = { Text(preset.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
         }
     }
-    Text("سماكة الفواصل الأفقية", style = MaterialTheme.typography.labelMedium)
+    Text(uiText(R.string.ui_app_pdf_appearance_controls_002), style = MaterialTheme.typography.labelMedium)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PdfRuleWeight.entries.forEach { value ->
             FilterChip(selected = weight == value, onClick = { onWeight(value) }, enabled = enabled,
-                label = { Text(value.arabicLabel) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
+                label = { Text(value.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
         }
     }
-    Text("وضوح الفواصل", style = MaterialTheme.typography.labelMedium)
+    Text(uiText(R.string.ui_app_pdf_appearance_controls_003), style = MaterialTheme.typography.labelMedium)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PdfRuleContrast.entries.forEach { value ->
             FilterChip(selected = contrast == value, onClick = { onContrast(value) }, enabled = enabled,
-                label = { Text(value.arabicLabel) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
+                label = { Text(value.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
         }
     }
     if (showShading) {
-        Text("تظليل صفوف الجدول", style = MaterialTheme.typography.labelMedium)
+        Text(uiText(R.string.ui_app_pdf_appearance_controls_004), style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
             PdfRowShading.entries.forEach { value ->
                 FilterChip(selected = shading == value, onClick = { onShading(value) }, enabled = enabled,
-                    label = { Text(value.arabicLabel) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
+                    label = { Text(value.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
             }
         }
     }
     val palette = PdfPalette.resolve(PdfExportOptions(ruleWeight = weight, ruleContrast = contrast, rowShading = shading, darkMode = dark))
     Canvas(Modifier.fillMaxWidth().height(72.dp).semantics {
-        contentDescription = "معاينة الفواصل: ${weight.arabicLabel}، ${contrast.arabicLabel}، ${shading.arabicLabel}"
+        contentDescription = uiText(R.string.ui_app_pdf_appearance_controls_005, weight.uiLabel(uiText), contrast.uiLabel(uiText), shading.uiLabel(uiText))
     }) {
         drawRect(Color(palette.pageBackground))
         for (index in 0..2) {
@@ -67,6 +71,6 @@ fun AppPdfAppearanceControls(
             drawLine(Color(palette.ruleColor), Offset(0f, y), Offset(size.width, y), strokeWidth = palette.ruleWidth.dp.toPx())
         }
     }
-    Text("المعاينة للفواصل؛ التظليل يخص الجداول وتوزيع الفرق. تبقى البطاقات A5 بهوامش ثابتة.",
+    Text(uiText(R.string.ui_app_pdf_appearance_controls_006),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.connection
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.components.AppBusyIndicator
 import com.hos.rushdpatients.ui.components.PasswordField
@@ -38,6 +41,7 @@ fun ProjectConnectionAction(
     onApplied: () -> Unit = {},
     viewModel: ProjectConnectionViewModel = hiltViewModel()
 ) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     // Drop the open credential form and its secret when admin access changes.
@@ -65,7 +69,7 @@ fun ProjectConnectionAction(
         secret = ""
         pickerError = null
         open = true
-    }, modifier = Modifier.fillMaxWidth()) { Text("إعادة الاتصال بالمشروع") }
+    }, modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_project_connection_action_001)) }
 
     if (open) {
         val dismiss = {
@@ -78,7 +82,7 @@ fun ProjectConnectionAction(
         }
         AlertDialog(
             onDismissRequest = dismiss,
-            title = { Text(if (manual) "استبدال رمز البوت" else "إعادة الاتصال بالمشروع") },
+            title = { Text(if (manual) uiText(R.string.ui_project_connection_action_002) else uiText(R.string.ui_project_connection_action_001)) },
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -86,34 +90,34 @@ fun ProjectConnectionAction(
                 ) {
                     when {
                         state.reviewProject != null -> {
-                            Text("تم التحقق من اتصال ${state.reviewProject}.")
-                            Text("سيُستبدل رمز الاتصال فقط. سيبقى مفتاح التشفير والمرضى والمناوبات والتعديلات غير المرسلة كما هي.")
+                            Text(uiText(R.string.ui_project_connection_action_003, state.reviewProject))
+                            Text(uiText(R.string.ui_project_connection_action_004))
                         }
                         state.applied -> Unit
                         else -> {
-                            Text("استخدم ملف الانضمام المحدّث من المدير. يُرفض ملف مشروع آخر أو مفتاح مختلف لحماية البيانات المحلية.")
+                            Text(uiText(R.string.ui_project_connection_action_005))
                             if (manual) {
-                                Text("ألغِ الرمز القديم وأنشئ بديلاً للبوت نفسه عبر BotFather، ثم أدخله هنا. بعد الحفظ صدّر ملف انضمام جديداً ووزّعه على الأجهزة. إلغاء الرمز يوقف اتصال الأجهزة التي تستخدمه.")
+                                Text(uiText(R.string.ui_project_connection_action_006))
                                 AppTextButton(onClick = {
                                     try {
                                         uriHandler.openUri("https://t.me/BotFather")
                                     } catch (_: Exception) {
-                                        pickerError = "افتح @BotFather في تليجرام"
+                                        pickerError = uiText(R.string.ui_project_connection_action_007)
                                     }
-                                }, enabled = !state.busy) { Text("فتح BotFather") }
+                                }, enabled = !state.busy) { Text(uiText(R.string.ui_project_connection_action_008)) }
                             } else {
                                 AppOutlinedButton(onClick = {
                                     pickerError = null
                                     try {
                                         picker.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
                                     } catch (_: Exception) {
-                                        pickerError = "تعذر فتح منتقي الملفات؛ أعد المحاولة"
+                                        pickerError = uiText(R.string.ui_project_connection_action_009)
                                     }
                                 }, enabled = !state.busy) {
-                                    Text(if (selectedFile == null) "اختيار ملف .srjoin.json" else "تغيير الملف المختار")
+                                    Text(if (selectedFile == null) uiText(R.string.ui_project_connection_action_010) else uiText(R.string.ui_project_connection_action_011))
                                 }
                                 if (selectedFile != null) Text(
-                                    "الملف المختار: ${selectedFileName ?: "اسم الملف غير متاح"}",
+                                    uiText(R.string.ui_project_connection_action_013, selectedFileName ?: uiText(R.string.ui_project_connection_action_012)),
                                     modifier = Modifier.fillMaxWidth(),
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -121,7 +125,7 @@ fun ProjectConnectionAction(
                             PasswordField(
                                 value = secret,
                                 onValueChange = { secret = it },
-                                label = if (manual) "الرمز الجديد" else "عبارة مرور الملف",
+                                label = if (manual) uiText(R.string.ui_project_connection_action_014) else uiText(R.string.ui_project_connection_action_015),
                                 enabled = !state.busy,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -132,7 +136,7 @@ fun ProjectConnectionAction(
                                 pickerError = null
                                 viewModel.reset()
                             }, enabled = !state.busy) {
-                                Text(if (manual) "استخدام ملف الانضمام" else "استبدال الرمز كمدير")
+                                Text(if (manual) uiText(R.string.ui_project_connection_action_016) else uiText(R.string.ui_project_connection_action_017))
                             }
                         }
                     }
@@ -157,14 +161,14 @@ fun ProjectConnectionAction(
                     }
                 ) {
                     Text(when {
-                        state.applied -> "تم"
-                        state.reviewProject != null -> "حفظ الاتصال"
-                        else -> "التحقق"
+                        state.applied -> uiText(R.string.ui_done)
+                        state.reviewProject != null -> uiText(R.string.ui_project_connection_action_018)
+                        else -> uiText(R.string.ui_project_connection_action_019)
                     })
                 }
             },
             dismissButton = {
-                if (!state.applied) AppTextButton(onClick = dismiss, enabled = !state.busy) { Text("إلغاء") }
+                if (!state.applied) AppTextButton(onClick = dismiss, enabled = !state.busy) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }

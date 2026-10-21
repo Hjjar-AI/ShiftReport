@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.R
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -29,6 +31,7 @@ fun PasswordField(
     keyboardType: KeyboardType = KeyboardType.Password,
     imeAction: ImeAction = ImeAction.Done
 ) {
+    val uiText = rememberUiStrings()
     var visible by remember(label) { mutableStateOf(false) }
 
     AppTextField(
@@ -46,7 +49,7 @@ fun PasswordField(
                 Icon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff
                     else Icons.Filled.Visibility,
-                    contentDescription = if (visible) "إخفاء كلمة المرور" else "إظهار كلمة المرور"
+                    contentDescription = if (visible) uiText(R.string.ui_password_field_001) else uiText(R.string.ui_password_field_002)
                 )
             }
         }

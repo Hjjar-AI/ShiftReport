@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +30,7 @@ import java.time.ZoneId
 @Composable
 internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: Long,
     onDismiss: () -> Unit, onPatient: (String) -> Unit, currentDoctorId: String? = null) {
+    val uiText = rememberUiStrings()
     var supervisor by remember { mutableStateOf<String?>(null) }
     var resident by remember { mutableStateOf<String?>(null) }
     var mine by remember { mutableStateOf(false) }
@@ -53,25 +56,25 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
-                AppCompactTopBar(title = { Text("مهام الجناح", style = MaterialTheme.typography.titleLarge) },
-                    navigation = { IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, "إغلاق المهام") } })
+                AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
+                    navigation = { IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, uiText(R.string.ui_ward_task_board_001)) } })
                 Column(Modifier.padding(horizontal = UiSpacing.screen)) {
-                    Text(uiPlural(R.plurals.ward_task_count, rows.size) + " · الإتمام من ملف المريض بعد المراجعة والحفظ.",
+                    Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
                         style = MaterialTheme.typography.bodySmall)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        TaskDoctorFilter("مشرف المريض", supervisors, supervisor) { supervisor = it }
-                        TaskDoctorFilter("مقيم المريض", residents, resident) { resident = it }
-                        if (currentDoctorId != null) FilterChip(selected = mine, onClick = { mine = !mine }, label = { Text("مهامي") })
+                        TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
+                        TaskDoctorFilter(uiText(R.string.ui_ward_task_board_004), residents, resident) { resident = it }
+                        if (currentDoctorId != null) FilterChip(selected = mine, onClick = { mine = !mine }, label = { Text(uiText(R.string.ui_ward_task_board_005)) })
                     }
                 }
                 LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
                     contentPadding = PaddingValues(bottom = UiSpacing.screen),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    if (rows.isEmpty()) item { Text("لا توجد مهام معلقة ضمن التصفية") }
+                    if (rows.isEmpty()) item { Text(uiText(R.string.ui_ward_task_board_006)) }
                     groups.forEach { (group, entries) ->
                         stickyHeader(key = "task-group-$group") {
                             Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
-                                Text(listOf("متأخرة", "اليوم", "لاحقاً", "دون موعد")[group] + " · " + uiNumber(entries.size),
+                                Text(listOf(uiText(R.string.ui_ward_task_board_007), uiText(R.string.ui_ward_task_board_008), uiText(R.string.ui_ward_task_board_009), uiText(R.string.ui_ward_task_board_010))[group] + " · " + uiNumber(entries.size),
                                     Modifier.padding(vertical = UiSpacing.screen), style = MaterialTheme.typography.titleMedium)
                             }
                         }
@@ -88,12 +91,13 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: String?, onSelect: (String?) -> Unit) {
+    val uiText = rememberUiStrings()
     var expanded by remember { mutableStateOf(false) }
     Box {
         FilterChip(selected = selected != null, onClick = { expanded = true },
-            label = { Text(label + ": " + (doctors.firstOrNull { it.id == selected }?.fullName ?: if (selected == null) "الكل" else "طبيب غير متاح")) })
+            label = { Text(label + ": " + (doctors.firstOrNull { it.id == selected }?.fullName ?: if (selected == null) uiText(R.string.ui_all) else uiText(R.string.ui_ward_task_board_011))) })
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(text = { Text("الكل") }, onClick = { onSelect(null); expanded = false })
+            DropdownMenuItem(text = { Text(uiText(R.string.ui_all)) }, onClick = { onSelect(null); expanded = false })
             doctors.sortedBy { it.fullName }.forEach { doctor ->
                 DropdownMenuItem(text = { Text(doctor.fullName) }, onClick = { onSelect(doctor.id); expanded = false })
             }
@@ -104,6 +108,7 @@ private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: Str
 @Composable
 internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
     names: Map<String, String>, now: Long, onPatient: (String) -> Unit) {
+    val uiText = rememberUiStrings()
     val overdue = PatientTasks.overdue(entry.task, now)
     val clinical = LocalClinicalColors.current
     AppCard(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
@@ -117,7 +122,7 @@ internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
                 Text(PatientTasks.statusLabel(entry.task, now) + " · " + uiNumber(PatientTasks.metadata(entry.task, names)),
                     style = MaterialTheme.typography.bodySmall)
             }
-            AppTextButton(onClick = { onPatient(entry.patient.id) }) { Text("فتح ملف المريض") }
+            AppTextButton(onClick = { onPatient(entry.patient.id) }) { Text(uiText(R.string.ui_ward_task_board_012)) }
         }
     }
 }

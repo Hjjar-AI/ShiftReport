@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.runtime.key
 import androidx.compose.runtime.Composable
 import com.hos.rushdpatients.data.model.Patient
@@ -13,6 +16,7 @@ internal fun WardPatientDialogs(
     onCopyConfirmed: (Patient) -> Unit, onDismissCopy: () -> Unit,
     onDeleteConfirmed: (Patient) -> Unit, onDismissDelete: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     editTarget?.let { p ->
 
         key(p.id) {
@@ -44,9 +48,9 @@ internal fun WardPatientDialogs(
 
     deleteTarget?.let { p ->
         ConfirmDialog(
-            title = "نقل إلى السلة",
-            message = "سيُنقل ${p.name} إلى سلة المحذوفات. يمكنك استعادته من السلة.",
-            confirmText = "نقل إلى السلة",
+            title = uiText(R.string.ui_ward_patient_dialogs_001),
+            message = uiText(R.string.ui_ward_patient_dialogs_002, p.name),
+            confirmText = uiText(R.string.ui_ward_patient_dialogs_001),
             destructive = true,
             onConfirm = { onDeleteConfirmed(p) },
             onDismiss = onDismissDelete

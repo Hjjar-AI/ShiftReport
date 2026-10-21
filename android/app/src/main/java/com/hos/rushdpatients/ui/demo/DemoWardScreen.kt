@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +38,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewModel()) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val drawer = rememberDrawerState(DrawerValue.Closed)
@@ -115,7 +119,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
         val index = visible.indexOfFirst { it.id == target.id }
         if (index < 0) {
             returnTarget = null
-            scope.launch { snackbar.showSnackbar("حُفظ في التجربة؛ لا يطابق التصفية الحالية") }
+            scope.launch { snackbar.showSnackbar(uiText(R.string.ui_demo_ward_screen_001)) }
             return@LaunchedEffect
         }
         withFrameNanos { }
@@ -143,24 +147,24 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                     Scaffold(topBar = {
                         Column {
                             AppCompactTopBar(title = {
-                                Text(if (mainDestination) "مشفى تجريبي · تقرير المناوبة" else tab.title,
+                                Text(if (mainDestination) uiText(R.string.ui_demo_navigation_001) else tab.title(uiText),
                                     style = MaterialTheme.typography.titleSmall)
                                 Text("${state.actor.fullName} · ${state.date}", style = MaterialTheme.typography.labelSmall)
                             }, navigation = {
-                                IconButton(onClick = { scope.launch { drawer.open() } }) { Icon(Icons.Filled.Menu, "فتح القائمة") }
+                                IconButton(onClick = { scope.launch { drawer.open() } }) { Icon(Icons.Filled.Menu, uiText(R.string.ui_demo_ward_screen_002)) }
                             }, actions = {
                                 if (!mainDestination) IconButton(onClick = { navigate(DemoDestination.PATIENTS) }) {
-                                    Icon(Icons.Filled.Close, "العودة إلى المرضى")
+                                    Icon(Icons.Filled.Close, uiText(R.string.ui_report_attempt_status_012))
                                 }
                                 if (tab == DemoDestination.PATIENTS) {
                                     IconButton(onClick = { expandAll(!expanded) }) {
                                         Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                                            if (expanded) "طي جميع البطاقات" else "توسيع جميع البطاقات")
+                                            if (expanded) uiText(R.string.ui_demo_ward_screen_003) else uiText(R.string.ui_demo_ward_screen_004))
                                     }
                                 }
                             })
                             Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
-                                Text("عرض تجريبي · التعديلات مؤقتة · لا اتصال بتليجرام",
+                                Text(uiText(R.string.ui_demo_ward_screen_005),
                                     Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
                                     style = MaterialTheme.typography.labelSmall)
                             }
@@ -176,7 +180,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                             contentPadding = UiPadding.content,
                             modifier = actionSpace.measure.heightIn(min = UiSpacing.touchTarget)) {
                             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
-                            Text("إضافة مريض", Modifier.padding(start = UiSpacing.small))
+                            Text(uiText(R.string.ui_add_patient), Modifier.padding(start = UiSpacing.small))
                         }
                     }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
                         Row(Modifier.fillMaxSize().padding(padding)) {
@@ -195,14 +199,14 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                                                 contentPadding = PaddingValues(bottom = actionSpace.bottomPadding)) {
                                                 item {
                                                     WardPatientListControls(visible.size, state.patients.size, null,
-                                                        buildList { if (filter != DashboardFilter.ALL) add(filter.demoLabel()); if (query.isNotBlank()) add("بحث: $query") },
+                                                        buildList { if (filter != DashboardFilter.ALL) add(filter.demoLabel(uiText)); if (query.isNotBlank()) add(uiText(R.string.ui_ward_screen_008, query)) },
                                                         filter, onPreset = { filter = it }, onOptions = { showOptions = true },
                                                         onReset = ::resetFilters, showSearch = true, query = query,
                                                         onQueryChange = { query = it }, requestFocus = false, onFocusRequested = {})
                                                 }
                                                 if (visible.isEmpty()) item {
-                                                    EmptyState(if (state.patients.isEmpty()) "لا يوجد مرضى" else "لا توجد نتائج مطابقة",
-                                                        actionLabel = if (state.patients.isEmpty()) "إضافة مريض" else "مسح التصفية",
+                                                    EmptyState(if (state.patients.isEmpty()) uiText(R.string.ui_demo_ward_screen_006) else uiText(R.string.ui_ward_patient_grid_001),
+                                                        actionLabel = if (state.patients.isEmpty()) uiText(R.string.ui_add_patient) else uiText(R.string.ui_ward_patient_list_controls_005),
                                                         onAction = { if (state.patients.isEmpty()) showAdd = true else resetFilters() })
                                                 }
                                                 items(visible, key = { it.id }) { patient ->
@@ -218,7 +222,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                                                 }
                                             }
                                             DemoDestination.DASHBOARD -> HandoverDashboard(false, state.patients, state.actorId,
-                                                PatientSyncStatus.LOCAL, online = false, freshnessLabel = "جلسة تجريبية مؤقتة",
+                                                PatientSyncStatus.LOCAL, online = false, freshnessLabel = uiText(R.string.ui_demo_ward_screen_007),
                                                 nowEpochMillis = now, onFilter = { filter = it; query = ""; navigate(DemoDestination.PATIENTS) },
                                                 onSync = {}, onActivity = {}, modifier = contentModifier,
                                                 bottomClearance = actionSpace.bottomPadding, showSynchronization = false)
@@ -229,7 +233,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                                                 viewModel.preparePdfExport(options, style == PdfStyle.CARDS)
                                                 try { export.launch("ShiftReport_DEMO_${state.date}.pdf") }
                                                 catch (e: CancellationException) { throw e }
-                                                catch (e: Exception) { viewModel.exportPreparedPdf(null); viewModel.message("تعذر فتح مكان الحفظ") }
+                                                catch (e: Exception) { viewModel.exportPreparedPdf(null); viewModel.message(uiText(R.string.ui_demo_ward_screen_008)) }
                                             }, modifier = contentModifier)
                                         }
                                     }
@@ -242,8 +246,8 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 DemoViewOptions(filter, { filter = it }, expanded, ::expandAll, compact, { compact = it },
                     twoColumn, { twoColumn = it }, state.sort, viewModel::sort, ::resetFilters, { showOptions = false })
             }
-            if (showExit) ConfirmDialog("إنهاء التجربة", "ستُحذف التغييرات المؤقتة وتعود إلى صفحة البدء.",
-                confirmText = "إنهاء التجربة", onConfirm = { showExit = false; viewModel.endSession(); onExit() },
+            if (showExit) ConfirmDialog(uiText(R.string.ui_demo_navigation_006), uiText(R.string.ui_demo_ward_screen_009),
+                confirmText = uiText(R.string.ui_demo_navigation_006), onConfirm = { showExit = false; viewModel.endSession(); onExit() },
                 onDismiss = { showExit = false })
             if (showAdd) AddPatientDialog(doctors = state.doctors, onConfirm = {
                 if (viewModel.save(it)) showAdd = false
@@ -274,25 +278,25 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
             }
             copy?.let { patient -> CopyPatientDialog(patient, state.doctors,
                 onConfirm = { if (viewModel.save(it)) copy = null }, onDismiss = { copy = null }) }
-            deleting?.let { patient -> ConfirmDialog("نقل إلى السلة", "سيُنقل ${patient.name} إلى سلة المحذوفات التجريبية.",
-                confirmText = "نقل إلى السلة", destructive = true,
+            deleting?.let { patient -> ConfirmDialog(uiText(R.string.ui_ward_patient_dialogs_001), uiText(R.string.ui_demo_ward_screen_010, patient.name),
+                confirmText = uiText(R.string.ui_ward_patient_dialogs_001), destructive = true,
                 onConfirm = { viewModel.delete(patient); deleting = null }, onDismiss = { deleting = null }) }
             if (showDoctors) ShiftDoctorPicker(allDoctors = state.doctors, initialSelected = state.shiftDoctorIds, initialRevision = 0,
                 onConfirm = { ids, _, _ -> viewModel.selectDoctors(ids); showDoctors = false }, onDismiss = { showDoctors = false })
-            if (showReset) ConfirmDialog("إعادة ضبط التجربة", "ستُستعاد أمثلة المرضى والأطباء وتُحذف التعديلات على البيانات.",
-                confirmText = "إعادة الضبط", destructive = true,
+            if (showReset) ConfirmDialog(uiText(R.string.ui_demo_ward_screen_011), uiText(R.string.ui_demo_ward_screen_012),
+                confirmText = uiText(R.string.ui_demo_ward_screen_013), destructive = true,
                 onConfirm = { viewModel.reset(); expandedIds = emptyList(); pinnedIds = emptyList(); detailId = null
                     query = ""; filter = DashboardFilter.ALL; tab = DemoDestination.PATIENTS; showReset = false },
                 onDismiss = { showReset = false })
-            if (showRecycle) AlertDialog(onDismissRequest = { showRecycle = false }, title = { Text("المحذوفات التجريبية") },
+            if (showRecycle) AlertDialog(onDismissRequest = { showRecycle = false }, title = { Text(uiText(R.string.ui_demo_ward_screen_014)) },
                 text = {
                     Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) {
-                        if (state.deleted.isEmpty()) Text("المحذوفات فارغة")
+                        if (state.deleted.isEmpty()) Text(uiText(R.string.ui_demo_ward_screen_015))
                         state.deleted.forEach { patient ->
-                            AppTextButton(onClick = { viewModel.restore(patient) }) { Text("استعادة ${patient.name}") }
+                            AppTextButton(onClick = { viewModel.restore(patient) }) { Text(uiText(R.string.ui_demo_ward_screen_016, patient.name)) }
                         }
                     }
-                }, confirmButton = { AppTextButton(onClick = { showRecycle = false }) { Text("إغلاق") } })
+                }, confirmButton = { AppTextButton(onClick = { showRecycle = false }) { Text(uiText(R.string.ui_close)) } })
             state.patients.find { it.id == detailId }?.let { patient ->
                 if (edit == null && copy == null) detailStateHolder.SaveableStateProvider(patient.id) {
                     PatientDetailsScreen(patient = patient, doctorNames = state.names, activity = emptyList(), readOnly = false,

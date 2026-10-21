@@ -1,5 +1,11 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
@@ -16,7 +22,7 @@ internal fun sortPatients(
         return PatientComparators.ordered(patients, spec, doctors.associate { it.id to it.fullName })
     }
 
-internal fun groupPatients(
+internal fun groupPatients(uiText: UiStrings,
         patients: List<Patient>,
         doctors: List<Doctor>,
         mode: GroupByMode
@@ -32,7 +38,7 @@ internal fun groupPatients(
                 .map { (id, list) ->
                     PatientGroup(
                         key = id,
-                        name = id?.let(names::get) ?: "بدون اختصاصي",
+                        name = id?.let(names::get) ?: uiText(R.string.ui_ward_patient_ordering_001),
                         patients = list
                     )
                 }
@@ -43,7 +49,7 @@ internal fun groupPatients(
                 .map { (id, list) ->
                     PatientGroup(
                         key = id,
-                        name = id?.let(names::get) ?: "بدون مقيم",
+                        name = id?.let(names::get) ?: uiText(R.string.ui_ward_patient_ordering_002),
                         patients = list
                     )
                 }
@@ -54,7 +60,7 @@ internal fun groupPatients(
                 .map { (type, list) ->
                     PatientGroup(
                         key = type.code,
-                        name = type.arabicLabel,
+                        name = type.uiLabel(uiText),
                         patients = list
                     )
                 }
@@ -65,7 +71,7 @@ internal fun groupPatients(
                 .map { (gender, list) ->
                     PatientGroup(
                         key = gender.code,
-                        name = if (gender == Gender.MALE) "ذكر" else "أنثى",
+                        name = if (gender == Gender.MALE) uiText(R.string.ui_male) else uiText(R.string.ui_female),
                         patients = list
                     )
                 }
@@ -76,7 +82,7 @@ internal fun groupPatients(
                 .map { (date, list) ->
                     PatientGroup(
                         key = date?.toString(),
-                        name = date?.toString() ?: "بدون تاريخ دخول",
+                        name = date?.toString() ?: uiText(R.string.ui_ward_patient_ordering_003),
                         patients = list
                     )
                 }

@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppPdfStylePicker
 import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.AppTextButton
@@ -26,10 +31,11 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsViewModel, advancedPdf: Boolean, onToggleAdvanced: () -> Unit) {
-    SettingsSubheading("الإرسال والتخطيط")
+    val uiText = rememberUiStrings()
+    SettingsSubheading(uiText(R.string.ui_settings_report_section_001))
     AppToggleRow(
-        title = "إرسال التقرير كملف PDF",
-        subtitle = "خيار افتراضي عند معاينة التقرير",
+        title = uiText(R.string.ui_settings_report_section_002),
+        subtitle = uiText(R.string.ui_settings_report_section_003),
         checked = state.reportAsPdf,
         onCheckedChange = viewModel::setReportAsPdf
     )
@@ -37,42 +43,42 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
     AppPdfStylePicker(selected = state.pdfStyle, onSelected = viewModel::setPdfStyle)
     AppTextButton(onClick = onToggleAdvanced,
         modifier = Modifier.heightIn(min = UiSpacing.touchTarget).semantics {
-            stateDescription = if (advancedPdf) "موسع" else "مطوي"
-        }) { Text(if (advancedPdf) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة") }
+            stateDescription = if (advancedPdf) uiText(R.string.ui_patient_form_dialog_023) else uiText(R.string.ui_patient_form_dialog_024)
+        }) { Text(if (advancedPdf) uiText(R.string.ui_settings_report_section_004) else uiText(R.string.ui_settings_report_section_005)) }
     if (advancedPdf) {
         if (state.pdfStyle != PdfStyle.CARDS) {
-            Text("اتجاه الصفحة", style = MaterialTheme.typography.labelMedium)
+            Text(uiText(R.string.ui_settings_report_section_006), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 PdfOrientation.entries.forEach { option ->
                     FilterChip(
                         selected = state.pdfOrientation == option,
                         onClick = { viewModel.setPdfOrientation(option) },
-                        label = { Text(option.arabicLabel) }
+                        label = { Text(option.uiLabel(uiText)) }
                     )
                 }
             }
 
-            Text("حجم الورق", style = MaterialTheme.typography.labelMedium)
+            Text(uiText(R.string.ui_settings_report_section_007), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 PdfPaperSize.entries.forEach { option ->
                     FilterChip(
                         selected = state.pdfPaperSize == option,
                         onClick = { viewModel.setPdfPaperSize(option) },
-                        label = { Text(option.arabicLabel) }
+                        label = { Text(option.uiLabel(uiText)) }
                     )
                 }
             }
         }
 
         Divider(color = MaterialTheme.colorScheme.outlineVariant)
-        SettingsSubheading("ألوان وتوزيع الملف")
-        Text("ألوان ملف PDF", style = MaterialTheme.typography.labelMedium)
+        SettingsSubheading(uiText(R.string.ui_settings_report_section_008))
+        Text(uiText(R.string.ui_settings_report_section_009), style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
             PdfColorPreset.entries.forEach { option ->
                 FilterChip(
                     selected = state.pdfColorPreset == option,
                     onClick = { viewModel.setPdfColorPreset(option) },
-                    label = { Text(option.arabicLabel) }
+                    label = { Text(option.uiLabel(uiText)) }
                 )
             }
         }
@@ -87,14 +93,14 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
             showShading = state.pdfStyle != PdfStyle.CARDS
         )
         AppToggleRow(
-            title = "PDF داكن",
-            subtitle = "خلفية داكنة ونص فاتح",
+            title = uiText(R.string.ui_settings_report_section_010),
+            subtitle = uiText(R.string.ui_settings_report_section_011),
             checked = state.pdfDarkMode,
             onCheckedChange = viewModel::setPdfDarkMode
         )
         AppToggleRow(
-            title = "ملف PDF لكل مشرف",
-            subtitle = "عند الحفظ المحلي",
+            title = uiText(R.string.ui_settings_report_section_012),
+            subtitle = uiText(R.string.ui_settings_report_section_013),
             checked = state.pdfSeparateBySupervisor,
             onCheckedChange = viewModel::setPdfSeparateBySupervisor
         )

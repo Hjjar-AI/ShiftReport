@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.hos.rushdpatients.ui.components.AppNotice
@@ -11,32 +14,33 @@ import com.hos.rushdpatients.ui.components.NoticeKind
 @Composable
 internal fun ReportAttemptStatus(publication: ReportStepOutcome, delivery: ReportStepOutcome,
     busy: Boolean, onHistory: () -> Unit, onBack: () -> Unit) {
+    val uiText = rememberUiStrings()
     fun kind(outcome: ReportStepOutcome) = when (outcome) {
         ReportStepOutcome.CONFIRMED -> NoticeKind.SUCCESS
         ReportStepOutcome.UNCERTAIN, ReportStepOutcome.PARTIAL -> NoticeKind.WARNING
         else -> NoticeKind.INFO
     }
-    AppSection(title = "نتيجة آخر محاولة") {
-        AppNotice("بيانات المرضى: " + when (publication) {
-            ReportStepOutcome.CONFIRMED -> "تم نشر النسخة المحلية"
-            ReportStepOutcome.IN_PROGRESS -> "جار النشر"
-            ReportStepOutcome.UNCERTAIN -> "لم يتأكد النشر؛ افحص النسخة الحالية قبل الإعادة"
-            else -> publication.arabicLabel
+    AppSection(title = uiText(R.string.ui_report_attempt_status_001)) {
+        AppNotice(uiText(R.string.ui_report_attempt_status_002) + when (publication) {
+            ReportStepOutcome.CONFIRMED -> uiText(R.string.ui_report_attempt_status_003)
+            ReportStepOutcome.IN_PROGRESS -> uiText(R.string.ui_report_attempt_status_004)
+            ReportStepOutcome.UNCERTAIN -> uiText(R.string.ui_report_attempt_status_005)
+            else -> publication.arabicLabel(uiText)
         }, kind = kind(publication), compact = true)
-        AppNotice("تقرير المناوبة: " + when (delivery) {
-            ReportStepOutcome.CONFIRMED -> "تم تأكيد التسليم"
-            ReportStepOutcome.IN_PROGRESS -> "جار الإرسال"
-            ReportStepOutcome.NOT_STARTED -> "لم يتأكد تسليم تقرير في هذه المحاولة"
-            else -> delivery.arabicLabel
+        AppNotice(uiText(R.string.ui_report_attempt_status_006) + when (delivery) {
+            ReportStepOutcome.CONFIRMED -> uiText(R.string.ui_report_attempt_status_007)
+            ReportStepOutcome.IN_PROGRESS -> uiText(R.string.ui_report_attempt_status_008)
+            ReportStepOutcome.NOT_STARTED -> uiText(R.string.ui_report_attempt_status_009)
+            else -> delivery.arabicLabel(uiText)
         }, kind = kind(delivery), compact = true)
         if (publication == ReportStepOutcome.CONFIRMED && delivery == ReportStepOutcome.NOT_STARTED) {
-            Text("بيانات المرضى منشورة بالفعل. عدم تسليم التقرير لا يلغي نشرها؛ راجع سبب التعذر أدناه.")
+            Text(uiText(R.string.ui_report_attempt_status_010))
         }
         if (publication == ReportStepOutcome.UNCERTAIN || delivery == ReportStepOutcome.UNCERTAIN ||
             delivery == ReportStepOutcome.PARTIAL) {
-            AppTextButton(onClick = onHistory, enabled = !busy) { Text("فحص سجل العمليات قبل الإعادة") }
+            AppTextButton(onClick = onHistory, enabled = !busy) { Text(uiText(R.string.ui_report_attempt_status_011)) }
         } else if (publication == ReportStepOutcome.CONFIRMED && delivery == ReportStepOutcome.CONFIRMED) {
-            AppTextButton(onClick = onBack, enabled = !busy) { Text("العودة إلى المرضى") }
+            AppTextButton(onClick = onBack, enabled = !busy) { Text(uiText(R.string.ui_report_attempt_status_012)) }
         }
     }
 }

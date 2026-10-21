@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.R
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,8 +25,9 @@ fun AppBusyIndicator(modifier: Modifier = Modifier, size: Dp = UiSize.iconSmall,
 @Composable
 fun AppActionContent(text: String, loading: Boolean, color: Color = LocalContentColor.current,
     style: TextStyle = MaterialTheme.typography.labelLarge) {
+    val uiText = rememberUiStrings()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
-        modifier = Modifier.semantics { if (loading) stateDescription = "جار التنفيذ" }) {
+        modifier = Modifier.semantics { if (loading) stateDescription = uiText(R.string.ui_app_progress_001) }) {
         Box(Modifier.size(UiSize.iconSmall), contentAlignment = Alignment.Center) {
             if (loading) AppBusyIndicator(color = color)
         }

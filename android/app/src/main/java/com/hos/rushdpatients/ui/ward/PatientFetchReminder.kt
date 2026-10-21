@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -17,6 +20,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 /** Advisory only: fetching still uses the existing confirmation and local-edit guards. */
 @Composable
 internal fun PatientFetchReminder(enabled: Boolean, onFetch: () -> Unit, onDismiss: () -> Unit) {
+    val uiText = rememberUiStrings()
     Surface(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer,
         tonalElevation = UiElevation.navigation) {
@@ -30,13 +34,13 @@ internal fun PatientFetchReminder(enabled: Boolean, onFetch: () -> Unit, onDismi
                     tint = MaterialTheme.colorScheme.onPrimary)
             }
             Column(Modifier.weight(1f).padding(top = UiSpacing.screen)) {
-                Text("قبل تعديل بيانات المرضى", style = MaterialTheme.typography.titleSmall)
-                Text("اجلب أحدث بيانات الفريق من تليجرام أولاً، ثم ابدأ التعديل. إذا لديك تعديلات لم تُنشر، احتفظ بها قبل الجلب.",
+                Text(uiText(R.string.ui_patient_fetch_reminder_001), style = MaterialTheme.typography.titleSmall)
+                Text(uiText(R.string.ui_patient_fetch_reminder_002),
                     style = MaterialTheme.typography.bodySmall)
-                AppTextButton(onClick = onFetch, enabled = enabled) { Text("جلب أحدث البيانات") }
+                AppTextButton(onClick = onFetch, enabled = enabled) { Text(uiText(R.string.ui_patient_fetch_reminder_003)) }
             }
             IconButton(onClick = onDismiss, modifier = Modifier.size(UiSpacing.touchTarget)) {
-                Icon(Icons.Filled.Close, contentDescription = "إخفاء تذكير جلب البيانات")
+                Icon(Icons.Filled.Close, contentDescription = uiText(R.string.ui_patient_fetch_reminder_004))
             }
         }
     }

@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,6 +57,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RootViewModel @Inject constructor(
+    private val uiText: UiStrings,
     private val sessionManager: SessionManager,
     private val settingsRepository: SettingsRepository,
     private val biometricHelper: BiometricHelper,
@@ -115,9 +120,9 @@ class RootViewModel @Inject constructor(
                 failedPinAttempts++
                 _unlockError.value = if (failedPinAttempts >= AppConstants.LOGIN_MAX_ATTEMPTS) {
                     signOut()
-                    "تم تسجيل الخروج بعد محاولات خاطئة متعددة"
+                    uiText(R.string.ui_ward_app_root_001)
                 } else {
-                    "الرقم السري غير صحيح"
+                    uiText(R.string.ui_ward_app_root_002)
                 }
             }
         }

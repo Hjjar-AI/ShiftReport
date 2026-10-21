@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.sort.GroupByMode
@@ -9,6 +11,7 @@ import kotlinx.coroutines.launch
 
 /** Uses the owning ViewModel state/scope; repository guards remain unchanged. */
 internal class WardPreferences(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<WardUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val settingsRepository: SettingsRepository
@@ -51,7 +54,7 @@ internal class WardPreferences(
                     _state.update { current ->
                         current.copy(
                             groupByMode = mode,
-                            groupedPatients = groupPatients(
+                            groupedPatients = groupPatients(uiText,
                                 current.patients,
                                 current.doctors,
                                 mode
@@ -98,7 +101,7 @@ internal class WardPreferences(
             _state.update { current ->
                 current.copy(
                     groupByMode = mode,
-                    groupedPatients = groupPatients(current.patients, current.doctors, mode)
+                    groupedPatients = groupPatients(uiText, current.patients, current.doctors, mode)
                 )
             }
         }

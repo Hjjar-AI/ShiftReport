@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.domain.task.PatientTasks
 import android.content.Context
@@ -24,6 +28,7 @@ import java.time.Instant
 
 /** Uses the owning ViewModel state/scope; repository guards remain unchanged. */
 internal class WardShiftOperations(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<WardUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val context: Context,
@@ -46,9 +51,9 @@ internal class WardShiftOperations(
         val downloaded = if (at != null && message != null && source.csvMessageId == message) {
             java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z")
                 .format(java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()))
-        } else "غير معروف؛ قد تكون نسخة محلية لم تُنزّل على هذا الجهاز"
-        return "المصدر: مناوبة ${source.date} المحفوظة على هذا الجهاز\nآخر تنزيل لهذه الحزمة: $downloaded\n" +
-            "لم يُفحص تليجرام الآن؛ قد توجد نسخة أحدث. ألغِ واجلب أحدث البيانات أولاً إذا أردت تحديث المصدر."
+        } else uiText(R.string.ui_ward_shift_operations_001)
+        return uiText(R.string.ui_ward_shift_operations_002, source.date, downloaded) +
+            uiText(R.string.ui_ward_shift_operations_003)
     }
 
     fun offerPreviousShift() {
@@ -56,15 +61,15 @@ internal class WardShiftOperations(
         if (_state.value.saving || _state.value.syncing) return
         viewModelScope.launch {
             try {
-                require(patientRepository.countForShift(shiftId) == 0) { "مناوبة اليوم تحتوي مرضى؛ لن تُستبدل" }
-                val shift = shiftRepository.getById(shiftId) ?: error("المناوبة غير موجودة")
+                require(patientRepository.countForShift(shiftId) == 0) { uiText(R.string.ui_ward_shift_operations_004) }
+                val shift = shiftRepository.getById(shiftId) ?: error(uiText(R.string.ui_ward_shift_operations_005))
                 val previous = shiftRepository.getRecent(12).firstOrNull { it.date < shift.date }
                 val candidates = previous?.let { patientRepository.getForShift(it.id) }.orEmpty()
-                require(candidates.isNotEmpty()) { "لا توجد مناوبة سابقة تحتوي مرضى لنسخهم؛ يمكنك جلب البيانات من تليجرام أولاً" }
+                require(candidates.isNotEmpty()) { uiText(R.string.ui_ward_shift_operations_006) }
                 val sourceLabel = rolloverSourceLabel(requireNotNull(previous))
                 _state.update { it.copy(rolloverPatients = candidates, rolloverTarget = shift, rolloverSourceLabel = sourceLabel) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: "تعذر تحضير المناوبة الجديدة") } }
+            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_007)) } }
         }
     }
 
@@ -76,10 +81,10 @@ internal class WardShiftOperations(
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
             saveGuard.saveAction(onSuccess = {}) {
-                val expected = requireNotNull(_state.value.rolloverTarget) { "أعد فتح نسخ المناوبة" }
-                require(expected.id == shiftId) { "تغيرت المناوبة؛ أعد فتح النسخ" }
+                val expected = requireNotNull(_state.value.rolloverTarget) { uiText(R.string.ui_ward_shift_operations_008) }
+                require(expected.id == shiftId) { uiText(R.string.ui_ward_shift_operations_009) }
                 val candidates = _state.value.rolloverPatients
-                require(candidates.isNotEmpty()) { "لا توجد سجلات لنسخها" }
+                require(candidates.isNotEmpty()) { uiText(R.string.ui_ward_shift_operations_010) }
                 val selected = candidates.mapIndexed { index, patient ->
                     patient.copy(
                         id = UUID.randomUUID().toString(),
@@ -94,7 +99,7 @@ internal class WardShiftOperations(
                 wardMutations.rollover(selected, shiftId, expected.revision,
                     candidates.map { it to if (keepAssignments) "continue" else "reassign" }, sessionManager.current())
                 _state.update { it.copy(rolloverPatients = emptyList(), rolloverTarget = null, rolloverSourceLabel = "",
-                    snackbar = "نُسخ جميع المرضى (${uiNumber(selected.size)}) محلياً؛ حدد أطباء المناوبة ثم راجع وانشر") }
+                    snackbar = uiText(R.string.ui_ward_shift_operations_011, uiNumber(selected.size))) }
             }
         }
     }
@@ -120,7 +125,7 @@ internal class WardShiftOperations(
                 }
             if (choices.isEmpty()) {
                 _state.update {
-                    it.copy(snackbar = "نزّل أحدث ملف أولاً لعرض المناوبات المحفوظة فيه")
+                    it.copy(snackbar = uiText(R.string.ui_ward_shift_operations_012))
                 }
             } else {
                 _state.update { it.copy(snapshotChoices = choices, showSnapshotPicker = true) }
@@ -138,7 +143,7 @@ internal class WardShiftOperations(
         _state.update {
             it.copy(
                 showSnapshotPicker = false,
-                snackbar = "تم عرض مناوبة ${selected.date}"
+                snackbar = uiText(R.string.ui_ward_shift_operations_013, selected.date)
             )
         }
     }
@@ -147,7 +152,7 @@ internal class WardShiftOperations(
         if (_state.value.exportingCsv) return
         val shiftId = _state.value.shift?.id
         if (shiftId == null) {
-            _state.update { it.copy(snackbar = "لا توجد وردية للتصدير") }
+            _state.update { it.copy(snackbar = uiText(R.string.ui_ward_shift_operations_014)) }
             return
         }
         _state.update { it.copy(exportingCsv = true, snackbar = null, retryAction = null) }
@@ -157,8 +162,8 @@ internal class WardShiftOperations(
                     is PatientCsvExporter.Result.Success -> _state.update {
                         it.copy(
                             exportingCsv = false,
-                            snackbar = "تم حفظ ${result.patientCount} مريض في ${result.fileName}",
-                            lastOperation = "آخر عملية ناجحة: حفظ ${result.fileName}"
+                            snackbar = uiText(R.string.ui_ward_shift_operations_015, result.patientCount, result.fileName),
+                            lastOperation = uiText(R.string.ui_ward_shift_operations_016, result.fileName)
                         )
                     }
                     is PatientCsvExporter.Result.Failure -> _state.update {
@@ -175,7 +180,7 @@ internal class WardShiftOperations(
                 _state.update {
                     it.copy(
                         exportingCsv = false,
-                        snackbar = e.message ?: "فشل تصدير CSV",
+                        snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_017),
                         retryAction = WardRetryAction.EXPORT_CSV
                     )
                 }
@@ -190,7 +195,7 @@ internal class WardShiftOperations(
         if (!NetworkStatus.isOnline(context)) {
             _state.update {
                 it.copy(
-                    snackbar = "لا يوجد اتصال بالإنترنت — أعد المحاولة عند توفر الشبكة",
+                    snackbar = uiText(R.string.ui_ward_shift_operations_018),
                     retryAction = retry
                 )
             }
@@ -211,7 +216,7 @@ internal class WardShiftOperations(
                     it.copy(
                         syncing = false,
                         snackbar = doctorsResult.exceptionOrNull()?.message
-                            ?: "فشل جلب سجل الأطباء",
+                            ?: uiText(R.string.ui_ward_shift_operations_019),
                         retryAction = retry
                     )
                 }
@@ -225,18 +230,18 @@ internal class WardShiftOperations(
             }
             result.onSuccess { fetched ->
                 observeShift(fetched.shiftId)
-                val source = if (previous) "النسخة السابقة" else "أحدث نسخة"
+                val source = if (previous) uiText(R.string.ui_ward_shift_operations_020) else uiText(R.string.ui_ward_shift_operations_021)
                 _state.update {
                     it.copy(
                         syncing = false,
-                        snackbar = "تم استبدال البيانات المحلية بـ$source",
-                        lastOperation = "آخر عملية ناجحة: جلب $source",
+                        snackbar = uiText(R.string.ui_ward_shift_operations_022, source),
+                        lastOperation = uiText(R.string.ui_ward_shift_operations_023, source),
                         retryAction = null
                     )
                 }
             }.onFailure { error ->
                 _state.update {
-                    val message = error.message ?: "فشل جلب البيانات"
+                    val message = error.message ?: uiText(R.string.ui_ward_shift_operations_024)
                     it.copy(
                         syncing = false,
                         snackbar = message,
@@ -254,8 +259,8 @@ internal class WardShiftOperations(
             try {
                 syncService.undoLastDownload().onSuccess { id ->
                     observeShift(id)
-                    _state.update { it.copy(snackbar = "استُعيدت البيانات المحلية قبل التنزيل؛ راجعها قبل النشر") }
-                }.onFailure { error -> saveGuard.showError(error.message ?: "تعذر التراجع عن التنزيل") }
+                    _state.update { it.copy(snackbar = uiText(R.string.ui_ward_shift_operations_025)) }
+                }.onFailure { error -> saveGuard.showError(error.message ?: uiText(R.string.ui_ward_shift_operations_026)) }
             } finally { _state.update { it.copy(syncing = false) } }
         }
     }

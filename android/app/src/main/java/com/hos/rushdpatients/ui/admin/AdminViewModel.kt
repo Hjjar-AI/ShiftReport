@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.data.model.Doctor
@@ -19,6 +23,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AdminViewModel @Inject constructor(
+    private val uiText: UiStrings,
     private val doctorRepository: DoctorRepository,
     private val sessionManager: SessionManager,
     private val promoteAdmin: PromoteAdminUseCase,
@@ -52,7 +57,7 @@ class AdminViewModel @Inject constructor(
     fun assignAdmin(expected: Doctor, customTitle: String?, onDone: (String) -> Unit) {
         if (_state.value.saving) return
         if (_state.value.currentActor?.isAdmin != true) {
-            onDone("غير مصرح لك بتنفيذ هذا الإجراء")
+            onDone(uiText(R.string.ui_admin_view_model_001))
             return
         }
         val actor = _state.value.currentActor ?: return
@@ -65,7 +70,7 @@ class AdminViewModel @Inject constructor(
                     actorDoctorId = actor.id
                 )) {
                     is PromoteResult.Success -> {
-                        onDone("تمت ترقية ${result.doctor.fullName} محلياً؛ افتح سجل الأطباء وراجع نشر الصلاحيات")
+                        onDone(uiText(R.string.ui_admin_view_model_002, result.doctor.fullName))
                     }
                     is PromoteResult.Failure -> onDone(result.reason)
                 }
@@ -78,7 +83,7 @@ class AdminViewModel @Inject constructor(
     fun removeAdmin(expected: Doctor, onDone: (String) -> Unit) {
         if (_state.value.saving) return
         if (_state.value.currentActor?.isAdmin != true) {
-            onDone("غير مصرح لك بتنفيذ هذا الإجراء")
+            onDone(uiText(R.string.ui_admin_view_model_001))
             return
         }
         val actor = _state.value.currentActor ?: return
@@ -90,7 +95,7 @@ class AdminViewModel @Inject constructor(
                     actorDoctorId = actor.id
                 )) {
                     is PromoteResult.Success -> {
-                        onDone("أُزيلت صلاحية ${result.doctor.fullName} محلياً؛ افتح سجل الأطباء وراجع نشر الصلاحيات")
+                        onDone(uiText(R.string.ui_admin_view_model_003, result.doctor.fullName))
                     }
                     is PromoteResult.Failure -> onDone(result.reason)
                 }

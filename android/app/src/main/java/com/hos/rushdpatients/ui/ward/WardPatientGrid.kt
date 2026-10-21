@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.theme.UiPatientCard
 import com.hos.rushdpatients.ui.theme.UiLayout
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -27,6 +30,7 @@ internal fun WardPatientGrid(
     collapsedGroups: List<String>, onToggleGroup: (String) -> Unit, onResetFilters: () -> Unit,
     headerContent: @Composable () -> Unit, patientCard: @Composable (Patient) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val visibleIds = remember(visiblePatients) { visiblePatients.mapTo(HashSet()) { it.id } }
     val pinnedIds = remember(pinnedPatientIds) { pinnedPatientIds.toHashSet() }
     val visibleGroups = remember(state.groupedPatients, visibleIds, pinnedIds) {
@@ -51,9 +55,9 @@ internal fun WardPatientGrid(
         if (visiblePatients.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 EmptyState(
-                    title = "لا توجد نتائج مطابقة",
-                    subtitle = "لا يطابق أي مريض البحث والتصفية الحالية",
-                    actionLabel = "مسح البحث والتصفية", onAction = onResetFilters
+                    title = uiText(R.string.ui_ward_patient_grid_001),
+                    subtitle = uiText(R.string.ui_ward_patient_grid_002),
+                    actionLabel = uiText(R.string.ui_ward_activity_screen_008), onAction = onResetFilters
                 )
             }
         } else if (state.groupByMode != GroupByMode.NONE &&

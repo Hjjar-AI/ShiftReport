@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppSearchField
 import com.hos.rushdpatients.ui.components.AppChoiceRow
 import com.hos.rushdpatients.ui.components.EmptyState
@@ -78,10 +81,11 @@ internal fun DateField(
     isError: Boolean = false,
     errorMessage: String? = null
 ) {
+    val uiText = rememberUiStrings()
     var open by remember { mutableStateOf(false) }
     AppPickerField(
         value = value?.toString().orEmpty(), label = label,
-        placeholder = "اختر التاريخ", icon = Icons.Filled.CalendarMonth, valueTextDirection = TextDirection.Ltr,
+        placeholder = uiText(R.string.ui_patient_form_fields_001), icon = Icons.Filled.CalendarMonth, valueTextDirection = TextDirection.Ltr,
         onClick = { open = true }, modifier = modifier,
         supportingText = supportingText, enabled = enabled, isError = isError, errorMessage = errorMessage
     )
@@ -97,10 +101,10 @@ internal fun DateField(
                         onValueChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
                     }
                     open = false
-                }) { Text("اختيار") }
+                }) { Text(uiText(R.string.ui_patient_form_fields_002)) }
             },
             dismissButton = {
-                AppTextButton(onClick = { open = false }) { Text("إلغاء") }
+                AppTextButton(onClick = { open = false }) { Text(uiText(R.string.ui_cancel)) }
             }
         ) { DatePicker(state = state) }
     }
@@ -175,6 +179,7 @@ internal fun MultiValueEditor(
     modifier: Modifier = Modifier,
     errorMessage: String? = null
 ) {
+    val uiText = rememberUiStrings()
     var tools by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var insertMenu by remember { mutableStateOf(false) }
@@ -183,11 +188,11 @@ internal fun MultiValueEditor(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         if (!tools) MultilineField(
             value = (items + draft).filter(String::isNotBlank).joinToString("\n"),
-            onValueChange = onReplaceAll, label = if (label == "التحاليل") label else "$label *",
+            onValueChange = onReplaceAll, label = if (label == uiText(R.string.ui_labs)) label else "$label *",
             textStyle = textStyle, isError = isError, errorMessage = errorMessage)
         else {
             Text(
-                "$label${if (label == "التحاليل") "" else " *"}",
+                uiText(R.string.ui_patient_form_fields_003, label, if (label == uiText(R.string.ui_labs)) "" else " *"),
                 style = MaterialTheme.typography.labelMedium
             )
 
@@ -221,7 +226,7 @@ internal fun MultiValueEditor(
             AppTextField(
                 value = draft,
                 onValueChange = onDraftChange,
-                label = { Text("إضافة إلى $label") },
+                label = { Text(uiText(R.string.ui_patient_form_fields_004, label)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 1,
                 maxLines = 2,
@@ -232,23 +237,23 @@ internal fun MultiValueEditor(
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 AppButton(onClick = onAdd, enabled = enabled && draft.isNotBlank(),
-                    modifier = Modifier.weight(1f)) { Text("إضافة") }
+                    modifier = Modifier.weight(1f)) { Text(uiText(R.string.ui_patient_form_fields_005)) }
                 Box {
                     IconButton(onClick = { insertMenu = true }, enabled = enabled) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "خيارات الإضافة إلى $label")
+                        Icon(Icons.Filled.MoreVert, contentDescription = uiText(R.string.ui_patient_form_fields_006, label))
                     }
                     DropdownMenu(expanded = insertMenu && enabled, onDismissRequest = { insertMenu = false }) {
-                        DropdownMenuItem(text = { Text("إضافة فاصل") },
+                        DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_form_fields_007)) },
                             enabled = items.isNotEmpty() && items.last() != FIELD_SEPARATOR,
                             onClick = { insertMenu = false; onAddSeparator() })
-                        if (onAddDate != null) DropdownMenuItem(text = { Text("إضافة تاريخ") },
+                        if (onAddDate != null) DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_form_fields_008)) },
                             onClick = { insertMenu = false; showDatePicker = true })
                     }
                 }
             }
         }
         AppTextButton(onClick = { tools = !tools }, enabled = enabled) {
-            Text(if (tools) "العودة للكتابة الحرة" else "أدوات البنود والترتيب")
+            Text(if (tools) uiText(R.string.ui_patient_form_fields_009) else uiText(R.string.ui_patient_form_fields_010))
         }
     }
 
@@ -267,10 +272,10 @@ internal fun MultiValueEditor(
                         onAddDate(date)
                     }
                     showDatePicker = false
-                }) { Text("اختيار") }
+                }) { Text(uiText(R.string.ui_patient_form_fields_002)) }
             },
             dismissButton = {
-                AppTextButton(onClick = { showDatePicker = false }) { Text("إلغاء") }
+                AppTextButton(onClick = { showDatePicker = false }) { Text(uiText(R.string.ui_cancel)) }
             }
         ) { DatePicker(state = state) }
     }
@@ -284,13 +289,14 @@ private fun DragHandleButton(
     itemCount: Int,
     onMove: (Int, Int) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var expanded by remember { mutableStateOf(false) }
     val enabled = LocalFieldEnabled.current
     Box {
         IconButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.size(UiSpacing.touchTarget)) {
             Icon(
                 Icons.Filled.DragHandle,
-                contentDescription = "إعادة ترتيب العنصر ${index + 1}",
+                contentDescription = uiText(R.string.ui_patient_form_fields_011, index + 1),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -299,7 +305,7 @@ private fun DragHandleButton(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("نقل لأعلى") },
+                text = { Text(uiText(R.string.ui_patient_form_fields_012)) },
                 enabled = index > 0,
                 onClick = {
                     onMove(index, index - 1)
@@ -307,7 +313,7 @@ private fun DragHandleButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("نقل لأسفل") },
+                text = { Text(uiText(R.string.ui_patient_form_fields_013)) },
                 enabled = index < itemCount - 1,
                 onClick = {
                     onMove(index, index + 1)
@@ -315,7 +321,7 @@ private fun DragHandleButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("نقل للأعلى تماماً") },
+                text = { Text(uiText(R.string.ui_patient_form_fields_014)) },
                 enabled = index > 0,
                 onClick = {
                     onMove(index, 0)
@@ -336,6 +342,7 @@ private fun TextItemRow(
     onRemove: (Int) -> Unit,
     textStyle: TextStyle
 ) {
+    val uiText = rememberUiStrings()
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -351,7 +358,7 @@ private fun TextItemRow(
             textStyle = textStyle
         )
         IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
-            Icon(Icons.Default.Close, contentDescription = "حذف العنصر")
+            Icon(Icons.Default.Close, contentDescription = uiText(R.string.ui_patient_form_fields_015))
         }
     }
 }
@@ -363,6 +370,7 @@ private fun SeparatorRow(
     onMove: (Int, Int) -> Unit,
     onRemove: (Int) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -371,7 +379,7 @@ private fun SeparatorRow(
         DragHandleButton(index = index, itemCount = itemCount, onMove = onMove)
         Divider(modifier = Modifier.weight(1f))
         IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
-            Icon(Icons.Default.Close, contentDescription = "حذف الفاصل")
+            Icon(Icons.Default.Close, contentDescription = uiText(R.string.ui_patient_form_fields_016))
         }
     }
 }
@@ -384,6 +392,7 @@ private fun DateMarkerRow(
     onMove: (Int, Int) -> Unit,
     onRemove: (Int) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -414,7 +423,7 @@ private fun DateMarkerRow(
             }
         }
         IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
-            Icon(Icons.Default.Close, contentDescription = "حذف التاريخ")
+            Icon(Icons.Default.Close, contentDescription = uiText(R.string.ui_patient_form_fields_017))
         }
     }
 }
@@ -424,7 +433,7 @@ private fun DateMarkerRow(
 @Composable
 internal fun DoctorDropdown(
     label: String,
-    undefinedLabel: String = "غير محدد",
+    undefinedLabel: String = androidx.compose.ui.res.stringResource(R.string.ui_unspecified),
     selectedId: String?,
     doctors: List<Doctor>,
     onSelected: (String?) -> Unit,
@@ -435,6 +444,7 @@ internal fun DoctorDropdown(
     registry: List<Doctor> = doctors,
     errorMessage: String? = null
 ) {
+    val uiText = rememberUiStrings()
     var expanded by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val selectedName = doctors.firstOrNull { it.id == selectedId }?.fullName
@@ -444,14 +454,14 @@ internal fun DoctorDropdown(
     if (expanded && enabled) AlertDialog(onDismissRequest = { expanded = false },
         title = { Text(label) }, text = {
             Column(Modifier.appDialogBody(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                AppSearchField(query = query, onQueryChange = { query = it }, label = "بحث باسم الطبيب")
+                AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_shift_doctor_picker_003))
                 Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
                     AppChoiceRow(label = undefinedLabel, selected = selectedId == null,
                         onClick = { onSelected(null); expanded = false })
                     val matching = doctors.filter { !it.isDeleted && ArabicSearchNormalizer.matches(query, it.fullName) }
-                    if (matching.isEmpty()) EmptyState("لا توجد أسماء مطابقة",
-                        actionLabel = if (query.isBlank()) null else "مسح البحث", onAction = { query = "" })
-                    doctorChoiceGroups(matching, registry).forEach { (team, members) ->
+                    if (matching.isEmpty()) EmptyState(uiText(R.string.ui_shift_doctor_picker_006),
+                        actionLabel = if (query.isBlank()) null else uiText(R.string.ui_shift_doctor_picker_007), onAction = { query = "" })
+                    doctorChoiceGroups(uiText, matching, registry).forEach { (team, members) ->
                         SectionTitle(team)
                         members.forEach { doctor ->
                             AppChoiceRow(label = doctor.fullName, selected = selectedId == doctor.id,
@@ -460,5 +470,5 @@ internal fun DoctorDropdown(
                     }
                 }
             }
-        }, confirmButton = { AppTextButton(onClick = { expanded = false }) { Text("رجوع") } })
+        }, confirmButton = { AppTextButton(onClick = { expanded = false }) { Text(uiText(R.string.ui_patient_form_fields_019)) } })
 }

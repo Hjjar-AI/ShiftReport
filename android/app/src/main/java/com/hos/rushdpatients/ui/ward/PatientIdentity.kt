@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
@@ -21,19 +26,19 @@ import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal object PatientIdentityText {
-    fun admission(patient: Patient) = "رقم القبول الحالي: ${uiNumber(patient.admittanceNumber)}"
-    fun personal(patient: Patient): String = buildString {
-        append(if (patient.gender == Gender.MALE) "ذكر" else "أنثى")
-        patient.age?.let { append(" · ${uiNumber(it)} سنة") }
+    fun admission(uiText: UiStrings, patient: Patient) = uiText(R.string.ui_patient_identity_003, uiNumber(patient.admittanceNumber))
+    fun personal(uiText: UiStrings, patient: Patient): String = buildString {
+        append(if (patient.gender == Gender.MALE) uiText(R.string.ui_male) else uiText(R.string.ui_female))
+        patient.age?.let { append(uiText(R.string.ui_patient_identity_004, uiNumber(it))) }
     }
-    fun admissionDetails(patient: Patient): String = buildList {
-        if (patient.admittanceNumber.isNotBlank()) add("رقم ${uiNumber(patient.admittanceNumber)}")
+    fun admissionDetails(uiText: UiStrings, patient: Patient): String = buildList {
+        if (patient.admittanceNumber.isNotBlank()) add(uiText(R.string.ui_patient_identity_005, uiNumber(patient.admittanceNumber)))
         patient.admittanceDate?.let { date ->
-            add("دخول ${uiNumber(date)}")
-            patient.admittanceDays?.let { add("${uiNumber(it)} يوم") }
+            add(uiText(R.string.ui_patient_identity_006, uiNumber(date)))
+            patient.admittanceDays?.let { add(uiText(R.string.ui_patient_identity_007, uiNumber(it))) }
         }
     }.joinToString(" · ")
-    fun details(patient: Patient) = listOf(personal(patient), admissionDetails(patient)).filter(String::isNotBlank).joinToString(" · ")
+    fun details(uiText: UiStrings, patient: Patient) = listOf(personal(uiText, patient), admissionDetails(uiText, patient)).filter(String::isNotBlank).joinToString(" · ")
 }
 
 @Composable
@@ -48,20 +53,21 @@ internal fun PatientName(name: String, modifier: Modifier = Modifier,
 internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modifier, pinned: Boolean = false,
     showFreshness: Boolean = false, nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
     showPersonal: Boolean = false) {
+    val uiText = rememberUiStrings()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PatientName(patient.name, style = nameStyle)
         FlowRow(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny),
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            if (pinned) Icon(Icons.Filled.Bookmark, contentDescription = "مثبت للعرض", modifier = Modifier.size(UiSize.iconSmall))
+            if (pinned) Icon(Icons.Filled.Bookmark, contentDescription = uiText(R.string.ui_patient_identity_001), modifier = Modifier.size(UiSize.iconSmall))
             if (patient.isPriority) Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Icon(Icons.Filled.Star, contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(UiSize.iconSmall))
-                Text("أولوية", style = MaterialTheme.typography.labelMedium,
+                Text(uiText(R.string.ui_patient_identity_002), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary)
             }
-            val metadata = if (showPersonal) PatientIdentityText.details(patient) else PatientIdentityText.admission(patient)
-            Text(metadata + if (showFreshness) " · ${relativeFreshness(patient.updatedAt)}" else "",
+            val metadata = if (showPersonal) PatientIdentityText.details(uiText, patient) else PatientIdentityText.admission(uiText, patient)
+            Text(metadata + if (showFreshness) " · ${relativeFreshness(uiText, patient.updatedAt)}" else "",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

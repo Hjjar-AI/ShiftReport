@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppActionLabel
 import com.hos.rushdpatients.ui.components.ClinicalTextKind
@@ -108,6 +112,7 @@ fun PatientCard(
     taskNowEpochMillis: Long = System.currentTimeMillis(),
     modifier: Modifier = Modifier
 ) {
+    val uiText = rememberUiStrings()
     val cardDensity = UiPatientCard.density(compact)
     val sectionGap = cardDensity.sectionGap
     val taskCounts = remember(patient.tasks, taskNowEpochMillis) { PatientTasks.counts(patient.tasks, taskNowEpochMillis) }
@@ -130,34 +135,34 @@ fun PatientCard(
                 this.selected = selected
                 contentDescription = buildString {
                     append(patient.name)
-                    append("، رقم القبول الحالي ").append(patient.admittanceNumber)
-                    append("، ").append(patient.diagnosisType.arabicLabel)
+                    append(uiText(R.string.ui_patient_card_001)).append(patient.admittanceNumber)
+                    append(uiText(R.string.ui_patient_card_002)).append(patient.diagnosisType.uiLabel(uiText))
                     patient.responsibleResidentId?.let { id ->
-                        doctorNames[id]?.let { append("، المقيم ").append(it) }
+                        doctorNames[id]?.let { append(uiText(R.string.ui_patient_card_003)).append(it) }
                     }
                     if (patient.badges.isNotEmpty()) {
-                        append("، ").append(badgesLabel)
+                        append(uiText(R.string.ui_patient_card_002)).append(badgesLabel)
                     }
-                    if (patient.tasks.isNotEmpty()) append("، مهام معلقة ${uiNumber(taskCounts.pending)}، منها متأخرة ${uiNumber(taskCounts.overdue)}")
-                    if (pinned) append("، مثبت مؤقتاً")
-                    append("، ").append(relativeFreshness(patient.updatedAt))
+                    if (patient.tasks.isNotEmpty()) append(uiText(R.string.ui_patient_card_004, uiNumber(taskCounts.pending), uiNumber(taskCounts.overdue)))
+                    if (pinned) append(uiText(R.string.ui_patient_card_005))
+                    append(uiText(R.string.ui_patient_card_002)).append(relativeFreshness(uiText, patient.updatedAt))
                 }
                 stateDescription = buildString {
-                    append(if (patient.badges.isEmpty()) "دون شارات" else "شارات فعالة")
-                    if (patient.isPriority) append("، أولوية")
-                    append(if (expanded) "، التفاصيل موسعة" else "، التفاصيل مطوية")
+                    append(if (patient.badges.isEmpty()) uiText(R.string.ui_patient_card_006) else uiText(R.string.ui_patient_card_007))
+                    if (patient.isPriority) append(uiText(R.string.ui_patient_card_008))
+                    append(if (expanded) uiText(R.string.ui_patient_card_009) else uiText(R.string.ui_patient_card_010))
                 }
                 customActions = buildList {
                     if (showViewControls) {
-                        add(CustomAccessibilityAction(if (expanded) "طي تفاصيل المريض" else "توسيع تفاصيل المريض") { onExpandToggle(); true })
-                        add(CustomAccessibilityAction(if (pinned) "إلغاء التثبيت المؤقت" else "تثبيت مؤقت") { onPinToggle(); true })
-                        add(CustomAccessibilityAction("فتح تفاصيل المريض") { onLongClick(); true })
+                        add(CustomAccessibilityAction(if (expanded) uiText(R.string.ui_patient_card_011) else uiText(R.string.ui_patient_card_012)) { onExpandToggle(); true })
+                        add(CustomAccessibilityAction(if (pinned) uiText(R.string.ui_patient_card_013) else uiText(R.string.ui_patient_card_014)) { onPinToggle(); true })
+                        add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_015)) { onLongClick(); true })
                         if (!readOnly) {
-                            add(CustomAccessibilityAction("تعديل بيانات المريض") { onEdit(); true })
-                            add(CustomAccessibilityAction("تعديل شارات المريض") { onBadgeEdit(); true })
-                            add(CustomAccessibilityAction(if (patient.isPriority) "إلغاء الأولوية" else "تحديد أولوية") { onPriorityChange(!patient.isPriority); true })
-                            add(CustomAccessibilityAction("نسخ كمريض جديد") { onCopy(); true })
-                            add(CustomAccessibilityAction("نقل المريض إلى السلة مع التأكيد") { onDelete(); true })
+                            add(CustomAccessibilityAction(uiText(R.string.ui_edit_patient_dialog_001)) { onEdit(); true })
+                            add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_016)) { onBadgeEdit(); true })
+                            add(CustomAccessibilityAction(if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) { onPriorityChange(!patient.isPriority); true })
+                            add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_019)) { onCopy(); true })
+                            add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_020)) { onDelete(); true })
                         }
                     }
                 }
@@ -196,7 +201,7 @@ fun PatientCard(
                         SmallChip(
                             text = buildString {
                                 append(badge.text)
-                                badge.priority?.let { append(" · ").append(it.arabicLabel) }
+                                badge.priority?.let { append(" · ").append(it.uiLabel(uiText)) }
                             },
                             container = badgeColors.container,
                             content = badgeColors.content
@@ -213,19 +218,19 @@ fun PatientCard(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 DiagnosisChip(patient.diagnosisType)
                 if (expanded && patient.hasCompanion) {
-                    SmallChip(text = "مرافق", container = MaterialTheme.colorScheme.surface,
+                    SmallChip(text = uiText(R.string.ui_patient_card_021), container = MaterialTheme.colorScheme.surface,
                         content = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
             if (supervisorName != null || residentName != null) {
-                Text(listOfNotNull(supervisorName?.let { "مشرف: $it" }, residentName?.let { "مقيم: $it" })
+                Text(listOfNotNull(supervisorName?.let { uiText(R.string.ui_patient_card_022, it) }, residentName?.let { uiText(R.string.ui_patient_card_023, it) })
                     .joinToString(" · "), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             if (patient.initialDiagnosis.isNotBlank()) {
-                AppClinicalSection("التشخيص", patient.initialDiagnosis,
+                AppClinicalSection(uiText(R.string.ui_patient_card_024), patient.initialDiagnosis,
                     maxLines = if (expanded) Int.MAX_VALUE else 2)
             }
 
@@ -252,14 +257,14 @@ fun PatientCard(
                     } else {
                         SingleColumnDetail(patient = patient, spacing = sectionGap)
                     }
-                    if (patient.tasks.isNotEmpty()) AppClinicalSection("المهام",
+                    if (patient.tasks.isNotEmpty()) AppClinicalSection(uiText(R.string.ui_tasks),
                         PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = taskNowEpochMillis))
                 }
             }
-            if (!showIdentity) Text(PatientIdentityText.details(patient),
+            if (!showIdentity) Text(PatientIdentityText.details(uiText, patient),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (expanded && showViewControls) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (!readOnly) com.hos.rushdpatients.ui.components.AppTextButton(onClick = onEdit) { Text("تحرير المريض") }
+                if (!readOnly) com.hos.rushdpatients.ui.components.AppTextButton(onClick = onEdit) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
                 com.hos.rushdpatients.ui.components.AppTextButton(onClick = onLongClick) { AppActionLabel(UiAction.FULL_RECORD) }
             }
             if (expanded) patient.lastEditedByName?.let { editor ->
@@ -267,7 +272,7 @@ fun PatientCard(
                     uiDateTime(patient.updatedAt)
                 }
                 Text(
-                    text = "آخر تعديل: $editor · $time · ${relativeFreshness(patient.updatedAt)}",
+                    text = uiText(R.string.ui_patient_card_026, editor, time, relativeFreshness(uiText, patient.updatedAt)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -291,6 +296,7 @@ private fun PatientIdentityHeader(
     onCopy: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -311,7 +317,7 @@ private fun PatientIdentityHeader(
             if (showViewControls) {
                 IconButton(onClick = onExpandToggle) {
                     Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (expanded) "طي التفاصيل" else "توسيع التفاصيل")
+                        contentDescription = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028))
                 }
                 PatientMenu(priority = patient.isPriority, onPriorityChange = onPriorityChange,
                     onCopy = onCopy, onDelete = onDelete, pinned = pinned, onPinToggle = onPinToggle,
@@ -324,9 +330,10 @@ private fun PatientIdentityHeader(
 
 @Composable
 private fun SingleColumnDetail(patient: Patient, spacing: Dp) {
-    val sections = listOf(Triple("الخطة العلاجية", patient.treatmentPlan, ClinicalTextKind.CLINICAL),
-        Triple("المتابعة", patient.followUp, ClinicalTextKind.CLINICAL),
-        Triple("التحاليل", patient.labs, ClinicalTextKind.LABS)).filter { it.second.isNotBlank() }
+    val uiText = rememberUiStrings()
+    val sections = listOf(Triple(uiText(R.string.ui_patient_form_dialog_011), patient.treatmentPlan, ClinicalTextKind.CLINICAL),
+        Triple(uiText(R.string.ui_patient_form_dialog_012), patient.followUp, ClinicalTextKind.CLINICAL),
+        Triple(uiText(R.string.ui_labs), patient.labs, ClinicalTextKind.LABS)).filter { it.second.isNotBlank() }
     Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
         sections.forEachIndexed { index, (title, content, kind) ->
             if (index > 0) Divider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -337,6 +344,7 @@ private fun SingleColumnDetail(patient: Patient, spacing: Dp) {
 
 @Composable
 private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
+    val uiText = rememberUiStrings()
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         if (maxWidth < UiLayout.patientCardColumnsMinWidth) {
             SingleColumnDetail(patient, spacing)
@@ -353,7 +361,7 @@ private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
                 verticalArrangement = Arrangement.spacedBy(spacing)
             ) {
             if (patient.treatmentPlan.isNotBlank()) {
-                AppClinicalSection("الخطة العلاجية", patient.treatmentPlan)
+                AppClinicalSection(uiText(R.string.ui_patient_form_dialog_011), patient.treatmentPlan)
             }
         }
 
@@ -369,15 +377,15 @@ private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
             verticalArrangement = Arrangement.spacedBy(spacing)
         ) {
             if (patient.followUp.isNotBlank()) {
-                AppClinicalSection("المتابعة", patient.followUp)
+                AppClinicalSection(uiText(R.string.ui_patient_form_dialog_012), patient.followUp)
             }
             if (patient.labs.isNotBlank()) {
                 if (patient.followUp.isNotBlank()) Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                AppClinicalSection("التحاليل", patient.labs, kind = ClinicalTextKind.LABS)
+                AppClinicalSection(uiText(R.string.ui_labs), patient.labs, kind = ClinicalTextKind.LABS)
             }
             if (patient.followUp.isBlank() && patient.labs.isBlank()) {
                 Text(
-                    text = "لا توجد متابعة أو تحاليل",
+                    text = uiText(R.string.ui_patient_card_029),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -392,20 +400,21 @@ private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
 @Composable
 private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
     onCopy: () -> Unit, onDelete: () -> Unit, pinned: Boolean, onPinToggle: () -> Unit, readOnly: Boolean) {
+    val uiText = rememberUiStrings()
     var menu by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { menu = true }, modifier = Modifier.size(UiSpacing.touchTarget)) {
-            Icon(Icons.Filled.MoreVert, contentDescription = "خيارات المريض", modifier = Modifier.size(UiSize.iconMedium))
+            Icon(Icons.Filled.MoreVert, contentDescription = uiText(R.string.ui_patient_card_030), modifier = Modifier.size(UiSize.iconMedium))
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(text = { Text(if (pinned) "إلغاء التثبيت" else "تثبيت للعرض") },
+            DropdownMenuItem(text = { Text(if (pinned) uiText(R.string.ui_patient_card_031) else uiText(R.string.ui_patient_card_032)) },
                 leadingIcon = { Icon(if (pinned) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder, contentDescription = null) },
                 onClick = { menu = false; onPinToggle() })
             if (!readOnly) {
-                DropdownMenuItem(text = { Text(if (priority) "إلغاء الأولوية" else "تحديد أولوية") },
+                DropdownMenuItem(text = { Text(if (priority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) },
                     onClick = { menu = false; onPriorityChange(!priority) })
-                DropdownMenuItem(text = { Text("نسخ كمريض جديد") }, onClick = { menu = false; onCopy() })
-                DropdownMenuItem(text = { Text("نقل إلى السلة") }, onClick = { menu = false; onDelete() })
+                DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_card_019)) }, onClick = { menu = false; onCopy() })
+                DropdownMenuItem(text = { Text(uiText(R.string.ui_ward_patient_dialogs_001)) }, onClick = { menu = false; onDelete() })
             }
         }
     }
@@ -413,7 +422,8 @@ private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
 
 @Composable
 private fun DiagnosisChip(type: DiagnosisType) {
-    SmallChip(text = type.arabicLabel, container = Color.Transparent,
+    val uiText = rememberUiStrings()
+    SmallChip(text = type.uiLabel(uiText), container = Color.Transparent,
         content = MaterialTheme.colorScheme.onSurfaceVariant, outlined = true)
 }
 

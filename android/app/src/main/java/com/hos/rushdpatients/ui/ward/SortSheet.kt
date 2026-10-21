@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
 import androidx.compose.runtime.CompositionLocalProvider
 import com.hos.rushdpatients.ui.components.LocalFieldEnabled
@@ -46,10 +51,11 @@ fun SortSheet(
     onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = { if (!saving) onDismiss() }, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight).padding(UiSpacing.screen)) {
-            AppDialogHeader("ترتيب المرضى")
+            AppDialogHeader(uiText(R.string.ui_sort_sheet_001))
             Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState())) {
                 PatientSortOptions(initial, initialRevision, saving, onApply)
             }
@@ -66,6 +72,7 @@ internal fun PatientSortOptions(
     saving: Boolean = false,
     onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var levels by remember { mutableStateOf(initial.levels) }
 
     var revision by remember { mutableStateOf(initialRevision) }
@@ -93,15 +100,15 @@ internal fun PatientSortOptions(
             ) {
                 if (rejected != null) {
                     AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                        Text("مراجعة الترتيب المرفوض")
+                        Text(uiText(R.string.ui_sort_sheet_002))
                     }
                 }
                 levels.forEachIndexed { index, level ->
-                    Text("المستوى " + when (index) {
-                        0 -> "الأول"
-                        1 -> "الثاني"
-                        2 -> "الثالث"
-                        else -> "الرابع"
+                    Text(uiText(R.string.ui_sort_sheet_003) + when (index) {
+                        0 -> uiText(R.string.ui_sort_sheet_004)
+                        1 -> uiText(R.string.ui_sort_sheet_005)
+                        2 -> uiText(R.string.ui_sort_sheet_006)
+                        else -> uiText(R.string.ui_sort_sheet_007)
                     }, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -123,7 +130,7 @@ internal fun PatientSortOptions(
                         )
                         AppTextButton(onClick = {
                             levels = levels.toMutableList().also { it.removeAt(index) }
-                        }) { Text("حذف") }
+                        }) { Text(uiText(R.string.ui_patient_task_editor_007)) }
                     }
                 }
 
@@ -133,7 +140,7 @@ internal fun PatientSortOptions(
                             levels = levels + SortLevel(SortField.NAME, SortDirection.ASC)
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("إضافة مستوى") }
+                    ) { Text(uiText(R.string.ui_sort_sheet_008)) }
                 }
             }
 
@@ -141,7 +148,7 @@ internal fun PatientSortOptions(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
-                AppDialogConfirmAction(text = "حفظ الترتيب", loading = saving,
+                AppDialogConfirmAction(text = uiText(R.string.ui_sort_sheet_009), loading = saving,
                     onClick = { apply(SortSpec(levels)) },
                     enabled = !saving,
                     modifier = Modifier.weight(1f)
@@ -150,15 +157,15 @@ internal fun PatientSortOptions(
                     onClick = { apply(SortSpec.DEFAULT) },
                     enabled = !saving,
                     modifier = Modifier.weight(1f)
-                ) { Text("افتراضي") }
+                ) { Text(uiText(R.string.ui_sort_sheet_010)) }
             }
             AppTextButton(
                 onClick = { apply(SortSpec.EMPTY) },
                 enabled = !saving,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("الترتيب الأصلي") }
+            ) { Text(uiText(R.string.ui_sort_sheet_011)) }
             AppTextButton(onClick = { apply(SortSpec.WORKBOOK) }, enabled = !saving,
-                modifier = Modifier.fillMaxWidth()) { Text("الترتيب الافتراضي: الجنس ← التشخيص ← أيام الدخول ← الاسم") }
+                modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_sort_sheet_012)) }
         }
     }
     if (reviewing) {
@@ -166,7 +173,7 @@ internal fun PatientSortOptions(
         val draft = rejected ?: SortSpec.EMPTY
         val savedSpec = SortSpecCodec.decode(saved?.sortSpecJson)
         StaleEditReviewDialog(
-            differences = listOf(Triple("ترتيب المرضى", sortReviewLabel(draft), sortReviewLabel(savedSpec))),
+            differences = listOf(Triple(uiText(R.string.ui_sort_sheet_001), sortReviewLabel(uiText, draft), sortReviewLabel(uiText, savedSpec))),
             available = saved != null,
             onKeepDraft = {
                 if (saved != null) {
@@ -193,16 +200,17 @@ private fun FieldDropdown(
     onSelected: (SortField) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val uiText = rememberUiStrings()
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
         AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(fieldLabel(selected))
+            Text(fieldLabel(uiText, selected))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             SortField.values().forEach { f ->
                 DropdownMenuItem(
                     enabled = LocalFieldEnabled.current,
-                    text = { Text(fieldLabel(f)) },
+                    text = { Text(fieldLabel(uiText, f)) },
                     onClick = { onSelected(f); expanded = false }
                 )
             }
@@ -216,35 +224,36 @@ private fun DirectionDropdown(
     onSelected: (SortDirection) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val uiText = rememberUiStrings()
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
         AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (selected == SortDirection.ASC) "تصاعدي" else "تنازلي")
+            Text(if (selected == SortDirection.ASC) uiText(R.string.ui_sort_sheet_013) else uiText(R.string.ui_sort_sheet_014))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                     enabled = LocalFieldEnabled.current,
-                text = { Text("تصاعدي") },
+                text = { Text(uiText(R.string.ui_sort_sheet_013)) },
                 onClick = { onSelected(SortDirection.ASC); expanded = false }
             )
             DropdownMenuItem(
                     enabled = LocalFieldEnabled.current,
-                text = { Text("تنازلي") },
+                text = { Text(uiText(R.string.ui_sort_sheet_014)) },
                 onClick = { onSelected(SortDirection.DESC); expanded = false }
             )
         }
     }
 }
 
-internal fun fieldLabel(f: SortField): String = when (f) {
-    SortField.NAME -> "الاسم"
-    SortField.GENDER -> "الجنس"
-    SortField.DIAGNOSIS -> "التشخيص"
-    SortField.DAYS_OF_ADMITTANCE -> "أيام الدخول"
-    SortField.SUPERVISOR -> "المشرف"
+internal fun fieldLabel(uiText: UiStrings, f: SortField): String = when (f) {
+    SortField.NAME -> uiText(R.string.ui_edit_patient_dialog_009)
+    SortField.GENDER -> uiText(R.string.ui_patient_demographic_fields_010)
+    SortField.DIAGNOSIS -> uiText(R.string.ui_patient_card_024)
+    SortField.DAYS_OF_ADMITTANCE -> uiText(R.string.ui_sort_sheet_015)
+    SortField.SUPERVISOR -> uiText(R.string.ui_patient_form_dialog_017)
 }
 
-internal fun sortReviewLabel(spec: SortSpec): String =
-    if (spec.levels.isEmpty()) "الترتيب الأصلي" else spec.levels.joinToString(" ← ") {
-        "${fieldLabel(it.field)} (${if (it.direction == SortDirection.ASC) "تصاعدي" else "تنازلي"})"
+internal fun sortReviewLabel(uiText: UiStrings, spec: SortSpec): String =
+    if (spec.levels.isEmpty()) uiText(R.string.ui_sort_sheet_011) else spec.levels.joinToString(" ← ") {
+        uiText(R.string.ui_edit_patient_dialog_014, fieldLabel(uiText, it.field), if (it.direction == SortDirection.ASC) uiText(R.string.ui_sort_sheet_013) else uiText(R.string.ui_sort_sheet_014))
     }

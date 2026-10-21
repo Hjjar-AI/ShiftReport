@@ -132,6 +132,20 @@ need the same size. Labs use content-aware LTR text and a monospace font; other
 clinical text is content-aware RTL. This preserves mixed Arabic/Latin text rather
 than reversing the saved strings.
 
+## UI wording resources
+
+Active Android UI Arabic wording lives in `res/values/strings_ui.xml`; existing
+six-form count resources remain in `strings.xml`. Reuse common action resources
+and screen-prefixed names. Use numbered placeholders for interpolated values and
+retain `uiNumber`/`uiPlural` at presentation call sites.
+
+Capture `rememberUiStrings()` in composables for callbacks and presentation
+helpers; UI state producers receive `UiStrings` through injection. Composable
+default arguments may use `stringResource`. Use the `UiLabels.kt` bridges for
+model/PDF enum labels in the UI; portable model codes and shared clinical/export
+wording have separate ownership. About/credits and dummy clinical fixtures retain
+their existing content. See [scope and verification limits](current-state.md#android-ui-string-resources).
+
 ## Dialog and adaptive layout roles
 
 Scrollable dialog bodies measure against their actual parent constraints. The

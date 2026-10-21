@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -29,6 +33,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProjectSetupViewModel @Inject constructor(
+    private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
     private val projectConfigStore: ProjectConfigStore,
     private val telegram: TelegramClient,
@@ -66,11 +71,11 @@ class ProjectSetupViewModel @Inject constructor(
     fun importProvisioning(uri: Uri) {
         val passphrase = _state.value.provisioningPassphrase
         if (passphrase.length < ProjectProvisioningManager.MIN_PASSWORD_LENGTH) {
-            _state.update { it.copy(error = "أدخل عبارة المرور المكونة من 10 محارف على الأقل") }
+            _state.update { it.copy(error = uiText(R.string.ui_project_setup_view_model_001)) }
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(busy = true, status = "جارٍ فتح ملف الانضمام…", error = null) }
+            _state.update { it.copy(busy = true, status = uiText(R.string.ui_project_setup_view_model_002), error = null) }
             runCatching { provisioningManager.importConfig(uri, passphrase.toCharArray()) }
                 .onSuccess { config ->
                     _state.update {
@@ -87,7 +92,7 @@ class ProjectSetupViewModel @Inject constructor(
                             encryptTelegram = config.telegramDataKey.isNotEmpty(),
                             telegramDataKey = config.telegramDataKey,
                             busy = false,
-                            status = "تم تحميل إعدادات المشروع. اضغط التحقق والانضمام.",
+                            status = uiText(R.string.ui_project_setup_view_model_003),
                             error = null
                         )
                     }
@@ -99,7 +104,7 @@ class ProjectSetupViewModel @Inject constructor(
                             provisioningPassphrase = "",
                             busy = false,
                             status = null,
-                            error = error.message ?: "تعذر فتح ملف الانضمام"
+                            error = error.message ?: uiText(R.string.ui_project_setup_view_model_004)
                         )
                     }
                 }
@@ -115,15 +120,15 @@ class ProjectSetupViewModel @Inject constructor(
             return
         }
         if (input.mode == ProjectSetupMode.JOIN && !input.importedProvisioning) {
-            _state.update { it.copy(error = "استورد ملف الانضمام المشفر من المدير أولاً") }
+            _state.update { it.copy(error = uiText(R.string.ui_project_setup_view_model_005)) }
             return
         }
         val config = runCatching { validate(input) }.getOrElse { error ->
-            _state.update { it.copy(error = error.message ?: "تحقق من البيانات") }
+            _state.update { it.copy(error = error.message ?: uiText(R.string.ui_project_setup_view_model_006)) }
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(busy = true, status = "جارٍ التحقق من البوت والمجموعة…", error = null) }
+            _state.update { it.copy(busy = true, status = uiText(R.string.ui_project_setup_view_model_007), error = null) }
             try {
                 val configured = if (input.mode == ProjectSetupMode.CREATE && input.encryptTelegram) {
                     val key = input.telegramDataKey.takeIf { ProjectDataCipher.validKey(it) }
@@ -133,30 +138,30 @@ class ProjectSetupViewModel @Inject constructor(
                 } else config
                 projectConfigStore.saveDraft(configured)
                 val bot = telegram.getMe()
-                require(bot.isBot) { "الرمز لا يعود إلى بوت تليجرام" }
+                require(bot.isBot) { uiText(R.string.ui_project_setup_view_model_008) }
                 val chat = telegram.getChat(config.chatId)
                 require(chat.type == "group" || chat.type == "supergroup") {
-                    "المعرف لا يعود إلى مجموعة تليجرام"
+                    uiText(R.string.ui_project_setup_view_model_009)
                 }
 
                 val bootstrap = if (input.mode == ProjectSetupMode.CREATE) {
                     require(chat.pinnedMessage == null) {
-                        "توجد رسالة مثبّتة في المجموعة؛ استخدم الانضمام إلى مشروع موجود أو مجموعة جديدة"
+                        uiText(R.string.ui_project_setup_view_model_010)
                     }
-                    _state.update { it.copy(status = "جارٍ إنشاء سجل المدير الأول…") }
+                    _state.update { it.copy(status = uiText(R.string.ui_project_setup_view_model_011)) }
                     when (val seeded = bootstrapSeeder.seed()) {
                         is BootstrapSeeder.Result.Success -> bootstrapManager.bootstrap()
                         is BootstrapSeeder.Result.Failure -> error(seeded.message)
                     }
                 } else {
-                    _state.update { it.copy(status = "جارٍ تنزيل سجل المشروع…") }
+                    _state.update { it.copy(status = uiText(R.string.ui_project_setup_view_model_012)) }
                     bootstrapManager.bootstrap()
                 }
 
                 when (bootstrap) {
                     is BootstrapResult.Success -> Unit
-                    BootstrapResult.NoPin -> error("لا توجد بيانات مشروع مثبّتة في المجموعة")
-                    BootstrapResult.UnrecognizedPin -> error("الرسالة المثبّتة ليست بيانات ShiftReport صالحة")
+                    BootstrapResult.NoPin -> error(uiText(R.string.ui_project_setup_view_model_013))
+                    BootstrapResult.UnrecognizedPin -> error(uiText(R.string.ui_project_setup_view_model_014))
                     is BootstrapResult.Failed -> error(bootstrap.message)
                 }
 
@@ -169,7 +174,7 @@ class ProjectSetupViewModel @Inject constructor(
                     it.copy(
                         busy = false,
                         status = null,
-                        error = e.message ?: "تعذر تهيئة المشروع"
+                        error = e.message ?: uiText(R.string.ui_project_setup_view_model_015)
                     )
                 }
             }
@@ -178,17 +183,17 @@ class ProjectSetupViewModel @Inject constructor(
 
     private fun validate(input: ProjectSetupUiState): ProjectConfig {
         val hospitalName = input.hospitalName.trim()
-        require(hospitalName.length in 2..80) { "أدخل اسم المستشفى أو المشروع" }
+        require(hospitalName.length in 2..80) { uiText(R.string.ui_project_setup_view_model_016) }
         val token = input.botToken.trim()
-        require(BOT_TOKEN.matches(token)) { "رمز البوت غير صالح" }
+        require(BOT_TOKEN.matches(token)) { uiText(R.string.ui_project_setup_view_model_017) }
         val chatId = input.chatId.toLongOrNull()
-        require(chatId != null && chatId < 0L) { "معرف المجموعة يجب أن يكون رقماً سالباً" }
+        require(chatId != null && chatId < 0L) { uiText(R.string.ui_project_setup_view_model_018) }
 
         val admin = if (input.mode == ProjectSetupMode.CREATE) {
             val name = input.adminName.trim()
-            require(name.length >= 3) { "أدخل اسم المدير الأول" }
+            require(name.length >= 3) { uiText(R.string.ui_project_setup_view_model_019) }
             val telegramId = input.adminTelegramId.toLongOrNull()
-            require(telegramId != null && telegramId > 0L) { "معرف تليجرام للمدير غير صالح" }
+            require(telegramId != null && telegramId > 0L) { uiText(R.string.ui_project_setup_view_model_020) }
             InitialAdminConfig(
                 fullName = name,
                 telegramId = telegramId,
@@ -202,10 +207,10 @@ class ProjectSetupViewModel @Inject constructor(
             botToken = token,
             telegramDataKey = if (input.mode == ProjectSetupMode.JOIN || input.encryptTelegram) input.telegramDataKey else "",
             chatId = chatId,
-            reportsTopicId = topic(input.reportsTopicId, "التقارير"),
-            announcementsTopicId = topic(input.announcementsTopicId, "الإعلانات"),
-            csvTopicId = topic(input.csvTopicId, "البيانات"),
-            doctorsTopicId = topic(input.doctorsTopicId, "الأطباء"),
+            reportsTopicId = topic(input.reportsTopicId, uiText(R.string.ui_project_setup_view_model_021)),
+            announcementsTopicId = topic(input.announcementsTopicId, uiText(R.string.ui_project_setup_view_model_022)),
+            csvTopicId = topic(input.csvTopicId, uiText(R.string.ui_project_setup_view_model_023)),
+            doctorsTopicId = topic(input.doctorsTopicId, uiText(R.string.ui_doctors)),
             initialAdmin = admin
         )
     }
@@ -213,7 +218,7 @@ class ProjectSetupViewModel @Inject constructor(
     private fun topic(value: String, label: String): Long {
         if (value.isBlank()) return 0L
         return value.toLongOrNull()?.takeIf { it > 0L }
-            ?: throw IllegalArgumentException("معرف موضوع $label غير صالح")
+            ?: throw IllegalArgumentException(uiText(R.string.ui_project_setup_view_model_025, label))
     }
 
     private fun numeric(value: String, signed: Boolean = false): String =

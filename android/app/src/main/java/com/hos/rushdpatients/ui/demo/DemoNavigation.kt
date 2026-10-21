@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.demo
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,9 +22,11 @@ import com.hos.rushdpatients.ui.ward.PatientSortOptions
 import com.hos.rushdpatients.ui.ward.WardViewOption
 import com.hos.rushdpatients.ui.ward.sortReviewLabel
 
-internal enum class DemoDestination(val title: String) {
-    PATIENTS("المرضى"), DASHBOARD("لوحة تسليم المناوبة"),
-    TEAM("أطباء المناوبة"), REPORT("معاينة التقرير"), SETTINGS("الإعدادات")
+internal enum class DemoDestination(@StringRes private val titleRes: Int) {
+    PATIENTS(R.string.ui_patients), DASHBOARD(R.string.ui_ward_drawer_010),
+    TEAM(R.string.ui_shift_doctor_picker_001), REPORT(R.string.ui_demo_navigation_009), SETTINGS(R.string.ui_settings);
+
+    fun title(uiText: UiStrings): String = uiText(titleRes)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,18 +36,19 @@ internal fun DemoDrawer(
     onNavigate: (DemoDestination) -> Unit,
     onRecycle: () -> Unit, onReset: () -> Unit, onExit: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     ModalDrawerSheet {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppSection("مشفى تجريبي · تقرير المناوبة") {
+            AppSection(uiText(R.string.ui_demo_navigation_001)) {
                 Text(state.actor.fullName, style = MaterialTheme.typography.titleMedium)
-                Text("${state.date} · جلسة مؤقتة", style = MaterialTheme.typography.bodySmall)
+                Text(uiText(R.string.ui_demo_navigation_002, state.date), style = MaterialTheme.typography.bodySmall)
             }
-            Text("اكتشف التطبيق ببيانات وهمية. التغييرات هنا لا تؤثر في مشروعك.",
+            Text(uiText(R.string.ui_demo_navigation_003),
                 style = MaterialTheme.typography.bodySmall)
             DemoDestination.entries.forEach { destination ->
                 NavigationDrawerItem(selected = selected == destination,
-                    label = { Text(destination.title) },
+                    label = { Text(destination.title(uiText)) },
                     icon = { Icon(when (destination) {
                         DemoDestination.PATIENTS -> Icons.Filled.ViewAgenda
                         DemoDestination.DASHBOARD -> Icons.Filled.Dashboard
@@ -51,28 +59,28 @@ internal fun DemoDrawer(
             }
             Divider()
             AppTextButton(onClick = onRecycle, modifier = Modifier.fillMaxWidth()) {
-                Text("سلة المحذوفات (${uiNumber(state.deleted.size)})")
+                Text(uiText(R.string.ui_demo_navigation_004, uiNumber(state.deleted.size)))
             }
             AppTextButton(onClick = onReset, enabled = !state.exporting, modifier = Modifier.fillMaxWidth()) {
-                Text("إعادة ضبط البيانات التجريبية")
+                Text(uiText(R.string.ui_demo_navigation_005))
             }
             AppOutlinedButton(onClick = onExit, enabled = !state.exporting, modifier = Modifier.fillMaxWidth()) {
-                Text("إنهاء التجربة")
+                Text(uiText(R.string.ui_demo_navigation_006))
             }
         }
     }
 }
 
-internal fun DashboardFilter.demoLabel(): String = when (this) {
-    DashboardFilter.ALL -> "الكل"
-    DashboardFilter.MINE -> "مرضاي ومهامي"
-    DashboardFilter.URGENT -> "عاجل أو أولوية"
-    DashboardFilter.WARNINGS -> "مع شارة"
-    DashboardFilter.UNASSIGNED -> "بحاجة إلى تعيين طبيب"
-    DashboardFilter.NEW_ADMISSIONS -> "دخول اليوم"
-    DashboardFilter.TASK_PENDING -> "مهام معلقة"
-    DashboardFilter.TASK_OVERDUE -> "مهام متأخرة"
-    DashboardFilter.TASK_UNASSIGNED -> "مهام غير معيّنة"
+internal fun DashboardFilter.demoLabel(uiText: UiStrings): String = when (this) {
+    DashboardFilter.ALL -> uiText(R.string.ui_all)
+    DashboardFilter.MINE -> uiText(R.string.ui_ward_view_options_dialog_005)
+    DashboardFilter.URGENT -> uiText(R.string.ui_handover_dashboard_006)
+    DashboardFilter.WARNINGS -> uiText(R.string.ui_ward_screen_009)
+    DashboardFilter.UNASSIGNED -> uiText(R.string.ui_handover_dashboard_014)
+    DashboardFilter.NEW_ADMISSIONS -> uiText(R.string.ui_handover_dashboard_016)
+    DashboardFilter.TASK_PENDING -> uiText(R.string.ui_ward_screen_011)
+    DashboardFilter.TASK_OVERDUE -> uiText(R.string.ui_ward_patient_list_controls_008)
+    DashboardFilter.TASK_UNASSIGNED -> uiText(R.string.ui_ward_screen_012)
 }
 
 /** A reduced version of the ward's options, with the same fields and saved-sort editor. */
@@ -86,40 +94,41 @@ internal fun DemoViewOptions(
     sort: SortSpec, onSort: (SortSpec) -> Unit,
     onReset: () -> Unit, onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var selected by rememberSaveable { mutableStateOf(WardViewOption.FILTERS) }
     val sections = listOf(WardViewOption.FILTERS, WardViewOption.CARDS, WardViewOption.SORT)
     AlertDialog(onDismissRequest = onDismiss, title = {
         Column {
-            Text("خيارات العرض")
-            AppSectionIndex(sections, selected, label = { it.label }, onSelect = { selected = it })
+            Text(uiText(R.string.ui_ward_patient_list_controls_004))
+            AppSectionIndex(sections, selected, label = { it.label(uiText) }, onSelect = { selected = it })
         }
     }, text = {
         Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             when (selected) {
                 WardViewOption.FILTERS -> {
-                    Text("التصفية للعرض فقط؛ يبقى التقرير شاملاً لكل المرضى.", style = MaterialTheme.typography.bodySmall)
+                    Text(uiText(R.string.ui_demo_navigation_007), style = MaterialTheme.typography.bodySmall)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         DashboardFilter.entries.forEach { value ->
                             FilterChip(selected = filter == value, onClick = { onFilter(value) },
-                                label = { Text(value.demoLabel()) })
+                                label = { Text(value.demoLabel(uiText)) })
                         }
                     }
                 }
                 WardViewOption.CARDS -> {
-                    AppToggleRow("عرض التفاصيل", checked = expanded, onCheckedChange = onExpanded)
-                    AppToggleRow("بطاقة بعمودين عند توفر المساحة", checked = twoColumn, onCheckedChange = onTwoColumn)
-                    AppToggleRow("بطاقات مضغوطة", checked = compact, onCheckedChange = onCompact)
+                    AppToggleRow(uiText(R.string.ui_ward_view_options_dialog_009), checked = expanded, onCheckedChange = onExpanded)
+                    AppToggleRow(uiText(R.string.ui_ward_view_options_dialog_010), checked = twoColumn, onCheckedChange = onTwoColumn)
+                    AppToggleRow(uiText(R.string.ui_ward_view_options_dialog_011), checked = compact, onCheckedChange = onCompact)
                 }
                 WardViewOption.SORT -> {
-                    Text("ترتيب الجلسة التجريبية؛ يستخدم أيضاً في PDF.", style = MaterialTheme.typography.bodySmall)
-                    Text(sortReviewLabel(sort), style = MaterialTheme.typography.bodySmall)
+                    Text(uiText(R.string.ui_demo_navigation_008), style = MaterialTheme.typography.bodySmall)
+                    Text(sortReviewLabel(uiText, sort), style = MaterialTheme.typography.bodySmall)
                     PatientSortOptions(initial = sort, initialRevision = 0,
                         onApply = { spec, _, _ -> onSort(spec) })
                 }
                 WardViewOption.GROUPING -> Unit
             }
         }
-    }, confirmButton = { AppDialogDismissAction(onClick = onDismiss, text = "تم") },
-        dismissButton = { AppTextButton(onClick = onReset) { Text("مسح التصفية") } })
+    }, confirmButton = { AppDialogDismissAction(onClick = onDismiss, text = uiText(R.string.ui_done)) },
+        dismissButton = { AppTextButton(onClick = onReset) { Text(uiText(R.string.ui_ward_patient_list_controls_005)) } })
 }

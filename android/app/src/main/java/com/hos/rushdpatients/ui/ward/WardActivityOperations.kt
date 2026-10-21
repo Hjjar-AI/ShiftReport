@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.R
+
 import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.sync.SyncService
@@ -12,6 +16,7 @@ import kotlinx.coroutines.launch
 
 /** Uses the owning ViewModel state/scope; repository guards remain unchanged. */
 internal class WardActivityOperations(
+    private val uiText: UiStrings,
     private val _state: MutableStateFlow<WardUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val syncService: SyncService,
@@ -28,7 +33,7 @@ internal class WardActivityOperations(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(activityError = e.message ?: "تعذر تحميل النشاط المحلي") }
+                _state.update { it.copy(activityError = e.message ?: uiText(R.string.ui_ward_activity_operations_001)) }
             }
         }
     }
@@ -54,7 +59,7 @@ internal class WardActivityOperations(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(activityError = e.message ?: "تعذر تحديث النشاط والمنشورات") }
+                _state.update { it.copy(activityError = e.message ?: uiText(R.string.ui_ward_activity_operations_002)) }
             } finally {
                 _state.update { it.copy(activityLoading = false) }
             }

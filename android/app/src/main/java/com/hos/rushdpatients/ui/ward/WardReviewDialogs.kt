@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.AppActionLabel
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.theme.UiDialog
@@ -36,33 +39,34 @@ internal fun RolloverReviewDialog(
     onConfirm: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var keepAssignments by androidx.compose.runtime.remember(patients) { androidx.compose.runtime.mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("بدء مناوبة اليوم من السابقة") },
+        title = { Text(uiText(R.string.ui_ward_review_dialogs_001)) },
         text = {
             Column(modifier = Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight)
                 .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 Text(sourceLabel, style = MaterialTheme.typography.bodySmall)
-                Text("نسخ جميع المرضى إلى سجلات جديدة في مناوبة اليوم، مع المهام غير المكتملة ومواعيدها فقط. المهام المكتملة تبقى في السابقة. هذا مستقل عن جلب بيانات تليجرام.")
+                Text(uiText(R.string.ui_ward_review_dialogs_002))
                 FilterChip(selected = keepAssignments, enabled = !saving,
                     onClick = { keepAssignments = !keepAssignments },
-                    label = { Text("الاحتفاظ بالأطباء المسؤولين ومالكي المهام") })
-                if (!keepAssignments) Text("ستُزال مسؤوليات الأطباء ومالكو المهام من النسخة الجديدة فقط.")
+                    label = { Text(uiText(R.string.ui_ward_review_dialogs_003)) })
+                if (!keepAssignments) Text(uiText(R.string.ui_ward_review_dialogs_004))
                 LazyColumn(modifier = Modifier.appDialogBody(UiDialog.compactBodyMaxHeight)) {
                     items(patients, key = { it.id }) { patient ->
-                        Text(patient.name + " · مهام معلقة " + uiNumber(patient.tasks.count { !it.done }))
+                        Text(patient.name + uiText(R.string.ui_ward_review_dialogs_005) + uiNumber(patient.tasks.count { !it.done }))
                     }
                 }
-                Text("تحفظ محلياً، ثم تراجع وتنشر. لا تستبدل مناوبة تحتوي مرضى.")
+                Text(uiText(R.string.ui_ward_review_dialogs_006))
             }
         },
         confirmButton = {
             AppTextButton(onClick = { onConfirm(keepAssignments) }, enabled = !saving) {
-                Text(if (saving) "جارٍ النسخ…" else "نسخ الجميع (${uiNumber(patients.size)})")
+                Text(if (saving) uiText(R.string.ui_ward_review_dialogs_007) else uiText(R.string.ui_ward_review_dialogs_008, uiNumber(patients.size)))
             }
         },
-        dismissButton = { AppTextButton(onClick = onDismiss, enabled = !saving) { Text("إلغاء") } }
+        dismissButton = { AppTextButton(onClick = onDismiss, enabled = !saving) { Text(uiText(R.string.ui_cancel)) } }
     )
 }
 
@@ -74,12 +78,13 @@ internal fun PatientRecycleBinDialog(
     onRestore: (Patient) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("سلة المحذوفات") },
+        title = { Text(uiText(R.string.ui_ward_review_dialogs_009)) },
         text = {
             if (patients.isEmpty()) {
-                Text("لا يوجد مرضى محذوفون في هذه المناوبة")
+                Text(uiText(R.string.ui_ward_review_dialogs_010))
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     items(patients, key = { it.id }) { patient ->
@@ -106,7 +111,7 @@ internal fun PatientRecycleBinDialog(
             }
         },
         confirmButton = {
-            AppTextButton(onClick = onDismiss) { Text("إغلاق") }
+            AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_close)) }
         }
     )
 }
@@ -118,19 +123,20 @@ internal fun ShiftSnapshotPickerDialog(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("اختيار مناوبة محفوظة") },
+        title = { Text(uiText(R.string.ui_ward_review_dialogs_012)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                Text("المناوبات الموجودة في آخر ملف CSV تم تنزيله:")
+                Text(uiText(R.string.ui_ward_review_dialogs_013))
                 options.forEachIndexed { index, option ->
                     AppTextButton(
                         onClick = { onSelect(option.shiftId) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            "${index + 1}. ${option.date} — ${option.patientCount} مريض",
+                            uiText(R.string.ui_ward_review_dialogs_014, index + 1, option.date, option.patientCount),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -139,7 +145,7 @@ internal fun ShiftSnapshotPickerDialog(
         },
         confirmButton = {},
         dismissButton = {
-            AppTextButton(onClick = onDismiss) { Text("إلغاء") }
+            AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_cancel)) }
         }
     )
 }

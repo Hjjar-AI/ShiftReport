@@ -1,5 +1,14 @@
 package com.hos.rushdpatients.ui.ward
 
+import androidx.annotation.StringRes
+
+import com.hos.rushdpatients.ui.components.UiStrings
+
+import com.hos.rushdpatients.ui.components.uiLabel
+
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
+
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.uiNumber
@@ -70,6 +79,7 @@ internal fun PatientTaskEditor(
     modifier: Modifier = Modifier,
     onChange: (List<PatientTask>) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var editing by remember { mutableStateOf<PatientTask?>(null) }
     var adding by remember { mutableStateOf(false) }
     var completedExpanded by remember { mutableStateOf(false) }
@@ -82,9 +92,9 @@ internal fun PatientTaskEditor(
     val pending = tasks.count { !it.done }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AppSectionHeader(title = "مهام المريض · ${uiNumber(pending)} معلقة", count = tasks.size,
+            AppSectionHeader(title = uiText(R.string.ui_patient_task_editor_001, uiNumber(pending)), count = tasks.size,
                 modifier = Modifier.weight(1f))
-            AppOutlinedButton(onClick = { adding = true }, enabled = enabled) { Text("إضافة مهمة") }
+            AppOutlinedButton(onClick = { adding = true }, enabled = enabled) { Text(uiText(R.string.ui_patient_task_editor_002)) }
         }
         val taskCard: @Composable (PatientTask) -> Unit = { task ->
             TaskDraftRow(task = task, names = names, enabled = enabled, nowEpochMillis = now,
@@ -99,11 +109,11 @@ internal fun PatientTaskEditor(
         }
         ordered.filterNot { it.done }.forEach { taskCard(it) }
         if (completed.isNotEmpty()) {
-            AppSectionHeader(title = "المكتملة", count = completed.size,
+            AppSectionHeader(title = uiText(R.string.ui_patient_task_editor_003), count = completed.size,
                 expanded = completedExpanded, onToggle = { completedExpanded = !completedExpanded })
             if (completedExpanded) completed.forEach { taskCard(it) }
         }
-        Text("تُحفظ تغييرات المهام مع حفظ المريض؛ يسجل التطبيق منفّذ الإتمام ووقته عند الحفظ.",
+        Text(uiText(R.string.ui_patient_task_editor_004),
             style = MaterialTheme.typography.bodySmall)
     }
     if (adding || editing != null) TaskDraftDialog(
@@ -123,6 +133,7 @@ private fun TaskDraftRow(
     task: PatientTask, names: Map<String, String>, enabled: Boolean, nowEpochMillis: Long,
     onEdit: () -> Unit, onToggleDone: () -> Unit, onDelete: () -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var menu by remember(task.id) { mutableStateOf(false) }
     Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -131,11 +142,11 @@ private fun TaskDraftRow(
                 Text(task.description, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 Box {
                     IconButton(onClick = { menu = true }, enabled = enabled) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "خيارات المهمة: ${task.description}")
+                        Icon(Icons.Filled.MoreVert, contentDescription = uiText(R.string.ui_patient_task_editor_005, task.description))
                     }
                     DropdownMenu(expanded = menu && enabled, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text("تعديل") }, onClick = { menu = false; onEdit() })
-                        DropdownMenuItem(text = { Text("حذف", color = MaterialTheme.colorScheme.error) },
+                        DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_006)) }, onClick = { menu = false; onEdit() })
+                        DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_007), color = MaterialTheme.colorScheme.error) },
                             onClick = { menu = false; onDelete() })
                     }
                 }
@@ -148,14 +159,16 @@ private fun TaskDraftRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             AppOutlinedButton(onClick = onToggleDone, enabled = enabled,
                 modifier = Modifier.semantics {
-                    contentDescription = (if (task.done) "إعادة فتح المهمة: " else "تحديد كمكتملة: ") + task.description
-                    stateDescription = if (task.done) "مكتملة" else "معلقة"
-                }) { Text(if (task.done) "إعادة فتح المهمة" else "تحديد كمكتملة") }
+                    contentDescription = (if (task.done) uiText(R.string.ui_patient_task_editor_008) else uiText(R.string.ui_patient_task_editor_009)) + task.description
+                    stateDescription = if (task.done) uiText(R.string.ui_patient_task_editor_010) else uiText(R.string.ui_patient_task_editor_011)
+                }) { Text(if (task.done) uiText(R.string.ui_patient_task_editor_012) else uiText(R.string.ui_patient_task_editor_013)) }
         }
     }
 }
 
-private enum class TaskDeadline(val label: String) { NONE("بلا موعد"), TIME("تاريخ ووقت"), SHIFT("نهاية مناوبة") }
+private enum class TaskDeadline(@StringRes private val labelRes: Int) { NONE(R.string.ui_patient_task_editor_031), TIME(R.string.ui_patient_task_editor_032), SHIFT(R.string.ui_patient_task_editor_033);
+    fun label(uiText: UiStrings): String = uiText(labelRes)
+}
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -163,6 +176,7 @@ private fun TaskDraftDialog(
     initial: PatientTask?, doctors: List<Doctor>, enabled: Boolean,
     onDismiss: () -> Unit, onConfirm: (PatientTask) -> Unit
 ) {
+    val uiText = rememberUiStrings()
     var description by remember(initial) { mutableStateOf(initial?.description.orEmpty()) }
     var owner by remember(initial) { mutableStateOf(initial?.ownerDoctorId) }
     var priority by remember(initial) { mutableStateOf(initial?.priority ?: TaskPriority.NORMAL) }
@@ -186,24 +200,24 @@ private fun TaskDraftDialog(
     }
     if (!confirmDiscard) AlertDialog(
         onDismissRequest = requestDismiss,
-        title = { Text(if (initial == null) "مهمة جديدة" else "تعديل المهمة", Modifier.semantics { heading() }) },
+        title = { Text(if (initial == null) uiText(R.string.ui_patient_task_editor_014) else uiText(R.string.ui_patient_task_editor_015), Modifier.semantics { heading() }) },
         text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                AppTextField(description, { description = it; error = null }, label = { Text("وصف المهمة") },
+                AppTextField(description, { description = it; error = null }, label = { Text(uiText(R.string.ui_patient_task_editor_016)) },
                     modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = error != null, errorMessage = error)
-                SectionTitle("موعد المهمة")
+                SectionTitle(uiText(R.string.ui_patient_task_editor_017))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskDeadline.entries.forEach { option ->
                         FilterChip(selected = deadline == option, onClick = { deadline = option; error = null },
-                            label = { Text(option.label) }, enabled = enabled)
+                            label = { Text(option.label(uiText)) }, enabled = enabled)
                     }
                 }
                 if (deadline != TaskDeadline.NONE) {
-                    DateField(date, { date = it }, if (deadline == TaskDeadline.SHIFT) "تاريخ المناوبة" else "تاريخ الاستحقاق",
-                        if (deadline == TaskDeadline.SHIFT) "نهاية المناوبة الساعة 08:30 في اليوم التالي" else null, enabled = enabled)
+                    DateField(date, { date = it }, if (deadline == TaskDeadline.SHIFT) uiText(R.string.ui_patient_task_editor_018) else uiText(R.string.ui_patient_task_editor_019),
+                        if (deadline == TaskDeadline.SHIFT) uiText(R.string.ui_patient_task_editor_020) else null, enabled = enabled)
                 }
                 if (deadline == TaskDeadline.TIME) {
-                    AppPickerField(value = time.toString(), label = "وقت الاستحقاق", icon = Icons.Filled.Schedule,
+                    AppPickerField(value = time.toString(), label = uiText(R.string.ui_patient_task_editor_021), icon = Icons.Filled.Schedule,
                         valueTextDirection = TextDirection.Ltr, onClick = {
                         TimePickerDialog(context, { _, hour, minute ->
                             time = LocalTime.of(hour, minute)
@@ -211,17 +225,17 @@ private fun TaskDraftDialog(
                         }, time.hour, time.minute, true).show()
                     }, enabled = enabled, modifier = Modifier.fillMaxWidth())
                 }
-                SectionTitle("تفاصيل إضافية")
-                DoctorDropdown(label = "مسؤول المهمة (اختياري)", undefinedLabel = "غير معيّنة", selectedId = owner,
+                SectionTitle(uiText(R.string.ui_patient_task_editor_022))
+                DoctorDropdown(label = uiText(R.string.ui_patient_task_editor_023), undefinedLabel = uiText(R.string.ui_patient_task_editor_024), selectedId = owner,
                     doctors = doctors, onSelected = { owner = it }, modifier = Modifier.fillMaxWidth(), enabled = enabled)
-                SectionTitle("الأولوية (اختياري)")
+                SectionTitle(uiText(R.string.ui_patient_task_editor_025))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskPriority.entries.forEach { option ->
                         FilterChip(selected = priority == option, onClick = { priority = option },
-                            label = { Text(option.arabicLabel) }, enabled = enabled)
+                            label = { Text(option.uiLabel(uiText)) }, enabled = enabled)
                     }
                 }
-                Text("اعتماد المهمة يضيفها إلى المسودة فقط؛ اضغط «حفظ» في صفحة المريض لحفظها.",
+                Text(uiText(R.string.ui_patient_task_editor_026),
                     style = MaterialTheme.typography.bodySmall)
                 error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
             }
@@ -238,12 +252,12 @@ private fun TaskDraftDialog(
                     ownerName = doctors.firstOrNull { it.id == owner }?.fullName, priority = priority,
                     dueAtEpochMillis = dueAt, dueShiftDate = date.toString().takeIf { deadline == TaskDeadline.SHIFT }
                 ))
-            }) { Text("اعتماد المهمة في المسودة") }
+            }) { Text(uiText(R.string.ui_patient_task_editor_027)) }
         },
-        dismissButton = { AppTextButton(onClick = requestDismiss, enabled = enabled) { Text("إلغاء") } }
+        dismissButton = { AppTextButton(onClick = requestDismiss, enabled = enabled) { Text(uiText(R.string.ui_cancel)) } }
     )
-    if (confirmDiscard) ConfirmDialog(title = "تجاهل التغييرات؟",
-        message = "لم تُعتمد تعديلات المهمة في مسودة المريض.", confirmText = "تجاهل والخروج",
-        dismissText = "متابعة التحرير", destructive = true,
+    if (confirmDiscard) ConfirmDialog(title = uiText(R.string.ui_patient_form_dialog_039),
+        message = uiText(R.string.ui_patient_task_editor_028), confirmText = uiText(R.string.ui_patient_task_editor_029),
+        dismissText = uiText(R.string.ui_patient_task_editor_030), destructive = true,
         onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
 }
