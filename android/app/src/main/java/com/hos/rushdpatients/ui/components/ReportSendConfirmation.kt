@@ -12,7 +12,6 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @Composable
 fun ReportSendConfirmation(destinations: List<String>, format: String, warningCount: Int,
     enabled: Boolean, unavailableReason: String? = null, onConfirm: (Boolean) -> Unit, onDismiss: () -> Unit) {
-    var forceLocal by remember { mutableStateOf(false) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("إرسال التقرير") }, text = {
         Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
@@ -21,11 +20,10 @@ fun ReportSendConfirmation(destinations: List<String>, format: String, warningCo
             Text("الوجهة:")
             destinations.forEach { Text("• $it") }
             Text("ستُحدّث بيانات المناوبة المنشورة أولاً، ثم يُرسل التقرير من النسخة المقبولة بعد التحقق من مطابقتها للمراجعة. إذا فشل الإرسال بعد النشر، تبقى البيانات منشورة؛ راجع حالة العملية قبل الإعادة.")
-            AppCheckRow(label = "نشر نسختي المحلية حتى لو وصل نشر أحدث", checked = forceLocal,
-                onCheckedChange = { forceLocal = it }, enabled = enabled)
-            if (forceLocal) AppNotice("ستستبدل نسختك المحلية بيانات المرضى المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة، دون تنزيلها فوق تعديلاتك. قد تُفقد تعديلات أجهزة أخرى من النسخة الحالية.", kind = NoticeKind.WARNING)
+            AppNotice("تأكيد الإرسال ينشر النسخة المحلية الكاملة للمناوبة مكان المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة؛ آخر نشر ناجح هو المعتمد.", kind = NoticeKind.WARNING)
+            Text("اختلاف نسخة المرضى أو وجود تعديلات أخرى في سجل الأطباء لا يمنع التأكيد. تغييرات حسابات الأطباء نفسها لا تُنشر بهذا الإجراء؛ يجب أن يكون الأطباء المسندون في المناوبة منشورين بتصنيف صالح.")
             if (warningCount > 0) AppNotice("توجد ${uiNumber(warningCount)} ملاحظات جاهزية غير مانعة.", kind = NoticeKind.WARNING)
         }
-    }, confirmButton = { AppButton(onClick = { onConfirm(forceLocal) }, enabled = enabled) { Text("إرسال") } },
+    }, confirmButton = { AppButton(onClick = { onConfirm(true) }, enabled = enabled) { Text("نشر نسختي وإرسال التقرير") } },
         dismissButton = { AppTextButton(onClick = onDismiss) { Text("إلغاء") } })
 }

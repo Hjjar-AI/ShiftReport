@@ -44,8 +44,9 @@ def apply_filter(owner, key):
 
 def handover_dashboard(owner):
     import desktop_widgets as ctk
-    from desktop_forms import button, guarded, modal
+    from desktop_forms import button, guarded, modal, section_heading
     from desktop_reports import readiness_notes
+    from desktop_workflow import workflow_status
     owner.ready(False)
     source = owner.store.read()
     project, shift_id = owner.client.project_id, source['meta']['shiftId']
@@ -69,10 +70,20 @@ def handover_dashboard(owner):
         for child in area.winfo_children(): child.destroy()
         ctk.CTkLabel(area, text='مناوبة {} · الملخص يشمل جميع المرضى قبل التصفية'.format(shift['meta']['shiftDate']),
                      anchor='e', justify='right', wraplength=600).pack(fill='x', padx=10, pady=6)
+        section_heading(area,'يحتاج انتباهك')
+        if not values['urgent'] and not values['overdue']:
+            ctk.CTkLabel(area,text='لا توجد حالات عاجلة أو مهام متأخرة',anchor='e').pack(fill='x',padx=10,pady=4)
         for key in ('urgent', 'overdue', 'all', 'mine', 'pending', 'badges', 'unassigned', 'task_unassigned', 'new'):
+            if key in {'urgent','overdue'} and not values[key]:continue
+            if key=='all':section_heading(area,'ملخص المناوبة')
             button(area, '{}: {}'.format(FILTERS[key][0], values[key]), guarded(lambda k=key: select(k)))
+        section_heading(area,'جاهزية التقرير')
         ctk.CTkLabel(area, text='أعداد المهام تحسب المهام نفسها؛ الضغط يعرض المرضى المعنيين.\n' + readiness_notes(shift['patients']),
                      anchor='e', justify='right', wraplength=600).pack(fill='x', padx=10, pady=8)
+        section_heading(area,'حفظ البيانات ونشرها')
+        status,_=workflow_status(owner.client,owner.store,owner.demo)
+        ctk.CTkLabel(area,text=status.split("\n",1)[0],anchor='e',justify='right',wraplength=600).pack(fill='x',padx=10,pady=6)
+        button(area,'تفاصيل حفظ البيانات ونشرها',lambda:owner.text_dialog('تفاصيل البيانات',status))
     button(controls, 'تحديث الملخص', guarded(show))
     button(controls, 'إغلاق', window.destroy)
     timer = [None]

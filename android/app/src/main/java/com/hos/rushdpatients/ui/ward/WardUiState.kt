@@ -21,10 +21,10 @@ data class ShiftSnapshotOption(
 )
 
 enum class PatientSyncStatus(val arabicLabel: String) {
-    LOCAL("محفوظ محلياً؛ النسخة المنشورة غير معروفة"),
-    PENDING("تعديلات غير منشورة"),
-    BACKED_UP("مطابق لآخر نسخة منشورة معروفة لهذا الجهاز"),
-    SYNCING("جارٍ التزامن")
+    LOCAL("محفوظ على الجهاز"),
+    PENDING("تعديلات لم تُنشر"),
+    BACKED_UP("مطابق لآخر نسخة معروفة على هذا الجهاز"),
+    SYNCING("جار جلب أو نشر البيانات")
 }
 
 enum class WardRetryAction { FETCH_LATEST, FETCH_PREVIOUS, EXPORT_CSV }

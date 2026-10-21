@@ -5,6 +5,15 @@ import androidx.compose.ui.graphics.lerp
 
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -40,6 +49,7 @@ import com.hos.rushdpatients.ui.theme.UiSize
 val LocalFieldEnabled = staticCompositionLocalOf { true }
 
 /** Native editing and Material decoration with the app's compact internal insets. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppTextField(
     value: String,
@@ -61,11 +71,21 @@ fun AppTextField(
 ) {
     val active = enabled && LocalFieldEnabled.current
     val interactionSource = remember { MutableInteractionSource() }
+    val fieldVisibility = remember { BringIntoViewRequester() }
+    var focused by remember { mutableStateOf(false) }
+    val keyboardInset = WindowInsets.ime.getBottom(LocalDensity.current)
+    LaunchedEffect(focused, keyboardInset) {
+        if (focused) {
+            withFrameNanos { }
+            fieldVisibility.bringIntoView()
+        }
+    }
     val textColor = if (textStyle.color != Color.Unspecified) textStyle.color
         else MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active))
     BasicTextField(
         value = value, onValueChange = onValueChange,
-        modifier = modifier.appFieldLayout(label != null, isError),
+        modifier = modifier.bringIntoViewRequester(fieldVisibility)
+            .onFocusChanged { focused = it.isFocused }.appFieldLayout(label != null, isError),
         enabled = active, textStyle = textStyle.copy(color = textColor),
         keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
         singleLine = singleLine, maxLines = maxLines, minLines = minLines,

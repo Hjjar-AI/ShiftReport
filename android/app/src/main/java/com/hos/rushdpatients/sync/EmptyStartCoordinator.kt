@@ -67,9 +67,10 @@ class EmptyStartCoordinator @Inject constructor(
             val localPatients = database.patientDao().getAll().sortedBy { it.id }
             EmptyStartReview(source, actor.id, localShifts, localPatients,
                 settings.get(AppConstants.SETTING_PATIENT_DRAFT), shift,
-                "ستُنشر بداية فارغة للمشروع وتُمسح جميع المرضى والمناوبات المحلية، بما فيها السلة ومسودة الإدخال.\n" +
+                "سيُمسح: جميع المرضى والمناوبات المحلية، بما فيها السلة ومسودة الإدخال. وستُنشر بداية مرضى فارغة للفريق.\n" +
                 "محلياً: ${localPatients.size} سجل مريض و${localShifts.size} مناوبة.\n" +
-                "تبقى حسابات الأطباء وإعدادات الاتصال والتشفير وسجل التسليم. لا تُحذف رسائل أو ملفات تليجرام.\n" +
+                "يشمل المسح تعديلات المرضى غير المنشورة؛ لا يلزم نشرها أو جلب بيانات المرضى أولاً.\n" +
+                "سيبقى: سجل الأطباء والحسابات وإعدادات المشروع والاتصال والتشفير وسجل التسليم. لا تُحذف رسائل أو ملفات تليجرام.\n" +
                 "على الأجهزة الأخرى جلب البداية الجديدة قبل العمل؛ نشر نسخة قديمة قد يعيد المرضى. لا يُرسل تقرير.\n" +
                 "احفظ نسخة احتياطية أولاً إن أردت الاحتفاظ بالبيانات خارج سجل تليجرام.")
         }
@@ -126,12 +127,14 @@ class EmptyStartCoordinator @Inject constructor(
                     val clinicalKeys = settings.getAll().keys.filter {
                         it == AppConstants.SETTING_PATIENT_DRAFT || it == "local_patient_download_undo" ||
                             it.startsWith(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX) ||
+                            it.startsWith(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX) ||
                             it.startsWith(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX) ||
                             it.startsWith(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX)
                     }
                     clinicalKeys.forEach { settings.delete(it) }
                     shifts.upsert(review.shift)
                     shifts.updatePublicationMetadata(review.shift, message.messageId)
+                    settings.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + review.shift.id, at.toString())
                     settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)
                     settings.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + review.shift.id,
                         CsvCodec.encode(review.shift, emptyList()))

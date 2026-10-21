@@ -8,6 +8,8 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 - Added a permanent-superadmin reviewed empty patient/shift seed on Android and
   desktop, retaining doctors/accounts, connection/key and Telegram history. Local
   stale-state checks preserve racing edits; audit/delivery records remain.
+  Reset bypasses ordinary patient-publication review; desktop reset no longer
+  downloads/parses the old patient bundle before replacing it.
   Scope and runtime limits are in [current state](current-state.md#permanent-superadmin-empty-start).
 
 - Hospital-independent Demo/Join/Create, protected `.srjoin.json`, optional
@@ -125,11 +127,11 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   Evidence and limits are in [current state](current-state.md#desktop-handover-and-report-setup-alignment).
 
 - Added desktop read-only patient rounds and scoped admin activity. Unified Android
-  Settings/recovery publication behind snapshot review and removed the force bypass.
+  Settings/recovery publication behind snapshot review with explicit replacement consent.
   Details and verification limits are in [current state](current-state.md#patient-rounds-and-reviewed-recovery-publication).
 
-- Aligned desktop pending-download protection, Save and next, General/Advanced
-  clinical fields, appearance controls and Android-compatible `.rpb` recovery.
+- Aligned desktop pending-download protection, Save and next, per-field
+  clinical tools, appearance controls and Android-compatible `.rpb` recovery.
   Preserved task attribution and device delivery receipts. Evidence and limits are
   in [current state](current-state.md#download-editor-appearance-and-portable-backup-alignment).
 
@@ -188,7 +190,7 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   Three 56.7 mm tables per row use continuous left-to-right patient numbering;
   overflow continues on A4 pages without dropping names.
   Authorization is checked below the UI during generation and before export.
-- Full-screen RTL patient drafts, General/Advanced labs, compact paired inputs,
+- Full-screen RTL patient drafts, optional item tools including labs, compact paired inputs,
   validation shortcuts, explicit discard and optional validated Save and next.
 - Structured optional-owner tasks, completion identity/time, per-patient/ward
   counts, overdue subset, rollover and consistent backup/sync/conflict/report output.
@@ -199,7 +201,64 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
 - Correct CSV metadata quoting for multi-doctor rosters, sort JSON and snapshot IDs,
   with clinical columns/decoder/schema versions preserved.
 
+- Corrected Android doctor pending-state bookkeeping: device-only/unchanged saves
+  no longer mark the shared registry dirty; stale flags reconcile against the last
+  confirmed portable base. Real changes still protect destructive registry fetch;
+  confirmed patient publication permits unrelated registry edits while retaining
+  published assignment/identity checks. Source checks only; see [synchronization](current-state.md#synchronization-and-encryption).
+
 ## Interface
+
+- Clarified unsaved patient edits beside Android/desktop Save controls and report
+  publication versus delivery outcomes. Grouped report errors with specific next
+  actions; made Android editor/report actions adaptive and the doctor picker use
+  one scroll area. Fresh-start confirmation separates erased clinical data from
+  retained doctors/project settings; pinned warnings omit routine status clutter.
+  Source checks only; rendering and device behavior remain unverified.
+
+- Added a dismissible Telegram-style reminder above Android patient data to fetch
+  the latest team snapshot before editing. Its action uses the existing confirmed
+  fetch flow; dismissal is retained for the displayed doctor/shift view.
+
+- Simplified explicit daily actions: separate doctor Fetch/Publish, local doctor edits
+  with exact reviewed publication, actionable registry-change errors, and one reviewed
+  last-write-wins patient replacement confirmation. Removed global clinical entry
+  modes and settings accordion/index overlap; reused roster selection, hid ordinary
+  rank details, grouped PDF customization, and clarified secondary recovery/status
+  controls on Android/desktop. Retained draft/authorization/delivery guards; source
+  evidence and runtime limits are in [current state](current-state.md#daily-workflow-organization).
+
+- Reorganized daily ward headers/status, clinical-first dashboards, settings
+  destinations, report decisions/results, patient cards/forms and task dialogs.
+  Android uses a single compact ward toolbar; routine status scrolls with patients.
+  Empty wards guide users through one Add action and explained Fetch/Copy rows,
+  with duplicate toolbar/report actions hidden.
+  Added searchable team-grouped doctor choices, consistent discard handling,
+  explicit local-versus-published file wording and focused-field scrolling across
+  Android/desktop. Retained clinical drafts, review/revision and authorization
+  guards. Source evidence and runtime limits are in
+  [daily workflow organization](current-state.md#daily-workflow-organization).
+
+- Split the Android settings menu and desktop tools into focused personal,
+  patient-data, team/admin, connection and help destinations. Publishing, files,
+  backups, invitations, report destinations and permanent-admin reset no longer
+  share catch-all pages. Android's drawer pins its identity header above scrolling
+  navigation and uses one consistent expandable style for all categories, with
+  Current shift open by default and uniform child rows including the report action. Bottom navigation now uses equal-width icon-over-label
+  destinations, outlined/filled states and a small animated tonal indicator, shared
+  with demo. Fixed the Settings hub calling the section tracker with an empty
+  list, which could close the app on opening; empty permission-filtered pages are
+  covered by the same guard. Retained existing handlers, live authorization, protected
+  reconnect and report safeguards. Source checks and runtime limits are in
+  [current state](current-state.md#focused-settings-and-navigation).
+
+- Simplified report sending: direct Android preview, compact expandable rosters,
+  one destination choice and fixed Preview/Send controls. Desktop combines options,
+  publication changes and exact text/PDF preview in one workspace before final
+  confirmation, including supervisor batches. Simplified saved/published/fetched
+  status wording while retaining stale-review and uncertain/duplicate-delivery
+  guards. Source checks and runtime limits are in
+  [current state](current-state.md#report-navigation-and-doctor-import-feedback-refresh).
 
 - Corrected the missing shared-button import for the ward-task filter action
   reported by the owner’s build; source checks passed, rebuild pending.
@@ -220,8 +279,8 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   drawer, admin-only Activity, adaptive/fold-safe panes and patient rounds.
 - Compact card headers, full expanded content, immediate bulk expansion, retained
   filters and saved-patient return/highlight.
-- Animated grouped splash credits with 120dp emblem and automatic version now
-  use a five-second countdown that continues while held: hold keeps the splash
+- Animated grouped splash credits with a 240dp emblem, slower entrances and
+  automatic version use a three-second countdown that continues while held: hold keeps the splash
   open, release dismisses once expired, and a quick tap skips. The saved deadline
   survives recreation. Existing logo/About preserved. Setup
   defaults to Demo, with centered prominent Demo/Join/Create cards, focused forms,
@@ -296,6 +355,13 @@ contains technical detail; [Roadmap](roadmap.md) contains unfinished work.
   rewritten due filesystem permissions. See [current state](current-state.md).
 
 ## Repository organization
+
+- Separated Android settings content/operations, ward filtering/grid/review dialogs,
+  patient demographics/validation/submission, report PDF artifacts/exports, and
+  patient retrieval/publication. Desktop shell/list/patient/data/report actions now
+  use focused modules. Existing entry points, draft/lifecycle ownership, review
+  guards and shared synchronization locks remain; source-preservation evidence and
+  runtime limits are in [current state](current-state.md#source-ownership-after-logical-separation).
 
 - Guarded automatic shared Gradle-cache selection against inaccessible
   version-specific daemon directories, with personal-cache fallback. Read-only

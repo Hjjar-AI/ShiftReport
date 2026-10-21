@@ -72,9 +72,68 @@ class DoctorRepository @Inject constructor(
 
     private suspend fun <T> mutate(block: suspend () -> T): T = withContext(dispatchers.io) {
         database.withTransaction {
+            val before = sharedRegistryData(getAll())
             val result = block()
-            markLocalChangesPending()
+            // PINs, identity aliases and row timestamps are device-only, not registry edits.
+            if (sharedRegistryData(getAll()) != before) markLocalChangesPending()
             result
+        }
+    }
+
+    private fun sharedRegistryData(doctors: List<Doctor>): String =
+        DoctorsRegistryCodec.encode(doctors.sortedBy { it.id })
+
+    /** Reconcile old pending flags against the last confirmed portable registry, atomically. */
+    suspend fun hasPendingSharedChanges(): Boolean = withContext(dispatchers.io) {
+        database.withTransaction {
+            val markedPending = settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
+            val base = settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)
+                ?: return@withTransaction markedPending
+            val baseline = try {
+                DoctorsRegistryCodec.decode(base).doctors.takeIf { it.isNotEmpty() }
+                    ?.let(::sharedRegistryData)
+            } catch (e: IllegalArgumentException) {
+                null
+            } ?: return@withTransaction markedPending
+            val pending = sharedRegistryData(getAll()) != baseline
+            if (pending != markedPending) {
+                settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, pending)
+            }
+            pending
+        }
+    }
+
+    /** User-facing portable changes only; never include PINs, aliases or credentials. */
+    suspend fun pendingSharedChangesSummary(): String? = withContext(dispatchers.io) {
+        database.withTransaction {
+            if (!hasPendingSharedChanges()) return@withTransaction null
+            val local = getAll().associateBy { it.id }
+            val raw = settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)
+            val base = try { raw?.let { DoctorsRegistryCodec.decode(it).doctors } }
+                catch (e: IllegalArgumentException) { null }
+            if (base.isNullOrEmpty()) return@withTransaction "لم يتأكد نشر سجل الأطباء المحلي. افتح سجل الأطباء، راجع النسخة ثم اختر «نشر سجل الأطباء»."
+            val previous = base.associateBy { it.id }
+            val lines = buildList {
+                (local.keys - previous.keys).forEach { add("إضافة طبيب: ${local.getValue(it).fullName}") }
+                (previous.keys - local.keys).forEach { add("حذف طبيب: ${previous.getValue(it).fullName}") }
+                (local.keys intersect previous.keys).forEach { id ->
+                    val old = previous.getValue(id)
+                    val next = local.getValue(id)
+                    val fields = buildList {
+                        if (old.fullName != next.fullName) add("الاسم")
+                        if (old.gender != next.gender) add("الجنس")
+                        if (old.telegramId != next.telegramId) add("ارتباط تليجرام")
+                        if (old.customTitle.orEmpty() != next.customTitle.orEmpty()) add("اللقب")
+                        if (old.clinicalRole != next.clinicalRole) add("الدور السريري")
+                        if (old.teamSupervisorId != next.teamSupervisorId) add("الفريق")
+                        if (old.supervisorGroupChatId != next.supervisorGroupChatId) add("وجهة التقرير")
+                        if (old.rank != next.rank || old.isPermanentAdmin != next.isPermanentAdmin) add("صلاحية التطبيق")
+                    }
+                    if (fields.isNotEmpty()) add("${next.fullName}: ${fields.joinToString("، ")}")
+                }
+            }
+            "تعديلات سجل الأطباء غير المنشورة:\n" + lines.joinToString("\n") +
+                "\nافتح سجل الأطباء، راجع التعديلات ثم اختر «نشر سجل الأطباء»."
         }
     }
 
@@ -182,7 +241,7 @@ class DoctorRepository @Inject constructor(
 
     suspend fun replaceAll(doctors: List<Doctor>) = withContext(dispatchers.io) {
         database.withTransaction {
-            require(!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+            require(!hasPendingSharedChanges()) {
                 "توجد تغييرات محلية في سجل الأطباء؛ استخدم المزامنة ومراجعة التعارضات"
             }
             val local = dao.getAllIncludingDeleted().map(DoctorMapper::fromEntity)

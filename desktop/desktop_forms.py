@@ -48,6 +48,82 @@ def dialog_actions(parent, primary=None, cancel=None, secondary=()):
     return widgets
 
 
+def section_heading(parent, title, summary=None):
+    ctk.CTkLabel(parent,text=title,font=('Arial',16,'bold'),anchor='e').pack(fill='x',padx=10,pady=(10,3))
+    if summary:
+        ctk.CTkLabel(parent,text=summary,anchor='e',justify='right',wraplength=560).pack(fill='x',padx=10,pady=2)
+
+
+def destination_row(parent, title, summary, command):
+    return button(parent,title+'  ‹\n'+summary,command,anchor='e',fg_color='transparent',
+                  border_width=1,text_color=('gray20','gray90'))
+
+
+def doctor_picker(parent, label, doctors, value='', role=None, undefined='غير معيّن'):
+    from desktop_doctor_choices import doctor_groups
+    from desktop_patient_filters import normalize_search
+    selected=[value or '']
+    ctk.CTkLabel(parent,text=label,anchor='e').pack(fill='x',padx=10,pady=(6,0))
+    current=ctk.CTkLabel(parent,text=doctor_label(doctors,value) if value else undefined,
+                       anchor='e',justify='right',wraplength=520)
+    current.pack(fill='x',padx=10,pady=2)
+    def choose():
+        previous=parent.winfo_toplevel()
+        window=ctk.CTkToplevel(previous);window.title(label);window.geometry('660x560');window.minsize(580,430)
+        window.transient(previous);window.grab_set()
+        controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
+        query=tk.StringVar()
+        ArabicEntry(window,textvariable=query,justify='right',height=48,placeholder_text='بحث باسم الطبيب').pack(fill='x',padx=10,pady=6)
+        area=ctk.CTkScrollableFrame(window);area.pack(fill='both',expand=True)
+        def commit(key):
+            selected[0]=key
+            current.configure(text=doctor_label(doctors,key) if key else undefined)
+            window.destroy()
+        def render(*args):
+            for child in area.winfo_children():child.destroy()
+            button(area,('✓ ' if not selected[0] else '')+undefined,lambda:commit(''))
+            keys=[key for key,doctor in doctors.items() if (role is None or doctor['clinicalRole']==role)
+                  and normalize_search(query.get()) in normalize_search(doctor_label(doctors,key))]
+            if not keys:ctk.CTkLabel(area,text='لا توجد أسماء مطابقة',anchor='e').pack(fill='x',padx=10,pady=8)
+            for title,members in doctor_groups(doctors,keys).items():
+                section_heading(area,title)
+                for key in members:
+                    button(area,('✓ ' if key==selected[0] else '')+doctor_label(doctors,key),lambda key=key:commit(key))
+        query.trace_add('write',render)
+        dialog_actions(controls,cancel=('رجوع',window.destroy))
+        render();window.wait_window()
+        if previous.winfo_exists():previous.grab_set()
+    button(parent,'اختيار / تغيير الطبيب',choose,fg_color='transparent',border_width=1,text_color=('gray20','gray90'))
+    return lambda:selected[0]
+
+
+def discard_guard(window, dirty, message='لم تُحفظ التغييرات. هل تريد الخروج دون حفظ؟'):
+    def close():
+        if not dirty() or messagebox.askyesno('تجاهل التغييرات؟',message,default='no',parent=window):window.destroy()
+    window.protocol('WM_DELETE_WINDOW',close)
+    window.bind('<Escape>',lambda event:close())
+    return close
+
+
+def reveal_field(widget):
+    """Keep keyboard-focused entries visible in the nearest existing scroll frame."""
+    if not widget.winfo_exists():return
+    container=widget.master
+    while container is not None:
+        canvas=getattr(container,'_parent_canvas',None)
+        if canvas is not None:
+            bounds=canvas.bbox('all')
+            if not bounds:return
+            top=widget.winfo_rooty()-canvas.winfo_rooty()
+            bottom=top+widget.winfo_height()
+            delta=top-8 if top<8 else bottom-canvas.winfo_height()+8 if bottom>canvas.winfo_height()-8 else 0
+            if delta:
+                height=max(1,bounds[3]-bounds[1])
+                canvas.yview_moveto(max(0,min(1,(canvas.canvasy(0)+delta-bounds[1])/height)))
+            return
+        container=getattr(container,'master',None)
+
+
 def entry(parent, label, value='', multiline=False):
     ctk.CTkLabel(parent, text=label, anchor='e').pack(fill='x', padx=10, pady=(6, 0))
     if multiline:
@@ -61,6 +137,7 @@ def entry(parent, label, value='', multiline=False):
     if hasattr(widget, 'reset_undo'):
         widget.reset_undo()
     widget.pack(fill='x', padx=10, pady=2)
+    widget.bind('<FocusIn>',lambda event:widget.after_idle(lambda:reveal_field(widget)),add='+')
     return widget
 
 
@@ -115,11 +192,7 @@ def edit_task(owner, parent, task, save):
     controls = ctk.CTkFrame(window); controls.pack(side='bottom', fill='x')
     area = ctk.CTkScrollableFrame(window); area.pack(fill='both', expand=True)
     description = entry(area, 'وصف المهمة', task.get('description', ''), True)
-    owners = {'': 'بدون'}
-    owners.update({key: doctor_label(owner.client.doctors, key) for key in owner.client.doctors})
-    owner_value = combo(area, 'مسؤول اختياري', owners, task.get('ownerDoctorId') or '')
-    priority = combo(area, 'الأولوية', TASK_PRIORITY, task.get('priority', 'NORMAL'))
-    done = combo(area, 'مكتملة', {False:'لا', True:'نعم'}, bool(task.get('done')))
+    section_heading(area,'موعد المهمة')
     due_enabled = tk.BooleanVar(value=bool(task.get('dueAtEpochMillis')))
     ctk.CTkCheckBox(area, text='تحديد موعد', variable=due_enabled).pack(anchor='e', padx=10, pady=10)
     due = datetime.fromtimestamp(task['dueAtEpochMillis']/1000, ZoneInfo(owner.client.zone)) if task.get('dueAtEpochMillis') else datetime.now(ZoneInfo(owner.client.zone))
@@ -132,8 +205,19 @@ def edit_task(owner, parent, task, save):
         spin = tk.Spinbox(date_frame, from_=lower, to=upper, width=width, textvariable=variable, font=('Arial', 14))
         spin.pack(side='left', expand=True, padx=3, pady=8); spinners.append(variable)
     due_shift = entry(area, 'نهاية مناوبة YYYY-MM-DD (اختياري)', task.get('dueShiftDate') or '')
+    section_heading(area,'تفاصيل إضافية')
+    owner_value = doctor_picker(area, 'مسؤول المهمة (اختياري)', owner.client.doctors, task.get('ownerDoctorId') or '')
+    priority = combo(area, 'الأولوية', TASK_PRIORITY, task.get('priority', 'NORMAL'))
+    done = combo(area, 'مكتملة', {False:'لا', True:'نعم'}, bool(task.get('done')))
+    ctk.CTkLabel(area,text='اعتماد المهمة يضيفها إلى المسودة؛ اضغط حفظ في صفحة المريض لحفظها.',anchor='e',justify='right',wraplength=540).pack(fill='x',padx=10,pady=4)
     if task.get('completedByName'):
         ctk.CTkLabel(area, text='أتمها: ' + task['completedByName'], anchor='e').pack(fill='x', padx=10)
+    def draft_values():
+        return (description.get('1.0','end-1c'),owner_value(),priority(),done(),due_enabled.get(),
+                tuple(value.get() for value in spinners),due_shift.get())
+    initial_values=draft_values()
+    cancel=discard_guard(window,lambda:draft_values()!=initial_values,
+        'لم تُعتمد تعديلات المهمة في مسودة المريض. هل تريد تجاهلها؟')
     def commit():
         result = copy.deepcopy(task)
         result.update(description=description.get('1.0','end-1c').strip(), ownerDoctorId=owner_value() or None,
@@ -148,7 +232,7 @@ def edit_task(owner, parent, task, save):
         from desktop_tasks import validate as validate_tasks
         validate_tasks([result], require_completion=False)
         save(result); window.destroy(); parent.grab_set()
-    dialog_actions(controls,primary=('حفظ المهمة',guarded(commit)),cancel=('إلغاء',window.destroy))
+    dialog_actions(controls,primary=('اعتماد المهمة في المسودة',guarded(commit)),cancel=('إلغاء',cancel))
     owner.root.wait_window(window)
     if parent.winfo_exists(): parent.grab_set()
 
@@ -166,6 +250,8 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     badges = badges_decode(row.get('warningDetails', ''))
     window = modal(owner, 'مريض جديد' if is_new else 'تحرير المريض')
     controls = ctk.CTkFrame(window); controls.pack(side='bottom', fill='x')
+    save_status=ctk.CTkLabel(controls,text='',anchor='e',justify='right',wraplength=500)
+    save_status.grid(row=0,column=0,columnspan=2,sticky='ew',padx=10,pady=4)
     advance=[False]
     identity=ctk.CTkLabel(window,text='',anchor='e',justify='right',font=('Arial',18,'bold'),wraplength=700)
     identity.pack(fill='x',padx=12,pady=4)
@@ -184,30 +270,25 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     tabs.on_change=show_section
     show_section()
     def size_heading(event):
-        if event.widget is window:identity.configure(wraplength=max(240,event.width-28))
+        if event.widget is window:
+            identity.configure(wraplength=max(240,event.width-28))
+            save_status.configure(wraplength=max(240,event.width-28))
     window.bind('<Configure>',size_heading,add='+')
     widgets, getters = {}, {}
+    section_heading(areas['السريرية'],'التشخيص والعلاج')
     widgets['initialDiagnosis']=entry(areas['السريرية'],LABELS['initialDiagnosis'],row.get('initialDiagnosis',''),True)
     from desktop_clinical_fields import ClinicalField
-    modes=ctk.CTkFrame(areas['السريرية'],fg_color='transparent');modes.pack(fill='x')
+    section_heading(areas['السريرية'],'الخطة والمتابعة')
     fields={}
-    def set_mode(mode):
-        for field in fields.values():field.show(mode)
-        for key,widget in mode_buttons.items():widget.configure(state='disabled' if key==mode else 'normal')
-    mode_buttons={}
-    for mode,label in [('GENERAL','عام'),('ADVANCED','متقدم')]:
-        widget=ctk.CTkButton(modes,text=label,height=48,command=lambda m=mode:set_mode(m))
-        widget.pack(side='right',fill='x',expand=True,padx=4,pady=3);mode_buttons[mode]=widget
     for key in ['treatmentPlan','followUp','labs']:
         fields[key]=ClinicalField(areas['السريرية'],LABELS[key],row.get(key,''),allow_date=key=='labs',
                                   today=datetime.now(ZoneInfo(owner.client.zone)).date())
         widgets[key]=fields[key]
-    set_mode('GENERAL')
+    section_heading(areas['السريرية'],'الفريق المسؤول')
     for key, role in [('responsibleResidentId','RESIDENT'),('responsibleSupervisorId','SUPERVISOR')]:
-        choices = {'': 'بدون'}
-        choices.update({key:doctor_label(owner.client.doctors,key)+(' · فريق '+owner.client.doctors.get(d.get('teamSupervisorId'),{}).get('name','دون فريق') if role=='RESIDENT' else '') for key,d in owner.client.doctors.items() if d['clinicalRole']==role})
-        getters[key] = combo(areas['السريرية'], LABELS[key], choices, row.get(key,''))
+        getters[key] = doctor_picker(areas['السريرية'],LABELS[key],owner.client.doctors,row.get(key,''),role=role)
     ctk.CTkLabel(areas['السريرية'],text='يجوز اختيار مقيم من فريق آخر للتغطية الفردية. لا يغيّر ذلك فريقه الثابت أو مشرف المريض.',justify='right',wraplength=440).pack(fill='x',padx=10,pady=4)
+    section_heading(areas['السريرية'],'الأولوية والشارات')
     getters['isPriority'] = combo(areas['السريرية'], LABELS['isPriority'], YES, row.get('isPriority') or 'N')
     for key in ['name','admitNum','admitDate','birthDate']:
         label=LABELS[key] + ' أو يوم/شهر/سنة' if key=='admitDate' else LABELS[key]
@@ -295,6 +376,8 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
         return result
     def retain_form():
         candidate = capture()
+        save_status.configure(text='تعديلات غير معتمدة — اضغط حفظ المريض لاعتمادها' if candidate != expected
+                              else 'لا توجد تعديلات غير محفوظة')
         marker = fingerprint(candidate)
         if marker != last_form[0]:
             if candidate != expected:
@@ -361,7 +444,13 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
             finish()
         finally: saving[0] = False
     draft_timer[0] = window.after(500,autosave)
-    dialog_actions(controls,primary=('حفظ المريض',guarded(save)),cancel=('إلغاء',close),
+    action_area=ctk.CTkFrame(controls)
+    action_area.grid(row=1,column=0,columnspan=2,sticky='ew')
+    controls.grid_columnconfigure(0,weight=1)
+    controls.grid_columnconfigure(1,weight=1)
+    save_status.configure(text='تعديلات غير معتمدة — اضغط حفظ المريض لاعتمادها' if capture()!=expected
+                          else 'لا توجد تعديلات غير محفوظة')
+    dialog_actions(action_area,primary=('حفظ المريض',guarded(save)),cancel=('إلغاء',close),
         secondary=[('حفظ والتالي',guarded(lambda:save(True)))] if allow_next and not is_new else [])
     window.protocol('WM_DELETE_WINDOW',close)
     owner.root.wait_window(window)

@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.repository.AuditRepository
+import com.hos.rushdpatients.data.repository.SettingsRepository
+import kotlinx.coroutines.flow.combine
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.DoctorMutationRepository
 import com.hos.rushdpatients.data.repository.StaleDoctorEditException
@@ -20,6 +22,7 @@ import com.hos.rushdpatients.domain.doctor.DoctorCsvCodec
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.CancellationException
+import com.hos.rushdpatients.sync.DoctorsRegistryCodec
 import com.hos.rushdpatients.sync.SyncService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -36,6 +39,7 @@ import javax.inject.Inject
 class DoctorsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val doctorRepository: DoctorRepository,
+    private val settingsRepository: SettingsRepository,
     private val doctorMutations: DoctorMutationRepository,
     private val auditRepository: AuditRepository,
     private val syncService: SyncService,
@@ -60,9 +64,13 @@ class DoctorsViewModel @Inject constructor(
 
     private fun observe() {
         viewModelScope.launch {
-            doctorRepository.observeAll().collect { list ->
-                _state.update { it.copy(loading = false, doctors = list) }
-            }
+            combine(doctorRepository.observeAll(),
+                settingsRepository.observe(AppConstants.SETTING_DOCTORS_SYNC_PENDING),
+                settingsRepository.observe(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)) { list, _, _ -> list }
+                .collect { list ->
+                    val pending = doctorRepository.pendingSharedChangesSummary()
+                    _state.update { it.copy(loading = false, doctors = list, pendingRegistrySummary = pending) }
+                }
         }
     }
 
@@ -72,7 +80,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.add(input)
-                finishWithSync("تم إضافة الطبيب", onSuccess)
+                finishLocally("تم إضافة الطبيب", onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }
                 throw e
@@ -92,7 +100,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.edit(expected, input)
-                finishWithSync("تم تحديث الطبيب", onSuccess)
+                finishLocally("تم تحديث الطبيب", onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }
                 throw e
@@ -119,7 +127,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.updateTeams(expected, assignments)
-                finishWithSync("حُفظت تغييرات الفرق", onSuccess)
+                finishLocally("حُفظت تغييرات الفرق", onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }; throw e
             } catch (e: Exception) { fail(e.message ?: "تعذر حفظ الفرق") }
@@ -132,7 +140,7 @@ class DoctorsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 doctorMutations.delete(expected)
-                finishWithSync("تم حذف الطبيب", onSuccess)
+                finishLocally("تم حذف الطبيب", onSuccess)
             } catch (e: CancellationException) {
                 _state.update { it.copy(saving = false) }
                 throw e
@@ -142,23 +150,26 @@ class DoctorsViewModel @Inject constructor(
         }
     }
 
-    fun refresh() {
-        if (_state.value.saving || _state.value.importing) return
+    fun fetchDoctors() = registryOperation(false)
+
+    fun publishDoctors(expected: List<Doctor>) = registryOperation(true, expected)
+
+    private fun registryOperation(publish: Boolean, expected: List<Doctor>? = null) {
+        if (_state.value.saving || _state.value.importing || _state.value.exporting) return
         _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            val result = runCatching {
+            try {
                 adminAuthorizer.requireAdmin()
-                uploadRegistry().getOrThrow()
-            }
-            _state.update {
-                it.copy(
-                    saving = false,
-                    snackbar = result.fold(
-                        onSuccess = { "تمت مزامنة سجل الأطباء" },
-                        onFailure = { error -> error.message ?: "فشلت مزامنة سجل الأطباء" }
-                    )
-                )
-            }
+                if (publish) {
+                    val reviewed = withContext(Dispatchers.IO) {
+                        DoctorsRegistryCodec.encode(requireNotNull(expected).sortedBy { it.id })
+                    }
+                    syncService.uploadDoctors(reviewed).getOrThrow()
+                } else syncService.refreshDoctorsFromRemote().getOrThrow()
+                _state.update { it.copy(snackbar = if (publish) "نُشر سجل الأطباء" else "جُلب سجل الأطباء") }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: "تعذر إتمام عملية سجل الأطباء") } }
+            finally { _state.update { it.copy(saving = false) } }
         }
     }
 
@@ -353,17 +364,8 @@ class DoctorsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun finishWithSync(localMessage: String, onSuccess: () -> Unit) {
-        val syncResult = uploadRegistry()
-        _state.update {
-            it.copy(
-                saving = false,
-                snackbar = syncResult.fold(
-                    onSuccess = { localMessage },
-                    onFailure = { error -> "$localMessage محلياً، وتعذرت مزامنة تليجرام: ${error.message.orEmpty()}" }
-                )
-            )
-        }
+    private fun finishLocally(localMessage: String, onSuccess: () -> Unit) {
+        _state.update { it.copy(saving = false, snackbar = "$localMessage على الجهاز؛ اختر «نشر سجل الأطباء» لمشاركته") }
         onSuccess()
     }
 

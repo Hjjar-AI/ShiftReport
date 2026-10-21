@@ -64,6 +64,7 @@ object AppConstants {
     const val SETTING_BIOMETRIC_ENABLED = "biometric_enabled"
     const val SETTING_DOCTORS_BASE_REGISTRY = "doctors_base_registry"
     const val SETTING_DOCTORS_SYNC_PENDING = "doctors_sync_pending"
+    const val SETTING_PATIENT_PUBLISHED_AT_PREFIX = "patient_published_at:"
     const val SETTING_PATIENT_DOWNLOAD_AT_PREFIX = "patient_download_at:"
     const val SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX = "patient_download_message:"
     const val SETTING_PATIENTS_SYNC_PENDING = "patients_sync_pending"

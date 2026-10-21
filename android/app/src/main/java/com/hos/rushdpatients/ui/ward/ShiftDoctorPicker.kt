@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppDialogDismissAction
 import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
@@ -52,18 +53,22 @@ fun ShiftDoctorPicker(
     val activeDoctors = allDoctors.filterNot { it.isDeleted }
     val matchingDoctors = activeDoctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
 
-    AlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
+    var confirmDiscard by remember { mutableStateOf(false) }
+    val requestDismiss: () -> Unit = {
+        if (!saving) { if (selected.toSet() != initialSelected.toSet()) confirmDiscard = true else onDismiss() }
+    }
+    if (!reviewing && !confirmDiscard) AlertDialog(
+        onDismissRequest = requestDismiss,
         title = { AppDialogHeader("أطباء المناوبة") },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .appDialogBody(),
+                    .appDialogBody().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 Text(
-                    "المختارون: ${uiNumber(selected.size)} · دون حد أقصى",
+                    "المختارون: ${uiNumber(selected.size)} · الحفظ يحدّث أطباء هذه المناوبة",
                     style = MaterialTheme.typography.bodySmall
                 )
                 AppSearchField(query = query, onQueryChange = { query = it },
@@ -75,28 +80,19 @@ fun ShiftDoctorPicker(
                     }
                 }
                 Column(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     if (matchingDoctors.isEmpty()) {
                         EmptyState(title = if (activeDoctors.isEmpty()) "لا يوجد أطباء متاحون" else "لا توجد أسماء مطابقة",
                             actionLabel = if (query.isBlank()) null else "مسح البحث", onAction = { query = "" })
                     }
-                    matchingDoctors.forEach { doctor ->
-                        val isSelected = doctor.id in selected
-                        AppCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected)
-                                    MaterialTheme.colorScheme.primaryContainer
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            AppCheckRow(label = doctor.fullName, checked = isSelected, enabled = !saving,
+                    doctorChoiceGroups(matchingDoctors, activeDoctors).forEach { (team, members) ->
+                        SectionTitle(team)
+                        members.forEach { doctor ->
+                            AppCheckRow(label = doctor.fullName, checked = doctor.id in selected, enabled = !saving,
                                 onCheckedChange = { checked ->
-                                    selected = if (checked) selected + doctor.id else selected - doctor.id
+                                    selected = if (checked) (selected + doctor.id).distinct() else selected - doctor.id
                                 })
                         }
                     }
@@ -117,9 +113,13 @@ fun ShiftDoctorPicker(
             )
         },
         dismissButton = {
-            AppDialogDismissAction(onClick = onDismiss, enabled = !saving)
+            AppDialogDismissAction(onClick = requestDismiss, enabled = !saving)
         }
     )
+    if (confirmDiscard) ConfirmDialog(title = "تجاهل التغييرات؟",
+        message = "لم يُحفظ اختيار أطباء المناوبة.", confirmText = "تجاهل والخروج",
+        dismissText = "متابعة الاختيار", destructive = true,
+        onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
     if (reviewing) {
         val saved = latest
         val draft = rejected.orEmpty()

@@ -47,7 +47,7 @@ internal const val introOriginalAuthorName = "الطبيب الاختصاصي ن
 fun IntroAboutScreen(
     splash: Boolean,
     onBack: (() -> Unit)? = null,
-    remainingSeconds: Int = 5,
+    remainingSeconds: Int = 3,
     splashHeld: Boolean = false,
     onSplashHeldChange: (Boolean) -> Unit = {}
 ) {

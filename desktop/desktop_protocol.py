@@ -379,12 +379,18 @@ class Client:
                         key=hashlib.sha256(self.config.get('telegramDataKey', '').encode()).hexdigest())
         return fingerprint(identity)
 
-    def fetch(self):
+    def fetch_registry(self):
+        """Read project authority without depending on the current patient file."""
         index_id, state = self.telegram.state()
         require(state.get('doctorsFileId'), 'انشر سجل الأطباء الحالي من Android أولا')
         doctors = parse_doctors(self.telegram.download(state['doctorsFileId']))
+        return {'index_id': index_id, 'state': state, 'doctors': doctors}
+
+    def fetch(self):
+        snapshot = self.fetch_registry()
+        state = snapshot['state']
         bundle = parse_bundle(self.telegram.download(state['csvFileId'])) if state.get('csvFileId') else []
-        return {'index_id': index_id, 'state': state, 'doctors': doctors, 'bundle': bundle}
+        return dict(snapshot, bundle=bundle)
 
     def begin_login(self, doctor_id):
         self._actor=None;self._verified_telegram=None;self._expires=0
@@ -537,7 +543,7 @@ class Client:
     def publish(self, plan, before_upload):
         require(plan.actor_id == self._actor, 'تغير الطبيب بعد المراجعة؛ أعدها')
         require(plan._approval == fingerprint(dict(shift=plan.shift, force_local=plan.force_local)), 'تغيرت البيانات بعد المراجعة؛ راجعها مجددا')
-        require(not plan.force_required or plan.force_local, 'اختر نشر نسختي المحلية في المراجعة لاستبدال مناوبة اليوم المنشورة دون تنزيلها')
+        require(not plan.force_required or plan.force_local, 'راجع النسخة المحلية وأكد نشرها لاستبدال مناوبة اليوم المنشورة')
         current = self.fetch()
         self.authorize(current['doctors'])
         require((plan.force_local or pointer(current['state']) == plan.baseline_pointer) and doctor_pointer(current['state']) == plan.registry_pointer,

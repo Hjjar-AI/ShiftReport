@@ -20,6 +20,9 @@ import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.ViewAgenda
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -65,12 +68,12 @@ internal fun PrimaryNavigationBar(
     onActivity: () -> Unit
 ) {
     val items = listOf(
-        Triple("المرضى", Icons.Filled.ViewAgenda, onPatients),
-        Triple("اللوحة", Icons.Filled.Dashboard, onDashboard)
-    ) + if (isAdmin) listOf(Triple("النشاط", Icons.Filled.History, onActivity)) else emptyList()
+        AppTabItem("المرضى", Icons.Outlined.ViewAgenda, Icons.Filled.ViewAgenda) to onPatients,
+        AppTabItem("اللوحة", Icons.Outlined.Dashboard, Icons.Filled.Dashboard) to onDashboard
+    ) + if (isAdmin) listOf(AppTabItem("النشاط", Icons.Outlined.History, Icons.Filled.History) to onActivity) else emptyList()
     val selectedIndex = when (viewMode) { WardViewMode.ALL, WardViewMode.MINE -> 0; WardViewMode.DASHBOARD -> 1; else -> 2 }
-    AppTabBar(items = items.map { AppTabItem(it.first, it.second) }, selectedIndex = selectedIndex,
-        onSelect = { items[it].third() })
+    AppTabBar(items = items.map { it.first }, selectedIndex = selectedIndex,
+        onSelect = { items[it].second() })
 }
 
 @Composable

@@ -1,5 +1,13 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppSearchField
+import com.hos.rushdpatients.ui.components.AppChoiceRow
+import com.hos.rushdpatients.ui.components.EmptyState
+import com.hos.rushdpatients.ui.components.appDialogBody
+import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.components.AppTextField
@@ -153,6 +161,7 @@ internal fun MultiValueEditor(
     items: List<String>,
     draft: String,
     onDraftChange: (String) -> Unit,
+    onReplaceAll: (String) -> Unit,
     onEditItem: (Int, String) -> Unit,
     onMove: (Int, Int) -> Unit,
     onAdd: () -> Unit,
@@ -163,70 +172,80 @@ internal fun MultiValueEditor(
     isError: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    var tools by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var insertMenu by remember { mutableStateOf(false) }
     val enabled = LocalFieldEnabled.current
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        Text(
-            "$label${if (label == "التحاليل") "" else " *"}",
-            style = MaterialTheme.typography.labelMedium
-        )
+        if (!tools) MultilineField(
+            value = (items + draft).filter(String::isNotBlank).joinToString("\n"),
+            onValueChange = onReplaceAll, label = if (label == "التحاليل") label else "$label *",
+            textStyle = textStyle, isError = isError)
+        else {
+            Text(
+                "$label${if (label == "التحاليل") "" else " *"}",
+                style = MaterialTheme.typography.labelMedium
+            )
 
-        items.forEachIndexed { index, item ->
-            when {
-                item == FIELD_SEPARATOR -> SeparatorRow(
-                    index = index,
-                    itemCount = items.size,
-                    onMove = onMove,
-                    onRemove = onRemove
-                )
-                isDateMarker(item) -> DateMarkerRow(
-                    index = index,
-                    itemCount = items.size,
-                    date = dateMarkerValue(item) ?: LocalDate.now(),
-                    onMove = onMove,
-                    onRemove = onRemove
-                )
-                else -> TextItemRow(
-                    index = index,
-                    itemCount = items.size,
-                    item = item,
-                    onEditItem = onEditItem,
-                    onMove = onMove,
-                    onRemove = onRemove,
-                    textStyle = textStyle
-                )
+            items.forEachIndexed { index, item ->
+                when {
+                    item == FIELD_SEPARATOR -> SeparatorRow(
+                        index = index,
+                        itemCount = items.size,
+                        onMove = onMove,
+                        onRemove = onRemove
+                    )
+                    isDateMarker(item) -> DateMarkerRow(
+                        index = index,
+                        itemCount = items.size,
+                        date = dateMarkerValue(item) ?: LocalDate.now(),
+                        onMove = onMove,
+                        onRemove = onRemove
+                    )
+                    else -> TextItemRow(
+                        index = index,
+                        itemCount = items.size,
+                        item = item,
+                        onEditItem = onEditItem,
+                        onMove = onMove,
+                        onRemove = onRemove,
+                        textStyle = textStyle
+                    )
+                }
+            }
+
+            AppTextField(
+                value = draft,
+                onValueChange = onDraftChange,
+                label = { Text("إضافة إلى $label") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 1,
+                maxLines = 2,
+                textStyle = textStyle,
+                isError = isError
+            )
+
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                AppButton(onClick = onAdd, enabled = enabled && draft.isNotBlank(),
+                    modifier = Modifier.weight(1f)) { Text("إضافة") }
+                Box {
+                    IconButton(onClick = { insertMenu = true }, enabled = enabled) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "خيارات الإضافة إلى $label")
+                    }
+                    DropdownMenu(expanded = insertMenu && enabled, onDismissRequest = { insertMenu = false }) {
+                        DropdownMenuItem(text = { Text("إضافة فاصل") },
+                            enabled = items.isNotEmpty() && items.last() != FIELD_SEPARATOR,
+                            onClick = { insertMenu = false; onAddSeparator() })
+                        if (onAddDate != null) DropdownMenuItem(text = { Text("إضافة تاريخ") },
+                            onClick = { insertMenu = false; showDatePicker = true })
+                    }
+                }
             }
         }
-
-        AppTextField(
-            value = draft,
-            onValueChange = onDraftChange,
-            label = { Text("إضافة إلى $label") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 1,
-            maxLines = 2,
-            textStyle = textStyle,
-            isError = isError
-        )
-
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-            AppButton(onClick = onAdd, enabled = enabled && draft.isNotBlank(),
-                modifier = Modifier.weight(1f)) { Text("إضافة") }
-            Box {
-                IconButton(onClick = { insertMenu = true }, enabled = enabled) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "خيارات الإضافة إلى $label")
-                }
-                DropdownMenu(expanded = insertMenu && enabled, onDismissRequest = { insertMenu = false }) {
-                    DropdownMenuItem(text = { Text("إضافة فاصل") },
-                        enabled = items.isNotEmpty() && items.last() != FIELD_SEPARATOR,
-                        onClick = { insertMenu = false; onAddSeparator() })
-                    if (onAddDate != null) DropdownMenuItem(text = { Text("إضافة تاريخ") },
-                        onClick = { insertMenu = false; showDatePicker = true })
-                }
-            }
+        AppTextButton(onClick = { tools = !tools }, enabled = enabled) {
+            Text(if (tools) "العودة للكتابة الحرة" else "أدوات البنود والترتيب")
         }
     }
 
@@ -409,27 +428,33 @@ internal fun DoctorDropdown(
     modifier: Modifier = Modifier,
     enabled: Boolean = LocalFieldEnabled.current,
     isError: Boolean = false,
-    supportingText: String? = null
+    supportingText: String? = null,
+    registry: List<Doctor> = doctors
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
     val selectedName = doctors.firstOrNull { it.id == selectedId }?.fullName
-    Box(modifier = modifier.fillMaxWidth()) {
-        AppPickerField(
-            value = selectedName.orEmpty(), label = label, placeholder = undefinedLabel,
-            onClick = { expanded = true }, modifier = Modifier.fillMaxWidth(),
-            enabled = enabled, isError = isError, supportingText = supportingText
-        )
-        DropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(undefinedLabel) },
-                onClick = { onSelected(null); expanded = false }
-            )
-            doctors.forEach { doctor ->
-                DropdownMenuItem(
-                    text = { Text(doctor.fullName) },
-                    onClick = { onSelected(doctor.id); expanded = false }
-                )
+    AppPickerField(value = selectedName.orEmpty(), label = label, placeholder = undefinedLabel,
+        onClick = { query = ""; expanded = true }, modifier = modifier.fillMaxWidth(),
+        enabled = enabled, isError = isError, supportingText = supportingText)
+    if (expanded && enabled) AlertDialog(onDismissRequest = { expanded = false },
+        title = { Text(label) }, text = {
+            Column(Modifier.appDialogBody(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                AppSearchField(query = query, onQueryChange = { query = it }, label = "بحث باسم الطبيب")
+                Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                    AppChoiceRow(label = undefinedLabel, selected = selectedId == null,
+                        onClick = { onSelected(null); expanded = false })
+                    val matching = doctors.filter { !it.isDeleted && ArabicSearchNormalizer.matches(query, it.fullName) }
+                    if (matching.isEmpty()) EmptyState("لا توجد أسماء مطابقة",
+                        actionLabel = if (query.isBlank()) null else "مسح البحث", onAction = { query = "" })
+                    doctorChoiceGroups(matching, registry).forEach { (team, members) ->
+                        SectionTitle(team)
+                        members.forEach { doctor ->
+                            AppChoiceRow(label = doctor.fullName, selected = selectedId == doctor.id,
+                                onClick = { onSelected(doctor.id); expanded = false })
+                        }
+                    }
+                }
             }
-        }
-    }
+        }, confirmButton = { AppTextButton(onClick = { expanded = false }) { Text("رجوع") } })
 }

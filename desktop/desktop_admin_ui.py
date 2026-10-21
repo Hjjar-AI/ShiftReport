@@ -2,7 +2,7 @@
 from __future__ import annotations
 import desktop_widgets as ctk
 from desktop_doctors import Administration, rank, permanent
-from desktop_forms import button, combo, entry, guarded, modal, dialog_actions
+from desktop_forms import button, combo, entry, guarded, modal, dialog_actions, section_heading, doctor_picker, discard_guard
 from desktop_model import GENDER, doctor_label
 
 
@@ -15,17 +15,23 @@ def doctor_form(owner, doctor=None, registry=None):
     window = modal(owner, 'تحرير الطبيب' if doctor else 'إضافة طبيب')
     actions = ctk.CTkFrame(window); actions.pack(side='bottom', fill='x')
     body = ctk.CTkScrollableFrame(window); body.pack(fill='both', expand=True)
-    fields = dict(first=entry(body, 'الاسم', parts[0]), last=entry(body, 'الكنية', parts[1] if len(parts)>1 else ''),
-                  title=entry(body, 'اللقب — اختياري، حتى 16 محرفاً', doctor.get('title', '')),
-                  telegram_id=entry(body, 'معرّف حساب تليجرام — اختياري', str(doctor.get('telegram_id') or '')),
-                  destination=entry(body, 'مجموعة تقارير المشرف — معرّف سالب، اختياري', str(doctor.get('destination') or '')))
-    gender = combo(body, 'الجنس', GENDER, doctor.get('gender', 'M'))
-    team_mapping={'':'دون فريق'}
-    team_mapping.update({key:doctor_label(registry,key) for key,item in registry.items() if item['clinicalRole']=='SUPERVISOR' and key!=doctor.get('uid')})
-    team=combo(body,'مشرف فريق المقيم — يُتجاهل عند اختيار دور مشرف',team_mapping,doctor.get('teamSupervisorId',''))
-    role = combo(body, 'التصنيف السريري', {'RESIDENT':'مقيم', 'SUPERVISOR':'مشرف'}, doctor.get('clinicalRole', 'RESIDENT'))
-    ctk.CTkLabel(body, text='إثبات الهوية للنشر برمز تليجرام. إعداد PIN لهذا الكمبيوتر من القائمة الجانبية.',
-                 wraplength=620, justify='right').pack(fill='x', padx=10, pady=6)
+    section_heading(body,'البيانات الشخصية')
+    fields=dict(first=entry(body,'الاسم',parts[0]),last=entry(body,'الكنية',parts[1] if len(parts)>1 else ''),
+                title=entry(body,'اللقب — اختياري، حتى 16 محرفاً',doctor.get('title','')))
+    gender=combo(body,'الجنس',GENDER,doctor.get('gender','M'))
+    section_heading(body,'الدور السريري والفريق','الفريق الثابت مستقل عن تعيينات المرضى والتغطية الفردية.')
+    role=combo(body,'الدور السريري',{'RESIDENT':'مقيم','SUPERVISOR':'مشرف'},doctor.get('clinicalRole','RESIDENT'))
+    eligible={key:item for key,item in registry.items() if key!=doctor.get('uid')}
+    team=doctor_picker(body,'مشرف فريق المقيم — يُتجاهل لدور المشرف',eligible,doctor.get('teamSupervisorId',''),role='SUPERVISOR',undefined='دون فريق')
+    section_heading(body,'الحساب والتحقق','صلاحية الإدارة مستقلة عن الدور السريري؛ تُعدّل من قسم صلاحيات التطبيق.')
+    fields['telegram_id']=entry(body,'معرّف حساب تليجرام — اختياري',str(doctor.get('telegram_id') or ''))
+    ctk.CTkLabel(body,text='إثبات الهوية للنشر برمز تليجرام. إعداد PIN من الحساب وقفل التطبيق.',
+                 wraplength=560,justify='right').pack(fill='x',padx=10,pady=6)
+    section_heading(body,'وجهة تقرير المشرف','تُستخدم عند اختيار دور مشرف فقط.')
+    fields['destination']=entry(body,'مجموعة تقارير المشرف — معرّف سالب، اختياري',str(doctor.get('destination') or ''))
+    def draft_values():return tuple(widget.get() for widget in fields.values())+(gender(),role(),team())
+    initial_values=draft_values()
+    cancel=discard_guard(window,lambda:draft_values()!=initial_values)
     result = []
     def submit():
         values = {key:widget.get() for key,widget in fields.items()}
@@ -33,20 +39,20 @@ def doctor_form(owner, doctor=None, registry=None):
         from desktop_doctors import profile
         profile(values, doctor or None)
         result.append(values); window.destroy()
-    dialog_actions(actions,primary=('مراجعة التغيير',guarded(submit)),cancel=('إلغاء',window.destroy))
+    dialog_actions(actions,primary=('مراجعة التغيير',guarded(submit)),cancel=('إلغاء',cancel))
     owner.root.wait_window(window)
     return result[0] if result else None
 
 
-def registry_text(doctors):
-    lines = []
-    for key, doctor in doctors.items():
-        lines.append('{}\n{} · {} · رتبة {}{}\nحساب تليجرام: {} · مجموعة التقارير: {}\nاللقب: {}'.format(
-            doctor_label(doctors, key), GENDER[doctor['gender']],
-            'مشرف' if doctor['clinicalRole']=='SUPERVISOR' else 'مقيم', rank(doctor),
-            ' · مدير دائم' if permanent(doctor) else '', doctor.get('telegram_id') or 'غير مرتبط',
-            doctor.get('destination') or 'بدون', doctor.get('title') or 'بدون'))
-        if doctor.get('teamSupervisorId'):lines[-1]+='\nمشرف الفريق: '+doctor_label(doctors,doctor['teamSupervisorId'])
+def registry_text(doctors, permissions=False):
+    lines=[]
+    for key,doctor in doctors.items():
+        text=doctor_label(doctors,key)+'\n'+GENDER[doctor['gender']]+' · '+('مشرف' if doctor['clinicalRole']=='SUPERVISOR' else 'مقيم')
+        if permissions:text+=' · رتبة '+str(rank(doctor))+(' · مدير دائم' if permanent(doctor) else '')
+        text+='\nحساب تليجرام: '+str(doctor.get('telegram_id') or 'غير مرتبط')+' · مجموعة التقارير: '+str(doctor.get('destination') or 'بدون')
+        text+='\nاللقب: '+(doctor.get('title') or 'بدون')
+        if doctor.get('teamSupervisorId'):text+='\nمشرف الفريق: '+doctor_label(doctors,doctor['teamSupervisorId'])
+        lines.append(text)
     return '\n\n'.join(lines)
 
 
@@ -54,10 +60,14 @@ def administer(owner):
     owner.ready()
     service = Administration(owner.client, owner.store)
     snapshot = owner.io(service.fetch)
-    actions = ['إدارة الفرق معاً', 'إضافة طبيب', 'تحرير طبيب / مجموعة تقاريره', 'حذف طبيب', 'منح صلاحية مدير', 'إزالة صلاحية مدير']
-    selected = owner.choose('إدارة الأطباء', actions)
-    if selected is None: return
-    action = ['teams', 'add', 'edit', 'delete', 'promote', 'demote'][selected]
+    actions=['إدارة الفرق معاً','إضافة طبيب','تحرير طبيب / مجموعة تقاريره','حذف طبيب','منح صلاحية مدير','إزالة صلاحية مدير']
+    category=owner.choose('إدارة الفريق والمشروع',['الأطباء والحسابات','عضوية الفرق','صلاحيات التطبيق'])
+    if category is None:return
+    choices=[1,2,3] if category==0 else [0] if category==1 else [4,5]
+    choice=0 if category==1 else owner.choose('الأطباء والحسابات' if category==0 else 'صلاحيات التطبيق',[actions[index] for index in choices])
+    if choice is None:return
+    selected=choices[choice]
+    action=['teams','add','edit','delete','promote','demote'][selected]
     key, values = None, None
     if action == 'teams':
         values=team_form(owner,snapshot['doctors'])
@@ -71,7 +81,7 @@ def administer(owner):
         values = doctor_form(owner, snapshot['doctors'].get(key),snapshot['doctors'])
         if values is None: return
     plan = owner.io(lambda:service.review(snapshot, action, key, values))
-    text = 'العملية: '+actions[selected]+'\n\nقبل:\n'+registry_text(snapshot['doctors'])+'\n\nبعد:\n'+registry_text(plan['doctors'])
+    text = 'التأكيد ينشر التغيير إلى المشروع بعد المراجعة.\nالعملية: '+actions[selected]+'\n\nقبل:\n'+registry_text(snapshot['doctors'],permissions=action in {'promote','demote'})+'\n\nبعد:\n'+registry_text(plan['doctors'],permissions=action in {'promote','demote'})
     if not owner.show_review(text): return
     service.approve(plan)
     owner.plan = None; owner.raw_draft = None

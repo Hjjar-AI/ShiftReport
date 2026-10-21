@@ -1,4 +1,4 @@
-"""General/detail views of the same multiline clinical value; no separate draft."""
+"""Free text with optional per-field structured tools over the same clinical draft."""
 from datetime import date
 import tkinter as tk
 import desktop_widgets as ctk
@@ -13,6 +13,10 @@ class ClinicalField:
         self.details=ctk.CTkFrame(self.frame,fg_color='transparent')
         self.mode='GENERAL';self.rows=[];self.draft=None
         self.allow_date=allow_date;self.today=today or date.today()
+        self.tools=ctk.CTkButton(self.frame,text='أدوات البنود والترتيب',height=48,
+            fg_color='transparent',text_color=('gray25','gray85'),
+            command=lambda:self.show('ADVANCED' if self.mode=='GENERAL' else 'GENERAL'))
+        self.tools.pack(fill='x',padx=8,pady=2)
 
     def get(self,*args):
         if self.mode=='GENERAL':return self.general.get('1.0','end-1c')
@@ -31,6 +35,8 @@ class ClinicalField:
         else:
             self.general.pack_forget();self.details.pack(fill='x')
             self.render(value.split('\n') if value else [])
+        self.tools.configure(text='العودة للكتابة الحرة' if mode=='ADVANCED' else 'أدوات البنود والترتيب')
+        self.tools.pack_forget();self.tools.pack(fill='x',padx=8,pady=2)
 
     def render(self,values):
         for widget in self.details.winfo_children():widget.destroy()

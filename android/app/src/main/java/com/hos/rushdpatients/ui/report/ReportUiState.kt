@@ -51,5 +51,6 @@ data class ReportUiState(
     val lastOperation: String? = null,
     val retryAction: ReportRetryAction? = null,
     val error: String? = null,
+    val doctorRegistryAction: com.hos.rushdpatients.domain.doctor.DoctorRegistryAction? = null,
     val snackbar: String? = null
 )

@@ -40,7 +40,7 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             var showingSplash by rememberSaveable { mutableStateOf(true) }
-            val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 5_000L) }
+            val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 3_000L) }
             // A physical press cannot survive Activity recreation; the deadline does.
             var splashHeld by remember { mutableStateOf(false) }
             var splashSecondsRemaining by remember(splashDeadline) {

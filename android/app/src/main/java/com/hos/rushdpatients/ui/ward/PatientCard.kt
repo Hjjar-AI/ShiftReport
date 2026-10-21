@@ -180,21 +180,6 @@ fun PatientCard(
                 onDelete = onDelete
             )
 
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                DiagnosisChip(patient.diagnosisType)
-                if (expanded && patient.hasCompanion) {
-                    SmallChip(text = "مرافق", container = MaterialTheme.colorScheme.surface,
-                        content = MaterialTheme.colorScheme.onSurface)
-                }
-            }
-
-            if (supervisorName != null || residentName != null) {
-                Text(listOfNotNull(supervisorName?.let { "مشرف: $it" }, residentName?.let { "مقيم: $it" })
-                    .joinToString(" · "), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
             if (visibleBadges.isNotEmpty() || (!expanded && patient.badges.isNotEmpty())) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -219,6 +204,27 @@ fun PatientCard(
                 }
             }
 
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                DiagnosisChip(patient.diagnosisType)
+                if (expanded && patient.hasCompanion) {
+                    SmallChip(text = "مرافق", container = MaterialTheme.colorScheme.surface,
+                        content = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+
+            if (supervisorName != null || residentName != null) {
+                Text(listOfNotNull(supervisorName?.let { "مشرف: $it" }, residentName?.let { "مقيم: $it" })
+                    .joinToString(" · "), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            if (patient.initialDiagnosis.isNotBlank()) {
+                AppClinicalSection("التشخيص", patient.initialDiagnosis,
+                    maxLines = if (expanded) Int.MAX_VALUE else 2)
+            }
+
+
             if (taskCounts.pending > 0) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     SmallChip("${uiNumber(taskCounts.pending)} مهمة معلقة", MaterialTheme.colorScheme.surfaceVariant,
@@ -228,12 +234,6 @@ fun PatientCard(
                 }
             }
 
-            if (patient.initialDiagnosis.isNotBlank()) {
-                AppClinicalSection("التشخيص", patient.initialDiagnosis,
-                    maxLines = if (expanded) Int.MAX_VALUE else 2)
-            }
-
-
             // -------- Expanded detail --------
             AnimatedVisibility(
                 visible = expanded,
@@ -241,20 +241,22 @@ fun PatientCard(
                 exit = if (animateExpansion) shrinkVertically(animationSpec = tween(UiMotion.collapseMillis)) else ExitTransition.None
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(sectionGap)) {
-                    if (patient.tasks.isNotEmpty()) AppClinicalSection("المهام",
-                        PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = taskNowEpochMillis))
                     Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     if (twoColumn) {
                         TwoColumnDetail(patient = patient, spacing = sectionGap)
                     } else {
                         SingleColumnDetail(patient = patient, spacing = sectionGap)
                     }
+                    if (patient.tasks.isNotEmpty()) AppClinicalSection("المهام",
+                        PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = taskNowEpochMillis))
                 }
             }
             if (!showIdentity) Text(PatientIdentityText.details(patient),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (expanded && showViewControls) com.hos.rushdpatients.ui.components.AppTextButton(
-                onClick = onLongClick, modifier = Modifier.fillMaxWidth()) { AppActionLabel(UiAction.FULL_RECORD) }
+            if (expanded && showViewControls) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                if (!readOnly) com.hos.rushdpatients.ui.components.AppTextButton(onClick = onEdit) { Text("تحرير المريض") }
+                com.hos.rushdpatients.ui.components.AppTextButton(onClick = onLongClick) { AppActionLabel(UiAction.FULL_RECORD) }
+            }
             if (expanded) patient.lastEditedByName?.let { editor ->
                 val time = remember(patient.updatedAt) {
                     uiDateTime(patient.updatedAt, "MM-dd HH:mm")

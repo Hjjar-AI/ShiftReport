@@ -117,9 +117,10 @@ class WardViewModel @Inject constructor(
                 if (id == null) return@collectLatest
                 val publication = combine(
                     settingsRepository.observe(AppConstants.SETTING_PATIENTS_SYNC_PENDING),
-                    syncStateRepository.observe(SyncChannel.CSV)
-                ) { pending, sync ->
-                    (pending?.toBooleanStrictOrNull() ?: false) to sync?.lastSyncedAtEpochMillis
+                    syncStateRepository.observe(SyncChannel.CSV),
+                    settingsRepository.observe(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + id)
+                ) { pending, sync, publishedAt ->
+                    Triple(pending?.toBooleanStrictOrNull() ?: false, sync?.lastSyncedAtEpochMillis, publishedAt?.toLongOrNull())
                 }
                 val selectedSnapshot = combine(
                     _state.map { it.shift to it.patients }.distinctUntilChanged(),
@@ -138,7 +139,7 @@ class WardViewModel @Inject constructor(
                     deliveries,
                     selectedSnapshot
                 ) { published, at, message, delivery, selected ->
-                    WardSynchronization(pending = published.first, selectedSnapshot = selected, lastSynchronizedAt = published.second,
+                    WardSynchronization(pending = published.first, selectedSnapshot = selected, lastSynchronizedAt = published.second, publishedAt = published.third,
                         downloadedAt = at?.toLongOrNull(), downloadedMessage = message?.toLongOrNull(),
                         unresolvedDeliveries = delivery.first, deliveryLogUnavailable = delivery.second)
                 }.collect { synchronization ->

@@ -17,6 +17,7 @@ data class DoctorsUiState(
     val loading: Boolean = true,
     val doctors: List<Doctor> = emptyList(),
     val saving: Boolean = false,
+    val pendingRegistrySummary: String? = null,
     val exporting: Boolean = false,
     val exportReady: Boolean = false,
     val importing: Boolean = false,

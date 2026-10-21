@@ -33,19 +33,12 @@ import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.sync.EmptyStartCoordinator
-import com.hos.rushdpatients.sync.EmptyStartReview
 import com.hos.rushdpatients.sync.SyncService
-import com.hos.rushdpatients.sync.CsvPublicationReview
 import com.hos.rushdpatients.ui.theme.AppFontScale
 import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.AppThemePreset
-import com.hos.rushdpatients.util.ShiftDate
-import com.hos.rushdpatients.util.NetworkStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -86,17 +79,16 @@ class SettingsViewModel @Inject constructor(
     ))
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
-    // Only a random private-file ID survives process recreation; never the password or credentials.
-    private companion object {
-        const val PENDING_BACKUP_ID = "pending_backup_id"
-        const val PENDING_BACKUP_COUNT = "pending_backup_count"
-        const val PENDING_PROVISIONING_ID = "pending_provisioning_id"
-    }
-
-    private var publicationReview: CsvPublicationReview? = null
-    private var emptyStartToken: EmptyStartReview? = null
-
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
+
+    private val preferences = SettingsPreferences(_state, viewModelScope, settingsRepository)
+    private val dataOperations = SettingsDataOperations(_state, viewModelScope, context,
+        syncService, shiftRepository, csvExporter, ::format)
+    private val backupOperations = SettingsBackupOperations(_state, viewModelScope,
+        encryptedBackupManager, savedStateHandle, pendingExports, settingsRepository, ::refreshStorageHealth)
+    private val projectOperations = SettingsProjectOperations(_state, viewModelScope,
+        emptyStart, sessionManager, doctorMutations, provisioningManager, projectConfigStore,
+        adminAuthorizer, savedStateHandle, ::load, dataOperations::invalidateReview)
 
     init {
         viewModelScope.launch {
@@ -129,42 +121,11 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun prepareEmptyStart() {
-        val current = _state.value
-        if (current.emptyStartBusy || current.syncing || current.backupBusy || current.provisioningBusy || current.exportingCsv) return
-        _state.update { it.copy(emptyStartBusy = true, emptyStartResult = null) }
-        viewModelScope.launch {
-            try {
-                emptyStartToken = emptyStart.prepare()
-                _state.update { it.copy(emptyStartReview = emptyStartToken?.text) }
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: "تعذر إعداد البداية الفارغة") } }
-            finally { _state.update { it.copy(emptyStartBusy = false) } }
-        }
-    }
+    fun prepareEmptyStart() = projectOperations.prepareEmptyStart()
 
-    fun dismissEmptyStart() {
-        if (_state.value.emptyStartBusy) return
-        emptyStartToken = null
-        _state.update { it.copy(emptyStartReview = null, emptyStartResult = null) }
-    }
+    fun dismissEmptyStart() = projectOperations.dismissEmptyStart()
 
-    fun confirmEmptyStart() {
-        val review = emptyStartToken ?: return
-        if (_state.value.emptyStartBusy) return
-        _state.update { it.copy(emptyStartBusy = true, emptyStartReview = null) }
-        emptyStartToken = null
-        publicationReview = null
-        viewModelScope.launch {
-            try {
-                emptyStart.confirm(review)
-                load()
-                _state.update { it.copy(emptyStartResult = "تم نشر البداية الفارغة ومسح المرضى والمناوبات على هذا الجهاز. بقي الأطباء والاتصال وسجل تليجرام. على الأجهزة الأخرى جلب البيانات قبل العمل.") }
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(emptyStartResult = e.message ?: "تعذر إكمال البداية الفارغة؛ افحص النسخة الحالية قبل الإعادة") } }
-            finally { _state.update { it.copy(emptyStartBusy = false) } }
-        }
-    }
+    fun confirmEmptyStart() = projectOperations.confirmEmptyStart()
 
     private fun load() {
         viewModelScope.launch {
@@ -262,557 +223,85 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setReportAsPdf(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.setReportAsPdf(value)
-            _state.update { it.copy(reportAsPdf = value) }
-        }
-    }
+    fun setReportAsPdf(value: Boolean) = preferences.setReportAsPdf(value)
 
-    fun setPdfStyle(value: PdfStyle) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_STYLE, value.name)
-            _state.update { it.copy(pdfStyle = value) }
-        }
-    }
+    fun setPdfStyle(value: PdfStyle) = preferences.setPdfStyle(value)
 
-    fun setPdfPatientCardStyle(value: PatientCardStyle) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_PATIENT_CARD_STYLE, value.name)
-            _state.update { it.copy(pdfPatientCardStyle = value) }
-        }
-    }
+    fun setPdfPatientCardStyle(value: PatientCardStyle) = preferences.setPdfPatientCardStyle(value)
 
-    fun setPdfOrientation(value: PdfOrientation) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_ORIENTATION, value.name)
-            _state.update { it.copy(pdfOrientation = value) }
-        }
-    }
+    fun setPdfOrientation(value: PdfOrientation) = preferences.setPdfOrientation(value)
 
-    fun setPdfPaperSize(value: PdfPaperSize) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_PAPER_SIZE, value.name)
-            _state.update { it.copy(pdfPaperSize = value) }
-        }
-    }
+    fun setPdfPaperSize(value: PdfPaperSize) = preferences.setPdfPaperSize(value)
 
-    fun setPdfColorPreset(value: PdfColorPreset) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_COLOR_PRESET, value.name)
-            _state.update { it.copy(pdfColorPreset = value) }
-        }
-    }
+    fun setPdfColorPreset(value: PdfColorPreset) = preferences.setPdfColorPreset(value)
 
-    fun setPdfRuleWeight(value: PdfRuleWeight) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_RULE_WEIGHT, value.name)
-            _state.update { it.copy(pdfRuleWeight = value) }
-        }
-    }
+    fun setPdfRuleWeight(value: PdfRuleWeight) = preferences.setPdfRuleWeight(value)
 
-    fun setPdfRuleContrast(value: PdfRuleContrast) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_RULE_CONTRAST, value.name)
-            _state.update { it.copy(pdfRuleContrast = value) }
-        }
-    }
+    fun setPdfRuleContrast(value: PdfRuleContrast) = preferences.setPdfRuleContrast(value)
 
-    fun setPdfRowShading(value: PdfRowShading) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_ROW_SHADING, value.name)
-            _state.update { it.copy(pdfRowShading = value) }
-        }
-    }
+    fun setPdfRowShading(value: PdfRowShading) = preferences.setPdfRowShading(value)
 
-    fun setPdfPresentationPreset(value: PdfPresentationPreset) {
-        viewModelScope.launch {
-            val settings = mutableMapOf(
-                AppConstants.SETTING_PDF_RULE_WEIGHT to value.weight.name,
-                AppConstants.SETTING_PDF_RULE_CONTRAST to value.contrast.name,
-                AppConstants.SETTING_PDF_ROW_SHADING to value.shading.name
-            )
-            if (value.lightOnly) settings[AppConstants.SETTING_PDF_DARK_MODE] = "false"
-            settingsRepository.putAll(settings)
-            _state.update { it.copy(pdfRuleWeight = value.weight, pdfRuleContrast = value.contrast,
-                pdfRowShading = value.shading, pdfDarkMode = if (value.lightOnly) false else it.pdfDarkMode) }
-        }
-    }
+    fun setPdfPresentationPreset(value: PdfPresentationPreset) = preferences.setPdfPresentationPreset(value)
 
-    fun setPdfDarkMode(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PDF_DARK_MODE, value)
-            _state.update { it.copy(pdfDarkMode = value) }
-        }
-    }
+    fun setPdfDarkMode(value: Boolean) = preferences.setPdfDarkMode(value)
 
-    fun setPdfSeparateBySupervisor(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR, value)
-            _state.update { it.copy(pdfSeparateBySupervisor = value) }
-        }
-    }
+    fun setPdfSeparateBySupervisor(value: Boolean) = preferences.setPdfSeparateBySupervisor(value)
 
-    fun setAppearance(value: AppAppearance) {
-        _state.update { it.copy(appearance = value) }
-        viewModelScope.launch { settingsRepository.put(AppConstants.SETTING_APP_APPEARANCE, value.name) }
-    }
+    fun setAppearance(value: AppAppearance) = preferences.setAppearance(value)
 
-    fun setAppTheme(value: AppThemePreset) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_APP_THEME, value.name)
-            _state.update { it.copy(appTheme = value) }
-        }
-    }
+    fun setAppTheme(value: AppThemePreset) = preferences.setAppTheme(value)
 
-    fun setFontScale(value: AppFontScale) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_FONT_SCALE, value.name)
-            _state.update { it.copy(fontScale = value) }
-        }
-    }
+    fun setFontScale(value: AppFontScale) = preferences.setFontScale(value)
 
-    fun setPatientDetailsExpanded(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED, value)
-            _state.update { it.copy(patientDetailsExpanded = value) }
-        }
-    }
+    fun setPatientDetailsExpanded(value: Boolean) = preferences.setPatientDetailsExpanded(value)
 
-    fun setPatientTwoColumn(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_TWO_COLUMN, value)
-            _state.update { it.copy(patientTwoColumn = value) }
-        }
-    }
+    fun setPatientTwoColumn(value: Boolean) = preferences.setPatientTwoColumn(value)
 
-    fun setPatientCompactDensity(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, value)
-            _state.update { it.copy(patientCompactDensity = value) }
-        }
-    }
+    fun setPatientCompactDensity(value: Boolean) = preferences.setPatientCompactDensity(value)
 
-    fun setSaveAndNext(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_SAVE_AND_NEXT, value)
-            _state.update { it.copy(saveAndNext = value) }
-        }
-    }
+    fun setSaveAndNext(value: Boolean) = preferences.setSaveAndNext(value)
 
-    fun setReportWardName(value: String) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_REPORT_WARD_NAME, value.trim())
-            _state.update { it.copy(reportWardName = value.trim(), snackbar = "حُفظ اسم الجناح للتقارير") }
-        }
-    }
+    fun setReportWardName(value: String) = preferences.setReportWardName(value)
 
-    fun setGuidedRollover(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_GUIDED_ROLLOVER, value)
-            _state.update { it.copy(guidedRollover = value) }
-        }
-    }
+    fun setGuidedRollover(value: Boolean) = preferences.setGuidedRollover(value)
 
-    fun setSupervisorGroupChatId(expected: Doctor, rawValue: String) {
-        if (_state.value.savingSupervisorGroupId != null) return
-        val session = sessionManager.current()
-        if (session?.isAdmin != true) {
-            _state.update { it.copy(snackbar = "هذه الإعدادات متاحة للمدير فقط") }
-            return
-        }
-        val trimmed = rawValue.trim()
-        val chatId = if (trimmed.isEmpty()) null else trimmed.toLongOrNull()
-        if (trimmed.isNotEmpty() && (chatId == null || chatId >= 0L)) {
-            _state.update {
-                it.copy(snackbar = "معرف مجموعة تليجرام يجب أن يكون رقماً سالباً")
-            }
-            return
-        }
-        _state.update { it.copy(savingSupervisorGroupId = expected.id, snackbar = null) }
-        viewModelScope.launch {
-            try {
-                doctorMutations.setSupervisorGroup(expected, chatId)
-                val syncResult = syncService.uploadCurrentDoctors()
-                _state.update {
-                    it.copy(
-                        savingSupervisorGroupId = null,
-                        snackbar = syncResult.fold(
-                            onSuccess = { "تم حفظ مجموعة المشرف ومزامنتها" },
-                            onFailure = { error ->
-                                "تم الحفظ محلياً وتعذرت المزامنة: ${error.message.orEmpty()}"
-                            }
-                        )
-                    )
-                }
-            } catch (e: CancellationException) {
-                _state.update { it.copy(savingSupervisorGroupId = null) }
-                throw e
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        savingSupervisorGroupId = null,
-                        snackbar = e.message ?: "تعذر حفظ معرف المجموعة"
-                    )
-                }
-            }
-        }
-    }
+    fun setSupervisorGroupChatId(expected: Doctor, rawValue: String) = projectOperations.setSupervisorGroupChatId(expected, rawValue)
 
-    fun setBiometric(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_BIOMETRIC_ENABLED, value)
-            _state.update { it.copy(biometricEnabled = value) }
-        }
-    }
+    fun setBiometric(value: Boolean) = preferences.setBiometric(value)
 
-    fun setAutoLockMinutes(value: Int) {
-        viewModelScope.launch {
-            settingsRepository.setAutoLockMinutes(value)
-            _state.update { it.copy(autoLockMinutes = value) }
-        }
-    }
+    fun setAutoLockMinutes(value: Int) = preferences.setAutoLockMinutes(value)
 
-    fun bringLatest() {
-        if (_state.value.syncing) return
-        if (!NetworkStatus.isOnline(context)) {
-            _state.update {
-                it.copy(
-                    snackbar = "لا يوجد اتصال بالإنترنت — أعد المحاولة لاحقاً",
-                    retryAction = SettingsRetryAction.FETCH
-                )
-            }
-            return
-        }
-        _state.update { it.copy(syncing = true, snackbar = null, retryAction = null) }
-        viewModelScope.launch {
-            // An explicit fetch is allowed to accept the authoritative remote doctor registry.
-            // Background sync remains conservative and will not overwrite a newer registry.
-            val doctorsResult = syncService.refreshDoctorsFromRemote()
-            if (doctorsResult.isFailure) {
-                _state.update {
-                    it.copy(
-                        syncing = false,
-                        snackbar = doctorsResult.exceptionOrNull()?.message
-                            ?: "فشل جلب سجل الأطباء",
-                        retryAction = SettingsRetryAction.FETCH
-                    )
-                }
-                return@launch
-            }
-            syncService.fetchLatestCsv()
-                .onSuccess { r ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = "تم جلب البيانات: جديد ${r.inserted}، محدّث ${r.updated}",
-                            lastOperation = "آخر عملية ناجحة: تنزيل بيانات المرضى",
-                            retryAction = null,
-                            lastCsvSync = format(Instant.now().toEpochMilli())
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = e.message ?: "فشل جلب البيانات",
-                            retryAction = SettingsRetryAction.FETCH
-                        )
-                    }
-                }
-        }
-    }
+    fun bringLatest() = dataOperations.bringLatest()
 
-    /** Restore only through the existing guarded download-undo service. */
-    fun undoLastDownload() {
-        val current = _state.value
-        if (current.syncing || current.backupBusy || current.exportingCsv) return
-        _state.update { it.copy(syncing = true, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                syncService.undoLastDownload().getOrThrow()
-                _state.update { it.copy(snackbar = "استُعيدت البيانات المحلية قبل التنزيل؛ راجعها قبل النشر") }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر التراجع عن التنزيل") }
-            } finally { _state.update { it.copy(syncing = false) } }
-        }
-    }
+    fun undoLastDownload() = dataOperations.undoLastDownload()
 
-    /** Prepare only: no publication occurs until the reviewed snapshot is confirmed. */
-    fun uploadCurrent() {
-        if (_state.value.syncing) return
-        publicationReview = null
-        _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                check(NetworkStatus.isOnline(context)) { "لا يوجد اتصال بالإنترنت؛ بقيت البيانات محفوظة محلياً" }
-                val shiftId = shiftRepository.getByDate(ShiftDate.current())?.id ?: error("لا توجد مناوبة حالية")
-                val review = syncService.prepareCsvPublication(shiftId)
-                publicationReview = review
-                _state.update { it.copy(publicationReviewText = review.text) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر إعداد مراجعة النشر", retryAction = SettingsRetryAction.UPLOAD) }
-            } finally {
-                _state.update { it.copy(syncing = false) }
-            }
-        }
-    }
+    fun uploadCurrent() = dataOperations.uploadCurrent()
 
-    fun cancelPublicationReview() {
-        if (_state.value.syncing) return
-        publicationReview = null
-        _state.update { it.copy(publicationReviewText = null) }
-    }
+    fun cancelPublicationReview() = dataOperations.cancelPublicationReview()
 
-    fun confirmPublication() {
-        if (_state.value.syncing) return
-        val review = publicationReview ?: return
-        publicationReview = null
-        _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                check(NetworkStatus.isOnline(context)) { "لا يوجد اتصال بالإنترنت؛ أعد مراجعة النشر عند الاتصال" }
-                val result = syncService.uploadReviewedCsv(review).getOrThrow()
-                _state.update { it.copy(snackbar = "نُشرت النسخة المراجعة (${result.patientCount} مريض)",
-                    lastOperation = "آخر عملية: نشر النسخة الكاملة المراجعة") }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: "تعذر تأكيد النشر؛ افحص النسخة المنشورة قبل الإعادة",
-                    retryAction = SettingsRetryAction.UPLOAD) }
-            } finally {
-                _state.update { it.copy(syncing = false) }
-            }
-        }
-    }
+    fun confirmPublication() = dataOperations.confirmPublication()
 
-    fun exportCsv() {
-        if (_state.value.exportingCsv) return
-        _state.update { it.copy(exportingCsv = true, snackbar = null, retryAction = null) }
-        viewModelScope.launch {
-            try {
-                when (val result = csvExporter.exportCurrentShift()) {
-                    is PatientCsvExporter.Result.Success -> _state.update {
-                        it.copy(
-                            exportingCsv = false,
-                            snackbar = "تم حفظ ${result.patientCount} مريض في ${result.fileName}",
-                            lastOperation = "آخر عملية ناجحة: حفظ ${result.fileName}"
-                        )
-                    }
-                    is PatientCsvExporter.Result.Failure -> _state.update {
-                        it.copy(
-                            exportingCsv = false,
-                            snackbar = result.message,
-                            retryAction = SettingsRetryAction.EXPORT
-                        )
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        exportingCsv = false,
-                        snackbar = e.message ?: "فشل تصدير CSV",
-                        retryAction = SettingsRetryAction.EXPORT
-                    )
-                }
-            }
-        }
-    }
+    fun exportCsv() = dataOperations.exportCsv()
 
-    fun prepareEncryptedBackup(passphrase: String) {
-        if (_state.value.backupBusy) return
-        _state.update { it.copy(backupBusy = true, backupReady = false, snackbar = null) }
-        val password = passphrase.toCharArray()
-        viewModelScope.launch {
-            try {
-                val prepared = encryptedBackupManager.prepareExport(password)
-                try {
-                    savedStateHandle[PENDING_BACKUP_ID] = pendingExports.stage(prepared.bytes)
-                    savedStateHandle[PENDING_BACKUP_COUNT] = prepared.patientCount
-                } finally {
-                    prepared.bytes.fill(0)
-                }
-                _state.update { it.copy(backupReady = true) }
-            } catch (e: CancellationException) {
-                clearPendingBackup()
-                _state.update { it.copy(backupBusy = false, backupReady = false) }
-                throw e
-            } catch (e: Exception) {
-                clearPendingBackup()
-                _state.update { it.copy(backupBusy = false, backupReady = false,
-                    snackbar = e.message ?: "فشل تجهيز النسخة المشفرة") }
-            } finally {
-                password.fill('\u0000')
-            }
-        }
-    }
+    fun prepareEncryptedBackup(passphrase: String) = backupOperations.prepareEncryptedBackup(passphrase)
 
-    fun backupPickerLaunched() = _state.update { it.copy(backupReady = false) }
+    fun backupPickerLaunched() = backupOperations.backupPickerLaunched()
 
-    fun backupPickerFailed() {
-        viewModelScope.launch {
-            clearPendingBackup()
-            _state.update { it.copy(backupBusy = false, backupReady = false,
-                snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء النسخة المشفرة") }
-        }
-    }
+    fun backupPickerFailed() = backupOperations.backupPickerFailed()
 
-    fun exportEncryptedBackup(uri: Uri?) {
-        val id = savedStateHandle.get<String>(PENDING_BACKUP_ID)
-        val count = savedStateHandle.get<Int>(PENDING_BACKUP_COUNT) ?: 0
-        _state.update { it.copy(backupBusy = true, backupReady = false, snackbar = null) }
-        viewModelScope.launch {
-            try {
-                if (uri == null) return@launch
-                check(id != null) { "انتهت جلسة التصدير؛ أعد إنشاء النسخة المشفرة" }
-                pendingExports.write(uri, id)
-                settingsRepository.putLong(AppConstants.SETTING_LAST_ENCRYPTED_BACKUP_AT,
-                    Instant.now().toEpochMilli())
-                _state.update { it.copy(snackbar = "تم حفظ نسخة مشفرة لـ$count مريض والتحقق منها") }
-                refreshStorageHealth()
-            } catch (e: CancellationException) {
-                if (uri != null) pendingExports.discardDestination(uri)
-                throw e
-            } catch (e: Exception) {
-                if (uri != null) pendingExports.discardDestination(uri)
-                _state.update { it.copy(snackbar = e.message ?: "فشل إنشاء النسخة المشفرة") }
-            } finally {
-                clearPendingBackup()
-                _state.update { it.copy(backupBusy = false) }
-            }
-        }
-    }
+    fun exportEncryptedBackup(uri: Uri?) = backupOperations.exportEncryptedBackup(uri)
 
-    private suspend fun clearPendingBackup() = withContext(NonCancellable) {
-        val id = savedStateHandle.remove<String>(PENDING_BACKUP_ID)
-        savedStateHandle.remove<Int>(PENDING_BACKUP_COUNT)
-        if (id != null) pendingExports.discard(id)
-    }
+    fun prepareProjectProvisioning(passphrase: String, share: Boolean = false, saveToDownloads: Boolean = false) = projectOperations.prepareProjectProvisioning(passphrase, share, saveToDownloads)
 
-    fun prepareProjectProvisioning(passphrase: String, share: Boolean = false, saveToDownloads: Boolean = false) {
-        if (_state.value.provisioningBusy) return
-        _state.update { it.copy(provisioningBusy = true, provisioningReady = false, snackbar = null) }
-        val password = passphrase.toCharArray()
-        viewModelScope.launch {
-            try {
-                adminAuthorizer.requireAdmin()
-                val encrypted = provisioningManager.prepareExport(projectConfigStore.current(), password)
-                try {
-                    savedStateHandle[PENDING_PROVISIONING_ID] = provisioningManager.stageExport(encrypted)
-                } finally {
-                    encrypted.fill(0)
-                }
-                if (saveToDownloads) {
-                    adminAuthorizer.requireAdmin()
-                    val id = checkNotNull(savedStateHandle.get<String>(PENDING_PROVISIONING_ID))
-                    val saved = provisioningManager.saveStagedToDownloads(id)
-                    clearPendingProvisioning()
-                    _state.update { it.copy(provisioningBusy = false,
-                        snackbar = "تم حفظ ملف الانضمام والتحقق من ${com.hos.rushdpatients.ui.components.uiNumber(saved.byteCount)} بايت في التنزيلات/ShiftReport. شارك عبارة المرور عبر قناة منفصلة.") }
-                } else if (share) {
-                    adminAuthorizer.requireAdmin()
-                    val id = checkNotNull(savedStateHandle.get<String>(PENDING_PROVISIONING_ID))
-                    val uri = provisioningManager.shareStagedExport(id)
-                    clearPendingProvisioning()
-                    _state.update { it.copy(provisioningBusy = false, provisioningShareUri = uri) }
-                } else {
-                    _state.update { it.copy(provisioningReady = true) }
-                }
-            } catch (e: CancellationException) {
-                clearPendingProvisioning()
-                _state.update { it.copy(provisioningBusy = false, provisioningReady = false) }
-                throw e
-            } catch (e: Exception) {
-                clearPendingProvisioning()
-                _state.update {
-                    it.copy(provisioningBusy = false, provisioningReady = false,
-                        snackbar = e.message ?: "فشل تجهيز ملف الانضمام")
-                }
-            } finally {
-                password.fill('\u0000')
-            }
-        }
-    }
+    fun provisioningPickerLaunched() = projectOperations.provisioningPickerLaunched()
 
-    fun provisioningPickerLaunched() {
-        _state.update { it.copy(provisioningReady = false) }
-    }
+    fun provisioningShareHandled(failed: Boolean) = projectOperations.provisioningShareHandled(failed)
 
-    fun provisioningShareHandled(failed: Boolean) {
-        _state.update {
-            it.copy(provisioningShareUri = null,
-                snackbar = if (failed) "تعذر فتح المشاركة؛ جرّب حفظ الملف من نافذة إنشاء ملف الانضمام"
-                else "ملف الانضمام المشفر جاهز. شارك عبارة المرور عبر قناة منفصلة.")
-        }
-    }
+    fun provisioningPickerFailed() = projectOperations.provisioningPickerFailed()
 
-    fun provisioningPickerFailed() {
-        viewModelScope.launch {
-            clearPendingProvisioning()
-            _state.update {
-                it.copy(provisioningBusy = false, provisioningReady = false,
-                    snackbar = "تعذر فتح مكان الحفظ؛ أعد إنشاء ملف الانضمام")
-            }
-        }
-    }
+    fun exportProjectProvisioning(uri: Uri?) = projectOperations.exportProjectProvisioning(uri)
 
-    fun exportProjectProvisioning(uri: Uri?) {
-        val exportId = savedStateHandle.get<String>(PENDING_PROVISIONING_ID)
-        _state.update { it.copy(provisioningReady = false, provisioningBusy = true, snackbar = null) }
-        viewModelScope.launch {
-            try {
-                if (uri == null) return@launch
-                check(exportId != null) { "انتهت جلسة التصدير؛ أعد إنشاء ملف الانضمام" }
-                adminAuthorizer.requireAdmin()
-                provisioningManager.writeStagedExport(uri, exportId)
-                _state.update {
-                    it.copy(snackbar = "تم حفظ ملف الانضمام المشفر والتحقق منه. شارك عبارة المرور عبر قناة منفصلة.")
-                }
-            } catch (e: CancellationException) {
-                withContext(NonCancellable) {
-                    if (uri != null) provisioningManager.discardFailedDestination(uri)
-                }
-                throw e
-            } catch (e: Exception) {
-                if (uri != null) provisioningManager.discardFailedDestination(uri)
-                _state.update { it.copy(snackbar = e.message ?: "فشل حفظ ملف الانضمام") }
-            } finally {
-                clearPendingProvisioning()
-                _state.update { it.copy(provisioningBusy = false) }
-            }
-        }
-    }
-
-    private suspend fun clearPendingProvisioning() = withContext(NonCancellable) {
-        val id = savedStateHandle.remove<String>(PENDING_PROVISIONING_ID)
-        if (id != null) provisioningManager.discardStagedExport(id)
-    }
-
-    fun restoreEncryptedBackup(uri: Uri, password: String) {
-        if (_state.value.backupBusy) return
-        _state.update { it.copy(backupBusy = true, snackbar = null) }
-        viewModelScope.launch {
-            runCatching { encryptedBackupManager.restore(uri, password.toCharArray()) }
-                .onSuccess { count ->
-                    _state.update {
-                        it.copy(backupBusy = false, snackbar = "تمت استعادة $count مريض من النسخة المشفرة")
-                    }
-                    refreshStorageHealth()
-                }
-                .onFailure { error ->
-                    _state.update {
-                        it.copy(backupBusy = false, snackbar = error.message ?: "فشلت استعادة النسخة")
-                    }
-                }
-        }
-    }
+    fun restoreEncryptedBackup(uri: Uri, password: String) = backupOperations.restoreEncryptedBackup(uri, password)
 
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
 

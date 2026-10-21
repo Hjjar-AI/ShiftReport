@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -50,8 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDirection
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Doctor
@@ -65,12 +62,6 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
 import com.hos.rushdpatients.ui.components.ConfirmDialog
-
-private enum class PatientFormField {
-    ADMISSION_NUMBER, ADMISSION_DATE, NAME, BIRTH_YEAR, AGE, DIAGNOSIS, TREATMENT, FOLLOW_UP, TEAM
-}
-
-private data class PatientFormError(val field: PatientFormField, val message: String)
 
 @Composable
 private fun autoDirTextStyle(): TextStyle =
@@ -94,7 +85,6 @@ internal fun PatientFormDialog(
     onConfirmAndNext: ((Patient) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
-    var formMode by remember(initial) { mutableStateOf(PatientFormMode.GENERAL) }
     var tasks by remember(initial, restoredDraft) {
         mutableStateOf(initial?.tasks ?: restoredDraft?.tasks.orEmpty())
     }
@@ -224,123 +214,15 @@ internal fun PatientFormDialog(
     }
 
     val admissionIdentityContent: @Composable () -> Unit = {
-        SectionTitle(
-            "بيانات الدخول",
-            complete = admittanceNumber.isNotBlank() && admittanceDate != null,
-            modifier = sectionAnchor(PatientFormSection.PERSONAL)
-        )
-        AppFieldPair(
-            stackWhenNarrow = false,
-            first = { fieldModifier ->
-                AppTextField(
-                    value = admittanceNumber,
-                    onValueChange = { admittanceNumber = it; validationMessages = emptyList() },
-                    label = { Text("رقم القبول الحالي *") },
-                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
-                    singleLine = true,
-                    textStyle = autoStyle,
-                    isError = validationMessages.any { it.field == PatientFormField.ADMISSION_NUMBER },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-                )
-            },
-            second = { fieldModifier ->
-                DateField(
-                    value = admittanceDate,
-                    onValueChange = { admittanceDate = it; validationMessages = emptyList() },
-                    label = "تاريخ الدخول *",
-                    isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
-                    supportingText = admissionDays?.let { "مدة الإقامة: ${uiNumber(it)} يوم" },
-                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
-                )
-            }
-        )
-
-        SectionTitle(
-            "البيانات الشخصية",
-            complete = name.isNotBlank() && birthYear != null && age != null
-        )
-        AppTextField(
-            value = name,
-            onValueChange = { name = it; validationMessages = emptyList() },
-            label = { Text("اسم المريض *") },
-            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.NAME)),
-            singleLine = true,
-            textStyle = autoStyle,
-            isError = validationMessages.any { it.field == PatientFormField.NAME },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
-        AppFieldPair(
-            stackWhenNarrow = false,
-            separator = "أو",
-            first = { fieldModifier ->
-                AppTextField(
-                    value = ageText,
-                    onValueChange = { value ->
-                        val cleaned = value.filter(Char::isDigit).take(3)
-                        ageText = cleaned
-                        birthYearText = cleaned.toIntOrNull()
-                            ?.takeIf { it in 0..120 }
-                            ?.let { currentYear - it }
-                            ?.toString()
-                            .orEmpty()
-                        validationMessages = emptyList()
-                    },
-                    label = { Text("العمر *") },
-                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.AGE)),
-                    singleLine = true,
-                    textStyle = autoStyle,
-                    isError = validationMessages.any { it.field == PatientFormField.AGE },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    )
-                )
-            },
-            second = { fieldModifier ->
-                AppTextField(
-                    value = birthYearText,
-                    onValueChange = { value ->
-                        val cleaned = value.filter(Char::isDigit).take(4)
-                        birthYearText = cleaned
-                        ageText = cleaned.toIntOrNull()
-                            ?.let { currentYear - it }
-                            ?.takeIf { it in 0..120 }
-                            ?.toString()
-                            .orEmpty()
-                        validationMessages = emptyList()
-                    },
-                    label = { Text("سنة الميلاد *") },
-                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.BIRTH_YEAR)),
-                    singleLine = true,
-                    textStyle = autoStyle,
-                    isError = validationMessages.any { it.field == PatientFormField.BIRTH_YEAR },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    )
-                )
-            }
-        )
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            FlowRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text("الجنس", style = MaterialTheme.typography.labelMedium)
-                FilterChip(
-                    enabled = !saving,
-                    selected = gender == Gender.MALE,
-                    onClick = { gender = Gender.MALE },
-                    label = { Text("ذكر") }
-                )
-                FilterChip(
-                    enabled = !saving,
-                    selected = gender == Gender.FEMALE,
-                    onClick = { gender = Gender.FEMALE },
-                    label = { Text("أنثى") }
-                )
-            }
-            AppToggleRow(title = "يوجد مرافق", checked = hasCompanion,
-                onCheckedChange = { hasCompanion = it }, enabled = !saving, modifier = Modifier.weight(.85f))
-        }
+        PatientDemographicFields(admittanceNumber, admittanceDate, admissionDays, name,
+            ageText, birthYearText, birthYear, age, currentYear, gender, hasCompanion, saving,
+            autoStyle, validationMessages, fieldRequests, sectionAnchor(PatientFormSection.PERSONAL),
+            onAdmissionNumberChanged = { admittanceNumber = it; validationMessages = emptyList() },
+            onAdmissionDateChanged = { admittanceDate = it; validationMessages = emptyList() },
+            onNameChanged = { name = it; validationMessages = emptyList() },
+            onAgeAndYearChanged = { nextAge, nextYear ->
+                ageText = nextAge; birthYearText = nextYear; validationMessages = emptyList()
+            }, onGenderChanged = { gender = it }, onCompanionChanged = { hasCompanion = it })
     }
 
     LaunchedEffect(
@@ -474,67 +356,13 @@ internal fun PatientFormDialog(
                         }
                     )
 
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        FilterChip(
-                            enabled = !saving,
-                            selected = formMode == PatientFormMode.GENERAL,
-                            onClick = { formMode = PatientFormMode.GENERAL },
-                            label = { Text("عام") }
-                        )
-                        FilterChip(
-                            enabled = !saving,
-                            selected = formMode == PatientFormMode.ADVANCED,
-                            onClick = { formMode = PatientFormMode.ADVANCED },
-                            label = { Text("متقدم") }
-                        )
-                    }
-                    if (formMode == PatientFormMode.GENERAL) {
-                        MultilineField(
-                            value = (treatmentItems + treatmentDraft)
-                                .filter(String::isNotBlank)
-                                .joinToString("\n"),
-                            onValueChange = {
-                                treatmentItems = parseFieldItems(it)
-                                treatmentDraft = ""
-                                validationMessages = emptyList()
-                            },
-                            label = "الخطة العلاجية",
-                            textStyle = autoStyle,
-                            isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
-                            modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
-                        )
-                        MultilineField(
-                            value = (followUpItems + followUpDraft)
-                                .filter(String::isNotBlank)
-                                .joinToString("\n"),
-                            onValueChange = {
-                                followUpItems = parseFieldItems(it)
-                                followUpDraft = ""
-                                validationMessages = emptyList()
-                            },
-                            label = "المتابعة",
-                            textStyle = autoStyle,
-                            isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
-                            modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
-                        )
-                        MultilineField(
-                            value = (labItems + labDraft).filter(String::isNotBlank).joinToString("\n"),
-                            onValueChange = {
-                                labItems = parseFieldItems(it)
-                                labDraft = ""
-                                validationMessages = emptyList()
-                            },
-                            label = "التحاليل",
-                            textStyle = autoStyle,
-                            isError = false,
-                            modifier = sectionAnchor(PatientFormSection.LABS)
-                        )
-                    } else {
+                    SectionTitle("الخطة والمتابعة")
                     MultiValueEditor(
                         label = "الخطة العلاجية",
                         items = treatmentItems,
                         draft = treatmentDraft,
                         onDraftChange = { treatmentDraft = it; validationMessages = emptyList() },
+                        onReplaceAll = { treatmentItems = parseFieldItems(it); treatmentDraft = ""; validationMessages = emptyList() },
                         onEditItem = { index, value ->
                             treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
                             validationMessages = emptyList()
@@ -563,6 +391,7 @@ internal fun PatientFormDialog(
                         items = followUpItems,
                         draft = followUpDraft,
                         onDraftChange = { followUpDraft = it; validationMessages = emptyList() },
+                        onReplaceAll = { followUpItems = parseFieldItems(it); followUpDraft = ""; validationMessages = emptyList() },
                         onEditItem = { index, value ->
                             followUpItems = followUpItems.toMutableList().also { it[index] = value }
                             validationMessages = emptyList()
@@ -590,6 +419,7 @@ internal fun PatientFormDialog(
                         items = labItems,
                         draft = labDraft,
                         onDraftChange = { labDraft = it; validationMessages = emptyList() },
+                        onReplaceAll = { labItems = parseFieldItems(it); labDraft = ""; validationMessages = emptyList() },
                         onEditItem = { index, value ->
                             labItems = labItems.toMutableList().also { it[index] = value }
                             validationMessages = emptyList()
@@ -614,7 +444,6 @@ internal fun PatientFormDialog(
                         isError = false,
                         modifier = sectionAnchor(PatientFormSection.LABS)
                     )
-                    }
 
                     PatientTaskEditor(tasks, doctors, !saving, modifier = sectionAnchor(PatientFormSection.TASKS)) { tasks = it }
 
@@ -623,7 +452,7 @@ internal fun PatientFormDialog(
                         complete = residentId != null && specialistId != null && residentId != specialistId
                     )
                     AppFieldPair(
-                        stackWhenNarrow = false,
+                        stackWhenNarrow = true,
                         modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
                         first = { fieldModifier ->
                             DoctorDropdown(
@@ -631,7 +460,7 @@ internal fun PatientFormDialog(
                                 isError = validationMessages.any { it.field == PatientFormField.TEAM },
                                 undefinedLabel = "مقيم غير محدد",
                                 selectedId = residentId,
-                                doctors = residentDoctors,
+                                doctors = residentDoctors, registry = doctors,
                                 onSelected = { residentId = it; validationMessages = emptyList() },
                                 modifier = fieldModifier
                             )
@@ -642,7 +471,7 @@ internal fun PatientFormDialog(
                                 isError = validationMessages.any { it.field == PatientFormField.TEAM },
                                 undefinedLabel = "مشرف غير محدد",
                                 selectedId = specialistId,
-                                doctors = specialistDoctors,
+                                doctors = specialistDoctors, registry = doctors,
                                 onSelected = { specialistId = it; validationMessages = emptyList() },
                                 modifier = fieldModifier
                             )
@@ -763,32 +592,9 @@ internal fun PatientFormDialog(
                         .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
                         .joinToString("\n")
 
-                    val errors = buildList {
-                        if (admittanceNumber.isBlank()) add(PatientFormError(PatientFormField.ADMISSION_NUMBER, "رقم القبول الحالي مطلوب"))
-                        if (admittanceDate == null) add(PatientFormError(PatientFormField.ADMISSION_DATE, "اختر تاريخ الدخول"))
-                        if (admittanceDate?.isAfter(today) == true) {
-                            add(PatientFormError(PatientFormField.ADMISSION_DATE, "تاريخ الدخول لا يمكن أن يكون في المستقبل"))
-                        }
-                        if (name.isBlank()) add(PatientFormError(PatientFormField.NAME, "اسم المريض مطلوب"))
-                        if (ageText.toIntOrNull()?.let { it !in 0..120 } == true) {
-                            add(PatientFormError(PatientFormField.AGE, "العمر يجب أن يكون بين 0 و120 سنة"))
-                        }
-                        if (birthYear == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "أدخل سنة الميلاد أو العمر"))
-                        if (birthYear != null && birthYear > currentYear) {
-                            add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد لا يمكن أن تكون في المستقبل"))
-                        }
-                        if (birthYear != null && age == null) add(PatientFormError(PatientFormField.BIRTH_YEAR, "سنة الميلاد تنتج عمراً غير صحيح"))
-                        if (initialDiagnosis.isBlank()) add(PatientFormError(PatientFormField.DIAGNOSIS, "التشخيص الأولي مطلوب"))
-                        if (resolvedTreatments.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-                            add(PatientFormError(PatientFormField.TREATMENT, "الخطة العلاجية مطلوبة"))
-                        }
-                        if (resolvedFollowUp.none { it != FIELD_SEPARATOR && it.isNotBlank() }) {
-                            add(PatientFormError(PatientFormField.FOLLOW_UP, "المتابعة مطلوبة"))
-                        }
-                        if (residentId != null && residentId == specialistId) {
-                            add(PatientFormError(PatientFormField.TEAM, "يجب اختيار طبيبين مختلفين للمقيم والمشرف"))
-                        }
-                    }
+                    val errors = validatePatientForm(admittanceNumber, admittanceDate, today, name,
+                        ageText, birthYear, currentYear, age, initialDiagnosis, resolvedTreatments,
+                        resolvedFollowUp, residentId, specialistId)
                     if (errors.isNotEmpty()) {
                         validationMessages = errors
                         formScope.launch { formScrollState.animateScrollTo(0) }
@@ -802,50 +608,27 @@ internal fun PatientFormDialog(
                         ?.let { listOf(PatientBadge(it, badgeDraftPriority)) }
                         .orEmpty()
 
-                    val patient = initial?.copy(
-                        admittanceNumber = admittanceNumber.trim(),
-                        admittanceDate = admittanceDate,
-                        gender = gender,
-                        name = name.trim(),
-                        birthDate = resolvedBirthDate,
-                        hasCompanion = hasCompanion,
-                        diagnosisType = diagnosisType,
-                        initialDiagnosis = initialDiagnosis.trim(),
-                        treatmentPlan = treatmentPlan.trim(),
-                        followUp = followUp.trim(),
-                        labs = labs.trim(),
-                        responsibleResidentId = residentId,
-                        responsibleSpecialistId = specialistId,
-                        badges = resolvedBadges,
-                        tasks = tasks,
-                        isPriority = isPriority
-                    ) ?: Patient(
-                        admittanceNumber = admittanceNumber.trim(),
-                        admittanceDate = admittanceDate,
-                        gender = gender,
-                        name = name.trim(),
-                        birthDate = resolvedBirthDate,
-                        hasCompanion = hasCompanion,
-                        diagnosisType = diagnosisType,
-                        initialDiagnosis = initialDiagnosis.trim(),
-                        treatmentPlan = treatmentPlan.trim(),
-                        followUp = followUp.trim(),
-                        labs = labs.trim(),
-                        responsibleResidentId = residentId,
-                        responsibleSpecialistId = specialistId,
-                        badges = resolvedBadges,
-                        tasks = tasks,
-                        isPriority = isPriority
-                    )
+                    val patient = patientForSubmission(initial, admittanceNumber, admittanceDate,
+                        gender, name, resolvedBirthDate, hasCompanion, diagnosisType, initialDiagnosis,
+                        treatmentPlan, followUp, labs, residentId, specialistId, resolvedBadges, tasks, isPriority)
                     if (advance) onConfirmAndNext?.invoke(patient) else onConfirm(patient)
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    AppButton(modifier = Modifier.weight(1f), enabled = !saving,
-                        onClick = { submit(false) }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                    Text(if (saving) "جار حفظ بيانات المريض…" else if (hasUnsavedChanges)
+                        "تعديلات غير محفوظة — اضغط حفظ لاعتمادها" else "لا توجد تعديلات غير محفوظة",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (hasUnsavedChanges) MaterialTheme.colorScheme.tertiary
+                            else MaterialTheme.colorScheme.onSurfaceVariant)
                     if (onConfirmAndNext != null) {
-                        AppOutlinedButton(modifier = Modifier.weight(1f), enabled = !saving,
-                            onClick = { submit(true) }) { Text("حفظ والتالي") }
-                    }
+                        AppFieldPair(first = { buttonModifier ->
+                            AppButton(modifier = buttonModifier, enabled = !saving,
+                                onClick = { submit(false) }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
+                        }, second = { buttonModifier ->
+                            AppOutlinedButton(modifier = buttonModifier, enabled = !saving,
+                                onClick = { submit(true) }) { Text("حفظ والتالي") }
+                        })
+                    } else AppButton(modifier = Modifier.fillMaxWidth(), enabled = !saving,
+                        onClick = { submit(false) }) { Text(if (saving) "جار الحفظ…" else "حفظ") }
                 }
             },
             dismissButton = {
@@ -869,5 +652,3 @@ internal fun PatientFormDialog(
         )
     }
 }
-
-private enum class PatientFormMode { GENERAL, ADVANCED }

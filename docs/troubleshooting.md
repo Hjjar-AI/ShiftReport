@@ -9,6 +9,23 @@ compilation, test-suite work, migrations, destructive device actions or data res
 follow [AGENTS.md](../AGENTS.md). Keep clinical captures local and redacted.
 A clean Logcat is not proof that an operation succeeded.
 
+## Doctor registry needs attention
+
+- In «سجل الأطباء», «جلب سجل الأطباء» only retrieves the published registry;
+  «نشر سجل الأطباء» reviews and publishes the saved local registry. Ordinary edits
+  to doctors, teams, permissions and report destinations stay local until Publish.
+- «عرض التعديلات» identifies portable additions/deletions/changed fields. A local
+  PIN or unchanged save alone should not count as a publication change.
+- Confirmed patient publication/report sending can proceed with unrelated local
+  doctor edits or different registry fields. Doctor-account changes remain local.
+  If a roster member, patient assignment or pending-task owner is not published
+  with a valid clinical role, publish the registry or correct that assignment first.
+  The blocking message offers the registry page to an admin. Explicit Fetch
+  invalidates previews; review the report again afterward. Neither direction runs implicitly.
+- Confirming patient publication replaces the published shift with the complete
+  reviewed local copy under last-write-wins. Verify that copy and destination before
+  confirming; delivery uncertainty still requires checking Telegram before repeating.
+
 ## Reuse the workstation Gradle cache
 
 For the encountered failures, causes and final fixes, see

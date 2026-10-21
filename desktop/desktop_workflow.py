@@ -29,8 +29,12 @@ def workflow_status(client, store, demo=False):
     if downloaded.get('at'):
         stamp=datetime.fromtimestamp(downloaded['at']/1000,ZoneInfo(client.zone)).strftime('%Y-%m-%d %H:%M')
         if downloaded.get('snapshot')!=shift['meta'].get('snapshotId',''):stamp+=' (لنسخة سابقة)'
-    label='DEMO — بيانات في الذاكرة' if demo else ('لا توجد نسخة منشورة معروفة لهذه المناوبة' if remote is None else 'تعديلات غير منشورة لهذه المناوبة' if dirty else 'مطابق لآخر نسخة منشورة معروفة لهذا الجهاز')
-    text='مناوبة {} · {}\nآخر تنزيل: {} · عمليات غير محسومة: {}'.format(shift['meta']['shiftDate'],label,stamp,len(unknown))
+    label='DEMO — بيانات في الذاكرة' if demo else ('محفوظ على الجهاز · حالة النشر غير معروفة' if remote is None else 'تعديلات لم تُنشر' if dirty else 'مطابق لآخر نسخة معروفة على هذا الجهاز')
+    entry=next((item for item in baseline.get('state',{}).get('publicationJournal',[])
+                if remote and item.get('snapshotId')==remote['meta'].get('snapshotId')),None)
+    published=datetime.fromtimestamp(entry['at']/1000,ZoneInfo(client.zone)).strftime('%Y-%m-%d %H:%M') if entry and entry.get('at') else 'غير معروف'
+    text='مناوبة {} · {}\nآخر نشر معروف: {} · آخر جلب: {}'.format(shift['meta']['shiftDate'],label,published,stamp)
+    if unknown:text+=' · {} عمليات غير محسومة'.format(len(unknown))
     return text, WorkflowAction.DEMO if demo else WorkflowAction.DELIVERY_HISTORY if unknown else WorkflowAction.REVIEW_PUBLICATION if dirty and shift['meta']['shiftDate']==current_date(client.zone) else WorkflowAction.DOWNLOAD
 
 

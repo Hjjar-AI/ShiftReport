@@ -26,13 +26,13 @@ def readiness_notes(patients):
     return ('ملاحظات اكتمال غير مانعة:\n' + '\n'.join(warnings)) if warnings else 'لا توجد ملاحظات اكتمال للحقول الأساسية.'
 
 
-def options_dialog(owner, export_only=False, assignments=False, force_pdf=False, settings_only=False):
+def options_dialog(owner, export_only=False, assignments=False, force_pdf=False, settings_only=False, review_send=False):
     import desktop_widgets as ctk
     from desktop_forms import button, combo, modal, guarded, dialog_actions
     from desktop_pdf_content import normalize_options
     if settings_only:export_only=True
     previous = normalize_options(dict(DEFAULTS, **owner.io(owner.store.report_preferences)))
-    window = modal(owner, 'إعدادات PDF' if settings_only else 'توزيع المرضى بالأسماء فقط' if assignments else 'خيارات التقرير', '740x680')
+    window = modal(owner, 'مراجعة التقرير وإرساله' if review_send else 'إعدادات PDF' if settings_only else 'توزيع المرضى بالأسماء فقط' if assignments else 'خيارات التقرير', '740x680')
     actions = ctk.CTkFrame(window); actions.pack(side='bottom', fill='x')
     area = ctk.CTkScrollableFrame(window); area.pack(fill='both', expand=True)
     if not assignments and not settings_only:
@@ -46,9 +46,10 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
             shift = owner.store.read()
             require(owner.client.project_id == project and shift['meta']['shiftId'] == shift_id,
                     'تغير المشروع أو المناوبة؛ أعد فتح خيارات التقرير')
-            names = ' / '.join(doctor_label(owner.client.doctors, key)
-                               for key in shift['meta'].get('doctors', '').split(',') if key)
-            roster.configure(text='أطباء المناوبة: ' + (names or 'لم تحدد بعد') + '\n' + readiness_notes(shift['patients']))
+            names=[doctor_label(owner.client.doctors,key) for key in shift['meta'].get('doctors','').split(',') if key]
+            shown=names[:2]
+            summary=' / '.join(shown)+(' · +'+str(len(names)-2) if len(names)>2 else '')
+            roster.configure(text='أطباء المناوبة: '+(summary or 'لم تحدد بعد'))
             return shift
         def choose_roster():
             update_roster()
@@ -56,25 +57,41 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
             if window.winfo_exists():
                 window.grab_set()
                 update_roster()
-        button(area, 'اختيار أطباء المناوبة', guarded(choose_roster),
+        button(area, 'اختيار أو تعديل أطباء المناوبة', guarded(choose_roster),
                state='normal' if source['meta']['shiftDate'] == current_date(owner.client.zone) else 'disabled')
         update_roster()
     scope_get=None
+    batch_targets={}
     if not assignments and not settings_only and not force_pdf:
         scopes={None:'التقرير العام'}
         scopes.update({key:doctor_label(owner.client.doctors,key) for key in owner.destinations[1:]})
         scope_get=combo(area,'نطاق التقرير والوجهة',scopes,owner.selected_supervisor(),
                         on_change=lambda:refresh_options())
+    if review_send and force_pdf:
+        import tkinter as tk
+        from desktop_model import doctor_label
+        counts={}
+        for row in owner.store.read()['patients']:
+            key=row.get('responsibleSupervisorId')
+            if key:counts[key]=counts.get(key,0)+1
+        ctk.CTkLabel(area,text='مجموعات المشرفين — PDF مستقل لكل مجموعة',anchor='e').pack(fill='x',padx=10)
+        for key,count in counts.items():
+            doctor=owner.client.doctors.get(key,{})
+            available=doctor.get('clinicalRole')=='SUPERVISOR' and bool(doctor.get('destination'))
+            variable=tk.BooleanVar(value=available)
+            ctk.CTkCheckBox(area,text=doctor_label(owner.client.doctors,key)+' — '+str(count)+' مريض'+('' if available else ' · لا توجد وجهة'),
+                variable=variable,state='normal' if available else 'disabled',height=48).pack(fill='x',padx=10,pady=3)
+            if available:batch_targets[key]=variable
     from desktop_layout import Disclosure
     formats = {'pdf':'PDF', 'text':'نص'}
     format_get = (lambda:'pdf') if assignments or force_pdf or settings_only or getattr(owner,'demo',False) else combo(
         area, 'صيغة التقرير', formats, previous['format'], on_change=lambda:refresh_options())
     pdf_area=ctk.CTkFrame(area)
-    layout = (lambda:previous['layout']) if assignments else combo(pdf_area, 'نمط PDF',
+    advanced=Disclosure(pdf_area,'تخصيص PDF (اختياري)',expanded=settings_only)
+    advanced.pack(fill='x',padx=8,pady=4)
+    layout = (lambda:previous['layout']) if assignments else combo(advanced.content, 'نمط PDF',
         {'table':'جدول كلاسيكي', 'cards':'بطاقات ملونة مع فهرس', 'paragraphs':'فقرات'},
         previous['layout'], on_change=lambda:refresh_options())
-    advanced=Disclosure(pdf_area,'تخصيص التقرير · الورق والمظهر')
-    advanced.pack(fill='x',padx=8,pady=4)
     page_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
     page_area.pack(fill='x')
     paper = (lambda:'A4') if assignments else combo(page_area, 'حجم الورق', {key:key for key in ('A4','A5','A3','Letter')}, previous['paper'])
@@ -112,19 +129,31 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
         description.configure(text=text+('\nتُحفظ الخيارات لهذا المشروع وتُستخدم افتراضياً في التقارير.' if settings_only else '' if export_only else '\nإرسال التقرير يتطلب معاينة وموافقة صريحة.'))
     refresh_options()
     result = []
-    def submit():
-        if not assignments and not settings_only: update_roster()
-        options = dict(format=format_get(), layout=layout(), paper=paper(), orientation=orientation(),
-                       separate=separate(), ward=previous['ward'], **appearance())
+    def read_options():
+        return dict(format=format_get(), layout=layout(), paper=paper(), orientation=orientation(),
+                    separate=separate(), ward=previous['ward'], **appearance())
+    def save_options(options):
         preferences = dict(previous, **appearance()) if assignments else dict(options)
         if force_pdf or settings_only:preferences['format']=previous['format']
         owner.io(lambda:owner.store.save_report_preferences(preferences))
+        if scope_get is not None and window.winfo_exists():owner.supervisor.set(scopes[scope_get()])
+    def submit():
+        if not assignments and not settings_only:update_roster()
+        options=read_options();save_options(options)
         if not window.winfo_exists():return
-        if scope_get is not None:owner.supervisor.set(scopes[scope_get()])
         result.append(options)
         window.destroy()
-    dialog_actions(actions,primary=('حفظ الإعدادات' if settings_only else 'متابعة إلى الحفظ' if export_only else 'متابعة إلى المعاينة',guarded(submit)),
-                   cancel=('إلغاء',window.destroy))
+    if review_send:
+        from desktop_report_review import install_send_review
+        def targets():
+            return [key for key,variable in batch_targets.items() if variable.get()] if force_pdf else [scope_get()]
+        def reviewed_options():
+            update_roster()
+            return read_options()
+        install_send_review(owner,window,area,actions,reviewed_options,targets,save_options,result)
+    else:
+        dialog_actions(actions,primary=('حفظ الإعدادات' if settings_only else 'متابعة إلى الحفظ' if export_only else 'متابعة إلى المعاينة',guarded(submit)),
+                       cancel=('إلغاء',window.destroy))
     owner.root.wait_window(window)
     return result[0] if result else None
 
@@ -221,7 +250,7 @@ def publication_review(plan, zone):
     lines=['ستستبدل هذه النسخة الكاملة بيانات المناوبة المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.',
            readiness_notes(plan.shift['patients'])]
     if plan.force_required:
-        lines.insert(0,'معرّف مناوبة اليوم المنشورة مختلف أو أزيلت نسخة الأساس. لن تُنزّل بيانات فوق تعديلاتك؛ اختر نشر نسختي المحلية للاستبدال الصريح.')
+        lines.insert(0,'معرّف مناوبة اليوم المنشورة مختلف أو أزيلت نسخة الأساس. تأكيد هذه المراجعة يستبدلها بالنسخة المحلية المعروضة.')
     for key in dict.fromkeys(list(old)+list(new)):
         if old.get(key)==new.get(key):continue
         lines+=['\nالمريض: '+new.get(key,old.get(key,{})).get('name',''),
@@ -246,8 +275,14 @@ class ReportAttempt:
         if self.delivery=='IN_PROGRESS':self.delivery='UNCERTAIN'
 
     def summary(self):
-        labels={'NOT_STARTED':'لم يبدأ','IN_PROGRESS':'جارٍ','CONFIRMED':'مؤكد','UNCERTAIN':'غير مؤكد'}
-        return 'آخر محاولة إرسال — نشر البيانات: '+labels[self.publication]+'؛ تسليم التقرير: '+labels[self.delivery]
+        publication={'NOT_STARTED':'لم يبدأ النشر','IN_PROGRESS':'جار النشر',
+                     'CONFIRMED':'تم نشر النسخة المحلية','UNCERTAIN':'لم يتأكد النشر'}
+        delivery={'NOT_STARTED':'لم يتأكد التسليم في هذه المحاولة','IN_PROGRESS':'جار الإرسال',
+                  'CONFIRMED':'تم تأكيد التسليم','UNCERTAIN':'لم يتأكد التسليم؛ افحص تليجرام قبل الإعادة'}
+        text='بيانات المرضى: '+publication[self.publication]+'\nتقرير المناوبة: '+delivery[self.delivery]
+        if self.publication=='CONFIRMED' and self.delivery=='NOT_STARTED':
+            text+='\nبيانات المرضى منشورة بالفعل؛ عدم تسليم التقرير لا يلغي نشرها.'
+        return text
 
     def next_action(self):
         if self.delivery=='UNCERTAIN':return 'افحص تليجرام وسجل التسليم قبل إعادة الإرسال.'

@@ -16,6 +16,7 @@ data class WardSynchronization(
     val pending: Boolean = false,
     val selectedSnapshot: KnownShiftState = KnownShiftState.UNKNOWN,
     val lastSynchronizedAt: Long? = null,
+    val publishedAt: Long? = null,
     val downloadedAt: Long? = null,
     val downloadedMessage: Long? = null,
     val unresolvedDeliveries: Int = 0,
@@ -35,13 +36,14 @@ data class WardSynchronization(
     }
 
     fun description(syncing: Boolean, currentMessage: Long?): String = buildString {
-        append("حالة المناوبة: ${status(syncing).arabicLabel}")
-        append(if (pending) "\nالجهاز: توجد تعديلات غير منشورة" else "\nالجهاز: لا توجد تعديلات معلّقة")
-        lastSynchronizedAt?.let { append(" · آخر تزامن للجهاز: ${formatTime(it)}") }
-        append("\nآخر تنزيل للمناوبة: ")
+        append(status(syncing).arabicLabel)
+        if (selectedSnapshot == KnownShiftState.UNKNOWN) append(" · حالة النشر غير معروفة")
+        append("\nآخر نشر على هذا الجهاز: ")
+        append(publishedAt?.let(::formatTime) ?: "غير معروف")
+        append(" · آخر جلب: ")
         append(downloadedAt?.let {
-            formatTime(it) + if (downloadedMessage != null && downloadedMessage == currentMessage) "" else " (لنسخة سابقة)"
-        } ?: "غير معروف على هذا الجهاز")
+            formatTime(it) + if (downloadedMessage != null && downloadedMessage == currentMessage) "" else " (نسخة سابقة)"
+        } ?: "غير معروف")
     }
 
     private fun formatTime(value: Long): String = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")

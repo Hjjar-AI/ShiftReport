@@ -79,6 +79,9 @@ fun DoctorsScreen(
     val snackbar = remember { SnackbarHostState() }
 
     var showAdd by remember { mutableStateOf(false) }
+    var registryAction by remember { mutableStateOf<String?>(null) }
+    var registryReview by remember { mutableStateOf<List<Doctor>>(emptyList()) }
+    var pendingDetails by rememberSaveable { mutableStateOf(false) }
     var showTeams by remember { mutableStateOf(false) }
     var transferExpanded by rememberSaveable { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Doctor?>(null) }
@@ -133,14 +136,7 @@ fun DoctorsScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = "سجل الأطباء", onBack = onBack, actions = {
-                    IconButton(
-                        onClick = viewModel::refresh,
-                        enabled = !busy
-                    ) {
-                        Icon(Icons.Default.Sync, contentDescription = "مزامنة سجل الأطباء")
-                    }
-                })
+            AppTopBar(title = "سجل الأطباء", onBack = onBack)
         },
         floatingActionButton = {
             if (!busy) ExtendedFloatingActionButton(
@@ -172,6 +168,19 @@ fun DoctorsScreen(
                             state.exporting -> "جار تصدير سجل الأطباء…"
                             else -> "جار تحديث سجل الأطباء…"
                         })
+                    }
+                    item {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                            AppOutlinedButton(onClick = { registryAction = "fetch" },
+                                enabled = !busy && state.pendingRegistrySummary == null) { Text("جلب سجل الأطباء") }
+                            AppOutlinedButton(onClick = { registryReview = state.doctors.toList(); registryAction = "publish" }, enabled = !busy) { Text("نشر سجل الأطباء") }
+                        }
+                        state.pendingRegistrySummary?.let { summary ->
+                            com.hos.rushdpatients.ui.components.AppNotice("سجل الأطباء محفوظ محلياً وينتظر النشر.",
+                                actionLabel = if (pendingDetails) "طي التعديلات" else "عرض التعديلات",
+                                onAction = { pendingDetails = !pendingDetails })
+                            if (pendingDetails) Text(summary, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                     item {
                         AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy) { Text("إدارة الفرق معاً") }
@@ -209,7 +218,7 @@ fun DoctorsScreen(
                                 }
                                 if (transferExpanded) {
                                     Text(
-                                        "الاستيراد يقرأ ملفاً من الجهاز، والتصدير يحفظ نسخة قابلة لإعادة الاستخدام.",
+                                        "الاستيراد: اختيار ملف ← مراجعة التغييرات ← تأكيد الحفظ والنشر إلى المشروع. التصدير يحفظ ملفاً محلياً فقط.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -309,10 +318,28 @@ fun DoctorsScreen(
             confirmButton = { AppTextButton(onClick = viewModel::dismissImportError) { Text("فهمت") } })
     }
 
+    registryAction?.let { action ->
+        AlertDialog(onDismissRequest = { registryAction = null },
+            title = { Text(if (action == "publish") "نشر سجل الأطباء" else "جلب سجل الأطباء") },
+            text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                Text(if (action == "publish") "ستُنشر النسخة المحلية الكاملة لسجل الأطباء؛ آخر نشر ناجح هو المعتمد."
+                    else "ستُستبدل بيانات الأطباء على الجهاز بالسجل المنشور؛ تبقى أرقام PIN المحلية للهويات نفسها.")
+                if (action == "publish") {
+                    state.pendingRegistrySummary?.let { Text(it) }
+                    Text(registryReview.joinToString("\n") { it.fullName })
+                    if (registryReview != state.doctors) Text("تغيّر السجل أثناء المراجعة؛ أغلق هذه النافذة وأعد النشر.")
+                }
+            } }, confirmButton = { AppTextButton(enabled = !busy && (action != "publish" || registryReview == state.doctors), onClick = {
+                registryAction = null
+                if (action == "publish") viewModel.publishDoctors(registryReview) else viewModel.fetchDoctors()
+            }) { Text(if (action == "publish") "تأكيد النشر" else "جلب السجل") } },
+            dismissButton = { AppTextButton(onClick = { registryAction = null }) { Text("إلغاء") } })
+    }
     state.importPreview?.takeUnless { state.importing }?.let { preview ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDoctorImport,
-            title = { Text("مراجعة استيراد سجل الأطباء") },
+            title = { Text("مراجعة التغييرات قبل حفظ سجل الأطباء ونشره") },
             text = {
                 Column(modifier = Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
@@ -364,8 +391,8 @@ private fun DoctorCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(doctor.fullName, style = MaterialTheme.typography.bodyLarge)
                 val accessText = when {
-                    doctor.isPermanentAdmin -> "مدير دائم (رتبة ${doctor.rank})"
-                    doctor.isAdmin -> "مدير (رتبة ${doctor.rank})"
+                    doctor.isPermanentAdmin -> "مدير دائم"
+                    doctor.isAdmin -> "مدير"
                     else -> "عضو طبي"
                 }
                 Text(

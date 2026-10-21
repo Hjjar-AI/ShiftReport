@@ -13,12 +13,11 @@ import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
-import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
-import com.hos.rushdpatients.ui.components.AppCard
 import com.hos.rushdpatients.ui.components.AppSection
+import com.hos.rushdpatients.ui.components.AppFieldPair
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -28,6 +27,9 @@ import androidx.compose.material3.FilterChip
 import com.hos.rushdpatients.pdf.*
 import com.hos.rushdpatients.ui.components.AppPdfStylePicker
 import com.hos.rushdpatients.ui.components.AppPdfAppearanceControls
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Surface
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.CardDefaults
@@ -66,27 +69,31 @@ import com.hos.rushdpatients.domain.report.DeliveryResolution
 @Composable
 fun ReportPreviewScreen(
     onBack: () -> Unit,
+    onOpenDoctors: () -> Unit = {},
     viewModel: ReportPreviewViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     var supervisorMenuOpen by remember { mutableStateOf(false) }
+    var supervisorMode by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var supervisorSelectionInitialized by remember { mutableStateOf(false) }
+    var showRosterDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var showTextPreview by remember { mutableStateOf(false) }
+    var reviewedText by remember { mutableStateOf<String?>(null) }
     var selectedSupervisorIds by remember { mutableStateOf(emptySet<String>()) }
     var showShiftDoctors by remember { mutableStateOf(false) }
     var showDeliveryLog by remember { mutableStateOf(false) }
     var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
-    var showLocalExports by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var showTools by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var customizeReport by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var confirmSend by remember { mutableStateOf(false) }
     var pendingSupervisorTargets by remember { mutableStateOf<List<SupervisorReportTarget>?>(null) }
     val busy = state.loading || state.savingDoctors || state.sending || state.previewingPdf ||
         state.exportingLocalPdf || state.sharingPdf || state.savingPdfOptions
-    fun selectSupervisorGroups() {
-        selectedSupervisorIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
-        supervisorMenuOpen = true
-    }
+    val selectedTargets = state.supervisorTargets.filter { it.doctorId in selectedSupervisorIds && it.chatId != null }
+    val pdfSelected = supervisorMode || state.reportAsPdf
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
             snackbar.showSnackbar(it)
@@ -146,6 +153,34 @@ fun ReportPreviewScreen(
         topBar = {
             AppTopBar(title = "معاينة التقرير", onBack = onBack)
         },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = UiSpacing.tiny) {
+                Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(UiSpacing.small),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                    Text(if (supervisorMode) "${uiNumber(selectedTargets.size)} مجموعات مشرفين · PDF"
+                        else "التقرير العام · ${if (state.reportAsPdf) "PDF" else "نصي"}",
+                        style = MaterialTheme.typography.labelSmall)
+                    if (!pdfSelected && reviewedText != state.previewMarkdown) Text("عاين النص قبل الإرسال", style = MaterialTheme.typography.labelSmall)
+                    AppFieldPair(first = { buttonModifier ->
+                        LoadingButton(text = "معاينة", outlined = true, loading = state.previewingPdf,
+                            modifier = buttonModifier, enabled = !busy && state.summary != null && (!supervisorMode || selectedTargets.isNotEmpty()),
+                            onClick = {
+                                if (supervisorMode) supervisorMenuOpen = true
+                                else if (state.reportAsPdf) viewModel.previewPdf()
+                                else { reviewedText = state.previewMarkdown; showTextPreview = true }
+                            })
+                    }, second = { buttonModifier ->
+                        LoadingButton(text = UiAction.SEND_REPORT.label, loading = state.sending,
+                            modifier = buttonModifier, enabled = !busy && state.summary != null && !state.isReadOnly && (!supervisorMode || selectedTargets.isNotEmpty()) &&
+                                (pdfSelected || reviewedText == state.previewMarkdown),
+                            onClick = {
+                                if (supervisorMode) pendingSupervisorTargets = selectedTargets.toList()
+                                else confirmSend = true
+                            })
+                    })
+                }
+            }
+        },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         if (state.loading) {
@@ -169,14 +204,48 @@ fun ReportPreviewScreen(
                 AppSection(title = "أطباء المناوبة", colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ), titleColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-                    state.doctors.forEach { Text("• ${it.fullName}") }
                     if (state.doctors.isEmpty()) Text("اختر أطباء المناوبة من الزر أدناه")
+                    else {
+                        Text(state.doctors.take(2).joinToString("، ") { it.fullName } +
+                            if (state.doctors.size > 2) " · +${uiNumber(state.doctors.size - 2)}" else "")
+                        if (state.doctors.size > 2) AppTextButton(onClick = { showRosterDetails = !showRosterDetails }) {
+                            Text(if (showRosterDetails) "طي الأسماء" else "جميع الأسماء (${uiNumber(state.doctors.size)})")
+                        }
+                        if (showRosterDetails) state.doctors.forEach { Text("• ${it.fullName}") }
+                    }
                     if (!state.isReadOnly) AppOutlinedButton(
                         onClick = { confirmSend = false; showShiftDoctors = true },
                         enabled = !state.savingPdfOptions && state.shift != null && !state.savingDoctors && !state.sending &&
                             !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf,
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(if (state.doctors.isEmpty()) "اختيار أطباء المناوبة" else "تعديل أطباء المناوبة") }
+                }
+                AppSection(title = "وجهة التقرير وصيغته") {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                        FilterChip(selected = !supervisorMode, enabled = !busy, onClick = { supervisorMode = false },
+                            label = { Text("التقرير العام") })
+                        FilterChip(selected = supervisorMode, enabled = !busy, onClick = {
+                            if (!supervisorSelectionInitialized) {
+                                supervisorSelectionInitialized = true
+                                selectedSupervisorIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
+                            }
+                            supervisorMode = true
+                        }, label = { Text("مجموعات المشرفين") })
+                    }
+                    if (supervisorMode) {
+                        Text("ملف PDF مستقل لكل مجموعة مختارة. عاين كل ملف قبل الإرسال.", style = MaterialTheme.typography.bodySmall)
+                        if (state.supervisorTargets.isEmpty()) EmptyState("لا يوجد مشرفون مرتبطون بمرضى هذه المناوبة")
+                        state.supervisorTargets.forEach { target ->
+                            AppCheckRow(label = "${target.doctorName} · ${uiNumber(target.patientCount)} مريض" +
+                                if (target.chatId == null) " · لا توجد مجموعة" else "",
+                                checked = target.doctorId in selectedSupervisorIds, enabled = !busy && target.chatId != null,
+                                onCheckedChange = { checked -> selectedSupervisorIds = if (checked) selectedSupervisorIds + target.doctorId else selectedSupervisorIds - target.doctorId })
+                        }
+                    } else {
+                        Text("جميع مرضى المناوبة · مجموعة المشروع", style = MaterialTheme.typography.bodySmall)
+                        AppToggleRow(title = "إرسال كملف PDF", checked = state.reportAsPdf,
+                            onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
+                    }
                 }
                 state.summary?.let { summary ->
                     AppSection(title = "ملخص التقرير") {
@@ -186,17 +255,46 @@ fun ReportPreviewScreen(
                 }
 
                 state.publicationOutcome?.let { publication ->
-                    Text("آخر محاولة إرسال — نشر البيانات: ${publication.arabicLabel}؛ تسليم التقرير: ${state.deliveryOutcome?.arabicLabel.orEmpty()}",
-                        style = MaterialTheme.typography.bodySmall)
+                    ReportAttemptStatus(publication, state.deliveryOutcome ?: ReportStepOutcome.NOT_STARTED,
+                        busy = busy, onHistory = { showDeliveryLog = true }, onBack = onBack)
                 }
-                if (state.deliveryRecords.any { it.status == "UNKNOWN" }) {
-                    AppNotice("يوجد تسليم غير مؤكد محفوظ على هذا الجهاز؛ احسمه من السجل قبل الإعادة إلى الوجهة نفسها.", kind = NoticeKind.WARNING)
+                if (state.deliveryRecords.any { it.status == "UNKNOWN" } &&
+                    state.deliveryOutcome != ReportStepOutcome.UNCERTAIN && state.deliveryOutcome != ReportStepOutcome.PARTIAL &&
+                    state.publicationOutcome != ReportStepOutcome.UNCERTAIN) {
+                    AppNotice("يوجد تسليم غير مؤكد محفوظ على هذا الجهاز؛ احسمه من السجل قبل الإعادة إلى الوجهة نفسها.",
+                        kind = NoticeKind.WARNING, actionLabel = "مراجعة سجل التسليم",
+                        onAction = { showDeliveryLog = true }, actionEnabled = !busy)
                 }
                 state.error?.let { err ->
-                    AppNotice(err, kind = NoticeKind.ERROR,
-                        actionLabel = if (state.retryAction == null) null else "إعادة المحاولة",
-                        onAction = if (state.retryAction == null) null else viewModel::retryLastAction,
-                        actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
+                    AppSection(title = "سبب التعذر والخطوة التالية") {
+                        AppNotice(err, kind = NoticeKind.ERROR,
+                            actionLabel = when (state.retryAction) {
+                                ReportRetryAction.PREVIEW -> "معاينة PDF مجدداً"
+                                ReportRetryAction.SEND -> "مراجعة الإرسال مجدداً"
+                                ReportRetryAction.SAVE -> "إعادة حفظ PDF محلياً"
+                                ReportRetryAction.SHARE -> "إعادة مشاركة PDF"
+                                ReportRetryAction.ASSIGNMENTS -> "إعادة تصدير توزيع المرضى"
+                                null -> null
+                            },
+                            onAction = if (state.retryAction == null) null else ({
+                                if (state.retryAction == ReportRetryAction.SEND) {
+                                    if (supervisorMode) pendingSupervisorTargets = selectedTargets.toList()
+                                    else confirmSend = true
+                                } else viewModel.retryLastAction()
+                            }),
+                            actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
+                        when (state.doctorRegistryAction) {
+                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.FETCH ->
+                                AppOutlinedButton(onClick = viewModel::fetchDoctorsForReport, enabled = !busy,
+                                    modifier = Modifier.fillMaxWidth()) { Text("جلب سجل الأطباء ثم إعادة المراجعة") }
+                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH -> {
+                                if (state.isAdmin) AppOutlinedButton(onClick = onOpenDoctors,
+                                    enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("فتح سجل الأطباء لنشر التعديلات") }
+                                else AppNotice("اطلب من مدير المشروع مراجعة تعديلات سجل الأطباء ونشرها أولاً.")
+                            }
+                            null -> Unit
+                        }
+                    }
                 }
                 state.lastOperation?.let { AppNotice(it) }
                 if (state.isReadOnly) {
@@ -240,23 +338,14 @@ fun ReportPreviewScreen(
                 }
 
 
-                AppSection(title = "النطاق والوجهة والصيغة") {
-                    Text("التقرير العام · جميع مرضى المناوبة", style = MaterialTheme.typography.titleSmall)
-                    Text("الوجهة: موضوع التقارير العام", style = MaterialTheme.typography.bodySmall)
-                    AppToggleRow(title = "إرسال كملف PDF", checked = state.reportAsPdf,
-                        onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
-                    if (state.reportAsPdf) AppPdfStylePicker(
-                        selected = state.pdfStyle,
-                        onSelected = { viewModel.setPdfAppearance(it, state.pdfOptions) },
-                        enabled = !busy
-                    )
-                }
-                if (state.reportAsPdf) {
+                if (pdfSelected) {
                     AppTextButton(onClick = { customizeReport = !customizeReport }, enabled = !busy,
                         modifier = Modifier.fillMaxWidth()) {
-                        Text(if (customizeReport) "إخفاء خيارات PDF المتقدمة" else "خيارات PDF المتقدمة")
+                        Text(if (customizeReport) "إغلاق تخصيص PDF" else "تخصيص PDF (اختياري)")
                     }
-                    if (customizeReport) AppSection(title = "خيارات PDF المتقدمة") {
+                    if (customizeReport) AppSection(title = "تخصيص PDF") {
+                        AppPdfStylePicker(selected = state.pdfStyle,
+                            onSelected = { viewModel.setPdfAppearance(it, state.pdfOptions) }, enabled = !busy)
                         val options = state.pdfOptions
                         fun update(value: PdfExportOptions) = viewModel.setPdfAppearance(state.pdfStyle, value)
                         if (state.pdfStyle != PdfStyle.CARDS) {
@@ -288,43 +377,13 @@ fun ReportPreviewScreen(
                     }
                 }
 
-                AppSection(title = "معاينة التقرير العام وإرساله") {
-                    if (!state.reportAsPdf) {
-                        AppCard(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = state.previewMarkdown,
-                                modifier = Modifier.padding(UiPadding.content),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    } else {
-                        LoadingButton(
-                            text = "معاينة ملف PDF",
-                            outlined = true,
-                            loading = state.previewingPdf,
-                            onClick = viewModel::previewPdf,
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !state.savingPdfOptions && state.summary != null && !state.savingDoctors && !state.sending && !state.exportingLocalPdf && !state.sharingPdf
-                        )
-                    }
-                    LoadingButton(text = if (state.sending) "جارٍ إرسال التقرير…" else UiAction.SEND_REPORT.label,
-                        loading = state.sending, onClick = { confirmSend = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy && state.summary != null && !state.isReadOnly)
-                }
-                AppSection(title = "تقارير مجموعات المشرفين") {
-                    Text("تقارير المشرفين: ملف PDF مستقل لكل مجموعة مختارة، مع معاينة وتأكيد قبل الإرسال.",
-                        style = MaterialTheme.typography.bodySmall)
-                    AppOutlinedButton(onClick = ::selectSupervisorGroups, modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy && state.summary != null && !state.isReadOnly) {
-                        Text("اختيار مجموعات المشرفين (PDF)")
-                    }
-                }
-                AppTextButton(onClick = { showLocalExports = !showLocalExports }, enabled = !busy,
+                Text("استخدم «معاينة» أسفل الشاشة، ثم «إرسال تقرير» لمراجعة التأكيد النهائي.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                AppTextButton(onClick = { showTools = !showTools }, enabled = !busy,
                     modifier = Modifier.fillMaxWidth()) {
-                    Text(if (showLocalExports) "طي الحفظ والمشاركة المحلية" else "الحفظ والمشاركة المحلية")
+                    Text(if (showTools) "إغلاق أدوات الحفظ والسجل" else "الحفظ وسجل التسليم")
                 }
-                if (showLocalExports) AppSection(title = "ملفات محلية") {
+                if (showTools) AppSection(title = "ملفات محلية") {
                     Text("الحفظ والمشاركة لا ينشران بيانات المرضى أو يرسلان التقرير إلى المشروع.",
                         style = MaterialTheme.typography.bodySmall)
                     if (state.reportAsPdf) {
@@ -342,35 +401,29 @@ fun ReportPreviewScreen(
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
-                    modifier = Modifier.fillMaxWidth()) { Text("سجل التسليم وحسم النتائج غير المؤكدة") }
+                if (showTools) AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
+                    modifier = Modifier.fillMaxWidth()) { Text("سجل التسليم — التحقق من محاولة سابقة") }
 
             }
         }
     }
 
+    if (showTextPreview) {
+        AlertDialog(onDismissRequest = { showTextPreview = false }, title = { Text("معاينة التقرير العام") },
+            text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(state.previewMarkdown) } },
+            confirmButton = { AppTextButton(onClick = { showTextPreview = false }) { Text("إغلاق") } })
+    }
     if (supervisorMenuOpen) {
-        AlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text("مجموعات المشرفين") }, text = {
+        AlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text("معاينة ملفات المشرفين") }, text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) {
-                if (state.supervisorTargets.isEmpty()) EmptyState("لا يوجد مشرفون مرتبطون بمرضى هذه المناوبة")
-                Text("عاين PDF لكل وجهة مختارة قبل تأكيد النشر والإرسال. سيُرسل الملف نفسه.")
-                state.supervisorTargets.forEach { target ->
-                    AppCheckRow(label = "${target.doctorName} (${uiNumber(target.patientCount)} مريض)" +
-                        if (target.chatId == null) " — لا توجد مجموعة" else "", checked = target.doctorId in selectedSupervisorIds,
-                        enabled = !busy && target.chatId != null, onCheckedChange = { checked ->
-                            selectedSupervisorIds = if (checked) selectedSupervisorIds + target.doctorId else selectedSupervisorIds - target.doctorId
-                        })
-                    AppTextButton(onClick = { viewModel.previewSupervisorPdf(target.doctorId) }, enabled = !busy && target.chatId != null) {
+                Text("افتح ملف كل مجموعة مختارة وافحصه. سيُرسل الملف نفسه بعد التأكيد.")
+                selectedTargets.forEach { target ->
+                    AppTextButton(onClick = { viewModel.previewSupervisorPdf(target.doctorId) }, enabled = !busy) {
                         Text("معاينة PDF — ${target.doctorName}")
                     }
                 }
             }
-        }, confirmButton = {
-            AppButton(enabled = !busy && selectedSupervisorIds.isNotEmpty(), onClick = {
-                pendingSupervisorTargets = state.supervisorTargets.filter { it.doctorId in selectedSupervisorIds && it.chatId != null }
-                supervisorMenuOpen = false
-            }) { Text("مراجعة الإرسال") }
-        }, dismissButton = { AppTextButton(onClick = { supervisorMenuOpen = false }) { Text("إلغاء") } })
+        }, confirmButton = { AppTextButton(onClick = { supervisorMenuOpen = false }) { Text("العودة للتقرير") } })
     }
     if (showDeliveryLog) {
         AlertDialog(onDismissRequest = { showDeliveryLog = false }, title = { Text("سجل تسليم هذه المناوبة — هذا الجهاز") }, text = {

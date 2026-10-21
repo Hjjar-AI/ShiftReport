@@ -15,7 +15,7 @@ def local_signature(store):
 class EmptyStart:
     def __init__(self, client, store):
         self.client, self.store = client, store
-        self.source = client.fetch()
+        self.source = client.fetch_registry()
         actor = client.authorize(self.source['doctors'])
         require(permanent(actor), 'البداية الفارغة متاحة للمدير الدائم فقط')
         require(not store.locked, 'الجلسة مقفلة')
@@ -37,7 +37,7 @@ class EmptyStart:
 
     def publish(self):
         require(not self.used, 'أعد مراجعة البداية الفارغة قبل محاولة جديدة')
-        self.authorize(self.client.fetch())
+        self.authorize(self.client.fetch_registry())
         require(self.shift['meta']['shiftDate'] == current_date(self.client.zone), 'تغيرت المناوبة؛ أعد المراجعة')
         raw = encode_bundle([self.shift])
         self.used = True
@@ -47,7 +47,7 @@ class EmptyStart:
             self.client.config.get('csvTopicId'), self.actor_id, snapshot=self.shift['meta']['snapshotId'])
         uploaded = self.client.telegram.upload(raw, 'ShiftReport_empty.csv',
             self.client.config.get('csvTopicId'), 'بداية فارغة — '+self.shift['meta']['shiftDate'])
-        current = self.client.fetch()
+        current = self.client.fetch_registry()
         self.authorize(current)
         index_id, state = current['index_id'], copy.deepcopy(current['state'])
         at = int(uploaded['date'])*1000
@@ -76,12 +76,13 @@ def empty_start_dialog(owner):
     require(not owner.demo, 'البداية الفارغة غير متاحة في العرض التجريبي')
     plan = owner.io(lambda:EmptyStart(owner.client,owner.store))
     local = owner.store.state.get('draft') or {}
-    text = ('ستُنشر بداية فارغة للمشروع وتُمسح المرضى والمناوبات المخزنة على هذا الجهاز، بما فيها السلة ومسودة الإدخال.\n'
+    text = ('سيُمسح: المرضى والمناوبات المخزنة على هذا الجهاز، بما فيها السلة ومسودة الإدخال. وستُنشر بداية مرضى فارغة للفريق.\n'
             'مرضى المناوبة المعروضة: {}\n'
-            'تبقى حسابات الأطباء وإعدادات الاتصال والتشفير وسجل التسليم. لا تُحذف رسائل أو ملفات تليجرام.\n'
+            'يشمل المسح تعديلات المرضى غير المنشورة؛ لا يلزم نشرها أو جلب بيانات المرضى أولاً.\n'
+            'سيبقى: سجل الأطباء والحسابات وإعدادات المشروع والاتصال والتشفير وسجل التسليم. لا تُحذف رسائل أو ملفات تليجرام.\n'
             'على الأجهزة الأخرى جلب البداية الجديدة قبل العمل؛ نشر نسخة قديمة قد يعيد المرضى. لا يُرسل تقرير.\n'
             'احفظ نسخة احتياطية أولاً إذا أردت الاحتفاظ بها خارج سجل تليجرام.').format(len(local.get('patients',[])))
-    if not owner.text_dialog('بداية فارغة — المدير الدائم فقط',text,True,'أؤكد مسح المرضى ونشر بداية فارغة'):return
+    if not owner.text_dialog('مسح المرضى والمناوبات؟',text,True,'مسح المرضى والمناوبات'):return
     owner.io(plan.publish)
     owner.plan=None;owner.raw_draft=None
     from desktop_cards import PatientCards

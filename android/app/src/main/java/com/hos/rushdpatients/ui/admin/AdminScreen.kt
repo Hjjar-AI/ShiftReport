@@ -37,7 +37,6 @@ import kotlinx.coroutines.launch
 fun AdminScreen(
     onBack: () -> Unit,
     onOpenDoctors: () -> Unit,
-    onOpenAnnouncement: () -> Unit,
     viewModel: AdminViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -53,7 +52,7 @@ fun AdminScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = "لوحة المدير", onBack = onBack)
+            AppTopBar(title = "الأطباء والفرق والصلاحيات", onBack = onBack)
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
@@ -94,13 +93,6 @@ fun AdminScreen(
                 actionLabel = "فتح سجل الأطباء",
                 onClick = onOpenDoctors,
                 primary = true
-            )
-
-            AdminActionCard(
-                title = "إعلان المجموعة",
-                description = "تعديل الرسالة المثبتة التي يراها أعضاء الفريق.",
-                actionLabel = "إدارة الإعلان",
-                onClick = onOpenAnnouncement
             )
 
             AppSection(title = "صلاحيات المديرين") {

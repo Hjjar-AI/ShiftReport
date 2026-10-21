@@ -65,10 +65,7 @@ class AdminViewModel @Inject constructor(
                     actorDoctorId = actor.id
                 )) {
                     is PromoteResult.Success -> {
-                        onDone(uploadRegistry().fold(
-                            onSuccess = { "تم ترقية ${result.doctor.fullName}" },
-                            onFailure = { "تمت الترقية محلياً وتعذرت مزامنة تليجرام" }
-                        ))
+                        onDone("تمت ترقية ${result.doctor.fullName} محلياً؛ افتح سجل الأطباء وراجع نشر الصلاحيات")
                     }
                     is PromoteResult.Failure -> onDone(result.reason)
                 }
@@ -93,10 +90,7 @@ class AdminViewModel @Inject constructor(
                     actorDoctorId = actor.id
                 )) {
                     is PromoteResult.Success -> {
-                        onDone(uploadRegistry().fold(
-                            onSuccess = { "تم إزالة ${result.doctor.fullName} من المديرين" },
-                            onFailure = { "تمت الإزالة محلياً وتعذرت مزامنة تليجرام" }
-                        ))
+                        onDone("أُزيلت صلاحية ${result.doctor.fullName} محلياً؛ افتح سجل الأطباء وراجع نشر الصلاحيات")
                     }
                     is PromoteResult.Failure -> onDone(result.reason)
                 }
@@ -106,7 +100,4 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    private suspend fun uploadRegistry(): Result<Unit> {
-        return syncService.uploadCurrentDoctors()
-    }
 }

@@ -40,7 +40,9 @@ fun WardNavHost(
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
-                onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) }
+                onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
+                onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) },
+                onOpenAnnouncement = { navController.navigate(Routes.ANNOUNCEMENT) }
             )
         }
 
@@ -48,15 +50,15 @@ fun WardNavHost(
             route = Routes.REPORT_PREVIEW,
             arguments = listOf(navArgument("shiftId") { type = NavType.StringType })
         ) {
-            ReportPreviewScreen(onBack = { navController.popBackStack() })
+            ReportPreviewScreen(onBack = { navController.popBackStack() },
+                onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) })
         }
 
         composable(Routes.ADMIN) {
             if (session.isAdmin) {
                 AdminScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenDoctors = { navController.navigate(Routes.DOCTORS) },
-                    onOpenAnnouncement = { navController.navigate(Routes.ANNOUNCEMENT) }
+                    onOpenDoctors = { navController.navigate(Routes.DOCTORS) }
                 )
             } else LaunchedEffect(Unit) { navController.popBackStack() }
         }
@@ -81,9 +83,8 @@ fun WardNavHost(
                 SettingsScreen(
                     isAdmin = session.isAdmin,
                     workspace = workspace,
-                    onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
-                    onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
-                    onOpenDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
+                    onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
+                    onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) },
                     onBack = { navController.popBackStack() },
                     onSignOut = {
                         onSignOut()
@@ -92,6 +93,17 @@ fun WardNavHost(
                     onOpenVbaImport = { navController.navigate(Routes.VBA_IMPORT) }
                 )
             }
+        }
+
+        composable(Routes.SETTINGS_DETAIL, arguments = listOf(navArgument("workspace") { type = NavType.StringType })) { entry ->
+            val workspace = SettingsWorkspace.entries.firstOrNull { it.name == entry.arguments?.getString("workspace") }
+                ?: SettingsWorkspace.PREFERENCES
+            SettingsScreen(isAdmin = session.isAdmin, workspace = workspace,
+                onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
+                onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) },
+                onBack = { navController.popBackStack() },
+                onSignOut = { onSignOut(); navController.popBackStack(Routes.WARD, inclusive = false) },
+                onOpenVbaImport = { navController.navigate(Routes.VBA_IMPORT) })
         }
 
         composable(Routes.VBA_IMPORT) {

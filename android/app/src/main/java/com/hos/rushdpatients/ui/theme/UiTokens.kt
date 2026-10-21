@@ -73,6 +73,7 @@ object UiLayout {
     val fieldPairMinWidth = 360.dp
     val patientGridMinWidth = 360.dp
     val patientCardColumnsMinWidth = 440.dp
+    val emptyWardMaxWidth = 520.dp
     val patientFormMaxWidth = 840.dp
     val navigationBarMaxWidth = 480.dp
     val navigationRailWidth = 80.dp

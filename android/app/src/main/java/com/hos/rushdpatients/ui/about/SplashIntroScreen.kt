@@ -36,7 +36,7 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
-/** MainActivity owns the fixed five-second deadline; holding only defers dismissal. */
+/** MainActivity owns the fixed three-second deadline; holding only defers dismissal. */
 @Composable
 internal fun SplashIntroScreen(
     onSkip: () -> Unit,
@@ -86,7 +86,7 @@ internal fun SplashIntroScreen(
             verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
             Surface(color = Color.White, shape = MaterialTheme.shapes.large) {
                 Image(painterResource(R.drawable.app_emblem_transparent), contentDescription = "شعار شعبة الطب النفسي",
-                    contentScale = ContentScale.Fit, modifier = Modifier.size(120.dp).padding(UiSpacing.screen))
+                    contentScale = ContentScale.Fit, modifier = Modifier.size(240.dp).padding(UiSpacing.screen))
             }
             Text("تقرير المناوبة", style = MaterialTheme.typography.headlineSmall, color = Color(0xFFF1F5FF),
                 textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
@@ -106,7 +106,7 @@ internal fun SplashIntroScreen(
 @Composable
 private fun SplashCreditCard(role: String, names: List<String>, order: Int, entered: Boolean) {
     val fraction by animateFloatAsState(targetValue = if (entered) 1f else 0f,
-        animationSpec = tween(durationMillis = 320, delayMillis = order * 110), label = "splashCreditEntry")
+        animationSpec = tween(durationMillis = 440, delayMillis = order * 160), label = "splashCreditEntry")
     val travel = with(LocalDensity.current) { 12.dp.toPx() }
     Surface(modifier = Modifier.fillMaxWidth().graphicsLayer {
         alpha = fraction

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.domain.doctor.DoctorRegistryAction
+import com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired
+
 import android.content.Context
 import androidx.room.withTransaction
 import com.hos.rushdpatients.config.AppConstants
@@ -8,6 +11,8 @@ import com.hos.rushdpatients.config.Topics
 import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.data.model.SyncChannel
 import com.hos.rushdpatients.data.model.Doctor
+import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
@@ -162,12 +167,6 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun uploadCurrentDoctorsInternal(): Result<Unit> = withContext(dispatchers.io) {
         try {
-            if (!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                val fetched = fetchAndApplyLatestDoctorsInternal()
-                if (fetched.isSuccess) return@withContext Result.success(Unit)
-                val error = fetched.exceptionOrNull()
-                if (!isMissingDoctorRegistry(error)) return@withContext Result.failure(requireNotNull(error))
-            }
             val doctors = doctorRepository.getAll()
             validateDoctorRegistry(doctors)
             uploadDoctorsInternal(registryData(doctors))
@@ -178,29 +177,12 @@ class DoctorSyncCoordinator @Inject constructor(
         }
     }
 
-    suspend fun synchronizeDoctors(): Result<Unit> = doctorSyncMutex.withLock {
-        withContext(dispatchers.io) {
-            if (settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                uploadCurrentDoctorsInternal()
-            } else {
-                val fetched = fetchAndApplyLatestDoctorsInternal()
-                if (isMissingDoctorRegistry(fetched.exceptionOrNull()) && doctorRepository.getAll().isNotEmpty()) {
-                    uploadCurrentDoctorsInternal()
-                } else fetched.map { Unit }
-            }
-        }
-    }
+    /** Compatibility entry point: fetching never publishes local registry changes. */
+    suspend fun synchronizeDoctors(): Result<Unit> = refreshDoctorsFromRemote()
 
-    /** Retrieve the full portable registry; publish pending local changes first. */
     suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSyncMutex.withLock {
-        val fetched = fetchAndApplyLatestDoctorsInternal()
-        if (isMissingDoctorRegistry(fetched.exceptionOrNull()) && doctorRepository.getAll().isNotEmpty()) {
-            uploadCurrentDoctorsInternal()
-        } else fetched.map { Unit }
+        fetchAndApplyLatestDoctorsInternal().map { Unit }
     }
-
-    private fun isMissingDoctorRegistry(error: Throwable?): Boolean =
-        error is IllegalStateException && error.message == "لا يوجد سجل أطباء بعد"
 
     suspend fun fetchLatestDoctors(): Result<String> = doctorSyncMutex.withLock {
         fetchLatestDoctorsInternal()
@@ -224,9 +206,7 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun fetchAndApplyLatestDoctorsInternal(): Result<Int> = withContext(dispatchers.io) {
         try {
-            require(!settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
-                "توجد تعديلات محلية في سجل الأطباء؛ انشر النسخة الكاملة قبل تنزيل سجل بديل"
-            }
+            doctorRepository.pendingSharedChangesSummary()?.let { throw DoctorRegistryActionRequired(DoctorRegistryAction.PUBLISH, it) }
             val local = doctorRepository.getAllIncludingDeleted()
             val state = remoteState.readState()
                 ?: return@withContext Result.failure(IllegalStateException("لا يوجد سجل أطباء بعد"))
@@ -238,7 +218,7 @@ class DoctorSyncCoordinator @Inject constructor(
             }
             database.withTransaction {
                 check(doctorRepository.getAllIncludingDeleted() == local &&
-                    !settingsRepository.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)) {
+                    !doctorRepository.hasPendingSharedChanges()) {
                     "تغيّر سجل الأطباء المحلي أثناء التنزيل؛ لم تُستبدل تعديلاتك"
                 }
                 // Replace all portable fields while preserving device-only PINs/identity aliases
@@ -256,6 +236,35 @@ class DoctorSyncCoordinator @Inject constructor(
             throw e
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    suspend fun requireRegistryMatchesPublished(state: SyncState) = withContext(dispatchers.io) {
+        val published = doctorRepository.normalizeRemoteRegistry(
+            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        validateDoctorRegistry(published)
+        if (registryData(doctorRepository.getAll()) != registryData(published)) {
+            throw DoctorRegistryActionRequired(DoctorRegistryAction.FETCH,
+                "سجل الأطباء المنشور مختلف عن النسخة على الجهاز. افتح سجل الأطباء واختر «جلب سجل الأطباء»، ثم راجع التقرير.")
+        }
+    }
+
+    /** Forced patient publication does not publish or require unrelated registry edits. */
+    suspend fun requirePublishedAssignments(state: SyncState, shift: Shift, patients: List<Patient>) = withContext(dispatchers.io) {
+        val registry = doctorRepository.normalizeRemoteRegistry(
+            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        validateDoctorRegistry(registry)
+        val published = registry.filterNot { it.isDeleted }.associateBy { it.id }
+        val invalidRoster = shift.doctorIds.any { it !in published }
+        val invalidPatient = patients.firstOrNull { patient ->
+            patient.responsibleResidentId?.let { published[it]?.clinicalRole?.canBeResident() != true } == true ||
+                patient.responsibleSpecialistId?.let { published[it]?.clinicalRole?.canBeSupervisor() != true } == true ||
+                patient.tasks.any { !it.done && it.ownerDoctorId != null && it.ownerDoctorId !in published }
+        }
+        if (invalidRoster || invalidPatient != null) {
+            val subject = invalidPatient?.let { "المريض ${it.name}" } ?: "أطباء المناوبة"
+            throw DoctorRegistryActionRequired(DoctorRegistryAction.PUBLISH,
+                "$subject: يوجد طبيب غير منشور أو بتصنيف مختلف. انشر سجل الأطباء أو صحح الإسناد أولاً حتى تستطيع الأجهزة الأخرى قراءة بيانات المرضى. بقية تعديلات سجل الأطباء لا تمنع النشر بعد التأكيد.")
         }
     }
 

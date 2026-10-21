@@ -14,7 +14,8 @@ class Disclosure(ctk.CTkFrame):
         self.expanded = expanded
         self.title = title
         self.toggle_button = ctk.CTkButton(toggle_parent if toggle_parent is not None else self, text='', height=48,
-            width=120, anchor='e', command=self.toggle)
+            width=120, anchor='e', command=self.toggle,fg_color='transparent',
+            text_color=('gray25','gray85'),hover_color=('gray88','gray22'))
         if toggle_parent is None:self.toggle_button.pack(fill='x', padx=4, pady=2)
         else:self.toggle_button.pack(side='left',padx=3,pady=2)
         self.content = (ctk.CTkScrollableFrame(self, height=scroll_height, fg_color='transparent')
@@ -50,6 +51,15 @@ def build_ward_controls(window):
     window.metrics = ctk.CTkLabel(status, text='', anchor='e', justify='right', wraplength=650)
     window.metrics.grid(row=1, column=0, columnspan=2, sticky='ew', padx=8, pady=3)
 
+    window.show_workflow_details=False
+    window.workflow_details=ctk.CTkLabel(status,text='',anchor='e',justify='right',wraplength=650)
+    def toggle_details():
+        window.show_workflow_details=not window.show_workflow_details
+        details.configure(text='طي التفاصيل' if window.show_workflow_details else 'التفاصيل')
+        window.render()
+    details=ctk.CTkButton(status,text='التفاصيل',height=48,width=80,command=toggle_details,
+        fg_color='transparent',text_color=('gray25','gray85'))
+    details.grid(row=0,column=2,padx=4,pady=3)
     toolbar = ctk.CTkFrame(parent)
     window.ward_toolbar=toolbar
     toolbar.pack(fill='x', padx=5, pady=3, before=status)
@@ -63,7 +73,7 @@ def build_ward_controls(window):
     actions = ctk.CTkFrame(parent)
     actions.pack(fill='x', padx=5, pady=2,after=status)
     for index, (label, action) in enumerate([
-        ('تسليم المناوبة', lambda:handover_dashboard(window)), ('أطباء المناوبة', window.roster)
+        ('لوحة تسليم المناوبة', lambda:handover_dashboard(window)), ('أطباء المناوبة', window.roster)
     ]):
         actions.grid_columnconfigure(1-index,weight=1)
         ctk.CTkButton(actions, text=label, height=48, width=85,
@@ -128,5 +138,5 @@ def filter_summary(window):
                            (window.owner_filter.get(), OWNER_FILTERS[0]),
                            (window.task_filter.get(), TASK_FILTERS[0])]:
         if value != default:labels.append(value)
-    if window.search.get().strip():labels.append('بحث')
+    if window.search.get().strip():labels.append('بحث: '+window.search.get().strip())
     return labels

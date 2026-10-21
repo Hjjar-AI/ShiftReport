@@ -1,5 +1,11 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.ConfirmDialog
+import com.hos.rushdpatients.ui.components.AppSectionHeader
+import com.hos.rushdpatients.ui.components.appDialogBody
+import com.hos.rushdpatients.ui.ward.DoctorDropdown
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppDialogDismissAction
 import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
@@ -28,6 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
@@ -39,7 +48,7 @@ import com.hos.rushdpatients.ui.ward.StaleEditReviewDialog
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.ui.components.PasswordField
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddEditDoctorDialog(
     existing: Doctor?,
@@ -59,10 +68,16 @@ fun AddEditDoctorDialog(
     var gender by remember(existing?.id) { mutableStateOf(existing?.gender ?: Gender.MALE) }
     var clinicalRole by remember(existing?.id) { mutableStateOf(existing?.clinicalRole ?: ClinicalRole.RESIDENT) }
     var teamSupervisorId by remember(existing?.id) { mutableStateOf(existing?.teamSupervisorId) }
-    var teamMenu by remember { mutableStateOf(false) }
     var pin by remember(existing?.id) { mutableStateOf("") }
     var customTitle by remember(existing?.id) { mutableStateOf(existing?.customTitle ?: "") }
     var telegramIdText by remember(existing?.id) { mutableStateOf(existing?.telegramId?.toString() ?: "") }
+
+    var confirmDiscard by remember { mutableStateOf(false) }
+    val dirty = firstName != baseline?.firstName.orEmpty() || lastName != baseline?.lastName.orEmpty() ||
+        gender != (baseline?.gender ?: Gender.MALE) || clinicalRole != (baseline?.clinicalRole ?: ClinicalRole.RESIDENT) ||
+        teamSupervisorId != baseline?.teamSupervisorId || pin.isNotEmpty() ||
+        customTitle != baseline?.customTitle.orEmpty() || telegramIdText != baseline?.telegramId?.toString().orEmpty()
+    val requestDismiss: () -> Unit = { if (!saving) { if (dirty) confirmDiscard = true else onDismiss() } }
 
     fun restore(input: DoctorEditInput) {
         firstName = input.firstName
@@ -76,13 +91,13 @@ fun AddEditDoctorDialog(
         telegramIdError = false
     }
     CompositionLocalProvider(LocalFieldEnabled provides !saving) {
-        AlertDialog(
-            onDismissRequest = { if (!saving) onDismiss() },
+        if (!reviewing && !confirmDiscard) AlertDialog(
+            onDismissRequest = requestDismiss,
             title = { AppDialogHeader(if (existing == null) "إضافة طبيب" else "تحرير الطبيب") },
             text = {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth().appDialogBody()
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
                 ) {
@@ -91,6 +106,7 @@ fun AddEditDoctorDialog(
                             Text("مراجعة المسودة المرفوضة والنسخة المحفوظة")
                         }
                     }
+                    AppSectionHeader(title = "البيانات الشخصية")
                     AppTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
@@ -122,8 +138,15 @@ fun AddEditDoctorDialog(
                             label = { Text("أنثى") }
                         )
                     }
-                    Text("التصنيف السريري")
-                    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                    AppTextField(
+                        value = customTitle,
+                        onValueChange = { if (it.length <= 16) customTitle = it },
+                        label = { Text("لقب مخصص (اختياري)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    AppSectionHeader(title = "الدور السريري والفريق")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         ClinicalRole.entries.forEach { role ->
                             FilterChip(
                             enabled = !saving,
@@ -134,18 +157,14 @@ fun AddEditDoctorDialog(
                         }
                     }
                     if (clinicalRole == ClinicalRole.RESIDENT) {
-                        Text("مشرف الفريق — مستقل عن تعيينات المرضى")
-                        AppTextButton(onClick = { teamMenu = true }, enabled = !saving) {
-                            Text(doctors.firstOrNull { it.id == teamSupervisorId }?.fullName ?: "دون فريق")
-                        }
-                        DropdownMenu(expanded = teamMenu, onDismissRequest = { teamMenu = false }) {
-                            DropdownMenuItem(text = { Text("دون فريق") }, onClick = { teamSupervisorId = null; teamMenu = false })
-                            doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.SUPERVISOR && it.id != existing?.id }.forEach { supervisor ->
-                                DropdownMenuItem(text = { Text(supervisor.fullName) },
-                                    onClick = { teamSupervisorId = supervisor.id; teamMenu = false })
-                            }
-                        }
+                        DoctorDropdown(label = "مشرف الفريق", undefinedLabel = "دون فريق",
+                            selectedId = teamSupervisorId,
+                            doctors = doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.SUPERVISOR && it.id != existing?.id },
+                            onSelected = { teamSupervisorId = it }, enabled = !saving,
+                            supportingText = "فريق الطبيب الثابت؛ تعيين مريض للتغطية لا يغير هذا الفريق.")
                     }
+                    AppSectionHeader(title = "الحساب والتحقق")
+                    Text("صلاحية الإدارة مستقلة عن الدور السريري؛ تُعدّل من صفحة صلاحيات المديرين.")
                     PasswordField(
                         keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next,
                         value = pin,
@@ -154,16 +173,11 @@ fun AddEditDoctorDialog(
                         else "رقم سري جديد (اتركه فارغاً دون تغيير)"
                     )
                     AppTextField(
-                        value = customTitle,
-                        onValueChange = { if (it.length <= 16) customTitle = it },
-                        label = { Text("لقب مخصص (اختياري)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    AppTextField(
                         value = telegramIdText,
                         onValueChange = { telegramIdText = it; telegramIdError = false },
                         label = { Text("معرف تليجرام (اختياري)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Ltr),
                         isError = telegramIdError,
                         supportingText = { if (telegramIdError) Text("أدخل معرّفاً رقمياً موجباً أو اترك الحقل فارغاً") },
                         singleLine = true,
@@ -197,11 +211,15 @@ fun AddEditDoctorDialog(
                 )
             },
             dismissButton = {
-                AppDialogDismissAction(onClick = onDismiss, enabled = !saving)
+                AppDialogDismissAction(onClick = requestDismiss, enabled = !saving)
             }
         )
 
     }
+    if (confirmDiscard) ConfirmDialog(title = "تجاهل التغييرات؟",
+        message = "لم تُحفظ تعديلات الطبيب. هل تريد الخروج دون حفظ؟",
+        confirmText = "تجاهل والخروج", dismissText = "متابعة التحرير", destructive = true,
+        onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
     if (reviewing) {
         val draft = rejectedInput ?: return
         val saved = latest

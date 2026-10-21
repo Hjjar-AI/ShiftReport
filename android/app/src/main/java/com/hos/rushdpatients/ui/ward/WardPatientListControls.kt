@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -36,8 +37,13 @@ internal fun WardPatientListControls(
             WardPatientSearchField(query, onQueryChange, requestFocus, onFocusRequested)
         }
 
-        Text(wardPatientFilterSummary(visibleCount, totalCount, activeFilters, groupingLabel),
-            modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium)
+        Text("${uiNumber(visibleCount)} من ${uiNumber(totalCount)} مريض",
+            modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold)
+        if (activeFilters.isNotEmpty()) Text("التصفية: ${activeFilters.distinct().joinToString(" · ")}",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        groupingLabel?.let { Text("تجميع: $it", style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant) }
         FlowRow(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             AppTextButton(onClick = onOptions) { Text("خيارات العرض") }

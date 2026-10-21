@@ -71,13 +71,16 @@ internal fun HandoverDashboard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            if (showSynchronization) AppTextButton(onClick = onSync) { Text("مزامنة") }
+            if (showSynchronization) AppTextButton(onClick = onSync) { Text("جلب البيانات") }
             if (isAdmin) AppTextButton(onClick = onActivity) { Text("مركز النشاط") }
             AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text("قائمة المرضى") }
         }
-        AppMetricRow("عاجل أو أولوية", urgent, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.URGENT) }
-        AppMetricRow("المهام المتأخرة (ضمن المعلقة)", taskCounts.overdue, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.TASK_OVERDUE) }
-        Text("ملخص المرضى والمهام", style = MaterialTheme.typography.titleSmall)
+        Text("يحتاج انتباهك", style = MaterialTheme.typography.titleMedium)
+        if (urgent > 0) AppMetricRow("عاجل أو أولوية", urgent, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.URGENT) }
+        if (taskCounts.overdue > 0) AppMetricRow("المهام المتأخرة (ضمن المعلقة)", taskCounts.overdue, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.TASK_OVERDUE) }
+        if (urgent == 0 && taskCounts.overdue == 0) Text("لا توجد حالات عاجلة أو مهام متأخرة",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("ملخص المناوبة", style = MaterialTheme.typography.titleMedium)
         Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
             Column(Modifier.fillMaxWidth().padding(UiSpacing.tiny)) {
                 AppMetricRow("إجمالي المرضى", patients.size, compact = true) { onFilter(DashboardFilter.ALL) }
@@ -95,7 +98,7 @@ internal fun HandoverDashboard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                Text("حالة المناوبة", style = MaterialTheme.typography.titleMedium)
+                Text("حفظ البيانات ونشرها", style = MaterialTheme.typography.titleSmall)
                 PatientSyncNotice(syncStatus, freshnessLabel, online)
                 Text("استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر")
             }
