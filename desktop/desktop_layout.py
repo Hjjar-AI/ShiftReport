@@ -6,6 +6,7 @@ from desktop_patient_filters import CLINICAL_FILTERS, OWNER_FILTERS, TASK_FILTER
 from desktop_sort import GROUPS, sorting_editor
 from desktop_dashboard import handover_dashboard
 from desktop_workflow import task_board
+from desktop_tokens import WARNING_CONTAINER
 
 
 class Disclosure(ctk.CTkFrame):
@@ -35,7 +36,7 @@ class Disclosure(ctk.CTkFrame):
 
 def build_ward_controls(window):
     parent = window.content
-    window.operation_notice=ctk.CTkFrame(parent,fg_color=('#FFF3CD','#493C19'))
+    window.operation_notice=ctk.CTkFrame(parent,fg_color=WARNING_CONTAINER)
     window.operation_notice_text=ctk.CTkLabel(window.operation_notice,text='',anchor='e',justify='right',wraplength=550)
     window.operation_notice_text.pack(fill='x',padx=8,pady=3)
     ctk.CTkButton(window.operation_notice,text='مراجعة سجل العمليات والتسليم',height=48,

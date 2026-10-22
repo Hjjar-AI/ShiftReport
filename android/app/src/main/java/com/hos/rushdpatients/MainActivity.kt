@@ -97,6 +97,7 @@ private fun MainActivity.AppContent() {
     val themePreset by themeViewModel.preset.collectAsStateWithLifecycle()
     val appearance by themeViewModel.appearance.collectAsStateWithLifecycle()
     val fontScale by themeViewModel.fontScale.collectAsStateWithLifecycle()
+    val uiPreferences by themeViewModel.uiPreferences.collectAsStateWithLifecycle()
 
     val baseDensity = LocalDensity.current
     // Only fontScale changes; density (px per dp) stays as the system set it.
@@ -105,11 +106,11 @@ private fun MainActivity.AppContent() {
         Density(
             density = baseDensity.density,
             fontScale = (baseDensity.fontScale * fontScale.multiplier)
-                .coerceIn(0.85f, 2.0f)
+                .coerceIn(0.92f, 2.0f)
         )
     }
 
-    RushdPatientsTheme(preset = themePreset, appearance = appearance) {
+    RushdPatientsTheme(preset = themePreset, appearance = appearance, uiPreferences = uiPreferences) {
         AppSystemBars()
         CompositionLocalProvider(
             LocalLayoutDirection provides LayoutDirection.Rtl,

@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppSnackbarHost
+import com.hos.rushdpatients.ui.components.AppSheet
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.R
@@ -9,7 +12,6 @@ import com.hos.rushdpatients.ui.settings.SettingsWorkspace
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.theme.UiLayout
-import com.hos.rushdpatients.ui.components.uiNumber
 import androidx.compose.foundation.rememberScrollState
 import com.hos.rushdpatients.ui.components.rememberFloatingActionSpace
 import com.hos.rushdpatients.ui.components.NoticeKind
@@ -31,21 +33,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -135,6 +134,11 @@ internal fun WardWorkspace(
         state.doctors.associate { it.id to it.fullName }
     }
     val patientGridState = rememberLazyGridState()
+    val uiPreferences = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current
+    val navigationVisible = rememberWardNavigationVisible(patientGridState,
+        uiPreferences.autoHideNavigation && viewMode in setOf(WardViewMode.ALL, WardViewMode.MINE) &&
+            !expandedWindow && state.patients.isNotEmpty(),
+        state.shift?.id to viewMode)
     val editor = viewModel.editor
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
@@ -372,6 +376,12 @@ internal fun WardWorkspace(
             )
         }
     ) {
+        val fetchReminder: @Composable () -> Unit = {
+            if (viewModel.liveProject && !state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
+                enabled = !state.syncing && !state.saving,
+                onFetch = { confirmLatest = true },
+                onDismiss = { fetchReminderDismissed = true })
+        }
         Scaffold(
             topBar = {
                 Column {
@@ -387,7 +397,10 @@ internal fun WardWorkspace(
                             if (!patientDestination) viewMode = WardViewMode.ALL
                             showSearch = true
                             requestSearchFocus = true
-                            scope.launch { patientGridState.animateScrollToItem(0) }
+                            scope.launch {
+                                if (uiPreferences.reducedMotion) patientGridState.scrollToItem(0)
+                                else patientGridState.animateScrollToItem(0)
+                            }
                         }
                     }, onWorkflow = {
                         when (state.workflowAction) {
@@ -407,18 +420,20 @@ internal fun WardWorkspace(
                         enabled = !state.loading && !state.saving && !state.syncing &&
                             !editor.showAdd && editor.editTarget == null && editor.copyTarget == null,
                         contentPadding = UiPadding.content,
-                        modifier = addActionSpace.measure.heightIn(min = UiSpacing.touchTarget)
+                        modifier = addActionSpace.measure
+                            .sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
+                            .semantics { contentDescription = uiText(R.string.ui_add_patient) }
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
-                        Text(uiText(R.string.ui_add_patient), Modifier.padding(start = UiSpacing.small))
+                        Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
+                        if (!uiPreferences.compactAddAction) Text(uiText(R.string.ui_add_patient), Modifier.padding(start = UiSpacing.small))
                     }
                 }
             },
             bottomBar = {
-                WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
+                if (navigationVisible) WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
                     onDestination = { viewMode = it })
             },
-            snackbarHost = { SnackbarHost(snackbarHost) }
+            snackbarHost = { AppSnackbarHost(snackbarHost) }
         ) { padding ->
             val layoutDirection = LocalLayoutDirection.current
             // Draw behind the transparent pill gutters; reserve its height in scroll content instead.
@@ -514,10 +529,7 @@ internal fun WardWorkspace(
                                 onAdd = { editor.openAdd(state.patients, state.shift?.revision) }, onFetch = { confirmLatest = true },
                                 onCopyPrevious = viewModel::offerPreviousShift,
                                 topContent = {
-                                    if (viewModel.liveProject && !state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
-                                        enabled = !state.syncing && !state.saving,
-                                        onFetch = { confirmLatest = true },
-                                        onDismiss = { fetchReminderDismissed = true })
+                                    fetchReminder()
                                 })
                         } else {
                             WardPatientGrid(state, visiblePatients, dualPane, patientGridState,
@@ -527,10 +539,7 @@ internal fun WardWorkspace(
                                 }, onResetFilters = ::resetPatientFilters,
                                 headerContent = {
                                     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                                                            if (viewModel.liveProject && !state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
-                                                                                enabled = !state.syncing && !state.saving,
-                                                                                onFetch = { confirmLatest = true },
-                                                                                onDismiss = { fetchReminderDismissed = true })
+                                                                            fetchReminder()
                                                                             if (viewModel.liveProject && !state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) {
                                                                                 WardWorkflowStrip(state, onNext = {
                                                                                     when (state.workflowAction) {
@@ -552,7 +561,7 @@ internal fun WardWorkspace(
                                                                                 onFocusRequested = { requestSearchFocus = false }
                                                                             )
                                                                             if (state.isReadOnly) {
-                                                                                AppNotice(uiText(R.string.ui_ward_screen_013), icon = Icons.Filled.Lock)
+                                                                                AppNotice(uiText(R.string.ui_ward_screen_013), icon = AppIcons.Lock)
                                                                             }
                                                                         }
                                 }, patientCard = { patient ->
@@ -601,7 +610,7 @@ internal fun WardWorkspace(
     }
 
     if (showSupportingSheet) {
-        ModalBottomSheet(onDismissRequest = { showSupportingSheet = false }) {
+        AppSheet(onDismissRequest = { showSupportingSheet = false }) {
             WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
                 listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                 modifier = Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight), primary = {

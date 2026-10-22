@@ -16,6 +16,11 @@ class ThemeViewModel @Inject constructor(
     settingsRepository: SettingsRepository
 ) : ViewModel() {
 
+    val uiPreferences: StateFlow<UiPreferences> = settingsRepository
+        .observe(AppConstants.SETTING_UI_PREFERENCES)
+        .map(UiPreferences::decode)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiPreferences())
+
     val preset: StateFlow<AppThemePreset> = settingsRepository
         .observe(AppConstants.SETTING_APP_THEME)
         .map(AppThemePreset::fromSetting)

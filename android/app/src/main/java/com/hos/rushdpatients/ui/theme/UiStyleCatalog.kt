@@ -1,36 +1,41 @@
 package com.hos.rushdpatients.ui.theme
 
+import androidx.annotation.StringRes
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.UiStrings
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
-/** Design samples only. No profile is applied, persisted or synchronized by this catalog. */
+/** Presentation profile values; selection is device-local and never synchronized. */
 data class UiStyleProfile(
-    val id: String, val label: String, val description: String,
+    val id: String, @StringRes val labelRes: Int, val description: String,
     val compactDensity: PatientCardDensity, val normalDensity: PatientCardDensity,
     val listGap: Dp, val normalBorder: Dp, val selectedBorder: Dp,
     val navigationElevation: Dp, val actionBarElevation: Dp,
-    val expandMillis: Int, val collapseMillis: Int, val highlightMillis: Int
-)
+    val expandMillis: Int, val collapseMillis: Int, val highlightMillis: Int,
+    val indicatorMillis: Int = UiMotion.indicatorMillis
+) {
+    fun label(text: UiStrings): String = text(labelRes)
+}
 
-/** Spare values for a possible future local appearance picker; current tokens remain authoritative. */
+/** Current and selectable presentation profiles; clinical meaning and minimum targets stay fixed. */
 object UiStyleCatalog {
     val current = UiStyleProfile(
-        "current", "الحالي", "التصميم الحالي؛ القيم المستخدمة فعلياً",
+        "current", R.string.ui_profile_current, "التصميم الحالي؛ القيم المستخدمة فعلياً",
         UiPatientCard.compact, UiPatientCard.normal, UiPatientCard.listGap,
         UiBorder.normalWidth, UiBorder.selectedWidth, UiElevation.navigation, UiElevation.actionBar,
         UiMotion.expandMillis, UiMotion.collapseMillis, UiMotion.highlightMillis)
     val relaxed = current.copy(
-        id = "relaxed", label = "أوسع", description = "مسافات أكبر بين المحتوى والبطاقات",
+        id = "relaxed", labelRes = R.string.ui_profile_relaxed, description = "مسافات أكبر بين المحتوى والبطاقات",
         compactDensity = PatientCardDensity(PaddingValues(horizontal = UiSpacing.medium, vertical = UiSpacing.small), UiSpacing.medium),
         normalDensity = PatientCardDensity(PaddingValues(horizontal = UiSpacing.largeSection, vertical = UiSpacing.section), UiSpacing.section),
         listGap = UiSpacing.section)
     val quiet = current.copy(
-        id = "quiet", label = "هادئ", description = "أسطح مسطحة وحركة أقصر",
+        id = "quiet", labelRes = R.string.ui_profile_quiet, description = "أسطح مسطحة وحركة أقصر",
         navigationElevation = UiElevation.flat, actionBarElevation = UiElevation.flat,
-        expandMillis = 120, collapseMillis = 100, highlightMillis = 180)
+        expandMillis = 120, collapseMillis = 100, highlightMillis = 180, indicatorMillis = 100)
     val clear = current.copy(
-        id = "clear", label = "أوضح", description = "حدود أكثر وضوحاً مع بقاء الألوان السريرية ثابتة",
-        normalBorder = 1.5.dp)
+        id = "clear", labelRes = R.string.ui_profile_clear, description = "حدود أكثر وضوحاً مع بقاء الألوان السريرية ثابتة",
+        normalBorder = UiBorder.strong)
     val profiles = listOf(current, relaxed, quiet, clear)
 }

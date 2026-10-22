@@ -3,16 +3,11 @@ package com.hos.rushdpatients.ui.components
 import com.hos.rushdpatients.R
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 /** Compact chrome grows only when its actual text needs more than the 48dp control height. */
@@ -36,7 +31,7 @@ fun AppTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.(
         Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }, navigation = {
         AppIconButton(label = uiText(R.string.ui_back),
-            icon = Icons.Filled.ArrowBack,
+            icon = AppIcons.ArrowBack,
             onClick = onBack,
             iconModifier = Modifier,
             directional = true)

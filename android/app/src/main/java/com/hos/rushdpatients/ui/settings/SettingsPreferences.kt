@@ -21,6 +21,9 @@ import com.hos.rushdpatients.ui.theme.AppThemePreset
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Shares the screen state and ViewModel scope; does not create a second lifecycle. */
 internal class SettingsPreferences(
@@ -29,6 +32,8 @@ internal class SettingsPreferences(
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
     private val settingsRepository: SettingsRepository
 ) {
+
+    private val uiPreferencesWrites = Mutex()
 
     fun setReportAsPdf(value: Boolean) {
         viewModelScope.launch {
@@ -118,6 +123,24 @@ internal class SettingsPreferences(
         viewModelScope.launch {
             settingsRepository.putBoolean(AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR, value)
             _state.update { it.copy(pdfSeparateBySupervisor = value) }
+        }
+    }
+
+    fun setUiPreferences(value: com.hos.rushdpatients.ui.theme.UiPreferences) {
+        val previous = _state.value.uiPreferences
+        _state.update { it.copy(uiPreferences = value) }
+        viewModelScope.launch {
+            try {
+                uiPreferencesWrites.withLock {
+                    settingsRepository.put(AppConstants.SETTING_UI_PREFERENCES, value.encode())
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                _state.update { current -> current.copy(
+                    uiPreferences = if (current.uiPreferences == value) previous else current.uiPreferences,
+                    snackbar = uiText(R.string.ui_interface_save_failed)) }
+            }
         }
     }
 

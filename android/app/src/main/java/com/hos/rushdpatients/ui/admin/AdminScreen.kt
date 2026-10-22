@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.AppActionCard
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -10,7 +11,6 @@ import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppCard
-import com.hos.rushdpatients.ui.components.AppButton
 import com.hos.rushdpatients.ui.components.AppSection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +58,7 @@ fun AdminScreen(
         topBar = {
             AppTopBar(title = uiText(R.string.ui_admin_screen_001), onBack = onBack)
         },
-        snackbarHost = { SnackbarHost(snackbar) }
+        snackbarHost = { AppSnackbarHost(snackbar) }
     ) { padding ->
         Column(
             modifier = Modifier

@@ -64,6 +64,7 @@ fun RushdPatientsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     appearance: AppAppearance = AppAppearance.LIGHT,
     dynamicColor: Boolean = false,
+    uiPreferences: UiPreferences = LocalUiPreferences.current,
     content: @Composable () -> Unit
 ) {
     val dark = when (appearance) {
@@ -113,7 +114,9 @@ fun RushdPatientsTheme(
         )
     }
     CompositionLocalProvider(LocalClinicalColors provides if (dark) DarkClinicalColors else LightClinicalColors) {
-        MaterialTheme(colorScheme = scheme, typography = Typography, shapes = AppShapes, content = content)
+        ProvideUiPreferences(uiPreferences) {
+            MaterialTheme(colorScheme = scheme, typography = Typography, shapes = AppShapes, content = content)
+        }
     }
 }
 

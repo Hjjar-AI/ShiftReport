@@ -1,59 +1,40 @@
 # Android UI work guide
 
-This replaces the old static-review proposal list with the owner's selected scope,
-current implementation links and concrete acceptance checks. Historical assertions
-are not treated as current defects without checking source.
-
-## Start here
+Use current implementation records rather than the retired review questionnaires.
 
 | Need | Source of truth |
 |---|---|
-| What is implemented and verified? | [Current state](../docs/current-state.md) |
-| What did each of the 88 original findings mean? | [Finding dispositions](../docs/reviews/android-deep-ui-review-validation.md) |
-| Which optional changes were selected, and what still needs an answer? | [UI decisions](../docs/decisions/android-ui-options.md) |
-| What implementation remains? | [Roadmap](../docs/roadmap.md) |
-| Shared components, colors and typography | [Design catalog](../docs/design-catalog.md) |
-| Efficient cached verification | [Build guide](../docs/android-shared-workstation-build-fixes.md) |
-| Contributor scope/safety rules | [AGENTS.md](../AGENTS.md) |
+| Current behavior and exact verification limits | [Current state](../docs/current-state.md) |
+| Review outcomes and unresolved source findings | [Consolidated review](../docs/reviews/android-review.md) |
+| Adopted boundaries and remaining unselected proposals | [UI decisions](../docs/decisions/android-ui-options.md) |
+| Planned unfinished implementation | [Roadmap](../docs/roadmap.md) |
+| Shared components, profiles and typography | [Design catalog](../docs/design-catalog.md) |
+| Build commands and durable cache/toolchain setup | [Build guide](../docs/android-shared-workstation-build-fixes.md) |
+| Authorization and safety restrictions | [AGENTS.md](../AGENTS.md) |
 
-## Selected implementation
+## Maintaining the UI
 
-The approved work is one explicit modal state; explicit card state/actions;
-grouped navigation and shared admin route presentation; shared production/demo
-ward screens backed by isolated injected repositories; chips, color containers,
-button styles, dividers and reusable content cards; consistent compact spacing;
-genuine Tajawal Medium/Bold roles; compact ward controls; adaptive dashboard tiles;
-and Arabic icon tooltips with shared directional handling.
-
-Keep the same patient fields, revision/conflict checks, task completion attribution,
-report review and exact-file/delivery safeguards. Demo must use only memory and
-explicit local demo-labelled PDF export. No optional item in the decision file is
-automatically authorized merely because it was recommended.
-
-## Acceptance checklist
-
-- Clinical dialogs are mutually exclusive; rotation retains their draft/baseline.
-- Tap opens patient details; Edit/Copy/Delete/Pin/Expand retain distinct actions.
-- Activity/admin destinations remain permission-filtered; service authorization remains.
-- Demo uses the production patient grid, dashboard, options, forms and details,
-  without constructing clinical repositories or exposing live fetch/publication.
-- Urgent/overdue tasks and all ward totals retain their filter actions. Metric
-  tiles stack when two columns would crowd Arabic text at large font sizes.
-- Controls preserve search, presets, advanced filters and reset while shortening
-  the header; delivery warnings and the requested fetch reminder remain visible.
-- Clinical badge severity is unchanged; informational chips and interactive
-  selected filters remain distinct. Buttons/icon controls retain 48dp targets.
-- Tooltips and TalkBack share Arabic action labels. Directional mirroring happens
-  once; About/logo/credits and native first-layout RTL remain preserved.
-- Fonts use real bundled weights. No fabricated Tajawal SemiBold file or changed
-  font family; source/license/provenance stay documented.
+- Screens delegate state/mutations to their ViewModels. Preserve original draft
+  revisions, exclusive editor/overlay sessions and explicit conflict review.
+- Card-body taps open details; optional header expansion and explicit Edit/Copy/
+  Delete/Pin/Expand actions retain their distinct purposes. Keep Add separate from
+  the roster-first reviewed report flow and its exact-file/delivery guards.
+- Use shared components and runtime style roles. Keep clinical meaning independent
+  of accent, density and visual control size; interactive targets stay at least
+  48dp and Arabic labels can wrap/grow. Preserve first-layout RTL and fold safety.
+- Keep delivery uncertainty visible, fetch advice accessible, and admin destinations
+  permission-filtered. UI filtering does not replace service-level authorization.
+- Demo uses the production UI with isolated temporary data/preferences and explicit
+  demo-labelled local PDF export. Do not construct real clinical/sync dependencies.
+- Preserve genuine Tajawal weights, the emblem, About/credits and five-second
+  hold/skip splash behavior. Profile/font changes do not rewrite saved clinical text.
 
 ## Verification policy
 
-Use installed Java, the pinned cached Gradle and existing SDK components. Prefer
-an offline debug compile/resource check over packaging. Disable automatic app
-version reservation, retain full logs locally, and read only concise failures.
-If tools/dependencies are missing, request durable one-time installation instead
-of repeatedly downloading temporary toolchains. See the exact current result in
-[Current state](../docs/current-state.md); source checks alone do not prove rendered
-Arabic, touch/TalkBack/fold behavior or performance.
+Source checks do not establish compilation, device behavior or performance.
+Run Git unstaged/staged whitespace checks after edits. Obtain owner confirmation
+before builds or test-suite work under AGENTS.md; then preflight active compilers,
+RAM/swap, installed Java, pinned Gradle, SDK and durable dependencies. Prefer the
+narrow offline compile in the build guide, with automatic version reservation
+disabled. Keep full logs locally and report concise results. Do not change versions,
+inspect migrations or package/distribute artifacts merely to verify UI source.

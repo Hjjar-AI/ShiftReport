@@ -1,14 +1,15 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppMenuItem
+import com.hos.rushdpatients.ui.components.AppMenu
+import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -58,7 +59,7 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
                     navigation = { AppIconButton(label = uiText(R.string.ui_ward_task_board_001),
-            icon = Icons.Filled.Close,
+            icon = AppIcons.Close,
             onClick = onDismiss) })
                 Column(Modifier.padding(horizontal = UiSpacing.screen)) {
                     Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
@@ -66,7 +67,7 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
                         TaskDoctorFilter(uiText(R.string.ui_ward_task_board_004), residents, resident) { resident = it }
-                        if (currentDoctorId != null) FilterChip(selected = mine, onClick = { mine = !mine }, label = { Text(uiText(R.string.ui_ward_task_board_005)) })
+                        if (currentDoctorId != null) AppFilterChip(selected = mine, onClick = { mine = !mine }, label = { Text(uiText(R.string.ui_ward_task_board_005)) })
                     }
                 }
                 LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
@@ -96,12 +97,12 @@ private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: Str
     val uiText = rememberUiStrings()
     var expanded by remember { mutableStateOf(false) }
     Box {
-        FilterChip(selected = selected != null, onClick = { expanded = true },
+        AppFilterChip(selected = selected != null, onClick = { expanded = true },
             label = { Text(label + ": " + (doctors.firstOrNull { it.id == selected }?.fullName ?: if (selected == null) uiText(R.string.ui_all) else uiText(R.string.ui_ward_task_board_011))) })
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(text = { Text(uiText(R.string.ui_all)) }, onClick = { onSelect(null); expanded = false })
+        AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            AppMenuItem(text = { Text(uiText(R.string.ui_all)) }, onClick = { onSelect(null); expanded = false })
             doctors.sortedBy { it.fullName }.forEach { doctor ->
-                DropdownMenuItem(text = { Text(doctor.fullName) }, onClick = { onSelect(doctor.id); expanded = false })
+                AppMenuItem(text = { Text(doctor.fullName) }, onClick = { onSelect(doctor.id); expanded = false })
             }
         }
     }
@@ -120,7 +121,7 @@ internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
             Text(entry.patient.name, style = MaterialTheme.typography.titleSmall)
             Text(entry.task.description)
             Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (overdue) Icon(Icons.Filled.Warning, contentDescription = null)
+                if (overdue) Icon(AppIcons.Warning, contentDescription = null)
                 Text(PatientTasks.statusLabel(entry.task, now) + " · " + uiNumber(PatientTasks.metadata(entry.task, names)),
                     style = MaterialTheme.typography.bodySmall)
             }

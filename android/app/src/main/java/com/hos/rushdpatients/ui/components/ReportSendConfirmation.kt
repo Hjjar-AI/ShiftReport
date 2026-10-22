@@ -5,7 +5,6 @@ import com.hos.rushdpatients.R
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,7 +14,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 fun ReportSendConfirmation(destinations: List<String>, format: String, warningCount: Int,
     enabled: Boolean, unavailableReason: String? = null, onConfirm: (Boolean) -> Unit, onDismiss: () -> Unit) {
     val uiText = rememberUiStrings()
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(uiText(R.string.ui_report_send_confirmation_001)) }, text = {
+    AppAlertDialog(onDismissRequest = onDismiss, title = { Text(uiText(R.string.ui_report_send_confirmation_001)) }, text = {
         Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             unavailableReason?.let { AppNotice(it, kind = NoticeKind.WARNING) }

@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.AppAlertDialog
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.UiStrings
 
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -22,7 +24,6 @@ import com.hos.rushdpatients.ui.components.LocalFieldEnabled
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,12 +31,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -99,7 +96,7 @@ fun AddEditDoctorDialog(
         telegramIdError = false
     }
     CompositionLocalProvider(LocalFieldEnabled provides !saving) {
-        if (!reviewing && !confirmDiscard) AlertDialog(
+        if (!reviewing && !confirmDiscard) AppAlertDialog(
             onDismissRequest = requestDismiss,
             title = { AppDialogHeader(if (existing == null) uiText(R.string.ui_add_edit_doctor_dialog_001) else uiText(R.string.ui_add_edit_doctor_dialog_002)) },
             text = {
@@ -133,13 +130,13 @@ fun AddEditDoctorDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
                     ) {
-                        FilterChip(
+                        AppFilterChip(
                             enabled = !saving,
                             selected = gender == Gender.MALE,
                             onClick = { gender = Gender.MALE },
                             label = { Text(uiText(R.string.ui_male)) }
                         )
-                        FilterChip(
+                        AppFilterChip(
                             enabled = !saving,
                             selected = gender == Gender.FEMALE,
                             onClick = { gender = Gender.FEMALE },
@@ -156,7 +153,7 @@ fun AddEditDoctorDialog(
                     AppSectionHeader(title = uiText(R.string.ui_add_edit_doctor_dialog_006))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         ClinicalRole.entries.forEach { role ->
-                            FilterChip(
+                            AppFilterChip(
                             enabled = !saving,
                                 selected = clinicalRole == role,
                                 onClick = { clinicalRole = role },

@@ -37,7 +37,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
-        icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(UiSize.loadingIndicator),
+        icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(UiSize.emptyStateIcon),
             tint = MaterialTheme.colorScheme.primary) }
         Text(
             text = title,

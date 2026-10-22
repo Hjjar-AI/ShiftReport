@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -65,7 +66,7 @@ internal fun DemoReportContent(
                 enabled = !state.exporting)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 PdfColorPreset.entries.forEach { value ->
-                    FilterChip(selected = color == value, onClick = { color = value },
+                    AppFilterChip(selected = color == value, onClick = { color = value },
                         enabled = !state.exporting, label = { Text(value.uiLabel(uiText)) })
                 }
             }
@@ -123,6 +124,8 @@ internal fun DemoPreferencesContent(
     font: AppFontScale, onFont: (AppFontScale) -> Unit,
     expanded: Boolean, twoColumn: Boolean, compact: Boolean,
     saveAndNext: Boolean, onSaveAndNext: (Boolean) -> Unit,
+    uiPreferences: com.hos.rushdpatients.ui.theme.UiPreferences,
+    onUiPreferences: (com.hos.rushdpatients.ui.theme.UiPreferences) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiText = rememberUiStrings()
@@ -130,10 +133,10 @@ internal fun DemoPreferencesContent(
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         AppNotice(uiText(R.string.ui_demo_secondary_screens_013))
         AppSection(uiText(R.string.ui_demo_secondary_screens_014)) {
-            SettingsAppearanceSection(SettingsUiState(appearance = appearance, appTheme = accent,
+            SettingsAppearanceSection(SettingsUiState(appearance = appearance, appTheme = accent, uiPreferences = uiPreferences,
                 fontScale = font, patientDetailsExpanded = expanded,
                 patientTwoColumn = twoColumn, patientCompactDensity = compact),
-                onAppearance = onAppearance, onTheme = onAccent, onFont = onFont)
+                onAppearance = onAppearance, onTheme = onAccent, onFont = onFont, onUiPreferences = onUiPreferences)
         }
         AppSection(uiText(R.string.ui_demo_secondary_screens_015)) {
             AppToggleRow(uiText(R.string.ui_edit_patient_dialog_002), checked = saveAndNext, onCheckedChange = onSaveAndNext)

@@ -1,5 +1,10 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppMenuItem
+import com.hos.rushdpatients.ui.components.AppMenu
+import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppAlertDialog
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppIconButton
 import androidx.annotation.StringRes
 
@@ -18,13 +23,6 @@ import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.AppPickerField
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.Icons
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -40,9 +38,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -142,12 +138,12 @@ private fun TaskDraftRow(
                 Text(task.description, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 Box {
                     AppIconButton(label = uiText(R.string.ui_patient_task_editor_005, task.description),
-            icon = Icons.Filled.MoreVert,
+            icon = AppIcons.MoreVert,
             onClick = { menu = true },
             enabled = enabled)
-                    DropdownMenu(expanded = menu && enabled, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_006)) }, onClick = { menu = false; onEdit() })
-                        DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_007), color = MaterialTheme.colorScheme.error) },
+                    AppMenu(expanded = menu && enabled, onDismissRequest = { menu = false }) {
+                        AppMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_006)) }, onClick = { menu = false; onEdit() })
+                        AppMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_007), color = MaterialTheme.colorScheme.error) },
                             onClick = { menu = false; onDelete() })
                     }
                 }
@@ -194,7 +190,7 @@ private fun TaskDraftDialog(
             else onDismiss()
         }
     }
-    if (!confirmDiscard) AlertDialog(
+    if (!confirmDiscard) AppAlertDialog(
         onDismissRequest = requestDismiss,
         title = { Text(if (initial == null) uiText(R.string.ui_patient_task_editor_014) else uiText(R.string.ui_patient_task_editor_015), Modifier.semantics { heading() }) },
         text = {
@@ -204,7 +200,7 @@ private fun TaskDraftDialog(
                 AppSectionHeader(uiText(R.string.ui_patient_task_editor_017))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskDeadline.entries.forEach { option ->
-                        FilterChip(selected = deadline == option, onClick = { deadline = option; error = null },
+                        AppFilterChip(selected = deadline == option, onClick = { deadline = option; error = null },
                             label = { Text(option.label(uiText)) }, enabled = enabled)
                     }
                 }
@@ -213,7 +209,7 @@ private fun TaskDraftDialog(
                         if (deadline == TaskDeadline.SHIFT) uiText(R.string.ui_patient_task_editor_020) else null, enabled = enabled)
                 }
                 if (deadline == TaskDeadline.TIME) {
-                    AppPickerField(value = time.toString(), label = uiText(R.string.ui_patient_task_editor_021), icon = Icons.Filled.Schedule,
+                    AppPickerField(value = time.toString(), label = uiText(R.string.ui_patient_task_editor_021), icon = AppIcons.Schedule,
                         valueTextDirection = TextDirection.Ltr, onClick = {
                         TimePickerDialog(context, { _, hour, minute ->
                             time = LocalTime.of(hour, minute)
@@ -227,7 +223,7 @@ private fun TaskDraftDialog(
                 AppSectionHeader(uiText(R.string.ui_patient_task_editor_025))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskPriority.entries.forEach { option ->
-                        FilterChip(selected = priority == option, onClick = { priority = option },
+                        AppFilterChip(selected = priority == option, onClick = { priority = option },
                             label = { Text(option.uiLabel(uiText)) }, enabled = enabled)
                     }
                 }

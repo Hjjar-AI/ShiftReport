@@ -1,5 +1,6 @@
 """Patient-card presentation and action placement, with mutations owned by Window."""
 import copy
+from desktop_tokens import ButtonStyle, button_options
 import desktop_widgets as ctk
 from desktop_model import DIAGNOSIS, patient_text, task_counts, badges_decode
 
@@ -51,7 +52,7 @@ def patient_card(owner, parent, row, index, total, movement_allowed, preview_sty
         ('الملف الكامل',lambda:owner.details(copy.deepcopy(row))),
         ('طي' if expanded else 'توسيع',lambda:owner.toggle_card(key,False))
     ]):
-        kwargs={} if column==0 else {'fg_color':'transparent','border_width':1,'text_color':('gray20','gray90')}
+        kwargs={} if column==0 else button_options(ButtonStyle.OUTLINED)
         ctk.CTkButton(primary,text=label,width=105 if column==1 else 75,height=48,command=lambda f=action:owner.run(f),**kwargs
             ).grid(row=0,column=3-column,sticky='ew',padx=3,pady=3)
     # Use the Arabic-aware combo adapter so native and shaped text stay logical.

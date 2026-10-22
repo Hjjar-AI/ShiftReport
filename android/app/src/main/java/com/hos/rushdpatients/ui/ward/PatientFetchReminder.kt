@@ -1,49 +1,22 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.components.AppIconButton
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.ui.theme.UiElevation
-import com.hos.rushdpatients.ui.theme.UiSize
-import com.hos.rushdpatients.ui.theme.UiSpacing
 
 /** Advisory only: fetching still uses the existing confirmation and local-edit guards. */
 @Composable
 internal fun PatientFetchReminder(enabled: Boolean, onFetch: () -> Unit, onDismiss: () -> Unit) {
     val uiText = rememberUiStrings()
-    Surface(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        tonalElevation = UiElevation.navigation) {
-        Row(Modifier.padding(start = UiSpacing.section, end = UiSpacing.small,
-            top = UiSpacing.small, bottom = UiSpacing.small),
-            verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = UiSpacing.screen)) {
-                Icon(Icons.Filled.CloudDownload, contentDescription = null,
-                    modifier = Modifier.padding(UiSpacing.screen).size(UiSize.iconMedium),
-                    tint = MaterialTheme.colorScheme.onPrimary)
-            }
-            Column(Modifier.weight(1f).padding(top = UiSpacing.screen)) {
-                Text(uiText(R.string.ui_patient_fetch_reminder_001), style = MaterialTheme.typography.titleSmall)
-                Text(uiText(R.string.ui_patient_fetch_reminder_002),
-                    style = MaterialTheme.typography.bodySmall)
-                AppTextButton(onClick = onFetch, enabled = enabled) { Text(uiText(R.string.ui_patient_fetch_reminder_003)) }
-            }
-            AppIconButton(label = uiText(R.string.ui_patient_fetch_reminder_004),
-            icon = Icons.Filled.Close,
-            onClick = onDismiss,
-            modifier = Modifier.size(UiSpacing.touchTarget))
-        }
-    }
+    com.hos.rushdpatients.ui.components.AppNotice(
+        message = uiText(R.string.ui_patient_fetch_reminder_002),
+        kind = com.hos.rushdpatients.ui.components.NoticeKind.ACCENT,
+        icon = AppIcons.CloudDownload,
+        actionLabel = uiText(R.string.ui_patient_fetch_reminder_003),
+        onAction = onFetch, actionEnabled = enabled, compact = true,
+        onDismiss = onDismiss, dismissLabel = uiText(R.string.ui_patient_fetch_reminder_004))
 }

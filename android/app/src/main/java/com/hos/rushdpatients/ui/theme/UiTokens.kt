@@ -17,36 +17,51 @@ object UiPatientCard {
     val normal = PatientCardDensity(
         PaddingValues(horizontal = UiSpacing.section, vertical = UiSpacing.screen), UiSpacing.screen)
     val listGap = UiSpacing.screen
-    fun density(compact: Boolean): PatientCardDensity = if (compact) this.compact else normal
+    @Composable
+    fun density(compact: Boolean): PatientCardDensity {
+        val profile = LocalUiStyle.current
+        return when (LocalUiPreferences.current.density) {
+            UiDensity.COMPACT -> profile.compactDensity
+            UiDensity.RELAXED -> UiStyleCatalog.relaxed.normalDensity
+            UiDensity.NORMAL -> if (compact) profile.compactDensity else profile.normalDensity
+        }
+    }
 
     const val borderAccentFraction = .22f
 
     @Composable
     fun border(selected: Boolean = false): BorderStroke =
         if (selected) UiBorder.stroke(selected = true)
-        else BorderStroke(UiBorder.normalWidth,
+        else BorderStroke(LocalUiStyle.current.normalBorder,
             lerp(MaterialTheme.colorScheme.outlineVariant, MaterialTheme.colorScheme.primary, borderAccentFraction))
 }
 
 /** Neutral surfaces and interactive emphasis; clinical severity has its own palette. */
 object UiBorder {
+    val hairline = 0.5.dp
+    val strong = 1.5.dp
     val normalWidth = 1.dp
     val selectedWidth = 2.dp
     val focusedWidth = 2.dp
 
     @Composable
     fun stroke(selected: Boolean = false, focused: Boolean = false): BorderStroke = BorderStroke(
-        when { focused -> focusedWidth; selected -> selectedWidth; else -> normalWidth },
+        when { focused -> focusedWidth; selected -> LocalUiStyle.current.selectedBorder; else -> LocalUiStyle.current.normalBorder },
         if (selected || focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
 }
 
 object UiElevation {
     val flat = 0.dp
-    val navigation = 2.dp
+    val low = 1.dp
+    val raised = 2.dp
+    val overlay = 6.dp
+    val navigation = raised
     val actionBar = 3.dp
 }
 
 object UiOpacity {
+    const val containerSoft = .3f
+    const val containerMuted = .5f
     const val enabled = 1f
     const val disabledContent = .38f
     const val disabledContainer = .12f
@@ -54,6 +69,8 @@ object UiOpacity {
 }
 
 object UiMotion {
+    const val fastMillis = 90
+    const val indicatorMillis = 160
     const val expandMillis = 160
     const val collapseMillis = 130
     const val highlightMillis = 220

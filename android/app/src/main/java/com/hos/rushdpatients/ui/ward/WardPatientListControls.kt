@@ -1,6 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.theme.UiTypography
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.UiStrings
 import androidx.annotation.StringRes
@@ -12,13 +12,9 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.RestartAlt
 import com.hos.rushdpatients.ui.components.AppIconButton
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -29,8 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
@@ -58,24 +52,28 @@ internal fun WardPatientListControls(
             WardPatientSearchField(query, onQueryChange, requestFocus, onFocusRequested)
         }
 
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(uiText(R.string.ui_ward_patient_list_controls_001, uiNumber(visibleCount), uiNumber(totalCount)) +
-                groupingLabel?.let { " · $it" }.orEmpty(), Modifier.weight(1f),
-                style = MaterialTheme.typography.labelLarge)
+        if (activeFilters.isNotEmpty() || groupingLabel != null) Text(
+            listOfNotNull(
+                if (activeFilters.isNotEmpty()) uiText(R.string.ui_ward_patient_list_controls_001, uiNumber(visibleCount), uiNumber(totalCount)) else null,
+                groupingLabel
+            ).joinToString(" · "), style = MaterialTheme.typography.labelLarge)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
+                listOf(DashboardFilter.ALL to uiText(R.string.ui_all), DashboardFilter.MINE to uiText(R.string.ui_handover_dashboard_011),
+                    DashboardFilter.URGENT to uiText(R.string.ui_ward_patient_list_controls_007), DashboardFilter.TASK_OVERDUE to uiText(R.string.ui_ward_patient_list_controls_008)
+                ).forEach { (preset, label) -> AppFilterChip(selectedPreset == preset, { onPreset(preset) }, label) }
+            }
             BadgedBox(badge = { if (activeFilters.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer) { Text(uiNumber(activeFilters.size)) } }) {
                 AppIconButton(label = uiText(R.string.ui_ward_patient_list_controls_004) +
                     if (activeFilters.isEmpty()) "" else " · ${uiNumber(activeFilters.size)}",
-                    icon = Icons.Filled.FilterList, onClick = onOptions)
+                    icon = AppIcons.FilterList, onClick = onOptions)
             }
             if (activeFilters.isNotEmpty()) AppIconButton(label = uiText(R.string.ui_ward_patient_list_controls_005),
-                icon = Icons.Filled.RestartAlt, onClick = onReset)
-        }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
-            listOf(DashboardFilter.ALL to uiText(R.string.ui_all), DashboardFilter.MINE to uiText(R.string.ui_handover_dashboard_011),
-                DashboardFilter.URGENT to uiText(R.string.ui_ward_patient_list_controls_007), DashboardFilter.TASK_OVERDUE to uiText(R.string.ui_ward_patient_list_controls_008)
-            ).forEach { (preset, label) -> AppFilterChip(selectedPreset == preset, { onPreset(preset) }, label) }
+                icon = AppIcons.RestartAlt, onClick = onReset)
         }
         if (activeFilters.isNotEmpty() && selectedPreset == null) Text(
             uiText(R.string.ui_ward_patient_list_controls_002, activeFilters.distinct().joinToString(" · ")),

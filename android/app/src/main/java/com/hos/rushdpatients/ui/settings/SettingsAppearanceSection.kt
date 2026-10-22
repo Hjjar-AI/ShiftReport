@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.ward.PatientCardState
 import com.hos.rushdpatients.ui.ward.PatientCardActions
 import com.hos.rushdpatients.R
@@ -13,13 +14,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.ui.components.AppPalettePicker
 import com.hos.rushdpatients.ui.theme.AppAppearance
@@ -36,7 +35,8 @@ internal fun SettingsAppearanceSection(
     state: SettingsUiState,
     onAppearance: (AppAppearance) -> Unit,
     onTheme: (AppThemePreset) -> Unit,
-    onFont: (AppFontScale) -> Unit
+    onFont: (AppFontScale) -> Unit,
+    onUiPreferences: (com.hos.rushdpatients.ui.theme.UiPreferences) -> Unit
 ) {
     val uiText = rememberUiStrings()
     val controls: @Composable (Modifier) -> Unit = { modifier ->
@@ -44,7 +44,7 @@ internal fun SettingsAppearanceSection(
             Text(uiText(R.string.ui_settings_appearance_section_001), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppAppearance.entries.forEach { option ->
-                    FilterChip(selected = state.appearance == option,
+                    AppFilterChip(selected = state.appearance == option,
                         onClick = { onAppearance(option) }, label = { Text(option.arabicLabel(uiText)) })
                 }
             }
@@ -53,13 +53,14 @@ internal fun SettingsAppearanceSection(
             Text(uiText(R.string.ui_settings_appearance_section_003), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppFontScale.entries.forEach { option ->
-                    FilterChip(selected = state.fontScale == option,
+                    AppFilterChip(selected = state.fontScale == option,
                         onClick = { onFont(option) }, label = { Text(option.arabicLabel(uiText)) })
                 }
             }
+            SettingsUiControls(state.uiPreferences, onUiPreferences)
         }
     }
-    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+    val fontScale = com.hos.rushdpatients.ui.theme.uiLayoutScale()
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         if (maxWidth >= UiLayout.splitMinWidth * fontScale) {
             Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
@@ -89,7 +90,7 @@ internal fun SettingsPatientCardPreview(state: SettingsUiState, modifier: Modifi
         Text(uiText(R.string.ui_settings_appearance_section_010),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         // Font scale comes from the same app-wide density provider as the ward.
-        RushdPatientsTheme(preset = state.appTheme, appearance = state.appearance) {
+        RushdPatientsTheme(preset = state.appTheme, appearance = state.appearance, uiPreferences = state.uiPreferences) {
             PatientCard(
         state = PatientCardState(patient = sample,
             expanded = true,

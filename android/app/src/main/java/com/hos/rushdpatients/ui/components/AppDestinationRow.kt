@@ -1,16 +1,11 @@
 package com.hos.rushdpatients.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
@@ -30,7 +25,7 @@ fun AppDestinationRow(title: String, summary: String, icon: ImageVector,
                 Text(summary, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.Filled.ChevronRight, modifier = Modifier.directionalIcon(),
+            Icon(AppIcons.ChevronRight, modifier = Modifier.directionalIcon(),
                 contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

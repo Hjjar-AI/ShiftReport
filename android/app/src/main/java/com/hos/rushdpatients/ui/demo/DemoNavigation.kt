@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.ui.components.AppIcons
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.R
@@ -8,19 +9,11 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import com.hos.rushdpatients.domain.sort.SortSpec
 import com.hos.rushdpatients.ui.components.*
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import com.hos.rushdpatients.ui.ward.DashboardFilter
-import com.hos.rushdpatients.ui.ward.PatientSortOptions
-import com.hos.rushdpatients.ui.ward.WardViewOption
-import com.hos.rushdpatients.ui.ward.sortReviewLabel
 
 internal enum class DemoDestination(@StringRes private val titleRes: Int) {
     PATIENTS(R.string.ui_patients), DASHBOARD(R.string.ui_ward_drawer_010),
@@ -50,11 +43,11 @@ internal fun DemoDrawer(
                 NavigationDrawerItem(selected = selected == destination,
                     label = { Text(destination.title(uiText)) },
                     icon = { Icon(when (destination) {
-                        DemoDestination.PATIENTS -> Icons.Filled.ViewAgenda
-                        DemoDestination.DASHBOARD -> Icons.Filled.Dashboard
-                        DemoDestination.TEAM -> Icons.Filled.Groups
-                        DemoDestination.REPORT -> Icons.Filled.Description
-                        DemoDestination.SETTINGS -> Icons.Filled.Settings
+                        DemoDestination.PATIENTS -> AppIcons.ViewAgenda
+                        DemoDestination.DASHBOARD -> AppIcons.Dashboard
+                        DemoDestination.TEAM -> AppIcons.Groups
+                        DemoDestination.REPORT -> AppIcons.Description
+                        DemoDestination.SETTINGS -> AppIcons.Settings
                     }, contentDescription = null) }, onClick = { onNavigate(destination) })
             }
             AppDivider()

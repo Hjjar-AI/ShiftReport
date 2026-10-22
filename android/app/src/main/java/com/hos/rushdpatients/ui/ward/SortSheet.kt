@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppSheet
+import com.hos.rushdpatients.ui.components.AppMenuItem
+import com.hos.rushdpatients.ui.components.AppMenu
 import com.hos.rushdpatients.ui.components.UiStrings
 
 import com.hos.rushdpatients.R
@@ -12,7 +15,6 @@ import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import com.hos.rushdpatients.ui.components.AppDialogDismissAction
 import com.hos.rushdpatients.ui.components.AppDialogHeader
@@ -23,8 +25,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,7 +53,7 @@ fun SortSheet(
 ) {
     val uiText = rememberUiStrings()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = { if (!saving) onDismiss() }, sheetState = sheetState) {
+    AppSheet(onDismissRequest = { if (!saving) onDismiss() }, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight).padding(UiSpacing.screen)) {
             AppDialogHeader(uiText(R.string.ui_sort_sheet_001))
             Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState())) {
@@ -206,9 +206,9 @@ private fun FieldDropdown(
         AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(fieldLabel(uiText, selected))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             SortField.values().forEach { f ->
-                DropdownMenuItem(
+                AppMenuItem(
                     enabled = LocalFieldEnabled.current,
                     text = { Text(fieldLabel(uiText, f)) },
                     onClick = { onSelected(f); expanded = false }
@@ -230,13 +230,13 @@ private fun DirectionDropdown(
         AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(if (selected == SortDirection.ASC) uiText(R.string.ui_sort_sheet_013) else uiText(R.string.ui_sort_sheet_014))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
+        AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            AppMenuItem(
                     enabled = LocalFieldEnabled.current,
                 text = { Text(uiText(R.string.ui_sort_sheet_013)) },
                 onClick = { onSelected(SortDirection.ASC); expanded = false }
             )
-            DropdownMenuItem(
+            AppMenuItem(
                     enabled = LocalFieldEnabled.current,
                 text = { Text(uiText(R.string.ui_sort_sheet_014)) },
                 onClick = { onSelected(SortDirection.DESC); expanded = false }

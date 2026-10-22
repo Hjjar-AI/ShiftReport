@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.hos.rushdpatients.ui.components.AppDivider
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -85,7 +85,7 @@ internal fun SettingsSecurityContent(state: SettingsUiState, viewModel: Settings
     Text(uiText(R.string.ui_settings_preference_sections_017), style = MaterialTheme.typography.labelMedium)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         listOf(1, 5, 15, 30).forEach { minutes ->
-            FilterChip(
+            AppFilterChip(
                 selected = state.autoLockMinutes == minutes,
                 onClick = { viewModel.setAutoLockMinutes(minutes) },
                 label = { Text(uiText(R.string.ui_settings_preference_sections_018, minutes)) }

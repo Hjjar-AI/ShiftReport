@@ -42,6 +42,27 @@ the linked guides. Source completion does not imply a device/runtime result.
 
 ## Android interface
 
+- Owner debug assembly passed for `1.1.23.20261022` (code 24) in 37 seconds
+  after the patient-header import and unused drawer-variable fixes, with no Kotlin
+  warning reported. The Gradle deprecation notice remains nonfatal; device/test
+  behavior remains unverified.
+
+- Implemented the owner's selected follow-up: local style profiles, app-wide
+  density/control sizes, reduced motion, optional scroll-hidden navigation and
+  header expansion, and a compact labelled Add action. Small labels are 13sp and
+  Small scaling is 0.92. Centralized icons, semantic text, transient UI wrappers,
+  list toolbars and state/loading presentation. Demo choices remain temporary;
+  clinical colors/data, permissions, report review and schema versions stay intact.
+  Owner debug assembly passed; test/device behavior remains unverified.
+
+- Consolidation follow-up shares compact chip sizing, dialog title headings,
+  selected-surface strokes, disclosure headers and accent/validation notices.
+  Ward controls/cards and report progress use less repeated chrome; doctor
+  registry actions share a disclosure while pending warnings remain visible.
+  Added numeric spacing aliases and semantic style tokens without changing
+  toolchains, clinical data or safety gates. The subsequent selected typography
+  changes are recorded above. Further agent builds/tests need confirmation.
+
 - Focused Settings/drawer workspaces, compact dock/rail, admin-only Activity, adaptive
   fold-safe panes, patient rounds, retained filters and saved-patient return/highlight.
 - Validated all 88 supplied UI findings; corrected evidenced card-tap, editor
@@ -55,13 +76,17 @@ the linked guides. Source completion does not imply a device/runtime result.
 - Bundled genuine Tajawal Medium alongside Regular/Bold and shared emphasized roles.
   Preserved logo/About, Arabic resources, clinical severity, 48dp targets and the
   five-second hold/skip/recreation splash behavior.
-- Offline Kotlin/resource/KSP compilation passed; the owner's subsequent
-  `assembleDebug` also succeeded for `1.1.19.20261022` (code 20) on 22 October.
-  Device rendering/interaction remains unverified; see
-  [build evidence and limits](current-state.md#verification-and-limits).
+- Earlier offline Kotlin/resource/KSP compilation also passed for its source
+  snapshot. Current build evidence and runtime limitations are recorded in
+  [Current state](current-state.md#verification-and-limits).
 - Pending optional decisions are preserved in the [decision register](decisions/android-ui-options.md).
 
 ## Desktop client
+
+- Shared desktop presentation tokens and button styles replace repeated shared
+  control recipes while retaining minimum targets, platform fonts and existing
+  appearance settings. Changed Python source parses successfully; runtime UI
+  verification is not claimed.
 
 - Standalone CustomTkinter workflow replaces the old Excel-based operational path;
   encrypted drafts, reviewed Android-compatible publication/reconnect and durable receipts.
@@ -78,6 +103,7 @@ the linked guides. Source completion does not imply a device/runtime result.
 - Shared-workstation build fixes reuse durable caches, separate account-generated
   output, retain protected signing, and export versioned artifacts for ordinary owner
   packaging. Verification builds disable automatic version reservation.
-- Consolidated current-state/history records, preserved operational guides and
-  explicit verification limits, improved the documentation index and retained all
-  unanswered UI choices separately from the active roadmap.
+- Consolidated four overlapping Android reviews and temporary selection notes
+  into one review. Retained three source-evidenced data-boundary concerns, removed
+  stale questionnaires/unsuitable proposals and updated links and the work guide.
+  Current behavior/history, optional decisions and planned work retain separate homes.

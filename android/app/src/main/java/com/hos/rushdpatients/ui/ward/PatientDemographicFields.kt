@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -151,13 +151,13 @@ internal fun PatientDemographicFields(
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         FlowRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             Text(uiText(R.string.ui_patient_demographic_fields_010), style = MaterialTheme.typography.labelMedium)
-            FilterChip(
+            AppFilterChip(
                 enabled = !saving,
                 selected = gender == Gender.MALE,
                 onClick = { onGenderChanged(Gender.MALE) },
                 label = { Text(uiText(R.string.ui_male)) }
             )
-            FilterChip(
+            AppFilterChip(
                 enabled = !saving,
                 selected = gender == Gender.FEMALE,
                 onClick = { onGenderChanged(Gender.FEMALE) },

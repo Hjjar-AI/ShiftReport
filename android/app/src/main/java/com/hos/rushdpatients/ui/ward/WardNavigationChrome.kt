@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -8,15 +9,7 @@ import com.hos.rushdpatients.ui.components.AppCompactTopBar
 import com.hos.rushdpatients.ui.components.uiNumber
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,23 +41,23 @@ internal fun WardHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
         }, navigation = {
             AppIconButton(label = uiText(R.string.ui_ward_navigation_chrome_004),
-            icon = Icons.Filled.Menu,
+            icon = AppIcons.Menu,
             onClick = onMenu)
         }, actions = {
             if (patientDestination && state.patients.isNotEmpty()) {
                 AppIconButton(label = if (anyCardsExpanded) uiText(R.string.ui_ward_navigation_chrome_005) else uiText(R.string.ui_ward_navigation_chrome_006),
-            icon = if (anyCardsExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            icon = if (anyCardsExpanded) AppIcons.ExpandLess else AppIcons.ExpandMore,
             onClick = onToggleCards)
             }
             if (showAddAction && !state.isReadOnly && (!patientDestination || state.patients.isNotEmpty())) {
                 AppIconButton(label = uiText(R.string.ui_add_patient),
-            icon = Icons.Filled.Add,
+            icon = AppIcons.Add,
             onClick = onAdd,
             enabled = state.shift != null &&
                     !state.loading && !state.saving && !state.syncing)
             }
             if (!patientDestination || state.patients.isNotEmpty()) AppIconButton(label = uiText(R.string.ui_ward_navigation_chrome_007),
-            icon = Icons.Filled.Search,
+            icon = AppIcons.Search,
             onClick = onSearch)
         })
     }

@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -66,11 +65,11 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         Box(Modifier.weight(1f)) {
             when (val step = state.step) {
-                is LoginStep.Bootstrapping -> Centered { com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_login_screen_001)) }
-                is LoginStep.BootstrapFailed -> AppCenteredContent {
-                    AppNotice(uiText(R.string.ui_login_screen_002, step.message), kind = NoticeKind.ERROR)
-                    AppButton(onClick = viewModel::boot) { Text(uiText(R.string.ui_retry)) }
-                }
+                is LoginStep.Bootstrapping -> com.hos.rushdpatients.ui.components.AppStateHost(
+                    loading = true, loadingMessage = uiText(R.string.ui_login_screen_001))
+                is LoginStep.BootstrapFailed -> com.hos.rushdpatients.ui.components.AppStateHost(
+                    loading = false, loadingMessage = uiText(R.string.ui_login_screen_001),
+                    error = uiText(R.string.ui_login_screen_002, step.message), retryLabel = uiText(R.string.ui_retry), onRetry = viewModel::boot)
                 is LoginStep.PickDoctor -> PickDoctorList(
                     projectName = state.projectName,
                     doctors = step.doctors,

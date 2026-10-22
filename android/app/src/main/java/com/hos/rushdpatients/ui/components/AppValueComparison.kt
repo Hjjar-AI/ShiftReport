@@ -14,7 +14,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 fun AppValueComparison(title: String, firstLabel: String, firstValue: String, secondLabel: String, secondValue: String) {
     val uiText = rememberUiStrings()
     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
+        AppText(title, role = AppTextRole.HEADING)
         Text(uiText(R.string.ui_app_value_comparison_002, firstLabel, firstValue.ifBlank { uiText(R.string.ui_app_value_comparison_001) }), style = MaterialTheme.typography.bodyMedium)
         Text(uiText(R.string.ui_app_value_comparison_002, secondLabel, secondValue.ifBlank { uiText(R.string.ui_app_value_comparison_001) }), style = MaterialTheme.typography.bodyMedium)
     }

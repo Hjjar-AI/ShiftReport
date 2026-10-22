@@ -8,10 +8,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,7 +27,7 @@ fun AppSearchField(query: String, onQueryChange: (String) -> Unit, label: String
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focus.clearFocus() }),
         trailingIcon = { if (query.isNotEmpty()) AppIconButton(label = uiText(R.string.ui_shift_doctor_picker_007),
-            icon = Icons.Filled.Close,
+            icon = AppIcons.Close,
             onClick = { onQueryChange("") },
             enabled = active) })
 }

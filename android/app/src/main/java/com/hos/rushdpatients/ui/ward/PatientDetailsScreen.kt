@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppClinicalCard
 import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.ui.theme.UiLayout
@@ -17,10 +19,8 @@ import com.hos.rushdpatients.ui.components.AppCompactTopBar
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppActionLabel
-import com.hos.rushdpatients.ui.components.AppClinicalSection
 import com.hos.rushdpatients.ui.theme.UiElevation
 import com.hos.rushdpatients.ui.components.uiDateTime
-import com.hos.rushdpatients.ui.components.relativeFreshness
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -40,20 +40,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -62,7 +54,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -106,14 +97,14 @@ internal fun PatientDetailsScreen(
                         },
                         navigation = {
                             AppIconButton(label = uiText(R.string.ui_patient_details_screen_001),
-            icon = Icons.Filled.Close,
+            icon = AppIcons.Close,
             onClick = onDismiss)
                         }
                     )
                     roundsNavigation?.let { navigation ->
                         PatientRoundsBar(navigation, enabled = navigationEnabled, onNavigate = onNavigateToPatient)
                     }
-                    Surface(tonalElevation = UiElevation.navigation) {
+                    Surface(tonalElevation = UiElevation.raised) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -128,7 +119,7 @@ internal fun PatientDetailsScreen(
                                     PatientDetailSection.HISTORY -> activity.count { it.patientId == patient.id }
                                     else -> 0
                                 }
-                                FilterChip(
+                                AppFilterChip(
                                     selected = section == option,
                                     onClick = { section = option },
                                     label = {
@@ -142,7 +133,7 @@ internal fun PatientDetailsScreen(
             },
             bottomBar = {
                 if (!readOnly) {
-                    Surface(tonalElevation = UiElevation.actionBar) {
+                    Surface(tonalElevation = com.hos.rushdpatients.ui.theme.LocalUiStyle.current.actionBarElevation) {
                         AppButton(
                             onClick = onEdit,
                             modifier = Modifier
@@ -193,7 +184,7 @@ internal fun PatientDetailsScreen(
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     AppOutlinedButton(onClick = onCopy) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                        Icon(AppIcons.ContentCopy, contentDescription = null)
                         Text(uiText(R.string.ui_copy), Modifier.padding(start = UiSpacing.small))
                     }
                     if (!readOnly) {
@@ -202,7 +193,7 @@ internal fun PatientDetailsScreen(
                             onPriorityChange(!patient.isPriority)
                         }) {
                             Icon(
-                                if (patient.isPriority) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                if (patient.isPriority) AppIcons.Star else AppIcons.StarBorder,
                                 contentDescription = null
                             )
                             Text(

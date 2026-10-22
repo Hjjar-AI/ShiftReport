@@ -159,9 +159,51 @@ RTL boundaries, labelled 48dp controls and growing/wrapping Arabic text remain.
   visibility. Display-only clinical date markers use Arabic digits without an emoji;
   saved clinical text and export representations remain unchanged.
 
+The October consolidation follow-up routes selectable chips and alert dialogs
+through shared sizing/heading owners. Choice-chip groups, selection strokes and
+icon-capable disclosure headers replace repeated presentation. Notices include
+accent/dismiss/content slots; patient validation uses the clinical urgent palette.
+Ward preset/filter controls share a row; collapsed cards combine summary chips,
+put ordinal beside the name and omit the diagnosis heading. Full expanded content
+and explicit card actions remain. Fetch advice retains its preservation wording
+and actions through one shared slot. Doctor registry tools share one disclosure;
+pending-change warnings stay outside it. Desktop controls now share named tokens
+and button-style options, with existing dimensions and platform fonts retained.
+Appearance → «تخصيص الواجهة» now exposes current/relaxed/quiet/clear profiles,
+compact/normal/relaxed content density, default/compact/standard/comfortable controls,
+reduced motion and ward-navigation choices. `UiPreferences` is stored as one local
+value in the existing encrypted settings table; no database or interchange version
+changed. `ThemeViewModel` observes it only after the storage gate. Demo owns its
+encoded preference value in temporary UI state and never writes production settings.
+`LocalUiPreferences`/`LocalUiStyle` drive shared padding, patient/list spacing,
+borders, navigation/action elevations and app-owned motion. Explicit density overrides
+card spacing; Normal retains the existing card-only compact preference. Reduced
+motion makes card/nav transitions and explicit section/search jumps immediate;
+platform sheets and ripples continue to follow Android's animation settings.
+
+Auto-hide navigation is off by default. When enabled on the phone patient list,
+downward scrolling hides the dock; upward movement or either boundary restores it.
+Touch exploration keeps navigation visible. The compact, labelled 48dp Add action
+is the default, with its text version available in Settings. Optional header taps
+toggle expansion; card-body taps still open the full record and explicit expand/
+menu controls remain. Cards with no expandable content omit the expand control.
+Small labels are now 13/20sp; Small app scaling is 0.92 (combined lower bound 0.92,
+existing upper bound 2.0), still combined with system font scaling.
+
+`AppIcons` centralizes 60 existing symbols without changing their filled/outlined
+appearance or protected About artwork. `AppText` provides semantic heading/body/
+supporting/caption/numeric/clinical/lab roles; clinical dates and lab direction share
+one renderer. Menu items, sheets, snackbar hosts, list toolbars, loading sizes and
+state hosts have shared presentation owners. Callers retain all state/retry,
+permission, draft, selection and clinical callbacks.
+See the [review dispositions](reviews/android-review.md) for
+implemented items, qualified claims and remaining proposals.
+
 ## Reports and exports
 
-The Android flow remains Doctors → Destination → Preview → Send. Unlimited active-
+The Android flow remains Doctors → Destination → Preview → Send. A compact
+progress indicator/counter accompanies the stage name; footer target and disabled
+reason text wrap together. Unlimited active-
 doctor roster selection is available first and checks revisions. Preview opening
 is required for the current text or every selected PDF before final confirmation.
 `ReportFlowGate` owns presentation decisions; the ViewModel/delivery layer remains
@@ -215,40 +257,35 @@ compatibility dependency pins and key protection. See the [desktop guide](../des
 
 ## Verification and limits
 
-The selected UI pass uses the installed Gradle 8.7 distribution, existing Android
-SDK and durable personal dependency cache, in offline mode. Temporary generated
-build output/logs are separate from source; automatic version reservation is
-explicitly disabled. A shared-cache daemon ownership failure was avoided by using
-the existing personal cache. No toolchain/dependency download was needed for builds.
+The owner supplied a successful `./gradlew assembleDebug` result on 22 October
+2026 for `1.1.23.20261022` (code 24): 37 seconds, 44 actionable tasks, 15 executed
+and 29 up-to-date. No Kotlin warning was reported. This verifies debug assembly
+after both the missing patient-header `heightIn` import and unused drawer-variable
+fixes. Configuration-cache recalculation was followed by successful storage; the
+remaining Gradle deprecation notice was nonfatal. The trailing IDLE worker status
+does not change the successful outcome. The APK was not independently inspected
+or run by the agent. Owner-reserved versions are preserved.
 
-Final selected-source verification: `compileDebugKotlin` **passed offline** on
-22 October 2026, including Android resource processing and KSP. The final run took
-46 seconds, reusing configuration/dependency caches; no source warnings were
-reported. Earlier compile findings (filter-chip argument order, the PDF-selection
-local and a missing UiStrings import) were corrected before the successful run.
-Full local log: `/tmp/shiftreport-ui-verification/compile.log`. This agent-run
-compile did not produce an APK.
+Earlier offline Kotlin/resource/KSP compilation and owner assemblies apply only
+to their source snapshots. The latest result above supersedes the earlier failed
+`1.1.21` build and the successful `1.1.22` build that reported the unused variable.
 
-Owner-supplied 22 October 2026 log confirms `./gradlew assembleDebug` succeeded
-for `1.1.19.20261022` (code 20) in 2m 14s: 44 actionable tasks, 18 executed,
-5 from cache and 21 up-to-date. This establishes successful debug assembly for
-that build snapshot; the APK was not independently inspected or run by the agent.
-Configuration-cache recalculation followed changed Gradle properties, and the
-cache was stored successfully. The Gradle deprecation warning was nonfatal; no
-toolchain upgrade or further build was performed in response.
+Source checks cover changed Python/XML parsing, Kotlin delimiter structure,
+UI string/icon references, local documentation links and Git unstaged/staged
+whitespace. The documentation consolidation also rechecked three retained
+[data-boundary findings](reviews/android-review.md#retained-source-findings)
+against named production source; those findings were not fixed by documentation.
 
-Earlier successful builds apply only to their own snapshots. Source checks cover
-resource/XML references, changed Kotlin structure/call sites, retained revision/
-confirmation guards, font metadata/provenance, Markdown links and Git whitespace.
+Builds/compilation and extensive tests require explicit owner confirmation under
+[AGENTS.md](../AGENTS.md). No agent rebuild, test-suite or migration inspection/
+change, packaging/distribution, device/rendered-preview, TalkBack/fold/large-font,
+performance-profile or live Telegram work was performed in this cleanup.
+Compilation does not establish runtime preference persistence, auto-hide/header-tap
+behavior, Arabic wrapping, accessibility or delivery behavior. Clipboard cleanup
+after focus loss and memory-session loss after process death remain explicit limits.
 
-No test-suite or migration inspection/change, agent-run APK packaging/distribution, device/
-rendered-preview, TalkBack/fold/large-font, performance-profile or live Telegram
-verification is claimed. Clipboard cleanup after focus loss and memory-session
-loss after process death remain explicit limits. The original device-side doctor
-CSV import failure still lacks its original exception, and production signing
-still requires the owner's protected key.
-
-Optional proposals and unanswered preferences remain in the
-[decision register](decisions/android-ui-options.md); they are not verification-only
-roadmap tasks. Original findings are retained in the compact
-[review disposition](reviews/android-deep-ui-review-validation.md).
+The doctor CSV import failure still lacks its original device exception, and
+production signing still requires the owner's protected key. See [Roadmap](roadmap.md)
+for planned work, [UI decisions](decisions/android-ui-options.md) for remaining
+unselected proposals, and the [Consolidated Android review](reviews/android-review.md)
+for review outcomes and unresolved source findings.

@@ -1,33 +1,22 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.ViewAgenda
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.ui.components.AppDestinationCard
-import com.hos.rushdpatients.ui.components.AppCard
-import com.hos.rushdpatients.ui.components.AppButton
-import com.hos.rushdpatients.ui.components.AppDestinationRow
-import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 /** One manual-entry action, then clearly explained sources; mutations stay caller-owned. */
@@ -47,7 +36,7 @@ internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Bool
             EmptyState(
                 title = if (isReadOnly) uiText(R.string.ui_empty_ward_patients_001) else uiText(R.string.ui_empty_ward_patients_002),
                 subtitle = if (isReadOnly) uiText(R.string.ui_empty_ward_patients_003) else uiText(R.string.ui_empty_ward_patients_004),
-                icon = Icons.Filled.ViewAgenda,
+                icon = AppIcons.ViewAgenda,
                 actionLabel = if (isReadOnly) null else uiText(R.string.ui_empty_ward_patients_005),
                 onAction = if (isReadOnly) null else onAdd, actionEnabled = !busy)
             if (!isReadOnly && showSources) {
@@ -56,10 +45,10 @@ internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Bool
                 Text(uiText(R.string.ui_empty_ward_patients_007), modifier = Modifier.fillMaxWidth()
                     .padding(top = UiSpacing.screen).semantics { heading() },
                     style = MaterialTheme.typography.titleSmall)
-                AppDestinationCard(title = uiText(R.string.ui_empty_ward_patients_008), icon = Icons.Filled.CloudDownload,
+                AppDestinationCard(title = uiText(R.string.ui_empty_ward_patients_008), icon = AppIcons.CloudDownload,
                         summary = uiText(R.string.ui_empty_ward_patients_009),
                         enabled = !busy, onClick = onFetch)
-                AppDestinationCard(title = uiText(R.string.ui_empty_ward_patients_010), icon = Icons.Filled.History,
+                AppDestinationCard(title = uiText(R.string.ui_empty_ward_patients_010), icon = AppIcons.History,
                         summary = uiText(R.string.ui_empty_ward_patients_011),
                         enabled = !busy && canCopy, onClick = onCopyPrevious)
             }

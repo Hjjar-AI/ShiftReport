@@ -1293,4 +1293,25 @@
     <string name="ui_settings_preferences_001" formatted="false">"حُفظ اسم الجناح للتقارير"</string>
     <string name="ui_back" formatted="false">"رجوع"</string>
     <string name="ui_demo_local_only">هذا العرض محلي ومؤقت؛ لا يتصل بالمشروع. تغيّرت البيانات؟ أعد فتح الإجراء وراجعه.</string>
+    <string name="ui_doctor_registry_tools">إدارة سجل الأطباء</string>
+    <string name="ui_style_profile">نمط الواجهة</string>
+    <string name="ui_density">مسافات المحتوى</string>
+    <string name="ui_density_compact">مضغوطة</string>
+    <string name="ui_density_normal">عادية</string>
+    <string name="ui_density_relaxed">واسعة</string>
+    <string name="ui_control_size">حجم عناصر التحكم</string>
+    <string name="ui_control_default">حسب العنصر</string>
+    <string name="ui_control_comfortable">مريحة</string>
+    <string name="ui_reduced_motion">تقليل الحركة</string>
+    <string name="ui_auto_hide_navigation">إخفاء شريط التنقل عند التمرير لأسفل</string>
+    <string name="ui_compact_add_action">زر إضافة مختصر</string>
+    <string name="ui_expand_patient_header">توسيع البطاقة بالضغط على عنوان المريض</string>
+    <string name="ui_reset_interface">إعادة ضبط تخصيص الواجهة</string>
+    <string name="ui_custom_interface">تخصيص الواجهة</string>
+    <string name="ui_expand_patient_header_help">العنوان يوسّع البطاقة؛ متنها يفتح الملف الكامل.</string>
+    <string name="ui_profile_current">الحالي</string>
+    <string name="ui_profile_relaxed">أوسع</string>
+    <string name="ui_profile_quiet">هادئ</string>
+    <string name="ui_profile_clear">أوضح</string>
+    <string name="ui_interface_save_failed">تعذر حفظ تخصيص الواجهة. حاول مجدداً.</string>
 </resources>

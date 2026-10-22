@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.R
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
 import com.hos.rushdpatients.ui.components.AppDivider
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,7 +50,7 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
             Text(uiText(R.string.ui_settings_report_section_006), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 PdfOrientation.entries.forEach { option ->
-                    FilterChip(
+                    AppFilterChip(
                         selected = state.pdfOrientation == option,
                         onClick = { viewModel.setPdfOrientation(option) },
                         label = { Text(option.uiLabel(uiText)) }
@@ -61,7 +61,7 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
             Text(uiText(R.string.ui_settings_report_section_007), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 PdfPaperSize.entries.forEach { option ->
-                    FilterChip(
+                    AppFilterChip(
                         selected = state.pdfPaperSize == option,
                         onClick = { viewModel.setPdfPaperSize(option) },
                         label = { Text(option.uiLabel(uiText)) }
@@ -75,7 +75,7 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
         Text(uiText(R.string.ui_settings_report_section_009), style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
             PdfColorPreset.entries.forEach { option ->
-                FilterChip(
+                AppFilterChip(
                     selected = state.pdfColorPreset == option,
                     onClick = { viewModel.setPdfColorPreset(option) },
                     label = { Text(option.uiLabel(uiText)) }

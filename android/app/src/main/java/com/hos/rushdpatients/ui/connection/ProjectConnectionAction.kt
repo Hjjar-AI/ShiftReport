@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.connection
 
+import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -19,8 +20,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -80,7 +79,7 @@ fun ProjectConnectionAction(
                 viewModel.reset()
             }
         }
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = dismiss,
             title = { Text(if (manual) uiText(R.string.ui_project_connection_action_002) else uiText(R.string.ui_project_connection_action_001)) },
             text = {

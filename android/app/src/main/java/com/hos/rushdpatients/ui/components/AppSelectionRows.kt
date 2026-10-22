@@ -19,7 +19,7 @@ fun AppChoiceRow(label: String, selected: Boolean, onClick: () -> Unit,
     val active = enabled && LocalFieldEnabled.current
     Row(modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
         .selectable(selected = selected, enabled = active, role = Role.RadioButton, onClick = onClick)
-        .padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
+        .padding(com.hos.rushdpatients.ui.theme.uiContentPadding(UiPadding.content)), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         RadioButton(selected = selected, onClick = null, enabled = active)
         Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))
@@ -32,7 +32,7 @@ fun AppCheckRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> U
     val active = enabled && LocalFieldEnabled.current
     Row(modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
         .toggleable(value = checked, enabled = active, role = Role.Checkbox, onValueChange = onCheckedChange)
-        .padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
+        .padding(com.hos.rushdpatients.ui.theme.uiContentPadding(UiPadding.content)), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         Checkbox(checked = checked, onCheckedChange = null, enabled = active)
         Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))
@@ -46,7 +46,7 @@ fun AppToggleRow(title: String, checked: Boolean, onCheckedChange: ((Boolean) ->
     Row(modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
         .toggleable(value = checked, enabled = active, role = Role.Switch,
             onValueChange = { onCheckedChange?.invoke(it) })
-        .padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
+        .padding(com.hos.rushdpatients.ui.theme.uiContentPadding(UiPadding.content)), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyMedium,

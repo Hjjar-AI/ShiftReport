@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.AppMenuItem
+import com.hos.rushdpatients.ui.components.AppMenu
+import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -45,10 +48,10 @@ internal fun TeamManagementDialog(doctors: List<Doctor>, busy: Boolean, onDismis
                                 AppTextButton(onClick = { expanded = true }, enabled = !busy) {
                                     Text(resident.fullName + " ← " + name(assignments[resident.id]))
                                 }
-                                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                    DropdownMenuItem(text = { Text(uiText(R.string.ui_team_management_dialog_001)) }, onClick = { assignments = assignments + (resident.id to null); expanded = false }, enabled = !busy)
+                                AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                    AppMenuItem(text = { Text(uiText(R.string.ui_team_management_dialog_001)) }, onClick = { assignments = assignments + (resident.id to null); expanded = false }, enabled = !busy)
                                     supervisors.forEach { supervisor ->
-                                        DropdownMenuItem(text = { Text(supervisor.fullName) }, onClick = {
+                                        AppMenuItem(text = { Text(supervisor.fullName) }, onClick = {
                                             assignments = assignments + (resident.id to supervisor.id); expanded = false
                                         }, enabled = !busy)
                                     }
@@ -63,7 +66,7 @@ internal fun TeamManagementDialog(doctors: List<Doctor>, busy: Boolean, onDismis
             }
         }
     }
-    if (reviewing) AlertDialog(onDismissRequest = { if (!busy) reviewing = false }, title = { Text(uiText(R.string.ui_team_management_dialog_007)) },
+    if (reviewing) AppAlertDialog(onDismissRequest = { if (!busy) reviewing = false }, title = { Text(uiText(R.string.ui_team_management_dialog_007)) },
         text = { Column(Modifier.verticalScroll(rememberScrollState())) {
             changes.forEach { (id, next) -> Text(name(id) + "\n" + name(expected.first { it.id == id }.teamSupervisorId) + " ← " + name(next)) }
         } }, confirmButton = { AppButton(onClick = { onSave(expected, changes) }, enabled = !busy) { Text(uiText(R.string.ui_team_management_dialog_008)) } },

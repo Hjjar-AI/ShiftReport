@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.demo
 
+import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +36,8 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     var tab by rememberSaveable { mutableStateOf(DemoDestination.PATIENTS) }
     var appearance by rememberSaveable { mutableStateOf(AppAppearance.LIGHT) }
     var accent by rememberSaveable { mutableStateOf(AppThemePreset.VANILLA) }
+    var uiPreferencesSetting by rememberSaveable { mutableStateOf(UiPreferences().encode()) }
+    val uiPreferences = UiPreferences.decode(uiPreferencesSetting)
     var font by rememberSaveable { mutableStateOf(AppFontScale.NORMAL) }
     var showExit by remember { mutableStateOf(false) }
     var showReset by remember { mutableStateOf(false) }
@@ -43,7 +46,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     val main = tab == DemoDestination.PATIENTS || tab == DemoDestination.DASHBOARD
     val baseDensity = LocalDensity.current
     val density = remember(baseDensity, font) {
-        Density(baseDensity.density, (baseDensity.fontScale * font.multiplier).coerceIn(.85f, 2f))
+        Density(baseDensity.density, (baseDensity.fontScale * font.multiplier).coerceIn(.92f, 2f))
     }
     fun navigate(destination: DemoDestination) { tab = destination }
     @Composable
@@ -71,7 +74,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     LaunchedEffect(state.message, main) {
         if (!main) state.message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
     }
-    RushdPatientsTheme(preset = accent, appearance = appearance) {
+    RushdPatientsTheme(preset = accent, appearance = appearance, uiPreferences = uiPreferences) {
         AppSystemBars()
         CompositionLocalProvider(LocalDensity provides density) {
             if (main) pages.SaveableStateProvider("ward") {
@@ -86,14 +89,14 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 DemoMenu { after -> scope.launch { drawer.close(); after() } }
             }) {
                 Scaffold(topBar = { AppTopBar(tab.title(uiText), onBack = { tab = DemoDestination.PATIENTS }) },
-                    snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+                    snackbarHost = { AppSnackbarHost(snackbar) }) { padding ->
                     pages.SaveableStateProvider(tab.name) {
                         val modifier = Modifier.fillMaxSize().padding(padding).padding(UiPadding.screen)
                         when (tab) {
                             DemoDestination.TEAM -> DemoTeamContent(state, { showDoctors = true }, viewModel::selectActor, modifier)
                             DemoDestination.SETTINGS -> DemoPreferencesContent(appearance, { appearance = it }, accent, { accent = it },
                                 font, { font = it }, ward.patientDetailsExpanded, ward.twoColumn, ward.compactCards,
-                                state.saveAndNext, viewModel::setSaveAndNext, modifier)
+                                state.saveAndNext, viewModel::setSaveAndNext, uiPreferences, { uiPreferencesSetting = it.encode() }, modifier)
                             DemoDestination.REPORT -> DemoReportContent(state, { showDoctors = true }, onExport = { options, style ->
                                 viewModel.preparePdfExport(options, style == PdfStyle.CARDS)
                                 try { export.launch("ShiftReport_DEMO_${state.date}.pdf") }

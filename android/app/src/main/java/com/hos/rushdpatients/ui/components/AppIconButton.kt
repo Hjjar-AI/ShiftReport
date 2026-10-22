@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,13 +25,15 @@ fun AppIconButton(
     label: String, icon: ImageVector, onClick: () -> Unit,
     modifier: Modifier = Modifier, enabled: Boolean = true,
     iconModifier: Modifier = Modifier, tint: Color = LocalContentColor.current,
-    directional: Boolean = false
+    directional: Boolean = false,
+    size: com.hos.rushdpatients.ui.theme.UiControlSize = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current.controlSize
 ) {
     PlainTooltipBox(tooltip = { Text(label) }) {
+        val sizedIcon = iconModifier.size(size.iconSize)
         IconButton(onClick = onClick, enabled = enabled,
             modifier = modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget).tooltipAnchor()) {
             Icon(icon, contentDescription = label, tint = tint,
-                modifier = if (directional) iconModifier.directionalIcon() else iconModifier)
+                modifier = if (directional) sizedIcon.directionalIcon() else sizedIcon)
         }
     }
 }

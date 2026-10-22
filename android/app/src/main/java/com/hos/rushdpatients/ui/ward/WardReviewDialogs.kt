@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppAlertDialog
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -16,8 +18,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,7 +41,7 @@ internal fun RolloverReviewDialog(
 ) {
     val uiText = rememberUiStrings()
     var keepAssignments by androidx.compose.runtime.remember(patients) { androidx.compose.runtime.mutableStateOf(false) }
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(uiText(R.string.ui_ward_review_dialogs_001)) },
         text = {
@@ -49,7 +49,7 @@ internal fun RolloverReviewDialog(
                 .verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 Text(sourceLabel, style = MaterialTheme.typography.bodySmall)
                 Text(uiText(R.string.ui_ward_review_dialogs_002))
-                FilterChip(selected = keepAssignments, enabled = !saving,
+                AppFilterChip(selected = keepAssignments, enabled = !saving,
                     onClick = { keepAssignments = !keepAssignments },
                     label = { Text(uiText(R.string.ui_ward_review_dialogs_003)) })
                 if (!keepAssignments) Text(uiText(R.string.ui_ward_review_dialogs_004))
@@ -79,7 +79,7 @@ internal fun PatientRecycleBinDialog(
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(uiText(R.string.ui_ward_review_dialogs_009)) },
         text = {
@@ -124,7 +124,7 @@ internal fun ShiftSnapshotPickerDialog(
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(uiText(R.string.ui_ward_review_dialogs_012)) },
         text = {

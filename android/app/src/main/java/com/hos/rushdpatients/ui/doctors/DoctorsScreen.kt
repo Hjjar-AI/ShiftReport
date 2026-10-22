@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.ui.doctors
 
-import com.hos.rushdpatients.ui.theme.UiTypography
+import com.hos.rushdpatients.ui.components.AppSnackbarHost
+import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppIconButton
 import androidx.annotation.StringRes
 
@@ -18,7 +20,6 @@ import com.hos.rushdpatients.ui.components.AppFieldPair
 import androidx.compose.foundation.layout.PaddingValues
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.ui.components.AppLoadingState
-import com.hos.rushdpatients.ui.components.AppSearchField
 import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.components.AppTextButton
@@ -34,28 +35,14 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.foundation.verticalScroll
@@ -69,9 +56,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -154,20 +139,20 @@ fun DoctorsScreen(
             if (!busy) ExtendedFloatingActionButton(
                 onClick = { showAdd = true },
                 modifier = actionSpace.measure,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                icon = { Icon(AppIcons.Add, contentDescription = null) },
                 text = { Text(uiText(R.string.ui_add_edit_doctor_dialog_001)) }
             )
         },
-        snackbarHost = { SnackbarHost(snackbar) }
+        snackbarHost = { AppSnackbarHost(snackbar) }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when {
-                state.loading && state.doctors.isEmpty() -> AppLoadingState(uiText(R.string.ui_login_screen_001), Modifier.align(Alignment.Center))
-                else -> LazyColumn(
+            com.hos.rushdpatients.ui.components.AppStateHost(
+                loading = state.loading && state.doctors.isEmpty(), loadingMessage = uiText(R.string.ui_login_screen_001)) {
+                LazyColumn(
                     contentPadding = PaddingValues(bottom = actionSpace.bottomPadding),
                     modifier = Modifier
                         .fillMaxSize()
@@ -179,14 +164,9 @@ fun DoctorsScreen(
                             state.importing -> uiText(R.string.ui_doctors_screen_002)
                             state.exporting -> uiText(R.string.ui_doctors_screen_003)
                             else -> uiText(R.string.ui_doctors_screen_004)
-                        })
+                        }, size = com.hos.rushdpatients.ui.components.AppLoadingSize.SECTION)
                     }
                     item {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                            AppOutlinedButton(onClick = { registryAction = "fetch" },
-                                enabled = !busy && state.pendingRegistrySummary == null) { Text(uiText(R.string.ui_doctors_screen_005)) }
-                            AppOutlinedButton(onClick = { registryReview = state.doctors.toList(); registryAction = "publish" }, enabled = !busy) { Text(uiText(R.string.ui_doctors_screen_006)) }
-                        }
                         state.pendingRegistrySummary?.let { summary ->
                             com.hos.rushdpatients.ui.components.AppNotice(uiText(R.string.ui_doctors_screen_007),
                                 actionLabel = if (pendingDetails) uiText(R.string.ui_doctors_screen_008) else uiText(R.string.ui_doctors_screen_009),
@@ -195,20 +175,10 @@ fun DoctorsScreen(
                         }
                     }
                     item {
-                        AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy) { Text(uiText(R.string.ui_team_management_dialog_002)) }
-                    }
-                    item {
-                        AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_doctors_screen_010))
-                    }
-                    item {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                            DoctorListFilter.entries.forEach { option ->
-                                FilterChip(
-                                    selected = filter == option,
-                                    onClick = { filter = option },
-                                    label = { Text(option.label(uiText)) }
-                                )
-                            }
+                        com.hos.rushdpatients.ui.components.AppListToolbar(query, { query = it },
+                            uiText(R.string.ui_doctors_screen_010)) {
+                            com.hos.rushdpatients.ui.components.AppChoiceChips(DoctorListFilter.entries.toList(), filter,
+                                { filter = it }, { it.label(uiText) })
                         }
                     }
                     item {
@@ -217,18 +187,18 @@ fun DoctorsScreen(
                                 modifier = Modifier.padding(UiPadding.content),
                                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                             ) {
-                                AppTextButton(
-                                    onClick = { transferExpanded = !transferExpanded },
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-                                        .semantics { stateDescription = if (transferExpanded) uiText(R.string.ui_doctors_screen_011) else uiText(R.string.ui_doctors_screen_012) }
-                                ) {
-                                    Text(uiText(R.string.ui_doctors_screen_013), modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = UiTypography.emphasizedWeight)
-                                    Icon(if (transferExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = null)
-                                }
+                                com.hos.rushdpatients.ui.components.AppSectionHeader(
+                                    title = uiText(R.string.ui_doctor_registry_tools), expanded = transferExpanded,
+                                    onToggle = { transferExpanded = !transferExpanded })
                                 if (transferExpanded) {
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                                        AppOutlinedButton(onClick = { registryAction = "fetch" },
+                                            enabled = !busy && state.pendingRegistrySummary == null) { Text(uiText(R.string.ui_doctors_screen_005)) }
+                                        AppOutlinedButton(onClick = { registryReview = state.doctors.toList(); registryAction = "publish" }, enabled = !busy) { Text(uiText(R.string.ui_doctors_screen_006)) }
+                                    }
+                                    AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy) {
+                                        Text(uiText(R.string.ui_team_management_dialog_002))
+                                    }
                                     Text(
                                         uiText(R.string.ui_doctors_screen_014),
                                         style = MaterialTheme.typography.bodySmall,
@@ -238,14 +208,14 @@ fun DoctorsScreen(
                                         first = { fieldModifier ->
                                             AppOutlinedButton(onClick = { importLauncher.launch(arrayOf("*/*")) },
                                                 enabled = !busy, modifier = fieldModifier) {
-                                                Icon(Icons.Default.FolderOpen, contentDescription = null)
+                                                Icon(AppIcons.FolderOpen, contentDescription = null)
                                                 Text(uiText(R.string.ui_doctors_screen_015), Modifier.padding(start = UiSpacing.small))
                                             }
                                         },
                                         second = { fieldModifier ->
                                             AppOutlinedButton(onClick = viewModel::prepareDoctorExport,
                                                 enabled = !busy, modifier = fieldModifier) {
-                                                Icon(Icons.Default.Save, contentDescription = null)
+                                                Icon(AppIcons.Save, contentDescription = null)
                                                 Text(uiText(R.string.ui_doctors_screen_016), Modifier.padding(start = UiSpacing.small))
                                             }
                                         }
@@ -320,18 +290,18 @@ fun DoctorsScreen(
     }
 
     if (state.importing) {
-        AlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_doctors_screen_024)) },
-            text = { AppLoadingState(uiText(R.string.ui_doctors_screen_025)) },
+        AppAlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_doctors_screen_024)) },
+            text = { AppLoadingState(uiText(R.string.ui_doctors_screen_025), size = com.hos.rushdpatients.ui.components.AppLoadingSize.SECTION) },
             confirmButton = {})
     }
     state.importError?.let { message ->
-        AlertDialog(onDismissRequest = viewModel::dismissImportError,
+        AppAlertDialog(onDismissRequest = viewModel::dismissImportError,
             title = { Text(uiText(R.string.ui_doctors_screen_026)) }, text = { Text(message) },
             confirmButton = { AppTextButton(onClick = viewModel::dismissImportError) { Text(uiText(R.string.ui_settings_screen_006)) } })
     }
 
     registryAction?.let { action ->
-        AlertDialog(onDismissRequest = { registryAction = null },
+        AppAlertDialog(onDismissRequest = { registryAction = null },
             title = { Text(if (action == "publish") uiText(R.string.ui_doctors_screen_006) else uiText(R.string.ui_doctors_screen_005)) },
             text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
@@ -349,7 +319,7 @@ fun DoctorsScreen(
             dismissButton = { AppTextButton(onClick = { registryAction = null }) { Text(uiText(R.string.ui_cancel)) } })
     }
     state.importPreview?.takeUnless { state.importing }?.let { preview ->
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = viewModel::dismissDoctorImport,
             title = { Text(uiText(R.string.ui_doctors_screen_032)) },
             text = {
@@ -425,11 +395,11 @@ private fun DoctorCard(
                 }
             }
             AppIconButton(label = uiText(R.string.ui_doctors_screen_050, doctor.fullName),
-            icon = Icons.Default.Edit,
+            icon = AppIcons.Edit,
             onClick = onEdit,
             enabled = enabled)
             AppIconButton(label = uiText(R.string.ui_doctors_screen_051, doctor.fullName),
-            icon = Icons.Default.Delete,
+            icon = AppIcons.Delete,
             onClick = onDelete,
             enabled = enabled)
         }

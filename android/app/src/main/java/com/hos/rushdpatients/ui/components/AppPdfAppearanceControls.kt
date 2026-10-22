@@ -30,34 +30,17 @@ fun AppPdfAppearanceControls(
     Text(uiText(R.string.ui_app_pdf_appearance_controls_001), style = MaterialTheme.typography.labelMedium)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PdfPresentationPreset.entries.forEach { preset ->
-            FilterChip(selected = weight == preset.weight && contrast == preset.contrast && shading == preset.shading &&
+            AppFilterChip(selected = weight == preset.weight && contrast == preset.contrast && shading == preset.shading &&
                 (!preset.lightOnly || !dark), onClick = { onPreset(preset) }, enabled = enabled,
-                label = { Text(preset.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
+                label = { Text(preset.uiLabel(uiText)) })
         }
     }
-    Text(uiText(R.string.ui_app_pdf_appearance_controls_002), style = MaterialTheme.typography.labelMedium)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        PdfRuleWeight.entries.forEach { value ->
-            FilterChip(selected = weight == value, onClick = { onWeight(value) }, enabled = enabled,
-                label = { Text(value.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
-        }
-    }
-    Text(uiText(R.string.ui_app_pdf_appearance_controls_003), style = MaterialTheme.typography.labelMedium)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        PdfRuleContrast.entries.forEach { value ->
-            FilterChip(selected = contrast == value, onClick = { onContrast(value) }, enabled = enabled,
-                label = { Text(value.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
-        }
-    }
-    if (showShading) {
-        Text(uiText(R.string.ui_app_pdf_appearance_controls_004), style = MaterialTheme.typography.labelMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-            PdfRowShading.entries.forEach { value ->
-                FilterChip(selected = shading == value, onClick = { onShading(value) }, enabled = enabled,
-                    label = { Text(value.uiLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
-            }
-        }
-    }
+    AppChoiceChips(PdfRuleWeight.entries.toList(), weight, onWeight, { it.uiLabel(uiText) },
+        title = uiText(R.string.ui_app_pdf_appearance_controls_002), enabled = enabled)
+    AppChoiceChips(PdfRuleContrast.entries.toList(), contrast, onContrast, { it.uiLabel(uiText) },
+        title = uiText(R.string.ui_app_pdf_appearance_controls_003), enabled = enabled)
+    if (showShading) AppChoiceChips(PdfRowShading.entries.toList(), shading, onShading, { it.uiLabel(uiText) },
+        title = uiText(R.string.ui_app_pdf_appearance_controls_004), enabled = enabled)
     val palette = PdfPalette.resolve(PdfExportOptions(ruleWeight = weight, ruleContrast = contrast, rowShading = shading, darkMode = dark))
     Canvas(Modifier.fillMaxWidth().height(72.dp).semantics {
         contentDescription = uiText(R.string.ui_app_pdf_appearance_controls_005, weight.uiLabel(uiText), contrast.uiLabel(uiText), shading.uiLabel(uiText))

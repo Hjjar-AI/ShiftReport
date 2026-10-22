@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.components.AppAlertDialog
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -14,11 +16,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.data.model.Doctor
 
 @Composable
@@ -41,14 +40,14 @@ fun AssignAdminDialog(
     val uiText = rememberUiStrings()
     var selected by remember { mutableStateOf<Doctor?>(null) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(uiText(R.string.ui_assign_admin_dialog_001)) },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 400.dp)
+                    .appDialogBody()
                     .verticalScroll(rememberScrollState()).selectableGroup(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
@@ -101,14 +100,14 @@ fun RemoveAdminDialog(
     val uiText = rememberUiStrings()
     var selected by remember { mutableStateOf<Doctor?>(null) }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(uiText(R.string.ui_assign_admin_dialog_005)) },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 400.dp)
+                    .appDialogBody()
                     .verticalScroll(rememberScrollState()).selectableGroup(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {

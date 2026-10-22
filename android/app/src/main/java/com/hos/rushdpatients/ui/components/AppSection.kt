@@ -12,10 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -23,6 +19,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -42,14 +40,15 @@ fun AppSectionHeader(
     expanded: Boolean? = null,
     onToggle: (() -> Unit)? = null,
     titleColor: Color = MaterialTheme.colorScheme.primary,
-    summary: String? = null
+    summary: String? = null,
+    icon: ImageVector? = null
 ) {
     val uiText = rememberUiStrings()
     val interaction = if (onToggle != null) Modifier.heightIn(min = UiSpacing.touchTarget)
         .clickable(role = Role.Button, onClick = onToggle) else Modifier
     Row(
         modifier = modifier.fillMaxWidth().then(interaction).padding(UiPadding.compact)
-            .semantics {
+            .semantics(mergeDescendants = true) {
                 heading()
                 if (expanded != null) stateDescription = if (expanded) uiText(R.string.ui_patient_form_dialog_023) else uiText(R.string.ui_patient_form_dialog_024)
                 else if (complete == true) stateDescription = uiText(R.string.ui_app_section_001)
@@ -57,23 +56,24 @@ fun AppSectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
     ) {
+        icon?.let { Icon(it, contentDescription = null,
+            modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium), tint = titleColor) }
         if (summary == null) {
-            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
-                color = titleColor)
+            AppText(title, modifier = Modifier.weight(1f), role = AppTextRole.HEADING, color = titleColor)
         } else {
             FlowRow(modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, color = titleColor)
+                AppText(title, role = AppTextRole.HEADING, color = titleColor)
                 Text(summary, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         count?.let { Text(uiNumber(it), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        if (complete == true) Icon(Icons.Filled.Check, contentDescription = null,
+        if (complete == true) Icon(AppIcons.Check, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary)
-        if (expanded != null) Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+        if (expanded != null) Icon(if (expanded) AppIcons.ExpandLess else AppIcons.ExpandMore,
             contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -87,8 +87,8 @@ fun AppSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     AppCard(modifier = modifier.fillMaxWidth(), colors = colors) {
-        Column(Modifier.fillMaxWidth().padding(UiPadding.card),
-            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+        Column(Modifier.fillMaxWidth().padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
+            verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.uiContentGap())) {
             AppSectionHeader(title, titleColor = titleColor)
             content()
         }

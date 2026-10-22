@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.ward
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import com.hos.rushdpatients.ui.theme.UiPatientCard
 import com.hos.rushdpatients.ui.theme.UiLayout
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +45,7 @@ internal fun WardPatientGrid(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = UiSpacing.screenGutter),
-        verticalArrangement = Arrangement.spacedBy(UiPatientCard.listGap),
+        verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.uiListGap()),
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
         item(key = "ward-header", contentType = "ward-header", span = { GridItemSpan(maxLineSpan) }) {

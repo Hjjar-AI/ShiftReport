@@ -5,11 +5,15 @@ from desktop_widgets import messagebox
 from desktop_input import ArabicEntry, ArabicTextbox
 import desktop_widgets as ctk
 from desktop_protocol import BridgeError
+from desktop_tokens import SPACE, TARGET, WRAP, FONT_ROLES, ButtonStyle, button_options
 
 
-def button(parent, text, command, **kwargs):
-    widget = ctk.CTkButton(parent, text=text, command=command, height=48, **kwargs)
-    widget.pack(fill='x', padx=8, pady=4)
+def button(parent, text, command, style=ButtonStyle.PRIMARY, **kwargs):
+    options = button_options(style)
+    options.update(kwargs)
+    options['height'] = max(TARGET, options.get('height', TARGET))
+    widget = ctk.CTkButton(parent, text=text, command=command, **options)
+    widget.pack(fill='x', padx=SPACE['m'], pady=SPACE['s'])
     return widget
 
 
@@ -19,9 +23,9 @@ def dialog_actions(parent, primary=None, cancel=None, secondary=()):
     Long labels use a full row; callbacks retain the caller's validation/review.
     """
     widgets={}
-    quiet=dict(fg_color='transparent',border_width=1,text_color=('gray20','gray90'))
+    quiet=button_options(ButtonStyle.OUTLINED)
     for index,(label,command) in enumerate(secondary):
-        widget=ctk.CTkButton(parent,text=label,command=command,height=48,**quiet)
+        widget=ctk.CTkButton(parent,text=label,command=command,height=TARGET,**quiet)
         widget.grid(row=index,column=0,columnspan=2,sticky='ew',padx=8,pady=4)
         widgets[label]=widget
     row=len(secondary)
@@ -30,26 +34,25 @@ def dialog_actions(parent, primary=None, cancel=None, secondary=()):
     parent.grid_columnconfigure(1,weight=1,uniform='dialog-actions')
     if primary:
         label,command=primary
-        widget=ctk.CTkButton(parent,text=label,command=command,height=48)
+        widget=ctk.CTkButton(parent,text=label,command=command,height=TARGET)
         widget.grid(row=row,column=0 if stacked else 1,columnspan=2 if stacked else 1,sticky='ew',padx=8,pady=4)
         widgets[label]=widget
     if cancel:
         label,command=cancel
-        widget=ctk.CTkButton(parent,text=label,command=command,height=48,**quiet)
+        widget=ctk.CTkButton(parent,text=label,command=command,height=TARGET,**quiet)
         widget.grid(row=row+int(stacked),column=0,sticky='ew',padx=8,pady=4)
         widgets[label]=widget
     return widgets
 
 
 def section_heading(parent, title, summary=None):
-    ctk.CTkLabel(parent,text=title,font=('Arial',16,'bold'),anchor='e').pack(fill='x',padx=10,pady=(10,3))
+    ctk.CTkLabel(parent,text=title,font=('Arial',FONT_ROLES['title'],'bold'),anchor='e').pack(fill='x',padx=10,pady=(10,3))
     if summary:
-        ctk.CTkLabel(parent,text=summary,anchor='e',justify='right',wraplength=560).pack(fill='x',padx=10,pady=2)
+        ctk.CTkLabel(parent,text=summary,anchor='e',justify='right',wraplength=WRAP['dialog']).pack(fill='x',padx=10,pady=2)
 
 
 def destination_row(parent, title, summary, command):
-    return button(parent,title+'  ‹\n'+summary,command,anchor='e',fg_color='transparent',
-                  border_width=1,text_color=('gray20','gray90'))
+    return button(parent,title+'  ‹\n'+summary,command,anchor='e',style=ButtonStyle.OUTLINED)
 
 
 def discard_guard(window, dirty, message='لم تُحفظ التغييرات. هل تريد الخروج دون حفظ؟'):
@@ -87,7 +90,7 @@ def entry(parent, label, value='', multiline=False):
         widget.tag_config('rtl', justify='right'); widget.tag_add('rtl', '1.0', 'end')
         widget.bind('<KeyRelease>', lambda event: widget.tag_add('rtl', '1.0', 'end'))
     else:
-        widget = ArabicEntry(parent, justify='right', height=48)
+        widget = ArabicEntry(parent, justify='right', height=TARGET)
         widget.insert(0, value)
     if hasattr(widget, 'reset_undo'):
         widget.reset_undo()
@@ -103,7 +106,7 @@ def combo(parent, label, mapping, value, on_change=None):
     if value not in mapping:
         mapping[value] = 'قيمة محفوظة [' + str(value) + ']'
     variable = tk.StringVar(value=mapping[value])
-    widget = ctk.CTkComboBox(parent, values=list(mapping.values()), variable=variable, state='readonly', justify='right', height=48,
+    widget = ctk.CTkComboBox(parent, values=list(mapping.values()), variable=variable, state='readonly', justify='right', height=TARGET,
                            command=(lambda value:on_change()) if on_change else None)
     widget.pack(fill='x', padx=10, pady=2)
     return lambda: next(key for key, label in mapping.items() if label == variable.get())
@@ -137,4 +140,3 @@ def guarded(action):
         except (ValueError, KeyError, TypeError):
             messagebox.showerror('ShiftReport', 'تحقق من القيم والتواريخ المطلوبة')
     return wrapped
-

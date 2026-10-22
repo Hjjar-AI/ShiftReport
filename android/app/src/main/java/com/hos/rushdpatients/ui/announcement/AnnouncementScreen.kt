@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.announcement
 
+import com.hos.rushdpatients.ui.components.AppSnackbarHost
+import com.hos.rushdpatients.ui.components.AppAlertDialog
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -12,11 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,7 +49,7 @@ fun AnnouncementScreen(onBack: () -> Unit, viewModel: AnnouncementViewModel = hi
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let { snackbar.showSnackbar(it); viewModel.dismissSnackbar() }
     }
-    Scaffold(topBar = { AppTopBar(title = uiText(R.string.ui_announcement_screen_001), onBack = onBack) }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    Scaffold(topBar = { AppTopBar(title = uiText(R.string.ui_announcement_screen_001), onBack = onBack) }, snackbarHost = { AppSnackbarHost(snackbar) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(UiSpacing.screen).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)) {
             Text(uiText(R.string.ui_announcement_screen_002),style = MaterialTheme.typography.bodyMedium)
@@ -69,15 +70,15 @@ fun AnnouncementScreen(onBack: () -> Unit, viewModel: AnnouncementViewModel = hi
         }
     }
     state.reviewText?.let { text ->
-        AlertDialog(onDismissRequest = viewModel::dismissReview,title = { Text(if (state.reviewExisting) uiText(R.string.ui_announcement_screen_013) else uiText(R.string.ui_announcement_screen_014)) },
-            text = { Text(text,Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) },
+        AppAlertDialog(onDismissRequest = viewModel::dismissReview,title = { Text(if (state.reviewExisting) uiText(R.string.ui_announcement_screen_013) else uiText(R.string.ui_announcement_screen_014)) },
+            text = { Text(text,Modifier.appDialogBody().verticalScroll(rememberScrollState())) },
             confirmButton = { AppTextButton(onClick = viewModel::confirmSend,enabled = !busy) { Text(uiText(R.string.ui_doctors_screen_030)) } },
             dismissButton = { AppTextButton(onClick = viewModel::dismissReview,enabled = !busy) { Text(uiText(R.string.ui_cancel)) } })
     }
     resolution?.let { (row,received) ->
         var messageId by remember(row.id,received) { mutableStateOf("") }
         val parsed = messageId.map { if (Character.isDigit(it)) Character.digit(it,10).toString() else it.toString() }.joinToString("").trim().toLongOrNull()
-        AlertDialog(onDismissRequest = { if (!busy) resolution = null },title = { Text(uiText(R.string.ui_announcement_screen_015)) },
+        AppAlertDialog(onDismissRequest = { if (!busy) resolution = null },title = { Text(uiText(R.string.ui_announcement_screen_015)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text(if (received) uiText(R.string.ui_announcement_screen_016)

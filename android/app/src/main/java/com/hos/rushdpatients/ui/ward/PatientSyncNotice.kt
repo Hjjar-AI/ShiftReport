@@ -1,14 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,11 +25,11 @@ internal fun PatientSyncNotice(
 ) {
     val uiText = rememberUiStrings()
     val kind = patientSyncNoticeKind(status, online)
-    val icon = if (!online) Icons.Filled.WifiOff else when (status) {
-        PatientSyncStatus.LOCAL -> Icons.Filled.Save
-        PatientSyncStatus.PENDING -> Icons.Filled.CloudUpload
-        PatientSyncStatus.BACKED_UP -> Icons.Filled.CloudDone
-        PatientSyncStatus.SYNCING -> Icons.Filled.Sync
+    val icon = if (!online) AppIcons.WifiOff else when (status) {
+        PatientSyncStatus.LOCAL -> AppIcons.Save
+        PatientSyncStatus.PENDING -> AppIcons.CloudUpload
+        PatientSyncStatus.BACKED_UP -> AppIcons.CloudDone
+        PatientSyncStatus.SYNCING -> AppIcons.Sync
     }
     var expanded by rememberSaveable { mutableStateOf(false) }
     val canShowDetails = freshnessLabel != status.arabicLabel(uiText)

@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.font.FontWeight
@@ -69,7 +68,7 @@ fun <T> AppSectionIndex(sections: List<T>, selected: T, label: (T) -> String,
                                 fontWeight = if (active) UiTypography.emphasizedWeight else FontWeight.Normal, maxLines = 1)
                         }
                     }
-                } else FilterChip(selected = section == selected, enabled = enabled, onClick = { onSelect(section) },
+                } else AppFilterChip(selected = section == selected, enabled = enabled, onClick = { onSelect(section) },
                     label = { Text(label(section)) }, modifier = anchor)
             }
         }

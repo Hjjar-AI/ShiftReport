@@ -1,12 +1,12 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.components.AppTabBar
 import com.hos.rushdpatients.ui.components.AppTabItem
 import com.hos.rushdpatients.ui.components.AppSectionHeader
@@ -18,39 +18,25 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.ViewAgenda
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.outlined.ViewAgenda
-import androidx.compose.material.icons.outlined.Dashboard
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 
 private enum class WardDestination(
     @StringRes val label: Int, val outlined: ImageVector, val filled: ImageVector
 ) {
-    PATIENTS(R.string.ui_patients, Icons.Outlined.ViewAgenda, Icons.Filled.ViewAgenda),
-    DASHBOARD(R.string.ui_ward_components_002, Icons.Outlined.Dashboard, Icons.Filled.Dashboard),
-    ACTIVITY(R.string.ui_ward_navigation_chrome_003, Icons.Outlined.History, Icons.Filled.History);
+    PATIENTS(R.string.ui_patients, AppIcons.OutlinedViewAgenda, AppIcons.ViewAgenda),
+    DASHBOARD(R.string.ui_ward_components_002, AppIcons.OutlinedDashboard, AppIcons.Dashboard),
+    ACTIVITY(R.string.ui_ward_navigation_chrome_003, AppIcons.OutlinedHistory, AppIcons.History);
 
     fun selected(view: WardViewMode): Boolean = when (this) {
         PATIENTS -> view == WardViewMode.ALL || view == WardViewMode.MINE
@@ -113,7 +99,7 @@ internal fun DrawerSubmenuHeader(
         onClick = onClick,
         badge = {
             Icon(
-                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                imageVector = if (expanded) AppIcons.ExpandLess else AppIcons.ExpandMore,
                 contentDescription = if (expanded) uiText(R.string.ui_ward_drawer_030, label) else uiText(R.string.ui_ward_drawer_031, label)
             )
         },
@@ -132,14 +118,8 @@ internal fun CompactDrawerItem(
     badge: (@Composable () -> Unit)? = null,
     enabled: Boolean = true
 ) {
-    val contentColor = (if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onSurface).let { if (enabled) it else it.copy(alpha = UiOpacity.disabledContent) }
-    Surface(onClick = onClick, enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).semantics { this.selected = selected },
-        shape = MaterialTheme.shapes.small,
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        contentColor = contentColor
-    ) {
+    com.hos.rushdpatients.ui.components.AppSelectableSurface(selected = selected, onClick = onClick,
+        enabled = enabled, modifier = modifier.fillMaxWidth()) {
         Row(Modifier.padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium)) {
             icon?.invoke()

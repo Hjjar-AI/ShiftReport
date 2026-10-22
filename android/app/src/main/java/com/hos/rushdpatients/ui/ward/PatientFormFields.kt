@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppMenuItem
+import com.hos.rushdpatients.ui.components.AppMenu
+import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -9,7 +13,6 @@ import com.hos.rushdpatients.ui.components.AppChoiceRow
 import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
-import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.hos.rushdpatients.ui.theme.UiPadding
@@ -20,7 +23,6 @@ import com.hos.rushdpatients.ui.components.AppButton
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.LocalFieldEnabled
 import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,19 +30,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import com.hos.rushdpatients.ui.components.AppDivider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,7 +46,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDirection
@@ -80,7 +73,7 @@ internal fun DateField(
     var open by remember { mutableStateOf(false) }
     AppPickerField(
         value = value?.toString().orEmpty(), label = label,
-        placeholder = uiText(R.string.ui_patient_form_fields_001), icon = Icons.Filled.CalendarMonth, valueTextDirection = TextDirection.Ltr,
+        placeholder = uiText(R.string.ui_patient_form_fields_001), icon = AppIcons.CalendarMonth, valueTextDirection = TextDirection.Ltr,
         onClick = { open = true }, modifier = modifier,
         supportingText = supportingText, enabled = enabled, isError = isError, errorMessage = errorMessage
     )
@@ -235,14 +228,14 @@ internal fun MultiValueEditor(
                     modifier = Modifier.weight(1f)) { Text(uiText(R.string.ui_patient_form_fields_005)) }
                 Box {
                     AppIconButton(label = uiText(R.string.ui_patient_form_fields_006, label),
-            icon = Icons.Filled.MoreVert,
+            icon = AppIcons.MoreVert,
             onClick = { insertMenu = true },
             enabled = enabled)
-                    DropdownMenu(expanded = insertMenu && enabled, onDismissRequest = { insertMenu = false }) {
-                        DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_form_fields_007)) },
+                    AppMenu(expanded = insertMenu && enabled, onDismissRequest = { insertMenu = false }) {
+                        AppMenuItem(text = { Text(uiText(R.string.ui_patient_form_fields_007)) },
                             enabled = items.isNotEmpty() && items.last() != FIELD_SEPARATOR,
                             onClick = { insertMenu = false; onAddSeparator() })
-                        if (onAddDate != null) DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_form_fields_008)) },
+                        if (onAddDate != null) AppMenuItem(text = { Text(uiText(R.string.ui_patient_form_fields_008)) },
                             onClick = { insertMenu = false; showDatePicker = true })
                     }
                 }
@@ -290,16 +283,16 @@ private fun DragHandleButton(
     val enabled = LocalFieldEnabled.current
     Box {
         AppIconButton(label = uiText(R.string.ui_patient_form_fields_011, index + 1),
-            icon = Icons.Filled.DragHandle,
+            icon = AppIcons.DragHandle,
             onClick = { expanded = true },
             enabled = enabled,
             modifier = Modifier.size(UiSpacing.touchTarget),
             tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        DropdownMenu(
+        AppMenu(
             expanded = expanded && enabled,
             onDismissRequest = { expanded = false }
         ) {
-            DropdownMenuItem(
+            AppMenuItem(
                 text = { Text(uiText(R.string.ui_patient_form_fields_012)) },
                 enabled = index > 0,
                 onClick = {
@@ -307,7 +300,7 @@ private fun DragHandleButton(
                     expanded = false
                 }
             )
-            DropdownMenuItem(
+            AppMenuItem(
                 text = { Text(uiText(R.string.ui_patient_form_fields_013)) },
                 enabled = index < itemCount - 1,
                 onClick = {
@@ -315,7 +308,7 @@ private fun DragHandleButton(
                     expanded = false
                 }
             )
-            DropdownMenuItem(
+            AppMenuItem(
                 text = { Text(uiText(R.string.ui_patient_form_fields_014)) },
                 enabled = index > 0,
                 onClick = {
@@ -353,7 +346,7 @@ private fun TextItemRow(
             textStyle = textStyle
         )
         AppIconButton(label = uiText(R.string.ui_patient_form_fields_015),
-            icon = Icons.Default.Close,
+            icon = AppIcons.Close,
             onClick = { onRemove(index) },
             enabled = LocalFieldEnabled.current)
     }
@@ -375,7 +368,7 @@ private fun SeparatorRow(
         DragHandleButton(index = index, itemCount = itemCount, onMove = onMove)
         AppDivider(modifier = Modifier.weight(1f))
         AppIconButton(label = uiText(R.string.ui_patient_form_fields_016),
-            icon = Icons.Default.Close,
+            icon = AppIcons.Close,
             onClick = { onRemove(index) },
             enabled = LocalFieldEnabled.current)
     }
@@ -407,7 +400,7 @@ private fun DateMarkerRow(
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 Icon(
-                    Icons.Filled.CalendarMonth,
+                    AppIcons.CalendarMonth,
                     contentDescription = null,
                     modifier = Modifier.size(UiSize.iconSmall),
                     tint = MaterialTheme.colorScheme.onTertiaryContainer
@@ -420,7 +413,7 @@ private fun DateMarkerRow(
             }
         }
         AppIconButton(label = uiText(R.string.ui_patient_form_fields_017),
-            icon = Icons.Default.Close,
+            icon = AppIcons.Close,
             onClick = { onRemove(index) },
             enabled = LocalFieldEnabled.current)
     }
@@ -449,7 +442,7 @@ internal fun DoctorDropdown(
     AppPickerField(value = selectedName.orEmpty(), label = label, placeholder = undefinedLabel,
         onClick = { query = ""; expanded = true }, modifier = modifier.fillMaxWidth(),
         enabled = enabled, isError = isError, errorMessage = errorMessage, supportingText = supportingText)
-    if (expanded && enabled) AlertDialog(onDismissRequest = { expanded = false },
+    if (expanded && enabled) AppAlertDialog(onDismissRequest = { expanded = false },
         title = { Text(label) }, text = {
             Column(Modifier.appDialogBody(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_shift_doctor_picker_003))

@@ -2,7 +2,6 @@ package com.hos.rushdpatients.ui.components
 
 import com.hos.rushdpatients.R
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
@@ -16,7 +15,7 @@ fun ConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { AppDialogHeader(title) },
         text = { Text(message) },

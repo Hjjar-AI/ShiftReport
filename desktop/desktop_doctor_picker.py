@@ -41,6 +41,6 @@ def doctor_picker(parent, label, doctors, value='', role=None, undefined='غير
         dialog_actions(controls,cancel=('رجوع',window.destroy))
         render();window.wait_window()
         if previous.winfo_exists():previous.grab_set()
-    button(parent,'اختيار / تغيير الطبيب',choose,fg_color='transparent',border_width=1,text_color=('gray20','gray90'))
+    from desktop_tokens import ButtonStyle
+    button(parent,'اختيار / تغيير الطبيب',choose,style=ButtonStyle.OUTLINED)
     return lambda:selected[0]
-

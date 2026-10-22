@@ -10,7 +10,6 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import com.hos.rushdpatients.ui.components.uiDateTime
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.PaddingValues
-import com.hos.rushdpatients.ui.components.AppSearchField
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -18,16 +17,13 @@ import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -102,15 +98,10 @@ internal fun WardActivityScreen(
                 onAction = onRefresh, actionEnabled = !loading) }
         }
         item(key = "activity-search") {
-            AppSearchField(query = query, onQueryChange = onQueryChange, label = uiText(R.string.ui_ward_activity_screen_006))
-        }
-        item(key = "activity-filters") {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                ActivityFilter.entries.forEach { option ->
-                    FilterChip(selected = filter == option, onClick = { onFilterChange(option) },
-                        label = { Text(option.arabicLabel(uiText)) }, modifier = Modifier.heightIn(min = UiSpacing.touchTarget))
-                }
+            com.hos.rushdpatients.ui.components.AppListToolbar(query, onQueryChange,
+                uiText(R.string.ui_ward_activity_screen_006)) {
+                com.hos.rushdpatients.ui.components.AppChoiceChips(ActivityFilter.entries.toList(), filter,
+                    onFilterChange, { it.arabicLabel(uiText) })
             }
         }
         if (filter == ActivityFilter.PUBLICATIONS) {

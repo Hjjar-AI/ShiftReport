@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -10,7 +12,6 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppFieldPair
 import com.hos.rushdpatients.ui.components.AppToggleRow
-import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -29,12 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -134,6 +129,7 @@ internal fun PatientFormDialog(
     val specialistDoctors = activeDoctors.filter { it.clinicalRole.canBeSupervisor() }
     val autoStyle = autoDirTextStyle()
     val formScrollState = rememberScrollState()
+    val scrollToSection = com.hos.rushdpatients.ui.components.rememberUiScrollTo(formScrollState)
     val formScope = rememberCoroutineScope()
     val sectionOffsets = remember(initial) { mutableStateMapOf<PatientFormSection, Int>() }
     val sectionOrder = remember(initial == null) {
@@ -231,7 +227,7 @@ internal fun PatientFormDialog(
                         ?: name.takeIf(String::isNotBlank)
                     patientHeading?.let {
                         Text(it, style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
                     }
                     Text(uiText(R.string.ui_patient_form_dialog_001, activeSection.label(uiText)),
                         style = MaterialTheme.typography.labelSmall,
@@ -246,7 +242,7 @@ internal fun PatientFormDialog(
                     }
                     PatientFormSectionNavigation(sectionOrder, activeSection, enabled = !saving) { section ->
                         sectionOffsets[section]?.let { offset ->
-                            formScope.launch { formScrollState.animateScrollTo(offset.coerceIn(0, formScrollState.maxValue)) }
+                            formScope.launch { scrollToSection(offset.coerceIn(0, formScrollState.maxValue)) }
                         }
                     }
                 }
@@ -259,27 +255,19 @@ internal fun PatientFormDialog(
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     if (validationMessages.isNotEmpty()) {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                Text(uiText(R.string.ui_patient_form_dialog_003), style = MaterialTheme.typography.titleSmall)
+                        com.hos.rushdpatients.ui.components.AppNotice(
+                            message = uiText(R.string.ui_patient_form_dialog_003),
+                            kind = com.hos.rushdpatients.ui.components.NoticeKind.ERROR,
+                            content = {
                                 validationMessages.forEach { error ->
-                                    AppTextButton(
-                                        onClick = {
-                                            formScope.launch { fieldRequests.getValue(error.field).bringIntoView() }
-                                        },
-                                        modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-                                    ) {
+                                    AppTextButton(onClick = {
+                                        formScope.launch { fieldRequests.getValue(error.field).bringIntoView() }
+                                    }, modifier = Modifier.fillMaxWidth()) {
                                         Text(error.message, modifier = Modifier.fillMaxWidth(),
-                                            color = MaterialTheme.colorScheme.onErrorContainer)
+                                            color = com.hos.rushdpatients.ui.theme.LocalClinicalColors.current.onUrgentContainer)
                                     }
                                 }
-                            }
-                        }
+                            })
                     }
                     if (initial == null) admissionIdentityContent()
                     entryOptions()
@@ -294,7 +282,7 @@ internal fun PatientFormDialog(
                     Text(uiText(R.string.ui_patient_form_dialog_005), style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                         DiagnosisType.entries.forEach { type ->
-                            FilterChip(
+                            AppFilterChip(
                                 enabled = !saving,
                                 selected = diagnosisType == type,
                                 onClick = { diagnosisType = type },
@@ -488,7 +476,7 @@ internal fun PatientFormDialog(
                                         modifier = Modifier.weight(1f)
                                     )
                                     AppIconButton(label = uiText(R.string.ui_patient_form_dialog_027),
-            icon = Icons.Filled.Close,
+            icon = AppIcons.Close,
             onClick = { badges = badges.filterIndexed { i, _ -> i != index } },
             enabled = !saving)
                                 }
@@ -505,14 +493,14 @@ internal fun PatientFormDialog(
                         )
                         Text(uiText(R.string.ui_patient_form_dialog_030), style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                            FilterChip(
+                            AppFilterChip(
                                 enabled = !saving,
                                 selected = badgeDraftPriority == null,
                                 onClick = { badgeDraftPriority = null },
                                 label = { Text(uiText(R.string.ui_patient_form_dialog_031)) }
                             )
                             PatientBadgePriority.entries.forEach { level ->
-                                FilterChip(
+                                AppFilterChip(
                                     enabled = !saving,
                                     selected = badgeDraftPriority == level,
                                     onClick = { badgeDraftPriority = level },
@@ -563,7 +551,7 @@ internal fun PatientFormDialog(
                         resolvedFollowUp, residentId, specialistId)
                     if (errors.isNotEmpty()) {
                         validationMessages = errors
-                        formScope.launch { formScrollState.animateScrollTo(0) }
+                        formScope.launch { scrollToSection(0) }
                         return@submit
                     }
 

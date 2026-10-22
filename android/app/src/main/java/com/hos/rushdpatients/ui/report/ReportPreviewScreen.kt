@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.AppSnackbarHost
+import com.hos.rushdpatients.ui.components.AppAlertDialog
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.R
@@ -30,11 +33,9 @@ import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.material3.FilterChip
 import com.hos.rushdpatients.pdf.*
 import com.hos.rushdpatients.ui.components.AppPdfStylePicker
 import com.hos.rushdpatients.ui.components.AppPdfAppearanceControls
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
@@ -47,13 +48,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
-import androidx.compose.material3.AlertDialog
-import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -190,15 +188,14 @@ fun ReportPreviewScreen(
             }
         },
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = UiSpacing.tiny) {
+            Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = com.hos.rushdpatients.ui.theme.LocalUiStyle.current.actionBarElevation) {
                 Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(UiSpacing.small),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    Text(if (supervisorMode) uiText(R.string.ui_report_preview_screen_014, uiNumber(selectedTargets.size))
-                        else uiText(R.string.ui_report_preview_screen_016, if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)),
-                        style = MaterialTheme.typography.labelSmall)
-                    (if (step == ReportFlowStep.SEND) sendDisabledReason else nextDisabledReason)?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall)
-                    }
+                    val targetSummary = if (supervisorMode) uiText(R.string.ui_report_preview_screen_014, uiNumber(selectedTargets.size))
+                        else uiText(R.string.ui_report_preview_screen_016, if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015))
+                    val disabledReason = if (step == ReportFlowStep.SEND) sendDisabledReason else nextDisabledReason
+                    Text(listOfNotNull(targetSummary, disabledReason).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall)
                     AppFieldPair(first = { buttonModifier ->
                         AppOutlinedButton(onClick = ::previousStep, enabled = !busy, modifier = buttonModifier) {
                             Text(if (step == ReportFlowStep.DOCTORS) uiText(R.string.ui_cancel) else uiText(R.string.ui_previous))
@@ -219,7 +216,7 @@ fun ReportPreviewScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(snackbar) }
+        snackbarHost = { AppSnackbarHost(snackbar) }
     ) { padding ->
         if (state.loading) {
             Box(
@@ -263,9 +260,9 @@ fun ReportPreviewScreen(
                 if (step == ReportFlowStep.DESTINATION) {
                     AppSection(title = uiText(R.string.ui_report_preview_screen_024)) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                            FilterChip(selected = !supervisorMode, enabled = !busy, onClick = { supervisorMode = false },
+                            AppFilterChip(selected = !supervisorMode, enabled = !busy, onClick = { supervisorMode = false },
                                 label = { Text(uiText(R.string.ui_report_preview_screen_025)) })
-                            FilterChip(selected = supervisorMode, enabled = !busy, onClick = {
+                            AppFilterChip(selected = supervisorMode, enabled = !busy, onClick = {
                                 if (!supervisorSelectionInitialized) {
                                     supervisorSelectionInitialized = true
                                     selectedSupervisorIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
@@ -397,13 +394,13 @@ fun ReportPreviewScreen(
                             Text(uiText(R.string.ui_report_preview_screen_054), style = MaterialTheme.typography.labelMedium)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 PdfPaperSize.entries.forEach { value ->
-                                    FilterChip(selected = options.paperSize == value, enabled = !busy,
+                                    AppFilterChip(selected = options.paperSize == value, enabled = !busy,
                                         onClick = { update(options.copy(paperSize = value)) }, label = { Text(value.uiLabel(uiText)) })
                                 }
                             }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 PdfOrientation.entries.forEach { value ->
-                                    FilterChip(selected = options.orientation == value, enabled = !busy,
+                                    AppFilterChip(selected = options.orientation == value, enabled = !busy,
                                         onClick = { update(options.copy(orientation = value)) }, label = { Text(value.uiLabel(uiText)) })
                                 }
                             }
@@ -468,12 +465,12 @@ fun ReportPreviewScreen(
     }
 
     if (showTextPreview) {
-        AlertDialog(onDismissRequest = { showTextPreview = false }, title = { Text(uiText(R.string.ui_report_preview_screen_077)) },
+        AppAlertDialog(onDismissRequest = { showTextPreview = false }, title = { Text(uiText(R.string.ui_report_preview_screen_077)) },
             text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(state.previewMarkdown) } },
             confirmButton = { AppTextButton(onClick = { showTextPreview = false }) { Text(uiText(R.string.ui_close)) } })
     }
     if (supervisorMenuOpen) {
-        AlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text(uiText(R.string.ui_report_preview_screen_058)) }, text = {
+        AppAlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text(uiText(R.string.ui_report_preview_screen_058)) }, text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) {
                 Text(uiText(R.string.ui_report_preview_screen_078))
                 selectedTargets.forEach { target ->
@@ -485,7 +482,7 @@ fun ReportPreviewScreen(
         }, confirmButton = { AppTextButton(onClick = { supervisorMenuOpen = false }) { Text(uiText(R.string.ui_report_preview_screen_080)) } })
     }
     if (showDeliveryLog) {
-        AlertDialog(onDismissRequest = { showDeliveryLog = false }, title = { Text(uiText(R.string.ui_report_preview_screen_081)) }, text = {
+        AppAlertDialog(onDismissRequest = { showDeliveryLog = false }, title = { Text(uiText(R.string.ui_report_preview_screen_081)) }, text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 Text(uiText(R.string.ui_report_preview_screen_082))
                 if (state.deliveryRecords.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_083))
@@ -514,7 +511,7 @@ fun ReportPreviewScreen(
             DeliveryResolution.NOT_RECEIVED -> uiText(R.string.ui_report_preview_screen_091)
             DeliveryResolution.ALLOW_COPY -> uiText(R.string.ui_report_preview_screen_092)
         }
-        AlertDialog(onDismissRequest = { deliveryDecision = null }, title = { Text(uiText(R.string.ui_report_preview_screen_093)) },
+        AppAlertDialog(onDismissRequest = { deliveryDecision = null }, title = { Text(uiText(R.string.ui_report_preview_screen_093)) },
             text = { Text(row.label + "\n" + instruction) },
             confirmButton = { AppButton(onClick = { deliveryDecision = null; viewModel.resolveDelivery(row, decision) }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_094)) } },
             dismissButton = { AppTextButton(onClick = { deliveryDecision = null }) { Text(uiText(R.string.ui_cancel)) } })

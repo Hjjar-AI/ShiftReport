@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -22,8 +23,6 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -203,7 +202,7 @@ internal fun WardAdaptivePanes(
                             orientation = Orientation.Horizontal
                         ),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Filled.DragHandle, contentDescription = null, modifier = Modifier.size(UiSize.icon)) }
+                ) { Icon(AppIcons.DragHandle, contentDescription = null, modifier = Modifier.size(UiSize.icon)) }
             }
         } else compactOverlay()
     }

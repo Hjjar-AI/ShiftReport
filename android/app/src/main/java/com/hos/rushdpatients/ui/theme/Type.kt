@@ -42,5 +42,5 @@ val Typography = Typography(
     bodySmall = textStyle(14, 22),
     labelLarge = textStyle(14, 22, UiTypography.emphasizedWeight),
     labelMedium = textStyle(13, 20, FontWeight.Medium),
-    labelSmall = textStyle(12, 18, FontWeight.Medium)
+    labelSmall = textStyle(13, 20, FontWeight.Medium)
 )

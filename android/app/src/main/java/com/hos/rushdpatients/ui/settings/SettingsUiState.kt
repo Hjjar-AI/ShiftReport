@@ -36,6 +36,7 @@ data class SettingsUiState(
     val pdfRowShading: PdfRowShading = PdfRowShading.AUTO,
     val pdfDarkMode: Boolean = false,
     val pdfSeparateBySupervisor: Boolean = false,
+    val uiPreferences: com.hos.rushdpatients.ui.theme.UiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences(),
     val appearance: AppAppearance = AppAppearance.LIGHT,
     val appTheme: AppThemePreset = AppThemePreset.VANILLA,
     val fontScale: AppFontScale = AppFontScale.NORMAL,

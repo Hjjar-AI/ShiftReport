@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -15,15 +16,11 @@ import com.hos.rushdpatients.ui.components.AppCheckRow
 import com.hos.rushdpatients.ui.components.AppSearchField
 import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.ui.components.AppCard
-import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -62,7 +59,7 @@ fun ShiftDoctorPicker(
     val requestDismiss: () -> Unit = {
         if (!saving) { if (selected.toSet() != initialSelected.toSet()) confirmDiscard = true else onDismiss() }
     }
-    if (!reviewing && !confirmDiscard) AlertDialog(
+    if (!reviewing && !confirmDiscard) AppAlertDialog(
         onDismissRequest = requestDismiss,
         title = { AppDialogHeader(uiText(R.string.ui_shift_doctor_picker_001)) },
         text = {

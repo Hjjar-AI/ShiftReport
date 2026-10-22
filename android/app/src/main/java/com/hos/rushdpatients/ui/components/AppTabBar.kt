@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.hos.rushdpatients.ui.theme.UiBorder
-import com.hos.rushdpatients.ui.theme.UiElevation
 import com.hos.rushdpatients.ui.theme.UiLayout
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -38,14 +37,14 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
         Surface(modifier = Modifier.widthIn(max = UiLayout.navigationBarMaxWidth).fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface,
-            border = UiBorder.stroke(), shadowElevation = UiElevation.navigation) {
+            border = UiBorder.stroke(), shadowElevation = com.hos.rushdpatients.ui.theme.LocalUiStyle.current.navigationElevation) {
             Row(Modifier.padding(UiSpacing.small).selectableGroup(),
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 items.forEachIndexed { index, item ->
                     val selected = index == selectedIndex
                     val indicator by animateColorAsState(
                         targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                        animationSpec = tween(160), label = "navigationIndicator")
+                        animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.indicatorMillis), label = "navigationIndicator")
                     val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     Column(Modifier.weight(1f).heightIn(min = UiSpacing.touchTarget)
                         .clip(MaterialTheme.shapes.medium)

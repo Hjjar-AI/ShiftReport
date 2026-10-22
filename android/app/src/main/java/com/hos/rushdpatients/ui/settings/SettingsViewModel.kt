@@ -175,6 +175,7 @@ class SettingsViewModel @Inject constructor(
                             AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR,
                             false
                         ),
+                        uiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences.decode(settingsRepository.get(AppConstants.SETTING_UI_PREFERENCES)),
                         appearance = AppAppearance.fromSetting(settingsRepository.get(AppConstants.SETTING_APP_APPEARANCE)),
                         appTheme = AppThemePreset.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_APP_THEME)
@@ -251,6 +252,8 @@ class SettingsViewModel @Inject constructor(
     fun setPdfDarkMode(value: Boolean) = preferences.setPdfDarkMode(value)
 
     fun setPdfSeparateBySupervisor(value: Boolean) = preferences.setPdfSeparateBySupervisor(value)
+
+    fun setUiPreferences(value: com.hos.rushdpatients.ui.theme.UiPreferences) = preferences.setUiPreferences(value)
 
     fun setAppearance(value: AppAppearance) = preferences.setAppearance(value)
 

@@ -3,11 +3,6 @@ package com.hos.rushdpatients.ui.components
 import com.hos.rushdpatients.R
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -49,8 +44,8 @@ fun PasswordField(
         else PasswordVisualTransformation(),
         trailingIcon = {
             AppIconButton(label = if (visible) uiText(R.string.ui_password_field_001) else uiText(R.string.ui_password_field_002),
-            icon = if (visible) Icons.Filled.VisibilityOff
-                    else Icons.Filled.Visibility,
+            icon = if (visible) AppIcons.VisibilityOff
+                    else AppIcons.Visibility,
             onClick = { visible = !visible },
             enabled = enabled && LocalFieldEnabled.current)
         }

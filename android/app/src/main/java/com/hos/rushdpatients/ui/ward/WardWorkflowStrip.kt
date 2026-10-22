@@ -1,22 +1,15 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Surface
 import com.hos.rushdpatients.ui.components.noticeColors
 import com.hos.rushdpatients.ui.theme.UiSize
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -46,10 +39,10 @@ internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit) {
                     Row(Modifier.padding(UiSpacing.small), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         Icon(when (state.syncStatus) {
-                            PatientSyncStatus.LOCAL -> Icons.Filled.Save
-                            PatientSyncStatus.PENDING -> Icons.Filled.CloudUpload
-                            PatientSyncStatus.BACKED_UP -> Icons.Filled.CloudDone
-                            PatientSyncStatus.SYNCING -> Icons.Filled.Sync
+                            PatientSyncStatus.LOCAL -> AppIcons.Save
+                            PatientSyncStatus.PENDING -> AppIcons.CloudUpload
+                            PatientSyncStatus.BACKED_UP -> AppIcons.CloudDone
+                            PatientSyncStatus.SYNCING -> AppIcons.Sync
                         }, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
                         Text(if (state.syncStatus == PatientSyncStatus.BACKED_UP) uiText(R.string.ui_ward_workflow_strip_001)
                             else state.syncStatus.arabicLabel(uiText), style = MaterialTheme.typography.labelMedium)
@@ -59,7 +52,7 @@ internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit) {
                     Text(state.workflowAction.label(uiText))
                 }
                 AppIconButton(label = if (details) uiText(R.string.ui_ward_workflow_strip_004) else uiText(R.string.ui_patient_sync_notice_002),
-            icon = if (details) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            icon = if (details) AppIcons.ExpandLess else AppIcons.ExpandMore,
             onClick = { details = !details },
             modifier = Modifier.semantics {
                     stateDescription = if (details) uiText(R.string.ui_ward_workflow_strip_002) else uiText(R.string.ui_ward_workflow_strip_003)

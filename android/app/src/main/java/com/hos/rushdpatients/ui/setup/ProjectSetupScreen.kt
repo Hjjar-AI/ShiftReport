@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -8,8 +9,6 @@ import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.components.AppSection
-import com.hos.rushdpatients.ui.theme.UiPadding
-import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
@@ -28,15 +27,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -44,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -79,7 +73,7 @@ fun ProjectSetupScreen(
                 uiText(R.string.ui_project_setup_screen_001),
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight,
                 textAlign = TextAlign.Center
             )
             Text(
@@ -122,7 +116,7 @@ fun ProjectSetupScreen(
                     }
                     if (state.importedProvisioning) {
                         AppSection(uiText(R.string.ui_project_setup_screen_011)) {
-                            Text(state.hospitalName, fontWeight = FontWeight.Bold)
+                            Text(state.hospitalName, fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
                             Text(uiText(R.string.ui_project_setup_screen_012, com.hos.rushdpatients.ui.components.uiNumber(state.chatId)))
                             Text(if (state.encryptTelegram) uiText(R.string.ui_project_setup_screen_013) else uiText(R.string.ui_project_setup_screen_014))
                             Text(uiText(R.string.ui_project_setup_screen_015),
@@ -198,25 +192,25 @@ fun ProjectSetupScreen(
                         enabled = !state.busy
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        FilterChip(
+                        AppFilterChip(
                             selected = state.adminGenderCode == "M",
                             onClick = { viewModel.setAdminGender("M") },
                             label = { Text(uiText(R.string.ui_male)) },
                             enabled = !state.busy
                         )
-                        FilterChip(
+                        AppFilterChip(
                             selected = state.adminGenderCode == "F",
                             onClick = { viewModel.setAdminGender("F") },
                             label = { Text(uiText(R.string.ui_female)) },
                             enabled = !state.busy
                         )
-                        FilterChip(
+                        AppFilterChip(
                             selected = state.adminClinicalRoleCode == "RESIDENT",
                             onClick = { viewModel.setAdminClinicalRole("RESIDENT") },
                             label = { Text(uiText(R.string.ui_project_setup_screen_034)) },
                             enabled = !state.busy
                         )
-                        FilterChip(
+                        AppFilterChip(
                             selected = state.adminClinicalRoleCode == "SUPERVISOR",
                             onClick = { viewModel.setAdminClinicalRole("SUPERVISOR") },
                             label = { Text(uiText(R.string.ui_project_setup_screen_035)) },
@@ -268,14 +262,8 @@ private fun InstructionCard(mode: ProjectSetupMode) {
         ProjectSetupMode.CREATE ->
             uiText(R.string.ui_project_setup_screen_043)
     }
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(text, Modifier.padding(UiPadding.content), textAlign = TextAlign.Start)
-    }
+    com.hos.rushdpatients.ui.components.AppNotice(text,
+        kind = com.hos.rushdpatients.ui.components.NoticeKind.ACCENT)
 }
 
 @Composable

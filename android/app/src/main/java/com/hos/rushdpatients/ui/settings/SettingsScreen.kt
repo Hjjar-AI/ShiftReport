@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppSnackbarHost
+import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.annotation.StringRes
 
@@ -8,11 +11,6 @@ import com.hos.rushdpatients.ui.components.UiStrings
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Route
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Lock
 import com.hos.rushdpatients.ui.components.AppDestinationRow
 import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
@@ -36,12 +34,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,7 +52,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
@@ -106,6 +101,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val settingsScroll = rememberScrollState()
+    val scrollToSection = com.hos.rushdpatients.ui.components.rememberUiScrollTo(settingsScroll)
     val sectionOffsets = remember { mutableStateMapOf<String, Int>() }
     val sections = remember(canManageProject, state.isPermanentAdmin, workspace) {
         SettingsSectionId.entries.filter { it.workspace == workspace && (canManageProject || !it.adminOnly) && (it != SettingsSectionId.RESET || state.isPermanentAdmin) }
@@ -113,17 +109,17 @@ fun SettingsScreen(
     val sectionTitles = sections.map { it.title(uiText) }
     val settingsScope = rememberCoroutineScope()
     state.emptyStartReview?.takeIf { canManageProject && state.isPermanentAdmin }?.let { review ->
-        AlertDialog(onDismissRequest = viewModel::dismissEmptyStart,
+        AppAlertDialog(onDismissRequest = viewModel::dismissEmptyStart,
             title = { Text(uiText(R.string.ui_settings_screen_001)) },
             text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(review) } },
             confirmButton = { AppTextButton(onClick = viewModel::confirmEmptyStart, enabled = !state.emptyStartBusy) {
                 Text(uiText(R.string.ui_settings_screen_002), color = MaterialTheme.colorScheme.error)
             } }, dismissButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text(uiText(R.string.ui_cancel)) } })
     }
-    if (state.emptyStartBusy) AlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_settings_screen_003)) },
-        text = { com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_settings_screen_004)) }, confirmButton = {})
+    if (state.emptyStartBusy) AppAlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_settings_screen_003)) },
+        text = { com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_settings_screen_004), size = com.hos.rushdpatients.ui.components.AppLoadingSize.SECTION) }, confirmButton = {})
     state.emptyStartResult?.let { result ->
-        AlertDialog(onDismissRequest = viewModel::dismissEmptyStart, title = { Text(uiText(R.string.ui_settings_screen_005)) },
+        AppAlertDialog(onDismissRequest = viewModel::dismissEmptyStart, title = { Text(uiText(R.string.ui_settings_screen_005)) },
             text = { Text(result) }, confirmButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text(uiText(R.string.ui_settings_screen_006)) } })
     }
     var showRecovery by rememberSaveable { mutableStateOf(false) }
@@ -223,7 +219,7 @@ fun SettingsScreen(
         topBar = {
             AppTopBar(title = workspace.title(uiText), onBack = onBack)
         },
-        snackbarHost = { SnackbarHost(snackbar) }
+        snackbarHost = { AppSnackbarHost(snackbar) }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (sections.size > 1) {
@@ -232,7 +228,7 @@ fun SettingsScreen(
                     onSelect = { title ->
                         settingsScope.launch {
                             sectionOffsets[title]?.let { offset ->
-                                settingsScroll.animateScrollTo(offset.coerceIn(0, settingsScroll.maxValue))
+                                scrollToSection(offset.coerceIn(0, settingsScroll.maxValue))
                             }
                         }
                     }, modifier = Modifier.padding(horizontal = UiSpacing.medium))
@@ -290,6 +286,7 @@ fun SettingsScreen(
                                 state = state,
                                 onAppearance = viewModel::setAppearance,
                                 onTheme = viewModel::setAppTheme,
+                                onUiPreferences = viewModel::setUiPreferences,
                                 onFont = viewModel::setFontScale
                             )
                             SettingsSectionId.PATIENT_CARDS -> SettingsPatientCardsContent(state, viewModel)
@@ -313,10 +310,10 @@ fun SettingsScreen(
                         SettingsWorkspace.REPORTS, SettingsWorkspace.SECURITY).forEach { destination ->
                         AppDestinationRow(title = destination.title(uiText), summary = destination.description(uiText),
                             icon = when (destination) {
-                                SettingsWorkspace.APPEARANCE -> Icons.Filled.Palette
-                                SettingsWorkspace.WORKFLOW -> Icons.Filled.Route
-                                SettingsWorkspace.REPORTS -> Icons.Filled.PictureAsPdf
-                                else -> Icons.Filled.Lock
+                                SettingsWorkspace.APPEARANCE -> AppIcons.Palette
+                                SettingsWorkspace.WORKFLOW -> AppIcons.Route
+                                SettingsWorkspace.REPORTS -> AppIcons.PictureAsPdf
+                                else -> AppIcons.Lock
                             }, onClick = { onOpenWorkspace(destination) })
                     }
                 }
@@ -329,7 +326,7 @@ fun SettingsScreen(
     }
 
     backupDialogMode?.let { mode ->
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = {
                 backupDialogMode = null
                 backupPassword = ""
@@ -372,7 +369,7 @@ fun SettingsScreen(
 
     if (canManageProject && provisioningDialog) {
         val directDownloads = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = {
                 provisioningDialog = false
                 provisioningPassphrase = ""
@@ -430,7 +427,7 @@ fun SettingsScreen(
     }
 
     state.publicationReviewText?.let { reviewText ->
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = viewModel::cancelPublicationReview,
             title = { Text(uiText(R.string.ui_settings_screen_028)) },
             text = {
@@ -452,7 +449,7 @@ fun SettingsScreen(
     }
 
     if (confirmBackupRestore) {
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = {
                 confirmBackupRestore = false
                 pendingRestorePassword = ""
