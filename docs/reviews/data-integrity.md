@@ -33,7 +33,7 @@ Local expected-revision checks and explicit stale-draft review are existing safe
 
 The original Retry accessibility and duplicated long-press styling findings were
 addressed by the later UI consolidation. See [the UI record](../current-state.md)
-and [current implementation](../current-state.md#visual-design-system).
+and [current implementation](../current-state.md#shared-android-presentation).
 
 ## Evidence and scope
 

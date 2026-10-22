@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +60,7 @@ internal fun SettingsWorkflowContent(state: SettingsUiState, viewModel: Settings
         checked = state.saveAndNext,
         onCheckedChange = viewModel::setSaveAndNext
     )
-    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+    AppDivider()
     SettingsSubheading(uiText(R.string.ui_settings_preference_sections_011))
     AppToggleRow(
         title = uiText(R.string.ui_settings_preference_sections_012),

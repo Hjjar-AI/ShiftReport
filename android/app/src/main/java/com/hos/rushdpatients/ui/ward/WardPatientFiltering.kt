@@ -3,37 +3,34 @@ package com.hos.rushdpatients.ui.ward
 import com.hos.rushdpatients.domain.task.PatientTasks
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
+import com.hos.rushdpatients.domain.patient.PatientPredicates
+
+internal enum class WardTaskFilter { PENDING, OVERDUE, UNASSIGNED }
+
+/** Normalize each field once per patient snapshot; preserve field-by-field substring matching. */
+internal fun wardSearchIndex(patients: List<Patient>): Map<String, List<String>> = patients.associate { patient ->
+    patient.id to listOf(patient.name, patient.admittanceNumber, patient.initialDiagnosis,
+        patient.treatmentPlan, patient.followUp, patient.labs,
+        patient.tasks.joinToString(" ") { it.description }).map(ArabicSearchNormalizer::normalize)
+}
 
 internal fun filterWardPatients(
-    patients: List<Patient>, searchQuery: String, viewMode: WardViewMode, currentDoctorId: String,
-    priorityOnly: Boolean, warningsOnly: Boolean, unassignedOnly: Boolean, urgentOnly: Boolean,
-    newAdmissionsOnly: Boolean, taskFilter: DashboardFilter?, nowEpochMillis: Long, pinnedPatientIds: List<String>
-): List<Patient> = patients.filter { patient ->
-    val matchesOwner = viewMode != WardViewMode.MINE ||
-        patient.responsibleResidentId == currentDoctorId ||
-        patient.responsibleSpecialistId == currentDoctorId ||
-        patient.tasks.any { !it.done && it.ownerDoctorId == currentDoctorId }
-    val taskCounts = PatientTasks.counts(patient.tasks, nowEpochMillis)
-    val matchesTasks = when (taskFilter) {
-        DashboardFilter.TASK_PENDING -> taskCounts.pending > 0
-        DashboardFilter.TASK_OVERDUE -> taskCounts.overdue > 0
-        DashboardFilter.TASK_UNASSIGNED -> taskCounts.unassigned > 0
-        else -> true
-    }
-    matchesTasks && matchesOwner && (!priorityOnly || patient.isPriority) &&
-        (!warningsOnly || patient.badges.isNotEmpty()) &&
-        (!unassignedOnly || patient.responsibleResidentId == null || patient.responsibleSpecialistId == null) &&
-        (!urgentOnly || patient.isPriority ||
-            patient.badges.any { it.priority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH }) &&
-        (!newAdmissionsOnly || patient.admittanceDays == 0) &&
-        ArabicSearchNormalizer.matches(
-        searchQuery,
-        patient.name,
-        patient.admittanceNumber,
-        patient.initialDiagnosis,
-        patient.treatmentPlan,
-        patient.followUp,
-        patient.labs,
-        patient.tasks.joinToString(" ") { it.description }
-    )
-}.sortedByDescending { it.id in pinnedPatientIds }
+    patients: List<Patient>, filters: WardFilterOptions, currentDoctorId: String,
+    nowEpochMillis: Long, pinnedPatientIds: Set<String>, searchIndex: Map<String, List<String>>
+): List<Patient> {
+    val needle = ArabicSearchNormalizer.normalize(filters.searchQuery)
+    return patients.filter { patient ->
+        (filters.viewMode != WardViewMode.MINE || PatientPredicates.mine(patient, currentDoctorId)) &&
+            (!filters.priorityOnly || patient.isPriority) &&
+            (!filters.warningsOnly || PatientPredicates.warnings(patient)) &&
+            (!filters.unassignedOnly || PatientPredicates.unassigned(patient)) &&
+            (!filters.urgentOnly || PatientPredicates.urgent(patient)) &&
+            (!filters.newAdmissionsOnly || PatientPredicates.newAdmission(patient)) &&
+            when (filters.taskFilter) {
+                WardTaskFilter.PENDING -> patient.tasks.any { !it.done }
+                WardTaskFilter.OVERDUE -> patient.tasks.any { PatientTasks.overdue(it, nowEpochMillis) }
+                WardTaskFilter.UNASSIGNED -> patient.tasks.any { !it.done && it.ownerDoctorId == null }
+                null -> true
+            } && (needle.isEmpty() || searchIndex[patient.id].orEmpty().any { needle in it })
+    }.sortedByDescending { it.id in pinnedPatientIds }
+}

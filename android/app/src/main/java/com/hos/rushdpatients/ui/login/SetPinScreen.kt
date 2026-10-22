@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -60,6 +61,7 @@ fun SetPinScreen(
             onValueChange = { confirm = it.filter(Char::isDigit).take(8) },
             label = uiText(R.string.ui_set_pin_screen_004),
             keyboardType = KeyboardType.NumberPassword, enabled = !busy,
+            keyboardActions = KeyboardActions(onDone = { if (!busy) onConfirm(pin, confirm) }),
             modifier = Modifier.padding(top = UiSpacing.medium)
         )
         error?.let {

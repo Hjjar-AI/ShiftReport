@@ -57,7 +57,7 @@ internal fun DemoDrawer(
                         DemoDestination.SETTINGS -> Icons.Filled.Settings
                     }, contentDescription = null) }, onClick = { onNavigate(destination) })
             }
-            Divider()
+            AppDivider()
             AppTextButton(onClick = onRecycle, modifier = Modifier.fillMaxWidth()) {
                 Text(uiText(R.string.ui_demo_navigation_004, uiNumber(state.deleted.size)))
             }
@@ -69,66 +69,4 @@ internal fun DemoDrawer(
             }
         }
     }
-}
-
-internal fun DashboardFilter.demoLabel(uiText: UiStrings): String = when (this) {
-    DashboardFilter.ALL -> uiText(R.string.ui_all)
-    DashboardFilter.MINE -> uiText(R.string.ui_ward_view_options_dialog_005)
-    DashboardFilter.URGENT -> uiText(R.string.ui_handover_dashboard_006)
-    DashboardFilter.WARNINGS -> uiText(R.string.ui_ward_screen_009)
-    DashboardFilter.UNASSIGNED -> uiText(R.string.ui_handover_dashboard_014)
-    DashboardFilter.NEW_ADMISSIONS -> uiText(R.string.ui_handover_dashboard_016)
-    DashboardFilter.TASK_PENDING -> uiText(R.string.ui_ward_screen_011)
-    DashboardFilter.TASK_OVERDUE -> uiText(R.string.ui_ward_patient_list_controls_008)
-    DashboardFilter.TASK_UNASSIGNED -> uiText(R.string.ui_ward_screen_012)
-}
-
-/** A reduced version of the ward's options, with the same fields and saved-sort editor. */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-internal fun DemoViewOptions(
-    filter: DashboardFilter, onFilter: (DashboardFilter) -> Unit,
-    expanded: Boolean, onExpanded: (Boolean) -> Unit,
-    compact: Boolean, onCompact: (Boolean) -> Unit,
-    twoColumn: Boolean, onTwoColumn: (Boolean) -> Unit,
-    sort: SortSpec, onSort: (SortSpec) -> Unit,
-    onReset: () -> Unit, onDismiss: () -> Unit
-) {
-    val uiText = rememberUiStrings()
-    var selected by rememberSaveable { mutableStateOf(WardViewOption.FILTERS) }
-    val sections = listOf(WardViewOption.FILTERS, WardViewOption.CARDS, WardViewOption.SORT)
-    AlertDialog(onDismissRequest = onDismiss, title = {
-        Column {
-            Text(uiText(R.string.ui_ward_patient_list_controls_004))
-            AppSectionIndex(sections, selected, label = { it.label(uiText) }, onSelect = { selected = it })
-        }
-    }, text = {
-        Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            when (selected) {
-                WardViewOption.FILTERS -> {
-                    Text(uiText(R.string.ui_demo_navigation_007), style = MaterialTheme.typography.bodySmall)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        DashboardFilter.entries.forEach { value ->
-                            FilterChip(selected = filter == value, onClick = { onFilter(value) },
-                                label = { Text(value.demoLabel(uiText)) })
-                        }
-                    }
-                }
-                WardViewOption.CARDS -> {
-                    AppToggleRow(uiText(R.string.ui_ward_view_options_dialog_009), checked = expanded, onCheckedChange = onExpanded)
-                    AppToggleRow(uiText(R.string.ui_ward_view_options_dialog_010), checked = twoColumn, onCheckedChange = onTwoColumn)
-                    AppToggleRow(uiText(R.string.ui_ward_view_options_dialog_011), checked = compact, onCheckedChange = onCompact)
-                }
-                WardViewOption.SORT -> {
-                    Text(uiText(R.string.ui_demo_navigation_008), style = MaterialTheme.typography.bodySmall)
-                    Text(sortReviewLabel(uiText, sort), style = MaterialTheme.typography.bodySmall)
-                    PatientSortOptions(initial = sort, initialRevision = 0,
-                        onApply = { spec, _, _ -> onSort(spec) })
-                }
-                WardViewOption.GROUPING -> Unit
-            }
-        }
-    }, confirmButton = { AppDialogDismissAction(onClick = onDismiss, text = uiText(R.string.ui_done)) },
-        dismissButton = { AppTextButton(onClick = onReset) { Text(uiText(R.string.ui_ward_patient_list_controls_005)) } })
 }

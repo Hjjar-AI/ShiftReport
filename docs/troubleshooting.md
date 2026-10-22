@@ -26,6 +26,17 @@ A clean Logcat is not proof that an operation succeeded.
   reviewed local copy under last-write-wins. Verify that copy and destination before
   confirming; delivery uncertainty still requires checking Telegram before repeating.
 
+## Cached compile verification
+
+Use the [offline verification procedure](android-shared-workstation-build-fixes.md#cached-verification-without-packaging)
+before considering toolchain changes. A failure starting Gradle's daemon can be a
+cache-directory ownership problem even when Java and Gradle are installed. Use
+the current account's existing readable/writable personal cache if the shared
+`daemon/8.7` directory belongs to another account; do not change its ownership or
+download another Gradle distribution. Keep `--offline` and disable automatic
+version reservation. Record the command, relevant failure and final source result;
+a compiler pass does not verify device layout or live Telegram behavior.
+
 ## Reuse the workstation Gradle cache
 
 For the encountered failures, causes and final fixes, see

@@ -2,9 +2,7 @@ package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.theme.UiLayout
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clipToBounds
-import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -50,28 +48,6 @@ internal fun WardToolbarLayout(foldingFeature: FoldingFeature?, content: @Compos
         }
         layout(width, constraints.constrainHeight(naturalHeight + top)) {
             if (fold == null || location != null) placeables.forEach { it.place(left, top) }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun WardToolbarContent(title: @Composable () -> Unit, navigation: @Composable () -> Unit,
-    actions: @Composable () -> Unit) {
-    val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
-    BoxWithConstraints(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = UiSpacing.small)) {
-        if (maxWidth < UiLayout.toolbarActionsMinWidth * scale.coerceAtMost(1.3f)) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    navigation()
-                    Column(Modifier.weight(1f)) { title() }
-                }
-                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { actions() }
-            }
-        } else Row(Modifier.heightIn(min = UiSpacing.touchTarget), verticalAlignment = Alignment.CenterVertically) {
-            navigation()
-            Column(Modifier.weight(1f)) { title() }
-            Row(verticalAlignment = Alignment.CenterVertically) { actions() }
         }
     }
 }

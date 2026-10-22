@@ -18,7 +18,7 @@ Device-key protection and receipt operations may live in separate modules, while
 the workspace remains the sole owner of encrypted state and its atomic commit
 path. Local report actions share the report owner's reviewed-artifact workspace;
 separating them must not create a second review state or bypass delivery checks.
-See [implemented source boundaries](current-state.md#source-ownership-after-logical-separation).
+See [implemented source boundaries](current-state.md#product-and-source-layout).
 
 Telegram remains the shared storage and delivery channel. Users retrieve published data and publish updates; the last successful pinned-state write wins. Simultaneous collaborative editing and guaranteed preservation of competing remote publications are outside the required scope. Telegram pinned state is not an atomic multi-writer database; this limitation is accepted, not a release blocker. A separate authoritative service is not required. Downloads and publications transfer complete snapshots; remote field-by-field merging is removed. Local stale-edit checks, explicit replacement review, authorization and report confirmation remain in place. Report/publication confirmation may explicitly select the complete local patient copy over competing patient publications; this never bypasses clinician authorization, published assignment validity, registry-pointer freshness or delivery uncertainty guards. Unrelated pending doctor edits do not block this confirmed patient replacement, and it does not publish doctor-account changes. Synchronization is manual on both platforms; there is no periodic background upload/download.
 
@@ -64,7 +64,7 @@ The owner generally starts fresh projects after edits. Do not treat historical-p
 
 ## Offline demonstration
 
-Demo is an isolated in-memory workspace using the real offline patient forms, cards, task controls, roster picker, sorting, and PDF renderer. Android also reuses the real Patients/Dashboard navigation, metrics and list controls while separating report review, team/actor selection and temporary preferences into focused destinations. Omit unsupported network/admin actions; do not implement fake synchronization or invoke production settings/session ViewModels. See [Android demo](android-demo.md). It has no clinical repository or Telegram dependency. Local PDF export is explicitly available for demonstrating reports, with a demo label on every page; exit/reset discards the temporary session. Drawer density preserves 48dp targets while using a two-column context header and compact wrapping rows.
+Demo uses the same controlled WardWorkspace as production through WardController, backed by an injected InMemoryDemoWardRepository. It remains an isolated in-memory workspace using the real patient grid, dashboard, forms, cards, task controls, roster picker, sorting, and PDF renderer. Android also reuses the real Patients/Dashboard navigation, metrics and list controls while separating report review, team/actor selection and temporary preferences into focused destinations. Omit unsupported network/admin actions; do not implement fake synchronization or invoke production settings/session ViewModels. See [Android demo](android-demo.md). It has no clinical repository or Telegram dependency. Local PDF export is explicitly available for demonstrating reports, with a demo label on every page; exit/reset discards the temporary session. Drawer density preserves 48dp targets while using a two-column context header and compact wrapping rows.
 
 ## Standalone desktop client
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -38,6 +39,13 @@ fun LocalPinLoginScreen(
     val uiText = rememberUiStrings()
     // A submitted PIN never enters saved UI state or the ViewModel state.
     var pin by remember(doctorId) { mutableStateOf("") }
+    fun submit() {
+        if (!busy && pin.length >= AppConstants.PIN_MIN_LENGTH) {
+            val submitted = pin
+            pin = ""
+            onLogin(submitted)
+        }
+    }
     AppCenteredContent(
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small, Alignment.CenterVertically)
     ) {
@@ -52,6 +60,7 @@ fun LocalPinLoginScreen(
             onValueChange = { pin = it.filter(Char::isDigit).take(AppConstants.PIN_MAX_LENGTH) },
             label = uiText(R.string.ui_local_pin_login_screen_003),
             keyboardType = KeyboardType.NumberPassword,
+            keyboardActions = KeyboardActions(onDone = { submit() }),
             enabled = !busy
         )
         error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
@@ -59,11 +68,7 @@ fun LocalPinLoginScreen(
             text = uiText(R.string.ui_local_pin_login_screen_004),
             loading = busy,
             enabled = pin.length >= AppConstants.PIN_MIN_LENGTH,
-            onClick = {
-                val submitted = pin
-                pin = ""
-                onLogin(submitted)
-            },
+            onClick = ::submit,
             modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
         )
         AppTextButton(

@@ -17,6 +17,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.foundation.layout.Box
@@ -84,6 +85,7 @@ fun AppTextField(
     val ime = WindowInsets.ime
     LaunchedEffect(focused, density, ime) {
         if (focused) snapshotFlow { ime.getBottom(density) }.collectLatest {
+            delay(100L)
             withFrameNanos { }
             fieldVisibility.bringIntoView()
         }
@@ -133,7 +135,9 @@ internal fun AppFieldDecoration(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     innerTextField: @Composable () -> Unit
 ) {
-    val fill = lerp(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant, .65f)
+    val surface = MaterialTheme.colorScheme.surface
+    val variant = MaterialTheme.colorScheme.surfaceVariant
+    val fill = remember(surface, variant) { lerp(surface, variant, .65f) }
     val shape = MaterialTheme.shapes.small
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val colors = OutlinedTextFieldDefaults.colors(

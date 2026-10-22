@@ -72,6 +72,10 @@ class WardViewModel @Inject constructor(
     projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
 
+    internal val editor = WardEditorState()
+    private val _taskNow = MutableStateFlow(System.currentTimeMillis())
+    internal val taskNow: StateFlow<Long> = _taskNow.asStateFlow()
+
     private val _state = MutableStateFlow(
         WardUiState(hospitalName = projectConfigStore.current().hospitalName)
     )
@@ -162,11 +166,9 @@ class WardViewModel @Inject constructor(
         viewModelScope.launch {
             while (true) {
                 delay(60_000L)
+                _taskNow.value = System.currentTimeMillis()
                 _state.update { current ->
-                    current.copy(
-                        isReadOnly = current.shift?.date?.let { it != ShiftDate.current() } ?: false,
-                        taskNowEpochMillis = System.currentTimeMillis()
-                    )
+                    current.copy(isReadOnly = current.shift?.date?.let { it != ShiftDate.current() } ?: false)
                 }
             }
         }

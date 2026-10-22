@@ -48,7 +48,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -99,28 +99,15 @@ fun ReportPreviewScreen(
     var customizeReport by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var confirmSend by remember { mutableStateOf(false) }
     var pendingSupervisorTargets by remember { mutableStateOf<List<SupervisorReportTarget>?>(null) }
-    val busy = state.loading || state.savingDoctors || state.sending || state.previewingPdf ||
-        state.exportingLocalPdf || state.sharingPdf || state.savingPdfOptions
     val selectedTargets = state.supervisorTargets.filter { it.doctorId in selectedSupervisorIds && it.chatId != null }
-    val pdfSelected = supervisorMode || state.reportAsPdf
     var openedPdfUris by remember(state.pdfReviewGeneration) { mutableStateOf(emptySet<String>()) }
-    val previewReady = if (!pdfSelected) reviewedText == state.previewMarkdown
-        else if (supervisorMode) selectedTargets.isNotEmpty() && selectedTargets.all { target ->
-            state.pdfReviewUris["supervisor:${target.doctorId}"]?.let { it in openedPdfUris } == true
-        }
-        else state.pdfReviewUris["general"]?.let { it in openedPdfUris } == true
-    val destinationReady = state.summary != null && (!supervisorMode || selectedTargets.isNotEmpty())
-    val nextDisabledReason = when {
-        busy -> uiText(R.string.ui_report_preview_screen_001)
-        step == ReportFlowStep.DOCTORS && state.shift == null -> uiText(R.string.ui_report_preview_screen_002)
-        step == ReportFlowStep.DOCTORS && state.doctors.isEmpty() -> uiText(R.string.ui_report_preview_screen_003)
-        step != ReportFlowStep.DOCTORS && !destinationReady ->
-            if (supervisorMode && selectedTargets.isEmpty()) uiText(R.string.ui_report_preview_screen_004)
-            else uiText(R.string.ui_report_preview_screen_005)
-        step == ReportFlowStep.PREVIEW && !previewReady ->
-            if (supervisorMode) uiText(R.string.ui_report_preview_screen_006) else uiText(R.string.ui_report_preview_screen_007)
-        else -> null
-    }
+    val pdfSelected = supervisorMode || state.reportAsPdf
+    val flowGate = reportFlowGate(state, step, supervisorMode, selectedTargets, reviewedText, openedPdfUris)
+    val busy = flowGate.busy
+    val previewReady = flowGate.previewReady
+    val destinationReady = flowGate.destinationReady
+    val nextDisabledReason = flowGate.nextDisabledReason?.let { uiText(it) }
+    val sendDisabledReason = flowGate.sendDisabledReason?.let { uiText(it) }
     fun openPreview() {
         if (supervisorMode) supervisorMenuOpen = true
         else if (state.reportAsPdf) viewModel.previewPdf()
@@ -132,15 +119,6 @@ fun ReportPreviewScreen(
         }
     }
     BackHandler(enabled = busy || step != ReportFlowStep.DOCTORS) { previousStep() }
-    val sendDisabledReason = when {
-        busy -> uiText(R.string.ui_report_preview_screen_001)
-        state.isReadOnly -> uiText(R.string.ui_report_preview_screen_008)
-        state.summary == null -> if (state.doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_003) else uiText(R.string.ui_report_preview_screen_009)
-        supervisorMode && selectedTargets.isEmpty() -> uiText(R.string.ui_report_preview_screen_004)
-        !previewReady -> if (supervisorMode) uiText(R.string.ui_report_preview_screen_010)
-            else uiText(R.string.ui_report_preview_screen_011)
-        else -> null
-    }
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
             snackbar.showSnackbar(it)
@@ -370,18 +348,18 @@ fun ReportPreviewScreen(
                     if (state.readinessWarnings.isNotEmpty()) {
                         AppSection(
                             title = uiText(R.string.ui_report_preview_screen_046),
-                            titleColor = noticeColors(NoticeKind.WARNING).second,
+                            titleColor = noticeColors(NoticeKind.WARNING).content,
                             colors = CardDefaults.cardColors(
-                                containerColor = noticeColors(NoticeKind.WARNING).first
+                                containerColor = noticeColors(NoticeKind.WARNING).container
                             )
                         ) {
                             state.readinessWarnings.forEach { warning ->
-                                Text("• $warning", color = noticeColors(NoticeKind.WARNING).second)
+                                Text("• $warning", color = noticeColors(NoticeKind.WARNING).content)
                             }
                             Text(
                                 uiText(R.string.ui_report_preview_screen_047),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = noticeColors(NoticeKind.WARNING).second
+                                color = noticeColors(NoticeKind.WARNING).content
                             )
                         }
                     }
@@ -521,7 +499,10 @@ fun ReportPreviewScreen(
                         AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.RECEIVED }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_087)) }
                         AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.NOT_RECEIVED }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_088)) }
                     } else if (row.status == "SENT") {
-                        AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.ALLOW_COPY }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_089)) }
+                        Text(uiText(R.string.ui_report_preview_screen_092), style = MaterialTheme.typography.bodySmall)
+                        AppOutlinedButton(onClick = { deliveryDecision = row to DeliveryResolution.ALLOW_COPY }, enabled = !busy) {
+                            Text(uiText(R.string.ui_report_preview_screen_089))
+                        }
                     }
                 }
             }

@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +33,7 @@ internal fun WardSupportingPane(
     isAdmin: Boolean,
     onReviewReport: () -> Unit,
     onActivity: () -> Unit,
+    showSynchronization: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val uiText = rememberUiStrings()
@@ -42,14 +43,14 @@ internal fun WardSupportingPane(
         Text(if (isAdmin) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_supporting_pane_001), style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() })
         Text(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)))
-        PatientSyncNotice(state.syncStatus, freshnessLabel, online)
+        if (showSynchronization) PatientSyncNotice(state.syncStatus, freshnessLabel, online)
         if (warnings.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_002))
         warnings.forEach { Text("• $it") }
         AppButton(onClick = onReviewReport, enabled = state.shift != null, modifier = Modifier.fillMaxWidth()) {
             Text(uiText(R.string.ui_ward_supporting_pane_003))
         }
         if (isAdmin) {
-            Divider()
+            AppDivider()
             Text(uiText(R.string.ui_ward_supporting_pane_004), style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() })
             state.activityError?.let { AppNotice(it, kind = NoticeKind.ERROR,
@@ -58,7 +59,7 @@ internal fun WardSupportingPane(
             if (recent.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_006))
             recent.forEach { entry ->
                 ActivityEntry(entry, state.patients.firstOrNull { it.id == entry.patientId }?.name)
-                Divider()
+                AppDivider()
             }
             AppTextButton(onClick = onActivity) { Text(uiText(R.string.ui_ward_supporting_pane_005)) }
         }

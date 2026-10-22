@@ -7,7 +7,7 @@ import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -106,7 +106,7 @@ internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () ->
         enabled = !state.backupBusy && !state.syncing,
         modifier = Modifier.fillMaxWidth()
     ) { Text(uiText(R.string.ui_settings_data_sections_014)) }
-    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+    AppDivider()
     SettingsSubheading(uiText(R.string.ui_settings_data_sections_015))
     Text(
         uiText(R.string.ui_settings_data_sections_016),

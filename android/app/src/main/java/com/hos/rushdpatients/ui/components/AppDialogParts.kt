@@ -22,9 +22,9 @@ fun AppDialogHeader(title: String, supportingText: String? = null, modifier: Mod
 fun AppDialogConfirmAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier,
     enabled: Boolean = true, loading: Boolean = false, destructive: Boolean = false) {
     val content: @Composable RowScope.() -> Unit = { AppActionContent(text, loading) }
-    if (destructive) AppTextButton(onClick = onClick, enabled = enabled && !loading, modifier = modifier,
-        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error), content = content)
-    else AppButton(onClick = onClick, enabled = enabled && !loading, modifier = modifier, content = content)
+    AppButton(onClick = onClick, enabled = enabled && !loading, modifier = modifier,
+        style = if (destructive) AppButtonStyle.DESTRUCTIVE else AppButtonStyle.PRIMARY, content = content)
+
 }
 
 @Composable

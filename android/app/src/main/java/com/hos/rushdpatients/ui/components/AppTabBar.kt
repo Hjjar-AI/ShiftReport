@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -63,7 +64,7 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                         }
                         Text(item.label, textAlign = TextAlign.Center, color = color,
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+                            fontWeight = if (selected) UiTypography.emphasizedWeight else FontWeight.Medium)
                     }
                 }
             }

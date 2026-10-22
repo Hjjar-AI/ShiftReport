@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIconButton
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -77,11 +78,10 @@ import java.util.UUID
 internal fun PatientTaskEditor(
     tasks: List<PatientTask>, doctors: List<Doctor>, enabled: Boolean,
     modifier: Modifier = Modifier,
+    formState: PatientFormState,
     onChange: (List<PatientTask>) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var editing by remember { mutableStateOf<PatientTask?>(null) }
-    var adding by remember { mutableStateOf(false) }
     var completedExpanded by remember { mutableStateOf(false) }
     val now by produceState(initialValue = System.currentTimeMillis()) {
         while (true) { value = System.currentTimeMillis(); delay(60_000) }
@@ -94,11 +94,11 @@ internal fun PatientTaskEditor(
         Row(verticalAlignment = Alignment.CenterVertically) {
             AppSectionHeader(title = uiText(R.string.ui_patient_task_editor_001, uiNumber(pending)), count = tasks.size,
                 modifier = Modifier.weight(1f))
-            AppOutlinedButton(onClick = { adding = true }, enabled = enabled) { Text(uiText(R.string.ui_patient_task_editor_002)) }
+            AppOutlinedButton(onClick = { formState.taskDraft = TaskDraftState(null) }, enabled = enabled) { Text(uiText(R.string.ui_patient_task_editor_002)) }
         }
         val taskCard: @Composable (PatientTask) -> Unit = { task ->
             TaskDraftRow(task = task, names = names, enabled = enabled, nowEpochMillis = now,
-                onEdit = { editing = task },
+                onEdit = { formState.taskDraft = TaskDraftState(task) },
                 onToggleDone = {
                     onChange(tasks.map {
                         if (it.id != task.id) it else it.copy(done = !it.done,
@@ -116,16 +116,16 @@ internal fun PatientTaskEditor(
         Text(uiText(R.string.ui_patient_task_editor_004),
             style = MaterialTheme.typography.bodySmall)
     }
-    if (adding || editing != null) TaskDraftDialog(
-        initial = editing, doctors = doctors.filterNot { it.isDeleted }, enabled = enabled,
-        onDismiss = { adding = false; editing = null },
-        onConfirm = { task ->
-            onChange(if (adding) tasks + task else tasks.map { if (it.id == task.id) task else it })
-            adding = false
-            editing = null
-            if (task.done) completedExpanded = true
-        }
-    )
+    formState.taskDraft?.let { draft ->
+        TaskDraftDialog(state = draft, doctors = doctors.filterNot { it.isDeleted }, enabled = enabled,
+            onDismiss = { formState.taskDraft = null },
+            onConfirm = { task ->
+                onChange(if (draft.initial == null) tasks + task else tasks.map { if (it.id == task.id) task else it })
+                formState.taskDraft = null
+                if (task.done) completedExpanded = true
+            })
+    }
+
 }
 
 @Composable
@@ -141,9 +141,10 @@ private fun TaskDraftRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(task.description, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 Box {
-                    IconButton(onClick = { menu = true }, enabled = enabled) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = uiText(R.string.ui_patient_task_editor_005, task.description))
-                    }
+                    AppIconButton(label = uiText(R.string.ui_patient_task_editor_005, task.description),
+            icon = Icons.Filled.MoreVert,
+            onClick = { menu = true },
+            enabled = enabled)
                     DropdownMenu(expanded = menu && enabled, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_006)) }, onClick = { menu = false; onEdit() })
                         DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_task_editor_007), color = MaterialTheme.colorScheme.error) },
@@ -166,35 +167,30 @@ private fun TaskDraftRow(
     }
 }
 
-private enum class TaskDeadline(@StringRes private val labelRes: Int) { NONE(R.string.ui_patient_task_editor_031), TIME(R.string.ui_patient_task_editor_032), SHIFT(R.string.ui_patient_task_editor_033);
+internal enum class TaskDeadline(@StringRes private val labelRes: Int) { NONE(R.string.ui_patient_task_editor_031), TIME(R.string.ui_patient_task_editor_032), SHIFT(R.string.ui_patient_task_editor_033);
     fun label(uiText: UiStrings): String = uiText(labelRes)
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskDraftDialog(
-    initial: PatientTask?, doctors: List<Doctor>, enabled: Boolean,
+    state: TaskDraftState, doctors: List<Doctor>, enabled: Boolean,
     onDismiss: () -> Unit, onConfirm: (PatientTask) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var description by remember(initial) { mutableStateOf(initial?.description.orEmpty()) }
-    var owner by remember(initial) { mutableStateOf(initial?.ownerDoctorId) }
-    var priority by remember(initial) { mutableStateOf(initial?.priority ?: TaskPriority.NORMAL) }
-    var deadline by remember(initial) { mutableStateOf(when {
-        initial?.dueShiftDate != null -> TaskDeadline.SHIFT
-        initial?.dueAtEpochMillis != null -> TaskDeadline.TIME
-        else -> TaskDeadline.NONE
-    }) }
-    val due = initial?.dueAtEpochMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()) }
-    var date by remember(initial) { mutableStateOf(initial?.dueShiftDate?.let(LocalDate::parse) ?: due?.toLocalDate() ?: ShiftDate.current()) }
-    var time by remember(initial) { mutableStateOf(due?.toLocalTime()?.withSecond(0)?.withNano(0) ?: LocalTime.of(18, 0)) }
+    var description by state::description
+    var owner by state::owner
+    var priority by state::priority
+    var deadline by state::deadline
+    var date by state::date
+    var time by state::time
+    var confirmDiscard by state::confirmDiscard
+    val initial = state.initial
     val context = LocalContext.current
     var error by remember(initial) { mutableStateOf<String?>(null) }
-    val initialValues = remember(initial) { listOf(description, owner, priority, deadline, date, time) }
-    var confirmDiscard by remember(initial) { mutableStateOf(false) }
     val requestDismiss: () -> Unit = {
         if (enabled) {
-            if (listOf(description, owner, priority, deadline, date, time) != initialValues) confirmDiscard = true
+            if (listOf(description, owner, priority, deadline, date, time) != state.initialValues) confirmDiscard = true
             else onDismiss()
         }
     }
@@ -205,7 +201,7 @@ private fun TaskDraftDialog(
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 AppTextField(description, { description = it; error = null }, label = { Text(uiText(R.string.ui_patient_task_editor_016)) },
                     modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = error != null, errorMessage = error)
-                SectionTitle(uiText(R.string.ui_patient_task_editor_017))
+                AppSectionHeader(uiText(R.string.ui_patient_task_editor_017))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskDeadline.entries.forEach { option ->
                         FilterChip(selected = deadline == option, onClick = { deadline = option; error = null },
@@ -225,10 +221,10 @@ private fun TaskDraftDialog(
                         }, time.hour, time.minute, true).show()
                     }, enabled = enabled, modifier = Modifier.fillMaxWidth())
                 }
-                SectionTitle(uiText(R.string.ui_patient_task_editor_022))
+                AppSectionHeader(uiText(R.string.ui_patient_task_editor_022))
                 DoctorDropdown(label = uiText(R.string.ui_patient_task_editor_023), undefinedLabel = uiText(R.string.ui_patient_task_editor_024), selectedId = owner,
                     doctors = doctors, onSelected = { owner = it }, modifier = Modifier.fillMaxWidth(), enabled = enabled)
-                SectionTitle(uiText(R.string.ui_patient_task_editor_025))
+                AppSectionHeader(uiText(R.string.ui_patient_task_editor_025))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     TaskPriority.entries.forEach { option ->
                         FilterChip(selected = priority == option, onClick = { priority = option },
@@ -260,4 +256,21 @@ private fun TaskDraftDialog(
         message = uiText(R.string.ui_patient_task_editor_028), confirmText = uiText(R.string.ui_patient_task_editor_029),
         dismissText = uiText(R.string.ui_patient_task_editor_030), destructive = true,
         onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
+}
+
+/** Nested task entry belongs to the patient draft, including unfinished text and deadline choices. */
+internal class TaskDraftState(val initial: PatientTask?) {
+    var description by mutableStateOf(initial?.description.orEmpty())
+    var owner by mutableStateOf(initial?.ownerDoctorId)
+    var priority by mutableStateOf(initial?.priority ?: TaskPriority.NORMAL)
+    var deadline by mutableStateOf(when {
+        initial?.dueShiftDate != null -> TaskDeadline.SHIFT
+        initial?.dueAtEpochMillis != null -> TaskDeadline.TIME
+        else -> TaskDeadline.NONE
+    })
+    private val due = initial?.dueAtEpochMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()) }
+    var date by mutableStateOf(initial?.dueShiftDate?.let(LocalDate::parse) ?: due?.toLocalDate() ?: ShiftDate.current())
+    var time by mutableStateOf(due?.toLocalTime()?.withSecond(0)?.withNano(0) ?: LocalTime.of(18, 0))
+    val initialValues = listOf(description, owner, priority, deadline, date, time)
+    var confirmDiscard by mutableStateOf(false)
 }

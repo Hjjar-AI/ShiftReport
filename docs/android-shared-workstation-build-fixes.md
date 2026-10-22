@@ -31,6 +31,32 @@ before Gradle starts. Release now reads separate protected signing inputs; suppl
 production credentials as described under [Production release signing](#production-release-signing).
 No production-signed release has been verified.
 
+## Cached verification without packaging
+
+For agent/source verification, use the existing toolchain and durable dependency
+cache. Check Java, the pinned Gradle 8.7 installation, Android platform 34 and build
+tools before starting. Do not replace them with a newly downloaded temporary SDK.
+The normal wrapper still selects the existing cache; a shared daemon directory
+owned by another account requires the current account's existing personal cache.
+
+```bash
+# From android/: compile production Kotlin/resources, without APK export or version reservation.
+./gradlew --offline -Pshiftreport.autoVersion=false compileDebugKotlin
+```
+
+Use an existing Java installation compatible with the pinned Gradle/AGP. When a
+sandbox needs separate generated output, pass a writable `--project-cache-dir`
+and `-Pshiftreport.buildRoot=...`; reuse the durable dependency cache. Keep complete
+logs in a local file and inspect concise failures. Recompile after a relevant fix;
+stop after the relevant check passes.
+
+If offline resolution reports a missing prerequisite, name its exact package/
+version and request one-time installation into the normal system/shared cache.
+Do not loop on downloads, install another toolchain in `/tmp`, change versions or
+reserve app build numbers merely to verify edits. Builds do not automatically
+authorize test-suite inspection, migrations, signed release packaging or publishing.
+The daily assemble commands above retain their ordinary owner packaging behavior.
+
 ## Find the APK
 
 Successful assemble tasks copy APKs into the current account's Desktop folder.

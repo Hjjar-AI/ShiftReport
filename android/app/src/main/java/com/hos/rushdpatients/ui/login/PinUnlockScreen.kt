@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -42,7 +43,8 @@ fun PinUnlockScreen(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(8) },
             label = uiText(R.string.ui_local_pin_login_screen_003),
-            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done, enabled = !busy
+            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done, enabled = !busy,
+            keyboardActions = KeyboardActions(onDone = { if (!busy) onUnlock(pin) })
         )
         error?.let {
             AppNotice(it, kind = NoticeKind.ERROR, modifier = Modifier.padding(top = UiSpacing.tiny))

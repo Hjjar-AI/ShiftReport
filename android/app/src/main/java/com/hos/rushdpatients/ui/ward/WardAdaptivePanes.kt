@@ -117,8 +117,7 @@ internal fun WardAdaptivePanes(
         val full = PaneRegion(0f, 0f, width, height)
         val offset = origin
         val fold = foldingFeature
-        // Wait for the local origin before drawing content around a known fold.
-        if (fold != null && offset == null) return@BoxWithConstraints
+        // Keep content/drafts mounted while the first measured origin becomes available.
         val regions = if (fold != null && offset != null) {
             val bounds = fold.bounds
             if (fold.orientation == FoldingFeature.Orientation.VERTICAL) {
@@ -182,16 +181,16 @@ internal fun WardAdaptivePanes(
                             progressBarRangeInfo = ProgressBarRangeInfo(fraction, minimum..maximum)
                             setProgress { adjust(it); true }
                             customActions = listOf(
-                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_005)) { adjust(fraction + .05f); true },
-                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_006)) { adjust(fraction - .05f); true },
-                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_007)) { adjust(.42f); true }
+                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_005)) { adjust(fraction + UiLayout.paneAdjustmentFraction); true },
+                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_006)) { adjust(fraction - UiLayout.paneAdjustmentFraction); true },
+                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_007)) { adjust(UiLayout.defaultListFraction); true }
                             )
                         }
                         .onKeyEvent { event ->
                             if (event.type != KeyEventType.KeyDown) false else when (event.key) {
-                                Key.DirectionRight -> { adjust(fraction + direction * .05f); true }
-                                Key.DirectionLeft -> { adjust(fraction - direction * .05f); true }
-                                Key.MoveHome -> { adjust(.42f); true }
+                                Key.DirectionRight -> { adjust(fraction + direction * UiLayout.paneAdjustmentFraction); true }
+                                Key.DirectionLeft -> { adjust(fraction - direction * UiLayout.paneAdjustmentFraction); true }
+                                Key.MoveHome -> { adjust(UiLayout.defaultListFraction); true }
                                 else -> false
                             }
                         }

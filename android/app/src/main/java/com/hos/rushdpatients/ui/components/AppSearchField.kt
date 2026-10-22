@@ -30,7 +30,8 @@ fun AppSearchField(query: String, onQueryChange: (String) -> Unit, label: String
         singleLine = true, enabled = active, modifier = modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focus.clearFocus() }),
-        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { onQueryChange("") }, enabled = active) {
-            Icon(Icons.Filled.Close, contentDescription = uiText(R.string.ui_shift_doctor_picker_007))
-        } })
+        trailingIcon = { if (query.isNotEmpty()) AppIconButton(label = uiText(R.string.ui_shift_doctor_picker_007),
+            icon = Icons.Filled.Close,
+            onClick = { onQueryChange("") },
+            enabled = active) })
 }

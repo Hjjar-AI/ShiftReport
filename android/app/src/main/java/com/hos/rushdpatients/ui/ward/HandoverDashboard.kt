@@ -4,11 +4,12 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.ui.unit.Dp
-import com.hos.rushdpatients.ui.components.AppMetricRow
+import com.hos.rushdpatients.ui.components.AppMetric
+import com.hos.rushdpatients.ui.components.AppMetricGrid
+import com.hos.rushdpatients.ui.theme.Tone
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -21,6 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.remember
+import com.hos.rushdpatients.domain.patient.WardSummary
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.data.model.Patient
@@ -46,21 +49,15 @@ internal fun HandoverDashboard(
     showSynchronization: Boolean = true
 ) {
     val uiText = rememberUiStrings()
-    val mine = patients.count {
-        it.responsibleResidentId == currentDoctorId || it.responsibleSpecialistId == currentDoctorId ||
-            it.tasks.any { task -> !task.done && task.ownerDoctorId == currentDoctorId }
+    val summary = remember(patients, currentDoctorId, nowEpochMillis) {
+        WardSummary.from(patients, currentDoctorId, nowEpochMillis)
     }
-    val taskCounts = PatientTasks.counts(patients.flatMap { it.tasks }, nowEpochMillis)
-    val urgent = patients.count {
-        it.isPriority || it.badges.any { badge ->
-            badge.priority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH
-        }
-    }
-    val warnings = patients.count { it.badges.isNotEmpty() }
-    val unassigned = patients.count {
-        it.responsibleResidentId == null || it.responsibleSpecialistId == null
-    }
-    val newAdmissions = patients.count { it.admittanceDays == 0 }
+    val mine = summary.mine
+    val taskCounts = summary.tasks
+    val urgent = summary.urgent
+    val warnings = summary.warnings
+    val unassigned = summary.unassigned
+    val newAdmissions = summary.newAdmissions
 
     Column(
         modifier = modifier
@@ -79,22 +76,23 @@ internal fun HandoverDashboard(
             AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text(uiText(R.string.ui_handover_dashboard_004)) }
         }
         Text(uiText(R.string.ui_handover_dashboard_005), style = MaterialTheme.typography.titleMedium)
-        if (urgent > 0) AppMetricRow(uiText(R.string.ui_handover_dashboard_006), urgent, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.URGENT) }
-        if (taskCounts.overdue > 0) AppMetricRow(uiText(R.string.ui_handover_dashboard_007), taskCounts.overdue, kind = NoticeKind.ERROR) { onFilter(DashboardFilter.TASK_OVERDUE) }
-        if (urgent == 0 && taskCounts.overdue == 0) Text(uiText(R.string.ui_handover_dashboard_008),
-            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(uiText(R.string.ui_handover_dashboard_009), style = MaterialTheme.typography.titleMedium)
-        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
-            Column(Modifier.fillMaxWidth().padding(UiSpacing.tiny)) {
-                AppMetricRow(uiText(R.string.ui_handover_dashboard_010), patients.size, compact = true) { onFilter(DashboardFilter.ALL) }
-                AppMetricRow(uiText(R.string.ui_handover_dashboard_011), mine, compact = true) { onFilter(DashboardFilter.MINE) }
-                AppMetricRow(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending, compact = true) { onFilter(DashboardFilter.TASK_PENDING) }
-                AppMetricRow(uiText(R.string.ui_handover_dashboard_013), warnings, compact = true) { onFilter(DashboardFilter.WARNINGS) }
-                AppMetricRow(uiText(R.string.ui_handover_dashboard_014), unassigned, compact = true) { onFilter(DashboardFilter.UNASSIGNED) }
-                AppMetricRow(uiText(R.string.ui_handover_dashboard_015), taskCounts.unassigned, compact = true) { onFilter(DashboardFilter.TASK_UNASSIGNED) }
-                AppMetricRow(uiText(R.string.ui_handover_dashboard_016), newAdmissions, compact = true) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
-            }
+        val attention = buildList {
+            if (urgent > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_006), urgent, Tone.URGENT) { onFilter(DashboardFilter.URGENT) })
+            if (taskCounts.overdue > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_007), taskCounts.overdue, Tone.URGENT) { onFilter(DashboardFilter.TASK_OVERDUE) })
         }
+        AppMetricGrid(attention)
+        if (attention.isEmpty()) com.hos.rushdpatients.ui.components.AppNotice(
+            uiText(R.string.ui_handover_dashboard_008), kind = NoticeKind.SUCCESS)
+        Text(uiText(R.string.ui_handover_dashboard_009), style = MaterialTheme.typography.titleMedium)
+        AppMetricGrid(listOf(
+            AppMetric(uiText(R.string.ui_handover_dashboard_010), patients.size) { onFilter(DashboardFilter.ALL) },
+            AppMetric(uiText(R.string.ui_handover_dashboard_011), mine) { onFilter(DashboardFilter.MINE) },
+            AppMetric(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending) { onFilter(DashboardFilter.TASK_PENDING) },
+            AppMetric(uiText(R.string.ui_handover_dashboard_013), warnings) { onFilter(DashboardFilter.WARNINGS) },
+            AppMetric(uiText(R.string.ui_handover_dashboard_014), unassigned) { onFilter(DashboardFilter.UNASSIGNED) },
+            AppMetric(uiText(R.string.ui_handover_dashboard_015), taskCounts.unassigned) { onFilter(DashboardFilter.TASK_UNASSIGNED) },
+            AppMetric(uiText(R.string.ui_handover_dashboard_016), newAdmissions) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
+        ))
         if (showSynchronization) Surface(
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surfaceVariant,

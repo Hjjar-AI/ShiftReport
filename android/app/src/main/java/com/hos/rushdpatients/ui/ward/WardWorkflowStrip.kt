@@ -1,10 +1,18 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.Surface
+import com.hos.rushdpatients.ui.components.noticeColors
+import com.hos.rushdpatients.ui.theme.UiSize
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
@@ -32,30 +40,47 @@ internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit) {
             Row(Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).padding(horizontal = UiSpacing.screen),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(if (state.syncStatus == PatientSyncStatus.BACKED_UP) uiText(R.string.ui_ward_workflow_strip_001)
-                    else state.syncStatus.arabicLabel(uiText),
-                    Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val colors = noticeColors(patientSyncNoticeKind(state.syncStatus, online = true))
+                Surface(Modifier.weight(1f), shape = MaterialTheme.shapes.small,
+                    color = colors.container, contentColor = colors.content) {
+                    Row(Modifier.padding(UiSpacing.small), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                        Icon(when (state.syncStatus) {
+                            PatientSyncStatus.LOCAL -> Icons.Filled.Save
+                            PatientSyncStatus.PENDING -> Icons.Filled.CloudUpload
+                            PatientSyncStatus.BACKED_UP -> Icons.Filled.CloudDone
+                            PatientSyncStatus.SYNCING -> Icons.Filled.Sync
+                        }, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
+                        Text(if (state.syncStatus == PatientSyncStatus.BACKED_UP) uiText(R.string.ui_ward_workflow_strip_001)
+                            else state.syncStatus.arabicLabel(uiText), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
                 AppTextButton(onClick = onNext, enabled = state.shift != null && !state.syncing && !state.saving) {
                     Text(state.workflowAction.label(uiText))
                 }
-                IconButton(onClick = { details = !details }, modifier = Modifier.semantics {
+                AppIconButton(label = if (details) uiText(R.string.ui_ward_workflow_strip_004) else uiText(R.string.ui_patient_sync_notice_002),
+            icon = if (details) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            onClick = { details = !details },
+            modifier = Modifier.semantics {
                     stateDescription = if (details) uiText(R.string.ui_ward_workflow_strip_002) else uiText(R.string.ui_ward_workflow_strip_003)
-                }) {
-                    Icon(if (details) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (details) uiText(R.string.ui_ward_workflow_strip_004) else uiText(R.string.ui_patient_sync_notice_002))
-                }
+                })
             }
             if (details) Text(state.freshnessLabel(uiText), Modifier.padding(horizontal = UiSpacing.screen),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) {
-            AppNotice(
-                message = if (state.deliveryLogUnavailable) uiText(R.string.ui_ward_workflow_strip_005)
-                    else uiText(R.string.ui_ward_workflow_strip_006, uiNumber(state.unresolvedDeliveries)),
-                kind = NoticeKind.WARNING, actionLabel = uiText(R.string.ui_ward_workflow_strip_007),
-                onAction = if (!state.syncing && !state.saving && state.shift != null) onNext else null,
-                compact = true)
-        }
+    }
+}
+
+/** Delivery uncertainty stays in the header; routine publication status stays in the list. */
+@Composable
+internal fun WardDeliveryNotice(state: WardUiState, onNext: () -> Unit) {
+    val uiText = rememberUiStrings()
+    if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) {
+        AppNotice(
+            message = if (state.deliveryLogUnavailable) uiText(R.string.ui_ward_workflow_strip_005)
+                else uiText(R.string.ui_ward_workflow_strip_006, uiNumber(state.unresolvedDeliveries)),
+            kind = NoticeKind.WARNING, actionLabel = uiText(R.string.ui_ward_workflow_strip_007),
+            onAction = onNext, actionEnabled = !state.syncing && !state.saving && state.shift != null,
+            compact = true)
     }
 }

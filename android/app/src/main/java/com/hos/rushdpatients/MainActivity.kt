@@ -28,6 +28,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.ui.WardAppRoot
 import com.hos.rushdpatients.ui.theme.RushdPatientsTheme
+import com.hos.rushdpatients.ui.theme.AppSystemBars
+import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.ThemeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -41,7 +43,7 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             var showingSplash by rememberSaveable { mutableStateOf(true) }
-            val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 3_000L) }
+            val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 5_000L) }
             // A physical press cannot survive Activity recreation; the deadline does.
             var splashHeld by remember { mutableStateOf(false) }
             var splashSecondsRemaining by remember(splashDeadline) {
@@ -67,6 +69,7 @@ class MainActivity : FragmentActivity() {
 
             if (showingSplash) {
                 RushdPatientsTheme(darkTheme = false) {
+                    AppSystemBars()
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                         IntroAboutScreen(splash = true, onBack = { showingSplash = false },
                             remainingSeconds = splashSecondsRemaining, splashHeld = splashHeld,
@@ -75,10 +78,12 @@ class MainActivity : FragmentActivity() {
                 }
                 return@setContent
             }
-            RushdPatientsTheme {
+            // Encrypted appearance preferences become readable only after this gate succeeds.
+            RushdPatientsTheme(appearance = AppAppearance.SYSTEM) {
+                AppSystemBars()
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    com.hos.rushdpatients.ui.StorageAccessGate {
-                        AppContent()
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        com.hos.rushdpatients.ui.StorageAccessGate { AppContent() }
                     }
                 }
             }
@@ -105,6 +110,7 @@ private fun MainActivity.AppContent() {
     }
 
     RushdPatientsTheme(preset = themePreset, appearance = appearance) {
+        AppSystemBars()
         CompositionLocalProvider(
             LocalLayoutDirection provides LayoutDirection.Rtl,
             LocalDensity provides scaledDensity

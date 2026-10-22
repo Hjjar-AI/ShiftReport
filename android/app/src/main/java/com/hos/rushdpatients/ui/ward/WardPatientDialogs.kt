@@ -11,7 +11,9 @@ import com.hos.rushdpatients.ui.components.ConfirmDialog
 @Composable
 internal fun WardPatientDialogs(
     state: WardUiState, editTarget: Patient?, copyTarget: Patient?, deleteTarget: Patient?,
-    roundsPatientIds: List<String>, onSaveEdited: (Patient, Patient, (Patient?) -> Unit, Boolean) -> Unit,
+    roundsPatientIds: List<String>,
+    editSession: EditPatientState? = null, copyInitial: Patient? = null, copyForm: PatientFormStateStore? = null,
+    onSaveEdited: (Patient, Patient, (Patient?) -> Unit, Boolean) -> Unit,
     onSaveAndNextChanged: (Boolean) -> Unit, onDismissEdit: () -> Unit,
     onCopyConfirmed: (Patient) -> Unit, onDismissCopy: () -> Unit,
     onDeleteConfirmed: (Patient) -> Unit, onDismissDelete: () -> Unit
@@ -22,6 +24,7 @@ internal fun WardPatientDialogs(
         key(p.id) {
             EditPatientDialog(
                 patient = p,
+                retainedState = editSession,
                 doctors = state.doctors,
                 saving = state.saving,
                 onConfirm = { draft, onStale -> onSaveEdited(p, draft, onStale, false) },
@@ -39,6 +42,7 @@ internal fun WardPatientDialogs(
     copyTarget?.let { source ->
         CopyPatientDialog(
             source = source,
+            initialCopy = copyInitial, stateStore = copyForm,
             doctors = state.doctors,
             saving = state.saving,
             onConfirm = onCopyConfirmed,

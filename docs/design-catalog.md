@@ -144,7 +144,7 @@ helpers; UI state producers receive `UiStrings` through injection. Composable
 default arguments may use `stringResource`. Use the `UiLabels.kt` bridges for
 model/PDF enum labels in the UI; portable model codes and shared clinical/export
 wording have separate ownership. About/credits and dummy clinical fixtures retain
-their existing content. See [scope and verification limits](current-state.md#android-ui-string-resources).
+their existing content. See [scope and verification limits](current-state.md#shared-android-presentation).
 
 ## Dialog and adaptive layout roles
 
@@ -246,3 +246,26 @@ Shared-component extraction was checked at source level, including callback,
 clinical-content and inactive-profile boundaries. The catalog and spare profiles
 have not been visually evaluated on a device. No build or compilation, packaging,
 clinical database change, live Telegram action or test-suite task was run.
+
+## Consolidated Android components
+
+The selected UI pass uses ContainerColors/toneColors for notice/chip/metric pairs,
+with patientBadgeColors retaining clinical severity. AppButtonStyle owns primary,
+tonal, outlined, text and destructive variants; existing short button entry points
+share that implementation. AppDivider, AppChip/AppFilterChip, AppMetricGrid,
+AppIconButton and content-card helpers are the shared presentation primitives.
+Informational badges are separate from selected filters; compact controls still
+have 48dp targets. Semantic gutters/card/control/section roles extend UiSpacing.
+
+Tajawal Medium 500 is permanently bundled beside Regular 400/Bold 700. Upstream
+has no SemiBold 600 face, so UiTypography.emphasizedWeight uses genuine Bold.
+Source: [Google Fonts Tajawal](https://github.com/google/fonts/tree/main/ofl/tajawal),
+SIL OFL retained at `android/app/src/main/assets/fonts/OFL.txt`.
+Medium SHA-256: `1ff8bd943a261c9dd7906bdb1993cab87b6d925a7fb5f848cdb51ed301531090`.
+No runtime font download or dependency/toolchain upgrade was added.
+
+Ward controls keep count/group context and active-count options/reset in one row,
+then scrolling presets and optional search/advanced summaries. Dashboard tiles use
+two columns only when labels fit the available width/font scale. Actual rendering,
+TalkBack, tooltip touch behavior and fold/large-font layouts require device review;
+source or compiler checks do not establish those results.

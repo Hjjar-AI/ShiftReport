@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.ward.PatientCardState
+import com.hos.rushdpatients.ui.ward.PatientCardActions
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -88,10 +90,16 @@ internal fun SettingsPatientCardPreview(state: SettingsUiState, modifier: Modifi
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         // Font scale comes from the same app-wide density provider as the ward.
         RushdPatientsTheme(preset = state.appTheme, appearance = state.appearance) {
-            PatientCard(patient = sample, expanded = true, twoColumn = state.patientTwoColumn,
-                compact = state.patientCompactDensity,
-                doctorNames = mapOf("preview-resident" to uiText(R.string.ui_settings_appearance_section_011), "preview-supervisor" to uiText(R.string.ui_settings_appearance_section_012)),
-                readOnly = true, showViewControls = false, onClick = {}, onDelete = {})
+            PatientCard(
+        state = PatientCardState(patient = sample,
+            expanded = true,
+            twoColumn = state.patientTwoColumn,
+            compact = state.patientCompactDensity,
+            doctorNames = mapOf("preview-resident" to uiText(R.string.ui_settings_appearance_section_011), "preview-supervisor" to uiText(R.string.ui_settings_appearance_section_012)),
+            readOnly = true,
+            showViewControls = false),
+        actions = PatientCardActions.None
+    )
         }
     }
 }

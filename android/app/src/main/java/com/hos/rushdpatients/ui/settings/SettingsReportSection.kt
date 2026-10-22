@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -70,7 +70,7 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
             }
         }
 
-        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+        AppDivider()
         SettingsSubheading(uiText(R.string.ui_settings_report_section_008))
         Text(uiText(R.string.ui_settings_report_section_009), style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {

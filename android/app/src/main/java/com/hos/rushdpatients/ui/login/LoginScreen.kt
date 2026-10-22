@@ -42,8 +42,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
+import android.os.PersistableBundle
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -176,7 +182,23 @@ private fun PickDoctorList(
 @Composable
 private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
     val uiText = rememberUiStrings()
-    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val clipboard = remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
+    fun clearNonce() {
+        // Only remove this verification code; a later user copy belongs to the user.
+        try {
+            val clip = clipboard.primaryClip
+            if (clip?.description?.label == "ShiftReport verification" && clip.itemCount == 1 &&
+                clip.getItemAt(0).text?.toString() == step.nonce) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) clipboard.clearPrimaryClip()
+                else clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+            }
+        } catch (_: SecurityException) {
+            // Android may deny clipboard access when the app has lost focus.
+        }
+    }
+    DisposableEffect(clipboard, step.nonce) { onDispose { clearNonce() } }
+    LaunchedEffect(step.remainingSeconds) { if (step.remainingSeconds <= 0) clearNonce() }
     AppCenteredContent() {
         Text(uiText(R.string.ui_login_screen_009), style = MaterialTheme.typography.headlineSmall)
         Text(
@@ -191,8 +213,14 @@ private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
             modifier = Modifier.padding(vertical = UiSpacing.screen)
         )
         Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppOutlinedButton(onClick = {
-                clipboard.setText(AnnotatedString(step.nonce))
+            AppOutlinedButton(enabled = step.remainingSeconds > 0, onClick = {
+                val clip = ClipData.newPlainText("ShiftReport verification", step.nonce)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    clip.description.extras = PersistableBundle().apply {
+                        putBoolean("android.content.extra.IS_SENSITIVE", true)
+                    }
+                }
+                clipboard.setPrimaryClip(clip)
             }) { Text(uiText(R.string.ui_copy)) }
         }
         Text(
@@ -216,6 +244,6 @@ private fun VerifyFailedView(
         Text(uiText(R.string.ui_login_screen_012), style = MaterialTheme.typography.headlineSmall)
         AppNotice(step.message, kind = NoticeKind.ERROR)
         AppButton(onClick = { onRetry(step.doctor) }) { Text(uiText(R.string.ui_retry)) }
-        AppTextButton(onClick = onBack) { Text(uiText(R.string.ui_patient_form_fields_019)) }
+        AppTextButton(onClick = onBack) { Text(uiText(R.string.ui_back)) }
     }
 }

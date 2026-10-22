@@ -24,56 +24,48 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
+enum class AppButtonStyle { PRIMARY, TONAL, OUTLINED, TEXT, DESTRUCTIVE }
+
 @Composable
 fun AppButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = LocalFieldEnabled.current,
-    contentPadding: PaddingValues = UiPadding.content,
+    contentPadding: PaddingValues = UiPadding.button,
+    style: AppButtonStyle = AppButtonStyle.PRIMARY,
+    colors: ButtonColors? = null,
     content: @Composable RowScope.() -> Unit
 ) {
-    val colors = appActionColors()
-    Button(
-        colors = ButtonDefaults.buttonColors(containerColor = colors.container, contentColor = colors.content,
-            disabledContainerColor = colors.disabledContainer, disabledContentColor = colors.disabledContent),
-        onClick = onClick, modifier = modifier.heightIn(min = UiSpacing.touchTarget),
-        enabled = enabled && LocalFieldEnabled.current, shape = MaterialTheme.shapes.small,
-        contentPadding = contentPadding, content = content
-    )
+    val active = enabled && LocalFieldEnabled.current
+    val shape = MaterialTheme.shapes.small
+    val target = modifier.heightIn(min = UiSpacing.touchTarget)
+    when (style) {
+        AppButtonStyle.OUTLINED -> OutlinedButton(onClick, target, active, shape = shape,
+            colors = colors ?: ButtonDefaults.outlinedButtonColors(), contentPadding = contentPadding, content = content)
+        AppButtonStyle.TEXT -> TextButton(onClick, target, active, shape = shape,
+            colors = colors ?: ButtonDefaults.textButtonColors(), contentPadding = contentPadding, content = content)
+        else -> Button(onClick, target, active, shape = shape,
+            colors = colors ?: when (style) {
+                AppButtonStyle.TONAL -> ButtonDefaults.filledTonalButtonColors()
+                AppButtonStyle.DESTRUCTIVE -> ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
+                else -> ButtonDefaults.buttonColors()
+            }, contentPadding = contentPadding, content = content)
+    }
 }
 
 @Composable
-fun AppOutlinedButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = LocalFieldEnabled.current,
-    content: @Composable RowScope.() -> Unit
-) {
-    OutlinedButton(
-        onClick = onClick, modifier = modifier.heightIn(min = UiSpacing.touchTarget),
-        enabled = enabled && LocalFieldEnabled.current, shape = MaterialTheme.shapes.small,
-        colors = ButtonDefaults.outlinedButtonColors(disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContent)),
-        contentPadding = UiPadding.content,
-        content = content
-    )
-}
+fun AppOutlinedButton(onClick: () -> Unit, modifier: Modifier = Modifier,
+    enabled: Boolean = LocalFieldEnabled.current, content: @Composable RowScope.() -> Unit) =
+    AppButton(onClick, modifier, enabled, style = AppButtonStyle.OUTLINED, content = content)
 
 @Composable
-fun AppTextButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+fun AppTextButton(onClick: () -> Unit, modifier: Modifier = Modifier,
     enabled: Boolean = LocalFieldEnabled.current,
     colors: ButtonColors = ButtonDefaults.textButtonColors(
         disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContent)),
-    contentPadding: PaddingValues = UiPadding.content,
-    content: @Composable RowScope.() -> Unit
-) {
-    TextButton(
-        onClick = onClick, modifier = modifier.heightIn(min = UiSpacing.touchTarget),
-        enabled = enabled && LocalFieldEnabled.current, shape = MaterialTheme.shapes.small, colors = colors,
-        contentPadding = contentPadding, content = content
-    )
-}
+    contentPadding: PaddingValues = UiPadding.content, content: @Composable RowScope.() -> Unit) =
+    AppButton(onClick, modifier, enabled, contentPadding, AppButtonStyle.TEXT, colors, content)
 
 /** Neutral section surfaces; callers retain semantic colors and selection borders. */
 @Composable
@@ -89,10 +81,3 @@ fun AppCard(
         colors = colors, elevation = elevation, border = border, content = content
     )
 }
-
-/** Native and gesture actions share the same enabled and disabled palette. */
-data class AppActionColors(val container: Color, val content: Color, val disabledContainer: Color, val disabledContent: Color)
-
-@Composable
-fun appActionColors() = AppActionColors(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary,
-    MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContainer), MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.disabledContent))

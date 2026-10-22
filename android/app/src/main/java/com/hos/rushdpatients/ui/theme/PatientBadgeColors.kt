@@ -5,16 +5,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 
-data class PatientBadgeColors(val container: Color, val content: Color)
 
 /** Badge severity means the same thing in every editor and patient view. */
 @Composable
-fun patientBadgeColors(priority: PatientBadgePriority?): PatientBadgeColors {
+fun patientBadgeColors(priority: PatientBadgePriority?): ContainerColors {
     val clinical = LocalClinicalColors.current
     return when (priority) {
-        PatientBadgePriority.HIGH -> PatientBadgeColors(clinical.urgentContainer, clinical.onUrgentContainer)
-        PatientBadgePriority.MEDIUM -> PatientBadgeColors(clinical.warningContainer, clinical.onWarningContainer)
-        PatientBadgePriority.LOW, null -> PatientBadgeColors(
+        PatientBadgePriority.HIGH -> ContainerColors(clinical.urgentContainer, clinical.onUrgentContainer)
+        PatientBadgePriority.MEDIUM -> ContainerColors(clinical.warningContainer, clinical.onWarningContainer)
+        PatientBadgePriority.LOW, null -> ContainerColors(
             MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

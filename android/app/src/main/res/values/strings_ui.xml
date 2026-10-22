@@ -1291,4 +1291,6 @@
     <string name="ui_label_pdf_presentation_preset_002" formatted="false">"فواصل واضحة"</string>
     <string name="ui_label_pdf_presentation_preset_003" formatted="false">"للطباعة"</string>
     <string name="ui_settings_preferences_001" formatted="false">"حُفظ اسم الجناح للتقارير"</string>
+    <string name="ui_back" formatted="false">"رجوع"</string>
+    <string name="ui_demo_local_only">هذا العرض محلي ومؤقت؛ لا يتصل بالمشروع. تغيّرت البيانات؟ أعد فتح الإجراء وراجعه.</string>
 </resources>

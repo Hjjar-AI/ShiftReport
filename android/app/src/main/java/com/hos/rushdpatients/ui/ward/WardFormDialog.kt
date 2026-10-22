@@ -15,7 +15,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -58,17 +59,17 @@ internal fun WardFormDialog(
                 Surface(Modifier.fillMaxSize()) {
                     WardAdaptivePanes(
                         enableSplit = false, foldingFeature = fold,
-                        listFraction = .42f, onListFractionChange = {},
+                        listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                         modifier = Modifier.fillMaxSize(), primaryTitle = uiText(R.string.ui_ward_form_dialog_001),
                         primary = {
                             Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
                                 Column(Modifier.widthIn(max = UiLayout.patientFormMaxWidth).fillMaxWidth().fillMaxHeight()) {
-                                    Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny)) { title() }
-                                    Divider()
-                                    Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.small)) { text() }
-                                    Divider()
+                                    Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.tiny)) { title() }
+                                    AppDivider()
+                                    Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.small)) { text() }
+                                    AppDivider()
                                     Row(
-                                        Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
+                                        Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.tiny),
                                         horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {

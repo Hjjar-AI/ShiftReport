@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -92,7 +93,7 @@ fun ShiftDoctorPicker(
                             actionLabel = if (query.isBlank()) null else uiText(R.string.ui_shift_doctor_picker_007), onAction = { query = "" })
                     }
                     doctorChoiceGroups(uiText, matchingDoctors, activeDoctors).forEach { (team, members) ->
-                        SectionTitle(team)
+                        AppSectionHeader(team)
                         members.forEach { doctor ->
                             AppCheckRow(label = doctor.fullName, checked = doctor.id in selected, enabled = !saving,
                                 onCheckedChange = { checked ->

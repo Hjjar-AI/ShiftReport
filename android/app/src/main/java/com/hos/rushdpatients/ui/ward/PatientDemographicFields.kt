@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -44,7 +45,7 @@ internal fun PatientDemographicFields(
     onCompanionChanged: (Boolean) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    SectionTitle(
+    AppSectionHeader(
         uiText(R.string.ui_patient_demographic_fields_001),
         complete = admittanceNumber.isNotBlank() && admittanceDate != null,
         modifier = personalAnchor
@@ -77,7 +78,7 @@ internal fun PatientDemographicFields(
         }
     )
 
-    SectionTitle(
+    AppSectionHeader(
         uiText(R.string.ui_patient_demographic_fields_005),
         complete = name.isNotBlank() && birthYear != null && age != null
     )

@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
@@ -24,6 +23,7 @@ internal fun EditPatientDialog(
     patient: Patient,
     doctors: List<Doctor>,
     saving: Boolean = false,
+    retainedState: EditPatientState? = null,
     onConfirm: (Patient, (Patient?) -> Unit) -> Unit,
     onConfirmAndNext: ((Patient, (Patient?) -> Unit) -> Unit)? = null,
     roundsNavigation: PatientRoundsNavigation? = null,
@@ -32,11 +32,12 @@ internal fun EditPatientDialog(
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var initial by remember(patient.id) { mutableStateOf(patient) }
-    var baseline by remember(patient.id) { mutableStateOf(patient) }
-    var rejected by remember(patient.id) { mutableStateOf<Patient?>(null) }
-    var latest by remember(patient.id) { mutableStateOf<Patient?>(null) }
-    var reviewing by remember(patient.id) { mutableStateOf(false) }
+    val session = retainedState ?: remember(patient.id) { EditPatientState(patient) }
+    var initial by session::initial
+    var baseline by session::baseline
+    var rejected by session::rejected
+    var latest by session::latest
+    var reviewing by session::reviewing
     fun submit(draft: Patient, advance: Boolean) {
         val onStale: (Patient?) -> Unit = { saved ->
             rejected = draft
@@ -50,6 +51,7 @@ internal fun EditPatientDialog(
         initial = initial,
         savedBaseline = baseline,
         restoredDraft = null,
+        stateStore = session.form,
         doctors = doctors,
         saving = saving,
         reviewAction = {

@@ -38,7 +38,7 @@ enum class UiAction(@StringRes private val labelRes: Int, val icon: ImageVector)
 fun AppActionLabel(action: UiAction) {
     val uiText = rememberUiStrings()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        Icon(action.icon, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
+        Icon(action.icon, contentDescription = null, modifier = if (action == UiAction.SEND_REPORT) Modifier.size(UiSize.iconMedium).directionalIcon() else Modifier.size(UiSize.iconMedium))
         Text(action.label(uiText))
     }
 }

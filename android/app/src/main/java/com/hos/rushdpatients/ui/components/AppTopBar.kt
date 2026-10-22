@@ -35,9 +35,10 @@ fun AppTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.(
     AppCompactTopBar(title = {
         Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }, navigation = {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = uiText(R.string.ui_patient_form_fields_019),
-                modifier = Modifier.rotate(if (LocalLayoutDirection.current == LayoutDirection.Rtl) 180f else 0f))
-        }
+        AppIconButton(label = uiText(R.string.ui_back),
+            icon = Icons.Filled.ArrowBack,
+            onClick = onBack,
+            iconModifier = Modifier,
+            directional = true)
     }, actions = actions)
 }

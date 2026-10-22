@@ -17,6 +17,7 @@ import com.hos.rushdpatients.ui.doctors.DoctorsScreen
 import com.hos.rushdpatients.ui.report.ReportPreviewScreen
 import com.hos.rushdpatients.ui.settings.SettingsScreen
 import com.hos.rushdpatients.ui.settings.SettingsWorkspace
+import com.hos.rushdpatients.ui.ward.WardNavigation
 import com.hos.rushdpatients.ui.ward.WardScreen
 
 @Composable
@@ -33,7 +34,7 @@ fun WardNavHost(
             WardScreen(
                 isAdmin = session.isAdmin,
                 currentDoctorId = session.doctorId,
-                onOpenReport = { shiftId ->
+                navigation = WardNavigation(onOpenReport = { shiftId ->
                     navController.navigate(Routes.reportPreview(shiftId))
                 },
                 onOpenAdmin = { navController.navigate(Routes.ADMIN) },
@@ -42,7 +43,7 @@ fun WardNavHost(
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
                 onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
                 onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) },
-                onOpenAnnouncement = { navController.navigate(Routes.ANNOUNCEMENT) }
+                onOpenAnnouncement = { navController.navigate(Routes.ANNOUNCEMENT) })
             )
         }
 
@@ -55,22 +56,20 @@ fun WardNavHost(
         }
 
         composable(Routes.ADMIN) {
-            if (session.isAdmin) {
-                AdminScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenDoctors = { navController.navigate(Routes.DOCTORS) }
-                )
-            } else LaunchedEffect(Unit) { navController.popBackStack() }
+            AdminRoute(session.isAdmin, { navController.popBackStack() }) {
+                AdminScreen(onBack = { navController.popBackStack() },
+                    onOpenDoctors = { navController.navigate(Routes.DOCTORS) })
+            }
         }
-
         composable(Routes.DOCTORS) {
-            if (session.isAdmin) DoctorsScreen(onBack = { navController.popBackStack() })
-            else LaunchedEffect(Unit) { navController.popBackStack() }
+            AdminRoute(session.isAdmin, { navController.popBackStack() }) {
+                DoctorsScreen(onBack = { navController.popBackStack() })
+            }
         }
-
         composable(Routes.ANNOUNCEMENT) {
-            if (session.isAdmin) AnnouncementScreen(onBack = { navController.popBackStack() })
-            else LaunchedEffect(Unit) { navController.popBackStack() }
+            AdminRoute(session.isAdmin, { navController.popBackStack() }) {
+                AnnouncementScreen(onBack = { navController.popBackStack() })
+            }
         }
 
         listOf(
@@ -107,12 +106,19 @@ fun WardNavHost(
         }
 
         composable(Routes.VBA_IMPORT) {
-            if (session.isAdmin) VbaImportScreen(onBack = { navController.popBackStack() })
-            else LaunchedEffect(Unit) { navController.popBackStack() }
+            AdminRoute(session.isAdmin, { navController.popBackStack() }) {
+                VbaImportScreen(onBack = { navController.popBackStack() })
+            }
         }
 
         composable(Routes.ABOUT) {
             IntroAboutScreen(splash = false, onBack = { navController.popBackStack() })
         }
     }
+}
+
+/** Navigation presentation only. Privileged mutations retain their live repository/service checks. */
+@Composable
+private fun AdminRoute(allowed: Boolean, onDenied: () -> Unit, content: @Composable () -> Unit) {
+    if (allowed) content() else LaunchedEffect(allowed) { onDenied() }
 }

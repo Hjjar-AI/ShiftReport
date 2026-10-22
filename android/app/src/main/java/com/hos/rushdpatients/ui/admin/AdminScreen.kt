@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.components.AppActionCard
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -91,7 +92,7 @@ fun AdminScreen(
                 Text(uiText(R.string.ui_admin_screen_006, uiNumber(state.admins.size), uiNumber(state.nonAdmins.size)))
             }
 
-            AdminActionCard(
+            AppActionCard(
                 title = uiText(R.string.ui_admin_screen_007),
                 description = uiText(R.string.ui_admin_screen_008),
                 actionLabel = uiText(R.string.ui_admin_screen_009),
@@ -145,27 +146,5 @@ fun AdminScreen(
             },
             onDismiss = { showRemoveAdmin = false }
         )
-    }
-}
-
-@Composable
-private fun AdminActionCard(
-    title: String,
-    description: String,
-    actionLabel: String,
-    onClick: () -> Unit,
-    primary: Boolean = false
-) {
-    AppSection(title = title) {
-        Text(
-            description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (primary) {
-            AppButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
-        } else {
-            AppOutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(actionLabel) }
-        }
     }
 }

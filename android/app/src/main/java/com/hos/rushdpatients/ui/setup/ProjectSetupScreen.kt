@@ -18,7 +18,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import com.hos.rushdpatients.ui.theme.UiLayout
@@ -93,7 +92,7 @@ fun ProjectSetupScreen(
                 onSelect = viewModel::setMode)
 
             if (state.mode == ProjectSetupMode.DEMO) {
-                SetupSection(uiText(R.string.ui_project_setup_screen_003)) {
+                AppSection(uiText(R.string.ui_project_setup_screen_003)) {
                     Text(uiText(R.string.ui_project_setup_screen_004))
                     Text(uiText(R.string.ui_project_setup_screen_005),
                         style = MaterialTheme.typography.bodySmall,
@@ -103,7 +102,7 @@ fun ProjectSetupScreen(
 
             if (state.mode != ProjectSetupMode.DEMO) {
                 if (state.mode == ProjectSetupMode.JOIN) {
-                    SetupSection(uiText(R.string.ui_project_setup_screen_006)) {
+                    AppSection(uiText(R.string.ui_project_setup_screen_006)) {
                         Text(
                             uiText(R.string.ui_project_setup_screen_007),
                             style = MaterialTheme.typography.bodySmall,
@@ -122,7 +121,7 @@ fun ProjectSetupScreen(
                         ) { Text(if (state.importedProvisioning) uiText(R.string.ui_project_setup_screen_009) else uiText(R.string.ui_project_setup_screen_010)) }
                     }
                     if (state.importedProvisioning) {
-                        SetupSection(uiText(R.string.ui_project_setup_screen_011)) {
+                        AppSection(uiText(R.string.ui_project_setup_screen_011)) {
                             Text(state.hospitalName, fontWeight = FontWeight.Bold)
                             Text(uiText(R.string.ui_project_setup_screen_012, com.hos.rushdpatients.ui.components.uiNumber(state.chatId)))
                             Text(if (state.encryptTelegram) uiText(R.string.ui_project_setup_screen_013) else uiText(R.string.ui_project_setup_screen_014))
@@ -133,7 +132,7 @@ fun ProjectSetupScreen(
                 }
 
                 if (state.mode == ProjectSetupMode.CREATE) {
-                    SetupSection(uiText(R.string.ui_project_setup_screen_016)) {
+                    AppSection(uiText(R.string.ui_project_setup_screen_016)) {
                         AppTextField(
                             value = state.hospitalName,
                             onValueChange = viewModel::setHospitalName,
@@ -175,7 +174,7 @@ fun ProjectSetupScreen(
             }
 
             if (state.mode == ProjectSetupMode.CREATE) {
-                SetupSection(uiText(R.string.ui_project_setup_screen_027)) {
+                AppSection(uiText(R.string.ui_project_setup_screen_027)) {
                     AppToggleRow(title = uiText(R.string.ui_project_setup_screen_028), checked = state.encryptTelegram,
                         onCheckedChange = viewModel::setEncryptTelegram, enabled = !state.busy)
                     Text(uiText(R.string.ui_project_setup_screen_029),
@@ -183,7 +182,7 @@ fun ProjectSetupScreen(
                     Text(uiText(R.string.ui_project_setup_screen_030),
                         style = MaterialTheme.typography.bodySmall)
                 }
-                SetupSection(uiText(R.string.ui_project_setup_screen_031)) {
+                AppSection(uiText(R.string.ui_project_setup_screen_031)) {
                     AppTextField(
                         value = state.adminName,
                         onValueChange = viewModel::setAdminName,
@@ -298,9 +297,4 @@ private fun NumberField(
         ),
         modifier = Modifier.fillMaxWidth()
     )
-}
-
-@Composable
-private fun SetupSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    AppSection(title = title, content = content)
 }

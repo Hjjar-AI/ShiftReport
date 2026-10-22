@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiTypography
+import androidx.annotation.StringRes
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -42,72 +45,51 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun CompactFilterChip(
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: String
+private enum class WardDestination(
+    @StringRes val label: Int, val outlined: ImageVector, val filled: ImageVector
 ) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall
-            )
-        },
-        modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
-    )
+    PATIENTS(R.string.ui_patients, Icons.Outlined.ViewAgenda, Icons.Filled.ViewAgenda),
+    DASHBOARD(R.string.ui_ward_components_002, Icons.Outlined.Dashboard, Icons.Filled.Dashboard),
+    ACTIVITY(R.string.ui_ward_navigation_chrome_003, Icons.Outlined.History, Icons.Filled.History);
+
+    fun selected(view: WardViewMode): Boolean = when (this) {
+        PATIENTS -> view == WardViewMode.ALL || view == WardViewMode.MINE
+        DASHBOARD -> view == WardViewMode.DASHBOARD
+        ACTIVITY -> view == WardViewMode.ACTIVITY
+    }
+}
+
+private fun wardDestinations(isAdmin: Boolean) = WardDestination.values().filter {
+    isAdmin || it != WardDestination.ACTIVITY
 }
 
 @Composable
 internal fun PrimaryNavigationBar(
-    viewMode: WardViewMode,
-    isAdmin: Boolean,
-    onPatients: () -> Unit,
-    onDashboard: () -> Unit,
-    onActivity: () -> Unit
+    viewMode: WardViewMode, isAdmin: Boolean,
+    onPatients: () -> Unit, onDashboard: () -> Unit, onActivity: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    val items = listOf(
-        AppTabItem(uiText(R.string.ui_patients), Icons.Outlined.ViewAgenda, Icons.Filled.ViewAgenda) to onPatients,
-        AppTabItem(uiText(R.string.ui_ward_components_002), Icons.Outlined.Dashboard, Icons.Filled.Dashboard) to onDashboard
-    ) + if (isAdmin) listOf(AppTabItem(uiText(R.string.ui_ward_navigation_chrome_003), Icons.Outlined.History, Icons.Filled.History) to onActivity) else emptyList()
-    val selectedIndex = when (viewMode) { WardViewMode.ALL, WardViewMode.MINE -> 0; WardViewMode.DASHBOARD -> 1; else -> 2 }
-    AppTabBar(items = items.map { it.first }, selectedIndex = selectedIndex,
-        onSelect = { items[it].second() })
+    val destinations = wardDestinations(isAdmin)
+    val actions = listOf(onPatients, onDashboard, onActivity)
+    AppTabBar(items = destinations.map { AppTabItem(uiText(it.label), it.outlined, it.filled) },
+        selectedIndex = destinations.indexOfFirst { it.selected(viewMode) },
+        onSelect = { actions[destinations[it].ordinal]() })
 }
 
 @Composable
 internal fun PrimaryNavigationRail(
-    viewMode: WardViewMode,
-    isAdmin: Boolean,
-    onPatients: () -> Unit,
-    onDashboard: () -> Unit,
-    onActivity: () -> Unit
+    viewMode: WardViewMode, isAdmin: Boolean,
+    onPatients: () -> Unit, onDashboard: () -> Unit, onActivity: () -> Unit
 ) {
     val uiText = rememberUiStrings()
+    val actions = listOf(onPatients, onDashboard, onActivity)
     NavigationRail {
-        NavigationRailItem(
-            selected = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE,
-            onClick = onPatients,
-            icon = { Icon(if (viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE) Icons.Filled.ViewAgenda else Icons.Outlined.ViewAgenda, contentDescription = null) },
-            label = { Text(uiText(R.string.ui_patients)) }
-        )
-        NavigationRailItem(
-            selected = viewMode == WardViewMode.DASHBOARD,
-            onClick = onDashboard,
-            icon = { Icon(if (viewMode == WardViewMode.DASHBOARD) Icons.Filled.Dashboard else Icons.Outlined.Dashboard, contentDescription = null) },
-            label = { Text(uiText(R.string.ui_ward_components_002)) }
-        )
-        if (isAdmin) NavigationRailItem(
-            selected = viewMode == WardViewMode.ACTIVITY,
-            onClick = onActivity,
-            icon = { Icon(if (viewMode == WardViewMode.ACTIVITY) Icons.Filled.History else Icons.Outlined.History, contentDescription = null) },
-            label = { Text(uiText(R.string.ui_ward_navigation_chrome_003)) }
-        )
+        wardDestinations(isAdmin).forEach { destination ->
+            val selected = destination.selected(viewMode)
+            NavigationRailItem(selected = selected, onClick = actions[destination.ordinal],
+                icon = { Icon(if (selected) destination.filled else destination.outlined, contentDescription = null) },
+                label = { Text(uiText(destination.label)) })
+        }
     }
 }
 
@@ -126,7 +108,7 @@ internal fun DrawerSubmenuHeader(
 ) {
     val uiText = rememberUiStrings()
     CompactDrawerItem(
-        label = { Text(label, fontWeight = FontWeight.SemiBold) },
+        label = { Text(label, fontWeight = UiTypography.emphasizedWeight) },
         selected = false,
         onClick = onClick,
         badge = {

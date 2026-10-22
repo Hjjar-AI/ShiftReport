@@ -1,5 +1,9 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppClinicalCard
+import com.hos.rushdpatients.ui.components.AppIconButton
+import com.hos.rushdpatients.ui.theme.UiLayout
+
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -101,9 +105,9 @@ internal fun PatientDetailsScreen(
                                 nameStyle = MaterialTheme.typography.titleLarge)
                         },
                         navigation = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(Icons.Filled.Close, contentDescription = uiText(R.string.ui_patient_details_screen_001))
-                            }
+                            AppIconButton(label = uiText(R.string.ui_patient_details_screen_001),
+            icon = Icons.Filled.Close,
+            onClick = onDismiss)
                         }
                     )
                     roundsNavigation?.let { navigation ->
@@ -161,29 +165,28 @@ internal fun PatientDetailsScreen(
             ) {
                 when (section) {
                     PatientDetailSection.CLINICAL -> PatientCard(
-                        patient = patient,
-                        expanded = true,
-                        twoColumn = true,
-                        doctorNames = doctorNames,
-                        readOnly = true,
-                        showViewControls = false,
-                        showIdentity = false,
-                        onClick = {},
-                        onDelete = {}
-                    )
-                    PatientDetailSection.TASKS -> DetailTextSection(
+        state = PatientCardState(patient = patient,
+            expanded = true,
+            twoColumn = true,
+            doctorNames = doctorNames,
+            readOnly = true,
+            showViewControls = false,
+            showIdentity = false),
+        actions = PatientCardActions.None
+    )
+                    PatientDetailSection.TASKS -> AppClinicalCard(
                         title = uiText(R.string.ui_patient_details_screen_002),
                         content = PatientTasks.summary(patient.tasks, doctorNames)
                             .ifBlank { uiText(R.string.ui_patient_details_screen_003) }
                     )
-                    PatientDetailSection.WARNINGS -> DetailTextSection(
+                    PatientDetailSection.WARNINGS -> AppClinicalCard(
                         title = uiText(R.string.ui_patient_details_screen_004),
                         content = patient.badges.joinToString("\n") { badge ->
                             val level = badge.priority?.let { uiText(R.string.ui_patient_details_screen_005, it.uiLabel(uiText)) }.orEmpty()
                             "• ${badge.text}$level"
                         }.ifBlank { uiText(R.string.ui_patient_details_screen_006) }
                     )
-                    PatientDetailSection.HISTORY -> DetailTextSection(
+                    PatientDetailSection.HISTORY -> AppClinicalCard(
                         title = uiText(R.string.ui_patient_details_screen_007),
                         content = meaningfulTimeline(uiText, patient, activity)
                     )
@@ -219,7 +222,7 @@ internal fun PatientDetailsScreen(
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
             Surface(Modifier.fillMaxSize()) {
                 WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
-                    listFraction = .42f, onListFractionChange = {}, modifier = Modifier.fillMaxSize(), primaryTitle = uiText(R.string.ui_ward_screen_005),
+                    listFraction = UiLayout.defaultListFraction, onListFractionChange = {}, modifier = Modifier.fillMaxSize(), primaryTitle = uiText(R.string.ui_ward_screen_005),
                     primary = { content() })
             }
         }
@@ -254,14 +257,6 @@ private fun meaningfulTimeline(uiText: UiStrings, patient: Patient, activity: Li
     }
 }
 
-
-@Composable
-private fun DetailTextSection(title: String, content: String) {
-    val uiText = rememberUiStrings()
-    com.hos.rushdpatients.ui.components.AppCard {
-        AppClinicalSection(title, content, modifier = Modifier.padding(UiPadding.content), emptyText = uiText(R.string.ui_patient_details_screen_009))
-    }
-}
 
 private enum class PatientDetailSection(@StringRes private val arabicLabelRes: Int) {
     CLINICAL(R.string.ui_patient_details_screen_015),

@@ -87,7 +87,7 @@ fun AppSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     AppCard(modifier = modifier.fillMaxWidth(), colors = colors) {
-        Column(Modifier.fillMaxWidth().padding(UiPadding.content),
+        Column(Modifier.fillMaxWidth().padding(UiPadding.card),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             AppSectionHeader(title, titleColor = titleColor)
             content()

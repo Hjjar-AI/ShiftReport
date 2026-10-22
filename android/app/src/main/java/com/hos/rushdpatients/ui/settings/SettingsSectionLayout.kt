@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -19,7 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,11 +48,11 @@ internal fun SettingsSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     AppCard(modifier = Modifier.fillMaxWidth().onGloballyPositioned { onPositioned(it.positionInParent().y.roundToInt()) }) {
-        Column(Modifier.fillMaxWidth().padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+        Column(Modifier.fillMaxWidth().padding(UiPadding.card), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
             if (showHeader) com.hos.rushdpatients.ui.components.AppSectionHeader(title = title,
                 expanded = if (onToggle == null) null else expanded, onToggle = onToggle, summary = if (expanded) null else summary)
             if (expanded) {
-                if (showHeader) Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                if (showHeader) AppDivider()
                 content()
             }
         }
@@ -64,7 +65,7 @@ internal fun SettingsSubheading(text: String) {
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.SemiBold
+        fontWeight = UiTypography.emphasizedWeight
     )
 }
 

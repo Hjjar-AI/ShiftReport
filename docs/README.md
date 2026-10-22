@@ -7,6 +7,8 @@ Start with the [project README](../README.md) for capabilities and build command
 | What is implemented, and what is verified? | [Current state](current-state.md) |
 | Why these architecture choices? | [Architecture](architecture.md) |
 | What remains? | [Roadmap](roadmap.md) |
+| Choose optional UI work / answer pending questions | [UI decision register](decisions/android-ui-options.md) |
+| Maintain Android shared UI | [UI work guide](../android/chick.md), [Design catalog](design-catalog.md) |
 | What was completed? | [Changelog](changelog.md) |
 | Diagnose an Android or data problem | [Troubleshooting](troubleshooting.md) |
 | Configure Telegram, topics and joining | [Telegram setup — العربية](guides/telegram-setup.md) |
@@ -14,6 +16,8 @@ Start with the [project README](../README.md) for capabilities and build command
 | Diagnose the desktop client | [Desktop troubleshooting](../desktop/TROUBLESHOOTING.md) |
 | Maintain the shared wire format | [Telegram protocol](../desktop/PROTOCOL.md) |
 | Review unresolved historical findings | [Data-integrity review](reviews/data-integrity.md) |
+| Cached Android verification / ordinary APK builds | [Workstation build guide](android-shared-workstation-build-fixes.md) |
+| Package the Windows client | [EXE guide](windows-exe-packaging.md) |
 | Contributor restrictions | [AGENTS.md](../AGENTS.md) |
 
 Keep one home for each topic: current behavior in Current state, rationale in

@@ -30,7 +30,7 @@ fun AppDestinationRow(title: String, summary: String, icon: ImageVector,
                 Text(summary, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(if (LocalLayoutDirection.current == LayoutDirection.Rtl) Icons.Filled.ChevronLeft else Icons.Filled.ChevronRight,
+            Icon(Icons.Filled.ChevronRight, modifier = Modifier.directionalIcon(),
                 contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

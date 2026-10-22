@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 
 @Composable
-internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardViewModel,
+internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController,
     confirmLatest: Boolean, confirmPrevious: Boolean,
     onDismissLatest: () -> Unit, onDismissPrevious: () -> Unit) {
     val uiText = rememberUiStrings()

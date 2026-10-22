@@ -70,6 +70,10 @@ object UiDialog {
 
 /** Purpose-specific thresholds stay independent even when their current values match. */
 object UiLayout {
+    val metricPairMinWidth = 280.dp
+    const val defaultListFraction = .42f
+    const val paneAdjustmentFraction = .05f
+    const val expandedWindowWidthDp = 600
     val fieldPairMinWidth = 360.dp
     val patientGridMinWidth = 360.dp
     val patientCardColumnsMinWidth = 440.dp

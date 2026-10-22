@@ -23,7 +23,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import com.hos.rushdpatients.ui.theme.LocalClinicalColors
+import com.hos.rushdpatients.ui.theme.ContainerColors
+import com.hos.rushdpatients.ui.theme.Tone
+import com.hos.rushdpatients.ui.theme.toneColors
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -50,7 +52,7 @@ fun AppNotice(
         NoticeKind.ERROR -> Icons.Filled.ErrorOutline
     }
     Surface(modifier = modifier.fillMaxWidth().semantics { liveRegion = if (kind == NoticeKind.ERROR) LiveRegionMode.Assertive else LiveRegionMode.Polite },
-        shape = MaterialTheme.shapes.small, color = colors.first, contentColor = colors.second) {
+        shape = MaterialTheme.shapes.small, color = colors.container, contentColor = colors.content) {
         Row(Modifier.fillMaxWidth().padding(if (compact) UiPadding.compact else UiPadding.content),
             verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             Icon(symbol, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
@@ -58,7 +60,7 @@ fun AppNotice(
                 Text(message, style = MaterialTheme.typography.bodySmall)
                 if (actionLabel != null && onAction != null) {
                     AppTextButton(onClick = onAction, enabled = actionEnabled,
-                        colors = ButtonDefaults.textButtonColors(contentColor = colors.second)) { Text(actionLabel) }
+                        colors = ButtonDefaults.textButtonColors(contentColor = colors.content)) { Text(actionLabel) }
                 }
             }
         }
@@ -66,12 +68,9 @@ fun AppNotice(
 }
 
 @Composable
-fun noticeColors(kind: NoticeKind): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
-    val clinical = LocalClinicalColors.current
-    return when (kind) {
-        NoticeKind.INFO -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-        NoticeKind.SUCCESS -> clinical.successContainer to clinical.onSuccessContainer
-        NoticeKind.WARNING -> clinical.warningContainer to clinical.onWarningContainer
-        NoticeKind.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-    }
-}
+fun noticeColors(kind: NoticeKind): ContainerColors = toneColors(when (kind) {
+    NoticeKind.INFO -> Tone.NEUTRAL
+    NoticeKind.SUCCESS -> Tone.SUCCESS
+    NoticeKind.WARNING -> Tone.WARNING
+    NoticeKind.ERROR -> Tone.URGENT
+})

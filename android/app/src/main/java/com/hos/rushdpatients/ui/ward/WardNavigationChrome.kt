@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -46,26 +47,28 @@ internal fun WardHeader(
             state.shift?.date?.let { Text(uiNumber(it), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
         }, navigation = {
-            IconButton(onClick = onMenu) {
-                Icon(Icons.Filled.Menu, contentDescription = uiText(R.string.ui_ward_navigation_chrome_004))
-            }
+            AppIconButton(label = uiText(R.string.ui_ward_navigation_chrome_004),
+            icon = Icons.Filled.Menu,
+            onClick = onMenu)
         }, actions = {
             if (patientDestination && state.patients.isNotEmpty()) {
-                IconButton(onClick = onToggleCards) {
-                    Icon(if (anyCardsExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (anyCardsExpanded) uiText(R.string.ui_ward_navigation_chrome_005) else uiText(R.string.ui_ward_navigation_chrome_006))
-                }
+                AppIconButton(label = if (anyCardsExpanded) uiText(R.string.ui_ward_navigation_chrome_005) else uiText(R.string.ui_ward_navigation_chrome_006),
+            icon = if (anyCardsExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            onClick = onToggleCards)
             }
             if (showAddAction && !state.isReadOnly && (!patientDestination || state.patients.isNotEmpty())) {
-                IconButton(onClick = onAdd, enabled = state.shift != null &&
-                    !state.loading && !state.saving && !state.syncing) {
-                    Icon(Icons.Filled.Add, contentDescription = uiText(R.string.ui_add_patient))
-                }
+                AppIconButton(label = uiText(R.string.ui_add_patient),
+            icon = Icons.Filled.Add,
+            onClick = onAdd,
+            enabled = state.shift != null &&
+                    !state.loading && !state.saving && !state.syncing)
             }
-            if (!patientDestination || state.patients.isNotEmpty()) IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, contentDescription = uiText(R.string.ui_ward_navigation_chrome_007)) }
+            if (!patientDestination || state.patients.isNotEmpty()) AppIconButton(label = uiText(R.string.ui_ward_navigation_chrome_007),
+            icon = Icons.Filled.Search,
+            onClick = onSearch)
         })
     }
-    if (state.syncing || state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) WardWorkflowStrip(state, onNext = onWorkflow)
+    if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) WardDeliveryNotice(state, onNext = onWorkflow)
     }
 }
 

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 
 @Composable
@@ -29,7 +30,8 @@ fun PasswordField(
     modifier: Modifier = Modifier,
     enabled: Boolean = LocalFieldEnabled.current,
     keyboardType: KeyboardType = KeyboardType.Password,
-    imeAction: ImeAction = ImeAction.Done
+    imeAction: ImeAction = ImeAction.Done,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     val uiText = rememberUiStrings()
     var visible by remember(label) { mutableStateOf(false) }
@@ -42,16 +44,15 @@ fun PasswordField(
         enabled = enabled && LocalFieldEnabled.current,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardActions = keyboardActions,
         visualTransformation = if (visible) VisualTransformation.None
         else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { visible = !visible }, enabled = enabled && LocalFieldEnabled.current) {
-                Icon(
-                    imageVector = if (visible) Icons.Filled.VisibilityOff
+            AppIconButton(label = if (visible) uiText(R.string.ui_password_field_001) else uiText(R.string.ui_password_field_002),
+            icon = if (visible) Icons.Filled.VisibilityOff
                     else Icons.Filled.Visibility,
-                    contentDescription = if (visible) uiText(R.string.ui_password_field_001) else uiText(R.string.ui_password_field_002)
-                )
-            }
+            onClick = { visible = !visible },
+            enabled = enabled && LocalFieldEnabled.current)
         }
     )
 }

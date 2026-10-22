@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -259,7 +260,7 @@ fun SettingsScreen(
                         Text(
                             text = state.doctorName.ifBlank { "—" },
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = UiTypography.emphasizedWeight
                         )
                         Text(
                             text = uiText(R.string.ui_settings_screen_012, state.role.ifBlank { "—" }),

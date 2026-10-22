@@ -1,9 +1,12 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
+import com.hos.rushdpatients.ui.components.AppChip
+import com.hos.rushdpatients.ui.theme.ContainerColors
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppActionLabel
 import com.hos.rushdpatients.ui.components.ClinicalTextKind
@@ -50,7 +53,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -87,31 +90,28 @@ import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
-fun PatientCard(
-    patient: Patient,
-    expanded: Boolean,
-    twoColumn: Boolean,
-    doctorNames: Map<String, String>,
-    readOnly: Boolean = false,
-    selected: Boolean = false,
-    recentlyEdited: Boolean = false,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit = onClick,
-    onEdit: () -> Unit = onClick,
-    onBadgeEdit: () -> Unit = onEdit,
-    onDelete: () -> Unit,
-    onCopy: () -> Unit = {},
-    onPriorityChange: (Boolean) -> Unit = {},
-    pinned: Boolean = false,
-    onPinToggle: () -> Unit = {},
-    onExpandToggle: () -> Unit = {},
-    showViewControls: Boolean = true,
-    showIdentity: Boolean = true,
-    compact: Boolean = false,
-    animateExpansion: Boolean = false,
-    taskNowEpochMillis: Long = System.currentTimeMillis(),
-    modifier: Modifier = Modifier
-) {
+fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: Modifier = Modifier) {
+    val patient = state.patient
+    val expanded = state.expanded
+    val twoColumn = state.twoColumn
+    val doctorNames = state.doctorNames
+    val readOnly = state.readOnly
+    val selected = state.selected
+    val recentlyEdited = state.recentlyEdited
+    val pinned = state.pinned
+    val showViewControls = state.showViewControls
+    val showIdentity = state.showIdentity
+    val compact = state.compact
+    val animateExpansion = state.animateExpansion
+    val taskNowEpochMillis = state.taskNowEpochMillis
+    val onClick = actions.onOpen
+    val onLongClick = actions.onLongPress
+    val onEdit = actions.onEdit
+    val onDelete = actions.onDelete
+    val onCopy = actions.onCopy
+    val onPriorityChange = actions.onPriorityChange
+    val onPinToggle = actions.onPinToggle
+    val onExpandToggle = actions.onExpandToggle
     val uiText = rememberUiStrings()
     val cardDensity = UiPatientCard.density(compact)
     val sectionGap = cardDensity.sectionGap
@@ -159,7 +159,6 @@ fun PatientCard(
                         add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_015)) { onLongClick(); true })
                         if (!readOnly) {
                             add(CustomAccessibilityAction(uiText(R.string.ui_edit_patient_dialog_001)) { onEdit(); true })
-                            add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_016)) { onBadgeEdit(); true })
                             add(CustomAccessibilityAction(if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) { onPriorityChange(!patient.isPriority); true })
                             add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_019)) { onCopy(); true })
                             add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_020)) { onDelete(); true })
@@ -198,18 +197,17 @@ fun PatientCard(
                 ) {
                     visibleBadges.forEach { badge ->
                         val badgeColors = patientBadgeColors(badge.priority)
-                        SmallChip(
+                        AppChip(
                             text = buildString {
                                 append(badge.text)
                                 badge.priority?.let { append(" · ").append(it.uiLabel(uiText)) }
                             },
-                            container = badgeColors.container,
-                            content = badgeColors.content
+                            colors = badgeColors
                         )
                     }
-                    if (!expanded && visibleBadges.size < patient.badges.size) SmallChip(
+                    if (!expanded && visibleBadges.size < patient.badges.size) AppChip(
                         uiPlural(R.plurals.patient_badges_more, patient.badges.size - visibleBadges.size),
-                        MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant
+                        ContainerColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                 }
             }
@@ -218,8 +216,7 @@ fun PatientCard(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 DiagnosisChip(patient.diagnosisType)
                 if (expanded && patient.hasCompanion) {
-                    SmallChip(text = uiText(R.string.ui_patient_card_021), container = MaterialTheme.colorScheme.surface,
-                        content = MaterialTheme.colorScheme.onSurface)
+                    AppChip(text = uiText(R.string.ui_patient_card_021), colors = ContainerColors(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface))
                 }
             }
 
@@ -237,10 +234,9 @@ fun PatientCard(
 
             if (taskCounts.pending > 0) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    SmallChip(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending), MaterialTheme.colorScheme.surfaceVariant,
-                        MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (taskCounts.overdue > 0) SmallChip(uiPlural(R.plurals.patient_tasks_overdue, taskCounts.overdue),
-                        clinicalColors.urgentContainer, clinicalColors.onUrgentContainer)
+                    AppChip(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending), ContainerColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant))
+                    if (taskCounts.overdue > 0) AppChip(uiPlural(R.plurals.patient_tasks_overdue, taskCounts.overdue),
+                        ContainerColors(clinicalColors.urgentContainer, clinicalColors.onUrgentContainer))
                 }
             }
 
@@ -251,7 +247,7 @@ fun PatientCard(
                 exit = if (animateExpansion) shrinkVertically(animationSpec = tween(UiMotion.collapseMillis)) else ExitTransition.None
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(sectionGap)) {
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    AppDivider()
                     if (twoColumn) {
                         TwoColumnDetail(patient = patient, spacing = sectionGap)
                     } else {
@@ -315,10 +311,9 @@ private fun PatientIdentityHeader(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (showViewControls) {
-                IconButton(onClick = onExpandToggle) {
-                    Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028))
-                }
+                AppIconButton(label = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028),
+            icon = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            onClick = onExpandToggle)
                 PatientMenu(priority = patient.isPriority, onPriorityChange = onPriorityChange,
                     onCopy = onCopy, onDelete = onDelete, pinned = pinned, onPinToggle = onPinToggle,
                     readOnly = readOnly)
@@ -336,7 +331,7 @@ private fun SingleColumnDetail(patient: Patient, spacing: Dp) {
         Triple(uiText(R.string.ui_labs), patient.labs, ClinicalTextKind.LABS)).filter { it.second.isNotBlank() }
     Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
         sections.forEachIndexed { index, (title, content, kind) ->
-            if (index > 0) Divider(color = MaterialTheme.colorScheme.outlineVariant)
+            if (index > 0) AppDivider()
             AppClinicalSection(title, content, kind = kind)
         }
     }
@@ -380,7 +375,7 @@ private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
                 AppClinicalSection(uiText(R.string.ui_patient_form_dialog_012), patient.followUp)
             }
             if (patient.labs.isNotBlank()) {
-                if (patient.followUp.isNotBlank()) Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                if (patient.followUp.isNotBlank()) AppDivider()
                 AppClinicalSection(uiText(R.string.ui_labs), patient.labs, kind = ClinicalTextKind.LABS)
             }
             if (patient.followUp.isBlank() && patient.labs.isBlank()) {
@@ -403,9 +398,11 @@ private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
     val uiText = rememberUiStrings()
     var menu by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { menu = true }, modifier = Modifier.size(UiSpacing.touchTarget)) {
-            Icon(Icons.Filled.MoreVert, contentDescription = uiText(R.string.ui_patient_card_030), modifier = Modifier.size(UiSize.iconMedium))
-        }
+        AppIconButton(label = uiText(R.string.ui_patient_card_030),
+            icon = Icons.Filled.MoreVert,
+            onClick = { menu = true },
+            modifier = Modifier.size(UiSpacing.touchTarget),
+            iconModifier = Modifier.size(UiSize.iconMedium))
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             DropdownMenuItem(text = { Text(if (pinned) uiText(R.string.ui_patient_card_031) else uiText(R.string.ui_patient_card_032)) },
                 leadingIcon = { Icon(if (pinned) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder, contentDescription = null) },
@@ -423,23 +420,5 @@ private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
 @Composable
 private fun DiagnosisChip(type: DiagnosisType) {
     val uiText = rememberUiStrings()
-    SmallChip(text = type.uiLabel(uiText), container = Color.Transparent,
-        content = MaterialTheme.colorScheme.onSurfaceVariant, outlined = true)
-}
-
-@Composable
-private fun SmallChip(text: String, container: Color, content: Color, outlined: Boolean = false) {
-    Surface(
-        color = container,
-        border = if (outlined) UiBorder.stroke() else null,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(UiPadding.compact),
-            style = MaterialTheme.typography.labelSmall,
-            color = content,
-            textAlign = TextAlign.Center
-        )
-    }
+    AppChip(text = type.uiLabel(uiText), colors = ContainerColors(Color.Transparent, MaterialTheme.colorScheme.onSurfaceVariant), outlined = true)
 }

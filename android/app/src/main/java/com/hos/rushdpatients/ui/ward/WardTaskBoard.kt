@@ -57,7 +57,9 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
-                    navigation = { IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, uiText(R.string.ui_ward_task_board_001)) } })
+                    navigation = { AppIconButton(label = uiText(R.string.ui_ward_task_board_001),
+            icon = Icons.Filled.Close,
+            onClick = onDismiss) })
                 Column(Modifier.padding(horizontal = UiSpacing.screen)) {
                     Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
                         style = MaterialTheme.typography.bodySmall)

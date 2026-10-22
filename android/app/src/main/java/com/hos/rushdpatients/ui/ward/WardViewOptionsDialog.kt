@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.R
@@ -28,15 +29,15 @@ import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.domain.sort.GroupByMode
 
 internal data class WardFilterOptions(
-    val searchQuery: String, val viewMode: WardViewMode, val priorityOnly: Boolean,
-    val warningsOnly: Boolean, val unassignedOnly: Boolean, val urgentOnly: Boolean,
-    val newAdmissionsOnly: Boolean, val taskFilter: DashboardFilter?
+    val searchQuery: String = "", val viewMode: WardViewMode = WardViewMode.ALL, val priorityOnly: Boolean = false,
+    val warningsOnly: Boolean = false, val unassignedOnly: Boolean = false, val urgentOnly: Boolean = false,
+    val newAdmissionsOnly: Boolean = false, val taskFilter: WardTaskFilter? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun WardViewOptionsDialog(
-    state: WardUiState, viewModel: WardViewModel, filters: WardFilterOptions,
+    state: WardUiState, viewModel: WardController, filters: WardFilterOptions,
     onFiltersChanged: ((WardFilterOptions) -> WardFilterOptions) -> Unit, selectedViewOption: WardViewOption,
     viewOptionsScroll: androidx.compose.foundation.ScrollState, showSort: Boolean,
     onSortExpandedChange: (Boolean) -> Unit, onSelectOption: (WardViewOption) -> Unit,
@@ -63,19 +64,19 @@ internal fun WardViewOptionsDialog(
                     AppOutlinedButton(onClick = onShowTasks,
                         enabled = state.patients.isNotEmpty() && !state.loading && !state.saving && !state.syncing,
                         modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_ward_view_options_dialog_004)) }
-                    CompactFilterChip(filters.viewMode == WardViewMode.MINE,
+                    AppFilterChip(filters.viewMode == WardViewMode.MINE,
                         { onFiltersChanged { it.copy(viewMode = if (it.viewMode == WardViewMode.MINE) WardViewMode.ALL else WardViewMode.MINE) } },
                         uiText(R.string.ui_ward_view_options_dialog_005))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        CompactFilterChip(filters.priorityOnly, { onFiltersChanged { it.copy(priorityOnly = !it.priorityOnly) } }, uiText(R.string.ui_ward_view_options_dialog_006))
-                        CompactFilterChip(filters.warningsOnly, { onFiltersChanged { it.copy(warningsOnly = !it.warningsOnly) } }, uiText(R.string.ui_ward_screen_009))
-                        CompactFilterChip(filters.unassignedOnly, { onFiltersChanged { it.copy(unassignedOnly = !it.unassignedOnly) } }, uiText(R.string.ui_ward_screen_010))
-                        CompactFilterChip(filters.urgentOnly, { onFiltersChanged { it.copy(urgentOnly = !it.urgentOnly) } }, uiText(R.string.ui_ward_patient_list_controls_007))
-                        CompactFilterChip(filters.newAdmissionsOnly, { onFiltersChanged { it.copy(newAdmissionsOnly = !it.newAdmissionsOnly) } }, uiText(R.string.ui_handover_dashboard_016))
-                        listOf(DashboardFilter.TASK_PENDING to uiText(R.string.ui_ward_screen_011),
-                            DashboardFilter.TASK_OVERDUE to uiText(R.string.ui_ward_patient_list_controls_008),
-                            DashboardFilter.TASK_UNASSIGNED to uiText(R.string.ui_ward_screen_012)).forEach { (value, label) ->
-                            CompactFilterChip(selected = filters.taskFilter == value,
+                        AppFilterChip(filters.priorityOnly, { onFiltersChanged { it.copy(priorityOnly = !it.priorityOnly) } }, uiText(R.string.ui_ward_view_options_dialog_006))
+                        AppFilterChip(filters.warningsOnly, { onFiltersChanged { it.copy(warningsOnly = !it.warningsOnly) } }, uiText(R.string.ui_ward_screen_009))
+                        AppFilterChip(filters.unassignedOnly, { onFiltersChanged { it.copy(unassignedOnly = !it.unassignedOnly) } }, uiText(R.string.ui_ward_screen_010))
+                        AppFilterChip(filters.urgentOnly, { onFiltersChanged { it.copy(urgentOnly = !it.urgentOnly) } }, uiText(R.string.ui_ward_patient_list_controls_007))
+                        AppFilterChip(filters.newAdmissionsOnly, { onFiltersChanged { it.copy(newAdmissionsOnly = !it.newAdmissionsOnly) } }, uiText(R.string.ui_handover_dashboard_016))
+                        listOf(WardTaskFilter.PENDING to uiText(R.string.ui_ward_screen_011),
+                            WardTaskFilter.OVERDUE to uiText(R.string.ui_ward_patient_list_controls_008),
+                            WardTaskFilter.UNASSIGNED to uiText(R.string.ui_ward_screen_012)).forEach { (value, label) ->
+                            AppFilterChip(selected = filters.taskFilter == value,
                                 onClick = { onFiltersChanged { it.copy(taskFilter = if (it.taskFilter == value) null else value) } }, label = label)
                         }
                     }
@@ -84,7 +85,7 @@ internal fun WardViewOptionsDialog(
                     Text(uiText(R.string.ui_ward_view_options_dialog_007), style = MaterialTheme.typography.titleSmall)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         com.hos.rushdpatients.domain.sort.GroupByMode.entries.forEach { mode ->
-                            CompactFilterChip(state.groupByMode == mode,
+                            AppFilterChip(state.groupByMode == mode,
                                 { viewModel.setGroupByMode(mode) }, mode.uiLabel(uiText))
                         }
                     }

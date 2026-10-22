@@ -37,10 +37,20 @@ private fun WardDesignGallery() {
             Surface {
                 Column(Modifier.verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
-                    PatientCard(patient, expanded = false, twoColumn = false, doctorNames = names,
-                        onClick = {}, onDelete = {})
-                    PatientCard(patient, expanded = true, twoColumn = false, doctorNames = names,
-                        onClick = {}, onDelete = {})
+                    PatientCard(
+        state = PatientCardState(patient = patient,
+            expanded = false,
+            twoColumn = false,
+            doctorNames = names),
+        actions = PatientCardActions.None
+    )
+                    PatientCard(
+        state = PatientCardState(patient = patient,
+            expanded = true,
+            twoColumn = false,
+            doctorNames = names),
+        actions = PatientCardActions.None
+    )
                     AppNotice("تعذر جلب البيانات — أعد المحاولة", kind = NoticeKind.ERROR)
                     AppNotice("تم الحفظ على الجهاز", kind = NoticeKind.SUCCESS)
                     EmptyState("لا يوجد مرضى", actionLabel = "إضافة مريض", onAction = {})

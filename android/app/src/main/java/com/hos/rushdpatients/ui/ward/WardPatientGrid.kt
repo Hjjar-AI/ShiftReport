@@ -33,6 +33,7 @@ internal fun WardPatientGrid(
     val uiText = rememberUiStrings()
     val visibleIds = remember(visiblePatients) { visiblePatients.mapTo(HashSet()) { it.id } }
     val pinnedIds = remember(pinnedPatientIds) { pinnedPatientIds.toHashSet() }
+    val collapsedGroupIds = remember(collapsedGroups) { collapsedGroups.toHashSet() }
     val visibleGroups = remember(state.groupedPatients, visibleIds, pinnedIds) {
         state.groupedPatients.map { group ->
             group to group.patients.filter { it.id in visibleIds }.sortedByDescending { it.id in pinnedIds }
@@ -44,11 +45,11 @@ internal fun WardPatientGrid(
         contentPadding = PaddingValues(bottom = scrollBottomClearance),
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = UiSpacing.medium),
+            .padding(horizontal = UiSpacing.screenGutter),
         verticalArrangement = Arrangement.spacedBy(UiPatientCard.listGap),
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
+        item(key = "ward-header", contentType = "ward-header", span = { GridItemSpan(maxLineSpan) }) {
             headerContent()
         }
 
@@ -71,13 +72,13 @@ internal fun WardPatientGrid(
                     GroupHeader(
                         name = group.name,
                         count = groupPatients.size,
-                        collapsed = (group.key ?: "none") in collapsedGroups,
+                        collapsed = (group.key ?: "none") in collapsedGroupIds,
                         onToggle = {
                             onToggleGroup(group.key ?: "none")
                         }
                     )
                 }
-                if ((group.key ?: "none") !in collapsedGroups) gridItems(groupPatients, key = { it.id }) { patient ->
+                if ((group.key ?: "none") !in collapsedGroupIds) gridItems(groupPatients, key = { it.id }) { patient ->
                     patientCard(patient)
                 }
             }

@@ -21,9 +21,10 @@ import com.hos.rushdpatients.data.model.Patient
 import java.time.Instant
 
 @Composable
-fun AddPatientDialog(
+internal fun AddPatientDialog(
     doctors: List<Doctor>,
     draft: PatientDraft? = null,
+    stateStore: PatientFormStateStore? = null,
     saving: Boolean = false,
     position: String = "",
     positionLimit: Int? = null,
@@ -38,6 +39,7 @@ fun AddPatientDialog(
         title = uiText(R.string.ui_add_patient),
         initial = null,
         restoredDraft = draft,
+        stateStore = stateStore,
         doctors = doctors,
         saving = saving,
         entryOptions = {
@@ -65,31 +67,21 @@ fun AddPatientDialog(
 }
 
 @Composable
-fun CopyPatientDialog(
+internal fun CopyPatientDialog(
     source: Patient,
     doctors: List<Doctor>,
     saving: Boolean = false,
+    initialCopy: Patient? = null,
+    stateStore: PatientFormStateStore? = null,
     onConfirm: (Patient) -> Unit,
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    val copy = remember(source) {
-        source.copy(
-            id = java.util.UUID.randomUUID().toString(),
-            admittanceNumber = "",
-            admittanceDate = null,
-            isPriority = false,
-            tasks = emptyList(),
-            lastEditedByDoctorId = null,
-            lastEditedByName = null,
-            sortOrder = 0,
-            updatedAt = Instant.now(),
-            deletedAt = null
-        )
-    }
+    val copy = initialCopy ?: remember(source) { newPatientCopy(source) }
     PatientFormDialog(
         title = uiText(R.string.ui_add_patient_dialog_007),
         initial = copy,
+        stateStore = stateStore,
         restoredDraft = null,
         doctors = doctors,
         saving = saving,
@@ -98,3 +90,9 @@ fun CopyPatientDialog(
         onDismiss = onDismiss
     )
 }
+
+internal fun newPatientCopy(source: Patient): Patient = source.copy(
+    id = java.util.UUID.randomUUID().toString(), admittanceNumber = "", admittanceDate = null,
+    isPriority = false, tasks = emptyList(), lastEditedByDoctorId = null, lastEditedByName = null,
+    sortOrder = 0, updatedAt = Instant.now(), deletedAt = null
+)

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -7,7 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,7 +30,7 @@ internal fun PatientFetchReminder(enabled: Boolean, onFetch: () -> Unit, onDismi
             verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = UiSpacing.screen)) {
-                Icon(Icons.Filled.Send, contentDescription = null,
+                Icon(Icons.Filled.CloudDownload, contentDescription = null,
                     modifier = Modifier.padding(UiSpacing.screen).size(UiSize.iconMedium),
                     tint = MaterialTheme.colorScheme.onPrimary)
             }
@@ -39,9 +40,10 @@ internal fun PatientFetchReminder(enabled: Boolean, onFetch: () -> Unit, onDismi
                     style = MaterialTheme.typography.bodySmall)
                 AppTextButton(onClick = onFetch, enabled = enabled) { Text(uiText(R.string.ui_patient_fetch_reminder_003)) }
             }
-            IconButton(onClick = onDismiss, modifier = Modifier.size(UiSpacing.touchTarget)) {
-                Icon(Icons.Filled.Close, contentDescription = uiText(R.string.ui_patient_fetch_reminder_004))
-            }
+            AppIconButton(label = uiText(R.string.ui_patient_fetch_reminder_004),
+            icon = Icons.Filled.Close,
+            onClick = onDismiss,
+            modifier = Modifier.size(UiSpacing.touchTarget))
         }
     }
 }

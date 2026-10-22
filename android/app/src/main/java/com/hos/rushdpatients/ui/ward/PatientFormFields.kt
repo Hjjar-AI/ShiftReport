@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -34,7 +35,7 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -62,12 +63,6 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 // ---------------- Section + field helpers ----------------
-
-@Composable
-internal fun SectionTitle(text: String, complete: Boolean? = null, modifier: Modifier = Modifier) {
-    AppSectionHeader(title = text, complete = complete,
-        modifier = modifier.padding(top = UiSpacing.tiny))
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -239,9 +234,10 @@ internal fun MultiValueEditor(
                 AppButton(onClick = onAdd, enabled = enabled && draft.isNotBlank(),
                     modifier = Modifier.weight(1f)) { Text(uiText(R.string.ui_patient_form_fields_005)) }
                 Box {
-                    IconButton(onClick = { insertMenu = true }, enabled = enabled) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = uiText(R.string.ui_patient_form_fields_006, label))
-                    }
+                    AppIconButton(label = uiText(R.string.ui_patient_form_fields_006, label),
+            icon = Icons.Filled.MoreVert,
+            onClick = { insertMenu = true },
+            enabled = enabled)
                     DropdownMenu(expanded = insertMenu && enabled, onDismissRequest = { insertMenu = false }) {
                         DropdownMenuItem(text = { Text(uiText(R.string.ui_patient_form_fields_007)) },
                             enabled = items.isNotEmpty() && items.last() != FIELD_SEPARATOR,
@@ -293,13 +289,12 @@ private fun DragHandleButton(
     var expanded by remember { mutableStateOf(false) }
     val enabled = LocalFieldEnabled.current
     Box {
-        IconButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.size(UiSpacing.touchTarget)) {
-            Icon(
-                Icons.Filled.DragHandle,
-                contentDescription = uiText(R.string.ui_patient_form_fields_011, index + 1),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        AppIconButton(label = uiText(R.string.ui_patient_form_fields_011, index + 1),
+            icon = Icons.Filled.DragHandle,
+            onClick = { expanded = true },
+            enabled = enabled,
+            modifier = Modifier.size(UiSpacing.touchTarget),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant)
         DropdownMenu(
             expanded = expanded && enabled,
             onDismissRequest = { expanded = false }
@@ -357,9 +352,10 @@ private fun TextItemRow(
             maxLines = 3,
             textStyle = textStyle
         )
-        IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
-            Icon(Icons.Default.Close, contentDescription = uiText(R.string.ui_patient_form_fields_015))
-        }
+        AppIconButton(label = uiText(R.string.ui_patient_form_fields_015),
+            icon = Icons.Default.Close,
+            onClick = { onRemove(index) },
+            enabled = LocalFieldEnabled.current)
     }
 }
 
@@ -377,10 +373,11 @@ private fun SeparatorRow(
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.micro)
     ) {
         DragHandleButton(index = index, itemCount = itemCount, onMove = onMove)
-        Divider(modifier = Modifier.weight(1f))
-        IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
-            Icon(Icons.Default.Close, contentDescription = uiText(R.string.ui_patient_form_fields_016))
-        }
+        AppDivider(modifier = Modifier.weight(1f))
+        AppIconButton(label = uiText(R.string.ui_patient_form_fields_016),
+            icon = Icons.Default.Close,
+            onClick = { onRemove(index) },
+            enabled = LocalFieldEnabled.current)
     }
 }
 
@@ -422,9 +419,10 @@ private fun DateMarkerRow(
                 )
             }
         }
-        IconButton(onClick = { onRemove(index) }, enabled = LocalFieldEnabled.current) {
-            Icon(Icons.Default.Close, contentDescription = uiText(R.string.ui_patient_form_fields_017))
-        }
+        AppIconButton(label = uiText(R.string.ui_patient_form_fields_017),
+            icon = Icons.Default.Close,
+            onClick = { onRemove(index) },
+            enabled = LocalFieldEnabled.current)
     }
 }
 
@@ -462,7 +460,7 @@ internal fun DoctorDropdown(
                     if (matching.isEmpty()) EmptyState(uiText(R.string.ui_shift_doctor_picker_006),
                         actionLabel = if (query.isBlank()) null else uiText(R.string.ui_shift_doctor_picker_007), onAction = { query = "" })
                     doctorChoiceGroups(uiText, matching, registry).forEach { (team, members) ->
-                        SectionTitle(team)
+                        AppSectionHeader(team)
                         members.forEach { doctor ->
                             AppChoiceRow(label = doctor.fullName, selected = selectedId == doctor.id,
                                 onClick = { onSelected(doctor.id); expanded = false })
@@ -470,5 +468,5 @@ internal fun DoctorDropdown(
                     }
                 }
             }
-        }, confirmButton = { AppTextButton(onClick = { expanded = false }) { Text(uiText(R.string.ui_patient_form_fields_019)) } })
+        }, confirmButton = { AppTextButton(onClick = { expanded = false }) { Text(uiText(R.string.ui_back)) } })
 }

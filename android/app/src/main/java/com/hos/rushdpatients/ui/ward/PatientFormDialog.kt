@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppSectionHeader
+import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.R
@@ -81,6 +83,7 @@ internal fun PatientFormDialog(
     initial: Patient?,
     savedBaseline: Patient? = initial,
     restoredDraft: PatientDraft? = null,
+    stateStore: PatientFormStateStore? = null,
     doctors: List<Doctor>,
     saving: Boolean,
     reviewAction: @Composable () -> Unit = {},
@@ -91,81 +94,32 @@ internal fun PatientFormDialog(
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var tasks by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.tasks ?: restoredDraft?.tasks.orEmpty())
-    }
+    val formState = remember(initial) { stateStore?.obtain(initial, restoredDraft) ?: PatientFormState(initial, restoredDraft) }
+    var tasks by formState::tasks
+    var admittanceNumber by formState::admittanceNumber
+    var admittanceDate by formState::admittanceDate
+    var gender by formState::gender
+    var name by formState::name
+    var birthYearText by formState::birthYearText
+    var ageText by formState::ageText
+    var hasCompanion by formState::hasCompanion
+    var isPriority by formState::isPriority
+    var badges by formState::badges
+    var badgeDraftText by formState::badgeDraftText
+    var badgeDraftPriority by formState::badgeDraftPriority
+    var diagnosisType by formState::diagnosisType
+    var initialDiagnosis by formState::initialDiagnosis
+    var treatmentItems by formState::treatmentItems
+    var treatmentDraft by formState::treatmentDraft
+    var followUpItems by formState::followUpItems
+    var followUpDraft by formState::followUpDraft
+    var labItems by formState::labItems
+    var labDraft by formState::labDraft
+    var residentId by formState::residentId
+    var specialistId by formState::specialistId
     var showBadgeEditor by remember(initial) { mutableStateOf(false) }
     val today = LocalDate.now()
     val currentYear = today.year
-    var admittanceNumber by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.admittanceNumber ?: restoredDraft?.admittanceNumber.orEmpty())
-    }
-    var admittanceDate by remember(initial) {
-        mutableStateOf<LocalDate?>(
-            initial?.admittanceDate
-                ?: restoredDraft?.admittanceDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-                ?: today
-        )
-    }
-    var gender by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.gender ?: Gender.fromCode(restoredDraft?.gender.orEmpty()))
-    }
-    var name by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.name ?: restoredDraft?.name.orEmpty())
-    }
-    var birthYearText by remember(initial) {
-        mutableStateOf(initial?.birthDate?.year?.toString() ?: restoredDraft?.birthYear.orEmpty())
-    }
-    var ageText by remember(initial) {
-        mutableStateOf(initial?.age?.toString() ?: restoredDraft?.age.orEmpty())
-    }
-    var hasCompanion by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.hasCompanion ?: restoredDraft?.hasCompanion ?: false)
-    }
-    var isPriority by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.isPriority ?: restoredDraft?.isPriority ?: false)
-    }
-    var badges by remember(initial, restoredDraft) {
-        mutableStateOf(
-            initial?.badges ?: restoredDraft?.badges.orEmpty().map { badge ->
-                PatientBadge(badge.text, badge.priority?.let { PatientBadgePriority.fromCode(it) })
-            }
-        )
-    }
-    var badgeDraftText by remember(initial, restoredDraft) {
-        mutableStateOf(restoredDraft?.badgeDraftText.orEmpty())
-    }
-    var badgeDraftPriority by remember(initial, restoredDraft) {
-        mutableStateOf(
-            restoredDraft?.badgeDraftPriority?.let { PatientBadgePriority.fromCode(it) }
-        )
-    }
-    var diagnosisType by remember(initial) {
-        mutableStateOf(
-            initial?.diagnosisType ?: DiagnosisType.fromCode(restoredDraft?.diagnosisType.orEmpty())
-        )
-    }
-    var initialDiagnosis by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.initialDiagnosis ?: restoredDraft?.initialDiagnosis.orEmpty())
-    }
-    var treatmentItems by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.let { parseFieldItems(it.treatmentPlan) } ?: restoredDraft?.treatmentItems.orEmpty())
-    }
-    var treatmentDraft by remember(initial, restoredDraft) { mutableStateOf(restoredDraft?.treatmentDraft.orEmpty()) }
-    var followUpItems by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.let { parseFieldItems(it.followUp) } ?: restoredDraft?.followUpItems.orEmpty())
-    }
-    var followUpDraft by remember(initial, restoredDraft) { mutableStateOf(restoredDraft?.followUpDraft.orEmpty()) }
-    var labItems by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.let { parseFieldItems(it.labs) } ?: restoredDraft?.labItems.orEmpty())
-    }
-    var labDraft by remember(initial, restoredDraft) { mutableStateOf(restoredDraft?.labDraft.orEmpty()) }
-    var residentId by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.responsibleResidentId ?: restoredDraft?.residentId)
-    }
-    var specialistId by remember(initial, restoredDraft) {
-        mutableStateOf(initial?.responsibleSpecialistId ?: restoredDraft?.specialistId)
-    }
     var validationMessages by remember(initial) { mutableStateOf(emptyList<PatientFormError>()) }
     val fieldRequests = remember(initial) {
         PatientFormField.entries.associateWith { BringIntoViewRequester() }
@@ -330,7 +284,7 @@ internal fun PatientFormDialog(
                     if (initial == null) admissionIdentityContent()
                     entryOptions()
 
-                    SectionTitle(
+                    AppSectionHeader(
                         uiText(R.string.ui_patient_form_dialog_004),
                         complete = initialDiagnosis.isNotBlank() &&
                             (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
@@ -363,7 +317,7 @@ internal fun PatientFormDialog(
                         }
                     )
 
-                    SectionTitle(uiText(R.string.ui_patient_form_dialog_010))
+                    AppSectionHeader(uiText(R.string.ui_patient_form_dialog_010))
                     MultiValueEditor(
                         label = uiText(R.string.ui_patient_form_dialog_011),
                         items = treatmentItems,
@@ -454,9 +408,9 @@ internal fun PatientFormDialog(
                         modifier = sectionAnchor(PatientFormSection.LABS)
                     )
 
-                    PatientTaskEditor(tasks, doctors, !saving, modifier = sectionAnchor(PatientFormSection.TASKS)) { tasks = it }
+                    PatientTaskEditor(tasks, doctors, !saving, formState = formState, modifier = sectionAnchor(PatientFormSection.TASKS)) { tasks = it }
 
-                    SectionTitle(
+                    AppSectionHeader(
                         uiText(R.string.ui_patient_form_dialog_014),
                         complete = residentId != null && specialistId != null && residentId != specialistId
                     )
@@ -497,7 +451,7 @@ internal fun PatientFormDialog(
                             color = MaterialTheme.colorScheme.tertiary)
                     }
 
-                    SectionTitle(uiText(R.string.ui_patient_form_dialog_021))
+                    AppSectionHeader(uiText(R.string.ui_patient_form_dialog_021))
                     AppToggleRow(title = uiText(R.string.ui_patient_form_dialog_022), checked = isPriority,
                         onCheckedChange = { isPriority = it }, enabled = !saving)
                     AppTextButton(onClick = { showBadgeEditor = !showBadgeEditor },
@@ -533,9 +487,10 @@ internal fun PatientFormDialog(
                                         },
                                         modifier = Modifier.weight(1f)
                                     )
-                                    IconButton(onClick = { badges = badges.filterIndexed { i, _ -> i != index } }, enabled = !saving) {
-                                        Icon(Icons.Filled.Close, contentDescription = uiText(R.string.ui_patient_form_dialog_027))
-                                    }
+                                    AppIconButton(label = uiText(R.string.ui_patient_form_dialog_027),
+            icon = Icons.Filled.Close,
+            onClick = { badges = badges.filterIndexed { i, _ -> i != index } },
+            enabled = !saving)
                                 }
                             }
                         }

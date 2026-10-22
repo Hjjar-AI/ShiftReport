@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiTypography
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -204,7 +205,7 @@ private fun DrawerToolGroup(label: String, icon: ImageVector, expanded: Boolean,
                     Icon(icon, contentDescription = null, modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold)
+                        fontWeight = UiTypography.emphasizedWeight)
                     Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                         contentDescription = if (expanded) uiText(R.string.ui_ward_drawer_030, label) else uiText(R.string.ui_ward_drawer_031, label),
                         modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -235,7 +236,7 @@ private fun WardDrawerRow(label: String, icon: ImageVector,
                 tint = if (selected) LocalContentColor.current
                     else colors.onSurfaceVariant.copy(alpha = if (enabled) 1f else UiOpacity.disabledContent))
             Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                fontWeight = if (selected) UiTypography.emphasizedWeight else FontWeight.Normal)
         }
     }
 }

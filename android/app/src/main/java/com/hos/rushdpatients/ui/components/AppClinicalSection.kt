@@ -17,7 +17,7 @@ enum class ClinicalTextKind { CLINICAL, LABS }
 private val clinicalDateMarker = Regex("""@date:(\d{4})-(\d{2})-(\d{2})""")
 internal fun clinicalDisplayText(value: String): String = clinicalDateMarker.replace(value) { match ->
     val (year, month, day) = match.destructured
-    "📅 $day/$month/$year"
+    uiNumber("$day/$month/$year")
 }
 
 @Composable

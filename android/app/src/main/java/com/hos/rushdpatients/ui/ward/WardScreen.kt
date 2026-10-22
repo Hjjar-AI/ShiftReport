@@ -78,22 +78,46 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
-fun WardScreen(
-    isAdmin: Boolean,
-    currentDoctorId: String,
-    onOpenReport: (String) -> Unit,
-    onOpenAdmin: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenAbout: () -> Unit,
-    onOpenProject: () -> Unit,
-    onOpenDataManagement: () -> Unit = onOpenSettings,
-    onOpenWorkspace: (SettingsWorkspace) -> Unit = { onOpenSettings() },
-    onOpenAnnouncement: () -> Unit = {},
-    viewModel: WardViewModel = hiltViewModel()
+fun WardScreen(isAdmin: Boolean, currentDoctorId: String, navigation: WardNavigation,
+    viewModel: WardViewModel = hiltViewModel()) {
+    val controller = remember(viewModel) { LiveWardController(viewModel) }
+    WardWorkspace(isAdmin, currentDoctorId, navigation, controller)
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+internal fun WardWorkspace(
+    isAdmin: Boolean, currentDoctorId: String, navigation: WardNavigation, viewModel: WardController,
+    initialView: WardViewMode? = null,
+    onViewChanged: (WardViewMode) -> Unit = {},
+    drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)? = null
 ) {
+    val onOpenReport = navigation.onOpenReport
+    val onOpenAdmin = navigation.onOpenAdmin
+    val onOpenSettings = navigation.onOpenSettings
+    val onOpenAbout = navigation.onOpenAbout
+    val onOpenProject = navigation.onOpenProject
+    val onOpenDataManagement = navigation.onOpenDataManagement
+    val onOpenWorkspace = navigation.onOpenWorkspace
+    val onOpenAnnouncement = navigation.onOpenAnnouncement
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val online by viewModel.online.collectAsStateWithLifecycle()
+    val taskNowEpochMillis by viewModel.taskNow.collectAsStateWithLifecycle()
+    val filtersState = rememberSaveable(saver = WardFilters.Saver) { WardFilters(WardFilterOptions(viewMode = initialView ?: WardViewMode.ALL)) }
+    var searchQuery by filtersState::searchQuery
+    var viewMode by filtersState::viewMode
+    var newAdmissionsOnly by filtersState::newAdmissionsOnly
+    var taskFilter by filtersState::taskFilter
+    var previousRequestedView by rememberSaveable { mutableStateOf(initialView) }
+    LaunchedEffect(initialView) {
+        if (initialView != null && previousRequestedView != initialView) {
+            viewMode = initialView
+            previousRequestedView = initialView
+        }
+    }
+    LaunchedEffect(viewMode) { onViewChanged(viewMode) }
+    val overlays = rememberSaveable(saver = WardOverlayState.Saver) { WardOverlayState() }
     val snackbarHost = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -103,46 +127,32 @@ fun WardScreen(
     val detailStateHolder = rememberSaveableStateHolder()
     val activityScroll = rememberLazyListState()
     val publicationScroll = rememberLazyListState()
-    var listFraction by rememberSaveable { mutableStateOf(.42f) }
-    var showSupportingSheet by rememberSaveable { mutableStateOf(false) }
-    val expandedWindow = LocalConfiguration.current.screenWidthDp >= 600
+    var listFraction by rememberSaveable { mutableStateOf(UiLayout.defaultListFraction) }
+    var showSupportingSheet by overlays::showSupportingSheet
+    val expandedWindow = LocalConfiguration.current.screenWidthDp >= UiLayout.expandedWindowWidthDp
     val freshnessLabel = state.freshnessLabel(uiText)
     val doctorNames = remember(state.doctors) {
         state.doctors.associate { it.id to it.fullName }
     }
     val patientGridState = rememberLazyGridState()
-    var showAdd by remember { mutableStateOf(false) }
+    val editor = viewModel.editor
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
-    var editTarget by remember { mutableStateOf<Patient?>(null) }
     var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
     var recentlyEditedId by remember { mutableStateOf<String?>(null) }
-    var copyTarget by remember { mutableStateOf<Patient?>(null) }
-    var deleteTarget by remember { mutableStateOf<Patient?>(null) }
     var showSort by remember { mutableStateOf(false) }
-    var confirmLatest by remember { mutableStateOf(false) }
+    var confirmLatest by overlays::confirmLatest
     var fetchReminderDismissed by rememberSaveable(state.shift?.id, currentDoctorId) { mutableStateOf(false) }
-    var confirmPrevious by remember { mutableStateOf(false) }
+    var confirmPrevious by overlays::confirmPrevious
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var requestSearchFocus by remember { mutableStateOf(false) }
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    var showRecycleBin by remember { mutableStateOf(false) }
-    var viewMode by rememberSaveable { mutableStateOf(WardViewMode.ALL) }
+    var showRecycleBin by overlays::showRecycleBin
     var collapsedGroups by rememberSaveable { mutableStateOf(emptyList<String>()) }
-    var showFilters by remember { mutableStateOf(false) }
+    var showFilters by overlays::showFilters
     var selectedViewOption by rememberSaveable { mutableStateOf(WardViewOption.FILTERS) }
     val viewOptionsScroll = rememberScrollState()
-    var priorityOnly by rememberSaveable { mutableStateOf(false) }
-    var warningsOnly by rememberSaveable { mutableStateOf(false) }
-    var unassignedOnly by rememberSaveable { mutableStateOf(false) }
-    var taskFilter by rememberSaveable { mutableStateOf<DashboardFilter?>(null) }
-    var urgentOnly by rememberSaveable { mutableStateOf(false) }
-    var newAdmissionsOnly by rememberSaveable { mutableStateOf(false) }
     var expandedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var collapsedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
-    val anyCardsExpanded = state.patients.any { patient ->
-        if (state.patientDetailsExpanded) patient.id !in collapsedPatientIds else patient.id in expandedPatientIds
-    }
-    var showWardTasks by remember { mutableStateOf(false) }
+    var showWardTasks by overlays::showWardTasks
     var animatedPatientId by remember { mutableStateOf<String?>(null) }
     fun setAllPatientsExpanded(expand: Boolean) {
         animatedPatientId = null
@@ -152,7 +162,6 @@ fun WardScreen(
         collapsedPatientIds = if (expand) emptyList() else ids
         viewModel.setPatientDetailsExpanded(expand)
     }
-    fun toggleAllCards() = setAllPatientsExpanded(!anyCardsExpanded)
     fun toggleCard(id: String) {
         animatedPatientId = id
         if (state.patientDetailsExpanded) {
@@ -165,15 +174,22 @@ fun WardScreen(
     var activityQuery by rememberSaveable { mutableStateOf("") }
     var activityFilter by rememberSaveable { mutableStateOf(ActivityFilter.ALL) }
 
-    val visiblePatients = remember(
-        state.patients, searchQuery, viewMode, currentDoctorId,
-        priorityOnly, warningsOnly, unassignedOnly, urgentOnly, newAdmissionsOnly, taskFilter, state.taskNowEpochMillis,
-        pinnedPatientIds
-    ) {
-        filterWardPatients(state.patients, searchQuery, viewMode, currentDoctorId,
-            priorityOnly, warningsOnly, unassignedOnly, urgentOnly, newAdmissionsOnly,
-            taskFilter, state.taskNowEpochMillis, pinnedPatientIds)
+    val filters = filtersState.options()
+    val searchIndex = remember(state.patients) { wardSearchIndex(state.patients) }
+    val pinnedIds = remember(pinnedPatientIds) { pinnedPatientIds.toSet() }
+    val expandedIds = remember(expandedPatientIds) { expandedPatientIds.toSet() }
+    val collapsedIds = remember(collapsedPatientIds) { collapsedPatientIds.toSet() }
+    val anyCardsExpanded = state.patients.any { patient ->
+        if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds
     }
+    fun toggleAllCards() = setAllPatientsExpanded(!anyCardsExpanded)
+    val filterDate = if (newAdmissionsOnly) java.time.LocalDate.now() else null
+    // Only deadline-sensitive filtering depends on the minute clock.
+    val filterNow = if (taskFilter == WardTaskFilter.OVERDUE) taskNowEpochMillis else 0L
+    val visiblePatients = remember(state.patients, filters, currentDoctorId, filterNow, filterDate, pinnedIds, searchIndex) {
+        filterWardPatients(state.patients, filters, currentDoctorId, filterNow, pinnedIds, searchIndex)
+    }
+    val visibleIds = remember(visiblePatients) { visiblePatients.mapTo(mutableSetOf()) { it.id } }
 
     fun closeDrawer(after: () -> Unit = {}) {
         scope.launch {
@@ -188,11 +204,13 @@ fun WardScreen(
         (!patientDestination || selectedPatient == null) &&
         (!patientDestination || state.patients.isNotEmpty())
     val addActionSpace = rememberFloatingActionSpace(showAddFloatingAction)
-    val roundsPatients = if (state.groupByMode != GroupByMode.NONE && state.groupedPatients.isNotEmpty()) {
-        state.groupedPatients.flatMap { group ->
-            group.patients.filter { it in visiblePatients }.sortedByDescending { it.id in pinnedPatientIds }
-        }.distinctBy { it.id }
-    } else visiblePatients
+    val roundsPatients = remember(state.groupByMode, state.groupedPatients, visiblePatients, visibleIds, pinnedIds) {
+        if (state.groupByMode != GroupByMode.NONE && state.groupedPatients.isNotEmpty()) {
+            state.groupedPatients.flatMap { group ->
+                group.patients.filter { it.id in visibleIds }.sortedByDescending { it.id in pinnedIds }
+            }.distinctBy { it.id }
+        } else visiblePatients
+    }
     val roundsNavigation = detailsTargetId?.let { patientRoundsNavigation(roundsPatients.map { it.id }, it) }
 
     LaunchedEffect(returnTarget, state.patients, state.groupedPatients, visiblePatients, state.loading, state.saving, state.error, patientDestination) {
@@ -207,8 +225,8 @@ fun WardScreen(
             return@LaunchedEffect
         }
         val groups = if (state.groupByMode == GroupByMode.NONE) emptyList() else state.groupedPatients.map { group ->
-            (group.key ?: "none") to group.patients.filter { it in visiblePatients }
-                .sortedByDescending { it.id in pinnedPatientIds }.map { it.id }
+            (group.key ?: "none") to group.patients.filter { it.id in visibleIds }
+                .sortedByDescending { it.id in pinnedIds }.map { it.id }
         }
         val groupKey = groups.firstOrNull { target.id in it.second }?.first
         val expandedGroups = if (groupKey == null) collapsedGroups else collapsedGroups - groupKey
@@ -228,31 +246,29 @@ fun WardScreen(
             recentlyEditedId = null
         }
     }
-    if (showWardTasks) WardTaskBoard(state.patients, state.doctors, state.taskNowEpochMillis,
+    if (showWardTasks) WardTaskBoard(state.patients, state.doctors, taskNowEpochMillis,
         currentDoctorId = currentDoctorId, onDismiss = { showWardTasks = false }, onPatient = { id ->
-            if (!state.saving && !state.syncing && !showAdd && editTarget == null && copyTarget == null && state.patients.any { it.id == id }) {
+            if (!state.saving && !state.syncing && !editor.showAdd && editor.editTarget == null && editor.copyTarget == null && state.patients.any { it.id == id }) {
                 showWardTasks = false
-                viewMode = WardViewMode.ALL
-                searchQuery = ""; priorityOnly = false; warningsOnly = false; unassignedOnly = false
-                urgentOnly = false; newAdmissionsOnly = false; taskFilter = null
+                filtersState.applyPreset(DashboardFilter.ALL)
                 detailsTargetId = id
             }
         })
     val detailContent: @Composable (Boolean) -> Unit = { embedded ->
-        if (selectedPatient != null && editTarget == null && copyTarget == null) {
+        if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) {
             detailStateHolder.SaveableStateProvider(selectedPatient.id) {
                 PatientDetailsScreen(
                     patient = selectedPatient, doctorNames = doctorNames,
                     activity = state.recentActivity.filter { it.patientId == selectedPatient.id },
                     readOnly = state.isReadOnly,
-                    onEdit = { editTarget = selectedPatient },
-                    onCopy = { copyTarget = selectedPatient },
+                    onEdit = { editor.editTarget = selectedPatient },
+                    onCopy = { editor.copyTarget = selectedPatient },
                     onPriorityChange = { viewModel.setPriority(selectedPatient, it) },
                     onDismiss = { detailsTargetId = null }, embedded = embedded, foldingFeature = foldingFeature,
                     roundsNavigation = roundsNavigation,
-                    navigationEnabled = !state.saving && !showAdd,
+                    navigationEnabled = !state.saving && !editor.showAdd,
                     onNavigateToPatient = { id ->
-                        if (!state.saving && !showAdd && editTarget == null && copyTarget == null && roundsPatients.any { it.id == id }) {
+                        if (!state.saving && !editor.showAdd && editor.editTarget == null && editor.copyTarget == null && roundsPatients.any { it.id == id }) {
                             detailsTargetId = id
                         }
                     }
@@ -261,7 +277,7 @@ fun WardScreen(
         }
     }
     BackHandler(enabled = !patientDestination) { viewMode = WardViewMode.ALL }
-    BackHandler(enabled = patientDestination && detailsTargetId != null && editTarget == null && copyTarget == null) {
+    BackHandler(enabled = patientDestination && detailsTargetId != null && editor.editTarget == null && editor.copyTarget == null) {
         detailsTargetId = null
     }
     LaunchedEffect(viewMode, isAdmin) {
@@ -274,25 +290,7 @@ fun WardScreen(
         if (!state.loading && selectedPatient == null) detailsTargetId = null
     }
 
-    fun applyDashboardFilter(filter: DashboardFilter) {
-        searchQuery = ""
-        priorityOnly = false
-        warningsOnly = false
-        unassignedOnly = false
-        urgentOnly = false
-        newAdmissionsOnly = false
-        taskFilter = null
-        viewMode = WardViewMode.ALL
-        when (filter) {
-            DashboardFilter.ALL -> Unit
-            DashboardFilter.MINE -> viewMode = WardViewMode.MINE
-            DashboardFilter.URGENT -> urgentOnly = true
-            DashboardFilter.WARNINGS -> warningsOnly = true
-            DashboardFilter.UNASSIGNED -> unassignedOnly = true
-            DashboardFilter.NEW_ADMISSIONS -> newAdmissionsOnly = true
-            DashboardFilter.TASK_PENDING, DashboardFilter.TASK_OVERDUE, DashboardFilter.TASK_UNASSIGNED -> taskFilter = filter
-        }
-    }
+    fun applyDashboardFilter(filter: DashboardFilter) = filtersState.applyPreset(filter)
 
     fun resetPatientFilters() {
         searchQuery = ""
@@ -315,9 +313,9 @@ fun WardScreen(
 
     LaunchedEffect(state.isReadOnly) {
         if (state.isReadOnly) {
-            showAdd = false
-            editTarget = null
-            deleteTarget = null
+            editor.showAdd = false
+            editor.editTarget = null
+            editor.deleteTarget = null
             showSort = false
         }
     }
@@ -333,18 +331,15 @@ fun WardScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            WardDrawer(
+            if (drawerContent != null) drawerContent(::closeDrawer) else WardDrawer(
                 state = state,
                 currentDoctorName = doctorNames[currentDoctorId],
                 isAdmin = isAdmin,
                 isPermanentAdmin = isAdmin && state.doctors.any { it.id == currentDoctorId && it.isPermanentAdmin && !it.isDeleted },
                 online = online,
                 viewMode = viewMode,
-                allPatientsSelected = viewMode == WardViewMode.ALL &&
-                    !priorityOnly && !warningsOnly && !unassignedOnly && !urgentOnly &&
-                    !newAdmissionsOnly && taskFilter == null && searchQuery.isBlank(),
-                filtersSelected = priorityOnly || warningsOnly || unassignedOnly || urgentOnly ||
-                    newAdmissionsOnly || taskFilter != null || viewMode == WardViewMode.MINE || searchQuery.isNotBlank(),
+                allPatientsSelected = filtersState.allPatientsSelected,
+                filtersSelected = filtersState.filtersSelected,
                 onAction = { action -> closeDrawer {
                     when (action) {
                         WardDrawerAction.ALL_PATIENTS -> applyDashboardFilter(DashboardFilter.ALL)
@@ -379,10 +374,11 @@ fun WardScreen(
     ) {
         Scaffold(
             topBar = {
+                Column {
                 WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
                     onMenu = { scope.launch { drawerState.open() } }, onToggleCards = ::toggleAllCards,
                     showAddAction = !showAddFloatingAction,
-                    onAdd = { showAdd = true }, onSearch = {
+                    onAdd = { editor.openAdd(state.patients, state.shift?.revision) }, onSearch = {
                         if (patientDestination && showSearch && searchQuery.isBlank()) {
                             showSearch = false
                             requestSearchFocus = false
@@ -400,13 +396,16 @@ fun WardScreen(
                             WardWorkflowAction.DOWNLOAD -> confirmLatest = true
                         }
                     })
+                if (!viewModel.liveProject) Text(uiText(R.string.ui_demo_navigation_001),
+                    Modifier.fillMaxWidth().padding(UiPadding.screen), style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                }
             },
             floatingActionButton = {
                 if (showAddFloatingAction) {
                     AppButton(
-                        onClick = { showAdd = true },
+                        onClick = { editor.openAdd(state.patients, state.shift?.revision) },
                         enabled = !state.loading && !state.saving && !state.syncing &&
-                            !showAdd && editTarget == null && copyTarget == null,
+                            !editor.showAdd && editor.editTarget == null && editor.copyTarget == null,
                         contentPadding = UiPadding.content,
                         modifier = addActionSpace.measure.heightIn(min = UiSpacing.touchTarget)
                     ) {
@@ -437,7 +436,7 @@ fun WardScreen(
             ) {
                 if (expandedWindow) {
                     WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
-                        listFraction = .42f, onListFractionChange = {},
+                        listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                         modifier = Modifier.width(UiLayout.navigationRailWidth).fillMaxHeight(), primaryTitle = uiText(R.string.ui_ward_screen_002), primary = {
                         PrimaryNavigationRail(
                             viewMode = viewMode,
@@ -461,9 +460,9 @@ fun WardScreen(
                     supportingTitle = if (selectedPatient == null) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_screen_005),
                     supporting = {
                         Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
-                            if (selectedPatient != null && editTarget == null && copyTarget == null) detailContent(true)
+                            if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) detailContent(true)
                             else WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                                onReviewReport = { state.shift?.id?.let(onOpenReport) },
+                                showSynchronization = viewModel.liveProject, onReviewReport = { state.shift?.id?.let(onOpenReport) },
                                 onActivity = { viewMode = WardViewMode.ACTIVITY })
                         }
                     },
@@ -498,23 +497,24 @@ fun WardScreen(
                                 currentDoctorId = currentDoctorId,
                                 syncStatus = state.syncStatus,
                             online = online, freshnessLabel = freshnessLabel,
-                                nowEpochMillis = state.taskNowEpochMillis,
+                                nowEpochMillis = taskNowEpochMillis,
                                 bottomClearance = scrollBottomClearance,
                                 onFilter = ::applyDashboardFilter,
                                 onSync = { confirmLatest = true },
                                 onActivity = {
                                     viewMode = WardViewMode.ACTIVITY
                                 },
-                                modifier = Modifier.padding(UiPadding.content)
+                                modifier = Modifier.padding(UiPadding.screen), showSynchronization = viewModel.liveProject
                             )
                         } else if (state.patients.isEmpty()) {
                             EmptyWardPatients(isReadOnly = state.isReadOnly,
                                 busy = state.syncing || state.saving, canCopy = state.shift != null,
+                                showSources = viewModel.liveProject,
                                 bottomClearance = scrollBottomClearance,
-                                onAdd = { showAdd = true }, onFetch = { confirmLatest = true },
+                                onAdd = { editor.openAdd(state.patients, state.shift?.revision) }, onFetch = { confirmLatest = true },
                                 onCopyPrevious = viewModel::offerPreviousShift,
                                 topContent = {
-                                    if (!state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
+                                    if (viewModel.liveProject && !state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
                                         enabled = !state.syncing && !state.saving,
                                         onFetch = { confirmLatest = true },
                                         onDismiss = { fetchReminderDismissed = true })
@@ -527,11 +527,11 @@ fun WardScreen(
                                 }, onResetFilters = ::resetPatientFilters,
                                 headerContent = {
                                     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                                                            if (!state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
+                                                                            if (viewModel.liveProject && !state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
                                                                                 enabled = !state.syncing && !state.saving,
                                                                                 onFetch = { confirmLatest = true },
                                                                                 onDismiss = { fetchReminderDismissed = true })
-                                                                            if (!state.syncing && !state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) {
+                                                                            if (viewModel.liveProject && !state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) {
                                                                                 WardWorkflowStrip(state, onNext = {
                                                                                     when (state.workflowAction) {
                                                                                         WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
@@ -540,34 +540,11 @@ fun WardScreen(
                                                                                     }
                                                                                 })
                                                                             }
-                                                                            val activeFilters = buildList<String> {
-                                                                                if (viewMode == WardViewMode.MINE) add(uiText(R.string.ui_handover_dashboard_011))
-                                                                                if (searchQuery.isNotBlank()) add(uiText(R.string.ui_ward_screen_008, searchQuery))
-                                                                                if (priorityOnly) add(uiText(R.string.ui_patient_identity_002))
-                                                                                if (warningsOnly) add(uiText(R.string.ui_ward_screen_009))
-                                                                                if (unassignedOnly) add(uiText(R.string.ui_ward_screen_010))
-                                                                                if (urgentOnly) add(uiText(R.string.ui_ward_patient_list_controls_007))
-                                                                                if (newAdmissionsOnly) add(uiText(R.string.ui_handover_dashboard_016))
-                                                                                val taskLabel = when (taskFilter) {
-                                                                                    DashboardFilter.TASK_PENDING -> uiText(R.string.ui_ward_screen_011)
-                                                                                    DashboardFilter.TASK_OVERDUE -> uiText(R.string.ui_ward_patient_list_controls_008)
-                                                                                    DashboardFilter.TASK_UNASSIGNED -> uiText(R.string.ui_ward_screen_012)
-                                                                                    else -> null
-                                                                                }
-                                                                                taskLabel?.let { add(it) }
-                                                                            }
-                                                                            val selectedPreset = when {
-                                                                                activeFilters.isEmpty() -> DashboardFilter.ALL
-                                                                                activeFilters.size != 1 -> null
-                                                                                viewMode == WardViewMode.MINE -> DashboardFilter.MINE
-                                                                                urgentOnly -> DashboardFilter.URGENT
-                                                                                taskFilter == DashboardFilter.TASK_OVERDUE -> DashboardFilter.TASK_OVERDUE
-                                                                                else -> null
-                                                                            }
+                                                                            val activeFilters = filtersState.labels(uiText)
                                                                             WardPatientListControls(
                                                                                 visibleCount = visiblePatients.size, totalCount = state.patients.size,
                                                                                 groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText),
-                                                                                activeFilters = activeFilters, selectedPreset = selectedPreset,
+                                                                                activeFilters = activeFilters, selectedPreset = filtersState.selectedPreset,
                                                                                 onPreset = ::applyDashboardFilter,
                                                                                 onOptions = { showFilters = true }, onReset = ::resetPatientFilters,
                                                                                 showSearch = showSearch, query = searchQuery,
@@ -580,42 +557,40 @@ fun WardScreen(
                                                                         }
                                 }, patientCard = { patient ->
                                     PatientCard(
-                                                                                    patient = patient,
-                                                                                    expanded = if (state.patientDetailsExpanded) patient.id !in collapsedPatientIds else patient.id in expandedPatientIds,
-                                                                                    animateExpansion = animatedPatientId == patient.id,
-                                                                                    twoColumn = state.twoColumn,
-                                                                                    doctorNames = doctorNames,
-                                                                                    readOnly = state.isReadOnly,
-                                                                                    selected = detailsTargetId == patient.id,
-                                                                                    recentlyEdited = recentlyEditedId == patient.id,
-                                                                                    onEdit = { editTarget = patient },
-                                                                                    onClick = {
-                                                                                        if (dualPane || state.isReadOnly) {
-                                                                                            viewModel.loadLocalActivity()
-                                                                                            detailsTargetId = patient.id
-                                                                                        } else {
-                                                                                            editTarget = patient
-                                                                                        }
+        state = PatientCardState(patient = patient,
+            expanded = if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds,
+            animateExpansion = animatedPatientId == patient.id,
+            twoColumn = state.twoColumn,
+            doctorNames = doctorNames,
+            readOnly = state.isReadOnly,
+            selected = detailsTargetId == patient.id,
+            recentlyEdited = recentlyEditedId == patient.id,
+            pinned = patient.id in pinnedIds,
+            taskNowEpochMillis = taskNowEpochMillis,
+            compact = state.compactCards),
+        actions = PatientCardActions(
+            onOpen = {
+                                                                                        viewModel.loadLocalActivity()
+                                                                                        detailsTargetId = patient.id
                                                                                     },
-                                                                                    onLongClick = {
+            onLongPress = {
                                                                                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                                                                         viewModel.loadLocalActivity()
                                                                                         detailsTargetId = patient.id
                                                                                     },
-                                                                                    onCopy = { copyTarget = patient },
-                                                                                    onPriorityChange = { viewModel.setPriority(patient, it) },
-                                                                                    onDelete = { deleteTarget = patient },
-                                                                                    pinned = patient.id in pinnedPatientIds,
-                                                                                    onPinToggle = {
+            onEdit = { editor.editTarget = patient },
+            onDelete = { editor.deleteTarget = patient },
+            onCopy = { editor.copyTarget = patient },
+            onPriorityChange = { viewModel.setPriority(patient, it) },
+            onPinToggle = {
                                                                                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                                                                         pinnedPatientIds = if (patient.id in pinnedPatientIds) {
                                                                                             pinnedPatientIds - patient.id
                                                                                         } else pinnedPatientIds + patient.id
                                                                                     },
-                                                                                    onExpandToggle = { toggleCard(patient.id) },
-                                                                                    taskNowEpochMillis = state.taskNowEpochMillis,
-                                                                                    compact = state.compactCards
-                                                                                )
+            onExpandToggle = { toggleCard(patient.id) }
+        )
+    )
                                 })
                         }
                     }
@@ -628,39 +603,39 @@ fun WardScreen(
     if (showSupportingSheet) {
         ModalBottomSheet(onDismissRequest = { showSupportingSheet = false }) {
             WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
-                listFraction = .42f, onListFractionChange = {},
+                listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                 modifier = Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight), primary = {
                 WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                    onReviewReport = { showSupportingSheet = false; state.shift?.id?.let(onOpenReport) },
+                    showSynchronization = viewModel.liveProject, onReviewReport = { showSupportingSheet = false; state.shift?.id?.let(onOpenReport) },
                     onActivity = { showSupportingSheet = false; viewMode = WardViewMode.ACTIVITY },
                     modifier = Modifier.fillMaxSize())
             })
         }
     }
 
-    if (showAdd) {
-        val insertionPatients = remember { state.patients.toList() }
-        val insertionRevision = remember { state.shift?.revision }
-        var insertionPosition by remember { mutableStateOf("") }
+    if (editor.showAdd) {
+        val insertionPatients = editor.insertionPatients
+        val insertionRevision = editor.insertionRevision
         AddPatientDialog(
             doctors = state.doctors,
             draft = state.patientDraft,
+            stateStore = editor.addForm,
             saving = state.saving,
-            position = insertionPosition,
+            position = editor.insertionPosition,
             positionLimit = insertionPatients.size + 1,
-            onPositionChange = { value -> insertionPosition = value.filter { it.isDigit() }.take(3) },
+            onPositionChange = { value -> editor.insertionPosition = value.filter { it.isDigit() }.take(3) },
             onDraftChanged = viewModel::saveDraft,
             onConfirm = {
-                val requested = insertionPosition.map { digit -> Character.digit(digit, 10) }.joinToString("").toIntOrNull()
-                if (insertionPosition.isBlank() || requested != null) {
-                    viewModel.addPatient(it, requested, insertionPatients, insertionRevision) { showAdd = false }
+                val requested = editor.insertionPosition.map { digit -> Character.digit(digit, 10) }.joinToString("").toIntOrNull()
+                if (editor.insertionPosition.isBlank() || requested != null) {
+                    viewModel.addPatient(it, requested, insertionPatients, insertionRevision) { editor.showAdd = false }
                 }
             },
-            onDismiss = { showAdd = false }
+            onDismiss = { editor.showAdd = false }
         )
     }
 
-    WardDataReviewDialogs(state, viewModel, confirmLatest, confirmPrevious,
+    if (viewModel.liveProject) WardDataReviewDialogs(state, viewModel, confirmLatest, confirmPrevious,
         onDismissLatest = { confirmLatest = false }, onDismissPrevious = { confirmPrevious = false })
 
     fun saveEdited(p: Patient, draft: Patient, onStale: (Patient?) -> Unit, advance: Boolean) {
@@ -672,21 +647,22 @@ fun WardScreen(
                 ?.let { id -> current.patients.firstOrNull { it.id == id && !it.isDeleted } }
             if (next != null) {
                 returnTarget = null
-                editTarget = next
+                editor.editTarget = next
                 if (detailsTargetId != null) detailsTargetId = next.id
             } else {
                 returnTarget = PatientReturnTarget(draft.id, draft.revision)
-                editTarget = null
+                editor.editTarget = null
             }
         }
     }
-    WardPatientDialogs(state, editTarget, copyTarget, deleteTarget, roundsPatients.map { it.id },
+    WardPatientDialogs(state, editor.editTarget, editor.copyTarget, editor.deleteTarget, roundsPatients.map { it.id },
+        editSession = editor.editSession, copyInitial = editor.copyInitial, copyForm = editor.copyForm,
         onSaveEdited = ::saveEdited, onSaveAndNextChanged = viewModel::setSaveAndNext,
-        onDismissEdit = { editTarget = null },
-        onCopyConfirmed = { patient -> viewModel.addPatient(patient) { copyTarget = null } },
-        onDismissCopy = { copyTarget = null }, onDeleteConfirmed = { p ->
+        onDismissEdit = { editor.editTarget = null },
+        onCopyConfirmed = { patient -> viewModel.addPatient(patient) { editor.copyTarget = null } },
+        onDismissCopy = { editor.copyTarget = null }, onDeleteConfirmed = { p ->
             viewModel.deletePatient(p) { deletedPatient ->
-                deleteTarget = null
+                editor.deleteTarget = null
                 scope.launch {
                     val result = snackbarHost.showSnackbar(
                         message = uiText(R.string.ui_ward_screen_014, p.name),
@@ -697,18 +673,11 @@ fun WardScreen(
                     }
                 }
             }
-        }, onDismissDelete = { deleteTarget = null })
+        }, onDismissDelete = { editor.deleteTarget = null })
 
     if (showFilters) WardViewOptionsDialog(state, viewModel,
-        filters = WardFilterOptions(searchQuery, viewMode, priorityOnly, warningsOnly,
-            unassignedOnly, urgentOnly, newAdmissionsOnly, taskFilter),
-        onFiltersChanged = { update ->
-            val filters = update(WardFilterOptions(searchQuery, viewMode, priorityOnly, warningsOnly,
-                unassignedOnly, urgentOnly, newAdmissionsOnly, taskFilter))
-            searchQuery = filters.searchQuery; viewMode = filters.viewMode
-            priorityOnly = filters.priorityOnly; warningsOnly = filters.warningsOnly
-            unassignedOnly = filters.unassignedOnly; urgentOnly = filters.urgentOnly
-            newAdmissionsOnly = filters.newAdmissionsOnly; taskFilter = filters.taskFilter
+        filters = filters,
+        onFiltersChanged = { transform -> filtersState.update(transform(filtersState.options()))
         }, selectedViewOption = selectedViewOption, viewOptionsScroll = viewOptionsScroll,
         showSort = showSort, onSortExpandedChange = { showSort = it },
         onSelectOption = { selectedViewOption = it; scope.launch { viewOptionsScroll.scrollTo(0) } },

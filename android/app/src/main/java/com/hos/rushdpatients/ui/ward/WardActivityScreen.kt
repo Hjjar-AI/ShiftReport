@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Divider
+import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -122,7 +122,7 @@ internal fun WardActivityScreen(
                     Text(activityTime(publication.at), style = MaterialTheme.typography.bodySmall)
                     Text(uiText(R.string.ui_ward_activity_screen_009), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Divider()
+                AppDivider()
             }
         } else {
             if (filtered.isEmpty()) item { com.hos.rushdpatients.ui.components.EmptyState(uiText(R.string.ui_ward_activity_screen_010),
@@ -130,7 +130,7 @@ internal fun WardActivityScreen(
                 onAction = { onQueryChange(""); onFilterChange(ActivityFilter.ALL) }) }
             items(filtered, key = { "audit-${it.id}" }) { entry ->
                 ActivityEntry(entry, entry.patientId?.let(patientNames::get))
-                Divider()
+                AppDivider()
             }
         }
         item(key = "activity-footer") {

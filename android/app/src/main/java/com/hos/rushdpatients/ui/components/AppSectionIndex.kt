@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiTypography
 import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -65,7 +66,7 @@ fun <T> AppSectionIndex(sections: List<T>, selected: T, label: (T) -> String,
                                 .copy(alpha = UiOpacity.content(enabled))) {
                             Text(label(section), modifier = Modifier.padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
                                 style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+                                fontWeight = if (active) UiTypography.emphasizedWeight else FontWeight.Normal, maxLines = 1)
                         }
                     }
                 } else FilterChip(selected = section == selected, enabled = enabled, onClick = { onSelect(section) },

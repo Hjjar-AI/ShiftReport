@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.theme.UiTypography
+import com.hos.rushdpatients.ui.components.AppIconButton
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -222,7 +224,7 @@ fun DoctorsScreen(
                                 ) {
                                     Text(uiText(R.string.ui_doctors_screen_013), modifier = Modifier.weight(1f),
                                         style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold)
+                                        fontWeight = UiTypography.emphasizedWeight)
                                     Icon(if (transferExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                         contentDescription = null)
                                 }
@@ -422,12 +424,14 @@ private fun DoctorCard(
                     Text(uiText(R.string.ui_doctors_screen_049, it), style = MaterialTheme.typography.bodySmall)
                 }
             }
-            IconButton(onClick = onEdit, enabled = enabled) {
-                Icon(Icons.Default.Edit, contentDescription = uiText(R.string.ui_doctors_screen_050, doctor.fullName))
-            }
-            IconButton(onClick = onDelete, enabled = enabled) {
-                Icon(Icons.Default.Delete, contentDescription = uiText(R.string.ui_doctors_screen_051, doctor.fullName))
-            }
+            AppIconButton(label = uiText(R.string.ui_doctors_screen_050, doctor.fullName),
+            icon = Icons.Default.Edit,
+            onClick = onEdit,
+            enabled = enabled)
+            AppIconButton(label = uiText(R.string.ui_doctors_screen_051, doctor.fullName),
+            icon = Icons.Default.Delete,
+            onClick = onDelete,
+            enabled = enabled)
         }
     }
 }
