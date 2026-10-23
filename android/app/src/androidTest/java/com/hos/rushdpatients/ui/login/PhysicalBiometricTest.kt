@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.ui.login
 
 import android.os.SystemClock
+import android.os.Build
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -13,6 +15,10 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class PhysicalBiometricTest {
+    @Suppress("DEPRECATION") // Node pooling was removed in API 33; older devices still recycle.
+    private fun recycleLegacyNode(node: AccessibilityNodeInfo?) {
+        if (Build.VERSION.SDK_INT < 33) node?.recycle()
+    }
     @Test fun nativeCancellationReachesCancelCallbackWithoutSuccess() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         assumeTrue("Enrolled biometrics required", BiometricHelper(instrumentation.targetContext).isAvailable())
@@ -26,7 +32,7 @@ class PhysicalBiometricTest {
                 try {
                     cancelled = nodes.firstOrNull { it.isClickable }
                         ?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK) == true
-                } finally { nodes.forEach { it.recycle() }; root?.recycle() }
+                } finally { nodes.forEach(::recycleLegacyNode); recycleLegacyNode(root) }
                 if (!cancelled) SystemClock.sleep(100)
             }
             assertEquals("Native cancel button available", true, cancelled)

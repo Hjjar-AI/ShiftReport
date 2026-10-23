@@ -166,85 +166,68 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
-**Latest test expansion is source-only; builds and execution await owner permission.**
-[Continuation record and exact commands](testing-handoff.md) ·
-[Coverage boundaries](../guides/deep-testing.md).
+The owner authorized full Android execution on 24 October 2026. The final complete
+JVM/device rerun is in progress; its log is
+`local/verification/android-tests-2026-10-24/all-final.log` (ignored).
+[Handoff](testing-handoff.md) · [Coverage map/commands](../guides/android-testing.md) ·
+[External boundaries](../guides/deep-testing.md).
 
-Current source contains **623 JVM methods/81 classes, 252 device methods/50 classes
-and 60 desktop methods**. Counts do not establish execution or complete branch
-coverage. Unexecuted additions total **247 JVM and 77 device cases** across the
-23–24 October expansions. The newest **5 JVM and 30 device cases** address selected
-picker/provider, independent-client, failure/clock, adaptive UI and actual root/
-navigation journey gaps. [Detailed suite map and prerequisites](../guides/android-testing.md#latest-source-expansion--awaiting-execution).
-Only static source/resource-reference, manifest and whitespace checks were performed;
-no build, test execution, device installation or live request was made.
+Source contains **625 JVM methods/81 classes, 253 device methods/50 classes and
+60 desktop methods**. Counts do not establish complete line/branch coverage.
+The first full JVM run confirmed rollover's nested busy-guard conflict and a false
+initial pin receipt being treated as success. After correction and two extra
+rollover cases, **625 JVM tests passed with zero failures/errors/skips**.
 
-A non-exported debug Activity supplies isolated production ViewModels before screen
-lookup. The production root's only new seam is an optional composable navigation-
-controller factory, invoked in its existing logged-in branch with the ordinary
-remembered-controller default. Clinical/auth/sync rules are unchanged. The actual
-WardAppRoot/WardNavHost journey and Hilt/store wiring still need runtime evidence.
-Controlled OpenDocument results do not reproduce the original picker exception;
-independent clients and synthetic hinges/faults do not establish two-phone,
-physical fold/split-screen, power-loss or actual disk-full behavior. The complete
-send journey needs validated device connectivity for the production gate, with all
-HTTP intercepted; an absent-prerequisite skip is not verification.
+The first complete device run on PPA-LX2/Android 10 had **252 cases: 242 passed,
+8 failed, 2 skipped**. Focused reruns verified the corrections: first individual
+expansion/collapse now uses the current animation duration while bulk changes stay
+immediate; background privacy locking retains navigation/editor ViewModels while
+clinical screens leave composition, and sign-out discards navigation. Test fixtures
+now honor actual workspace/text, Activity focus, foreground-authorization and lazy
+item visibility contracts. The version-aware native biometric cleanup compiled
+without its old deprecation warnings, and native cancellation passed. Physical
+fingerprint success passed separately with the owner's touch. The private-original-
+CSV case was not provisioned and skips; no private file was recopied to the phone.
 
-Two new intended-behavior cases are expected to fail from source review: rollover
-sets `saving` before entering a guard that rejects busy work; initial registry
-seeding ignores a false Telegram pin receipt. These are source findings, not
-executed failures. Those clinical/initialization paths are unchanged; [implementation fixes](roadmap.md)
-remain. All new cases still need compilation/execution, which may expose fixture
-issues. The earlier patient-scroll/stability changes, crash-boundary marker and
-birth-date fixture corrections, and two first/bulk-expansion tests are **not yet
-compiled or runtime verified**. Resume from the handoff rather than repeating
-finished work or treating source completion as verification.
+The corrected **8 process-death cases** passed, including explicit boundary markers,
+real receipt durability, backup restore and download Undo. This supersedes the old
+fixture run whose missing birth date made postcommit tests fail and precommit
+results unreliable. **14 independent-client, 5 controlled picker and 3 synthetic
+fold-layout cases** passed, together with scrolling and selected constrained
+production UI. The protected join → PIN login → edit → review → explicit publication
+journey, recreation and background draft checks passed focused reruns through the
+actual root/navigation graph with isolated production models. Every HTTP request
+is intercepted; no real report is sent or installed clinical database opened.
 
-Verified on 23 October 2026, before those latest edits:
+The original unknown picker exception remains unreproduced; controlled OpenDocument
+results do not exercise OEM picker UI/grant behavior. Independent clients and
+synthetic hinges/faults do not establish two-phone, physical fold/split-screen,
+power-loss or actual disk-full behavior. The complete send journey requires
+validated device connectivity for the production gate despite intercepted HTTP;
+a missing-prerequisite skip is not verification. Clock/DST cases cover selected
+boundaries, not arbitrary clock changes in every workflow. Full TalkBack, other OS/
+device versions, every PDF glyph/options combination and release performance remain
+outside this evidence. Optional initial encryption and project/clinical safeguards
+remain; no dependency, toolchain, version, schema or migration changes were made.
 
-- **376 JVM tests across 64 classes passed**, zero failures/errors/skips.
-- The full **166-case device run** on PPA-LX2/Android 10 (API 29) had **165 passes,
-  zero failures/errors and one deliberate physical-success skip**. The owner then
-  completed that physical biometric success check separately. Native cancellation
-  also passed separately through the production cancel callback.
-- **60 desktop tests passed without skips**, including four reverse checks of
-  Android-produced encrypted files/text/backups/join files. Seven temporary-source
-  mutations of selected safety guards were detected.
-- **Three live synthetic Telegram checks passed**: exact file upload/download,
-  ordering of edits by two independent clients and a synthetic report destination.
-  They used their own synthetic index; existing project pinned state was untouched.
-- The original private doctor CSV passed production ViewModel preview and commit
-  into an isolated in-memory registry. A synthetic 33-row ContentProvider import
-  also passed. The originally reported system-picker failure remains unreproduced.
-- Native PDF rendering/wrapping checks passed; selected first/last Classic/A5 and
-  content-heavy A5 rasterized pages were inspected. This is not every-glyph approval.
+The native-clock 200-card profile from the first 24 October full run recorded
+normal motion **9.77 ms median/16.05 ms p95** (231 frames), reduced motion
+**9.31 ms/17.61 ms** (236 frames). These single-device debug samples do not prove a
+release baseline or speedup. Old Compose-clock gesture totals included unknown
+delay and are unsuitable for responsiveness comparisons. Raw reports are retained.
 
-A later nine-case crash/profile run passed seven cases and failed backup/Undo
-postcommit checks because its synthetic patient lacked a required birth date.
-Precommit results from that run are **not credited**: an unrelated worker exception
-could leave old data unchanged. Pending corrections require an IPC marker proving
-that every intentional kill reached the selected production boundary. All eight
-process-death cases must be rerun, alongside affected patient UI/scroll tests.
+Historical 23 October evidence remains separate: **60 desktop tests passed without
+skips**, including four reverse Android file checks; seven selected temporary-source
+mutations were detected. Three live synthetic Telegram checks passed using their
+own index, leaving existing pinned state untouched. The original private doctor CSV
+passed production preview and isolated commit; a synthetic 33-row provider import
+also passed. Native PDF wrapping/rasterization and selected Classic/A5 pages were
+checked; this is not every-glyph approval. Desktop/live checks were not rerun for
+this Android-only request. Older evidence is in ignored
+`local/verification/deep-tests-2026-10-23/`.
 
-Native-clock 200-card profiling before the newest optimizations recorded normal
-motion **16.65 ms median/61.35 ms p95** (175 frames), and reduced motion
-**9.89 ms/21.22 ms** (206 frames). Earlier reduced-mode results varied. These are
-single-device debug samples, not a release baseline or proof of a speedup. Earlier
-Compose-clock gesture totals were dominated by unknown delay and cannot be used as
-responsiveness measurements. Latest scrolling changes remain unmeasured.
-
-Verification used cached pinned Gradle 8.7, installed Java 21/SDK 34, offline mode,
-one worker, in-process Kotlin and `-Pshiftreport.autoVersion=false`. Visible build
-activity and RAM/swap pressure were checked before every attempt. Debug app/test
-APKs were installed only for authorized connected tests; no release/distribution,
-version, dependency, schema or migration changes were made. Results/logs and failed
-attempts are retained under ignored `local/verification/deep-tests-2026-10-23/`.
-The private phone CSV copy was deleted and absence confirmed; the phone's original
-USB stay-awake value was restored to 0 at pause. No build/test remains running.
-
-Windows native GUI/DPAPI, second-device UI, TalkBack/foldable/IME/other-OS coverage,
-physical privacy transitions, BotFather revocation and release/workload performance
-still need external/manual evidence. Selected kill points do not cover every
-network publication/download crash window or power loss. Complete active timezone
-changes and every PDF content/glyph combination are not exhaustively verified.
-See the coverage matrix for scenario-specific limits.
+Verification uses cached pinned Gradle 8.7, installed Java 21/SDK 34, offline mode,
+one worker, in-process Kotlin and `-Pshiftreport.autoVersion=false`. Host build and
+compiler activity plus RAM/swap pressure are checked before every Gradle attempt.
+Authorized debug app/test APKs are retained after connected execution; no release
+artifact was exported. Device settings were not changed during the current run.

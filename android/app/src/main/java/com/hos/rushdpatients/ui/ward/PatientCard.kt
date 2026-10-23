@@ -27,6 +27,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.AnimationVector
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.TwoWayConverter
+import androidx.compose.animation.core.VectorizedFiniteAnimationSpec
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -58,6 +62,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.State
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -128,6 +135,10 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val expansionMillis = if (!animateExpansion) 0 else if (expanded)
         com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis
         else com.hos.rushdpatients.ui.theme.LocalUiStyle.current.collapseMillis
+    // Compose 1.5 remembers the initial animateContentSize spec. Read the current
+    // duration when each size animation starts, including instant bulk changes.
+    val currentExpansionMillis = rememberUpdatedState(expansionMillis)
+    val sizeAnimation = remember { PatientCardSizeSpec(currentExpansionMillis) }
     AppCard(
         modifier = modifier
             .fillMaxWidth()
@@ -182,7 +193,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                             Size(edge, size.height))
                     }
                 }
-                .animateContentSize(if (expansionMillis > 0) tween(expansionMillis) else snap())
+                .animateContentSize(sizeAnimation)
                 .padding(cardDensity.padding),
             verticalArrangement = Arrangement.spacedBy(sectionGap)
         ) {
@@ -422,4 +433,11 @@ private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
 private fun DiagnosisChip(type: DiagnosisType) {
     val uiText = rememberUiStrings()
     AppChip(text = type.uiLabel(uiText), colors = ContainerColors(Color.Transparent, MaterialTheme.colorScheme.onSurfaceVariant), outlined = true)
+}
+
+private class PatientCardSizeSpec(private val duration: State<Int>) : FiniteAnimationSpec<IntSize> {
+    override fun <V : AnimationVector> vectorize(converter: TwoWayConverter<IntSize, V>): VectorizedFiniteAnimationSpec<V> {
+        val millis = duration.value
+        return (if (millis > 0) tween<IntSize>(millis) else snap<IntSize>()).vectorize(converter)
+    }
 }

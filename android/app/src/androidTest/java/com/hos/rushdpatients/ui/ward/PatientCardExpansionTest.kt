@@ -59,4 +59,20 @@ class PatientCardExpansionTest {
         assertTrue(immediate > collapsed)
         assertEquals("Bulk expansion must remain immediate", immediate, height(), .5f)
     }
+    @Test fun individualCollapseAnimatesAndFollowingBulkExpansionIsImmediate() {
+        show()
+        compose.runOnIdle { individual = true; expanded = true }
+        compose.mainClock.advanceTimeBy(600)
+        val complete = height()
+        compose.runOnIdle { expanded = false }
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeBy(80)
+        val intermediate = height()
+        compose.mainClock.advanceTimeBy(600)
+        val collapsed = height()
+        assertTrue("Individual collapse must retain an intermediate height", intermediate < complete && intermediate > collapsed)
+        compose.runOnIdle { individual = false; expanded = true }
+        compose.mainClock.advanceTimeBy(48)
+        assertEquals("Bulk expansion after individual motion must be immediate", complete, height(), .5f)
+    }
 }

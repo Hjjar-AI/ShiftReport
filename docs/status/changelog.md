@@ -33,25 +33,20 @@ have separate homes. Source completion is not runtime verification.
 
 ## Regression coverage and hardening
 
-On 24 October, the full JVM run confirmed and then verified fixes for two defects:
-reviewed rollover now enters the shared save guard immediately (including duplicate
-confirmation/failure recovery), and initial registry seeding requires a positive
-Telegram pin receipt. **625 JVM tests/81 classes passed, no failures/errors/skips.**
-Device verification is in progress; logs are in ignored
-`local/verification/android-tests-2026-10-24/`. No versions or dependencies changed.
+The 23–24 October expansion adds **249 JVM and 78 device cases**; source totals are
+**625 JVM methods/81 classes and 253 device methods/50 classes**. Coverage includes
+controlled picker results, independent clients, response-loss/storage/clock
+boundaries, actual root/navigation journeys and constrained/fold-model UI.
 
-The 23–24 October source expansions add **247 JVM and 77 device cases**.
-Latest additions: **5 JVM and 30 device cases** for controlled picker results,
-independent clients, response-loss/storage/clock boundaries, actual root/navigation
-journeys and constrained/fold-model UI. Source totals: **623 JVM/252 device methods**.
-A debug-only non-exported host installs isolated production ViewModels; the only
-production seam is an optional root navigation-controller factory preserving the
-ordinary logged-in branch/default lifetime. Static source/resource/manifest and
-whitespace checks only; all additions await compilation/execution permission.
-Original picker, physical two-phone/fold/split-screen, actual power-loss/disk-full
-and latest process-kill corrections remain unverified. Rollover saving-guard and
-false pin-receipt findings retain intended-behavior regressions; fixes remain in
-the roadmap. No dependency/version/schema changes. Prior results below are historical.
+Execution confirmed and verified fixes for rollover's nested busy guard, ignored
+false initial pin receipts, the first individual card animation and editor loss
+across background privacy locking. Duplicate/revision/authority checks remain;
+locked clinical screens still leave composition and sign-out discards navigation.
+Fixtures now use the actual workspace/text/focus/lifecycle contracts; excluded lazy
+items are checked for visibility. Biometric native-node cleanup remains compatible
+with old Android without deprecation warnings. The final full rerun is in progress;
+[exact evidence and remaining limits](current-state.md#verification-and-limits).
+No dependency/version/schema changes.
 
 Expanded Android coverage for destructive-reset review/failure boundaries, real
 transaction process death, trigger-driven rollback, long clinical sequences,
@@ -74,8 +69,8 @@ animation layers. Native-clock profiling is separate from Compose interaction te
 [Deep scenarios/limits](../guides/deep-testing.md) ·
 [Measured results](current-state.md#verification-and-limits).
 No versions, dependencies, schemas or migration files changed.
-Latest scroll/stability and crash-fixture corrections await compile/runtime checks;
-work stopped at the owner’s request. [Continuation record](testing-handoff.md).
+Corrected process-death and scrolling suites passed on the connected phone.
+[Verification handoff](testing-handoff.md).
 
 ## Documentation
 

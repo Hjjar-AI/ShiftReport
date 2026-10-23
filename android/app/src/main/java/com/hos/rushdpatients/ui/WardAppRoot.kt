@@ -198,6 +198,11 @@ fun WardAppRoot(
     }
 
     val current = session
+    // A temporary privacy/PIN screen must not discard the back stack or editor ViewModels.
+    // Clinical screens still leave composition while locked; sign-out discards this controller.
+    val clinicalNavigation = if (projectConfig.initialized && !projectConfig.demoMode && current != null) {
+        navController()
+    } else null
     when {
         !projectConfig.initialized -> ProjectSetupScreen()
         projectConfig.demoMode -> DemoWardScreen(onExit = viewModel::exitDemo)
@@ -229,7 +234,7 @@ fun WardAppRoot(
         )
         else -> WardNavHost(
             session = current,
-            navController = navController(),
+            navController = checkNotNull(clinicalNavigation),
             onSignOut = {
                 viewModel.signOut()
                 needsUnlock = false

@@ -6,10 +6,10 @@ Use synthetic records and isolated storage. Automated success describes the
 specific scenarios exercised; it does not establish complete branch coverage or
 distributed transactions over Telegram. Hardware results apply to the observed device.
 
-**Unverified source:** the latest 324 Android test additions, scroll changes and
-crash-fixture corrections await compilation/execution permission. Two intended-behavior
-regressions expose source findings in rollover and initial pin receipts; see the suite map. See the
-[handoff](../status/testing-handoff.md) and [new suite map](android-testing.md#latest-source-expansion--awaiting-execution).
+The 23–24 October expansion adds 327 Android cases. Full execution was authorized
+on 24 October; [current results](../status/current-state.md#verification-and-limits)
+and the [handoff](../status/testing-handoff.md) distinguish full/focused evidence,
+fixed defects, skips and remaining external limits. [Suite map](android-testing.md#latest-expansion--october-2026).
 
 ## Coverage by failure boundary
 
@@ -21,7 +21,7 @@ regressions expose source findings in rollover and initial pin receipts; see the
 | Transaction consistency | SQLite-trigger failures verify patient revisions, audit and pending state roll back together; failed reset audit preserves clinical/settings state | Simulated disk-full errors do not reproduce every filesystem/device failure |
 | Overlapping operations | Patient/doctor publishers contend on the real shared store mutex, retain both pointers and recover after a waiting publisher is cancelled | Independent clients now have separate DB/preferences/sessions/locks against an intercepted shared remote; physical two-phone behavior remains separate and last-successful-write-wins |
 | Active shift boundary | A ward Save starts in the current shift, crosses the date boundary while reading storage and must reject mutation; desktop publication rechecks its reviewed date | New publication review/upload tests model forward/backward active-shift changes, and deadlines cover timezone/DST; arbitrary clock changes through every workflow remain outside coverage |
-| Production workflows | Ward patient actions, login ViewModel and settings backup operations cover busy/error/cancellation, debounced drafts, repeated actions and saved metadata | New production root/graph journeys cover selected complete paths with isolated models; latest additions are uncompiled/unrun |
+| Production workflows | Ward patient actions, login ViewModel and settings backup operations cover busy/error/cancellation, debounced drafts, repeated actions and saved metadata | New production root/graph journeys cover selected complete paths with isolated models; focused full-path/recreation/background checks passed; see current full-run evidence |
 | Doctor import | Production ViewModel reads a ContentProvider, previews 33 rows and commits through the real repository; denied, malformed, oversized and cancelled paths | Controlled OpenDocument callbacks include delayed results after recreation; original unknown failure and OEM picker/grant behavior remain unreproduced |
 | Desktop | Real encrypted SQLite, backup/join/cipher, PIN lockout/identity, receipt durability, authority/membership, reviewed publication and transport failure suites | Windows DPAPI, native GUI events and hardware behavior need Windows/device execution |
 | Cross-client files | Production Python creates fixtures consumed by Android cipher/join/backup; Android emits files consumed by Python | Current-format fixtures only; no schema conversion work is implied |
@@ -30,7 +30,7 @@ regressions expose source findings in rollover and initial pin receipts; see the
 | Telegram | Offline intercepted failure suites plus an explicitly invoked synthetic live harness using two independent clients | Harness edits its own synthetic index, not the project's pinned index; physical second-device UI and BotFather revocation are not exercised |
 | PDF | Clinical content preservation plus native rasterization of classic/A5 pages | Rasterization alone does not prove glyph/clipping correctness for every content/options combination |
 | Patient scrolling | Real 200-patient grid, collapsed/expanded large-font interaction, screenshot and frame-duration artifacts | Debug instrumentation timings are not a release performance SLA or a before/after speedup measurement |
-| Accessibility/appearance | RTL and large-font controls plus retained screenshots for review | New constrained production screens and synthetic hinge geometry remain unrun; full TalkBack, physical foldables/split-screen, multiple OS/device versions and cosmetic approval remain manual |
+| Accessibility/appearance | RTL and large-font controls plus retained screenshots for review | Constrained production screens and synthetic hinge geometry passed; full TalkBack, physical foldables/split-screen, multiple OS/device versions and cosmetic approval remain manual |
 | Mutation sensitivity | Temporary Python source copies deliberately break deadline, lock, encryption-purpose, actor/registry review, pre-send receipt persistence and receipt-resolution authority rules; selected regressions must fail | Seven selected mutants do not measure mutation coverage of the whole application |
 
 ## Desktop execution

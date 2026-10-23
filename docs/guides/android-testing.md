@@ -2,7 +2,7 @@
 
 [Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
 
-The source suite contains **623 JVM methods in 81 classes** and **252 device
+The source suite contains **625 JVM methods in 81 classes** and **253 device
 methods in 50 classes**. Source counts do not measure line/branch coverage or
 establish that a run passed. See [current results and limits](../status/current-state.md#verification-and-limits)
 for the exact verified snapshot. The tests exercise production entry points with
@@ -13,13 +13,13 @@ Regression-driven fixes preserve revision/authority checks, transaction rollback
 cancellation and password cleanup, reject malformed CSV/overflow and guard repeated
 saves/exports. No versions, dependencies or database/interchange schemas changed.
 
-## Latest source expansion — awaiting execution
+## Latest expansion — October 2026
 
-The source expansions add **247 JVM cases and 77 device cases** at the owner's
-request. The newest selected-gap pass adds **5 JVM and 30 device cases**. No Gradle task, compilation, test execution, device installation
-or live Telegram action was performed for this expansion. Earlier passed runs
-apply only to their recorded snapshots. Build and test execution await new owner
-permission; historical permissions below do not authorize the current snapshot.
+The source expansions add **249 JVM cases and 78 device cases** at the owner's
+request, including the selected journey/provider/client/failure cases below and
+follow-up rollover/animation regressions. On 24 October the owner authorized full
+Android execution on the connected device. [Results, fixes and remaining limits](../status/current-state.md#verification-and-limits)
+record the verified snapshot; earlier runs apply only to their recorded source.
 
 ### Selected journey/provider/client/failure gaps — 24 October 2026
 
@@ -37,9 +37,10 @@ permission; historical permissions below do not authorize the current snapshot.
 fixture before composition. Real isolated ViewModels are installed under their
 normal store keys before Hilt looks up each screen; unsupported destinations fail
 closed. `WardAppRoot` accepts an optional composable navigation-controller factory,
-called in the same logged-in branch as ordinary navigation. Its default retains
-ordinary `rememberNavController` ownership/lifetime. No clinical/navigation rule,
-authorization, dependency, schema or version changed.
+retained for the signed-in session across temporary privacy/PIN screens so the
+back stack and editor ViewModels survive backgrounding. Locked clinical screens
+still leave composition; sign-out discards the controller. The default remains
+`rememberNavController`. No dependency, schema or version changed.
 
 The shared synthetic server intercepts **every** HTTP request; unexpected methods
 fail locally. Client DB/preferences/keys/session metadata are independently scoped;
@@ -55,9 +56,8 @@ exception or exercise OEM system-picker UI/grant behavior. Independent clients
 share one process/synthetic server, not two physical phones. Width/height/font
 constraints and hinge models are synthetic, not physical split-screen/fold evidence.
 Transport faults and SQLite-trigger storage failures are selected boundaries, not
-power loss or actual disk exhaustion. Existing process-kill suites remain unverified
-at their latest corrections. All additions are uncompiled/unrun; source checks alone
-cannot establish Hilt factory/store wiring, UI timing, rendering or lifecycle results.
+power loss or actual disk exhaustion. The corrected eight process-kill cases passed the full device run. See the current
+results for UI/lifecycle verification and any remaining failures or skips.
 
 ### Additional coverage — 24 October 2026
 
@@ -69,19 +69,19 @@ cannot establish Hilt factory/store wiring, UI timing, rendering or lifecycle re
 | `DoctorsViewModelTest` | 23 | Local CRUD/team delegation, pending registry observation, stale edit/reload callbacks, cancellation, duplicate actions, guarded fetch and saved export cleanup/audit order |
 | `WardPreferencesTest` | 8 | Independent live settings, strict booleans, regrouping without clinical loss, stored expansion and hint state |
 | `WardSynchronizationTest` | 7 | Selected-snapshot status, unresolved delivery precedence, read-only publication gating and downloaded-reference freshness |
-| `WardShiftOperationsTest` | 18 | Doctor-first fetch, latest/previous failure and duplicate guards, newest-bundle choices, reviewed snapshot selection, download Undo, historical export and rollover preview/confirmation |
+| `WardShiftOperationsTest` | 20 | Doctor-first fetch, latest/previous failure and duplicate guards, newest-bundle choices, reviewed snapshot selection, download Undo, historical export and rollover preview/confirmation |
 | `WardTaskBoardInteractionTest` | 7 | Read-only completion disabled, exact task/patient revision callback, pending-only visibility, optional ownership filter and navigation |
 | `StaleEditReviewInteractionTest` | 4 | Both clinical versions visible, unavailable record protection and explicit keep-draft/use-saved choices |
 | `HandoverDashboardInteractionTest` | 6 | Admin-only Activity Center, optional synchronization action and urgent/overdue/pending filter actions |
 | Existing `PendingExportStoreTest` | 5 | Fresh authenticated ciphertext, independent discard, truncated-file rejection before destination write, expiry cleanup and malformed-ID containment |
 
-**Two intended-behavior regressions are expected to fail from source inspection; no
-run has confirmed them:** `confirmedRolloverReachesRepositoryWithFreshIdsPendingTasksAndExpectedRevision`
-exposes `applyRollover()` setting `saving` before calling a guard that rejects busy
-saves. `unconfirmedPinReceiptCannotReturnSuccessfulSeed` exposes the ignored false
-result from `pinMessage()`. Neither is ignored or rewritten to accept the faulty
-behavior. Production fixes remain in the [roadmap](../status/roadmap.md); this pass
-changes tests/documentation only. Compilation may reveal additional fixture issues.
+The first full JVM execution confirmed the rollover nested-busy-guard defect and
+ignored false pin receipt. Production fixes preserve duplicate-action protection,
+revision review and pin-race checks. Rollover additionally covers a suspended duplicate
+confirmation and rejection recovery. Neither regression was ignored or changed to
+accept the defect. Device execution also exposed the pinned Compose version retaining
+the initial size-animation spec; the card now selects the current duration for each
+size transition, preserving individual motion and immediate bulk expansion.
 
 ### Initial source expansion — 23 October 2026
 
@@ -193,10 +193,9 @@ Then execute it:
   :app:testDebugUnitTest > /tmp/shiftreport-unit-tests.log 2>&1
 ```
 
-Earlier expansions had separate compilation/JVM/device authorization. The latest
-source expansion has creation/modification authorization only. Obtain fresh build
-and test execution permission and follow AGENTS.md resource checks before using
-these commands. The connected command builds
+The owner authorized full Android execution on 24 October. Future sessions must
+follow the current session authorization and AGENTS.md resource checks before
+using these commands. The connected command builds
 and installs debug app/test APKs on the selected authorized device, retaining the
 installation after execution:
 

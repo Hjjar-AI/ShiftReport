@@ -71,7 +71,8 @@ class WardTaskBoardInteractionTest {
         val mine = compose.onNode(hasText(label(R.string.ui_ward_task_board_005)) and isSelectable())
         mine.assertIsNotSelected().performClick().assertIsSelected()
         compose.onNodeWithText(pending.description).assertExists()
-        compose.onNodeWithText(other.description).assertDoesNotExist()
+        // LazyColumn may retain a removed item's semantics while it is not placed.
+        compose.onNodeWithText(other.description).assertIsNotDisplayed()
         mine.performClick().assertIsNotSelected()
         compose.onNodeWithText(other.description).assertExists()
     }

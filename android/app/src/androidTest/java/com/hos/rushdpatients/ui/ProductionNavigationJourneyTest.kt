@@ -107,6 +107,8 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         compose.onNode(field).performScrollTo().performTextInput("مسودة قبل الخلفية")
         scenario!!.moveToState(Lifecycle.State.CREATED)
         scenario!!.moveToState(Lifecycle.State.RESUMED)
+        // Foreground authorization reads Room before returning from the temporary lock screen.
+        compose.waitUntil(10000) { compose.onAllNodes(field).fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(field).performScrollTo().assertTextContains("مسودة قبل الخلفية", substring = true)
         assertEquals(before, client.patients.getById("tea"))
         assertTrue(server.deliveredTexts.isEmpty())
