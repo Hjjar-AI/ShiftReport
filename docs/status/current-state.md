@@ -166,8 +166,28 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
+The newest test-only expansion adds **72 JVM methods in five classes**, bringing
+source totals to 337 JVM methods/60 classes and 110 device methods/25 classes.
+It covers delivery concurrency/cancellation/storage faults and persisted retry
+guards, ward editor transitions, demo controller mutation safety, deterministic
+task invariants and complex clinical CSV payloads. Authorized offline production/JVM
+compilation, the focused **72-case run**, and the full **337-case JVM run across
+60 classes** all passed on 23 October 2026, with zero failures/errors/skips confirmed
+from JUnit XML. No production code, dependencies, versions or schemas changed.
+[Suite details](../guides/android-testing.md#additional-safety-coverage).
+
+Preflight found no active builds/compilers; available RAM and swap/pressure were
+checked against the 2 GB Gradle heap before each attempt. Verification used the
+installed Java 21/SDK 34 and pinned Gradle 8.7 offline, one worker, in-process Kotlin,
+no persistent daemon and `-Pshiftreport.autoVersion=false`. No APK was packaged or
+installed. Ignored evidence in `local/verification/expanded-tests-2026-10-23/`
+includes `compile.log`, `focused-tests.log`, `full-jvm.log`, `focused-results/`,
+`full-jvm-results/` and `results.json`. Whitespace, source counts and unique test
+names were also checked. Existing nonfatal Gradle deprecation/JVM class-sharing
+notices remain. Device tests were not rerun; the earlier device evidence follows.
+
 On 23 October 2026, authorized offline production/JVM/device compilation and the
-full Android regression suites passed on the current source snapshot:
+then-current Android regression suites passed on the preceding source snapshot:
 
 - **JVM: 265 tests across 55 classes**, zero failures/errors/skips.
 - **Connected device: 110 tests across 25 classes**, zero failures/errors/skips,

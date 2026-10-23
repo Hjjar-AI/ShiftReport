@@ -33,13 +33,23 @@ have separate homes. Source completion is not runtime verification.
 
 ## Android regression suite
 
+Added a further 72 JVM cases across five suites for delivery concurrency,
+cancellation, storage faults and durable duplicate guards; ward editor transitions;
+demo mutation attribution/isolation; deterministic task-rule combinations; and
+clinical CSV content/integrity. Current source totals are 337 JVM methods/60 classes
+and 110 device methods/25 classes. Authorized offline production/JVM compilation,
+all 72 focused cases and the full 337-case JVM suite passed with zero failures/
+errors/skips. Logs/JUnit XML are retained in ignored local verification records.
+Whitespace checks also passed. Device tests were not rerun for these JVM additions;
+the following device results apply to the previous snapshot.
+
 Expanded from 8 to 80 test classes (55 JVM/25 device). Coverage includes
 clinical/tasks, doctors/import and live repository authorization, auth/reconnect,
 codecs/sorting/mappers, intercepted sync/recovery/Undo, reviewed publication and
 report/announcement delivery, PDF artifact guards/native rendering, editor/PIN/
 splash interactions, isolated SQLCipher/session persistence, crypto and backup.
-The latest expansion adds 38 JVM and 58 device cases to the earlier 227/52 source
-snapshot. All **265 JVM and 110 connected device tests pass**, with zero failures/
+That earlier expansion added 38 JVM and 58 device cases to the 227/52 source
+snapshot. All **265 JVM and 110 connected device tests passed**, with zero failures/
 errors/skips; device execution used the owner's PPA-LX2 (Android 10). A single
 incomplete Undo fixture was corrected and the complete device suite rerun. Repaired
 obsolete patient/grouping/DAO fixtures and D8-incompatible spaced device names.

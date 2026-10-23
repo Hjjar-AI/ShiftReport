@@ -2,10 +2,11 @@
 
 [Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
 
-The suite has 55 JVM test classes (265 methods) and 25 device test classes
-(110 methods). Source counts do not measure line/branch coverage. JUnit reports
-confirm all 265 JVM and 110 connected device tests passed on 23 October 2026;
-device execution used PPA-LX2/Android 10. The tests exercise production entry points.
+The suite now has 60 JVM test classes (337 methods) and 25 device test classes
+(110 methods). JUnit reports confirm all 337 JVM tests passed on 23 October 2026,
+including the newest 72 cases; the earlier 110-case device run passed on
+PPA-LX2/Android 10 and was not repeated for these JVM-only additions. Source counts
+do not measure line/branch coverage. The tests exercise production entry points.
 Regression-driven fixes advance backup restore revisions, enforce transactional
 live clinical assignments, and preserve
 cancellation/password cleanup. No versions or database/interchange schemas changed.
@@ -41,6 +42,26 @@ cancellation/password cleanup. No versions or database/interchange schemas chang
 | `TelegramLoginManagerTest`, `BootstrapManagerTest` | Challenge identity/offset handling, nonce format, connection failures/cancellation, guarded bootstrap and temporary cleanup |
 | `PatientEditorInteractionTest`, `PinUnlockInteractionTest`, `SplashIntroScreenTest` | RTL editor Save/labs/tasks, large-font busy footer, task checkbox draft metadata, PIN IME submit/clearing, explicit biometric/sign-out actions, splash tap/hold/accessibility actions |
 
+## Additional safety coverage
+
+| New suite | Cases | Behaviors asserted |
+|---|---:|---|
+| `ReportDeliveryLedgerSafetyTest` | 16 | Twelve competing attempts against an active delivery; cancellation releases the active guard while retaining UNKNOWN; registration/receipt storage failures; corrupt ledger rejection; durable duplicate blocking and one-use copy permission after recreation; live actor checks and receipt/metadata integrity |
+| `WardEditorStateTest` | 10 | Captured insertion revisions, retained unsaved drafts/conflict review, mutually exclusive dialogs, delayed dismissal callbacks, independent copied identities and cleared admission/task/editor metadata |
+| `DemoWardViewModelTest` | 24 | Production demo controller save/recycle/sort/roster actions, stale edit/delete/insertion rejection, completion attribution/reopening, callbacks with saved revisions, reset/session isolation and local-only remote actions |
+| `PatientTasksInvariantTest` | 12 | Deterministic 48-record completion/owner/deadline/priority matrix; count partitions, monotonic overdue rules, stable/idempotent ordering and rollover, wire round trips, incomplete attribution and resident/supervisor filter combinations |
+| `CsvClinicalIntegrityTest` | 10 | Arabic/quotes/CR/LF and nested JSON, long clinical fields/200 tasks, rejection of invalid nested records without partial imports, reordered columns, persisted positions and a 120-doctor roster |
+
+Concurrency cases use explicit coroutine barriers and bounded timeouts, without
+sleep-based scheduling. Storage faults are injected at the settings boundary;
+these are JVM behavior checks, not power-loss or filesystem-durability simulations.
+The task matrix uses deterministic combinations without another testing dependency.
+No production behavior, dependencies, versions or schema definitions changed.
+All 72 additions passed in a focused run, followed by a passing full 337-case JVM
+run. Both used the existing pinned toolchain offline with one worker and automatic
+version reservation disabled. Logs and JUnit XML are retained under
+`local/verification/expanded-tests-2026-10-23/` (ignored).
+
 The original domain/codec/transport/report-review suites remain. Fixture records are
 synthetic. HTTP interceptors handle every request locally; these suites never
 contact a real bot. Pinned-state tests model observed reads/writes and the documented
@@ -69,8 +90,10 @@ Then execute it:
   :app:testDebugUnitTest > /tmp/shiftreport-unit-tests.log 2>&1
 ```
 
-The owner authorized JVM and connected device execution for this expansion. Future
-runs still follow repository build/resource checks. The connected command builds
+The owner authorized compilation, focused JVM execution and full JVM regression
+execution for the newest additions. Future runs still require the applicable
+AGENTS.md build/resource checks and authorization. Device execution was authorized
+for the earlier expansion only. The connected command builds
 and installs debug app/test APKs on the selected authorized device, retaining the
 installation after execution:
 
