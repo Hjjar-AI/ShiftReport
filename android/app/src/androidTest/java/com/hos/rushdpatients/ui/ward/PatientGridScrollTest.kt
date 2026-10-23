@@ -81,9 +81,16 @@ class PatientGridScrollTest {
     @Test fun recordFrameDurationsDuringRealCardScrolling() {
         show(false)
         val durations = Collections.synchronizedList(mutableListOf<Long>())
+        val phases = linkedMapOf("input" to FrameMetrics.INPUT_HANDLING_DURATION,
+            "animation" to FrameMetrics.ANIMATION_DURATION,
+            "layout" to FrameMetrics.LAYOUT_MEASURE_DURATION, "draw" to FrameMetrics.DRAW_DURATION,
+            "sync" to FrameMetrics.SYNC_DURATION, "commands" to FrameMetrics.COMMAND_ISSUE_DURATION,
+            "unknownDelay" to FrameMetrics.UNKNOWN_DELAY_DURATION)
+        val phaseSamples = phases.mapValues { Collections.synchronizedList(mutableListOf<Long>()) }
         val thread = HandlerThread("synthetic-scroll-frames").apply { start() }
         val listener = android.view.Window.OnFrameMetricsAvailableListener { _, metrics, _ ->
             durations.add(metrics.getMetric(FrameMetrics.TOTAL_DURATION))
+            phases.forEach { (name, metric) -> phaseSamples.getValue(name).add(metrics.getMetric(metric)) }
         }
         compose.runOnUiThread { compose.activity.window.addOnFrameMetricsAvailableListener(listener, Handler(thread.looper)) }
         try {
@@ -95,9 +102,14 @@ class PatientGridScrollTest {
         }
         val samples = synchronized(durations) { durations.toList().sorted() }
         assertTrue("No frame metrics captured", samples.isNotEmpty())
+        val phaseReport = phaseSamples.entries.joinToString(",") { (name, values) ->
+            val sorted = synchronized(values) { values.toList().sorted() }
+            "\"$name\":{\"medianMs\":${sorted[sorted.size / 2] / 1_000_000.0}," +
+                "\"p95Ms\":${sorted[((sorted.size - 1) * .95).toInt()] / 1_000_000.0}}"
+        }
         val report = "{\"frames\":${samples.size},\"medianMs\":${samples[samples.size / 2] / 1_000_000.0}," +
             "\"p95Ms\":${samples[((samples.size - 1) * 0.95).toInt()] / 1_000_000.0}," +
-            "\"over16_67ms\":${samples.count { it > 16_666_667 }},\"build\":\"debug-instrumented\"}"
+            "\"over16_67ms\":${samples.count { it > 16_666_667 }},\"build\":\"debug-instrumented\",\"phases\":{$phaseReport}}"
         File(compose.activity.getExternalFilesDir(null), "verification-artifacts").apply { mkdirs() }
             .resolve("patient-scroll-frames.json").writeText(report)
     }

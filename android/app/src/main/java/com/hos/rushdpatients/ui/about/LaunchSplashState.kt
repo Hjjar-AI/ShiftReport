@@ -13,7 +13,7 @@ internal class LaunchSplashState(private val showing: MutableState<Boolean>, val
     var remainingSeconds by mutableIntStateOf(secondsRemaining())
         internal set
     private fun secondsRemaining() = (((deadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L) + 999L) / 1000L).toInt()
-    fun setHeld(value: Boolean) {
+    fun changeHold(value: Boolean) {
         held = value
         if (!value && SystemClock.elapsedRealtime() >= deadline) showing.value = false
     }

@@ -23,9 +23,6 @@ import com.hos.rushdpatients.ui.components.relativeFreshness
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.components.AppCard
 import com.hos.rushdpatients.domain.task.PatientTasks
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
@@ -245,11 +242,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
 
 
             // -------- Expanded detail --------
-            AnimatedVisibility(
-                visible = expanded,
-                enter = EnterTransition.None,
-                exit = ExitTransition.None
-            ) {
+            if (expanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(sectionGap)) {
                     AppDivider()
                     if (twoColumn) {

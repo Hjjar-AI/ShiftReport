@@ -41,7 +41,7 @@ class MainActivity : FragmentActivity() {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                         IntroAboutScreen(splash = true, onBack = splash::skip,
                             remainingSeconds = splash.remainingSeconds, splashHeld = splash.held,
-                            onSplashHeldChange = splash::setHeld)
+                            onSplashHeldChange = splash::changeHold)
                     }
                 }
                 return@setContent

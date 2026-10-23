@@ -14,6 +14,8 @@ physical biometric success, or distributed transactions over Telegram.
 | Process termination | Dedicated debug service dies before/after a real Room transaction; Python child exits before/after a SQLite commit | These are transaction durability checks, not complete process-death coverage of publication/restore/Undo |
 | Long clinical sequences | Save, task completion, CSV/report/PDF content, backup, download Undo, restore, stale edit rejection and a subsequent valid edit | Real multi-device sequences remain separate from local pipeline assertions |
 | Transaction consistency | SQLite-trigger failures verify patient revisions, audit and pending state roll back together; failed reset audit preserves clinical/settings state | Simulated disk-full errors do not reproduce every filesystem/device failure |
+| Overlapping operations | Patient/doctor publishers contend on the real shared store mutex, retain both pointers and recover after a waiting publisher is cancelled | This serializes one process only; different devices retain last-successful-write-wins behavior |
+| Active shift boundary | A ward Save starts in the current shift, crosses the date boundary while reading storage and must reject mutation; desktop publication rechecks its reviewed date | Arbitrary wall-clock/timezone changes throughout every workflow are not exhaustively simulated |
 | Production workflows | Ward patient actions, login ViewModel and settings backup operations cover busy/error/cancellation, debounced drafts, repeated actions and saved metadata | These do not replace a complete navigation end-to-end test |
 | Doctor import | Production ViewModel reads a ContentProvider, previews 33 rows and commits through the real repository; denied, malformed, oversized and cancelled paths | Optional owner CSV stays private; a provider URI does not reproduce every system-picker/provider combination |
 | Desktop | Real encrypted SQLite, backup/join/cipher, PIN lockout/identity, receipt durability, authority/membership, reviewed publication and transport failure suites | Windows DPAPI, native GUI events and hardware behavior need Windows/device execution |
@@ -66,6 +68,18 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=desktop python3 desktop/tests/live_telegram
 ```
 
 ## Device/manual checks
+
+The hardware fingerprint probe is opt-in: run only
+`com.hos.rushdpatients.ui.login.PhysicalBiometricTest` with instrumentation argument
+`physicalBiometric=true` while the owner is present. It invokes the production
+biometric helper in a debug-only Activity, waits up to two minutes for a real
+fingerprint and opens no clinical session/database. Without the argument it skips;
+a skipped hardware probe is not evidence of biometric success.
+
+`SplashRecreationTest` exercises the production monotonic launch state through
+actual Activity recreation. `VerificationClipboardTest` exercises the real code
+view's expiry/disposal/replacement rules. Provider-failure tests use a debug-only
+ContentProvider; they do not establish every third-party provider's behavior.
 
 Record device/OS, exact source snapshot and observed result alongside retained
 artifacts. Do not mark these complete from source inspection alone:

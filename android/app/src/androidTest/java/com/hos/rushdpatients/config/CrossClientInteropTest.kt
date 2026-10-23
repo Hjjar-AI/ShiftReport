@@ -54,15 +54,19 @@ class CrossClientInteropTest : ClinicalRepositoryFixture() {
         File(output(), "android-text.txt").writeText(cipher.encodeText(text))
     }
     @Test fun desktopBackupRestoresAndAndroidBackupAndEncryptedFileAreExported() = runBlocking<Unit> {
-        doctors.upsert(doctor("cedar", "أرز"))
+        // A distinct clinical identity must not merge into the seeded admin's name.
+        doctors.upsert(doctor("cedar", "سدر"))
+        assertNotNull(doctors.getById("cedar"))
         val manager = EncryptedBackupManager(preferences, db, shifts, patients, doctors, settings, dispatchers)
         assertEquals(1, manager.restore(Uri.fromFile(copyAsset("desktop.rpb")), "synthetic-password".toCharArray()))
-        val stored = patients.getForShift("synthetic-shift").single()
+        // Restore reuses an existing local shift for the same date.
+        val savedShift = requireNotNull(shifts.getByDate(java.time.LocalDate.of(2026, 1, 1)))
+        assertEquals("shift-1", savedShift.id)
+        val stored = patients.getForShift(savedShift.id).single()
         assertEquals("نتيجة ☕", stored.labs)
         assertEquals(2, stored.tasks.size)
         assertTrue(stored.revision > 7)
         // prepareExport exports today's shift. Move this isolated fixture's shift to today.
-        val savedShift = requireNotNull(shifts.getById("synthetic-shift"))
         shifts.upsert(savedShift.copy(date = com.hos.rushdpatients.util.ShiftDate.current()))
         val backup = manager.prepareExport("synthetic-password".toCharArray())
         try { File(output(), "android.rpb").writeBytes(backup.bytes) } finally { backup.bytes.fill(0) }

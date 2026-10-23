@@ -101,4 +101,27 @@ class WardSaveGuardTest {
         assertFalse(guard.validateForSave(Fixtures.patient(responsibleSpecialistId = resident.id)))
         assertFalse(guard.validateForSave(Fixtures.patient(responsibleResidentId = "missing")))
     }
+    @Test fun `crossing shift boundary during repository read blocks active save`() = runBlocking<Unit> {
+        val before = java.time.LocalDate.of(2026, 10, 22)
+        var current = before
+        mockkObject(ShiftDate)
+        try {
+            every { ShiftDate.current(any()) } answers { current }
+            state.value = WardUiState(shift = Fixtures.shift(date = before))
+            assertEquals("shift-1", guard.editableShiftId())
+            coEvery { shifts.getById("shift-1") } coAnswers {
+                current = before.plusDays(1)
+                Fixtures.shift(date = before)
+            }
+            var mutated = false
+            guard.saveAction(onSuccess = { fail("Archived shift claimed success") }) {
+                guard.requireEditableShift("shift-1")
+                mutated = true
+            }
+            assertFalse(mutated)
+            assertFalse(state.value.saving)
+            assertNotNull(state.value.snackbar)
+        } finally { unmockkObject(ShiftDate) }
+    }
+
 }

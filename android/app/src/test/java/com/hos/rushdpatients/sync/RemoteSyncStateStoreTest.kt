@@ -7,6 +7,11 @@ import com.hos.rushdpatients.network.telegram.dto.TgChat
 import com.hos.rushdpatients.network.telegram.dto.TgMessage
 import io.mockk.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
@@ -116,4 +121,52 @@ class RemoteSyncStateStoreTest {
         } }
         coVerify(exactly = 1) { telegram.editMessageText(-100, 1, any(), null) }
     }
+    @Test fun `patient and doctor publication serialize and preserve both pointers`() = runBlocking<Unit> {
+        withTimeout(5000) {
+            val entered = CompletableDeferred<Unit>()
+            val release = CompletableDeferred<Unit>()
+            var edits = 0
+            coEvery { telegram.editMessageText(-100, 1, any(), null) } coAnswers {
+                if (++edits == 1) { entered.complete(Unit); release.await() }
+                TgMessage(1, text = thirdArg<String>()).also { pinned = it }
+            }
+            val patients = async { store.updateExistingState { it.copy(csvFileId = "patients", csvMessageId = 10) } }
+            entered.await()
+            var doctorTransformRan = false
+            val doctors = async(start = CoroutineStart.UNDISPATCHED) { store.updateExistingState {
+                doctorTransformRan = true
+                it.copy(doctorsFileId = "doctors", doctorsMessageId = 20)
+            } }
+            assertFalse(doctorTransformRan)
+            release.complete(Unit)
+            patients.await(); doctors.await()
+            val result = requireNotNull(store.readState())
+            assertEquals("patients", result.csvFileId)
+            assertEquals("doctors", result.doctorsFileId)
+            assertEquals(2, edits)
+        }
+    }
+    @Test fun `cancelled waiting publisher cannot write or poison shared mutex`() = runBlocking<Unit> {
+        withTimeout(5000) {
+            val entered = CompletableDeferred<Unit>()
+            val release = CompletableDeferred<Unit>()
+            var edits = 0
+            coEvery { telegram.editMessageText(-100, 1, any(), null) } coAnswers {
+                if (++edits == 1) { entered.complete(Unit); release.await() }
+                TgMessage(1, text = thirdArg<String>()).also { pinned = it }
+            }
+            val first = async { store.updateExistingState { it.copy(csvFileId = "patients", csvMessageId = 10) } }
+            entered.await()
+            val cancelled = async(start = CoroutineStart.UNDISPATCHED) {
+                store.updateExistingState { fail("Cancelled transform ran"); it }
+            }
+            cancelled.cancelAndJoin()
+            release.complete(Unit); first.await()
+            store.updateExistingState { it.copy(doctorsFileId = "later", doctorsMessageId = 30) }
+            assertEquals(2, edits)
+            assertEquals("patients", store.readState()?.csvFileId)
+            assertEquals("later", store.readState()?.doctorsFileId)
+        }
+    }
+
 }

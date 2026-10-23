@@ -25,7 +25,7 @@ class SplashRecreationTest {
         ActivityScenario.launch(SplashProbeActivity::class.java).use { scenario ->
             await(scenario) { true }
             var deadline = 0L
-            scenario.onActivity { deadline = it.splash.deadline; it.splash.setHeld(true) }
+            scenario.onActivity { deadline = it.splash.deadline; it.splash.changeHold(true) }
             await(scenario) { it.splash.remainingSeconds == 0 }
             scenario.onActivity { assertTrue(it.splash.visible); assertTrue(it.splash.held) }
             scenario.recreate()
