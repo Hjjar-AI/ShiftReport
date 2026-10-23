@@ -624,7 +624,8 @@ private fun WardWorkspaceContent(
             pinned = patient.id in pinnedIds,
             taskNowEpochMillis = taskNowEpochMillis,
             compact = state.compactCards),
-        actions = PatientCardActions(
+        actions = remember(patient, state.patientDetailsExpanded, viewModel, editor, haptics) {
+            PatientCardActions(
             onOpen = {
                                                                                         viewModel.loadLocalActivity()
                                                                                         detailsTargetId = patient.id
@@ -646,6 +647,7 @@ private fun WardWorkspaceContent(
                                                                                     },
             onExpandToggle = { toggleCard(patient.id) }
         )
+        }
     )
                                 })
                         }

@@ -24,6 +24,7 @@ import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.components.AppCard
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
@@ -181,7 +182,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                             Size(edge, size.height))
                     }
                 }
-                .then(if (expansionMillis > 0) Modifier.animateContentSize(tween(expansionMillis)) else Modifier)
+                .animateContentSize(if (expansionMillis > 0) tween(expansionMillis) else snap())
                 .padding(cardDensity.padding),
             verticalArrangement = Arrangement.spacedBy(sectionGap)
         ) {
@@ -293,8 +294,10 @@ private fun PatientIdentityHeader(
     onDelete: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f,
-        tween(if (animateExpansion) com.hos.rushdpatients.ui.theme.LocalUiStyle.current.indicatorMillis else 0),
+    val indicatorMillis = com.hos.rushdpatients.ui.theme.LocalUiStyle.current.indicatorMillis
+    val targetRotation = if (expanded) 180f else 0f
+    val chevronRotation by animateFloatAsState(targetRotation,
+        animationSpec = if (animateExpansion && indicatorMillis > 0) tween(indicatorMillis) else snap(),
         label = "patientChevron")
 
     Row(

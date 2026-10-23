@@ -29,10 +29,11 @@ class PatientScrollProbeActivity : ComponentActivity() {
             sortOrder = n, initialDiagnosis = "تشخيص تجريبي", treatmentPlan = "خطة تجريبية",
             followUp = "متابعة تجريبية", labs = "نتائج تجريبية",
             tasks = listOf(PatientTask("task-$n", "مهمة تجريبية"))) }
+        val reducedMotion = intent.getBooleanExtra("reducedMotion", false)
         val state = WardUiState(loading = false, patients = patients, groupByMode = GroupByMode.NONE)
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                RushdPatientsTheme(uiPreferences = UiPreferences(reducedMotion = true)) {
+                RushdPatientsTheme(uiPreferences = UiPreferences(reducedMotion = reducedMotion)) {
                     grid = rememberLazyGridState()
                     Surface {
                         WardPatientGrid(state, patients, false, grid, 48.dp, emptyList(), emptyList(), {}, {},

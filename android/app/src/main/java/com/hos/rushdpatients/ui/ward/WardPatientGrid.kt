@@ -36,7 +36,11 @@ internal fun WardPatientGrid(
     controlsContent: @Composable () -> Unit, headerContent: @Composable () -> Unit, patientCard: @Composable (Patient, Modifier) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    val placementSpec = tween<androidx.compose.ui.unit.IntOffset>(LocalUiStyle.current.placementMillis)
+    val placementMillis = LocalUiStyle.current.placementMillis
+    val placementSpec = tween<androidx.compose.ui.unit.IntOffset>(placementMillis)
+    // Fling movement already follows the finger/scroll physics. Reserve placement
+    // animation for idle reorder/filter/expansion changes, without a second animator.
+    val animatePlacement = placementMillis > 0 && !patientGridState.isScrollInProgress
     val visibleIds = remember(visiblePatients) { visiblePatients.mapTo(HashSet()) { it.id } }
     val pinnedIds = remember(pinnedPatientIds) { pinnedPatientIds.toHashSet() }
     val collapsedGroupIds = remember(collapsedGroups) { collapsedGroups.toHashSet() }
@@ -87,12 +91,12 @@ internal fun WardPatientGrid(
                         )
                     }
                     if ((group.key ?: "none") !in collapsedGroupIds) gridItems(groupPatients, key = { it.id }, contentType = { "patient" }) { patient ->
-                        patientCard(patient, Modifier.animateItemPlacement(placementSpec))
+                        patientCard(patient, if (animatePlacement) Modifier.animateItemPlacement(placementSpec) else Modifier)
                     }
                 }
             } else {
                 gridItems(visiblePatients, key = { it.id }, contentType = { "patient" }) { patient ->
-                    patientCard(patient, Modifier.animateItemPlacement(placementSpec))
+                    patientCard(patient, if (animatePlacement) Modifier.animateItemPlacement(placementSpec) else Modifier)
                 }
             }
         }

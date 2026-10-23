@@ -166,75 +166,62 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
-The newest test-only expansion adds **72 JVM methods in five classes**, bringing
-source totals to 337 JVM methods/60 classes and 110 device methods/25 classes.
-It covers delivery concurrency/cancellation/storage faults and persisted retry
-guards, ward editor transitions, demo controller mutation safety, deterministic
-task invariants and complex clinical CSV payloads. Authorized offline production/JVM
-compilation, the focused **72-case run**, and the full **337-case JVM run across
-60 classes** all passed on 23 October 2026, with zero failures/errors/skips confirmed
-from JUnit XML. No production code, dependencies, versions or schemas changed.
-[Suite details](../guides/android-testing.md#additional-safety-coverage).
+**Paused at the owner's request before the next compile/test step.**
+[Continuation record and exact commands](testing-handoff.md) ·
+[Coverage boundaries](../guides/deep-testing.md).
 
-Preflight found no active builds/compilers; available RAM and swap/pressure were
-checked against the 2 GB Gradle heap before each attempt. Verification used the
-installed Java 21/SDK 34 and pinned Gradle 8.7 offline, one worker, in-process Kotlin,
-no persistent daemon and `-Pshiftreport.autoVersion=false`. No APK was packaged or
-installed. Ignored evidence in `local/verification/expanded-tests-2026-10-23/`
-includes `compile.log`, `focused-tests.log`, `full-jvm.log`, `focused-results/`,
-`full-jvm-results/` and `results.json`. Whitespace, source counts and unique test
-names were also checked. Existing nonfatal Gradle deprecation/JVM class-sharing
-notices remain. Device tests were not rerun; the earlier device evidence follows.
+Current source contains **376 JVM methods/64 classes, 175 device methods/39 classes
+and 60 desktop methods**. Counts do not establish execution or complete branch
+coverage. The newest patient-scroll/stability changes, crash-boundary marker and
+birth-date fixture corrections, and two first/bulk-expansion tests are **not yet
+compiled or runtime verified**. Resume from the handoff rather than repeating
+finished work or treating source completion as verification.
 
-On 23 October 2026, authorized offline production/JVM/device compilation and the
-then-current Android regression suites passed on the preceding source snapshot:
+Verified on 23 October 2026, before those latest edits:
 
-- **JVM: 265 tests across 55 classes**, zero failures/errors/skips.
-- **Connected device: 110 tests across 25 classes**, zero failures/errors/skips,
-  on the owner's PPA-LX2 running Android 10 (API 29).
+- **376 JVM tests across 64 classes passed**, zero failures/errors/skips.
+- The full **166-case device run** on PPA-LX2/Android 10 (API 29) had **165 passes,
+  zero failures/errors and one deliberate physical-success skip**. The owner then
+  completed that physical biometric success check separately. Native cancellation
+  also passed separately through the production cancel callback.
+- **60 desktop tests passed without skips**, including four reverse checks of
+  Android-produced encrypted files/text/backups/join files. Seven temporary-source
+  mutations of selected safety guards were detected.
+- **Three live synthetic Telegram checks passed**: exact file upload/download,
+  ordering of edits by two independent clients and a synthetic report destination.
+  They used their own synthetic index; existing project pinned state was untouched.
+- The original private doctor CSV passed production ViewModel preview and commit
+  into an isolated in-memory registry. A synthetic 33-row ContentProvider import
+  also passed. The originally reported system-picker failure remains unreproduced.
+- Native PDF rendering/wrapping checks passed; selected first/last Classic/A5 and
+  content-heavy A5 rasterized pages were inspected. This is not every-glyph approval.
 
-Counts were confirmed from JUnit XML reports, not inferred from source methods.
-This supersedes the earlier 227-case JVM and 39/41 device results, including the
-two corrected Room upsert expectations. The first expanded device run passed
-109/110: the new Undo fixture omitted required admission fields and CSV decoding
-correctly rejected it. After supplying a complete synthetic patient, the complete
-110-case device suite passed again. Production/JVM source stayed unchanged between
-the successful JVM run and that device-only fixture correction.
+A later nine-case crash/profile run passed seven cases and failed backup/Undo
+postcommit checks because its synthetic patient lacked a required birth date.
+Precommit results from that run are **not credited**: an unrelated worker exception
+could leave old data unchanged. Pending corrections require an IPC marker proving
+that every intentional kill reached the selected production boundary. All eight
+process-death cases must be rerun, alongside affected patient UI/scroll tests.
 
-Verification used pinned Gradle 8.7, installed Java 21/SDK 34, one worker,
-in-process Kotlin, no persistent daemon and `-Pshiftreport.autoVersion=false`.
-Visible build activity and RAM/swap pressure were checked before attempts.
-Missing existing pinned AndroidX/AGP test-runner artifacts were populated once in
-the durable shared cache using the owner's cache authorization, then verification
-ran offline. A session interruption stopped an earlier build and cleared `/tmp`;
-four confirmed zero-byte transform entries owned by this account were reversibly
-quarantined, and Gradle regenerated them. No unrelated caches/processes were cleared
-or stopped. Kotlin test compilation is clean; nonfatal Gradle deprecation and JVM
-class-sharing notices remain.
+Native-clock 200-card profiling before the newest optimizations recorded normal
+motion **16.65 ms median/61.35 ms p95** (175 frames), and reduced motion
+**9.89 ms/21.22 ms** (206 frames). Earlier reduced-mode results varied. These are
+single-device debug samples, not a release baseline or proof of a speedup. Earlier
+Compose-clock gesture totals were dominated by unknown delay and cannot be used as
+responsiveness measurements. Latest scrolling changes remain unmeasured.
 
-Durable ignored evidence is under `local/verification/full-tests-2026-10-23/`:
-`jvm-and-device-compile.log`, `device-tests.log`, copied `jvm-results/` and
-`device-results/` XML, and `results.json`. The earlier failed fixture run is also
-retained. Debug app/test APKs were packaged and installed for the authorized
-connected run; `android.injected.androidTest.leaveApksInstalledAfterRun=true` kept
-the installations, confirmed afterward. No release/distribution ran, and no
-versions, schemas or migration files changed. Source whitespace, untracked Kotlin
-whitespace/device method names and updated documentation links were checked.
+Verification used cached pinned Gradle 8.7, installed Java 21/SDK 34, offline mode,
+one worker, in-process Kotlin and `-Pshiftreport.autoVersion=false`. Visible build
+activity and RAM/swap pressure were checked before every attempt. Debug app/test
+APKs were installed only for authorized connected tests; no release/distribution,
+version, dependency, schema or migration changes were made. Results/logs and failed
+attempts are retained under ignored `local/verification/deep-tests-2026-10-23/`.
+The private phone CSV copy was deleted and absence confirmed; the phone's original
+USB stay-awake value was restored to 0 at pause. No build/test remains running.
 
-The device suite exercises real Room transactions, isolated SQLCipher close/reopen
-and wrong-key rejection, encrypted sessions/join files/staging, password cleanup,
-report confirmation, native multipage PDF rendering, editor/PIN/splash
-interactions, and intercepted download/doctor-sync/Undo workflows. All clinical
-fixtures are synthetic and HTTP interceptors prevent live Telegram requests.
-[Coverage and commands](../guides/android-testing.md).
-
-These results are not measured complete line/branch coverage. Recreating managers
-and reopening storage do not simulate process death. PDF page rasterization does
-not establish visual approval of every glyph/clipping boundary. Physical biometric
-success, TalkBack operation, foldable/IME configurations, Activity splash-deadline
-recreation, performance baselines, third-party file-provider failures, real token
-revocation and competing multi-device publication remain manual/external checks.
-The synthetic 33-row import passed through the real repository; it does not
-reproduce the owner's original unavailable CSV exception. That exception and
-production signing remain in the implementation roadmap. Production previews
-remain unrendered.
+Windows native GUI/DPAPI, second-device UI, TalkBack/foldable/IME/other-OS coverage,
+physical privacy transitions, BotFather revocation and release/workload performance
+still need external/manual evidence. Selected kill points do not cover every
+network publication/download crash window or power loss. Complete active timezone
+changes and every PDF content/glyph combination are not exhaustively verified.
+See the coverage matrix for scenario-specific limits.

@@ -13,6 +13,31 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class PhysicalBiometricTest {
+    @Test fun nativeCancellationReachesCancelCallbackWithoutSuccess() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        assumeTrue("Enrolled biometrics required", BiometricHelper(instrumentation.targetContext).isAvailable())
+        ActivityScenario.launch(BiometricProbeActivity::class.java).use { scenario ->
+            scenario.onActivity { it.authenticate() }
+            val deadline = SystemClock.elapsedRealtime() + 10_000L
+            var cancelled = false
+            while (!cancelled && SystemClock.elapsedRealtime() < deadline) {
+                val root = instrumentation.uiAutomation.rootInActiveWindow
+                val nodes = root?.findAccessibilityNodeInfosByText("إلغاء").orEmpty()
+                try {
+                    cancelled = nodes.firstOrNull { it.isClickable }
+                        ?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK) == true
+                } finally { nodes.forEach { it.recycle() }; root?.recycle() }
+                if (!cancelled) SystemClock.sleep(100)
+            }
+            assertEquals("Native cancel button available", true, cancelled)
+            var outcome = "waiting"
+            while (outcome == "waiting" && SystemClock.elapsedRealtime() < deadline) {
+                scenario.onActivity { outcome = it.outcome }
+                SystemClock.sleep(50)
+            }
+            assertEquals("Cancellation must not authenticate", "cancelled", outcome)
+        }
+    }
     @Test fun enrolledFingerprintReachesProductionSuccessCallback() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         assumeTrue("Explicit owner presence required", InstrumentationRegistry.getArguments().getString("physicalBiometric") == "true")

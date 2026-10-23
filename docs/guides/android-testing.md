@@ -2,14 +2,16 @@
 
 [Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
 
-The suite now has 60 JVM test classes (337 methods) and 25 device test classes
-(110 methods). JUnit reports confirm all 337 JVM tests passed on 23 October 2026,
-including the newest 72 cases; the earlier 110-case device run passed on
-PPA-LX2/Android 10 and was not repeated for these JVM-only additions. Source counts
-do not measure line/branch coverage. The tests exercise production entry points.
-Regression-driven fixes advance backup restore revisions, enforce transactional
-live clinical assignments, and preserve
-cancellation/password cleanup. No versions or database/interchange schemas changed.
+The source suite contains **376 JVM methods in 64 classes** and **175 device
+methods in 39 classes**. Source counts do not measure line/branch coverage or
+establish that a run passed. See [current results and limits](../status/current-state.md#verification-and-limits)
+for the exact verified snapshot. The tests exercise production entry points with
+isolated clinical storage. [Deep scenarios and desktop/live commands](deep-testing.md)
+map the expanded failure boundaries and hardware/external limits.
+
+Regression-driven fixes preserve revision/authority checks, transaction rollback,
+cancellation and password cleanup, reject malformed CSV/overflow and guard repeated
+saves/exports. No versions, dependencies or database/interchange schemas changed.
 
 ## Coverage map
 

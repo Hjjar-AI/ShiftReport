@@ -31,36 +31,31 @@ have separate homes. Source completion is not runtime verification.
   Search/resize debouncing, retained widgets, sidebar shortcuts, clinical stripes,
   native card menus and guarded keyboard shortcuts improve presentation.
 
-## Android regression suite
+## Regression coverage and hardening
 
-Added a further 72 JVM cases across five suites for delivery concurrency,
-cancellation, storage faults and durable duplicate guards; ward editor transitions;
-demo mutation attribution/isolation; deterministic task-rule combinations; and
-clinical CSV content/integrity. Current source totals are 337 JVM methods/60 classes
-and 110 device methods/25 classes. Authorized offline production/JVM compilation,
-all 72 focused cases and the full 337-case JVM suite passed with zero failures/
-errors/skips. Logs/JUnit XML are retained in ignored local verification records.
-Whitespace checks also passed. Device tests were not rerun for these JVM additions;
-the following device results apply to the previous snapshot.
+Expanded Android coverage for destructive-reset review/failure boundaries, real
+transaction process death, trigger-driven rollback, long clinical sequences,
+production ward/login/settings/import orchestration, adversarial CSV input,
+provider failures, Android–desktop encrypted files, native PDF wrapping/rendering,
+clipboard cleanup and Activity splash recreation. Added desktop encrypted storage,
+publication/authority/receipt/transport suites and seven isolated mutation checks.
+Synthetic live Telegram upload/download, two-client edit ordering and report checks
+passed; the owner's physical biometric success callback also passed.
 
-Expanded from 8 to 80 test classes (55 JVM/25 device). Coverage includes
-clinical/tasks, doctors/import and live repository authorization, auth/reconnect,
-codecs/sorting/mappers, intercepted sync/recovery/Undo, reviewed publication and
-report/announcement delivery, PDF artifact guards/native rendering, editor/PIN/
-splash interactions, isolated SQLCipher/session persistence, crypto and backup.
-That earlier expansion added 38 JVM and 58 device cases to the 227/52 source
-snapshot. All **265 JVM and 110 connected device tests passed**, with zero failures/
-errors/skips; device execution used the owner's PPA-LX2 (Android 10). A single
-incomplete Undo fixture was corrected and the complete device suite rerun. Repaired
-obsolete patient/grouping/DAO fixtures and D8-incompatible spaced device names.
+Regression-driven fixes reject malformed CSV headers/quotes/revisions and bundle
+boundary injection, reject backup revision overflow, preserve settings-restore
+cancellation/password cleanup, guard repeated saves/exports and preserve long PDF
+text/surrogate pairs. Splash launch state retains its deadline across recreation;
+secondary processes skip main-process WorkManager/cache startup. Patient scrolling
+isolates dock visibility from the clinical workspace and removes redundant card
+animation layers. Native-clock profiling is separate from Compose interaction tests.
 
-Regression-driven fixes invalidate patient/shift drafts after backup restore,
-validate live clinical assignments transactionally at save/restore/rollover/backup,
-roll back rejected restore pending state, wipe join/backup passwords on every exit,
-and propagate cancellation from Telegram login's initial drain.
 [Coverage and commands](../guides/android-testing.md) ·
-[Verification evidence/limits](current-state.md#verification-and-limits).
-No versions, schemas or migration files changed.
+[Deep scenarios/limits](../guides/deep-testing.md) ·
+[Measured results](current-state.md#verification-and-limits).
+No versions, dependencies, schemas or migration files changed.
+Latest scroll/stability and crash-fixture corrections await compile/runtime checks;
+work stopped at the owner’s request. [Continuation record](testing-handoff.md).
 
 ## Documentation
 

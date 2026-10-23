@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import android.content.Intent
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
@@ -22,6 +23,10 @@ import java.util.Collections
 @SdkSuppress(minSdkVersion = 24)
 class PatientScrollPerformanceTest {
     @Test fun recordFrameDurationsDuringNativePatientCardScrolling() {
+        profile(reducedMotion = false)
+        profile(reducedMotion = true)
+    }
+    private fun profile(reducedMotion: Boolean) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val metrics = linkedMapOf("total" to FrameMetrics.TOTAL_DURATION,
             "input" to FrameMetrics.INPUT_HANDLING_DURATION, "animation" to FrameMetrics.ANIMATION_DURATION,
@@ -34,7 +39,8 @@ class PatientScrollPerformanceTest {
             metrics.forEach { (key, id) -> values.getValue(key).add(frame.getMetric(id)) }
         }
         try {
-            ActivityScenario.launch(PatientScrollProbeActivity::class.java).use { scenario ->
+            ActivityScenario.launch<PatientScrollProbeActivity>(Intent(instrumentation.targetContext,
+                PatientScrollProbeActivity::class.java).putExtra("reducedMotion", reducedMotion)).use { scenario ->
                 val deadline = SystemClock.elapsedRealtime() + 10_000
                 var ready = false
                 while (!ready && SystemClock.elapsedRealtime() < deadline) {
@@ -82,8 +88,8 @@ class PatientScrollPerformanceTest {
                 "\"p95Ms\":${sorted[((sorted.size - 1) * .95).toInt()] / 1e6}}"
         }
         val report = "{\"frames\":${total.size},\"over16_67ms\":${total.count { it > 16_666_667 }}," +
-            "\"build\":\"debug-native-clock\",\"phases\":{$phases}}"
+            "\"build\":\"debug-native-clock\",\"reducedMotion\":$reducedMotion,\"phases\":{$phases}}"
         File(instrumentation.targetContext.getExternalFilesDir(null), "verification-artifacts").apply { mkdirs() }
-            .resolve("patient-scroll-native-frames.json").writeText(report)
+            .resolve(if (reducedMotion) "patient-scroll-native-reduced-frames.json" else "patient-scroll-native-frames.json").writeText(report)
     }
 }

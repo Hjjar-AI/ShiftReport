@@ -20,7 +20,12 @@ class ProcessDeathTransactionTest {
     private fun crashAndReopen(commit: Boolean) = runBlocking<Unit> {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val name = "instrumentation-crash-${UUID.randomUUID()}"
-        val connected = CountDownLatch(1); val died = CountDownLatch(1)
+        val connected = CountDownLatch(1); val died = CountDownLatch(1); val boundaryReached = CountDownLatch(1)
+        val mode = if (commit) 2 else 1
+        val reply = Messenger(Handler(Looper.getMainLooper()) { message ->
+            if (message.what == 101 && message.arg1 == mode) boundaryReached.countDown()
+            true
+        })
         var messenger: Messenger? = null
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, binder: IBinder) { messenger = Messenger(binder); connected.countDown() }
@@ -36,10 +41,12 @@ class ProcessDeathTransactionTest {
             assertTrue(bound)
             assertTrue("Crash worker did not connect", connected.await(10, TimeUnit.SECONDS))
             messenger!!.send(Message.obtain().apply {
-                what = if (commit) 2 else 1
+                what = mode
+                replyTo = reply
                 data = Bundle().apply { putString("database", name) }
             })
             assertTrue("Crash worker did not exit", died.await(15, TimeUnit.SECONDS))
+            assertTrue("Worker failed before reaching the intended transaction boundary", boundaryReached.await(5, TimeUnit.SECONDS))
             Room.databaseBuilder(context, AppDatabase::class.java, name).build().let { db ->
                 try {
                     assertEquals(if (commit) "new" else "old", db.settingDao().get("clinical-marker"))

@@ -4,7 +4,8 @@ import com.hos.rushdpatients.data.model.Patient
 
 internal val LocalWardTaskNow = androidx.compose.runtime.staticCompositionLocalOf { 0L }
 
-/** Display values are distinct from the complete, explicit set of available actions. */
+/** Display snapshots; callers replace patient/list/map values rather than mutating collections in place. */
+@androidx.compose.runtime.Immutable
 data class PatientCardState(
     val patient: Patient, val expanded: Boolean = false, val twoColumn: Boolean = false,
     val doctorNames: Map<String, String> = emptyMap(), val readOnly: Boolean = false,
@@ -14,6 +15,7 @@ data class PatientCardState(
     val taskNowEpochMillis: Long
 )
 
+@androidx.compose.runtime.Immutable
 class PatientCardActions(
     val onOpen: () -> Unit, val onLongPress: () -> Unit, val onEdit: () -> Unit,
     val onDelete: () -> Unit, val onCopy: () -> Unit, val onPriorityChange: (Boolean) -> Unit,

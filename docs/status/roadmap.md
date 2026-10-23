@@ -4,9 +4,11 @@
 
 ## Active — Android doctor CSV import
 
-Fix the device failure after selecting the supplied CSV: its 33 rows meet field
-rules, progress/error feedback exists, but the original exception is unavailable.
-Preserve identity, clinical-reference and authorization checks.
+The original private CSV now passes production ViewModel preview and commit into an
+isolated test registry; a synthetic 33-row ContentProvider import also passes.
+The reported failure after system-picker selection remains unreproduced and its
+exception is unavailable. Capture that failing flow before changing import logic;
+preserve identity, clinical-reference and authorization checks.
 
 ## P0 — production signing
 
