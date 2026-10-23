@@ -32,7 +32,7 @@ class SectionPages(ctk.CTkFrame):
         for key,(control,label) in self.buttons.items():
             theme=ctk.ThemeManager.theme['CTkButton']
             active=key==title
-            control.configure(text=label+(' ✓' if active else ''),
+            control.configure(text=label,
                 fg_color=theme['fg_color'] if active else 'transparent',
                 text_color=theme['text_color'] if active else ('gray20','gray90'),border_width=2 if active else 1)
         if self.on_change:self.on_change()

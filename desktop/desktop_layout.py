@@ -4,9 +4,9 @@ import desktop_widgets as ctk
 from desktop_input import ArabicEntry
 from desktop_patient_filters import CLINICAL_FILTERS, OWNER_FILTERS, TASK_FILTERS
 from desktop_sort import GROUPS, sorting_editor
-from desktop_dashboard import handover_dashboard
 from desktop_workflow import task_board
 from desktop_tokens import WARNING_CONTAINER
+from desktop_ui_events import debounce
 
 
 class Disclosure(ctk.CTkFrame):
@@ -69,16 +69,9 @@ def build_ward_controls(window):
     window.search = tk.StringVar()
     window.view_controls = Disclosure(parent, 'خيارات العرض', scroll_height=220, toggle_parent=toolbar)
     window.view_controls.pack(fill='x', padx=5, pady=0)
-    ArabicEntry(toolbar, textvariable=window.search, justify='right', height=48,
-        placeholder_text='بحث عن مريض').pack(side='right', fill='x', expand=True, padx=4)
-    actions = ctk.CTkFrame(parent)
-    actions.pack(fill='x', padx=5, pady=2,after=status)
-    for index, (label, action) in enumerate([
-        ('لوحة تسليم المناوبة', lambda:handover_dashboard(window)), ('أطباء المناوبة', window.roster)
-    ]):
-        actions.grid_columnconfigure(1-index,weight=1)
-        ctk.CTkButton(actions, text=label, height=48, width=85,
-            command=lambda f=action:window.run(f)).grid(row=0, column=1-index, sticky='ew', padx=3, pady=2)
+    window.search_entry = ArabicEntry(toolbar, textvariable=window.search, justify='right', height=48,
+        placeholder_text='بحث عن مريض')
+    window.search_entry.pack(side='right', fill='x', expand=True, padx=4)
     options = window.view_controls.content
     from desktop_sections import SectionPages
     window.options_tabs=SectionPages(options)
@@ -130,7 +123,8 @@ def build_ward_controls(window):
     window.view_summary.pack(fill='x', padx=12)
     window.sort_status = ctk.CTkLabel(parent, text='', anchor='e', justify='right', wraplength=650)
     window.sort_status.pack(fill='x', padx=12, pady=2)
-    window.search.trace_add('write', lambda *args:window.render())
+    refresh_search = debounce(window.root, 150, lambda *args: window.render())
+    window.search.trace_add('write', refresh_search)
 
 
 def filter_summary(window):

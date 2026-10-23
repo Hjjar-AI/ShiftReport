@@ -5,6 +5,10 @@ SPACE = dict(xxs=1, xs=2, s=4, half_step=6, m=8, l=12, xl=16, xxl=24)
 TARGET = 48
 WRAP = dict(narrow=440, dialog=560, page=650, wide=820)
 FONT_ROLES = dict(caption=13, body=14, title=16, headline=18, display=23)
+CLINICAL_URGENT = ('#B3261E', '#FFB4AB')
+CLINICAL_WARNING = ('#8A5100', '#FFC45C')
+CLINICAL_PENDING = ('#6750A4', '#D0BCFF')
+STATUS_EDGE = 4
 WARNING_CONTAINER = ('#FFF3CD', '#493C19')
 
 

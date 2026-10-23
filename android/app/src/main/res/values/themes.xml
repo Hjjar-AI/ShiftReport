@@ -2,6 +2,6 @@
 <resources>
     <style name="Theme.RushdPatients" parent="android:Theme.Material.NoActionBar">
         <item name="android:layoutDirection">rtl</item>
-        <item name="android:windowBackground">#0D1729</item>
+        <item name="android:windowBackground">@color/startup_background</item>
     </style>
 </resources>

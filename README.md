@@ -31,7 +31,7 @@ shared.
 - Local stale-edit protection through patient and shift revisions.
 - Encrypted local database, encrypted project preferences, PIN/biometric access, encrypted backups, and verified admin authorization for core privileged actions.
 - Hospital/project setup with Demo, file-only Join, and Create paths, plus optional encryption of Telegram project data.
-- A splash that dismisses on tap or after 10 seconds; Splash and About use the white-field emblem and current credits.
+- A splash that dismisses on tap or after 5 seconds; Splash and About use the white-field emblem and current credits.
 - Unified neutral surfaces with independent System/Light/Dark appearance and accent choices, readable typography, consistent status colors, compact cards, and advanced PDF settings. Distinct named palettes tint controls, section headings and surfaces. Individual expansion animates briefly; bulk expansion is immediate.
 
 ## First launch
@@ -64,13 +64,9 @@ Appearance and accent are configured separately under **Settings → App interfa
 
 ## Implementation status
 
-Structured tasks and per-patient counts are implemented. Remaining near-term work is production signing. Safe same-project credential replacement/reconnect is implemented. User acknowledgment is not required. Voice dictation is a far-future proposal; specialty templates are a far-far-future proposal.
-
-The latest owner-supplied debug build succeeded on 2026-10-18 for its source
-snapshot. Later Android refinements and desktop integration have source/offline checks only;
-current Android compilation, device behavior, Windows desktop and live Telegram
-workflows remain unverified. See [verification evidence](docs/current-state.md#verification-and-limits).
-Production signing remains required before distribution.
+See [Current state](docs/current-state.md#verification-and-limits) for the exact
+source/build boundary and [Roadmap](docs/roadmap.md) for remaining work, including
+the CSV device failure, production signing and deferred voice/templates.
 
 ## Project documentation
 

@@ -41,4 +41,10 @@
         <item quantity="many">%1$s مهمة</item>
         <item quantity="other">%1$s مهمة</item>
     </plurals>
+    <string name="ui_task_completed">اكتملت المهمة</string>
+    <string name="ui_task_undo">تراجع</string>
+    <string name="ui_fetch_pull_hint">اسحب لطلب جلب البيانات</string>
+    <string name="ui_fetch_pull_release">اترك لمراجعة الجلب</string>
+    <string name="ui_settings_search">بحث في الإعدادات</string>
+    <string name="ui_settings_search_empty">لا توجد إعدادات مطابقة</string>
 </resources>

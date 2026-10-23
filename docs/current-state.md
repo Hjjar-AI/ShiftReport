@@ -1,291 +1,184 @@
 # Current implementation
 
-Current behavior and verification limits live here. [Roadmap](roadmap.md) contains
-unfinished implementation, [Changelog](changelog.md) summarizes completed features,
-and [Architecture](architecture.md) explains design choices. Older chronological
-implementation narratives have been consolidated; guides retain operational detail.
+[Docs](README.md) · [Architecture](architecture.md) · [Remaining work](roadmap.md) · [Completed work](changelog.md) · [Optional UI](decisions/android-ui-options.md)
 
 ## Product and source layout
 
-ShiftReport is an Arabic, offline-first clinical handover application with an
-Android Compose client and a standalone Python desktop client. Telegram stores
-manually published project snapshots and delivers reviewed reports; it is not an
-atomic multi-writer database. Retrieve → edit locally → review → publish remains
-the accepted workflow, with last-successful-write-wins publication.
-
-| Area | Location / ownership |
-|---|---|
-| Android project | `android/`; Java 17 bytecode, Kotlin 1.9, Compose BOM 2023.10.01, SDK 34/minimum 23. Existing toolchain versions are unchanged. |
-| Android UI | `ui/` below `android/app/src/main/java/com/hos/rushdpatients/`; Hilt ViewModels own lifecycle and operations. |
-| Rules | `domain/`; shared report readiness and explicit task rules. |
-| Local data | Room/SQLCipher behind repositories; expected revisions and transactional mutation/audit/pending state. |
-| Telegram | `network/telegram/`; explicit synchronization under `sync/`. |
-| Desktop | `desktop/`; CustomTkinter, encrypted local workspace and shared Android-compatible protocol. |
-| Guides | [Documentation index](README.md), [Telegram setup](guides/telegram-setup.md), [build guide](android-shared-workstation-build-fixes.md), [desktop guide](../desktop/README.md). |
-| Private material | Ignored `docs/local/`, signing/`*.local.properties`, and `local/excel/`; no credentials in source or clinical exports. |
+Arabic offline-first clinical handover, with manually reviewed Telegram snapshots/reports.
+Android: `android/`, Kotlin 1.9/Java 17, Compose BOM 2023.10.01, SDK 34/minimum 23;
+desktop: `desktop/`, CustomTkinter. Versions are unchanged. Android source below
+`app/src/main/java/com/hos/rushdpatients/`: `ui/` delegates to Hilt ViewModels,
+`domain/` owns rules, repositories wrap Room/SQLCipher, `network/telegram/` owns
+transport, and `sync/` orchestrates transfer. [Protocol](../desktop/PROTOCOL.md).
 
 ## Security and project access
 
-- Project joining is file-only through password-protected `.srjoin.json` files.
-  Creation owns manual group/topic configuration. Runtime project configuration
-  stores credentials; login never seeds a registry.
-- Optional Telegram-data encryption is chosen at project creation. Authenticated
-  encryption, the shared data key in protected device settings/join files and
-  explicit decryption failures remain. Exported PDFs are deliberately readable.
-- Same-project reconnect validates candidate credentials before replacing a live
-  bot token. Existing patient data, pending edits, topics and encryption key stay;
-  cross-project/key/topic substitution is blocked. Reconnect remains available
-  before login. BotFather revokes tokens; a local save does not.
-- Privileged mutations check live admin authorization below navigation. Permanent
-  administrator/reference protections apply to doctor/role/destination changes.
-- Existing database/WAL/SHM/journal files without a usable stored key cannot cause
-  silent key creation, database deletion or unsent-record replacement. The storage
-  gate resolves encrypted storage on IO before repository-backed ViewModels.
-  Failure offers preservation/retry. Demo does not open the clinical database.
-- `FLAG_SECURE` protects app windows. External PDF viewers and deliberate exports
-  are outside that window's protection. Private reviewed PDFs are cleaned on
-  replacement/invalidation/session end; cleanup is best effort.
-- Numeric clinician-bound PINs, throttling and optional biometric unlock remain.
-  PINs/passphrases do not enter saved UI state or logs. Login clipboard codes use
-  sensitive metadata where supported; expiry/disposal clears only the matching
-  nonce, best effort when Android denies clipboard access after focus loss.
-- Release signing uses protected local/CI inputs with no debug-key fallback. The
-  owner must supply the production key/certificate before distribution.
+- Join through protected `.srjoin.json` files; manual group/topics belong to creation.
+  Optional authenticated Telegram-data encryption is selected at creation; the shared
+  key travels in protected settings/join files. PDFs deliberately remain readable.
+- Same-project reconnect validates candidate credentials before replacement, retaining
+  clinical state, pending edits, topics and key. Cross-project/key/topic substitution
+  is blocked. Reconnect works before login; BotFather handles token revocation.
+- Clinician-bound numeric PINs, throttling, optional biometrics and service-level admin
+  checks remain. Credentials/passphrases stay outside saved UI state, logs and exports.
+  Missing database keys preserve existing DB/WAL/SHM/journal files; storage checks run
+  on IO before repository-backed ViewModels. Demo never opens the clinical database.
+- App windows use `FLAG_SECURE`; exported/opened PDFs are outside it. Private reviewed
+  PDFs have best-effort session cleanup. Clipboard codes use sensitive metadata and
+  matching-nonce expiry/disposal; background clipboard restrictions still apply.
+- Shared debug signing selects an ignored existing-key copy through `debug.keystore`
+  in `android/local.properties` or `SHIFTREPORT_DEBUG_KEYSTORE`. Missing selected keys
+  fail; release signing stays separate. Existing APK certificates match the original
+  key. Owner certificate access passed; the other account's session check needs its
+  authenticated login. New build/device update verification remains outstanding.
+- Release has protected local/CI signing inputs and no debug-key fallback. Production
+  signing remains an owner prerequisite. [Setup](guides/telegram-setup.md).
 
 ## Synchronization and publication
 
-Patients/doctors transfer as complete snapshots. There is no periodic automatic
-synchronization, remote field merge, required collaboration backend or automatic
-publication-race retry. Local saves retain audit/editor identity, revisions and
-pending state. Retrieval/replacement, rollover and stale edits remain reviewed.
+Retrieve → edit locally → review → publish; complete snapshots, last successful
+pinned-state write wins. No automatic synchronization, remote field merge, atomic
+multi-writer guarantee or required backend. Fetch/publication times are known events,
+not proof of current remote freshness. Review preserves local revisions, clinician
+identity/assignments, registry-pointer and uncertain-delivery checks.
 
-`SyncService` owns patient retrieval/publication and their shared mutex.
-`DoctorSyncCoordinator` owns doctor transfer. Patient/doctor pinned references
-share the singleton `RemoteSyncStateStore` mutex. Publication preparation tokens,
-recovery journals and exact review artifacts have one owner; extracted helpers do
-not create independent locks, sessions or review copies.
-
-Known snapshot equality is separate from the device-wide pending flag. Publication
-validates published doctor identities/assignments while allowing unrelated pending
-registry edits. Device-only/unchanged doctor saves do not create false dirty state.
-Confirmed local-copy publication follows the accepted last-write-wins scope and
-never bypasses stale local edits, identity checks or uncertain delivery.
-
-Last fetch/publication timestamps describe known events, not current remote
-freshness. Prior downloaded snapshots and undo-fetch remain separate from whole-
-shift copy. Recovery publication and permanent-superadmin empty start retain
-explicit review and their own authorization/preservation boundaries.
-
-See [Architecture](architecture.md), [Telegram protocol](../desktop/PROTOCOL.md)
-and [Troubleshooting](troubleshooting.md) for rationale, formats and recovery steps.
+`SyncService` owns patient transfer; `DoctorSyncCoordinator` owns doctor transfer.
+Both share singleton `RemoteSyncStateStore` and its mutex. Review tokens, journals
+and artifacts retain one owner. Snapshot equality is distinct from device-wide
+pending state; unrelated local registry edits need not block reviewed patient
+publication. Undo-fetch, downloaded history and whole-shift copy remain separate.
+Permanent-superadmin empty-start preserves accounts, connection/key, audit/delivery
+records and Telegram history; other devices must retrieve the replacement snapshot.
 
 ## Patients and tasks
 
-Patient clinical fields, labs, badges, optional responsible doctors and structured
-tasks share model/persistence/synchronization/backup/conflict/text/PDF paths. Task
-counts are never inferred from follow-up text. Overdue is a subset of pending;
-ownership is optional and new tasks start unassigned. Save stamps task completion
-identity/time, and whole-shift copy carries unfinished tasks forward.
+Revision-checked saves retain audit/editor identity and pending state; deletion has
+recycle/restore. Stored sorting agrees across reports/exports. Whole-shift rollover
+copies unfinished tasks, offers keep/clear assignments and rejects nonempty targets
+or stale source/target state. Independent resident/supervisor membership permits
+explicit patient-level cross-team cover. Reviewed CSV retains omitted active doctors.
 
-Expected patient/shift revisions guard stale saves, roster changes, sorting,
-insertion and destructive operations. Explicit stale review can retain a draft or
-use saved data. Sorting updates stored patient positions and agrees across formats;
-grouping, filtering and pinning are view choices. Recycle/restore retains clinical
-content and completion history.
+`ReportReadiness` and `PatientTasks` own shared rules. Tasks are explicit records;
+overdue is a subset of pending, ownership is optional, and completion identity/time
+is stamped at local Save. Board completion and Undo use the same mutation path;
+Undo carries the saved revision and rejects intervening changes. Demo saves in memory.
 
-Clinical-first editing and demographic-first creation use the same full-screen
-RTL form, fixed keyboard-safe actions, discard review and optional Save-next.
-Per-field tools share one draft, including unfinished treatment/follow-up/lab text
-and nested task description/deadline/owner choices. Optional ownership does not
-block saving or report readiness.
-
-`WardEditorState` holds one sealed Add/Edit/Copy/Delete dialog and its original
-revision/draft. A separate exclusive overlay state owns secondary sheets/reviews.
-These memory sessions survive Activity recreation; edit/copy process-death recovery
-is not claimed. Add-form autosave callbacks no longer reinitialize typed values.
+Full-screen patient creation starts with demographics; editing starts with clinical/
+task sections. Per-field tools, labs and nested task editors share one draft and
+fixed keyboard-safe Save/Cancel. `WardEditorState` retains exclusive Add/Edit/Copy/
+Delete sessions and original revisions across Activity recreation; another owner
+holds secondary overlays. Edit/copy process-death recovery is not promised.
 
 ## Startup and navigation
 
-The five-second monotonic splash deadline continues while held; release dismisses
-when expired, quick tap skips, and Activity recreation retains the deadline while
-clearing the physical hold. The white-field emblem and About/credits remain.
+Five-second monotonic splash: hold keeps reading while the timer continues, release
+dismisses after expiry, quick tap skips, recreation retains the deadline. Emblem and
+About/credits stay intact. Bootstrap uses system appearance until encrypted settings
+load; saved appearance/accent then apply. Window owners control system bars; embedded
+previews do not. API 23–25 retains a dark navigation background.
 
-Storage verification uses system appearance until encrypted saved appearance
-preferences are readable. The normal app then uses the saved System/Light/Dark/
-AMOLED appearance, independent accent and font multiplier. Full-window theme owners
-set system-bar appearance; embedded previews do not change it. API 23–25 keeps a
-dark navigation background because dark navigation icons are unavailable.
-
-Patients/Dashboard are ordinary destinations; Activity/admin controls remain admin-
-only across drawer, dock, rail and supporting panes. `WardNavigation` groups explicit
-callbacks; `AdminRoute` shares presentation guards without replacing service-level
-checks. Focused Settings workspaces and quick drawer shortcuts use the same handlers.
-The Add FAB remains separate from reviewed «إرسال تقرير» publication/delivery.
-
-Phone/pane taps open patient details. Edit/Copy/Delete/Pin/Expand use explicit
-`PatientCardActions`; display flags and clinical values live in `PatientCardState`.
-Rounds follow the filtered/grouped/pinned order; Save-next and return/highlight retain
-revision checks and explain filter-hidden results.
-
-Fold-aware panes keep content mounted while obtaining their origin, then use safe
-regions. Compact layouts use full-screen details/support sheets. Native and Compose
-RTL boundaries, labelled 48dp controls and growing/wrapping Arabic text remain.
+Patients/Dashboard use dock/rail; Activity remains admin-only. Drawer duplicates were
+removed and «إرسال تقرير» remains prominent with the roster selector first. Settings
+search uses the screen's admin/permanent-admin visibility, searches names/descriptions
+only, opens existing workspaces and keeps underlying forms mounted. Fold-safe panes,
+first-layout RTL and labelled 48dp targets remain. Details/rounds follow displayed
+filtered/grouped/pinned IDs; RTL swipes supplement guarded Previous/Next buttons.
+Save-next advances only after success; saved-card reveal preserves filters/viewport.
 
 ## Shared Android presentation
 
-- `ContainerColors` and tone helpers share notice/chip/metric containers while
-  `patientBadgeColors` preserves clinical severity independently of accent.
-  Shared button styles include primary, tonal, outlined, text and destructive;
-  all respect form-local disabled state. `AppDivider` uses one neutral role.
-- `AppChip` is informational; `AppFilterChip` retains selected/click semantics and
-  48dp targets. Empty-state icon/action slots, destination/clinical/action cards
-  replace duplicate presentation; specialized clinical content remains.
-- Semantic gutter/card/control/section spacing extends the existing compact scale.
-  Shared theme shapes and Arabic typography remain. Tajawal Regular 400, genuine
-  Medium 500 and Bold 700 are bundled; upstream has no 600/SemiBold face. Shared
-  emphasis uses Bold. License/provenance are in the [design catalog](design-catalog.md).
-- Icon actions share Arabic TalkBack/long-press tooltip labels via `AppIconButton`.
-  Back/forward/send mirroring is centralized; protected About content is unchanged.
-- Ward list controls combine count/group context, options with active-count badge,
-  reset and horizontally scrolling presets. Search and full advanced filters stay
-  available. Requested fetch reminders and persistent delivery warnings remain.
-- Dashboard totals use actionable two-column metric tiles; narrow panes/large fonts
-  stack them. Urgent/overdue attention and all-clear state remain explicit.
-- `WardFilters` is the saveable filter owner. Domain predicates/summary, cached
-  per-field search indexes and ID sets serve real/demo views. A separate minute
-  clock refreshes tasks/freshness; overdue filtering uses its minute value, and
-  new admissions also use the current date. No zero-recomposition claim is made.
-- Focused input waits briefly for IME inset changes to settle before requesting
-  visibility. Display-only clinical date markers use Arabic digits without an emoji;
-  saved clinical text and export representations remain unchanged.
-
-The October consolidation follow-up routes selectable chips and alert dialogs
-through shared sizing/heading owners. Choice-chip groups, selection strokes and
-icon-capable disclosure headers replace repeated presentation. Notices include
-accent/dismiss/content slots; patient validation uses the clinical urgent palette.
-Ward preset/filter controls share a row; collapsed cards combine summary chips,
-put ordinal beside the name and omit the diagnosis heading. Full expanded content
-and explicit card actions remain. Fetch advice retains its preservation wording
-and actions through one shared slot. Doctor registry tools share one disclosure;
-pending-change warnings stay outside it. Desktop controls now share named tokens
-and button-style options, with existing dimensions and platform fonts retained.
-Appearance → «تخصيص الواجهة» now exposes current/relaxed/quiet/clear profiles,
-compact/normal/relaxed content density, default/compact/standard/comfortable controls,
-reduced motion and ward-navigation choices. `UiPreferences` is stored as one local
-value in the existing encrypted settings table; no database or interchange version
-changed. `ThemeViewModel` observes it only after the storage gate. Demo owns its
-encoded preference value in temporary UI state and never writes production settings.
-`LocalUiPreferences`/`LocalUiStyle` drive shared padding, patient/list spacing,
-borders, navigation/action elevations and app-owned motion. Explicit density overrides
-card spacing; Normal retains the existing card-only compact preference. Reduced
-motion makes card/nav transitions and explicit section/search jumps immediate;
-platform sheets and ripples continue to follow Android's animation settings.
-
-Auto-hide navigation is off by default. When enabled on the phone patient list,
-downward scrolling hides the dock; upward movement or either boundary restores it.
-Touch exploration keeps navigation visible. The compact, labelled 48dp Add action
-is the default, with its text version available in Settings. Optional header taps
-toggle expansion; card-body taps still open the full record and explicit expand/
-menu controls remain. Cards with no expandable content omit the expand control.
-Small labels are now 13/20sp; Small app scaling is 0.92 (combined lower bound 0.92,
-existing upper bound 2.0), still combined with system font scaling.
-
-`AppIcons` centralizes 60 existing symbols without changing their filled/outlined
-appearance or protected About artwork. `AppText` provides semantic heading/body/
-supporting/caption/numeric/clinical/lab roles; clinical dates and lab direction share
-one renderer. Menu items, sheets, snackbar hosts, list toolbars, loading sizes and
-state hosts have shared presentation owners. Callers retain all state/retry,
-permission, draft, selection and clinical callbacks.
-See the [review dispositions](reviews/android-review.md) for
-implemented items, qualified claims and remaining proposals.
+- Shared chips, buttons, dialogs, notices, cards, menus, sheets, state/loading hosts,
+  icons and semantic text consume theme tokens. Clinical severity is accent-independent;
+  diagnoses are not error states. [Component/style guide](design-catalog.md).
+- Profiles current/relaxed/quiet/clear, density/control size, reduced motion, compact
+  Add, optional header expansion and dock auto-hide are device-local encrypted
+  preferences; demo uses temporary state. Appearance/accent/PDF choices stay separate.
+  Genuine Tajawal 400/500/700 is bundled; small labels are 13/20sp and combined app/
+  system font scaling is 0.92–2.0. No clinical/schema/interchange version changed.
+- One unpadded filter row stays above the grid: 48dp baseline, growing for large text,
+  preset counts, RTL edge hints and stable options/reset slots. Search expands on
+  demand; full count/group/filter context is in the options label/sheet. Delivery
+  uncertainty and read-only notices remain visible. Fetch advice stays accessible.
+- Cards show age/sex, per-patient task counts and labelled severity stripes. Grid
+  content types/placement, whole-card expansion, chevrons and tab feedback share
+  profile motion. Bulk expansion/reduced motion are immediate. Dock translation
+  keeps clearance stable; upward scrolling/boundaries restore it and touch exploration
+  keeps it visible. Rail selection requires width ≥600dp and height ≥480dp.
+- Dashboard totals adapt to pane/font width. A shared minute clock serves cards,
+  details, board, drafts and overdue filtering. Input visibility waits for IME settling.
+  A deliberate live-list pull opens existing fetch confirmation; demo/read-only/busy/
+  editor/detail states disable it. No gesture publishes or fetches automatically.
 
 ## Reports and exports
 
-The Android flow remains Doctors → Destination → Preview → Send. A compact
-progress indicator/counter accompanies the stage name; footer target and disabled
-reason text wrap together. Unlimited active-
-doctor roster selection is available first and checks revisions. Preview opening
-is required for the current text or every selected PDF before final confirmation.
-`ReportFlowGate` owns presentation decisions; the ViewModel/delivery layer remains
-authoritative for actor/date/revision/destination checks, publish-before-delivery,
-uncertain/duplicate delivery and exact reviewed PDF content/options/hash.
+Doctors → Destination → Preview → Send, with unlimited active-doctor roster,
+revision checks, required current text/PDF opening and final confirmation.
+`ReportFlowGate` controls presentation; delivery services enforce actor/date/revision/
+destination, publish-before-delivery and exact reviewed PDF content/options/SHA-256.
+UNKNOWN receipts persist before sending and require explicit resolution; confirmed
+extra copies need permission. Publication and delivery outcomes remain independent,
+including partial/uncertain results. No retry silently publishes/sends.
 
-Delivery receipts survive restarts. UNKNOWN offers Received/Not received; SENT
-alone offers explicit permission for an extra copy, with adjacent consequence text
-and confirmation. Publication and delivery outcomes are shown separately, including
-partial/uncertain delivery. No stage transition or retry silently publishes/sends.
-
-Reports retain all saved clinical/task content and shared patient order. PDF output
-omits routine/unassigned task labels and patient last-edit metadata. Classic compact
-tables, linked A5 cards, contents/navigation and advanced appearance options remain.
-Admin-only names-only team PDFs use A4 portrait supervisor tables and continuous
-numbering. Local exports are distinct from reviewed Telegram publication/delivery.
+Classic tables, linked portrait A5 cards, advanced PDF options and local exports
+retain full clinical/tasks and shared order. PDFs omit routine/unassigned task labels
+and patient last-edit metadata. Admin-only names-only team PDFs use A4 portrait
+supervisor tables/global numbering; historical output labels current-roster limits.
 
 ## Isolated demo
 
-`DemoWardViewModel` receives `InMemoryDemoWardRepository` through Hilt. The same
-`WardWorkspace`, patient grid, dashboard, options, details and forms render through
-`WardController`. Production delegates to its existing ViewModel; demo uses memory-
-only clinical/settings state and exposes no live fetch/publication/Activity controls.
-No production clinical repository, session or Telegram service is injected into demo.
-
-Temporary team/actor/appearance selection, recycle/restore and reset/exit remain.
-The demo uses hot-beverage patients and tree-named doctors. Explicit local PDF
-export uses the real renderer and labels every page as demo. Reset/exit discards
-the session; process death starts a new demo.
+Injected `InMemoryDemoWardRepository` drives the real `WardWorkspace` through
+`WardController`; no production clinical/settings/session/Telegram dependency.
+Hot-beverage patients, tree-named doctors, temporary actor/roster/preferences,
+recycle/reset/exit and explicitly requested PDF export remain. Every PDF page is
+labelled demo. Reset/exit discards the session; process death starts fresh.
+[Demo guide](android-demo.md).
 
 ## Standalone desktop
 
-The Python client retains protected-file join/reconnect, encrypted SQLite drafts,
-reviewed complete-snapshot publication and durable uncertain-delivery receipts.
-It uses the same clinical/task/doctor/team/sort/backup/report rules and shared
-protocol versions as Android. Team membership, optional cross-team cover and
-historical assignment output preserve identity/reference checks.
+Protected join/reconnect, encrypted SQLite drafts/audit/local report preferences,
+clinician PIN/idle lock, reviewed creation/registry administration, patient/tasks/
+teams/CSV/recycle and durable delivery receipts follow the shared protocol.
+Linux uses XDG/passphrase-wrapped keys/font discovery/native PDF opening; Windows
+keeps DPAPI and its compatibility dependencies. Arabic editing stores logical
+Unicode, shaping only display/PDF output. Local unfinished drafts remain separate
+from saved records/portable exports. [Usage](../desktop/README.md) · [Diagnostics](../desktop/TROUBLESHOOTING.md).
 
-The UI offers grouping/search/order, inline details, expand/collapse/pinning,
-patient/task editing, local audit/recycle/restore, reviewed doctor CSV import/export,
-admin roles/destinations and independently displayed publication/delivery results.
-Reports include Arabic paginated PDFs, Classic/linked cards, names-only team views,
-local exports and reviewed supervisor batches with exact opened artifacts.
+UI search/resize is debounced; unchanged cards and dashboard widgets are retained.
+Dashboard/roster shortcuts live in the sidebar. Clinical stripes, native More menu,
+selected tab styling and guarded Ctrl+F/Ctrl+N supplement existing controls. Platform
+UI fonts remain unchanged. Desktop demo is memory-only with labelled local PDFs.
 
-Linux uses XDG paths, process locking, passphrase-protected keys, font discovery
-and native PDF opening. Arabic entry preserves logical Unicode, caret/selection,
-clipboard, wrapping and Save while shaping display. Windows keeps its separate
-compatibility dependency pins and key protection. See the [desktop guide](../desktop/README.md),
-[desktop troubleshooting](../desktop/TROUBLESHOOTING.md) and
-[Windows packaging guide](windows-exe-packaging.md). This Android pass changes no desktop code.
+## Retained source findings
+
+Rechecked on 23 October 2026; documentation consolidation did not fix these:
+
+1. [Backup restore](../android/app/src/main/java/com/hos/rushdpatients/domain/backup/EncryptedBackupManager.kt)
+   reuses backed-up patient revisions and existing shift revision through
+   [patient](../android/app/src/main/java/com/hos/rushdpatients/data/repository/PatientRepository.kt)/
+   [shift upserts](../android/app/src/main/java/com/hos/rushdpatients/data/repository/ShiftRepository.kt).
+   Replacement can leave a stale draft's revision valid.
+2. [WardSaveGuard](../android/app/src/main/java/com/hos/rushdpatients/ui/ward/WardSaveGuard.kt)
+   checks UI-held clinician roles; [WardMutationRepository](../android/app/src/main/java/com/hos/rushdpatients/data/repository/WardMutationRepository.kt)
+   checks task owners but lacks live responsible-resident/supervisor role checks
+   at save/recycle-restore/rollover boundaries.
+3. Backup restore checks referenced doctor existence before its transaction, without
+   responsible-role checks or a transactional registry recheck.
+
+These retained concerns are separate from the selected work in [Roadmap](roadmap.md).
 
 ## Verification and limits
 
-The owner supplied a successful `./gradlew assembleDebug` result on 22 October
-2026 for `1.1.23.20261022` (code 24): 37 seconds, 44 actionable tasks, 15 executed
-and 29 up-to-date. No Kotlin warning was reported. This verifies debug assembly
-after both the missing patient-header `heightIn` import and unused drawer-variable
-fixes. Configuration-cache recalculation was followed by successful storage; the
-remaining Gradle deprecation notice was nonfatal. The trailing IDLE worker status
-does not change the successful outcome. The APK was not independently inspected
-or run by the agent. Owner-reserved versions are preserved.
+Owner `assembleDebug` passed on 22 October 2026 for `1.1.23.20261022` (code 24):
+37s, 44 tasks (15 executed/29 up-to-date), no Kotlin warning; nonfatal Gradle
+deprecation notice. That source snapshot predates the subsequent UI changes.
 
-Earlier offline Kotlin/resource/KSP compilation and owner assemblies apply only
-to their source snapshots. The latest result above supersedes the earlier failed
-`1.1.21` build and the successful `1.1.22` build that reported the unused variable.
+Current UI source has Python AST/XML, Kotlin delimiter/resource/icon/call-site,
+local-link and Git whitespace checks only. Production previews cover narrow RTL,
+dark/AMOLED, 150–200% fonts, profiles and search; they were not rendered. Compilation,
+performance/skippability, persistence, TalkBack, keyboard/large-font/fold behavior,
+search draft retention, gestures, completion/Undo and live Telegram remain unverified.
 
-Source checks cover changed Python/XML parsing, Kotlin delimiter structure,
-UI string/icon references, local documentation links and Git unstaged/staged
-whitespace. The documentation consolidation also rechecked three retained
-[data-boundary findings](reviews/android-review.md#retained-source-findings)
-against named production source; those findings were not fixed by documentation.
-
-Builds/compilation and extensive tests require explicit owner confirmation under
-[AGENTS.md](../AGENTS.md). No agent rebuild, test-suite or migration inspection/
-change, packaging/distribution, device/rendered-preview, TalkBack/fold/large-font,
-performance-profile or live Telegram work was performed in this cleanup.
-Compilation does not establish runtime preference persistence, auto-hide/header-tap
-behavior, Arabic wrapping, accessibility or delivery behavior. Clipboard cleanup
-after focus loss and memory-session loss after process death remain explicit limits.
-
-The doctor CSV import failure still lacks its original device exception, and
-production signing still requires the owner's protected key. See [Roadmap](roadmap.md)
-for planned work, [UI decisions](decisions/android-ui-options.md) for remaining
-unselected proposals, and the [Consolidated Android review](reviews/android-review.md)
-for review outcomes and unresolved source findings.
+This consolidation changed documentation only, checked links/anchors/whitespace and
+preserved operational guides/build commands. No build, test-suite work, migration
+inspection/change, version change or packaging ran. [AGENTS.md](../AGENTS.md) governs
+further verification. CSV device exception and production signing remain outstanding.

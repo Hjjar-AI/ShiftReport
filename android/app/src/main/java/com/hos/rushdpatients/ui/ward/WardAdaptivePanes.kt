@@ -12,7 +12,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.border
-import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -36,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -170,10 +170,14 @@ internal fun WardAdaptivePanes(
                 val dividerX = if (rtl) supportingRegion.width else listWidth
                 val direction = if (rtl) -1f else 1f
                 fun adjust(value: Float) = onListFractionChange(value.coerceIn(minimum, maximum))
+                val dividerColor = MaterialTheme.colorScheme.outlineVariant
                 Box(
                     Modifier.absoluteOffset(x = dividerX.dp).width(UiSpacing.touchTarget).height(height.dp)
-                        .background(if (dividerFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                        .border(UiBorder.stroke(focused = dividerFocused))
+                        .drawBehind {
+                            drawLine(dividerColor, Offset(size.width / 2, 0f),
+                                Offset(size.width / 2, size.height), UiBorder.hairline.toPx())
+                        }
+                        .then(if (dividerFocused) Modifier.border(UiBorder.stroke(focused = true)) else Modifier)
                         .semantics {
                             contentDescription = uiText(R.string.ui_ward_adaptive_panes_003)
                             stateDescription = uiText(R.string.ui_ward_adaptive_panes_004, (fraction * 100).toInt())

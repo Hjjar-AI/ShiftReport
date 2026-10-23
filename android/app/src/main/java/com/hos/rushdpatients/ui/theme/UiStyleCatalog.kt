@@ -13,7 +13,8 @@ data class UiStyleProfile(
     val listGap: Dp, val normalBorder: Dp, val selectedBorder: Dp,
     val navigationElevation: Dp, val actionBarElevation: Dp,
     val expandMillis: Int, val collapseMillis: Int, val highlightMillis: Int,
-    val indicatorMillis: Int = UiMotion.indicatorMillis
+    val indicatorMillis: Int = UiMotion.indicatorMillis,
+    val placementMillis: Int = UiMotion.placementMillis
 ) {
     fun label(text: UiStrings): String = text(labelRes)
 }

@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,8 +45,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import android.app.TimePickerDialog
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.delay
-import androidx.compose.runtime.produceState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -79,14 +80,12 @@ internal fun PatientTaskEditor(
 ) {
     val uiText = rememberUiStrings()
     var completedExpanded by remember { mutableStateOf(false) }
-    val now by produceState(initialValue = System.currentTimeMillis()) {
-        while (true) { value = System.currentTimeMillis(); delay(60_000) }
-    }
+    val now = LocalWardTaskNow.current
     val ordered = PatientTasks.orderedForDisplay(tasks, now)
     val completed = ordered.filter { it.done }
     val names = doctors.associate { it.id to it.fullName }
     val pending = tasks.count { !it.done }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+    Column(modifier = modifier.animateContentSize(tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis)), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AppSectionHeader(title = uiText(R.string.ui_patient_task_editor_001, uiNumber(pending)), count = tasks.size,
                 modifier = Modifier.weight(1f))
@@ -135,6 +134,10 @@ private fun TaskDraftRow(
         color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(Modifier.padding(UiPadding.content)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.Checkbox(checked = task.done, onCheckedChange = { onToggleDone() }, enabled = enabled,
+                    modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget).semantics {
+                        contentDescription = (if (task.done) uiText(R.string.ui_patient_task_editor_008) else uiText(R.string.ui_patient_task_editor_009)) + task.description
+                    })
                 Text(task.description, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 Box {
                     AppIconButton(label = uiText(R.string.ui_patient_task_editor_005, task.description),
@@ -154,11 +157,6 @@ private fun TaskDraftRow(
             val metadata = PatientTasks.metadata(task, names, includeUnassigned = false, includeRoutinePriority = false)
             if (metadata.isNotBlank()) Text(metadata, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            AppOutlinedButton(onClick = onToggleDone, enabled = enabled,
-                modifier = Modifier.semantics {
-                    contentDescription = (if (task.done) uiText(R.string.ui_patient_task_editor_008) else uiText(R.string.ui_patient_task_editor_009)) + task.description
-                    stateDescription = if (task.done) uiText(R.string.ui_patient_task_editor_010) else uiText(R.string.ui_patient_task_editor_011)
-                }) { Text(if (task.done) uiText(R.string.ui_patient_task_editor_012) else uiText(R.string.ui_patient_task_editor_013)) }
         }
     }
 }

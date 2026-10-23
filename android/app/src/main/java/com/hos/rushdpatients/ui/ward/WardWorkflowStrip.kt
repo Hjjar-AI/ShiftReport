@@ -13,6 +13,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +30,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 internal fun WardWorkflowStrip(state: WardUiState, onNext: () -> Unit) {
     val uiText = rememberUiStrings()
     var details by rememberSaveable { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth().animateContentSize(tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis))) {
         if (!state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) {
             Row(Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget).padding(horizontal = UiSpacing.screen),
                 verticalAlignment = Alignment.CenterVertically,

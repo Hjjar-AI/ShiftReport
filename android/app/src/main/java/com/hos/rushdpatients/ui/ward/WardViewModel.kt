@@ -165,7 +165,7 @@ class WardViewModel @Inject constructor(
     private fun monitorEditabilityBoundary() {
         viewModelScope.launch {
             while (true) {
-                delay(60_000L)
+                delay(60_000L - System.currentTimeMillis() % 60_000L)
                 _taskNow.value = System.currentTimeMillis()
                 _state.update { current ->
                     current.copy(isReadOnly = current.shift?.date?.let { it != ShiftDate.current() } ?: false)
@@ -294,6 +294,9 @@ class WardViewModel @Inject constructor(
         onStale: (Patient?) -> Unit = {},
         onSuccess: () -> Unit = {}
     ) = patientActions.updatePatient(patient, onStale, onSuccess)
+
+    fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) =
+        patientActions.setTaskDone(patient, taskId, done, onSuccess)
 
     fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {}) = patientActions.deletePatient(patient, onSuccess)
 

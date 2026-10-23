@@ -80,6 +80,7 @@ internal fun PatientDetailsScreen(
     onNavigateToPatient: (String) -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
+    val now = LocalWardTaskNow.current
     val haptics = LocalHapticFeedback.current
     var section by rememberSaveable(patient.id, key = "patient-detail-section") {
         mutableStateOf(PatientDetailSection.CLINICAL)
@@ -150,13 +151,14 @@ internal fun PatientDetailsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .patientRoundsSwipe(patient.id, roundsNavigation, navigationEnabled, onNavigateToPatient)
                     .verticalScroll(detailScroll)
                     .padding(UiSpacing.screen),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
                 when (section) {
                     PatientDetailSection.CLINICAL -> PatientCard(
-        state = PatientCardState(patient = patient,
+        state = PatientCardState(patient = patient, taskNowEpochMillis = now,
             expanded = true,
             twoColumn = true,
             doctorNames = doctorNames,
@@ -167,7 +169,7 @@ internal fun PatientDetailsScreen(
     )
                     PatientDetailSection.TASKS -> AppClinicalCard(
                         title = uiText(R.string.ui_patient_details_screen_002),
-                        content = PatientTasks.summary(patient.tasks, doctorNames)
+                        content = PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = now)
                             .ifBlank { uiText(R.string.ui_patient_details_screen_003) }
                     )
                     PatientDetailSection.WARNINGS -> AppClinicalCard(

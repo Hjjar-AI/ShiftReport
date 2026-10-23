@@ -57,7 +57,7 @@ val LocalUiStyle = staticCompositionLocalOf { UiStyleCatalog.current }
 @Composable
 fun ProvideUiPreferences(preferences: UiPreferences, content: @Composable () -> Unit) {
     val base = UiStyleCatalog.profiles.firstOrNull { it.id == preferences.profile } ?: UiStyleCatalog.current
-    val style = if (preferences.reducedMotion) base.copy(expandMillis = 0, collapseMillis = 0, highlightMillis = 0, indicatorMillis = 0) else base
+    val style = if (preferences.reducedMotion) base.copy(expandMillis = 0, collapseMillis = 0, highlightMillis = 0, indicatorMillis = 0, placementMillis = 0) else base
     CompositionLocalProvider(LocalUiPreferences provides preferences, LocalUiStyle provides style, content = content)
 }
 

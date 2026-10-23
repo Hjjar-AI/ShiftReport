@@ -11,6 +11,7 @@ from desktop_access import configure_pin, lock_screen
 from desktop_announcements import administer_announcement
 from desktop_patient_draft import resume_patient
 from desktop_cards import PatientCards
+from desktop_ui_events import debounce
 from desktop_activity import activity_center
 from desktop_layout import Disclosure, build_ward_controls
 from desktop_appearance import appearance_dialog, apply as apply_appearance, preferences as appearance_preferences
@@ -42,6 +43,11 @@ def build_window(owner, root, settings, demo):
     owner.actor=ctk.CTkComboBox(identity,values=['اختر الطبيب'],state='readonly',justify='right',height=48)
     owner.actor.pack(fill='x',padx=8,pady=4)
     if not demo:button(identity,'قفل الشاشة',lambda:owner.run(lambda:lock_screen(owner)))
+
+    from desktop_dashboard import handover_dashboard
+    ward_navigation = section('عرض الجناح')
+    button(ward_navigation, 'لوحة تسليم المناوبة', lambda: owner.run(lambda: handover_dashboard(owner)))
+    button(ward_navigation, 'أطباء المناوبة', lambda: owner.run(owner.roster))
 
     owner.settings_window,settings_area=owner.tool_window('إعداداتي')
     owner.security_window,security_area=owner.tool_window('الحساب وقفل التطبيق')
@@ -138,7 +144,18 @@ def build_window(owner, root, settings, demo):
     owner.diagnostics_text.pack(fill='x',padx=8,pady=4)
     build_ward_controls(owner)
     owner.patients = ctk.CTkScrollableFrame(owner.content); owner.patients.pack(fill='both',expand=True,padx=5,pady=4)
-    owner.content.bind('<Configure>',owner.resize_content)
+    owner.content.bind('<Configure>', debounce(owner.content, 120, owner.resize_content))
+    def focus_search(event):
+        if not owner.locked and not owner.busy:
+            owner.search_entry.focus_set()
+        return 'break'
+    def add_patient(event):
+        owner.run(owner.add_patient)
+        return 'break'
+    owner.search_entry.bind('<Control-f>', focus_search, add='+')
+    owner.search_entry.bind('<Control-n>', add_patient, add='+')
+    root.bind('<Control-f>', focus_search)
+    root.bind('<Control-n>', add_patient)
     root.protocol('WM_DELETE_WINDOW',owner.close)
     if demo:
         from desktop_demo import DemoClient, DemoWorkspace

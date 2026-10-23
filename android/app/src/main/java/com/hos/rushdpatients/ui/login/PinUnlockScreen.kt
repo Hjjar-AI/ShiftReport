@@ -34,17 +34,24 @@ fun PinUnlockScreen(
     onSignOut: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var pin by remember { mutableStateOf("") }
+    var pin by remember(doctorName) { mutableStateOf("") }
+    fun submit() {
+        if (!busy && pin.length >= com.hos.rushdpatients.config.AppConstants.PIN_MIN_LENGTH) {
+            val submitted = pin
+            pin = ""
+            onUnlock(submitted)
+        }
+    }
 
     AppCenteredContent() {
         Text(doctorName, style = MaterialTheme.typography.titleLarge)
         Text(uiText(R.string.ui_pin_unlock_screen_001), modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section))
         PasswordField(
             value = pin,
-            onValueChange = { pin = it.filter(Char::isDigit).take(8) },
+            onValueChange = { pin = it.filter(Char::isDigit).take(com.hos.rushdpatients.config.AppConstants.PIN_MAX_LENGTH) },
             label = uiText(R.string.ui_local_pin_login_screen_003),
             keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done, enabled = !busy,
-            keyboardActions = KeyboardActions(onDone = { if (!busy) onUnlock(pin) })
+            keyboardActions = KeyboardActions(onDone = { submit() })
         )
         error?.let {
             AppNotice(it, kind = NoticeKind.ERROR, modifier = Modifier.padding(top = UiSpacing.tiny))
@@ -52,7 +59,8 @@ fun PinUnlockScreen(
         LoadingButton(
             text = uiText(R.string.ui_pin_unlock_screen_002),
             loading = busy,
-            onClick = { onUnlock(pin) },
+            enabled = pin.length >= com.hos.rushdpatients.config.AppConstants.PIN_MIN_LENGTH,
+            onClick = ::submit,
             modifier = Modifier.fillMaxWidth().padding(top = UiSpacing.screen)
         )
         onBiometric?.let { bio ->

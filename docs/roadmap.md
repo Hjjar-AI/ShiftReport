@@ -1,54 +1,49 @@
-# ShiftReport remaining work
+# Remaining work
 
-This file contains only unfinished implementation work and explicitly deferred proposals. Verification evidence and limitations are recorded in [Current state](current-state.md). Completed items are tracked in [Changelog](changelog.md). Design and architecture basis are documented in [Architecture](architecture.md).
+[Current state/limits](current-state.md) · [Completed work](changelog.md) · [Optional UI](decisions/android-ui-options.md)
 
 ## Active — Android doctor CSV import
 
-- Identify and fix the original device-side failure after selecting the supplied
-  doctor CSV. Its 33 rows meet the current field rules. Persistent progress/error
-  feedback is implemented; the original exception is still unavailable. Preserve
-  identity, clinical-reference and authorization checks while resolving the cause.
+Fix the device failure after selecting the supplied CSV: its 33 rows meet field
+rules, progress/error feedback exists, but the original exception is unavailable.
+Preserve identity, clinical-reference and authorization checks.
 
 ## P0 — production signing
 
-1. Supply the protected production signing key before distribution.
-   - Release now reads an ignored local keystore configuration or CI environment
-     inputs, with no debug-key fallback. The owner must supply the key/certificate;
-     no production-signed artifact has been verified. See the
-     [signing inputs](android-shared-workstation-build-fixes.md#production-release-signing).
+Owner must supply the protected production key/certificate before distribution.
+Local/CI signing inputs exist without debug fallback; no production-signed artifact
+is verified. [Signing inputs](android-shared-workstation-build-fixes.md#production-release-signing).
 
 ## Far future — optional voice dictation
 
-1. Start with field-by-field dictation for diagnosis, treatment, and follow-up.
-   - Suggested first approach: Android's explicit on-device `SpeechRecognizer`, checking device/language availability and keeping ordinary typing available.
-   - For an app-managed offline engine, consider multilingual Whisper through `whisper.cpp`, or Sherpa-ONNX with a suitable Arabic-capable model. Account for model storage, native integration, and phone processing requirements.
-   - Cloud recognition, such as Google Cloud Speech-to-Text, is an alternative only if external audio processing is deliberately chosen; it requires connectivity, service credentials, and usage costs.
-   - Prefer local audio processing. Insert speech results as editable drafts and require visual review and explicit Save.
+Start with field-by-field diagnosis/treatment/follow-up, then guided sections and
+possibly whole-handoff suggestions. Prefer local processing, keep typing available,
+insert editable drafts and require visual review/Save. Assess Syrian Arabic, mixed
+Arabic/English, medication names/doses, language availability and phone/storage needs.
 
-2. Consider guided section-by-section dictation, followed later by whole-handoff field suggestions.
-   - Whole-handoff assignment could use Arabic section labels or a separate language model to propose field mappings; retain user review before applying them.
-   - Model choice should account for Syrian Arabic, mixed Arabic/English speech, medication names, and doses.
+Options: Android explicit on-device `SpeechRecognizer`; multilingual Whisper through
+`whisper.cpp`; or Sherpa-ONNX with an Arabic-capable model. Cloud recognition such as
+Google requires deliberate external audio processing, connectivity, credentials and
+usage costs. Whole-handoff mapping could use Arabic section labels or a language
+model, always with user review.
 
-Technology references: [Android SpeechRecognizer](https://developer.android.com/reference/android/speech/SpeechRecognizer), [whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Sherpa-ONNX](https://k2-fsa.github.io/sherpa/onnx/index.html), and [Google Cloud Speech-to-Text languages](https://docs.cloud.google.com/speech-to-text/docs/speech-to-text-supported-languages).
+References: [SpeechRecognizer](https://developer.android.com/reference/android/speech/SpeechRecognizer),
+[whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Sherpa-ONNX](https://k2-fsa.github.io/sherpa/onnx/index.html),
+[Google languages](https://docs.cloud.google.com/speech-to-text/docs/speech-to-text-supported-languages).
 
 ## Far far future — optional specialty templates
 
-These are design suggestions, not implemented features or near-term requirements.
+Presentation-only department presets: psychiatry (mental state/sleep/behavior/response/
+observation), medicine (problems/investigations/response), surgery (procedure/wound/
+drains/diet/mobility), pediatrics (weight/feeding/hydration). Admins could configure
+field order/emphasis, prompts/outlines, suggested badges and headings with preview.
+Keep diagnosis/treatment/follow-up/labs storage/report mappings fixed; no automatic
+findings, prescribing, deletion or hidden clinical content. New searchable measurements/
+clinical fields require separate model/persistence/sync/report authorization.
 
-1. Adapt form presentation to a department while retaining the existing patient fields.
-   - Suggested starting point: a configurable psychiatry template with prompts for mental state, sleep, behavior, medication response, and observation needs.
-   - Other possible templates: internal medicine (active problems, investigations, treatment response), surgery (procedure/date, wound/drains, diet, mobility), and pediatrics (weight, feeding, hydration).
-   - Let administrators configure field order, section emphasis, prompts, text outlines, suggested badges, and report headings, with a preview before publication.
-   - Keep diagnosis, treatment, follow-up, and laboratory storage/report mappings fixed. Templates must not automatically assign findings, prescribe treatment, or remove saved clinical content.
-
-2. Share template configuration through the existing Telegram project.
-   - Publish a template file containing stable template IDs, names, and presentation settings; add a reference to it in pinned synchronization state.
-   - Cache templates locally for offline use and retrieve updates during ordinary synchronization. Admin publication follows the accepted last-successful-write-wins behavior.
-   - Encrypt the template file with the existing shared project key when project encryption is enabled.
-   - Store a project-default template selection. Compatibility handling is needed for clients that do not understand template settings.
-
-3. Keep patient entry and reports stable across template updates.
-   - New form sessions use the current template; open editors retain their layout until closed.
-   - Template changes must not rewrite existing patient data. Missing or unsupported templates fall back to the standard form.
-   - Reports must retain saved clinical content even when a template hides a field in the editor; template headings cannot override report inclusion rules.
-   - Searchable custom measurements or new clinical fields would require separate model, persistence, synchronization, and reporting work beyond presentation templates.
+Share stable template IDs/names/presentation through an optionally project-encrypted
+Telegram file referenced by pinned state; cache locally, fetch during ordinary sync,
+store a project default and use reviewed admin last-successful-write-wins publication.
+Missing/unsupported templates fall back to standard; older clients need compatibility
+handling. Apply updates to new forms only, preserving open-editor layouts/drafts and
+all saved/report clinical content regardless of hidden presentation fields.

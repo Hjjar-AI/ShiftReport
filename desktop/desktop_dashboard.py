@@ -63,27 +63,53 @@ def handover_dashboard(owner):
         current()
         apply_filter(owner, key)
         window.destroy()
+    shift_label = ctk.CTkLabel(area, text='', anchor='e', justify='right', wraplength=600)
+    shift_label.pack(fill='x', padx=10, pady=6)
+    section_heading(area, 'يحتاج انتباهك')
+    attention = ctk.CTkFrame(area, fg_color='transparent')
+    attention.pack(fill='x')
+    attention.grid_columnconfigure(0, weight=1)
+    clear_label = ctk.CTkLabel(attention, text='لا توجد حالات عاجلة أو مهام متأخرة', anchor='e')
+    clear_label.grid(row=0, column=0, sticky='ew', padx=10, pady=4)
+    tiles = {}
+    for index, key in enumerate(('urgent', 'overdue')):
+        tile = ctk.CTkButton(attention, text='', height=48, command=guarded(lambda k=key: select(k)))
+        tile.grid(row=index+1, column=0, sticky='ew', padx=10, pady=4)
+        tiles[key] = tile
+    section_heading(area, 'ملخص المناوبة')
+    for key in ('all', 'mine', 'pending', 'badges', 'unassigned', 'task_unassigned', 'new'):
+        tiles[key] = button(area, '', guarded(lambda k=key: select(k)))
+    section_heading(area, 'جاهزية التقرير')
+    readiness = ctk.CTkLabel(area, text='', anchor='e', justify='right', wraplength=600)
+    readiness.pack(fill='x', padx=10, pady=8)
+    section_heading(area, 'حفظ البيانات ونشرها')
+    workflow = ctk.CTkLabel(area, text='', anchor='e', justify='right', wraplength=600)
+    workflow.pack(fill='x', padx=10, pady=6)
+    status_text = ['']
+    button(area, 'تفاصيل حفظ البيانات ونشرها', lambda: owner.text_dialog('تفاصيل البيانات', status_text[0]))
+    previous = {}
+
+    def update(widget, text):
+        if previous.get(widget) != text:
+            widget.configure(text=text)
+            previous[widget] = text
+
     def show():
         shift = current()
         actor = local_identity(owner.store, owner.client)
         values = summary(shift['patients'], (actor or {}).get('uid'), owner.client.zone)
-        for child in area.winfo_children(): child.destroy()
-        ctk.CTkLabel(area, text='مناوبة {} · الملخص يشمل جميع المرضى قبل التصفية'.format(shift['meta']['shiftDate']),
-                     anchor='e', justify='right', wraplength=600).pack(fill='x', padx=10, pady=6)
-        section_heading(area,'يحتاج انتباهك')
-        if not values['urgent'] and not values['overdue']:
-            ctk.CTkLabel(area,text='لا توجد حالات عاجلة أو مهام متأخرة',anchor='e').pack(fill='x',padx=10,pady=4)
-        for key in ('urgent', 'overdue', 'all', 'mine', 'pending', 'badges', 'unassigned', 'task_unassigned', 'new'):
-            if key in {'urgent','overdue'} and not values[key]:continue
-            if key=='all':section_heading(area,'ملخص المناوبة')
-            button(area, '{}: {}'.format(FILTERS[key][0], values[key]), guarded(lambda k=key: select(k)))
-        section_heading(area,'جاهزية التقرير')
-        ctk.CTkLabel(area, text='أعداد المهام تحسب المهام نفسها؛ الضغط يعرض المرضى المعنيين.\n' + readiness_notes(shift['patients']),
-                     anchor='e', justify='right', wraplength=600).pack(fill='x', padx=10, pady=8)
-        section_heading(area,'حفظ البيانات ونشرها')
-        status,_=workflow_status(owner.client,owner.store,owner.demo)
-        ctk.CTkLabel(area,text=status.split("\n",1)[0],anchor='e',justify='right',wraplength=600).pack(fill='x',padx=10,pady=6)
-        button(area,'تفاصيل حفظ البيانات ونشرها',lambda:owner.text_dialog('تفاصيل البيانات',status))
+        update(shift_label, 'مناوبة {} · الملخص يشمل جميع المرضى قبل التصفية'.format(shift['meta']['shiftDate']))
+        for key, tile in tiles.items():
+            update(tile, '{}: {}'.format(FILTERS[key][0], values[key]))
+            if key in {'urgent', 'overdue'}:
+                if values[key]:tile.grid()
+                else:tile.grid_remove()
+        if not values['urgent'] and not values['overdue']:clear_label.grid()
+        else:clear_label.grid_remove()
+        update(readiness, 'أعداد المهام تحسب المهام نفسها؛ الضغط يعرض المرضى المعنيين.\n' + readiness_notes(shift['patients']))
+        status, _ = workflow_status(owner.client, owner.store, owner.demo)
+        status_text[0] = status
+        update(workflow, status.split("\n", 1)[0])
     button(controls, 'تحديث الملخص', guarded(show))
     button(controls, 'إغلاق', window.destroy)
     timer = [None]

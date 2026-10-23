@@ -126,6 +126,8 @@ class Window:
 
     def resize_content(self,event):
         width=max(240,event.width-40)
+        if getattr(self, "_last_content_wrap_width", None) == width:return
+        self._last_content_wrap_width = width
         self.operation_notice_text.configure(wraplength=width)
         self.workflow.configure(wraplength=max(150,width-260))
         self.workflow_details.configure(wraplength=width)

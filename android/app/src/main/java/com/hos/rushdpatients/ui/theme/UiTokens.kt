@@ -69,6 +69,7 @@ object UiOpacity {
 }
 
 object UiMotion {
+    const val placementMillis = 200
     const val fastMillis = 90
     const val indicatorMillis = 160
     const val expandMillis = 160
@@ -87,10 +88,14 @@ object UiDialog {
 
 /** Purpose-specific thresholds stay independent even when their current values match. */
 object UiLayout {
+    val contentMaxWidth = 720.dp
+    val fetchPullDistance = 72.dp
+    val roundsSwipeDistance = 64.dp
     val metricPairMinWidth = 280.dp
     const val defaultListFraction = .42f
     const val paneAdjustmentFraction = .05f
     const val expandedWindowWidthDp = 600
+    const val expandedWindowMinHeightDp = 480
     val fieldPairMinWidth = 360.dp
     val patientGridMinWidth = 360.dp
     val patientCardColumnsMinWidth = 440.dp

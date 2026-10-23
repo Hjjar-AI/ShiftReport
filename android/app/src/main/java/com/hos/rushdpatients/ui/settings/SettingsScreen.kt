@@ -25,6 +25,7 @@ import com.hos.rushdpatients.ui.components.AppCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -103,9 +104,12 @@ fun SettingsScreen(
     val settingsScroll = rememberScrollState()
     val scrollToSection = com.hos.rushdpatients.ui.components.rememberUiScrollTo(settingsScroll)
     val sectionOffsets = remember { mutableStateMapOf<String, Int>() }
-    val sections = remember(canManageProject, state.isPermanentAdmin, workspace) {
-        SettingsSectionId.entries.filter { it.workspace == workspace && (canManageProject || !it.adminOnly) && (it != SettingsSectionId.RESET || state.isPermanentAdmin) }
+    var searchVisible by rememberSaveable(workspace) { mutableStateOf(false) }
+    val searchableSections = remember(canManageProject, state.isPermanentAdmin) {
+        availableSettingsSections(canManageProject, state.isPermanentAdmin)
     }
+    val sections = remember(searchableSections, workspace) { searchableSections.filter { it.workspace == workspace } }
+    androidx.activity.compose.BackHandler(enabled = searchVisible) { searchVisible = false }
     val sectionTitles = sections.map { it.title(uiText) }
     val settingsScope = rememberCoroutineScope()
     state.emptyStartReview?.takeIf { canManageProject && state.isPermanentAdmin }?.let { review ->
@@ -217,11 +221,18 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = workspace.title(uiText), onBack = onBack)
+            AppTopBar(title = workspace.title(uiText), onBack = { if (searchVisible) searchVisible = false else onBack() },
+                actions = {
+                    com.hos.rushdpatients.ui.components.AppIconButton(
+                        label = if (searchVisible) uiText(R.string.ui_close) else uiText(R.string.ui_settings_search),
+                        icon = if (searchVisible) AppIcons.Close else AppIcons.Search,
+                        onClick = { searchVisible = !searchVisible })
+                })
         },
         snackbarHost = { AppSnackbarHost(snackbar) }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize()) {
             if (sections.size > 1) {
                 val activeSection = activeAppSection(sectionTitles, sectionOffsets, settingsScroll)
                 AppSectionIndex(sections = sectionTitles, selected = activeSection, label = { it },
@@ -322,6 +333,13 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(UiSpacing.small))
             }
+        }
+        if (searchVisible) SettingsSearchPanel(searchableSections,
+            onOpen = { destination ->
+                searchVisible = false
+                if (destination == workspace) settingsScope.launch { scrollToSection(0) }
+                else onOpenWorkspace(destination)
+            }, modifier = Modifier.fillMaxSize())
         }
     }
 

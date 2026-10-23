@@ -38,6 +38,7 @@ internal data class WardFilterOptions(
 @Composable
 internal fun WardViewOptionsDialog(
     state: WardUiState, viewModel: WardController, filters: WardFilterOptions,
+    resultSummary: String, activeFilterLabels: List<String>,
     onFiltersChanged: ((WardFilterOptions) -> WardFilterOptions) -> Unit, selectedViewOption: WardViewOption,
     viewOptionsScroll: androidx.compose.foundation.ScrollState, showSort: Boolean,
     onSortExpandedChange: (Boolean) -> Unit, onSelectOption: (WardViewOption) -> Unit,
@@ -57,6 +58,10 @@ internal fun WardViewOptionsDialog(
         text = {
             Column(Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight)
                 .verticalScroll(viewOptionsScroll), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                Text(resultSummary, style = MaterialTheme.typography.labelMedium)
+                if (activeFilterLabels.isNotEmpty()) Text(
+                    uiText(R.string.ui_ward_patient_list_controls_002, activeFilterLabels.distinct().joinToString(" · ")),
+                    style = MaterialTheme.typography.bodySmall)
                 Text(uiText(R.string.ui_ward_view_options_dialog_001), style = MaterialTheme.typography.bodySmall)
                 if (selectedViewOption == WardViewOption.FILTERS) {
                     AppSearchField(query = filters.searchQuery, onQueryChange = { query -> onFiltersChanged { it.copy(searchQuery = query) } }, label = uiText(R.string.ui_search))

@@ -38,14 +38,14 @@ private fun WardDesignGallery() {
                 Column(Modifier.verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
                     PatientCard(
-        state = PatientCardState(patient = patient,
+        state = PatientCardState(patient = patient, taskNowEpochMillis = System.currentTimeMillis(),
             expanded = false,
             twoColumn = false,
             doctorNames = names),
         actions = PatientCardActions.None
     )
                     PatientCard(
-        state = PatientCardState(patient = patient,
+        state = PatientCardState(patient = patient, taskNowEpochMillis = System.currentTimeMillis(),
             expanded = true,
             twoColumn = false,
             doctorNames = names),

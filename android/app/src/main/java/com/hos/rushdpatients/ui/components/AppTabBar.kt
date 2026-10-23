@@ -3,6 +3,8 @@ package com.hos.rushdpatients.ui.components
 import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -42,6 +44,8 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 items.forEachIndexed { index, item ->
                     val selected = index == selectedIndex
+                    val iconScale by animateFloatAsState(if (selected) 1.05f else 1f,
+                        tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.indicatorMillis), label = "tabIconScale")
                     val indicator by animateColorAsState(
                         targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                         animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.indicatorMillis), label = "navigationIndicator")
@@ -58,7 +62,7 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                                 contentAlignment = Alignment.Center) {
                                 Icon(icon, contentDescription = null,
                                     tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else color,
-                                    modifier = Modifier.size(UiSize.icon))
+                                    modifier = Modifier.size(UiSize.icon).graphicsLayer { scaleX = iconScale; scaleY = iconScale })
                             }
                         }
                         Text(item.label, textAlign = TextAlign.Center, color = color,

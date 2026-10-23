@@ -23,6 +23,8 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,8 +48,8 @@ import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal enum class WardDrawerAction {
-    ALL_PATIENTS, REPORT, ACTIVITY, SETTINGS, DATA_MANAGEMENT, DASHBOARD, MY_PATIENTS, FILTERS,
-    SHIFT_DOCTORS, PREVIOUS, RECYCLE_BIN, ADMIN, PROJECT, ABOUT, START_SHIFT,
+    REPORT, SETTINGS, DATA_MANAGEMENT,
+    PREVIOUS, RECYCLE_BIN, ADMIN, PROJECT, ABOUT, START_SHIFT,
     FILES, BACKUP, INVITATIONS, DESTINATIONS, RESET, DIAGNOSTICS, ANNOUNCEMENT
 }
 
@@ -59,13 +61,9 @@ internal fun WardDrawer(
     isAdmin: Boolean,
     isPermanentAdmin: Boolean,
     online: Boolean,
-    viewMode: WardViewMode,
-    allPatientsSelected: Boolean,
-    filtersSelected: Boolean,
     onAction: (WardDrawerAction) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var dailyMenuExpanded by rememberSaveable { mutableStateOf(true) }
     var preferencesMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var dataMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var adminMenuExpanded by rememberSaveable { mutableStateOf(false) }
@@ -116,15 +114,10 @@ internal fun WardDrawer(
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())
                     .padding(top = UiSpacing.screen),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
-                    DrawerToolGroup(uiText(R.string.ui_ward_drawer_008), AppIcons.ViewAgenda, dailyMenuExpanded,
-                        onToggle = { dailyMenuExpanded = !dailyMenuExpanded }) {
-                        WardDrawerRow(uiText(R.string.ui_ward_drawer_009), AppIcons.ViewAgenda, allPatientsSelected) { onAction(WardDrawerAction.ALL_PATIENTS) }
-                        WardDrawerRow(uiText(R.string.ui_handover_dashboard_011), AppIcons.Person, viewMode == WardViewMode.MINE) { onAction(WardDrawerAction.MY_PATIENTS) }
-                        WardDrawerRow(uiText(R.string.ui_ward_drawer_010), AppIcons.Dashboard, viewMode == WardViewMode.DASHBOARD) { onAction(WardDrawerAction.DASHBOARD) }
-                        WardDrawerRow(uiText(R.string.ui_ward_drawer_011), AppIcons.FilterList, filtersSelected) { onAction(WardDrawerAction.FILTERS) }
-                        WardDrawerRow(uiText(R.string.ui_shift_doctor_picker_001), AppIcons.Groups, enabled = !state.isReadOnly && state.shift != null) { onAction(WardDrawerAction.SHIFT_DOCTORS) }
-                        WardDrawerRow(UiAction.SEND_REPORT.label(uiText), UiAction.SEND_REPORT.icon,
-                            enabled = state.shift != null) { onAction(WardDrawerAction.REPORT) }
+                    com.hos.rushdpatients.ui.components.AppButton(
+                        onClick = { onAction(WardDrawerAction.REPORT) }, enabled = state.shift != null,
+                        modifier = Modifier.fillMaxWidth()) {
+                        com.hos.rushdpatients.ui.components.AppActionLabel(UiAction.SEND_REPORT)
                     }
 
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_012), AppIcons.Folder, dataMenuExpanded,
@@ -149,8 +142,6 @@ internal fun WardDrawer(
                             WardDrawerRow(uiText(R.string.ui_ward_drawer_021), AppIcons.PictureAsPdf) { onAction(WardDrawerAction.DESTINATIONS) }
                             WardDrawerRow(uiText(R.string.ui_ward_drawer_022), AppIcons.PersonAdd) { onAction(WardDrawerAction.INVITATIONS) }
                             WardDrawerRow(uiText(R.string.ui_ward_drawer_023), AppIcons.Campaign) { onAction(WardDrawerAction.ANNOUNCEMENT) }
-                            WardDrawerRow(uiText(R.string.ui_ward_drawer_024), AppIcons.History) { onAction(WardDrawerAction.ACTIVITY) }
-                            if (isPermanentAdmin) WardDrawerRow(uiText(R.string.ui_ward_drawer_025), AppIcons.RestartAlt) { onAction(WardDrawerAction.RESET) }
                         }
                     }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_026), AppIcons.HelpOutline, helpMenuExpanded,
@@ -170,7 +161,7 @@ private fun DrawerToolGroup(label: String, icon: ImageVector, expanded: Boolean,
     onToggle: () -> Unit, content: @Composable () -> Unit) {
     Surface(shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = com.hos.rushdpatients.ui.theme.UiOpacity.containerSoft)) {
-        Column {
+        Column(Modifier.animateContentSize(tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis))) {
             com.hos.rushdpatients.ui.components.AppSectionHeader(label, icon = icon,
                 expanded = expanded, onToggle = onToggle,
                 titleColor = MaterialTheme.colorScheme.onSurfaceVariant,

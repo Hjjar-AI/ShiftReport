@@ -26,6 +26,8 @@ import androidx.compose.runtime.remember
 import com.hos.rushdpatients.domain.patient.WardSummary
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
@@ -75,7 +77,7 @@ internal fun HandoverDashboard(
             if (isAdmin) AppTextButton(onClick = onActivity) { Text(uiText(R.string.ui_ward_activity_screen_003)) }
             AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text(uiText(R.string.ui_handover_dashboard_004)) }
         }
-        Text(uiText(R.string.ui_handover_dashboard_005), style = MaterialTheme.typography.titleMedium)
+        Text(uiText(R.string.ui_handover_dashboard_005), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
         val attention = buildList {
             if (urgent > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_006), urgent, Tone.URGENT) { onFilter(DashboardFilter.URGENT) })
             if (taskCounts.overdue > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_007), taskCounts.overdue, Tone.URGENT) { onFilter(DashboardFilter.TASK_OVERDUE) })
@@ -83,11 +85,11 @@ internal fun HandoverDashboard(
         AppMetricGrid(attention)
         if (attention.isEmpty()) com.hos.rushdpatients.ui.components.AppNotice(
             uiText(R.string.ui_handover_dashboard_008), kind = NoticeKind.SUCCESS)
-        Text(uiText(R.string.ui_handover_dashboard_009), style = MaterialTheme.typography.titleMedium)
+        Text(uiText(R.string.ui_handover_dashboard_009), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
         AppMetricGrid(listOf(
             AppMetric(uiText(R.string.ui_handover_dashboard_010), patients.size) { onFilter(DashboardFilter.ALL) },
             AppMetric(uiText(R.string.ui_handover_dashboard_011), mine) { onFilter(DashboardFilter.MINE) },
-            AppMetric(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending) { onFilter(DashboardFilter.TASK_PENDING) },
+            AppMetric(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending, Tone.PENDING) { onFilter(DashboardFilter.TASK_PENDING) },
             AppMetric(uiText(R.string.ui_handover_dashboard_013), warnings) { onFilter(DashboardFilter.WARNINGS) },
             AppMetric(uiText(R.string.ui_handover_dashboard_014), unassigned) { onFilter(DashboardFilter.UNASSIGNED) },
             AppMetric(uiText(R.string.ui_handover_dashboard_015), taskCounts.unassigned) { onFilter(DashboardFilter.TASK_UNASSIGNED) },

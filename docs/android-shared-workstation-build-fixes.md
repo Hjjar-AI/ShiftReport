@@ -541,6 +541,48 @@ APK export configuration-cache error (also corrected in source).
 run a test suite. The next owner-run `./gradlew assembleDebug` is needed to verify
 that the build proceeds and reveal any later, independent source errors.
 
+## Shared debug signing
+
+Debug updates require the same application ID and signing certificate. Shared Gradle
+or Linux group membership alone does not share the default `~/.android/debug.keystore`.
+Both accounts now select an ignored copy of the existing `mhmmd` key through
+`android/local.properties`:
+
+```properties
+debug.keystore=.signing/debug.keystore
+```
+
+`SHIFTREPORT_DEBUG_KEYSTORE` accepts an absolute or Android-root-relative override;
+nonblank environment values take precedence. A selected missing/unreadable key fails
+instead of falling back. Without either selection, ordinary account-local signing
+remains. Standard Android debug alias/password defaults are retained; release uses
+its separate protected configuration.
+
+The local key directory uses owner/group `mhmmd:developer`, mode 2750; the key uses
+0640, without inherited ACLs. Both trusted accounts need active group membership and
+parent-directory traversal. Keep the key backed up outside Git; never regenerate or
+overwrite it to solve an update failure. Separate checkouts/machines need the same
+selected key or a protected copy; caches and build outputs remain account-local.
+Restart Studio after changing its environment or session group membership.
+
+Read-only checks, from `android/` in each account:
+
+```bash
+namei -l .signing/debug.keystore
+getfacl -cp .signing .signing/debug.keystore
+test -r .signing/debug.keystore
+keytool -list -keystore .signing/debug.keystore -alias androiddebugkey -storepass android
+/path/to/sdk/build-tools/VERSION/apksigner verify --print-certs /path/to/app-debug.apk
+```
+
+Compare SHA-256 certificates with the installed build's original APK. Existing local
+debug APKs match the selected original key. `mhmmd` certificate access passed;
+`work` group membership/path permissions were inspected, but its session-level check
+could not run because `sudo` requires authentication. A new build/device update has
+not been verified. Clean/cache deletion/version increments cannot repair different signers.
+If the installed signer differs, recover its original key before planning any data-
+losing reinstall. [Official signing guidance](https://developer.android.com/studio/publish/app-signing).
+
 ## Production release signing
 
 Release selects its own signing configuration and no longer falls back to the
@@ -557,8 +599,8 @@ ignored `android/keystore.properties` or CI environment variables:
 The file path can be absolute or relative to `android/`. Keep the keystore,
 passwords and properties outside tracked source; the local file and common signing
 extensions are already ignored. Do not send signing passwords through build logs.
-Debug retains its existing development signing. No key was created or inspected,
-no build ran, and no production-signed artifact has been verified. Without complete
+Debug uses the separate development selection above. No production key was created
+or inspected, no build ran, and no production-signed artifact has been verified. Without complete
 valid inputs production signing is unavailable; do not treat an unsigned artifact
 as a distributable signed release. Existing installations signed with another
 certificate need a deliberate distribution decision by the owner.

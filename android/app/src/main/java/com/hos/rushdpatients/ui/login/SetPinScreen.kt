@@ -21,6 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.style.TextAlign
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.ui.components.LoadingButton
@@ -35,6 +37,7 @@ fun SetPinScreen(
     onCancel: () -> Unit
 ) {
     val uiText = rememberUiStrings()
+    val focus = LocalFocusManager.current
     var pin by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
 
@@ -54,7 +57,8 @@ fun SetPinScreen(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(8) },
             label = uiText(R.string.ui_set_pin_screen_003),
-            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next, enabled = !busy
+            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next, enabled = !busy,
+            keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Next) })
         )
         PasswordField(
             value = confirm,

@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +27,10 @@ fun AppCenteredContent(
             .verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
         verticalArrangement = verticalArrangement,
         horizontalAlignment = Alignment.CenterHorizontally,
-        content = content
+        content = {
+            Column(Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.contentMaxWidth).fillMaxWidth(),
+                verticalArrangement = verticalArrangement, horizontalAlignment = Alignment.CenterHorizontally,
+                content = content)
+        }
     )
 }

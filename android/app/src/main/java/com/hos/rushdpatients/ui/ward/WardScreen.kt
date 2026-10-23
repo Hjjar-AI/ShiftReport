@@ -59,6 +59,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -91,6 +96,19 @@ internal fun WardWorkspace(
     onViewChanged: (WardViewMode) -> Unit = {},
     drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)? = null
 ) {
+    val now by viewModel.taskNow.collectAsStateWithLifecycle()
+    androidx.compose.runtime.CompositionLocalProvider(LocalWardTaskNow provides now) {
+        WardWorkspaceContent(isAdmin, currentDoctorId, navigation, viewModel, initialView, onViewChanged, drawerContent)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun WardWorkspaceContent(
+    isAdmin: Boolean, currentDoctorId: String, navigation: WardNavigation, viewModel: WardController,
+    initialView: WardViewMode?, onViewChanged: (WardViewMode) -> Unit,
+    drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)?
+) {
     val onOpenReport = navigation.onOpenReport
     val onOpenAdmin = navigation.onOpenAdmin
     val onOpenSettings = navigation.onOpenSettings
@@ -102,7 +120,7 @@ internal fun WardWorkspace(
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val online by viewModel.online.collectAsStateWithLifecycle()
-    val taskNowEpochMillis by viewModel.taskNow.collectAsStateWithLifecycle()
+    val taskNowEpochMillis = LocalWardTaskNow.current
     val filtersState = rememberSaveable(saver = WardFilters.Saver) { WardFilters(WardFilterOptions(viewMode = initialView ?: WardViewMode.ALL)) }
     var searchQuery by filtersState::searchQuery
     var viewMode by filtersState::viewMode
@@ -128,7 +146,9 @@ internal fun WardWorkspace(
     val publicationScroll = rememberLazyListState()
     var listFraction by rememberSaveable { mutableStateOf(UiLayout.defaultListFraction) }
     var showSupportingSheet by overlays::showSupportingSheet
-    val expandedWindow = LocalConfiguration.current.screenWidthDp >= UiLayout.expandedWindowWidthDp
+    val configuration = LocalConfiguration.current
+    val expandedWindow = configuration.screenWidthDp >= UiLayout.expandedWindowWidthDp &&
+        configuration.screenHeightDp >= UiLayout.expandedWindowMinHeightDp
     val freshnessLabel = state.freshnessLabel(uiText)
     val doctorNames = remember(state.doctors) {
         state.doctors.associate { it.id to it.fullName }
@@ -139,6 +159,9 @@ internal fun WardWorkspace(
         uiPreferences.autoHideNavigation && viewMode in setOf(WardViewMode.ALL, WardViewMode.MINE) &&
             !expandedWindow && state.patients.isNotEmpty(),
         state.shift?.id to viewMode)
+    var navigationHeightPx by remember { mutableStateOf(0) }
+    val navigationShift by animateFloatAsState(if (navigationVisible) 0f else 1f,
+        animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.placementMillis), label = "wardNavigationShift")
     val editor = viewModel.editor
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
@@ -192,6 +215,13 @@ internal fun WardWorkspace(
     val filterNow = if (taskFilter == WardTaskFilter.OVERDUE) taskNowEpochMillis else 0L
     val visiblePatients = remember(state.patients, filters, currentDoctorId, filterNow, filterDate, pinnedIds, searchIndex) {
         filterWardPatients(state.patients, filters, currentDoctorId, filterNow, pinnedIds, searchIndex)
+    }
+    val presetCounts = remember(state.patients, currentDoctorId, taskNowEpochMillis) {
+        val summary = com.hos.rushdpatients.domain.patient.WardSummary.from(state.patients, currentDoctorId, taskNowEpochMillis)
+        mapOf(DashboardFilter.ALL to state.patients.size, DashboardFilter.MINE to summary.mine,
+            DashboardFilter.URGENT to summary.urgent, DashboardFilter.TASK_OVERDUE to state.patients.count {
+                patient -> patient.tasks.any { com.hos.rushdpatients.domain.task.PatientTasks.overdue(it, taskNowEpochMillis) }
+            })
     }
     val visibleIds = remember(visiblePatients) { visiblePatients.mapTo(mutableSetOf()) { it.id } }
 
@@ -251,7 +281,20 @@ internal fun WardWorkspace(
         }
     }
     if (showWardTasks) WardTaskBoard(state.patients, state.doctors, taskNowEpochMillis,
-        currentDoctorId = currentDoctorId, onDismiss = { showWardTasks = false }, onPatient = { id ->
+        currentDoctorId = currentDoctorId, snackbarHost = snackbarHost,
+        editable = !state.isReadOnly && !state.saving && !state.syncing,
+        onComplete = { entry ->
+            viewModel.setTaskDone(entry.patient, entry.task.id, true) { saved ->
+                scope.launch {
+                    val result = snackbarHost.showSnackbar(uiText(R.string.ui_task_completed),
+                        actionLabel = uiText(R.string.ui_task_undo))
+                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                        viewModel.setTaskDone(saved, entry.task.id, false) { }
+                    }
+                }
+            }
+        },
+        onDismiss = { showWardTasks = false }, onPatient = { id ->
             if (!state.saving && !state.syncing && !editor.showAdd && editor.editTarget == null && editor.copyTarget == null && state.patients.any { it.id == id }) {
                 showWardTasks = false
                 filtersState.applyPreset(DashboardFilter.ALL)
@@ -341,14 +384,9 @@ internal fun WardWorkspace(
                 isAdmin = isAdmin,
                 isPermanentAdmin = isAdmin && state.doctors.any { it.id == currentDoctorId && it.isPermanentAdmin && !it.isDeleted },
                 online = online,
-                viewMode = viewMode,
-                allPatientsSelected = filtersState.allPatientsSelected,
-                filtersSelected = filtersState.filtersSelected,
                 onAction = { action -> closeDrawer {
                     when (action) {
-                        WardDrawerAction.ALL_PATIENTS -> applyDashboardFilter(DashboardFilter.ALL)
                         WardDrawerAction.REPORT -> state.shift?.id?.let(onOpenReport)
-                        WardDrawerAction.ACTIVITY -> viewMode = WardViewMode.ACTIVITY
                         WardDrawerAction.SETTINGS -> onOpenSettings()
                         WardDrawerAction.FILES -> onOpenWorkspace(SettingsWorkspace.FILES)
                         WardDrawerAction.BACKUP -> onOpenWorkspace(SettingsWorkspace.BACKUP)
@@ -358,10 +396,6 @@ internal fun WardWorkspace(
                         WardDrawerAction.DIAGNOSTICS -> onOpenWorkspace(SettingsWorkspace.DIAGNOSTICS)
                         WardDrawerAction.ANNOUNCEMENT -> onOpenAnnouncement()
                         WardDrawerAction.DATA_MANAGEMENT -> onOpenDataManagement()
-                        WardDrawerAction.DASHBOARD -> viewMode = WardViewMode.DASHBOARD
-                        WardDrawerAction.MY_PATIENTS -> applyDashboardFilter(DashboardFilter.MINE)
-                        WardDrawerAction.FILTERS -> showFilters = true
-                        WardDrawerAction.SHIFT_DOCTORS -> state.shift?.id?.let(onOpenReport)
                         WardDrawerAction.START_SHIFT -> viewModel.offerPreviousShift()
                         WardDrawerAction.PREVIOUS -> confirmPrevious = true
                         WardDrawerAction.RECYCLE_BIN -> {
@@ -397,10 +431,6 @@ internal fun WardWorkspace(
                             if (!patientDestination) viewMode = WardViewMode.ALL
                             showSearch = true
                             requestSearchFocus = true
-                            scope.launch {
-                                if (uiPreferences.reducedMotion) patientGridState.scrollToItem(0)
-                                else patientGridState.animateScrollToItem(0)
-                            }
                         }
                     }, onWorkflow = {
                         when (state.workflowAction) {
@@ -409,8 +439,9 @@ internal fun WardWorkspace(
                             WardWorkflowAction.DOWNLOAD -> confirmLatest = true
                         }
                     })
-                if (!viewModel.liveProject) Text(uiText(R.string.ui_demo_navigation_001),
-                    Modifier.fillMaxWidth().padding(UiPadding.screen), style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                if (!viewModel.liveProject) AppNotice(uiText(R.string.ui_demo_navigation_001),
+                    kind = NoticeKind.WARNING, icon = AppIcons.Info,
+                    modifier = Modifier.fillMaxWidth().padding(UiPadding.screen))
                 }
             },
             floatingActionButton = {
@@ -430,10 +461,14 @@ internal fun WardWorkspace(
                 }
             },
             bottomBar = {
-                if (navigationVisible) WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
-                    onDestination = { viewMode = it })
+                Box(Modifier.onSizeChanged { navigationHeightPx = it.height }
+                    .graphicsLayer { translationY = navigationShift * navigationHeightPx }
+                    .then(if (navigationVisible) Modifier else Modifier.clearAndSetSemantics { })) {
+                    WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
+                        onDestination = { viewMode = it })
+                }
             },
-            snackbarHost = { AppSnackbarHost(snackbarHost) }
+            snackbarHost = { if (!showWardTasks) AppSnackbarHost(snackbarHost) }
         ) { padding ->
             val layoutDirection = LocalLayoutDirection.current
             // Draw behind the transparent pill gutters; reserve its height in scroll content instead.
@@ -483,7 +518,12 @@ internal fun WardWorkspace(
                     },
                     compactOverlay = { if (patientDestination) detailContent(false) },
                     primary = { dualPane ->
-                    Box(Modifier.fillMaxSize()) {
+                    WardPullToFetch(
+                        enabled = viewModel.liveProject && patientDestination && !state.loading && state.error == null &&
+                            !state.isReadOnly && !state.saving && !state.syncing && !confirmLatest &&
+                            detailsTargetId == null && editor.dialog == null,
+                        onRequest = { confirmLatest = true }
+                    ) {
                         if (state.loading) {
                             com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_ward_screen_006), Modifier.align(Alignment.Center))
                         } else if (state.error != null) {
@@ -537,6 +577,24 @@ internal fun WardWorkspace(
                                 onToggleGroup = { key ->
                                     collapsedGroups = if (key in collapsedGroups) collapsedGroups - key else collapsedGroups + key
                                 }, onResetFilters = ::resetPatientFilters,
+                                controlsContent = {
+                                    if (state.isReadOnly) AppNotice(uiText(R.string.ui_ward_screen_013), icon = AppIcons.Lock, compact = true)
+                                    androidx.compose.material3.Surface {
+                                        Column(Modifier.padding(horizontal = UiSpacing.screenGutter)) {
+                                            val activeFilters = filtersState.labels(uiText)
+                                            WardPatientListControls(
+                                                visibleCount = visiblePatients.size, totalCount = state.patients.size, presetCounts = presetCounts,
+                                                groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText),
+                                                activeFilters = activeFilters, selectedPreset = filtersState.selectedPreset,
+                                                onPreset = ::applyDashboardFilter,
+                                                onOptions = { showFilters = true }, onReset = ::resetPatientFilters,
+                                                showSearch = showSearch, query = searchQuery,
+                                                onQueryChange = { searchQuery = it }, requestFocus = requestSearchFocus,
+                                                onFocusRequested = { requestSearchFocus = false }
+                                            )
+                                        }
+                                    }
+                                },
                                 headerContent = {
                                     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                                                             fetchReminder()
@@ -549,23 +607,10 @@ internal fun WardWorkspace(
                                                                                     }
                                                                                 })
                                                                             }
-                                                                            val activeFilters = filtersState.labels(uiText)
-                                                                            WardPatientListControls(
-                                                                                visibleCount = visiblePatients.size, totalCount = state.patients.size,
-                                                                                groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText),
-                                                                                activeFilters = activeFilters, selectedPreset = filtersState.selectedPreset,
-                                                                                onPreset = ::applyDashboardFilter,
-                                                                                onOptions = { showFilters = true }, onReset = ::resetPatientFilters,
-                                                                                showSearch = showSearch, query = searchQuery,
-                                                                                onQueryChange = { searchQuery = it }, requestFocus = requestSearchFocus,
-                                                                                onFocusRequested = { requestSearchFocus = false }
-                                                                            )
-                                                                            if (state.isReadOnly) {
-                                                                                AppNotice(uiText(R.string.ui_ward_screen_013), icon = AppIcons.Lock)
-                                                                            }
                                                                         }
-                                }, patientCard = { patient ->
+                                }, patientCard = { patient, cardModifier ->
                                     PatientCard(
+        modifier = cardModifier,
         state = PatientCardState(patient = patient,
             expanded = if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds,
             animateExpansion = animatedPatientId == patient.id,
@@ -685,6 +730,10 @@ internal fun WardWorkspace(
         }, onDismissDelete = { editor.deleteTarget = null })
 
     if (showFilters) WardViewOptionsDialog(state, viewModel,
+        resultSummary = listOfNotNull(uiText(R.string.ui_ward_patient_list_controls_001,
+            com.hos.rushdpatients.ui.components.uiNumber(visiblePatients.size), com.hos.rushdpatients.ui.components.uiNumber(state.patients.size)),
+            state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText)).joinToString(" · "),
+        activeFilterLabels = filtersState.labels(uiText),
         filters = filters,
         onFiltersChanged = { transform -> filtersState.update(transform(filtersState.options()))
         }, selectedViewOption = selectedViewOption, viewOptionsScroll = viewOptionsScroll,

@@ -91,7 +91,7 @@ class DemoWardViewModel @Inject constructor(
     )
     private val workspace = _state.map(::wardState).stateIn(viewModelScope,
         SharingStarted.Eagerly, wardState(_state.value))
-    init { viewModelScope.launch { while (true) { delay(60_000L); clock.value = System.currentTimeMillis() } } }
+    init { viewModelScope.launch { while (true) { delay(60_000L - System.currentTimeMillis() % 60_000L); clock.value = System.currentTimeMillis() } } }
 
     internal val controller: WardController = object : WardController {
         override val liveProject = false
@@ -136,6 +136,14 @@ class DemoWardViewModel @Inject constructor(
             sort(spec); onSuccess()
         }
         override fun saveDraft(draft: PatientDraft) { _state.update { it.copy(draft = draft) } }
+        override fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) {
+            if (patient.tasks.none { it.id == taskId && it.done != done }) return
+            val changed = patient.copy(tasks = patient.tasks.map { task ->
+                if (task.id != taskId) task else task.copy(done = done,
+                    completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
+            })
+            if (save(changed)) _state.value.patients.firstOrNull { it.id == patient.id }?.let(onSuccess)
+        }
         override fun setPriority(patient: Patient, priority: Boolean) { save(patient.copy(isPriority = priority)) }
         override fun setSaveAndNext(enabled: Boolean) { this@DemoWardViewModel.setSaveAndNext(enabled) }
         override fun setPatientDetailsExpanded(expanded: Boolean) { _state.update { it.copy(expanded = expanded) } }

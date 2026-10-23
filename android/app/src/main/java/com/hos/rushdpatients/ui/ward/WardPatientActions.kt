@@ -110,6 +110,24 @@ internal class WardPatientActions(
         }
     }
 
+    fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) {
+        if (_state.value.saving || _state.value.syncing) return
+        val shiftId = saveGuard.editableShiftId() ?: return
+        if (patient.tasks.none { it.id == taskId && it.done != done }) return
+        val changed = patient.copy(tasks = patient.tasks.map { task ->
+            if (task.id != taskId) task else task.copy(done = done,
+                completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
+        })
+        viewModelScope.launch {
+            if (!saveGuard.validateForSave(changed)) return@launch
+            var saved: Patient? = null
+            saveGuard.saveAction(onSuccess = { saved?.let(onSuccess) }) {
+                saveGuard.requireEditableShift(shiftId)
+                saved = wardMutations.updatePatient(changed, shiftId, sessionManager.current())
+            }
+        }
+    }
+
     fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {}) {
         val shiftId = saveGuard.editableShiftId() ?: return
         var deleted: Patient? = null

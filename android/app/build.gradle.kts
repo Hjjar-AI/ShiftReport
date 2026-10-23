@@ -32,6 +32,23 @@ fun releaseSigningValue(environmentName: String, propertyName: String): String? 
     providers.environmentVariable(environmentName).orNull?.takeIf { it.isNotBlank() }
         ?: releaseSigningProperties.getProperty(propertyName)?.takeIf { it.isNotBlank() }
 
+// Shared development identity is selected locally; writable caches remain account-specific.
+val debugSigningProperties = Properties().apply {
+    load(StringReader(providers.fileContents(
+        rootProject.layout.projectDirectory.file("local.properties")
+    ).asText.orElse("").get()))
+}
+val configuredDebugKeystorePath = providers.environmentVariable("SHIFTREPORT_DEBUG_KEYSTORE")
+    .orNull?.trim()?.takeIf { it.isNotEmpty() }
+    ?: debugSigningProperties.getProperty("debug.keystore")?.trim()?.takeIf { it.isNotEmpty() }
+val configuredDebugKeystore = configuredDebugKeystorePath?.let { path ->
+    rootProject.file(path).also { key ->
+        require(key.isFile && key.canRead()) {
+            "Configured debug keystore is missing or unreadable; check debug.keystore / SHIFTREPORT_DEBUG_KEYSTORE."
+        }
+    }
+}
+
 android {
     namespace = "com.hos.rushdpatients"
     compileSdk = 34
@@ -57,6 +74,9 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            configuredDebugKeystore?.let { storeFile = it }
+        }
         create("release") {
             storeFile = releaseSigningValue("SHIFTREPORT_KEYSTORE_FILE", "storeFile")?.let { rootProject.file(it) }
             storePassword = releaseSigningValue("SHIFTREPORT_KEYSTORE_PASSWORD", "storePassword")

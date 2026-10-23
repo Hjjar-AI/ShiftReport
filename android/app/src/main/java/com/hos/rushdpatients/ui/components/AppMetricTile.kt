@@ -18,10 +18,10 @@ fun AppMetricGrid(metrics: List<AppMetric>) {
         val columns = if (maxWidth >= UiLayout.metricPairMinWidth * scale) 2 else 1
         Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
             metrics.chunked(columns).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
                     row.forEach { metric ->
                         val colors = toneColors(metric.tone)
-                        Surface(onClick = metric.onClick, modifier = Modifier.weight(1f).heightIn(min = UiSpacing.touchTarget),
+                        Surface(onClick = metric.onClick, modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = UiSpacing.touchTarget),
                             color = colors.container, contentColor = colors.content, shape = MaterialTheme.shapes.medium) {
                             Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 Text(uiNumber(metric.count), style = MaterialTheme.typography.headlineSmall)

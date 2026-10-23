@@ -49,7 +49,7 @@ internal fun PatientName(name: String, modifier: Modifier = Modifier,
 @Composable
 internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modifier, pinned: Boolean = false,
     showFreshness: Boolean = false, nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
-    showPersonal: Boolean = false, showOrdinal: Boolean = false) {
+    showPersonal: Boolean = false, showOrdinal: Boolean = false, showDemographics: Boolean = false) {
     val uiText = rememberUiStrings()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PatientName(if (showOrdinal) "${uiNumber(patient.sortOrder)} · ${patient.name}" else patient.name, style = nameStyle)
@@ -59,11 +59,14 @@ internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modif
             if (patient.isPriority) Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Icon(AppIcons.Star, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(UiSize.iconSmall))
+                    tint = com.hos.rushdpatients.ui.theme.LocalClinicalColors.current.warning, modifier = Modifier.size(UiSize.iconSmall))
                 Text(uiText(R.string.ui_patient_identity_002), style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary)
+                    color = com.hos.rushdpatients.ui.theme.LocalClinicalColors.current.warning)
             }
-            val metadata = if (showPersonal) PatientIdentityText.details(uiText, patient) else PatientIdentityText.admission(uiText, patient)
+            val metadata = if (showPersonal) PatientIdentityText.details(uiText, patient) else listOfNotNull(
+                PatientIdentityText.admission(uiText, patient),
+                PatientIdentityText.personal(uiText, patient).takeIf { showDemographics }
+            ).filter(String::isNotBlank).joinToString(" · ")
             Text(metadata + if (showFreshness) " · ${relativeFreshness(uiText, patient.updatedAt)}" else "",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

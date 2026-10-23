@@ -45,7 +45,7 @@ internal fun WardSupportingPane(
         Text(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)))
         if (showSynchronization) PatientSyncNotice(state.syncStatus, freshnessLabel, online)
         if (warnings.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_002))
-        warnings.forEach { Text("• $it") }
+        warnings.forEach { AppNotice(it, kind = NoticeKind.WARNING) }
         AppButton(onClick = onReviewReport, enabled = state.shift != null, modifier = Modifier.fillMaxWidth()) {
             Text(uiText(R.string.ui_ward_supporting_pane_003))
         }

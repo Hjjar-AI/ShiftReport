@@ -92,7 +92,7 @@ internal fun SettingsPatientCardPreview(state: SettingsUiState, modifier: Modifi
         // Font scale comes from the same app-wide density provider as the ward.
         RushdPatientsTheme(preset = state.appTheme, appearance = state.appearance, uiPreferences = state.uiPreferences) {
             PatientCard(
-        state = PatientCardState(patient = sample,
+        state = PatientCardState(patient = sample, taskNowEpochMillis = 0L,
             expanded = true,
             twoColumn = state.patientTwoColumn,
             compact = state.patientCompactDensity,

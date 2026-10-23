@@ -34,6 +34,7 @@ internal interface WardController {
     fun setCompactCards(compact: Boolean)
     fun setGroupByMode(mode: GroupByMode)
     fun setPatientDetailsExpanded(expanded: Boolean)
+    fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit)
     fun setPriority(patient: Patient, priority: Boolean)
     fun setSaveAndNext(enabled: Boolean)
     fun setTwoColumn(enabled: Boolean)
@@ -68,6 +69,7 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun setCompactCards(compact: Boolean) { viewModel.setCompactCards(compact) }
     override fun setGroupByMode(mode: GroupByMode) { viewModel.setGroupByMode(mode) }
     override fun setPatientDetailsExpanded(expanded: Boolean) { viewModel.setPatientDetailsExpanded(expanded) }
+    override fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) { viewModel.setTaskDone(patient, taskId, done, onSuccess) }
     override fun setPriority(patient: Patient, priority: Boolean) { viewModel.setPriority(patient, priority) }
     override fun setSaveAndNext(enabled: Boolean) { viewModel.setSaveAndNext(enabled) }
     override fun setTwoColumn(enabled: Boolean) { viewModel.setTwoColumn(enabled) }

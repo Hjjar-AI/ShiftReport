@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
 
 @Immutable
 data class ContainerColors(val container: Color, val content: Color)
-enum class Tone { NEUTRAL, INFO, SUCCESS, WARNING, URGENT }
+enum class Tone { NEUTRAL, INFO, SUCCESS, WARNING, URGENT, PENDING }
 
 @Composable
 fun toneColors(tone: Tone): ContainerColors {
@@ -18,6 +18,7 @@ fun toneColors(tone: Tone): ContainerColors {
         Tone.INFO -> ContainerColors(scheme.primaryContainer, scheme.onPrimaryContainer)
         Tone.SUCCESS -> ContainerColors(clinical.successContainer, clinical.onSuccessContainer)
         Tone.WARNING -> ContainerColors(clinical.warningContainer, clinical.onWarningContainer)
+        Tone.PENDING -> ContainerColors(clinical.pendingContainer, clinical.onPendingContainer)
         Tone.URGENT -> ContainerColors(clinical.urgentContainer, clinical.onUrgentContainer)
     }
 }

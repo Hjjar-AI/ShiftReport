@@ -12,7 +12,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.hos.rushdpatients.R
@@ -30,11 +33,13 @@ import java.time.ZoneId
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: Long,
-    onDismiss: () -> Unit, onPatient: (String) -> Unit, currentDoctorId: String? = null) {
+    onDismiss: () -> Unit, onPatient: (String) -> Unit, currentDoctorId: String? = null,
+    editable: Boolean = false, snackbarHost: SnackbarHostState,
+    onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit) {
     val uiText = rememberUiStrings()
-    var supervisor by remember { mutableStateOf<String?>(null) }
-    var resident by remember { mutableStateOf<String?>(null) }
-    var mine by remember { mutableStateOf(false) }
+    var supervisor by rememberSaveable { mutableStateOf<String?>(null) }
+    var resident by rememberSaveable { mutableStateOf<String?>(null) }
+    var mine by rememberSaveable { mutableStateOf(false) }
     val names = remember(doctors) { doctors.associate { it.id to it.fullName } }
     val supervisors = remember(doctors) { doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.SUPERVISOR } }
     val residents = remember(doctors) { doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.RESIDENT } }
@@ -56,33 +61,36 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
     }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxSize().safeDrawingPadding()) {
-                AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
-                    navigation = { AppIconButton(label = uiText(R.string.ui_ward_task_board_001),
-            icon = AppIcons.Close,
-            onClick = onDismiss) })
-                Column(Modifier.padding(horizontal = UiSpacing.screen)) {
-                    Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
-                        style = MaterialTheme.typography.bodySmall)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
-                        TaskDoctorFilter(uiText(R.string.ui_ward_task_board_004), residents, resident) { resident = it }
-                        if (currentDoctorId != null) AppFilterChip(selected = mine, onClick = { mine = !mine }, label = { Text(uiText(R.string.ui_ward_task_board_005)) })
-                    }
-                }
-                LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
-                    contentPadding = PaddingValues(bottom = UiSpacing.screen),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    if (rows.isEmpty()) item { Text(uiText(R.string.ui_ward_task_board_006)) }
-                    groups.forEach { (group, entries) ->
-                        stickyHeader(key = "task-group-$group") {
-                            Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
-                                Text(listOf(uiText(R.string.ui_ward_task_board_007), uiText(R.string.ui_ward_task_board_008), uiText(R.string.ui_ward_task_board_009), uiText(R.string.ui_ward_task_board_010))[group] + " · " + uiNumber(entries.size),
-                                    Modifier.padding(vertical = UiSpacing.screen), style = MaterialTheme.typography.titleMedium)
-                            }
+            Scaffold(Modifier.safeDrawingPadding(), snackbarHost = { AppSnackbarHost(snackbarHost) }) { insets ->
+                Column(Modifier.fillMaxSize().padding(insets)) {
+                    AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
+                        navigation = { AppIconButton(label = uiText(R.string.ui_ward_task_board_001),
+                            icon = AppIcons.Close,
+                            onClick = onDismiss) })
+                    Column(Modifier.padding(horizontal = UiSpacing.screen)) {
+                        Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
+                            style = MaterialTheme.typography.bodySmall)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                            TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
+                            TaskDoctorFilter(uiText(R.string.ui_ward_task_board_004), residents, resident) { resident = it }
+                            if (currentDoctorId != null) AppFilterChip(selected = mine, onClick = { mine = !mine }, label = { Text(uiText(R.string.ui_ward_task_board_005)) })
                         }
-                        items(entries, key = { "${it.patient.id}:${it.task.id}" }) { entry ->
-                            WardTaskRow(entry, names, now, onPatient)
+                    }
+                    LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
+                        contentPadding = PaddingValues(bottom = UiSpacing.screen),
+                        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                        if (rows.isEmpty()) item { EmptyState(uiText(R.string.ui_ward_task_board_006), icon = AppIcons.Check) }
+                        groups.forEach { (group, entries) ->
+                            stickyHeader(key = "task-group-$group") {
+                                Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface,
+                                    shadowElevation = com.hos.rushdpatients.ui.theme.UiElevation.low) {
+                                    Text(listOf(uiText(R.string.ui_ward_task_board_007), uiText(R.string.ui_ward_task_board_008), uiText(R.string.ui_ward_task_board_009), uiText(R.string.ui_ward_task_board_010))[group] + " · " + uiNumber(entries.size),
+                                        Modifier.padding(vertical = UiSpacing.screen), style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
+                            items(entries, key = { "${it.patient.id}:${it.task.id}" }) { entry ->
+                                WardTaskRow(entry, names, now, onPatient, editable, onComplete)
+                            }
                         }
                     }
                 }
@@ -110,16 +118,22 @@ private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: Str
 
 @Composable
 internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
-    names: Map<String, String>, now: Long, onPatient: (String) -> Unit) {
+    names: Map<String, String>, now: Long, onPatient: (String) -> Unit,
+    editable: Boolean = false, onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit = {}) {
     val uiText = rememberUiStrings()
     val overdue = PatientTasks.overdue(entry.task, now)
     val clinical = LocalClinicalColors.current
     AppCard(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
-        containerColor = if (overdue) clinical.urgentContainer else MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = if (overdue) clinical.onUrgentContainer else MaterialTheme.colorScheme.onSurface)) {
+        containerColor = if (overdue) clinical.urgentContainer else clinical.pendingContainer,
+        contentColor = if (overdue) clinical.onUrgentContainer else clinical.onPendingContainer)) {
         Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             Text(entry.patient.name, style = MaterialTheme.typography.titleSmall)
-            Text(entry.task.description)
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Checkbox(checked = false, enabled = editable, onCheckedChange = { onComplete(entry) },
+                    modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
+                        .semantics { contentDescription = uiText(R.string.ui_patient_task_editor_009) + entry.task.description })
+                Text(entry.task.description, Modifier.weight(1f))
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 if (overdue) Icon(AppIcons.Warning, contentDescription = null)
                 Text(PatientTasks.statusLabel(entry.task, now) + " · " + uiNumber(PatientTasks.metadata(entry.task, names)),

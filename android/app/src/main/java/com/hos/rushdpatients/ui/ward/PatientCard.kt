@@ -26,12 +26,11 @@ import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,15 +39,16 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -114,6 +114,12 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val visibleBadges = remember(patient.badges, expanded) {
         if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
     }
+    val statusEdge = when {
+        com.hos.rushdpatients.domain.patient.PatientPredicates.urgent(patient) || taskCounts.overdue > 0 -> clinicalColors.urgent
+        patient.badges.any { it.priority == PatientBadgePriority.MEDIUM } -> clinicalColors.warning
+        taskCounts.pending > 0 -> clinicalColors.pending
+        else -> null
+    }
     val residentName = patient.responsibleResidentId?.let(doctorNames::get)
     val supervisorName = patient.responsibleSpecialistId?.let(doctorNames::get)
 
@@ -121,6 +127,9 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
         targetValue = if (recentlyEdited) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.highlightMillis), label = "patientReturnHighlight"
     )
+    val expansionMillis = if (!animateExpansion) 0 else if (expanded)
+        com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis
+        else com.hos.rushdpatients.ui.theme.LocalUiStyle.current.collapseMillis
     AppCard(
         modifier = modifier
             .fillMaxWidth()
@@ -129,6 +138,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 contentDescription = buildString {
                     append(patient.name)
                     append(uiText(R.string.ui_patient_card_001)).append(patient.admittanceNumber)
+                    append(uiText(R.string.ui_patient_card_002)).append(PatientIdentityText.personal(uiText, patient))
                     append(uiText(R.string.ui_patient_card_002)).append(patient.diagnosisType.uiLabel(uiText))
                     patient.responsibleResidentId?.let { id ->
                         doctorNames[id]?.let { append(uiText(R.string.ui_patient_card_003)).append(it) }
@@ -159,13 +169,22 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     }
                 }
             }
-            .combinedClickable(enabled = showViewControls, onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(enabled = showViewControls, role = androidx.compose.ui.semantics.Role.Button,
+                onClickLabel = uiText(R.string.ui_patient_card_015), onClick = onClick, onLongClick = onLongClick),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = cardColor),
         border = UiPatientCard.border(selected = selected || recentlyEdited)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .drawBehind {
+                    statusEdge?.let { color ->
+                        val edge = UiSize.statusEdge.toPx()
+                        drawRect(color, Offset(if (layoutDirection == LayoutDirection.Rtl) size.width - edge else 0f, 0f),
+                            Size(edge, size.height))
+                    }
+                }
+                .animateContentSize(tween(expansionMillis))
                 .padding(cardDensity.padding),
             verticalArrangement = Arrangement.spacedBy(sectionGap)
         ) {
@@ -175,7 +194,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 expanded = expanded,
                 pinned = pinned,
                 showViewControls = showViewControls,
-                canExpand = canExpand, headerExpands = headerExpands,
+                canExpand = canExpand, headerExpands = headerExpands, animateExpansion = animateExpansion,
                 onExpandToggle = onExpandToggle,
                 onPinToggle = onPinToggle,
                 onPriorityChange = onPriorityChange,
@@ -204,7 +223,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 )
                 DiagnosisChip(patient.diagnosisType)
                 if (taskCounts.pending > 0) {
-                    AppChip(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending), ContainerColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant))
+                    AppChip(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending), com.hos.rushdpatients.ui.theme.toneColors(com.hos.rushdpatients.ui.theme.Tone.PENDING))
                     if (taskCounts.overdue > 0) AppChip(uiPlural(R.plurals.patient_tasks_overdue, taskCounts.overdue),
                         ContainerColors(clinicalColors.urgentContainer, clinicalColors.onUrgentContainer))
                 }
@@ -228,8 +247,8 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
             // -------- Expanded detail --------
             AnimatedVisibility(
                 visible = expanded,
-                enter = if (animateExpansion) expandVertically(animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis)) else EnterTransition.None,
-                exit = if (animateExpansion) shrinkVertically(animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.collapseMillis)) else ExitTransition.None
+                enter = EnterTransition.None,
+                exit = ExitTransition.None
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(sectionGap)) {
                     AppDivider()
@@ -245,7 +264,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
             if (!showIdentity) Text(PatientIdentityText.details(uiText, patient),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (expanded && showViewControls) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (!readOnly) com.hos.rushdpatients.ui.components.AppTextButton(onClick = onEdit) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
+                if (!readOnly) com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
                 com.hos.rushdpatients.ui.components.AppTextButton(onClick = onLongClick) { AppActionLabel(UiAction.FULL_RECORD) }
             }
             if (expanded) patient.lastEditedByName?.let { editor ->
@@ -273,6 +292,7 @@ private fun PatientIdentityHeader(
     showViewControls: Boolean,
     canExpand: Boolean,
     headerExpands: Boolean,
+    animateExpansion: Boolean,
     onExpandToggle: () -> Unit,
     onPinToggle: () -> Unit,
     onPriorityChange: (Boolean) -> Unit,
@@ -280,6 +300,9 @@ private fun PatientIdentityHeader(
     onDelete: () -> Unit
 ) {
     val uiText = rememberUiStrings()
+    val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f,
+        tween(if (animateExpansion) com.hos.rushdpatients.ui.theme.LocalUiStyle.current.indicatorMillis else 0),
+        label = "patientChevron")
 
     Row(
         modifier = Modifier.fillMaxWidth().then(
@@ -290,12 +313,13 @@ private fun PatientIdentityHeader(
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
         PatientIdentityHeading(patient, modifier = Modifier.weight(1f), pinned = pinned,
-            showPersonal = expanded && !showViewControls, showOrdinal = true)
+            showPersonal = expanded && !showViewControls, showOrdinal = true, showDemographics = true)
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (showViewControls) {
                 if (canExpand) AppIconButton(label = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028),
-            icon = if (expanded) AppIcons.ExpandLess else AppIcons.ExpandMore,
+            icon = AppIcons.ExpandMore,
+            iconModifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
             onClick = onExpandToggle)
                 PatientMenu(priority = patient.isPriority, onPriorityChange = onPriorityChange,
                     onCopy = onCopy, onDelete = onDelete, pinned = pinned, onPinToggle = onPinToggle,
@@ -328,10 +352,14 @@ private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
             SingleColumnDetail(patient, spacing)
             return@BoxWithConstraints
         }
+        val dividerColor = MaterialTheme.colorScheme.outlineVariant
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+                .drawBehind {
+                    drawLine(dividerColor, Offset(size.width / 2, 0f),
+                        Offset(size.width / 2, size.height), UiBorder.normalWidth.toPx())
+                },
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
             Column(
@@ -343,12 +371,6 @@ private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
             }
         }
 
-        Box(
-            modifier = Modifier
-                .width(UiBorder.normalWidth)
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.outlineVariant)
-        )
 
         Column(
             modifier = Modifier.weight(1f),
