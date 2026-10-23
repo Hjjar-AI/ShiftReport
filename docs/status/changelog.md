@@ -31,6 +31,17 @@ have separate homes. Source completion is not runtime verification.
   Search/resize debouncing, retained widgets, sidebar shortcuts, clinical stripes,
   native card menus and guarded keyboard shortcuts improve presentation.
 
+## Android regression suite
+
+Expanded from 8 to 44 test classes, repairing obsolete patient fields, grouping
+calls and DAO assumptions. Added clinical/tasks, doctors/import, auth/reconnect,
+codecs/mappers/sync, reviewed reports/delivery, intercepted Telegram transport,
+PDF content, UI state/demo and fresh-database/security/backup/dialog cases.
+The 146 JVM tests pass; 41 device cases remain uncompiled/unexecuted.
+[Coverage and commands](../guides/android-testing.md) ·
+[Verification evidence/limits](current-state.md#verification-and-limits).
+No production behavior, versions or schemas changed.
+
 ## Documentation
 
 Consolidated status/history/rationale/choices; absorbed review ledgers and `full.md`.

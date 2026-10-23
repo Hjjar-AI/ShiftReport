@@ -7,61 +7,55 @@ import org.junit.Test
 
 class GroupingDetectorTest {
 
-    private val doctors = mapOf(
-        "d-1" to "د. أحمد",
-        "d-2" to "د. سارة",
-        "d-3" to "د. ليلى"
-    )
-
     @Test
     fun `empty list is trivially grouped`() {
-        assertTrue(GroupingDetector.isGroupedBySupervisor(emptyList(), doctors))
+        assertTrue(GroupingDetector.isGroupedBySupervisor(emptyList()))
     }
 
     @Test
     fun `single patient is grouped`() {
-        val patients = listOf(Fixtures.patient(id = "1", supervisorId = "d-1"))
-        assertTrue(GroupingDetector.isGroupedBySupervisor(patients, doctors))
+        val patients = listOf(Fixtures.patient(id = "1", responsibleSpecialistId = "d-1"))
+        assertTrue(GroupingDetector.isGroupedBySupervisor(patients))
     }
 
     @Test
     fun `all same supervisor is grouped`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", supervisorId = "d-1"),
-            Fixtures.patient(id = "2", supervisorId = "d-1"),
-            Fixtures.patient(id = "3", supervisorId = "d-1")
+            Fixtures.patient(id = "1", responsibleSpecialistId = "d-1"),
+            Fixtures.patient(id = "2", responsibleSpecialistId = "d-1"),
+            Fixtures.patient(id = "3", responsibleSpecialistId = "d-1")
         )
-        assertTrue(GroupingDetector.isGroupedBySupervisor(patients, doctors))
+        assertTrue(GroupingDetector.isGroupedBySupervisor(patients))
     }
 
     @Test
     fun `contiguous groups are grouped`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", supervisorId = "d-1"),
-            Fixtures.patient(id = "2", supervisorId = "d-1"),
-            Fixtures.patient(id = "3", supervisorId = "d-2"),
-            Fixtures.patient(id = "4", supervisorId = "d-2"),
-            Fixtures.patient(id = "5", supervisorId = "d-3")
+            Fixtures.patient(id = "1", responsibleSpecialistId = "d-1"),
+            Fixtures.patient(id = "2", responsibleSpecialistId = "d-1"),
+            Fixtures.patient(id = "3", responsibleSpecialistId = "d-2"),
+            Fixtures.patient(id = "4", responsibleSpecialistId = "d-2"),
+            Fixtures.patient(id = "5", responsibleSpecialistId = "d-3")
         )
-        assertTrue(GroupingDetector.isGroupedBySupervisor(patients, doctors))
+        assertTrue(GroupingDetector.isGroupedBySupervisor(patients))
     }
 
     @Test
     fun `non-contiguous groups are not grouped`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", supervisorId = "d-1"),
-            Fixtures.patient(id = "2", supervisorId = "d-2"),
-            Fixtures.patient(id = "3", supervisorId = "d-1")
+            Fixtures.patient(id = "1", responsibleSpecialistId = "d-1"),
+            Fixtures.patient(id = "2", responsibleSpecialistId = "d-2"),
+            Fixtures.patient(id = "3", responsibleSpecialistId = "d-1")
         )
-        assertFalse(GroupingDetector.isGroupedBySupervisor(patients, doctors))
+        assertFalse(GroupingDetector.isGroupedBySupervisor(patients))
     }
 
     @Test
     fun `null supervisor becomes empty group`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", supervisorId = null),
-            Fixtures.patient(id = "2", supervisorId = null)
+            Fixtures.patient(id = "1", responsibleSpecialistId = null),
+            Fixtures.patient(id = "2", responsibleSpecialistId = null)
         )
-        assertTrue(GroupingDetector.isGroupedBySupervisor(patients, doctors))
+        assertTrue(GroupingDetector.isGroupedBySupervisor(patients))
     }
 }

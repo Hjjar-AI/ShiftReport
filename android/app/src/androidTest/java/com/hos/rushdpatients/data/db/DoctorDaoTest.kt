@@ -7,7 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.data.db.dao.DoctorDao
 import com.hos.rushdpatients.data.db.entity.DoctorEntity
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -61,13 +61,13 @@ class DoctorDaoTest {
     )
 
     @Test
-    fun `upsert and read back`() = runTest {
+    fun `upsert and read back`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "د. علي"))
         assertEquals("د. علي", dao.getById("d1")?.fullName)
     }
 
     @Test
-    fun `getByTelegramId finds matching doctor`() = runTest {
+    fun `getByTelegramId finds matching doctor`() = runBlocking<Unit> {
         dao.upsert(entity("d1", telegramId = 100L))
         dao.upsert(entity("d2", telegramId = 200L))
         val found = dao.getByTelegramId(200L)
@@ -75,13 +75,13 @@ class DoctorDaoTest {
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun `unique telegram id rejects second insert with different id`() = runTest {
+    fun `unique telegram id rejects second insert with different id`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "د. أحمد", telegramId = 42L))
         dao.upsert(entity("d2", fullName = "د. سارة", telegramId = 42L))
     }
 
     @Test
-    fun `upsert with same primary key replaces row`() = runTest {
+    fun `upsert with same primary key replaces row`() = runBlocking<Unit> {
         dao.upsert(entity("d1", telegramId = 42L, rank = 0))
         dao.upsert(entity("d1", telegramId = 42L, rank = 1))
         val row = dao.getById("d1")
@@ -90,13 +90,13 @@ class DoctorDaoTest {
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun `unique full name rejects second insert with different id`() = runTest {
+    fun `unique full name rejects second insert with different id`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "د. أحمد"))
         dao.upsert(entity("d2", fullName = "د. أحمد"))
     }
 
     @Test
-    fun `getAdmins returns only rank greater than zero`() = runTest {
+    fun `getAdmins returns only rank greater than zero`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "أ", rank = 0))
         dao.upsert(entity("d2", fullName = "ب", rank = 1))
         dao.upsert(entity("d3", fullName = "ج", rank = 2, isPermanentAdmin = true))
@@ -106,7 +106,7 @@ class DoctorDaoTest {
     }
 
     @Test
-    fun `getNonAdmins returns only rank zero`() = runTest {
+    fun `getNonAdmins returns only rank zero`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "أ", rank = 0))
         dao.upsert(entity("d2", fullName = "ب", rank = 1))
         val nonAdmins = dao.getNonAdmins()
@@ -115,7 +115,7 @@ class DoctorDaoTest {
     }
 
     @Test
-    fun `getMaxRank returns highest rank`() = runTest {
+    fun `getMaxRank returns highest rank`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "أ", rank = 1))
         dao.upsert(entity("d2", fullName = "ب", rank = 5))
         dao.upsert(entity("d3", fullName = "ج", rank = 3))
@@ -123,12 +123,12 @@ class DoctorDaoTest {
     }
 
     @Test
-    fun `getMaxRank returns zero when no doctors`() = runTest {
+    fun `getMaxRank returns zero when no doctors`() = runBlocking<Unit> {
         assertEquals(0, dao.getMaxRank())
     }
 
     @Test
-    fun `soft delete clears telegram id and rank`() = runTest {
+    fun `soft delete clears telegram id and rank`() = runBlocking<Unit> {
         dao.upsert(entity("d1", telegramId = 999L, rank = 3))
         dao.softDelete("d1", deletedAtMillis = 5_000L)
         val after = dao.getById("d1")
@@ -138,7 +138,7 @@ class DoctorDaoTest {
     }
 
     @Test
-    fun `soft delete hides from getAll`() = runTest {
+    fun `soft delete hides from getAll`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "أ"))
         dao.upsert(entity("d2", fullName = "ب"))
         dao.softDelete("d1", deletedAtMillis = 1L)
@@ -148,7 +148,7 @@ class DoctorDaoTest {
     }
 
     @Test
-    fun `count excludes soft deleted`() = runTest {
+    fun `count excludes soft deleted`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "أ"))
         dao.upsert(entity("d2", fullName = "ب"))
         dao.softDelete("d1", deletedAtMillis = 1L)
@@ -156,7 +156,7 @@ class DoctorDaoTest {
     }
 
     @Test
-    fun `countAll counts everything including soft deleted`() = runTest {
+    fun `countAll counts everything including soft deleted`() = runBlocking<Unit> {
         dao.upsert(entity("d1", fullName = "أ"))
         dao.upsert(entity("d2", fullName = "ب"))
         dao.softDelete("d1", deletedAtMillis = 1L)

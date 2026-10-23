@@ -3,7 +3,7 @@ package com.hos.rushdpatients.sync
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.testutil.Fixtures
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -16,15 +16,13 @@ class CsvCodecTest {
         val patient = Fixtures.patient(
             id = "p-100",
             name = "محمد",
-            age = 45,
             gender = Gender.MALE,
-            diagnosis = "نفسي",
-            condition = "مستقر",
-            hasEscort = true,
+            initialDiagnosis = "نفسي",
+            hasCompanion = true,
             admittanceNumber = "A-123",
-            treatment = "haloperidol 5mg",
+            treatmentPlan = "haloperidol 5mg",
             labs = "CBC normal",
-            notes = "متابعة أسبوعية"
+            followUp = "متابعة أسبوعية"
         )
 
         val csv = CsvCodec.encode(shift, listOf(patient))
@@ -36,13 +34,12 @@ class CsvCodecTest {
         assertEquals(patient.name, p.name)
         assertEquals(patient.age, p.age)
         assertEquals(patient.gender, p.gender)
-        assertEquals(patient.diagnosis, p.diagnosis)
-        assertEquals(patient.condition, p.condition)
-        assertEquals(patient.hasEscort, p.hasEscort)
+        assertEquals(patient.initialDiagnosis, p.initialDiagnosis)
+        assertEquals(patient.hasCompanion, p.hasCompanion)
         assertEquals(patient.admittanceNumber, p.admittanceNumber)
-        assertEquals(patient.treatment, p.treatment)
+        assertEquals(patient.treatmentPlan, p.treatmentPlan)
         assertEquals(patient.labs, p.labs)
-        assertEquals(patient.notes, p.notes)
+        assertEquals(patient.followUp, p.followUp)
     }
 
     @Test
@@ -57,19 +54,19 @@ class CsvCodecTest {
     @Test
     fun `round trip preserves double quotes`() {
         val shift = Fixtures.shift()
-        val patient = Fixtures.patient(notes = """قال "مرحباً"""")
+        val patient = Fixtures.patient(followUp = "قال \"مرحباً\"")
         val csv = CsvCodec.encode(shift, listOf(patient))
         val parsed = CsvCodec.decode(csv)
-        assertEquals("""قال "مرحباً"""", parsed.patients.first().notes)
+        assertEquals("قال \"مرحباً\"", parsed.patients.first().followUp)
     }
 
     @Test
     fun `round trip preserves newlines`() {
         val shift = Fixtures.shift()
-        val patient = Fixtures.patient(treatment = "line1\nline2")
+        val patient = Fixtures.patient(treatmentPlan = "line1\nline2")
         val csv = CsvCodec.encode(shift, listOf(patient))
         val parsed = CsvCodec.decode(csv)
-        assertEquals("line1\nline2", parsed.patients.first().treatment)
+        assertEquals("line1\nline2", parsed.patients.first().treatmentPlan)
     }
 
     @Test
@@ -115,11 +112,9 @@ class CsvCodecTest {
     }
 
     @Test
-    fun `null admittance date decodes as null`() {
-        val patient = Fixtures.patient(admittanceDate = null)
-        val csv = CsvCodec.encode(Fixtures.shift(), listOf(patient))
-        val parsed = CsvCodec.decode(csv)
-        assertNull(parsed.patients.first().admittanceDate)
+    fun `missing admittance date is rejected`() {
+        val csv = CsvCodec.encode(Fixtures.shift(), listOf(Fixtures.patient(admittanceDate = null)))
+        assertThrows(IllegalArgumentException::class.java) { CsvCodec.decode(csv) }
     }
 
     @Test
@@ -151,5 +146,31 @@ class CsvCodecTest {
             .replace("\n", "\r\n")
         val parsed = CsvCodec.decode(csv)
         assertEquals(1, parsed.patients.size)
+    }
+
+    @Test
+    fun `current clinical tasks badges audit and publication lineage round trip`() {
+        val shift = Fixtures.shift(doctorIds = (1..20).map { "d$it" }).copy(revision = 7,
+            snapshotId = "current", baseSnapshotId = "base", publishedByDeviceId = "device",
+            sortSpecJson = com.hos.rushdpatients.domain.sort.SortSpecCodec.encode(com.hos.rushdpatients.domain.sort.SortSpec.WORKBOOK))
+        val patient = Fixtures.patient().copy(revision = 9, isPriority = true,
+            tasks = listOf(Fixtures.task(), Fixtures.task("done", true)),
+            badges = listOf(com.hos.rushdpatients.data.model.PatientBadge("تنبيه متعدد؛")),
+            lastEditedByDoctorId = "editor", lastEditedByName = "أرز")
+        val parsed = CsvCodec.decode(CsvCodec.encode(shift, listOf(patient)))
+        assertEquals(patient, parsed.patients.single())
+        assertEquals(shift.doctorIds, parsed.doctorIds)
+        assertEquals(7L, parsed.shiftRevision)
+        assertEquals("current", parsed.snapshotId)
+        assertEquals("base", parsed.baseSnapshotId)
+        assertEquals("device", parsed.deviceId)
+        assertEquals(shift.sortSpecJson, parsed.sortSpecJson)
+    }
+
+    @Test
+    fun `duplicate patient ids fail the entire import`() {
+        val patient = Fixtures.patient()
+        val csv = CsvCodec.encode(Fixtures.shift(), listOf(patient, patient))
+        assertThrows(IllegalArgumentException::class.java) { CsvCodec.decode(csv) }
     }
 }

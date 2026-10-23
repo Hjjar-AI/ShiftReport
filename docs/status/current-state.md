@@ -166,17 +166,32 @@ These retained concerns are separate from the selected work in [Roadmap](roadmap
 
 ## Verification and limits
 
+On 23 October 2026, authorized offline `:app:compileDebugKotlin` and
+`:app:compileDebugUnitTestKotlin` passed; the final `:app:testDebugUnitTest` run
+passed **146 tests across 34 classes**, with zero failures/errors/skips and no
+Kotlin compiler warnings. Existing pinned JVM test dependencies were populated in
+the durable Gradle cache with owner authorization. Verification used pinned Gradle
+8.7, installed Java 21/SDK 34, one worker, in-process Kotlin and disabled automatic
+version reservation. Production compilation tasks were up-to-date; test compilation
+and execution ran. Nonfatal Gradle deprecation/JVM class-sharing notices remain.
+Logs: `/tmp/shiftreport-test-compile.log`, `/tmp/shiftreport-unit-tests.log`.
+
+The expanded suite also contains **41 device tests across 10 classes** for fresh
+Room databases/repository transactions, project encryption, password hashing,
+backup and RTL report confirmation. Those device sources were inspected and
+checked for package paths/literal delimiters, but were **not compiled or run**.
+JVM coverage includes current clinical/task rules, doctors/import, admin authority,
+same-project reconnect, codecs/mappers/sorting, sync comparisons, report review/
+delivery guards, intercepted Telegram requests, PDF content and UI state rules.
+[Coverage map and commands](../guides/android-testing.md). Source counts are not
+measured line/branch coverage or complete end-to-end coverage. Git whitespace and
+new documentation links were checked. No production source, migration files,
+versions or schemas changed; no APK packaging, installation or distribution ran.
+
 Owner `assembleDebug` passed on 22 October 2026 for `1.1.23.20261022` (code 24):
-37s, 44 tasks (15 executed/29 up-to-date), no Kotlin warning; nonfatal Gradle
-deprecation notice. That source snapshot predates the subsequent UI and shared-signing changes.
-
-Current UI source has Python AST/XML, Kotlin delimiter/resource/icon/call-site,
-local-link and Git whitespace checks only. Production previews cover narrow RTL,
-dark/AMOLED, 150–200% fonts, profiles and search; they were not rendered. Compilation,
-performance/skippability, persistence, TalkBack, keyboard/large-font/fold behavior,
-search draft retention, gestures, completion/Undo and live Telegram remain unverified.
-
-This consolidation changed documentation only, checked links/anchors/whitespace and
-preserved operational guides/build commands. No build, test-suite work, migration
-inspection/change, version change or packaging ran. [AGENTS.md](../../AGENTS.md) governs
-further verification. CSV device exception and production signing remain outstanding.
+37s, 44 tasks, no Kotlin warning; that APK predates later UI/shared-signing changes.
+The current JVM verification does not establish device rendering, persistence on
+SQLCipher, Keystore/biometric lifecycle, TalkBack, keyboard/large-font/fold behavior,
+search draft retention, gestures, completion/Undo UI, performance or live Telegram.
+Production previews remain unrendered. Retained production findings above, the
+CSV device exception and production signing remain outstanding.

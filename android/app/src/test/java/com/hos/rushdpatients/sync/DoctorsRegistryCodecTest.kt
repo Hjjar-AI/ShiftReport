@@ -16,7 +16,7 @@ class DoctorsRegistryCodecTest {
             Fixtures.doctor(id = "d2", fullName = "د. سارة", rank = 1, isPermanentAdmin = false)
         )
         val text = DoctorsRegistryCodec.encode(doctors)
-        assertTrue(text.startsWith("#,name,gender,id,title,options"))
+        assertTrue(text.startsWith("#,uid,name,gender,id,title,options"))
         assertTrue(text.contains("د. أحمد"))
         assertTrue(text.contains("د. سارة"))
         assertTrue(text.contains("@1"))

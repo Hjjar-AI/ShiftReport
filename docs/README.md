@@ -11,6 +11,7 @@
 | Android UI maintenance | [Work guide](guides/android-ui.md), [Style/components](reference/design-catalog.md), [Demo](guides/android-demo.md) |
 | Telegram setup | [دليل الإعداد](guides/telegram-setup.md) |
 | Build/cache/sign/package | [Shared workstation/signing](guides/android-build.md), [Windows EXE](guides/windows-exe-packaging.md) |
+| Android test coverage / execution | [Test guide](guides/android-testing.md) |
 | Diagnose | [Android](guides/android-troubleshooting.md), [Desktop](guides/desktop-troubleshooting.md) |
 | Shared wire format / contributor rules | [Protocol](reference/telegram-protocol.md), [AGENTS.md](../AGENTS.md) |
 

@@ -62,26 +62,26 @@ class PatientComparatorsTest {
     }
 
     @Test
-    fun `diagnosis custom order puts psycho before addiction`() {
+    fun `initialDiagnosis custom order puts psycho before addiction`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", diagnosis = "إدمان"),
-            Fixtures.patient(id = "2", diagnosis = "نفسي"),
-            Fixtures.patient(id = "3", diagnosis = "أخرى")
+            Fixtures.patient(id = "1", diagnosisType = com.hos.rushdpatients.data.model.DiagnosisType.ADDICTION),
+            Fixtures.patient(id = "2", diagnosisType = com.hos.rushdpatients.data.model.DiagnosisType.PSYCHIATRIC),
+            Fixtures.patient(id = "3", diagnosisType = com.hos.rushdpatients.data.model.DiagnosisType.DUAL)
         )
         val spec = SortSpec(listOf(SortLevel(SortField.DIAGNOSIS, SortDirection.ASC)))
         val sorted = patients.sortedWith(PatientComparators.forSpec(spec, doctors))
         // CustomOrder.DEFAULT = ["نفسي", "إدمان", unknown]
-        assertEquals("نفسي", sorted[0].diagnosis)
-        assertEquals("إدمان", sorted[1].diagnosis)
-        assertEquals("أخرى", sorted[2].diagnosis)
+        assertEquals(com.hos.rushdpatients.data.model.DiagnosisType.PSYCHIATRIC, sorted[0].diagnosisType)
+        assertEquals(com.hos.rushdpatients.data.model.DiagnosisType.ADDICTION, sorted[1].diagnosisType)
+        assertEquals(com.hos.rushdpatients.data.model.DiagnosisType.DUAL, sorted[2].diagnosisType)
     }
 
     @Test
     fun `days ascending puts shorter stays first`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", admittanceDays = 10),
-            Fixtures.patient(id = "2", admittanceDays = 3),
-            Fixtures.patient(id = "3", admittanceDays = 7)
+            Fixtures.patient(id = "1", admittanceDate = java.time.LocalDate.now().minusDays(10)),
+            Fixtures.patient(id = "2", admittanceDate = java.time.LocalDate.now().minusDays(3)),
+            Fixtures.patient(id = "3", admittanceDate = java.time.LocalDate.now().minusDays(7))
         )
         val spec = SortSpec(listOf(SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.ASC)))
         val sorted = patients.sortedWith(PatientComparators.forSpec(spec, doctors))
@@ -91,9 +91,9 @@ class PatientComparatorsTest {
     @Test
     fun `days descending puts longer stays first`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", admittanceDays = 10),
-            Fixtures.patient(id = "2", admittanceDays = 3),
-            Fixtures.patient(id = "3", admittanceDays = 7)
+            Fixtures.patient(id = "1", admittanceDate = java.time.LocalDate.now().minusDays(10)),
+            Fixtures.patient(id = "2", admittanceDate = java.time.LocalDate.now().minusDays(3)),
+            Fixtures.patient(id = "3", admittanceDate = java.time.LocalDate.now().minusDays(7))
         )
         val spec = SortSpec(listOf(SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.DESC)))
         val sorted = patients.sortedWith(PatientComparators.forSpec(spec, doctors))
@@ -123,12 +123,12 @@ class PatientComparatorsTest {
     @Test
     fun `supervisor sort uses doctor name lookup`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", supervisorId = "d-sara"),
-            Fixtures.patient(id = "2", supervisorId = "d-ahmed")
+            Fixtures.patient(id = "1", responsibleSpecialistId = "d-sara"),
+            Fixtures.patient(id = "2", responsibleSpecialistId = "d-ahmed")
         )
         val spec = SortSpec(listOf(SortLevel(SortField.SUPERVISOR, SortDirection.ASC)))
         val sorted = patients.sortedWith(PatientComparators.forSpec(spec, doctors))
         // أحمد < سارة
-        assertEquals("d-ahmed", sorted.first().supervisorId)
+        assertEquals("d-ahmed", sorted.first().responsibleSpecialistId)
     }
 }
