@@ -155,13 +155,6 @@ private fun WardWorkspaceContent(
     }
     val patientGridState = rememberLazyGridState()
     val uiPreferences = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current
-    val navigationVisible = rememberWardNavigationVisible(patientGridState,
-        uiPreferences.autoHideNavigation && viewMode in setOf(WardViewMode.ALL, WardViewMode.MINE) &&
-            !expandedWindow && state.patients.isNotEmpty(),
-        state.shift?.id to viewMode)
-    var navigationHeightPx by remember { mutableStateOf(0) }
-    val navigationShift by animateFloatAsState(if (navigationVisible) 0f else 1f,
-        animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.placementMillis), label = "wardNavigationShift")
     val editor = viewModel.editor
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
@@ -461,6 +454,15 @@ private fun WardWorkspaceContent(
                 }
             },
             bottomBar = {
+                // Read scroll-driven visibility in the dock scope, not the clinical workspace.
+                val navigationVisible = rememberWardNavigationVisible(patientGridState,
+                    uiPreferences.autoHideNavigation && patientDestination &&
+                        !expandedWindow && state.patients.isNotEmpty(),
+                    state.shift?.id to viewMode)
+                var navigationHeightPx by remember { mutableStateOf(0) }
+                val navigationShift by animateFloatAsState(if (navigationVisible) 0f else 1f,
+                    animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.placementMillis),
+                    label = "wardNavigationShift")
                 Box(Modifier.onSizeChanged { navigationHeightPx = it.height }
                     .graphicsLayer { translationY = navigationShift * navigationHeightPx }
                     .then(if (navigationVisible) Modifier else Modifier.clearAndSetSemantics { })) {

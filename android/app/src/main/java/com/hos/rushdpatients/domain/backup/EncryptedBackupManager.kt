@@ -79,13 +79,12 @@ class EncryptedBackupManager @Inject constructor(
                     patientRepository.getShiftId(patient.id)?.let { it != shift.id } == true
                 }) { "معرّف مريض مستخدم في وردية أخرى" }
                 val restored = parsed.patients.map { patient ->
-                    patient.copy(revision = maxOf(patient.revision,
-                        patientRepository.getById(patient.id)?.revision ?: 0L) + 1)
+                    patient.copy(revision = nextRevision(patient.revision, patientRepository.getById(patient.id)?.revision ?: 0L))
                 }
                 patientRepository.softDeleteMissingFromShift(shift.id, restored.map { it.id })
                 patientRepository.upsertAll(restored, shift.id)
                 shiftRepository.upsert(shift.copy(doctorIds = parsed.doctorIds.distinct(),
-                    sortSpecJson = parsed.sortSpecJson, revision = maxOf(shift.revision, parsed.shiftRevision) + 1))
+                    sortSpecJson = parsed.sortSpecJson, revision = nextRevision(shift.revision, parsed.shiftRevision)))
                 if (parsed.shiftDate == ShiftDate.current()) {
                     settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
                 }
@@ -94,6 +93,12 @@ class EncryptedBackupManager @Inject constructor(
         } finally {
             password.fill('\u0000')
         }
+    }
+
+    private fun nextRevision(saved: Long, current: Long): Long {
+        val highest = maxOf(saved, current)
+        require(highest < Long.MAX_VALUE) { "نسخة السجل خارج المجال المسموح" }
+        return highest + 1
     }
 
     private fun encrypt(plain: ByteArray, password: CharArray): ByteArray {

@@ -6,14 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
-import android.os.SystemClock
-import kotlinx.coroutines.delay
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -42,38 +34,14 @@ class MainActivity : FragmentActivity() {
         window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
-            var showingSplash by rememberSaveable { mutableStateOf(true) }
-            val splashDeadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 5_000L) }
-            // A physical press cannot survive Activity recreation; the deadline does.
-            var splashHeld by remember { mutableStateOf(false) }
-            var splashSecondsRemaining by remember(splashDeadline) {
-                mutableIntStateOf(((splashDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
-                    .let { (it + 999L) / 1_000L }).toInt())
-            }
-            fun setSplashHeld(held: Boolean) {
-                splashHeld = held
-                if (!held && SystemClock.elapsedRealtime() >= splashDeadline) showingSplash = false
-            }
-            LaunchedEffect(showingSplash, splashDeadline, splashHeld) {
-                while (showingSplash) {
-                    val remaining = (splashDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
-                    splashSecondsRemaining = ((remaining + 999L) / 1_000L).toInt()
-                    if (remaining == 0L && !splashHeld) {
-                        showingSplash = false
-                        break
-                    }
-                    // Keep counting while held; wait without spinning once the deadline expires.
-                    delay(if (remaining == 0L) 250L else minOf(remaining, 250L))
-                }
-            }
-
-            if (showingSplash) {
+            val splash = com.hos.rushdpatients.ui.about.rememberLaunchSplashState()
+            if (splash.visible) {
                 RushdPatientsTheme(darkTheme = false) {
                     AppSystemBars()
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        IntroAboutScreen(splash = true, onBack = { showingSplash = false },
-                            remainingSeconds = splashSecondsRemaining, splashHeld = splashHeld,
-                            onSplashHeldChange = ::setSplashHeld)
+                        IntroAboutScreen(splash = true, onBack = splash::skip,
+                            remainingSeconds = splash.remainingSeconds, splashHeld = splash.held,
+                            onSplashHeldChange = splash::setHeld)
                     }
                 }
                 return@setContent

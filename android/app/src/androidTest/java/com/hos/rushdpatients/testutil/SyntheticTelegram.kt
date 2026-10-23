@@ -21,6 +21,8 @@ class SyntheticTelegram(context: Context, dispatchers: DispatcherProvider) {
     val files = mutableMapOf<String, String>()
     val methods = mutableListOf<String>()
     var beforeResponse: (String) -> Unit = {}
+    var uploadedDocumentId: String? = "synthetic-upload"
+    var uploadedMessageId = 100L
     private fun envelope(value: JsonElement) = buildJsonObject { put("ok", true); put("result", value) }.toString()
     private val http = OkHttpClient.Builder().addInterceptor { chain ->
         val request = chain.request()
@@ -33,6 +35,11 @@ class SyntheticTelegram(context: Context, dispatchers: DispatcherProvider) {
             method.endsWith(".txt") -> requireNotNull(files[method.removeSuffix(".txt")])
             method == "getChat" -> envelope(json.encodeToJsonElement(TgChat(-100, "supergroup", pinnedMessage = TgMessage(1, text = json.encodeToString(state)))))
             method == "getFile" -> envelope(buildJsonObject { val id = requireNotNull(field("file_id")); put("file_id", id); put("file_path", "$id.txt") })
+            method == "sendDocument" -> envelope(buildJsonObject {
+                put("message_id", uploadedMessageId)
+                put("date", 1_800_000_000L)
+                uploadedDocumentId?.let { id -> put("document", buildJsonObject { put("file_id", id) }) }
+            })
             method == "editMessageText" -> {
                 val text = requireNotNull(field("text"))
                 state = json.decodeFromString<SyncState>(text)

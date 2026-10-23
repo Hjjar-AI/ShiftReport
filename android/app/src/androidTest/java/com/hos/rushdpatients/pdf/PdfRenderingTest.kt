@@ -41,6 +41,12 @@ class PdfRenderingTest {
                 val pixels = IntArray(bitmap.width * bitmap.height)
                 bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
                 assertTrue("Blank PDF page $index", pixels.count { Color.alpha(it) > 0 && (Color.red(it) < 220 || Color.green(it) < 220 || Color.blue(it) < 220) } > 100)
+                val artifacts = File(context.getExternalFilesDir(null), "verification-artifacts/pdf").apply { mkdirs() }
+                val style = if (landscape) "classic" else "a5"
+                File(artifacts, "$style-page-${index + 1}.png").outputStream().use {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+                }
+                file.copyTo(File(artifacts, "$style.pdf"), overwrite = true)
                 bitmap.recycle()
             } }
             return renderer.pageCount

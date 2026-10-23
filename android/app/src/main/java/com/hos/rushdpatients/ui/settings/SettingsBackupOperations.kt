@@ -27,6 +27,7 @@ internal class SettingsBackupOperations(
     private val savedStateHandle: SavedStateHandle, private val pendingExports: PendingExportStore,
     private val settingsRepository: SettingsRepository, private val refreshStorageHealth: suspend () -> Unit
 ) {
+    private var exportJob: kotlinx.coroutines.Job? = null
 
     fun prepareEncryptedBackup(passphrase: String) {
         if (_state.value.backupBusy) return
@@ -67,10 +68,11 @@ internal class SettingsBackupOperations(
     }
 
     fun exportEncryptedBackup(uri: Uri?) {
+        if (exportJob?.isActive == true) return
         val id = savedStateHandle.get<String>(PENDING_BACKUP_ID)
         val count = savedStateHandle.get<Int>(PENDING_BACKUP_COUNT) ?: 0
         _state.update { it.copy(backupBusy = true, backupReady = false, snackbar = null) }
-        viewModelScope.launch {
+        exportJob = viewModelScope.launch {
             try {
                 if (uri == null) return@launch
                 check(id != null) { uiText(R.string.ui_settings_backup_operations_003) }
@@ -101,19 +103,24 @@ internal class SettingsBackupOperations(
     fun restoreEncryptedBackup(uri: Uri, password: String) {
         if (_state.value.backupBusy) return
         _state.update { it.copy(backupBusy = true, snackbar = null) }
+        val passphrase = password.toCharArray()
         viewModelScope.launch {
-            runCatching { encryptedBackupManager.restore(uri, password.toCharArray()) }
-                .onSuccess { count ->
-                    _state.update {
-                        it.copy(backupBusy = false, snackbar = uiText(R.string.ui_settings_backup_operations_006, count))
-                    }
-                    refreshStorageHealth()
+            try {
+                val count = encryptedBackupManager.restore(uri, passphrase)
+                _state.update {
+                    it.copy(snackbar = uiText(R.string.ui_settings_backup_operations_006, count))
                 }
-                .onFailure { error ->
-                    _state.update {
-                        it.copy(backupBusy = false, snackbar = error.message ?: uiText(R.string.ui_settings_backup_operations_007))
-                    }
+                refreshStorageHealth()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                _state.update {
+                    it.copy(snackbar = error.message ?: uiText(R.string.ui_settings_backup_operations_007))
                 }
+            } finally {
+                passphrase.fill('\u0000')
+                _state.update { it.copy(backupBusy = false) }
+            }
         }
     }
 }

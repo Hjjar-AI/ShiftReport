@@ -184,7 +184,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                             Size(edge, size.height))
                     }
                 }
-                .animateContentSize(tween(expansionMillis))
+                .then(if (expansionMillis > 0) Modifier.animateContentSize(tween(expansionMillis)) else Modifier)
                 .padding(cardDensity.padding),
             verticalArrangement = Arrangement.spacedBy(sectionGap)
         ) {

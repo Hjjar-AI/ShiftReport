@@ -163,6 +163,7 @@ object CsvCodec {
             ?: emptyList()
         val sortSpecJson = meta[CsvSchema.META_SORT_SPEC]?.takeIf { it.isNotBlank() }
         val shiftRevision = meta[CsvSchema.META_SHIFT_REVISION]?.toLongOrNull() ?: 0L
+        require(shiftRevision >= 0L) { "نسخة المناوبة غير صالحة" }
         val snapshotId = meta[CsvSchema.META_SNAPSHOT_ID]?.takeIf(String::isNotBlank)
         val baseSnapshotId = meta[CsvSchema.META_BASE_SNAPSHOT_ID]?.takeIf(String::isNotBlank)
         val deviceId = meta[CsvSchema.META_DEVICE_ID]?.takeIf(String::isNotBlank)
@@ -173,6 +174,7 @@ object CsvCodec {
         }
 
         val header = rows[1].map { it.trim() }
+        require(header.distinct().size == header.size) { "أعمدة CSV مكررة" }
         val indexOf = header.withIndex().associate { (i, name) -> name to i }
         val requiredColumns = CsvSchema.COLUMNS.take(14) +
             if (version != null && version >= 7) listOf(CsvSchema.COL_TASKS) else emptyList()
@@ -270,6 +272,8 @@ object CsvCodec {
             ?.let(Instant::ofEpochMilli)
             ?: Instant.now()
 
+        val revision = field(CsvSchema.COL_REVISION).toLongOrNull() ?: 0L
+        require(revision >= 0L) { "السطر $rowNumber: نسخة المريض غير صالحة" }
         return Patient(
             id = id,
             admittanceNumber = admissionNumber,
@@ -291,7 +295,7 @@ object CsvCodec {
             lastEditedByDoctorId = field(CsvSchema.COL_LAST_EDITED_BY_DOCTOR_ID)
                 .ifBlank { null },
             lastEditedByName = field(CsvSchema.COL_LAST_EDITED_BY).ifBlank { null },
-            revision = field(CsvSchema.COL_REVISION).toLongOrNull() ?: 0L,
+            revision = revision,
             updatedAt = updatedAt
         )
     }
@@ -358,6 +362,7 @@ object CsvCodec {
             }
         }
 
+        require(!inQuotes) { "علامة اقتباس CSV غير مغلقة" }
         if (currentField.isNotEmpty() || currentRow.isNotEmpty()) {
             currentRow += currentField.toString()
             rows += currentRow.toList()

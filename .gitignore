@@ -90,3 +90,10 @@ Thumbs.db
 /android/.idea/shelf/
 /android/.idea/httpRequests/
 /local/
+
+# Owner-supplied disposable Telegram credentials; never commit this local file.
+/android/test credits.json
+
+# Synthetic cross-client fixtures, generated only from desktop/tests/support.py.
+!/android/app/src/androidTest/assets/interop/desktop.rpb
+!/android/app/src/androidTest/assets/interop/desktop.srjoin.json

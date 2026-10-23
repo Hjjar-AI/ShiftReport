@@ -179,7 +179,7 @@ private fun PickDoctorList(
 }
 
 @Composable
-private fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
+internal fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
     val uiText = rememberUiStrings()
     val context = LocalContext.current
     val clipboard = remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }

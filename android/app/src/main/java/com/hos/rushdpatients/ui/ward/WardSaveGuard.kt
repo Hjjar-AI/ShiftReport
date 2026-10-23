@@ -66,6 +66,7 @@ internal class WardSaveGuard(
         onStale: suspend (Exception) -> Boolean = { false },
         action: suspend () -> Unit
     ) {
+        if (_state.value.saving) return
         _state.update { it.copy(saving = true) }
         try {
             action()

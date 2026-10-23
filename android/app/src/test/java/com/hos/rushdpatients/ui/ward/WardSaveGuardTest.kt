@@ -17,6 +17,13 @@ class WardSaveGuardTest {
     private val shifts = mockk<ShiftRepository>()
     private val state = MutableStateFlow(WardUiState())
     private val guard = WardSaveGuard(text, state, shifts)
+    @Test fun `second save during active mutation cannot execute or claim success`() = runBlocking<Unit> {
+        guard.saveAction(onSuccess = {}) {
+            guard.saveAction(onSuccess = { fail("Duplicate success") }) { fail("Duplicate mutation") }
+            assertTrue(state.value.saving)
+        }
+        assertFalse(state.value.saving)
+    }
     @Test fun `missing and archived shifts cannot be edited`() {
         assertNull(guard.editableShiftId())
         state.value = WardUiState(shift = Fixtures.shift(date = ShiftDate.current().minusDays(1)))

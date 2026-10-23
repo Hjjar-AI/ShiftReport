@@ -9,6 +9,7 @@ import android.graphics.Paint
 object PdfTextWrapper {
 
     fun wrap(text: String, paint: Paint, maxWidth: Float): List<String> {
+        require(maxWidth.isFinite() && maxWidth > 0f) { "عرض النص غير صالح" }
         if (text.isEmpty()) return listOf("")
 
         val lines = mutableListOf<String>()
@@ -38,16 +39,15 @@ object PdfTextWrapper {
                     }
                     // Force-break a single word that is too wide
                     var remaining = word
-                    var guard = 0
                     while (paint.measureText(remaining) > maxWidth && remaining.isNotEmpty()) {
-                        if (++guard > 1000) break   // hard stop, pathological input
                         val count = paint.breakText(remaining, true, maxWidth, null)
                         if (count <= 0) {
                             // breakText can return 0 on some pathological inputs
                             // (e.g. zero-width joining chars). Emit one char
-                            // and continue so we never loop forever.
-                            lines += remaining.substring(0, 1)
-                            remaining = remaining.substring(1)
+                            // and continue so we never loop forever. Preserve surrogate pairs.
+                            val cut = Character.charCount(remaining.codePointAt(0))
+                            lines += remaining.substring(0, cut)
+                            remaining = remaining.substring(cut)
                             continue
                         }
                         val cut = count.coerceAtMost(remaining.length)

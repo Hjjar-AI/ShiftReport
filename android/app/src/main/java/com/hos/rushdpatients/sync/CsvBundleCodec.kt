@@ -26,7 +26,9 @@ object CsvBundleCodec {
             append(HEADER).append('\n')
             distinct.forEachIndexed { index, snapshot ->
                 if (index > 0) append(BOUNDARY).append('\n')
-                append(CsvCodec.encode(snapshot.shift, snapshot.patients).trimEnd())
+                val csv = CsvCodec.encode(snapshot.shift, snapshot.patients).trimEnd()
+                require(!csv.contains("\n$BOUNDARY\n")) { "نص يتعارض مع فاصل حزمة المناوبات" }
+                append(csv)
                 append('\n')
             }
         }
