@@ -166,20 +166,36 @@ These retained concerns are separate from the selected work in [Roadmap](roadmap
 
 ## Verification and limits
 
-On 23 October 2026, authorized offline `:app:compileDebugKotlin` and
-`:app:compileDebugUnitTestKotlin` passed; the final `:app:testDebugUnitTest` run
-passed **146 tests across 34 classes**, with zero failures/errors/skips and no
-Kotlin compiler warnings. Existing pinned JVM test dependencies were populated in
-the durable Gradle cache with owner authorization. Verification used pinned Gradle
-8.7, installed Java 21/SDK 34, one worker, in-process Kotlin and disabled automatic
-version reservation. Production compilation tasks were up-to-date; test compilation
-and execution ran. Nonfatal Gradle deprecation/JVM class-sharing notices remain.
-Logs: `/tmp/shiftreport-test-compile.log`, `/tmp/shiftreport-unit-tests.log`.
+On 23 October 2026, the continued test expansion passed authorized offline
+`:app:compileDebugKotlin` and `:app:compileDebugUnitTestKotlin`, followed by
+`:app:testDebugUnitTest`: **227 tests across 47 classes**, zero failures/errors/
+skips, confirmed from the JUnit XML reports. Production and JVM test compilation
+ran with no Kotlin compiler warnings. This supersedes the earlier 146-case JVM
+snapshot. The continuation adds 81 JVM cases across local PIN lockout/live identity,
+role-use-case rejection/cancellation, recovery/publication/index guards, editor
+retention/submission/validation, ward save/filter/list-return behavior and text
+reports. It also adds 11 source-only device transaction safety cases.
 
-The expanded suite also contains **41 device tests across 10 classes** for fresh
-Room databases/repository transactions, project encryption, password hashing,
-backup and RTL report confirmation. After renaming 13 spaced coroutine test
-methods to camelCase and correcting a duplicate-name lookup fixture, the owner's
+Verification used pinned Gradle 8.7, installed Java 21/SDK 34, one worker,
+in-process Kotlin, no persistent daemon and disabled automatic version reservation.
+The first offline attempt stopped before compilation because the pinned
+`kotlinx-coroutines-test-jvm:1.7.3` JAR was missing. With owner authorization,
+existing pinned JVM test dependencies were resolved into the durable shared Gradle
+cache; the subsequent compile and test run were offline. No versions changed.
+Before each compilation/test run, visible build processes and RAM/swap pressure
+were checked. Nonfatal Gradle deprecation/JVM class-sharing notices remain.
+Logs: `/tmp/shiftreport-expanded-test-compile.log`,
+`/tmp/shiftreport-expanded-unit-tests.log`, `/tmp/shiftreport-test-dependencies.log`.
+
+The suite now contains **52 device tests across 11 classes** for fresh Room
+databases/repository transactions, project encryption, password hashing, backup
+and RTL report confirmation. The 11 new `WardMutationSafetyTest` cases cover task
+attribution/owner handling and rejected anonymous completion, duplicate patient
+addition, cross-shift deletion, invalid/stale rosters, stale sorting and partial
+rollover. They have source/whitespace checks only; instrumentation compilation
+and device execution were not authorized or run in this continuation. For the
+earlier 41-case device snapshot, after renaming 13 spaced coroutine test methods
+to camelCase and correcting a duplicate-name lookup fixture, the owner's
 connected run built successfully through D8 and executed all 41 cases on PPA-LX2
 (Android 10): **39 passed, 2 failed, 0 skipped**. Both failures were obsolete
 expectations that `DoctorDao.@Upsert` throws for conflicting unique names/Telegram
@@ -191,8 +207,9 @@ JVM coverage includes current clinical/task rules, doctors/import, admin authori
 same-project reconnect, codecs/mappers/sorting, sync comparisons, report review/
 delivery guards, intercepted Telegram requests, PDF content and UI state rules.
 [Coverage map and commands](../guides/android-testing.md). Source counts are not
-measured line/branch coverage or complete end-to-end coverage. Git whitespace and
-new documentation links were checked. No production source, migration files,
+measured line/branch coverage or complete end-to-end coverage. Git whitespace,
+whitespace/final newlines in untracked Kotlin additions, device method naming and
+updated documentation links were checked. No production source, migration files,
 versions or schemas changed. Agent verification did not package/install APKs;
 the owner's connected run built/installed the test artifacts. No distribution ran.
 
