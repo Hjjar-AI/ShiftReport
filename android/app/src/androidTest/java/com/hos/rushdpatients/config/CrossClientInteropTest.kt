@@ -44,7 +44,12 @@ class CrossClientInteropTest : ClinicalRepositoryFixture() {
         val imported = provisioning.importConfig(Uri.fromFile(copyAsset("desktop.srjoin.json")), "synthetic-password".toCharArray())
         assertEquals(config().copy(initialized = false), imported)
         val bytes = provisioning.prepareExport(config(), "synthetic-password".toCharArray())
-        try { provisioning.writeExport(Uri.fromFile(File(output(), "android.srjoin.json")), bytes) }
+        try {
+            val destination = File(output(), "android.srjoin.json")
+            // Mirror CreateDocument: every export writes a fresh destination.
+            check(!destination.exists() || destination.delete())
+            provisioning.writeExport(Uri.fromFile(destination), bytes)
+        }
         finally { bytes.fill(0) }
     }
     @Test fun desktopEncryptedTextDecodesAndAndroidTextIsExportedForReverseCheck() = runBlocking<Unit> {

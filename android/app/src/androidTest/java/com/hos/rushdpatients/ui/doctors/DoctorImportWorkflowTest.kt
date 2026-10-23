@@ -88,7 +88,7 @@ class DoctorImportWorkflowTest : SyncFixture() {
         assertEquals(before, doctors.getAll())
         assertNull(vm.state.value.importPreview)
     }
-    @Test fun ownersOriginalPrivateCsvCanBeReviewedWithoutWritingProductionRegistry() = runBlocking<Unit> {
+    @Test fun ownersOriginalPrivateCsvCommitsOnlyIntoIsolatedRegistry() = runBlocking<Unit> {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.filesDir, "verification-inputs/doctors-import.local.csv")
         assumeTrue("Optional owner CSV was not provisioned privately", file.isFile)
@@ -97,5 +97,9 @@ class DoctorImportWorkflowTest : SyncFixture() {
         // Only counts/success enter public test output; the original file remains private.
         assertTrue("Original CSV import did not produce a preview", state.importError == null && state.importPreview != null)
         assertEquals(1, doctors.count())
+        val expectedCount = requireNotNull(state.importPreview).activeCount
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { vm.confirmDoctorImport() }
+        withTimeout(15_000) { vm.state.first { !it.importing && it.importPreview == null } }
+        assertEquals("Original CSV import count", expectedCount, doctors.getAll().count { !it.isDeleted })
     }
 }

@@ -1,9 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
 import android.graphics.Bitmap
-import android.os.Handler
-import android.os.HandlerThread
-import android.view.FrameMetrics
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +27,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import java.util.Collections
 
 /** Exercises real cards at the ward's 200-patient limit; records debug timings, not a release SLA. */
 @RunWith(AndroidJUnit4::class)
@@ -77,40 +73,5 @@ class PatientGridScrollTest {
             .resolve("patient-cards-rtl-large-font.png").outputStream().use {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
             }
-    }
-    @Test fun recordFrameDurationsDuringRealCardScrolling() {
-        show(false)
-        val durations = Collections.synchronizedList(mutableListOf<Long>())
-        val phases = linkedMapOf("input" to FrameMetrics.INPUT_HANDLING_DURATION,
-            "animation" to FrameMetrics.ANIMATION_DURATION,
-            "layout" to FrameMetrics.LAYOUT_MEASURE_DURATION, "draw" to FrameMetrics.DRAW_DURATION,
-            "sync" to FrameMetrics.SYNC_DURATION, "commands" to FrameMetrics.COMMAND_ISSUE_DURATION,
-            "unknownDelay" to FrameMetrics.UNKNOWN_DELAY_DURATION)
-        val phaseSamples = phases.mapValues { Collections.synchronizedList(mutableListOf<Long>()) }
-        val thread = HandlerThread("synthetic-scroll-frames").apply { start() }
-        val listener = android.view.Window.OnFrameMetricsAvailableListener { _, metrics, _ ->
-            durations.add(metrics.getMetric(FrameMetrics.TOTAL_DURATION))
-            phases.forEach { (name, metric) -> phaseSamples.getValue(name).add(metrics.getMetric(metric)) }
-        }
-        compose.runOnUiThread { compose.activity.window.addOnFrameMetricsAvailableListener(listener, Handler(thread.looper)) }
-        try {
-            repeat(8) { compose.onNodeWithTag("patient-grid").performTouchInput { swipeUp(durationMillis = 180) } }
-            compose.waitForIdle()
-        } finally {
-            compose.runOnUiThread { compose.activity.window.removeOnFrameMetricsAvailableListener(listener) }
-            thread.quitSafely(); thread.join(2000)
-        }
-        val samples = synchronized(durations) { durations.toList().sorted() }
-        assertTrue("No frame metrics captured", samples.isNotEmpty())
-        val phaseReport = phaseSamples.entries.joinToString(",") { (name, values) ->
-            val sorted = synchronized(values) { values.toList().sorted() }
-            "\"$name\":{\"medianMs\":${sorted[sorted.size / 2] / 1_000_000.0}," +
-                "\"p95Ms\":${sorted[((sorted.size - 1) * .95).toInt()] / 1_000_000.0}}"
-        }
-        val report = "{\"frames\":${samples.size},\"medianMs\":${samples[samples.size / 2] / 1_000_000.0}," +
-            "\"p95Ms\":${samples[((samples.size - 1) * 0.95).toInt()] / 1_000_000.0}," +
-            "\"over16_67ms\":${samples.count { it > 16_666_667 }},\"build\":\"debug-instrumented\",\"phases\":{$phaseReport}}"
-        File(compose.activity.getExternalFilesDir(null), "verification-artifacts").apply { mkdirs() }
-            .resolve("patient-scroll-frames.json").writeText(report)
     }
 }
