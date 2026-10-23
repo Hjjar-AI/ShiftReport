@@ -8,7 +8,7 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 
 | Folder | Contents |
 |---|---|
-| [`android/`](android/) | Android Studio/Gradle project, app source, wrapper and Android-local settings |
+| [`android/`](android) | Android Studio/Gradle project, app source, wrapper and Android-local settings |
 | [`desktop/`](desktop/README.md) | Python CustomTkinter client for Windows and Linux, setup and launch scripts |
 | [`docs/`](docs/README.md) | Shared architecture, current state, guides and roadmap |
 | `local/` | Ignored private local artifacts, including the old Excel workspace |
@@ -58,14 +58,14 @@ New projects can optionally encrypt Telegram patient bundles (including tasks), 
 
 Admin-only operations are checked against the live local doctor registry below the navigation layer. Patient edits and shift controls reject stale local revisions rather than silently overwriting newer data.
 
-Telegram remains the shared synchronization and delivery channel. The accepted workflow is retrieve, edit, and publish; the last successful pinned-state write wins. Telegram pinned state is not an atomic multi-writer database. Guaranteed simultaneous collaboration is outside scope, and no authoritative backend is required. Existing revision checks, merges, conflict review, and report confirmation remain in place. See [Architecture](docs/architecture.md).
+Telegram remains the shared synchronization and delivery channel. The accepted workflow is retrieve, edit, and publish; the last successful pinned-state write wins. Telegram pinned state is not an atomic multi-writer database. Guaranteed simultaneous collaboration is outside scope, and no authoritative backend is required. Existing revision checks, merges, conflict review, and report confirmation remain in place. See [Architecture](docs/reference/architecture.md).
 
 Appearance and accent are configured separately under **Settings → App interface**. Every accent supports light and dark appearance; AMOLED is available separately. Uncommon report options are under **Settings → Report → Advanced PDF options**. Collapsed cards summarize clinical content; expand a card for full details.
 
 ## Implementation status
 
-See [Current state](docs/current-state.md#verification-and-limits) for the exact
-source/build boundary and [Roadmap](docs/roadmap.md) for remaining work, including
+See [Current state](docs/status/current-state.md#verification-and-limits) for the exact
+source/build boundary and [Roadmap](docs/status/roadmap.md) for remaining work, including
 the CSV device failure, production signing and deferred voice/templates.
 
 ## Project documentation
@@ -120,4 +120,4 @@ app/build/outputs/apk/release/
 app/build/outputs/bundle/release/
 ```
 
-The release build currently uses the debug signing configuration. Configure a protected production keystore before distributing a real release; never commit signing material or credentials.
+Release requires a protected production keystore and has no debug-key fallback. See the [cache/signing guide](docs/guides/android-build.md); never commit signing material or credentials.

@@ -1,6 +1,6 @@
 # Architecture
 
-[Implementation/limits](current-state.md) · [Protocol](../desktop/PROTOCOL.md) · [Roadmap](roadmap.md)
+[Implementation/limits](../status/current-state.md) · [Protocol](telegram-protocol.md) · [Roadmap](../status/roadmap.md)
 
 ## Accepted synchronization scope
 
@@ -37,7 +37,7 @@ PDFs/Telegram metadata deliberately readable. Device-key failures preserve files
 Admin authorization belongs below UI. Desktop bootstrap verifies human group admin,
 private challenge, empty pin/workspace and authority again before publication; an
 encrypted UNKNOWN receipt precedes writes. Explicit raw-token desktop mode keeps
-plaintext settings outside bundles. [Security/setup](guides/telegram-setup.md).
+plaintext settings outside bundles. [Security/setup](../guides/telegram-setup.md).
 
 ## Clinical and presentation boundaries
 
@@ -54,7 +54,7 @@ targets, compact clinical-first editing/demographic-first creation, labs/per-fie
 tools and fixed keyboard-safe actions. Appearance/accent/clinical severity/PDF settings
 are independent; preferences do not rewrite clinical content. Individual motion is
 brief, bulk/reduced motion immediate. Stable IDs define filtered/grouped/pinned rounds;
-buttons remain available alongside gestures. [UI guide](../android/chick.md).
+buttons remain available alongside gestures. [UI guide](../guides/android-ui.md).
 
 ## Reviewed PDF and delivery identity
 
@@ -73,15 +73,15 @@ historical shifts. Exporting/opening a PDF is separate from sending authorizatio
 
 Demo injects memory-only state into real forms/cards/renderer; explicitly requested
 PDFs are labelled on every page. Reset/exit discards it; no production store/session/
-transport dependency. [Demo guide](android-demo.md).
+transport dependency. [Demo guide](../guides/android-demo.md).
 
 Desktop stores fingerprint-bound AES-GCM workspace state before SQLite commit, with
 Windows DPAPI or Linux passphrase-wrapped keys and platform path/lock/PDF adapters.
 Logical Arabic input/caret/clipboard/Save stays separate from UI/PDF shaping. Local
 unfinished drafts, cached enrollment and reviewed shared operations remain distinct.
-[Desktop guide](../desktop/README.md) contains operational details.
+[Desktop guide](../../desktop/README.md) contains operational details.
 
 Design basis: Android adaptive layouts/Compose accessibility, structured I-PASS
 handoff, NHS warning guidance and WCAG 2.2. These inform choices, not verification
 claims. Deferred voice/templates and their technology notes stay in Roadmap;
-unselected presentation choices stay in the [decision register](decisions/android-ui-options.md).
+unselected presentation choices stay in the [decision register](../decisions/android-ui-options.md).

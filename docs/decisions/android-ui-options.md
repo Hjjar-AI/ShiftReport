@@ -1,8 +1,8 @@
 # Optional UI decisions
 
 Unselected choices only; existing behavior remains the default. Pick IDs or narrower
-parts. Completed selections live in [Changelog](../changelog.md); current behavior,
-safety boundaries and verification limits live in [Current state](../current-state.md).
+parts. Completed selections live in [Changelog](../status/changelog.md); current behavior,
+safety boundaries and verification limits live in [Current state](../status/current-state.md).
 
 | ID | Optional choice |
 |---|---|
@@ -27,4 +27,4 @@ safety boundaries and verification limits live in [Current state](../current-sta
 | O23 | Automated screenshot matrix; production previews are expanded. |
 
 [AGENTS.md](../../AGENTS.md) governs verification/version authorization; O23 requires
-separate explicit test work approval. Voice/templates remain deferred in [Roadmap](../roadmap.md).
+separate explicit test work approval. Voice/templates remain deferred in [Roadmap](../status/roadmap.md).

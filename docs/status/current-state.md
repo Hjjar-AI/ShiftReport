@@ -1,6 +1,6 @@
 # Current implementation
 
-[Docs](README.md) · [Architecture](architecture.md) · [Remaining work](roadmap.md) · [Completed work](changelog.md) · [Optional UI](decisions/android-ui-options.md)
+[Docs](../README.md) · [Architecture](../reference/architecture.md) · [Remaining work](roadmap.md) · [Completed work](changelog.md) · [Optional UI](../decisions/android-ui-options.md)
 
 ## Product and source layout
 
@@ -9,7 +9,7 @@ Android: `android/`, Kotlin 1.9/Java 17, Compose BOM 2023.10.01, SDK 34/minimum 
 desktop: `desktop/`, CustomTkinter. Versions are unchanged. Android source below
 `app/src/main/java/com/hos/rushdpatients/`: `ui/` delegates to Hilt ViewModels,
 `domain/` owns rules, repositories wrap Room/SQLCipher, `network/telegram/` owns
-transport, and `sync/` orchestrates transfer. [Protocol](../desktop/PROTOCOL.md).
+transport, and `sync/` orchestrates transfer. [Protocol](../reference/telegram-protocol.md).
 
 ## Security and project access
 
@@ -26,13 +26,11 @@ transport, and `sync/` orchestrates transfer. [Protocol](../desktop/PROTOCOL.md)
 - App windows use `FLAG_SECURE`; exported/opened PDFs are outside it. Private reviewed
   PDFs have best-effort session cleanup. Clipboard codes use sensitive metadata and
   matching-nonce expiry/disposal; background clipboard restrictions still apply.
-- Shared debug signing selects an ignored existing-key copy through `debug.keystore`
-  in `android/local.properties` or `SHIFTREPORT_DEBUG_KEYSTORE`. Missing selected keys
-  fail; release signing stays separate. Existing APK certificates match the original
-  key. Owner certificate access passed; the other account's session check needs its
-  authenticated login. New build/device update verification remains outstanding.
-- Release has protected local/CI signing inputs and no debug-key fallback. Production
-  signing remains an owner prerequisite. [Setup](guides/telegram-setup.md).
+- Debug can select a protected existing shared key independently of caches; selected
+  missing keys fail. Existing APK/key certificates match; second-account login and
+  new build/device update remain unverified. Release has protected local/CI inputs
+  with no debug fallback; a production key remains an owner prerequisite.
+  [Cache/signing setup and checks](../guides/android-build.md).
 
 ## Synchronization and publication
 
@@ -89,7 +87,7 @@ Save-next advances only after success; saved-card reveal preserves filters/viewp
 
 - Shared chips, buttons, dialogs, notices, cards, menus, sheets, state/loading hosts,
   icons and semantic text consume theme tokens. Clinical severity is accent-independent;
-  diagnoses are not error states. [Component/style guide](design-catalog.md).
+  diagnoses are not error states. [Component/style guide](../reference/design-catalog.md).
 - Profiles current/relaxed/quiet/clear, density/control size, reduced motion, compact
   Add, optional header expansion and dock auto-hide are device-local encrypted
   preferences; demo uses temporary state. Appearance/accent/PDF choices stay separate.
@@ -131,7 +129,7 @@ Injected `InMemoryDemoWardRepository` drives the real `WardWorkspace` through
 Hot-beverage patients, tree-named doctors, temporary actor/roster/preferences,
 recycle/reset/exit and explicitly requested PDF export remain. Every PDF page is
 labelled demo. Reset/exit discards the session; process death starts fresh.
-[Demo guide](android-demo.md).
+[Demo guide](../guides/android-demo.md).
 
 ## Standalone desktop
 
@@ -141,7 +139,7 @@ teams/CSV/recycle and durable delivery receipts follow the shared protocol.
 Linux uses XDG/passphrase-wrapped keys/font discovery/native PDF opening; Windows
 keeps DPAPI and its compatibility dependencies. Arabic editing stores logical
 Unicode, shaping only display/PDF output. Local unfinished drafts remain separate
-from saved records/portable exports. [Usage](../desktop/README.md) · [Diagnostics](../desktop/TROUBLESHOOTING.md).
+from saved records/portable exports. [Usage](../../desktop/README.md) · [Diagnostics](../guides/desktop-troubleshooting.md).
 
 UI search/resize is debounced; unchanged cards and dashboard widgets are retained.
 Dashboard/roster shortcuts live in the sidebar. Clinical stripes, native More menu,
@@ -152,13 +150,13 @@ UI fonts remain unchanged. Desktop demo is memory-only with labelled local PDFs.
 
 Rechecked on 23 October 2026; documentation consolidation did not fix these:
 
-1. [Backup restore](../android/app/src/main/java/com/hos/rushdpatients/domain/backup/EncryptedBackupManager.kt)
+1. [Backup restore](../../android/app/src/main/java/com/hos/rushdpatients/domain/backup/EncryptedBackupManager.kt)
    reuses backed-up patient revisions and existing shift revision through
-   [patient](../android/app/src/main/java/com/hos/rushdpatients/data/repository/PatientRepository.kt)/
-   [shift upserts](../android/app/src/main/java/com/hos/rushdpatients/data/repository/ShiftRepository.kt).
+   [patient](../../android/app/src/main/java/com/hos/rushdpatients/data/repository/PatientRepository.kt)/
+   [shift upserts](../../android/app/src/main/java/com/hos/rushdpatients/data/repository/ShiftRepository.kt).
    Replacement can leave a stale draft's revision valid.
-2. [WardSaveGuard](../android/app/src/main/java/com/hos/rushdpatients/ui/ward/WardSaveGuard.kt)
-   checks UI-held clinician roles; [WardMutationRepository](../android/app/src/main/java/com/hos/rushdpatients/data/repository/WardMutationRepository.kt)
+2. [WardSaveGuard](../../android/app/src/main/java/com/hos/rushdpatients/ui/ward/WardSaveGuard.kt)
+   checks UI-held clinician roles; [WardMutationRepository](../../android/app/src/main/java/com/hos/rushdpatients/data/repository/WardMutationRepository.kt)
    checks task owners but lacks live responsible-resident/supervisor role checks
    at save/recycle-restore/rollover boundaries.
 3. Backup restore checks referenced doctor existence before its transaction, without
@@ -170,7 +168,7 @@ These retained concerns are separate from the selected work in [Roadmap](roadmap
 
 Owner `assembleDebug` passed on 22 October 2026 for `1.1.23.20261022` (code 24):
 37s, 44 tasks (15 executed/29 up-to-date), no Kotlin warning; nonfatal Gradle
-deprecation notice. That source snapshot predates the subsequent UI changes.
+deprecation notice. That source snapshot predates the subsequent UI and shared-signing changes.
 
 Current UI source has Python AST/XML, Kotlin delimiter/resource/icon/call-site,
 local-link and Git whitespace checks only. Production previews cover narrow RTL,
@@ -180,5 +178,5 @@ search draft retention, gestures, completion/Undo and live Telegram remain unver
 
 This consolidation changed documentation only, checked links/anchors/whitespace and
 preserved operational guides/build commands. No build, test-suite work, migration
-inspection/change, version change or packaging ran. [AGENTS.md](../AGENTS.md) governs
+inspection/change, version change or packaging ran. [AGENTS.md](../../AGENTS.md) governs
 further verification. CSV device exception and production signing remain outstanding.

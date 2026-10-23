@@ -310,7 +310,7 @@ encrypted SQLite reopening/tamper, UNKNOWN-retry, receipt-preserving restoration
 rosters, stale-publication rejection, receipt-before-upload and remote/concurrent
 order checks passed. A long dummy Arabic report generated eight PDF pages and its first
 page was visually inspected. Python 3.8 x86/x64 wheel resolution is recorded in
-[Current state](../docs/current-state.md). The checks used the host Python, not
+[Current state](../docs/status/current-state.md). The checks used the host Python, not
 Python 3.8.10, and did not exercise a real project.
 
 On 2026-10-19, Linux checks passed for both shared-key and passphrase-protected
@@ -331,8 +331,8 @@ editable Unicode remained unchanged. Full clinical editing workflows, Windows
 PDF viewer, live Telegram login/publication/delivery and Android-device round trips
 remain unverified. Wheel availability is not Windows 7 certification. The pinned
 legacy dependencies are compatibility choices, not a current-support claim.
-See [protocol](PROTOCOL.md) and
-[desktop troubleshooting](TROUBLESHOOTING.md).
+See [protocol](../docs/reference/telegram-protocol.md) and
+[desktop troubleshooting](../docs/guides/desktop-troubleshooting.md).
 
 The subsequent Linux update installed unpinned dependencies through Setup_Linux.sh
 on the owner's system Python. Actual form/search editing, visual cursor/mouse

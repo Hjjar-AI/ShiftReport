@@ -8,14 +8,14 @@ The recommended result is a folder containing `ShiftReport.exe` and its support
 files. Recipients do not need Python installed. This is a portable application
 bundle; it does not create an installer, desktop shortcut or signed release.
 
-Related: [desktop usage](../desktop/README.md),
-[desktop troubleshooting](../desktop/TROUBLESHOOTING.md),
-[current verification limits](current-state.md#verification-and-limits).
+Related: [desktop usage](../../desktop/README.md),
+[desktop troubleshooting](desktop-troubleshooting.md),
+[current verification limits](../status/current-state.md#verification-and-limits).
 
 ## 1. Choose the Windows and Python target
 
 The repository's Windows dependency set is
-[`requirements-win7.txt`](../desktop/requirements-win7.txt), targeting **CPython
+[`requirements-win7.txt`](../../desktop/requirements-win7.txt), targeting **CPython
 3.8.10**, including Tcl/Tk and pip. This guide uses **PyInstaller 5.13.2** in a
 separate packaging environment. It does not change application dependencies.
 
@@ -256,7 +256,7 @@ Leave `PDF_FONT` unset to use the bundled Tajawal fonts. An explicit relative
 single-file mode it does not refer to the temporary bundled-resource directory.
 For implementation context see
 [resource path behavior](https://www.pyinstaller.org/en/v5.13.2/runtime-information.html)
-and [`desktop_platform.py`](../desktop/desktop_platform.py).
+and [`desktop_platform.py`](../../desktop/desktop_platform.py).
 
 A portable application bundle is not a portable clinical database. Existing
 Windows workspaces can depend on their original user profile and DPAPI-protected

@@ -1,6 +1,6 @@
 # Remaining work
 
-[Current state/limits](current-state.md) · [Completed work](changelog.md) · [Optional UI](decisions/android-ui-options.md)
+[Current state/limits](current-state.md) · [Completed work](changelog.md) · [Optional UI](../decisions/android-ui-options.md)
 
 ## Active — Android doctor CSV import
 
@@ -12,7 +12,7 @@ Preserve identity, clinical-reference and authorization checks.
 
 Owner must supply the protected production key/certificate before distribution.
 Local/CI signing inputs exist without debug fallback; no production-signed artifact
-is verified. [Signing inputs](android-shared-workstation-build-fixes.md#production-release-signing).
+is verified. [Signing inputs](../guides/android-build.md#production-release-signing).
 
 ## Far future — optional voice dictation
 

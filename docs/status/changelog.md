@@ -1,14 +1,13 @@
 # Completed work
 
 Feature summaries only; [current behavior/verification](current-state.md),
-[remaining work](roadmap.md) and [optional decisions](decisions/android-ui-options.md)
+[remaining work](roadmap.md) and [optional decisions](../decisions/android-ui-options.md)
 have separate homes. Source completion is not runtime verification.
 
 ## Clinical and security
 
 - Added shared debug-keystore selection for both Linux accounts, preserving the
-  existing certificate and separate caches/release signing; no new build/device check.
-
+  existing certificate and separate caches/release signing.
 - Protected file-only join, optional authenticated Telegram encryption, safe same-project
   reconnect, clinician PIN/biometrics, service authorization and storage-key preservation.
 - Revision/audit/pending saves, full-screen retained drafts, per-field labs/tools,
@@ -35,7 +34,11 @@ have separate homes. Source completion is not runtime verification.
 ## Documentation
 
 Consolidated status/history/rationale/choices; absorbed review ledgers and `full.md`.
+Grouped documentation under `docs/{guides,reference,status,decisions}` with updated
+links; root/desktop READMEs remain entry points.
 Retained source concerns and exact build/runtime limits live in Current state.
-Task-oriented setup/build/packaging/troubleshooting/protocol guides and build commands
-are preserved. Latest UI changes have static checks only; see Current state before
-reusing earlier build evidence.
+Merged duplicate build/cache instructions and replaced superseded failure history
+with targeted diagnostics; retained operational guides/commands and consolidated
+shared debug signing, production signing and optional read-only snapshot setup.
+Latest UI changes have static checks only; consult Current state before reusing
+earlier build evidence.

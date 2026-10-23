@@ -1,6 +1,6 @@
 # Desktop troubleshooting
 
-[Setup and complete workflow](README.md) · [Wire contract](PROTOCOL.md)
+[Setup and complete workflow](../../desktop/README.md) · [Wire contract](../reference/telegram-protocol.md)
 
 - **Startup:** use CPython 3.8.10 with Tcl/Tk, pip and the Windows py launcher.
   On Linux use Python 3.8 or later with Tcl/Tk and venv, run Setup_Linux.sh, then
@@ -12,7 +12,7 @@
 - **Configuration:** optional .env accepts only the documented literal settings;
   no shell expansion/interpolation. Default `CONNECTION_MODE=join` uses a protected
   join file and prompts for its password. Optional admin `CONNECTION_MODE=raw`
-  uses the commented raw section of [.env.example](.env.example); fill the exact existing credentials and
+  uses the commented raw section of [.env.example](../../desktop/.env.example); fill the exact existing credentials and
   data key, leave JOIN_FILE blank, and verify an admin by Telegram before opening
   local drafts. Raw mode needs connectivity; passwords are never `.env` settings.
 - **Offline:** saved drafts reopen after opening the protected join file. Form

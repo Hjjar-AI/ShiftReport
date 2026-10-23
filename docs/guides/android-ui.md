@@ -4,13 +4,13 @@ Use current implementation records rather than the retired review questionnaires
 
 | Need | Source of truth |
 |---|---|
-| Current behavior and exact verification limits | [Current state](../docs/current-state.md) |
-| Unresolved source findings | [Current state](../docs/current-state.md#retained-source-findings) |
-| Adopted boundaries and remaining unselected proposals | [UI decisions](../docs/decisions/android-ui-options.md) |
-| Planned unfinished implementation | [Roadmap](../docs/roadmap.md) |
-| Shared components, profiles and typography | [Design catalog](../docs/design-catalog.md) |
-| Build commands and durable cache/toolchain setup | [Build guide](../docs/android-shared-workstation-build-fixes.md) |
-| Authorization and safety restrictions | [AGENTS.md](../AGENTS.md) |
+| Current behavior and exact verification limits | [Current state](../status/current-state.md) |
+| Unresolved source findings | [Current state](../status/current-state.md#retained-source-findings) |
+| Adopted boundaries and remaining unselected proposals | [UI decisions](../decisions/android-ui-options.md) |
+| Planned unfinished implementation | [Roadmap](../status/roadmap.md) |
+| Shared components, profiles and typography | [Design catalog](../reference/design-catalog.md) |
+| Build commands and durable cache/toolchain setup | [Build guide](android-build.md) |
+| Authorization and safety restrictions | [AGENTS.md](../../AGENTS.md) |
 
 ## Maintaining the UI
 

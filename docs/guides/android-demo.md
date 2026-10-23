@@ -66,14 +66,14 @@ Process death starts a fresh clinical demo rather than restoring real project da
 
 ## Source organization
 
-- [Screen coordinator](../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardScreen.kt):
+- [Screen coordinator](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardScreen.kt):
   navigation, view state, list and shared form/detail callbacks.
-- [Drawer and options](../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoNavigation.kt).
-- [Secondary screens](../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoSecondaryScreens.kt):
+- [Drawer and options](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoNavigation.kt).
+- [Secondary screens](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoSecondaryScreens.kt):
   report review, roster/actor selection and local preferences.
-- [ViewModel](../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardViewModel.kt):
+- [ViewModel](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardViewModel.kt):
   memory-only mutations and explicit PDF export.
-- [Dummy data](../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoData.kt).
+- [Dummy data](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoData.kt).
 
 ## Verification
 

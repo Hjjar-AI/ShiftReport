@@ -32,7 +32,7 @@ These instructions apply to the entire repository. Before work, check for additi
 - Do not replace encryption with encoding, obfuscation, dummy lines, or reversible presentation tricks.
 - Do not silently overwrite stale patient or shift data. Preserve expected-revision checks and explicit conflict handling.
 - Keep admin authorization below the UI/navigation layer for every privileged mutation.
-- Never present Telegram pinned state as an atomic multi-writer database. Preserve the accepted retrieve/edit/publish and last-write-wins scope documented in `docs/architecture.md` and `docs/current-state.md`; do not introduce a required collaboration backend.
+- Never present Telegram pinned state as an atomic multi-writer database. Preserve the accepted retrieve/edit/publish and last-write-wins scope documented in `docs/reference/architecture.md` and `docs/status/current-state.md`; do not introduce a required collaboration backend.
 - Joining is file-only through a password-protected `.srjoin.json` file. Connection settings, topic IDs, and the optional shared data key come from that file. Manual group/topic entry belongs only to project creation; manual replacement of the same bot's token requires live admin authorization.
 - Optional Telegram-data encryption is chosen when creating a project. Preserve authenticated encryption, the shared key in encrypted device settings/protected join files, explicit decryption failures, and the deliberate readable-PDF exception. Replacing a bot token must not silently replace the project data key.
 - Do not mix one hospital/project's existing clinical database with another project's credentials. Same-project reconnect must validate candidate credentials before changing the live token and preserve local clinical state, pending edits, topics, and the data key. Cross-project/key/topic changes are blocked; do not bypass this protection or clear clinical records implicitly.
@@ -68,11 +68,11 @@ These instructions apply to the entire repository. Before work, check for additi
 
 ## Work tracking
 
-- `docs/roadmap.md` contains only unfinished implementation work and the explicitly deferred voice/template proposals. Do not restore removed verification-only or edge-case backlog items. Record verification evidence and limitations in `docs/current-state.md` and `docs/changelog.md`.
-- Move genuinely completed items to `docs/changelog.md`; do not duplicate them in both files.
+- `docs/status/roadmap.md` contains only unfinished implementation work and the explicitly deferred voice/template proposals. Do not restore removed verification-only or edge-case backlog items. Record verification evidence and limitations in `docs/status/current-state.md` and `docs/status/changelog.md`.
+- Move genuinely completed items to `docs/status/changelog.md`; do not duplicate them in both files.
 - Keep history short: consolidate superseded chronological entries into feature summaries; retain current security/behavior and verification limits. Preserve and improve task-oriented guides and their working commands. Store unselected proposals/questions in `docs/decisions/android-ui-options.md`, separate from the implementation roadmap. Removing a proposal is a scope decision, not implementation.
-- Update `docs/current-state.md` when architecture, security boundaries, persistence, synchronization, onboarding, or major navigation changes.
-- Keep design/architecture rationale in `docs/architecture.md`, implementation details in `docs/current-state.md`, and diagnostic procedures in `docs/troubleshooting.md`. Keep documentation links and historical/current-state distinctions accurate.
+- Update `docs/status/current-state.md` when architecture, security boundaries, persistence, synchronization, onboarding, or major navigation changes.
+- Keep design/architecture rationale in `docs/reference/architecture.md`, implementation details in `docs/status/current-state.md`, and diagnostic procedures in `docs/guides/android-troubleshooting.md`. Keep documentation links and historical/current-state distinctions accurate.
 - Keep README build instructions intact unless the user explicitly asks to change them.
 - Keep voice dictation in “Far future” and specialty templates in “Far far future”, with their technology/design notes. Do not implement deferred proposals unless requested.
 

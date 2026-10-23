@@ -1,20 +1,20 @@
 # Android style and component guide
 
-Source defaults, not device measurements. [UI work guide](../android/chick.md) ·
-[Current behavior/verification](current-state.md#shared-android-presentation).
+Source defaults, not device measurements. [UI work guide](../guides/android-ui.md) ·
+[Current behavior/verification](../status/current-state.md#shared-android-presentation).
 
 ## Source map
 
 | Area | Source |
 |---|---|
-| Basic spacing | [UiSpacing.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSpacing.kt) |
-| Control/icon sizes | [UiSize.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSize.kt) |
-| General/field padding | [UiPadding.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiPadding.kt) |
-| Card density, borders, elevation, opacity, motion, dialog/layout roles | [UiTokens.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) |
-| Selectable profile definitions | [UiStyleCatalog.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiStyleCatalog.kt) |
-| Typography | [Type.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/Type.kt) |
-| Theme surfaces, accent and shapes | [Theme.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/Theme.kt) |
-| Clinical badge severity | [PatientBadgeColors.kt](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/PatientBadgeColors.kt) |
+| Basic spacing | [UiSpacing.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSpacing.kt) |
+| Control/icon sizes | [UiSize.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSize.kt) |
+| General/field padding | [UiPadding.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiPadding.kt) |
+| Card density, borders, elevation, opacity, motion, dialog/layout roles | [UiTokens.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) |
+| Selectable profile definitions | [UiStyleCatalog.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiStyleCatalog.kt) |
+| Typography | [Type.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/Type.kt) |
+| Theme surfaces, accent and shapes | [Theme.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/Theme.kt) |
+| Clinical badge severity | [PatientBadgeColors.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/PatientBadgeColors.kt) |
 
 UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common actions,
 numbered placeholders, `rememberUiStrings`, `UiLabels`, `uiNumber` and `uiPlural`.
@@ -41,7 +41,7 @@ for display; labs use content-aware LTR/monospace, other clinical text content-a
 
 Keep equal-valued purpose-specific tokens independent. Whole-row controls own their
 selection/toggle role; labels can wrap. Clinical severity stays separate from accent
-and density; diagnosis categories are not errors. [UiTokens](../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt)
+and density; diagnosis categories are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt)
 is authoritative for layout/border/motion constants.
 
 ## Profiles and local overrides

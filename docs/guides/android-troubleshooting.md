@@ -1,12 +1,12 @@
 # Android troubleshooting
 
-[Current state and verification limits](current-state.md) ·
-[Windows/Linux desktop troubleshooting](../desktop/TROUBLESHOOTING.md) ·
+[Current state and verification limits](../status/current-state.md) ·
+[Windows/Linux desktop troubleshooting](desktop-troubleshooting.md) ·
 [Windows EXE packaging guide](windows-exe-packaging.md)
 
 Use an already installed development app. These recipes do not authorize builds,
 compilation, test-suite work, migrations, destructive device actions or data resets;
-follow [AGENTS.md](../AGENTS.md). Keep clinical captures local and redacted.
+follow [AGENTS.md](../../AGENTS.md). Keep clinical captures local and redacted.
 A clean Logcat is not proof that an operation succeeded.
 
 ## Doctor registry needs attention
@@ -26,107 +26,35 @@ A clean Logcat is not proof that an operation succeeded.
   reviewed local copy under last-write-wins. Verify that copy and destination before
   confirming; delivery uncertainty still requires checking Telegram before repeating.
 
-## Cached compile verification
+## Build, cache and signing failures
 
-Use the [offline verification procedure](android-shared-workstation-build-fixes.md#cached-verification-without-packaging)
-before considering toolchain changes. A failure starting Gradle's daemon can be a
-cache-directory ownership problem even when Java and Gradle are installed. Use
-the current account's existing readable/writable personal cache if the shared
-`daemon/8.7` directory belongs to another account; do not change its ownership or
-download another Gradle distribution. Keep `--offline` and disable automatic
-version reservation. Record the command, relevant failure and final source result;
-a compiler pass does not verify device layout or live Telegram behavior.
-
-## Reuse the workstation Gradle cache
-
-For the encountered failures, causes and final fixes, see
-[Shared-workstation build issues](android-shared-workstation-build-fixes.md).
-
-The POSIX `android/gradlew` launcher automatically uses
-`/opt/android-shared/.gradle` when its root and existing daemon directories are
-readable, writable and traversable, and
-`GRADLE_USER_HOME` is unset or points to the normal `$HOME/.gradle` location.
-This also handles development environments that pre-export the ordinary home cache.
-The shared cache contains the project's Gradle 8.7 distribution. A genuinely custom
-`GRADLE_USER_HOME` takes precedence; other machines
-keep Gradle's normal per-user cache. The wrapper version and distribution checksum
-are unchanged. This setting applies to the shell launcher; Android Studio has its
-own Gradle user-home setting.
-
-A writable cache root can still contain another account's private `daemon/8.7`
-directory. This caused an early `java.io.IOException: Permission denied` after
-version reservation on the shared workstation. The launcher now checks daemon
-access before automatic shared-cache selection and otherwise keeps the personal
-cache. Explicit custom user-home settings still take precedence. If the same
-failure remains, include `--stacktrace` in the next owner-run build and share its
-failing path; the short error alone cannot identify every possible permission issue.
-
-The POSIX launcher also defaults the project cache to
-`$HOME/.gradle/shiftreport-project-cache`, isolating configuration-cache permissions
-between accounts sharing this checkout. An explicit `--project-cache-dir` is
-preserved. Use the ordinary `./gradlew assembleDebug` command from `android/`;
-this documentation does not authorize the agent to run a build.
-
-The launcher also supplies `shiftreport.buildRoot` so generated resources, Kotlin
-output and APKs use account-local directories rather than another account's
-`app/build`. Its default debug APK is
-`$HOME/.gradle/shiftreport-project-cache/build-output/app/outputs/apk/debug/app-debug.apk`.
-An explicit `-Pshiftreport.buildRoot=/your/path` overrides that output root.
-Android Studio and callers without the property retain standard output directories.
-Old shared build directories are left untouched; they are no longer used by the
-POSIX launcher's default build.
-
-Successful assemble tasks also export versioned APK copies into
-`Desktop/ShiftReport/<variant>/`, for example
-`ShiftReport-v1.1.1.20261007-debug.apk`. The shell uses the current user's XDG Desktop
-location when available; otherwise it uses `$HOME/Desktop`. Use
-`-Pshiftreport.apkExportDir=/your/folder` to change that export root. These names
-separate output files, while Android app IDs and installation behavior remain unchanged.
-
-The POSIX launcher now increments the app patch/version code before normal debug/
-release packaging. Failed attempts consume a number; help/dry runs do not. Keep
-`android/gradle/app-version.properties` when sharing the project with another PC.
-IDE/direct Gradle and Windows launchers do not reserve new versions. See the
-[automatic versioning details](android-shared-workstation-build-fixes.md#automatic-app-patch-and-version-code-increments).
-The export task uses built-in regex naming to avoid the script-object capture
-reported during configuration-cache storage. New version properties can cause
-normal cache invalidation; that is not a cache-storage failure.
-
-
-
+Use the [build/cache/signing guide](android-build.md) for
+[offline verification](android-build.md#cached-verification-without-packaging),
+[account isolation and read-only snapshots](android-build.md#what-is-shared-and-what-is-private),
+[APK locations](android-build.md#find-the-apk),
+[version reservation](android-build.md#automatic-app-patch-and-version-code-increments)
+and [signature mismatch](android-build.md#shared-debug-signing).
+Inspect the failing path/task before changing settings; preserve caches and pins.
 
 ## KSP cannot access FilterOutputStream.out
 
-The owner-supplied 22 October build failed in KSP incremental-cache persistence
-with `InaccessibleObjectException`: `java.base` did not open `java.io` to the
-compiler's unnamed module. `android/gradle.properties` now supplies
-`--add-opens=java.base/java.io=ALL-UNNAMED` through `kotlin.daemon.jvmargs` so the
-option reaches the Kotlin compiler daemon. No toolchain versions or incremental
-cache settings changed, and no cache deletion is needed for this fix.
-
-Kotlin documents this daemon-specific property in
-[compilation and caches](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments).
-The subsequent owner-run code 17 build progressed past KSP. Packaging remains
-unverified.
+`InaccessibleObjectException` mentioning unopened `java.io` requires the compiler
+daemon option already set in `android/gradle.properties`:
+`kotlin.daemon.jvmargs=--add-opens=java.base/java.io=ALL-UNNAMED`.
+Keep it on the Kotlin daemon, where KSP runs; no cache deletion or toolchain change
+is needed. [Kotlin daemon arguments](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments).
+The later owner build passed; see [snapshot limits](../status/current-state.md#verification-and-limits).
 
 ## KSP lookup cache cannot be read
 
-The owner-run code 18 build failed while reading `LookupSymbolExternalizer`
-and `FileToSymbolsMap`, with `NegativeArraySizeException` in `IOUtil.readString`.
-This indicates an unreadable incremental lookup cache; the trace does not establish
-what corrupted it. The earlier interrupted cache write is a possible cause.
-
-Moved only the reporting account's generated debug KSP cache from
-`/home/mhmmd/.gradle/shiftreport-project-cache/build-output/app/kspCaches/debug`
-to sibling `debug.corrupt-backup-20261021T230137Z`. The original path is absent,
-allowing regeneration on the next owner-run build. No dependency caches, generated
-sources, application data, versions or incremental settings were changed.
-The backup is preserved for diagnosis; regeneration and build success are unverified.
-
-KSP documents incremental lookup tracking and cache locations in its
-[incremental processing guide](https://kotlinlang.org/docs/ksp-incremental.html).
-If the same failure returns, capture the new trace and actual output path before
-changing further settings or clearing broader caches.
+`NegativeArraySizeException` in `IOUtil.readString`, `LookupSymbolExternalizer` or
+`FileToSymbolsMap` indicates an unreadable incremental lookup cache; the trace alone
+does not prove its cause. Capture the trace and actual output path first. With owner
+authorization and no active writers, quarantine only the affected account's generated
+`app/kspCaches/debug` to a uniquely named sibling backup; preserve it for diagnosis.
+Do not clear dependency caches, application data or another account's output.
+A prior targeted quarantine was followed by a successful owner build; this does not
+verify newer source. [KSP incremental tracking](https://kotlinlang.org/docs/ksp-incremental.html).
 
 ## Capture one failure
 
@@ -193,7 +121,7 @@ in a public issue.
 
 Ordinary Excel Save as CSV is not a substitute for app metadata or current bundle
 encoding. Do not open both clients against an old XLSX-pinning workflow.
-See [the protocol](../desktop/PROTOCOL.md).
+See [the protocol](../reference/telegram-protocol.md).
 
 ## Joining and empty exports
 
@@ -289,7 +217,6 @@ UTF-8 with or without a UTF-8 BOM is accepted. A UTF-16 spreadsheet export is no
 - Valid `gender` values are `M`, `MALE`, `F`, or `FEMALE`.
 - Valid `clinical_role` values are `RESIDENT` and `SUPERVISOR`.
 - `schema_version` must currently be `1`.
-
 
 ## Tasks and reports
 
