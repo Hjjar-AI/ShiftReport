@@ -33,24 +33,24 @@ have separate homes. Source completion is not runtime verification.
 
 ## Android regression suite
 
-Expanded from 8 to 58 test classes (47 JVM/11 device), repairing obsolete
-patient fields, grouping calls and DAO assumptions. Covers clinical/tasks,
-doctors/import, auth/reconnect, codecs/mappers/sync, reviewed reports/delivery,
-intercepted Telegram transport, PDF content, UI state/demo and fresh-database/
-security/backup/dialog cases. The continuation adds 81 JVM and 11 device cases
-for local PIN lockout/live identity, protected role-use-case delegation, recovery/
-pinned-publication guards, editor retention/submission/validation, save cancellation,
-ward filtering/list return, text reports and rejected transactional mutations.
+Expanded from 8 to 80 test classes (55 JVM/25 device). Coverage includes
+clinical/tasks, doctors/import and live repository authorization, auth/reconnect,
+codecs/sorting/mappers, intercepted sync/recovery/Undo, reviewed publication and
+report/announcement delivery, PDF artifact guards/native rendering, editor/PIN/
+splash interactions, isolated SQLCipher/session persistence, crypto and backup.
+The latest expansion adds 38 JVM and 58 device cases to the earlier 227/52 source
+snapshot. All **265 JVM and 110 connected device tests pass**, with zero failures/
+errors/skips; device execution used the owner's PPA-LX2 (Android 10). A single
+incomplete Undo fixture was corrected and the complete device suite rerun. Repaired
+obsolete patient/grouping/DAO fixtures and D8-incompatible spaced device names.
 
-All 227 JVM tests pass after offline production/test compilation, with no Kotlin
-compiler warnings. Fixed D8-incompatible spaced device-test names and a duplicate-name
-lookup fixture in the earlier device suite. The owner ran the earlier 41 device cases:
-39 passed, 2 failed, none skipped. Replaced the two incorrect uniqueness-exception
-expectations with row-preservation/count/lookup assertions for Room upsert; those
-two revised cases and the 11 new device cases await device verification.
+Regression-driven fixes invalidate patient/shift drafts after backup restore,
+validate live clinical assignments transactionally at save/restore/rollover/backup,
+roll back rejected restore pending state, wipe join/backup passwords on every exit,
+and propagate cancellation from Telegram login's initial drain.
 [Coverage and commands](../guides/android-testing.md) ·
 [Verification evidence/limits](current-state.md#verification-and-limits).
-No production behavior, versions or schemas changed.
+No versions, schemas or migration files changed.
 
 ## Documentation
 

@@ -11,6 +11,7 @@ import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.domain.patient.PatientValidationResult
 import com.hos.rushdpatients.domain.patient.PatientValidator
+import com.hos.rushdpatients.domain.patient.PatientDoctorAssignments
 import com.hos.rushdpatients.sync.CsvCodec
 import com.hos.rushdpatients.util.DispatcherProvider
 import com.hos.rushdpatients.util.ShiftDate
@@ -55,54 +56,44 @@ class EncryptedBackupManager @Inject constructor(
     }
 
     suspend fun restore(uri: Uri, password: CharArray): Int = withContext(dispatchers.io) {
-        require(password.size >= 8) { "كلمة مرور النسخة الاحتياطية يجب ألا تقل عن 8 محارف" }
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: error("تعذر قراءة ملف النسخة الاحتياطية")
-        val parsed = runCatching {
-            CsvCodec.decode(decrypt(bytes, password).toString(Charsets.UTF_8))
-        }.getOrElse { throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف") }
-
-        require(parsed.patients.all { PatientValidator.validate(it) is PatientValidationResult.Valid }) {
-            "تحتوي النسخة الاحتياطية على بيانات مرضى غير صالحة"
-        }
-        val doctors = doctorRepository.getAll().associateBy { it.id }
-        require(parsed.doctorIds.all(doctors::containsKey)) {
-            "تحتاج النسخة إلى أطباء غير موجودين على هذا الجهاز"
-        }
-        require(parsed.patients.all { patient ->
-            patient.responsibleResidentId == null || doctors.containsKey(patient.responsibleResidentId)
-        }) { "تحتوي النسخة على مقيم غير موجود" }
-        require(parsed.patients.all { patient ->
-            patient.responsibleSpecialistId == null || doctors.containsKey(patient.responsibleSpecialistId)
-        }) { "تحتوي النسخة على اختصاصي غير موجود" }
-
-        require(parsed.patients.all { patient ->
-            patient.tasks.all { it.done || it.ownerDoctorId == null || doctors.containsKey(it.ownerDoctorId) }
-        }) { "تحتوي النسخة على مسؤول مهمة غير موجود" }
-
-        if (parsed.shiftDate == ShiftDate.current()) {
-            // Publish the intent before mutating patient data so background fetch cannot observe
-            // changed rows while the pending marker is still false.
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
-        }
-        database.withTransaction {
-            val shift = shiftRepository.getOrCreateForDate(parsed.shiftDate, parsed.shiftId)
-            val conflicting = parsed.patients.firstOrNull { patient ->
-                patientRepository.getShiftId(patient.id)?.let { it != shift.id } == true
+        try {
+            require(password.size >= 8) { "كلمة مرور النسخة الاحتياطية يجب ألا تقل عن 8 محارف" }
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: error("تعذر قراءة ملف النسخة الاحتياطية")
+            val parsed = runCatching {
+                val plain = decrypt(bytes, password)
+                try { CsvCodec.decode(plain.toString(Charsets.UTF_8)) } finally { plain.fill(0) }
+            }.getOrElse { throw IllegalArgumentException("كلمة المرور خاطئة أو الملف تالف") }
+            require(parsed.patients.all { PatientValidator.validate(it) is PatientValidationResult.Valid }) {
+                "تحتوي النسخة الاحتياطية على بيانات مرضى غير صالحة"
             }
-            require(conflicting == null) {
-                "معرّف المريض ${conflicting?.id} مستخدم في وردية أخرى"
+            database.withTransaction {
+                // Validate the live registry in the same transaction as the replacement.
+                val doctors = doctorRepository.getAll().associateBy { it.id }
+                require(parsed.doctorIds.all(doctors::containsKey)) {
+                    "تحتاج النسخة إلى أطباء غير موجودين على هذا الجهاز"
+                }
+                parsed.patients.forEach { PatientDoctorAssignments.requireValid(it, doctors) }
+                val shift = shiftRepository.getOrCreateForDate(parsed.shiftDate, parsed.shiftId)
+                require(parsed.patients.none { patient ->
+                    patientRepository.getShiftId(patient.id)?.let { it != shift.id } == true
+                }) { "معرّف مريض مستخدم في وردية أخرى" }
+                val restored = parsed.patients.map { patient ->
+                    patient.copy(revision = maxOf(patient.revision,
+                        patientRepository.getById(patient.id)?.revision ?: 0L) + 1)
+                }
+                patientRepository.softDeleteMissingFromShift(shift.id, restored.map { it.id })
+                patientRepository.upsertAll(restored, shift.id)
+                shiftRepository.upsert(shift.copy(doctorIds = parsed.doctorIds.distinct(),
+                    sortSpecJson = parsed.sortSpecJson, revision = maxOf(shift.revision, parsed.shiftRevision) + 1))
+                if (parsed.shiftDate == ShiftDate.current()) {
+                    settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
+                }
             }
-            patientRepository.softDeleteMissingFromShift(shift.id, parsed.patients.map { it.id })
-            patientRepository.upsertAll(parsed.patients, shift.id)
-            shiftRepository.upsert(
-                shift.copy(
-                    doctorIds = parsed.doctorIds.distinct(),
-                    sortSpecJson = parsed.sortSpecJson
-                )
-            )
+            parsed.patients.size
+        } finally {
+            password.fill('\u0000')
         }
-        parsed.patients.size
     }
 
     private fun encrypt(plain: ByteArray, password: CharArray): ByteArray {

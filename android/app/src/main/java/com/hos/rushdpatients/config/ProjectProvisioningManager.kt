@@ -32,28 +32,31 @@ class ProjectProvisioningManager @Inject constructor(
 ) {
     suspend fun prepareExport(config: ProjectConfig, password: CharArray): ByteArray =
         withContext(dispatchers.io) {
-            require(config.initialized && !config.demoMode) { "لا يوجد مشروع مهيأ للتصدير" }
-            require(config.telegramDataKey.isEmpty() || ProjectDataCipher.validKey(config.telegramDataKey)) {
-                "مفتاح تشفير المشروع غير صالح"
-            }
-            require(password.size >= MIN_PASSWORD_LENGTH) { "عبارة المرور يجب ألا تقل عن 10 محارف" }
-            val json = JSONObject()
-                .put("version", 1)
-                .put("hospitalName", config.hospitalName)
-                .put("botToken", config.botToken)
-                .put("encryptTelegram", config.telegramDataKey.isNotEmpty())
-                .put("telegramDataKey", config.telegramDataKey)
-                .put("chatId", config.chatId)
-                .put("reportsTopicId", config.reportsTopicId)
-                .put("announcementsTopicId", config.announcementsTopicId)
-                .put("csvTopicId", config.csvTopicId)
-                .put("doctorsTopicId", config.doctorsTopicId)
-                .toString()
-                .toByteArray(Charsets.UTF_8)
             try {
-                encrypt(json, password)
+                require(config.initialized && !config.demoMode) { "لا يوجد مشروع مهيأ للتصدير" }
+                require(config.telegramDataKey.isEmpty() || ProjectDataCipher.validKey(config.telegramDataKey)) {
+                    "مفتاح تشفير المشروع غير صالح"
+                }
+                require(password.size >= MIN_PASSWORD_LENGTH) { "عبارة المرور يجب ألا تقل عن 10 محارف" }
+                val json = JSONObject()
+                    .put("version", 1)
+                    .put("hospitalName", config.hospitalName)
+                    .put("botToken", config.botToken)
+                    .put("encryptTelegram", config.telegramDataKey.isNotEmpty())
+                    .put("telegramDataKey", config.telegramDataKey)
+                    .put("chatId", config.chatId)
+                    .put("reportsTopicId", config.reportsTopicId)
+                    .put("announcementsTopicId", config.announcementsTopicId)
+                    .put("csvTopicId", config.csvTopicId)
+                    .put("doctorsTopicId", config.doctorsTopicId)
+                    .toString()
+                    .toByteArray(Charsets.UTF_8)
+                try {
+                    encrypt(json, password)
+                } finally {
+                    json.fill(0)
+                }
             } finally {
-                json.fill(0)
                 password.fill('\u0000')
             }
         }
@@ -216,30 +219,34 @@ class ProjectProvisioningManager @Inject constructor(
 
     suspend fun importConfig(uri: Uri, password: CharArray): ProjectConfig =
         withContext(dispatchers.io) {
-            require(password.size >= MIN_PASSWORD_LENGTH) { "عبارة المرور يجب ألا تقل عن 10 محارف" }
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: error("تعذر قراءة ملف الانضمام")
-            require(bytes.isNotEmpty()) { "ملف الانضمام فارغ؛ اطلب من المدير تصدير ملف جديد" }
-            val json = runCatching {
-                val plain = decrypt(encryptedPayload(bytes), password)
-                try { JSONObject(plain.toString(Charsets.UTF_8)) } finally { plain.fill(0) }
-            }.getOrElse { throw IllegalArgumentException("عبارة المرور خاطئة أو الملف تالف") }
-            require(json.optInt("version") == 1) { "إصدار ملف الانضمام غير مدعوم" }
-            val dataKey = json.optString("telegramDataKey", "")
-            require(!json.optBoolean("encryptTelegram", false) || ProjectDataCipher.validKey(dataKey)) {
-                "ملف الانضمام لا يحمل مفتاح تشفير مشروع صالحاً"
+            try {
+                require(password.size >= MIN_PASSWORD_LENGTH) { "عبارة المرور يجب ألا تقل عن 10 محارف" }
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: error("تعذر قراءة ملف الانضمام")
+                require(bytes.isNotEmpty()) { "ملف الانضمام فارغ؛ اطلب من المدير تصدير ملف جديد" }
+                val json = runCatching {
+                    val plain = decrypt(encryptedPayload(bytes), password)
+                    try { JSONObject(plain.toString(Charsets.UTF_8)) } finally { plain.fill(0) }
+                }.getOrElse { throw IllegalArgumentException("عبارة المرور خاطئة أو الملف تالف") }
+                require(json.optInt("version") == 1) { "إصدار ملف الانضمام غير مدعوم" }
+                val dataKey = json.optString("telegramDataKey", "")
+                require(!json.optBoolean("encryptTelegram", false) || ProjectDataCipher.validKey(dataKey)) {
+                    "ملف الانضمام لا يحمل مفتاح تشفير مشروع صالحاً"
+                }
+                require(dataKey.isEmpty() || ProjectDataCipher.validKey(dataKey)) { "مفتاح المشروع غير صالح" }
+                ProjectConfig(
+                    telegramDataKey = dataKey,
+                    hospitalName = json.getString("hospitalName"),
+                    botToken = json.getString("botToken"),
+                    chatId = json.getLong("chatId"),
+                    reportsTopicId = json.optLong("reportsTopicId"),
+                    announcementsTopicId = json.optLong("announcementsTopicId"),
+                    csvTopicId = json.optLong("csvTopicId"),
+                    doctorsTopicId = json.optLong("doctorsTopicId")
+                )
+            } finally {
+                password.fill('\u0000')
             }
-            require(dataKey.isEmpty() || ProjectDataCipher.validKey(dataKey)) { "مفتاح المشروع غير صالح" }
-            ProjectConfig(
-                telegramDataKey = dataKey,
-                hospitalName = json.getString("hospitalName"),
-                botToken = json.getString("botToken"),
-                chatId = json.getLong("chatId"),
-                reportsTopicId = json.optLong("reportsTopicId"),
-                announcementsTopicId = json.optLong("announcementsTopicId"),
-                csvTopicId = json.optLong("csvTopicId"),
-                doctorsTopicId = json.optLong("doctorsTopicId")
-            )
         }
 
     private fun encrypt(plain: ByteArray, password: CharArray): ByteArray {

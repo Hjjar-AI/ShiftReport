@@ -3,6 +3,7 @@ package com.hos.rushdpatients.data.repository
 import com.hos.rushdpatients.data.model.PatientTaskCodec
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.room.withTransaction
+import com.hos.rushdpatients.domain.patient.PatientDoctorAssignments
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.data.model.Patient
@@ -115,6 +116,7 @@ class WardMutationRepository @Inject constructor(
         mutate(shiftId) {
             val before = patients.getById(patient.id)
             val restored = patients.restoreOptimistically(patient.id, shiftId, patient.revision)
+            PatientDoctorAssignments.requireValid(restored, doctors.getAll().associateBy { it.id })
             recordPatientChange(actor, AppConstants.AUDIT_PATIENT_RESTORED, before, restored)
             restored
         }
@@ -148,6 +150,8 @@ class WardMutationRepository @Inject constructor(
         require(target.revision == expectedRevision) { "تغيرت مناوبة اليوم؛ أعد فتح نسخ المناوبة" }
         require(patientsToInsert.map { it.id }.toSet().size == patientsToInsert.size &&
             patientsToInsert.all { patients.getById(it.id) == null }) { "معرّفات النسخة الجديدة مستخدمة؛ أعد فتح النسخ" }
+        val registry = doctors.getAll().associateBy { it.id }
+        patientsToInsert.forEach { PatientDoctorAssignments.requireValid(it, registry) }
         patients.insertRolloverIfShiftEmpty(patientsToInsert, shiftId)
         shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY), target.revision)
         decisions.forEach { (patient, decision) ->
@@ -202,6 +206,7 @@ class WardMutationRepository @Inject constructor(
     }
 
     private suspend fun prepareTasks(patient: Patient, before: Patient?, actor: Session?): Patient {
+        PatientDoctorAssignments.requireValid(patient, doctors.getAll().associateBy { it.id })
         PatientTasks.requireValid(patient.tasks, requireCompletion = false)
         val previous = before?.tasks.orEmpty().associateBy { it.id }
         val tasks = patient.tasks.map { draft ->

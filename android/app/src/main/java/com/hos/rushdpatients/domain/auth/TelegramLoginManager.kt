@@ -41,6 +41,8 @@ class TelegramLoginManager @Inject constructor(
         val startOffset: Long = try {
             val drained = telegram.getUpdates(offset = null, limit = 1, timeoutSeconds = 0)
             (drained.maxOfOrNull { it.updateId } ?: -1L) + 1
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             return@withContext LoginVerificationResult.Error(
                 e.message ?: "تعذر الاتصال بتليجرام"

@@ -2,10 +2,13 @@
 
 [Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
 
-The suite has 47 JVM test classes (227 methods) and 11 device test classes
-(52 methods). These are source counts, not passed-test counts or measured code
-coverage. New cases exercise current production APIs; no production behavior,
-versions or database/interchange schemas were changed for this expansion.
+The suite has 55 JVM test classes (265 methods) and 25 device test classes
+(110 methods). Source counts do not measure line/branch coverage. JUnit reports
+confirm all 265 JVM and 110 connected device tests passed on 23 October 2026;
+device execution used PPA-LX2/Android 10. The tests exercise production entry points.
+Regression-driven fixes advance backup restore revisions, enforce transactional
+live clinical assignments, and preserve
+cancellation/password cleanup. No versions or database/interchange schemas changed.
 
 ## Coverage map
 
@@ -23,29 +26,26 @@ versions or database/interchange schemas were changed for this expansion.
 | Presentation/export | Editor draft retention/submission/validation, save/error/cancellation handling, text report content and long rosters, PDF clinical content retention, compact task labels, settings visibility, rounds/list return, report text/PDF review gates | Confirmation button enabled state |
 | Demo/time/sorting | Valid synthetic demo records, independent in-memory state, 08:30 rollover/leap-day deadlines, sort rules and serialization | — |
 
-## Continued regression expansion
+## Integration and device suites
 
-The latest additions contribute **81 JVM cases in 13 classes** and **11 device
-cases in one class**. They exercise production entry points without changing app
-behavior or schemas. All 227 JVM cases passed after offline production/test
-compilation. The 11 new device cases have source checks only. Test names describe
-expected outcomes; fixtures are synthetic.
-
-| Suite files | Main regression boundaries |
+| Suites | Boundaries exercised |
 |---|---|
-| `LocalPinLoginManagerTest`, `AdminRoleUseCasesTest` | Attempt persistence before hashing, lockout/expiry, live account/PIN changes, repository rejection and cancellation |
-| `CsvSnapshotsTest`, `CsvPublicationReviewTest`, `PatientSyncMergeTest` | Recovery retention/rotation, reviewed source changes, clinical changes versus local metadata |
-| `RemoteSyncStateStoreTest` | Recognized pins, missing/disappearing index, protocol upgrade, stale pointer merge, explicit history replacement, journal bound, confirmation/errors |
-| `PatientFormStateTest`, `PatientFormSubmissionTest` | Retained drafts across callbacks, explicit revision refresh, labs/tasks/badges, identity/revision preservation and cleared fields |
-| `PatientFormValidationTest`, `WardSaveGuardTest` | Required-field/age/date/team rules, busy state, failed-save draft retention, conflict review and cancellation |
-| `WardPatientFilteringTest`, `PatientListReturnTest` | Arabic clinical/task search, combined filters, pin order, grouped/collapsed list return |
-| `TextReportBuilderTest` | Clinical fields and completed tasks, escaped labels, intact long-roster links, patient order and summary totals |
-| Device `WardMutationSafetyTest` | Task attribution/owner handling and rejected mutation rollback for patient rows, audit, pending state and shift revisions |
+| `DoctorMutationRepositoryTest` | Real Room/admin authorization, stale editors/import previews, clinical references, protected ranks, PIN retention/invalidation, identity merging, synthetic 33-row CSV commit |
+| `WardMutationSafetyTest`, `WardAssignmentSafetyTest`, `BackupRestoreSafetyTest` | Mutation rollback, task attribution, live clinical roles at add/save/restore/rollover, restore invalidation of patient/shift drafts, rejected restore pending-state rollback |
+| `PatientRetrievalCoordinatorTest`, `LocalDownloadUndoTest`, `DoctorSyncCoordinatorTest` | Intercepted HTTP with real repositories: download/apply/Undo, persisted Undo after recreation, concurrent local edits, recovery cursor/baseline protection, doctor pull/identity/secret retention |
+| `PatientPublicationCoordinatorTest`, `RemoteSyncStateStoreTest` | Exact reviewed upload, actor/source/local edit races, interrupted upload, index failure, temporary cleanup, pointer/history/journal rules |
+| `ReportPreviewViewModelTest`, `ReportSenderTest`, `AnnouncementPublisherTest` | Explicit review-to-publication-to-delivery, changed review rejection, partial/uncertain delivery, durable duplicate blocking after recreation, announcement review/index failure |
+| `ReportPdfWorkspaceTest`, `PdfRenderingTest` | Reviewed file digest/options/content/existence guards; native rendering of every page in multipage Arabic classic and A5 card PDFs |
+| `ProjectProvisioningManagerTest`, `PendingExportStoreTest` | Real encrypted join-file round trip, staging/recreation/discard, wrong passwords/tampering, password wiping and encrypted export staging |
+| `EncryptedDatabasePersistenceTest`, `SessionPersistenceTest` | SQLCipher close/reopen/wrong key, retained device key, absent-key preservation guard, encrypted session reload/unlock/clear in isolated storage |
+| `TelegramLoginManagerTest`, `BootstrapManagerTest` | Challenge identity/offset handling, nonce format, connection failures/cancellation, guarded bootstrap and temporary cleanup |
+| `PatientEditorInteractionTest`, `PinUnlockInteractionTest`, `SplashIntroScreenTest` | RTL editor Save/labs/tasks, large-font busy footer, task checkbox draft metadata, PIN IME submit/clearing, explicit biometric/sign-out actions, splash tap/hold/accessibility actions |
 
-These are focused suites alongside the existing transport, codec, cryptography,
-backup, DAO, report-review/delivery, sort, doctor-import and demo suites. A JVM pass
-cannot establish device suite results. The pinned-state mocks model observed reads
-and writes, not atomic publication between devices.
+The original domain/codec/transport/report-review suites remain. Fixture records are
+synthetic. HTTP interceptors handle every request locally; these suites never
+contact a real bot. Pinned-state tests model observed reads/writes and the documented
+last-write-wins behavior, not cross-device atomicity. Check Current state for actual
+results and source counts; a compiled test is not a passed test.
 
 ## Run deliberately
 
@@ -69,19 +69,23 @@ Then execute it:
   :app:testDebugUnitTest > /tmp/shiftreport-unit-tests.log 2>&1
 ```
 
-Compiling/running device tests needs separate authorization; execution also needs
-an emulator/disposable device. The
-following command builds/installs the debug app and instrumentation APKs; it was
-not authorized or run as part of the JVM verification:
+The owner authorized JVM and connected device execution for this expansion. Future
+runs still follow repository build/resource checks. The connected command builds
+and installs debug app/test APKs on the selected authorized device, retaining the
+installation after execution:
 
 ```sh
-./gradlew --offline -Pshiftreport.autoVersion=false :app:connectedDebugAndroidTest > /tmp/shiftreport-device-tests.log 2>&1
+./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
+  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
+  :app:connectedDebugAndroidTest > /tmp/shiftreport-device-tests.log 2>&1
 ```
 
 Use camelCase method names in `androidTest`; spaced backtick names can produce
 coroutine class names that D8 rejects at the current Android level.
 
-Database cases create fresh in-memory databases and seed required parent shifts.
+Most database cases create fresh in-memory databases and seed required parent
+shifts. SQLCipher persistence cases use uniquely isolated on-disk test databases.
 They do not open or upgrade an installed clinical database. Cryptographic cases use
 synthetic data, uniquely prefixed encrypted preferences and temporary files, then
 clean up their test data. Telegram JVM cases intercept HTTP inside OkHttp and never
@@ -90,14 +94,17 @@ in fixtures.
 
 ## Limits
 
-This is broad regression coverage, not a claim of complete line/branch coverage or
-full end-to-end verification. Real BotFather/token revocation, protected join-file
-provider interactions, multi-device Telegram publication, SQLCipher/Keystore
-lifecycle, biometric/PIN screens, splash recreation/hold gestures, the full patient
-editor, process death, rendered PDF layout, large-font/fold/IME/TalkBack behavior and
-performance still need targeted integration/device work. Report/database tests do
-not erase the retained production findings in Current state, including backup
-revision reuse and responsible-doctor role checks.
+This is broad regression coverage, not measured complete line/branch coverage.
+Recreating repositories/managers and reopening a database exercise persistence;
+they do not simulate Android process death. Rendered PDF checks establish page
+creation and nonblank native rasterization, not visual approval of every glyph or
+clipping boundary. Touch/semantics tests do not establish physical fingerprint
+success, full TalkBack operation, real foldable/IME configurations, or performance.
+Splash screen interaction tests do not establish the Activity's deadline behavior
+across recreation. Third-party document-provider failures, actual BotFather/token
+revocation and competing multi-device publication remain external/manual checks.
+The synthetic 33-row import validates the repository route; it does not reproduce
+the owner's original unavailable CSV exception.
 
 Record actual compile/run outcomes in [Current state](../status/current-state.md),
 not as verification-only roadmap items.

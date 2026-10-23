@@ -146,77 +146,75 @@ Dashboard/roster shortcuts live in the sidebar. Clinical stripes, native More me
 selected tab styling and guarded Ctrl+F/Ctrl+N supplement existing controls. Platform
 UI fonts remain unchanged. Desktop demo is memory-only with labelled local PDFs.
 
-## Retained source findings
+## Clinical write safety
 
-Rechecked on 23 October 2026; documentation consolidation did not fix these:
+Android [patient assignment rules](../../android/app/src/main/java/com/hos/rushdpatients/domain/patient/PatientDoctorAssignments.kt)
+check optional responsible-resident/supervisor roles and unfinished-task owners
+against the live registry. [Ward mutations](../../android/app/src/main/java/com/hos/rushdpatients/data/repository/WardMutationRepository.kt)
+apply these checks inside their existing transaction at Save, recycle restore and
+whole-shift rollover. UI validation remains useful but is not the write boundary.
+Historical completed-task ownership remains readable when a doctor is unavailable.
 
-1. [Backup restore](../../android/app/src/main/java/com/hos/rushdpatients/domain/backup/EncryptedBackupManager.kt)
-   reuses backed-up patient revisions and existing shift revision through
-   [patient](../../android/app/src/main/java/com/hos/rushdpatients/data/repository/PatientRepository.kt)/
-   [shift upserts](../../android/app/src/main/java/com/hos/rushdpatients/data/repository/ShiftRepository.kt).
-   Replacement can leave a stale draft's revision valid.
-2. [WardSaveGuard](../../android/app/src/main/java/com/hos/rushdpatients/ui/ward/WardSaveGuard.kt)
-   checks UI-held clinician roles; [WardMutationRepository](../../android/app/src/main/java/com/hos/rushdpatients/data/repository/WardMutationRepository.kt)
-   checks task owners but lacks live responsible-resident/supervisor role checks
-   at save/recycle-restore/rollover boundaries.
-3. Backup restore checks referenced doctor existence before its transaction, without
-   responsible-role checks or a transactional registry recheck.
-
-These retained concerns are separate from the selected work in [Roadmap](roadmap.md).
+[Backup restore](../../android/app/src/main/java/com/hos/rushdpatients/domain/backup/EncryptedBackupManager.kt)
+checks the live roster/clinical assignments inside the replacement transaction.
+Restored patient and shift revisions advance beyond the saved/current revisions,
+invalidating open drafts. Rejected replacement rolls back the pending flag together
+with clinical rows. Password arrays are wiped on all restore/join-file exits,
+including malformed/missing files and precondition failures. Login cancellation
+also propagates during the initial Telegram update drain. These changes address
+the three previously retained Android source findings; no schema/version changed.
 
 ## Verification and limits
 
-On 23 October 2026, the continued test expansion passed authorized offline
-`:app:compileDebugKotlin` and `:app:compileDebugUnitTestKotlin`, followed by
-`:app:testDebugUnitTest`: **227 tests across 47 classes**, zero failures/errors/
-skips, confirmed from the JUnit XML reports. Production and JVM test compilation
-ran with no Kotlin compiler warnings. This supersedes the earlier 146-case JVM
-snapshot. The continuation adds 81 JVM cases across local PIN lockout/live identity,
-role-use-case rejection/cancellation, recovery/publication/index guards, editor
-retention/submission/validation, ward save/filter/list-return behavior and text
-reports. It also adds 11 source-only device transaction safety cases.
+On 23 October 2026, authorized offline production/JVM/device compilation and the
+full Android regression suites passed on the current source snapshot:
+
+- **JVM: 265 tests across 55 classes**, zero failures/errors/skips.
+- **Connected device: 110 tests across 25 classes**, zero failures/errors/skips,
+  on the owner's PPA-LX2 running Android 10 (API 29).
+
+Counts were confirmed from JUnit XML reports, not inferred from source methods.
+This supersedes the earlier 227-case JVM and 39/41 device results, including the
+two corrected Room upsert expectations. The first expanded device run passed
+109/110: the new Undo fixture omitted required admission fields and CSV decoding
+correctly rejected it. After supplying a complete synthetic patient, the complete
+110-case device suite passed again. Production/JVM source stayed unchanged between
+the successful JVM run and that device-only fixture correction.
 
 Verification used pinned Gradle 8.7, installed Java 21/SDK 34, one worker,
-in-process Kotlin, no persistent daemon and disabled automatic version reservation.
-The first offline attempt stopped before compilation because the pinned
-`kotlinx-coroutines-test-jvm:1.7.3` JAR was missing. With owner authorization,
-existing pinned JVM test dependencies were resolved into the durable shared Gradle
-cache; the subsequent compile and test run were offline. No versions changed.
-Before each compilation/test run, visible build processes and RAM/swap pressure
-were checked. Nonfatal Gradle deprecation/JVM class-sharing notices remain.
-Logs: `/tmp/shiftreport-expanded-test-compile.log`,
-`/tmp/shiftreport-expanded-unit-tests.log`, `/tmp/shiftreport-test-dependencies.log`.
+in-process Kotlin, no persistent daemon and `-Pshiftreport.autoVersion=false`.
+Visible build activity and RAM/swap pressure were checked before attempts.
+Missing existing pinned AndroidX/AGP test-runner artifacts were populated once in
+the durable shared cache using the owner's cache authorization, then verification
+ran offline. A session interruption stopped an earlier build and cleared `/tmp`;
+four confirmed zero-byte transform entries owned by this account were reversibly
+quarantined, and Gradle regenerated them. No unrelated caches/processes were cleared
+or stopped. Kotlin test compilation is clean; nonfatal Gradle deprecation and JVM
+class-sharing notices remain.
 
-The suite now contains **52 device tests across 11 classes** for fresh Room
-databases/repository transactions, project encryption, password hashing, backup
-and RTL report confirmation. The 11 new `WardMutationSafetyTest` cases cover task
-attribution/owner handling and rejected anonymous completion, duplicate patient
-addition, cross-shift deletion, invalid/stale rosters, stale sorting and partial
-rollover. They have source/whitespace checks only; instrumentation compilation
-and device execution were not authorized or run in this continuation. For the
-earlier 41-case device snapshot, after renaming 13 spaced coroutine test methods
-to camelCase and correcting a duplicate-name lookup fixture, the owner's
-connected run built successfully through D8 and executed all 41 cases on PPA-LX2
-(Android 10): **39 passed, 2 failed, 0 skipped**. Both failures were obsolete
-expectations that `DoctorDao.@Upsert` throws for conflicting unique names/Telegram
-IDs. Those two tests now assert that the original row stays unchanged, the
-conflicting ID is absent and exactly one row remains; the name case uses distinct
-Telegram IDs to isolate the name constraint. These latest assertions have source/
-whitespace checks only and have not been rebuilt or rerun by the agent.
-JVM coverage includes current clinical/task rules, doctors/import, admin authority,
-same-project reconnect, codecs/mappers/sorting, sync comparisons, report review/
-delivery guards, intercepted Telegram requests, PDF content and UI state rules.
-[Coverage map and commands](../guides/android-testing.md). Source counts are not
-measured line/branch coverage or complete end-to-end coverage. Git whitespace,
-whitespace/final newlines in untracked Kotlin additions, device method naming and
-updated documentation links were checked. No production source, migration files,
-versions or schemas changed. Agent verification did not package/install APKs;
-the owner's connected run built/installed the test artifacts. No distribution ran.
+Durable ignored evidence is under `local/verification/full-tests-2026-10-23/`:
+`jvm-and-device-compile.log`, `device-tests.log`, copied `jvm-results/` and
+`device-results/` XML, and `results.json`. The earlier failed fixture run is also
+retained. Debug app/test APKs were packaged and installed for the authorized
+connected run; `android.injected.androidTest.leaveApksInstalledAfterRun=true` kept
+the installations, confirmed afterward. No release/distribution ran, and no
+versions, schemas or migration files changed. Source whitespace, untracked Kotlin
+whitespace/device method names and updated documentation links were checked.
 
-Owner `assembleDebug` passed on 22 October 2026 for `1.1.23.20261022` (code 24):
-37s, 44 tasks, no Kotlin warning; that APK predates later UI/shared-signing changes.
-The current JVM verification does not establish device rendering, persistence on
-SQLCipher, Keystore/biometric lifecycle, TalkBack, keyboard/large-font/fold behavior,
-search draft retention, gestures, completion/Undo UI, performance or live Telegram.
-Production previews remain unrendered. Retained production findings above, the
-CSV device exception and production signing remain outstanding.
+The device suite exercises real Room transactions, isolated SQLCipher close/reopen
+and wrong-key rejection, encrypted sessions/join files/staging, password cleanup,
+report confirmation, native multipage PDF rendering, editor/PIN/splash
+interactions, and intercepted download/doctor-sync/Undo workflows. All clinical
+fixtures are synthetic and HTTP interceptors prevent live Telegram requests.
+[Coverage and commands](../guides/android-testing.md).
+
+These results are not measured complete line/branch coverage. Recreating managers
+and reopening storage do not simulate process death. PDF page rasterization does
+not establish visual approval of every glyph/clipping boundary. Physical biometric
+success, TalkBack operation, foldable/IME configurations, Activity splash-deadline
+recreation, performance baselines, third-party file-provider failures, real token
+revocation and competing multi-device publication remain manual/external checks.
+The synthetic 33-row import passed through the real repository; it does not
+reproduce the owner's original unavailable CSV exception. That exception and
+production signing remain in the implementation roadmap. Production previews
+remain unrendered.

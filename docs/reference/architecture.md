@@ -46,7 +46,11 @@ Save/report readiness. Completion identity/time belongs to local Save, not publi
 Pending includes overdue. Rollover is reviewed whole-shift copying into an empty
 target with source/target checks and keep/clear assignments. Resident team membership
 and patient cover are independent; registry CSV retains omitted active doctors.
-Backup/restore changes local state, never implicitly publishes or delivers.
+Backup/restore changes local state, never implicitly publishes or delivers. Restoring
+clinical rows advances their local revisions and the shift revision to invalidate
+open drafts. Live responsible-doctor roles and pending-task owners are checked
+inside the same database transaction as patient saves, recycle restores, rollover
+and backup replacement; rejected replacements leave rows and pending state intact.
 
 Shared fields/actions/tokens standardize presentation while callers own drafts,
 validation, busy/selection state and review callbacks. Preserve RTL, growing 48dp

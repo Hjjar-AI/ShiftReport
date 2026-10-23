@@ -7,7 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import java.util.UUID
 
 /** Namespaces test preferences; production connection/session settings are never edited. */
-class IsolatedPreferencesContext : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
+open class IsolatedPreferencesContext : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
     private val prefix = "instrumentation_${UUID.randomUUID()}_"
     private val opened = mutableSetOf<String>()
     // Crypto keyset helpers also ask for applicationContext before opening preferences.

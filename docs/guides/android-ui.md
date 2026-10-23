@@ -5,7 +5,7 @@ Use current implementation records rather than the retired review questionnaires
 | Need | Source of truth |
 |---|---|
 | Current behavior and exact verification limits | [Current state](../status/current-state.md) |
-| Unresolved source findings | [Current state](../status/current-state.md#retained-source-findings) |
+| Clinical write safety | [Current state](../status/current-state.md#clinical-write-safety) |
 | Adopted boundaries and remaining unselected proposals | [UI decisions](../decisions/android-ui-options.md) |
 | Planned unfinished implementation | [Roadmap](../status/roadmap.md) |
 | Shared components, profiles and typography | [Design catalog](../reference/design-catalog.md) |
