@@ -44,8 +44,10 @@ across background privacy locking. Duplicate/revision/authority checks remain;
 locked clinical screens still leave composition and sign-out discards navigation.
 Fixtures now use the actual workspace/text/focus/lifecycle contracts; excluded lazy
 items are checked for visibility. Biometric native-node cleanup remains compatible
-with old Android without deprecation warnings. The final full rerun is in progress;
-[exact evidence and remaining limits](current-state.md#verification-and-limits).
+with old Android without deprecation warnings. The final full run passed **625 JVM tests** and **251 device cases**, with zero
+failures and two expected device skips; physical fingerprint success passed
+separately. Only the optional private-CSV fixture remains unrun.
+[Exact evidence and remaining limits](current-state.md#verification-and-limits).
 No dependency/version/schema changes.
 
 Expanded Android coverage for destructive-reset review/failure boundaries, real

@@ -27,8 +27,9 @@ transport, and `sync/` orchestrates transfer. [Protocol](../reference/telegram-p
   PDFs have best-effort session cleanup. Clipboard codes use sensitive metadata and
   matching-nonce expiry/disposal; background clipboard restrictions still apply.
 - Debug can select a protected existing shared key independently of caches; selected
-  missing keys fail. Existing APK/key certificates match; second-account login and
-  new build/device update remain unverified. Release has protected local/CI inputs
+  missing keys fail. Existing APK/key certificates match; the cached offline
+  debug build/device update passed on 24 October. Second-account login remains
+  unverified. Release has protected local/CI inputs
   with no debug fallback; a production key remains an owner prerequisite.
   [Cache/signing setup and checks](../guides/android-build.md).
 
@@ -76,7 +77,9 @@ load; saved appearance/accent then apply. Window owners control system bars; emb
 previews do not. API 23–25 retains a dark navigation background.
 
 Patients/Dashboard use dock/rail; Activity remains admin-only. Drawer duplicates were
-removed and «إرسال تقرير» remains prominent with the roster selector first. Settings
+removed and «إرسال تقرير» remains prominent with the roster selector first.
+Temporary privacy/PIN screens retain the signed-in navigation controller and editor
+ViewModels while removing clinical screens from composition; sign-out discards them. Settings
 search uses the screen's admin/permanent-admin visibility, searches names/descriptions
 only, opens existing workspaces and keeps underlying forms mounted. Fold-safe panes,
 first-layout RTL and labelled 48dp targets remain. Details/rounds follow displayed
@@ -166,9 +169,20 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
-The owner authorized full Android execution on 24 October 2026. The final complete
-JVM/device rerun is in progress; its log is
-`local/verification/android-tests-2026-10-24/all-final.log` (ignored).
+On 24 October 2026 the final full Android verification **succeeded**:
+
+- **625 JVM tests/81 classes passed**, zero failures/errors/skips.
+- **253 device cases/50 classes: 251 passed, zero failures/errors, two expected
+  skips** on PPA-LX2/Android 10. Physical fingerprint success passed separately
+  with the owner's touch: **252 distinct device cases verified**. Only the optional
+  private-original-CSV case remains unrun because its fixture was not provisioned.
+- The final test compilation has no `AccessibilityNodeInfo.recycle()` deprecation
+  warnings. Debug build and device installation succeeded; no device setting changed.
+
+Final logs/XML are in ignored `local/verification/android-tests-2026-10-24/`:
+`all-final.log`, `unit-final-results/`, `device-final-results/` and
+`physical-biometric-02.log`. XML counts are authoritative; the Gradle console prints
+duplicate skip notifications. Earlier failures/focused reruns remain archived.
 [Handoff](testing-handoff.md) · [Coverage map/commands](../guides/android-testing.md) ·
 [External boundaries](../guides/deep-testing.md).
 
@@ -193,9 +207,9 @@ The corrected **8 process-death cases** passed, including explicit boundary mark
 real receipt durability, backup restore and download Undo. This supersedes the old
 fixture run whose missing birth date made postcommit tests fail and precommit
 results unreliable. **14 independent-client, 5 controlled picker and 3 synthetic
-fold-layout cases** passed, together with scrolling and selected constrained
+fold-layout cases** passed in the final full run, together with scrolling and selected constrained
 production UI. The protected join → PIN login → edit → review → explicit publication
-journey, recreation and background draft checks passed focused reruns through the
+journey, recreation and background draft checks passed the final full run through the
 actual root/navigation graph with isolated production models. Every HTTP request
 is intercepted; no real report is sent or installed clinical database opened.
 
@@ -210,11 +224,12 @@ device versions, every PDF glyph/options combination and release performance rem
 outside this evidence. Optional initial encryption and project/clinical safeguards
 remain; no dependency, toolchain, version, schema or migration changes were made.
 
-The native-clock 200-card profile from the first 24 October full run recorded
-normal motion **9.77 ms median/16.05 ms p95** (231 frames), reduced motion
-**9.31 ms/17.61 ms** (236 frames). These single-device debug samples do not prove a
-release baseline or speedup. Old Compose-clock gesture totals included unknown
-delay and are unsuitable for responsiveness comparisons. Raw reports are retained.
+The final native-clock 200-card profile recorded normal motion
+**9.47 ms median/17.79 ms p95** (236 frames), reduced motion
+**9.09 ms/14.88 ms** (232 frames). These single-device debug samples do not
+prove a release baseline or speedup. Earlier samples varied; old Compose-clock
+gesture totals included unknown delay and are unsuitable for responsiveness
+comparisons. Raw reports are retained separately for each full run.
 
 Historical 23 October evidence remains separate: **60 desktop tests passed without
 skips**, including four reverse Android file checks; seven selected temporary-source
@@ -231,3 +246,5 @@ one worker, in-process Kotlin and `-Pshiftreport.autoVersion=false`. Host build 
 compiler activity plus RAM/swap pressure are checked before every Gradle attempt.
 Authorized debug app/test APKs are retained after connected execution; no release
 artifact was exported. Device settings were not changed during the current run.
+
+No build/test remains running after final verification.

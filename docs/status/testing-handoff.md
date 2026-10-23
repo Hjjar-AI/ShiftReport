@@ -7,14 +7,18 @@ unrelated working-tree changes; do not stage/commit or inspect migration files.
 
 ## Current execution
 
-The final complete run is in progress in ignored
-`local/verification/android-tests-2026-10-24/all-final.log`. Earlier full JVM
-execution passed **625 tests/81 classes, no failures/errors/skips**. The first
-full device run had **252 cases: 242 passed, 8 failed, 2 skipped**. Focused reruns
-verified the fixes below; the final device source has **253 methods/50 classes**.
-The original-private-CSV case skips without its privately provisioned fixture;
-physical fingerprint success deliberately runs separately from unattended suites.
-Do not equate the Gradle console's duplicate skip notifications with XML counts.
+The final complete run **succeeded**: **625 JVM tests/81 classes passed, no
+failures/errors/skips**; **253 device cases/50 classes: 251 passed, zero failures/
+errors, two expected skips**. XML is authoritative: the Gradle console counts
+skip notifications twice and printed 255. Physical fingerprint success passed
+separately with the owner's touch, so **252 distinct device cases are verified**.
+Only the optional original-private-CSV case remains unrun because its fixture was
+not provisioned. That private file was not recopied to the phone.
+
+Final log: ignored `local/verification/android-tests-2026-10-24/all-final.log`.
+Archived final XML: `unit-final-results/` and `device-final-results/` alongside it.
+The first device run's 8 failures and all focused reruns remain archived separately;
+follow-up runs confirmed the corrections rather than suppressing failed cases.
 
 ## Findings and corrections
 
@@ -42,9 +46,9 @@ Do not equate the Gradle console's duplicate skip notifications with XML counts.
 Logs and archived XML: `local/verification/android-tests-2026-10-24/`.
 Initial failed runs remain separate from focused/final results. All eight corrected
 process-death cases, fourteen independent-client cases, five controlled picker
-cases, synthetic fold geometry and scrolling suites passed the first full run.
+cases, synthetic fold geometry and scrolling suites passed both full device runs.
 All HTTP is intercepted; no installed clinical database or real report destination
-is used. No device settings were changed. Earlier private phone CSV was not copied
+is used. No device settings were changed; no build/test remains running. Earlier private phone CSV was not copied
 again. Desktop/live transport checks were not rerun for this Android request.
 
 Use the existing cached Gradle 8.7, Java 21 and SDK/build-tools 34. Before every
