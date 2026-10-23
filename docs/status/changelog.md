@@ -37,7 +37,11 @@ Expanded from 8 to 44 test classes, repairing obsolete patient fields, grouping
 calls and DAO assumptions. Added clinical/tasks, doctors/import, auth/reconnect,
 codecs/mappers/sync, reviewed reports/delivery, intercepted Telegram transport,
 PDF content, UI state/demo and fresh-database/security/backup/dialog cases.
-The 146 JVM tests pass; 41 device cases remain uncompiled/unexecuted.
+The 146 JVM tests pass. Fixed D8-incompatible spaced device-test names and a
+duplicate-name lookup fixture. The owner then ran all 41 device cases: 39 passed,
+2 failed, none skipped. Replaced the two incorrect uniqueness-exception expectations
+with row-preservation/count/lookup assertions for Room upsert. Latest changes have
+static checks only; the two revised cases await a rerun.
 [Coverage and commands](../guides/android-testing.md) ·
 [Verification evidence/limits](current-state.md#verification-and-limits).
 No production behavior, versions or schemas changed.

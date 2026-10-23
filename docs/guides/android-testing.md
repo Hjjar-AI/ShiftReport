@@ -49,6 +49,9 @@ not authorized or run as part of the JVM verification:
 ./gradlew --offline -Pshiftreport.autoVersion=false :app:connectedDebugAndroidTest > /tmp/shiftreport-device-tests.log 2>&1
 ```
 
+Use camelCase method names in `androidTest`; spaced backtick names can produce
+coroutine class names that D8 rejects at the current Android level.
+
 Database cases create fresh in-memory databases and seed required parent shifts.
 They do not open or upgrade an installed clinical database. Cryptographic cases use
 synthetic data, uniquely prefixed encrypted preferences and temporary files, then

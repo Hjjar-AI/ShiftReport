@@ -178,15 +178,23 @@ Logs: `/tmp/shiftreport-test-compile.log`, `/tmp/shiftreport-unit-tests.log`.
 
 The expanded suite also contains **41 device tests across 10 classes** for fresh
 Room databases/repository transactions, project encryption, password hashing,
-backup and RTL report confirmation. Those device sources were inspected and
-checked for package paths/literal delimiters, but were **not compiled or run**.
+backup and RTL report confirmation. After renaming 13 spaced coroutine test
+methods to camelCase and correcting a duplicate-name lookup fixture, the owner's
+connected run built successfully through D8 and executed all 41 cases on PPA-LX2
+(Android 10): **39 passed, 2 failed, 0 skipped**. Both failures were obsolete
+expectations that `DoctorDao.@Upsert` throws for conflicting unique names/Telegram
+IDs. Those two tests now assert that the original row stays unchanged, the
+conflicting ID is absent and exactly one row remains; the name case uses distinct
+Telegram IDs to isolate the name constraint. These latest assertions have source/
+whitespace checks only and have not been rebuilt or rerun by the agent.
 JVM coverage includes current clinical/task rules, doctors/import, admin authority,
 same-project reconnect, codecs/mappers/sorting, sync comparisons, report review/
 delivery guards, intercepted Telegram requests, PDF content and UI state rules.
 [Coverage map and commands](../guides/android-testing.md). Source counts are not
 measured line/branch coverage or complete end-to-end coverage. Git whitespace and
 new documentation links were checked. No production source, migration files,
-versions or schemas changed; no APK packaging, installation or distribution ran.
+versions or schemas changed. Agent verification did not package/install APKs;
+the owner's connected run built/installed the test artifacts. No distribution ran.
 
 Owner `assembleDebug` passed on 22 October 2026 for `1.1.23.20261022` (code 24):
 37s, 44 tasks, no Kotlin warning; that APK predates later UI/shared-signing changes.
