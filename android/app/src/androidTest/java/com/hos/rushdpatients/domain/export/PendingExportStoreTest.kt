@@ -44,4 +44,49 @@ class PendingExportStoreTest {
         rejected { store().discard("../outside") }
         rejected { store().stage(byteArrayOf()) }
     }
+    @Test fun identicalPlaintextProducesDifferentAuthenticatedStagingFiles() = runBlocking<Unit> {
+        val bytes = "شاي، قهوة\nنتيجة تجريبية".toByteArray(Charsets.UTF_8)
+        val first = store().stage(bytes); val second = store().stage(bytes)
+        assertNotEquals(first, second)
+        val directory = File(context.noBackupFilesDir, "pending_document_exports")
+        assertFalse(File(directory, first).readBytes().contentEquals(File(directory, second).readBytes()))
+        for (id in listOf(first, second)) {
+            val destination = File(context.cacheDir, "$id.txt")
+            store().write(Uri.fromFile(destination), id)
+            assertArrayEquals(bytes, destination.readBytes())
+        }
+    }
+    @Test fun discardingOneExportPreservesOtherPendingExports() = runBlocking<Unit> {
+        val first = store().stage("first".toByteArray()); val second = store().stage("second".toByteArray())
+        store().discard(first)
+        val destination = File(context.cacheDir, "second.txt")
+        store().write(Uri.fromFile(destination), second)
+        assertEquals("second", destination.readText())
+    }
+    @Test fun truncatedCiphertextCannotOverwriteExistingDestination() = runBlocking<Unit> {
+        val id = store().stage("synthetic plaintext".toByteArray())
+        File(context.noBackupFilesDir, "pending_document_exports/$id").writeBytes(ByteArray(12))
+        val destination = File(context.cacheDir, "existing.txt").apply { writeText("preserve this") }
+        rejected { store().write(Uri.fromFile(destination), id) }
+        assertEquals("preserve this", destination.readText())
+    }
+    @Test fun stagingCleanupRemovesExpiredExportAndKeepsFreshSibling() = runBlocking<Unit> {
+        val expired = store().stage("expired".toByteArray()); val fresh = store().stage("fresh".toByteArray())
+        val expiredFile = File(context.noBackupFilesDir, "pending_document_exports/$expired")
+        assertTrue(expiredFile.setLastModified(System.currentTimeMillis() - 48L * 60 * 60 * 1000))
+        store().stage("newest".toByteArray())
+        assertFalse(expiredFile.exists())
+        val destination = File(context.cacheDir, "fresh.txt")
+        store().write(Uri.fromFile(destination), fresh)
+        assertEquals("fresh", destination.readText())
+    }
+    @Test fun malformedStagingIdsCannotReadOrDeleteSiblingFile() = runBlocking<Unit> {
+        val sentinel = File(context.noBackupFilesDir, "outside").apply { writeText("preserve this") }
+        val destination = File(context.cacheDir, "out.txt").apply { writeText("original") }
+        for (id in listOf("", "../outside", "/outside", "not-a-uuid")) {
+            rejected { store().write(Uri.fromFile(destination), id) }
+            rejected { store().discard(id) }
+        }
+        assertEquals("preserve this", sentinel.readText()); assertEquals("original", destination.readText())
+    }
 }

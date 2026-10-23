@@ -7,7 +7,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.R
@@ -22,15 +23,18 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class VerificationClipboardTest {
-    @get:Rule val compose = createComposeRule()
-    private val context get() = ApplicationProvider.getApplicationContext<Context>()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    private val context get() = compose.activity
     private val clipboard get() = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     private var previous: ClipData? = null
     private val doctor = Doctor(id = "synthetic", fullName = "أرز", firstName = "أرز", lastName = "شجرة", gender = Gender.MALE)
     private val nonce = "SYNTHETIC-CODE"
     private var visible by mutableStateOf(true)
     private var seconds by mutableStateOf(30)
-    @Before fun captureClipboard() { previous = clipboard.primaryClip }
+    @Before fun captureClipboard() {
+        compose.waitUntil(5000) { compose.activity.window.decorView.hasWindowFocus() }
+        compose.runOnIdle { previous = clipboard.primaryClip }
+    }
     @After fun restoreClipboard() {
         compose.runOnIdle {
             val label = clipboard.primaryClip?.description?.label?.toString()

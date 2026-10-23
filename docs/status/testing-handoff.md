@@ -1,19 +1,65 @@
-# Testing and patient-scroll handoff — 23 October 2026
+# Testing and patient-scroll handoff — 24 October 2026
 
-**Stopped at the owner's request, immediately before the next compile/test step.**
-No build/test is running. Resume only after the owner asks to continue. Read
-`AGENTS.md`, this record, the working tree and [coverage/limits](../guides/deep-testing.md)
-first. Do not discard edits or stage/commit. HEAD when paused: `ac7175d`; commits
-appeared during the session from outside this agent, so inspect current source.
+**Current authorization: expand Android test source only.** The owner explicitly
+reserved builds for later permission. No build, compilation, test execution, APK
+installation or live Telegram request was performed during this expansion. Read
+`AGENTS.md`, the working tree and [coverage/limits](../guides/deep-testing.md) before
+resuming. Preserve earlier pending source; do not stage/commit.
 
-## Authorized scope and current source
+## Latest test-source additions
+
+The selected-gap pass adds **5 JVM and 30 device cases** (5 new device suites,
+2 extended JVM suites). Unexecuted additions across the source expansions now total
+**247 JVM and 77 device methods**. Total source: **623 JVM methods/81 classes and
+252 device methods/50 classes**; desktop remains unchanged.
+[Suite scope and prerequisites](../guides/android-testing.md#latest-source-expansion--awaiting-execution).
+All additions are uncompiled/unrun. Source signatures, referenced string resources,
+case names and whitespace were checked; those checks are not execution evidence.
+The only production seam added in the selected-gap pass is the optional root
+navigation-controller factory, called in its existing logged-in branch; a non-exported
+debug host installs isolated ViewModels before ordinary Hilt screen lookup. No
+clinical/auth/sync rule, toolchain/dependency/schema change or migration work.
+Two cases are intentionally expected to expose source defects when executed:
+`WardShiftOperationsTest.confirmedRolloverReachesRepositoryWithFreshIdsPendingTasksAndExpectedRevision`
+(nested `saving` guard prevents delegation), and
+`BootstrapSeederTest.unconfirmedPinReceiptCannotReturnSuccessfulSeed` (false pin
+receipt is ignored). They have not run; do not mark them passed, ignore them or
+weaken their assertions. Source fixes are tracked in the roadmap.
+
+Once fresh permission is given, use the narrow three-task offline compile below
+first, after the required resource/toolchain preflight. Test execution requires its
+own authorization. The prior focused device list below does **not** include the
+new `ShiftDoctorPickerInteractionTest`, `UiPreferencesCompositionTest` and
+`AuditAndSettingsRepositoryTest`, `WardTaskBoardInteractionTest`,
+`StaleEditReviewInteractionTest`, `HandoverDashboardInteractionTest` and expanded
+`PendingExportStoreTest`, plus `DoctorPickerContractTest`,
+`IndependentClientsWorkflowTest`, `ProductionNavigationJourneyTest`,
+`ProductionAdaptiveScreensTest` and `FoldSafePaneLayoutTest`; include those when authorizing a focused device
+run, or run the full device suite under explicit permission. Existing pending
+crash/scroll checks remain necessary and must not be credited from older evidence.
+
+The new host/graph/Hilt-store wiring and controlled picker registry need compilation
+and runtime validation. The full send journey skips without validated device
+connectivity (its HTTP is still intercepted); the phone must be unlocked for UI/IME
+checks. Do not change device settings or perform live Telegram sends by assumption.
+Controlled picker callbacks do not reproduce OEM picker/grant behavior or the
+original unknown exception. Independent clients, synthetic hinges and injected
+storage/transport failures do not establish physical two-phone/fold/split-screen,
+power-loss or actual disk exhaustion. Preserve these limits when reporting results.
+
+## Earlier paused work (historical permissions and evidence)
+
+The remainder records the earlier session. Its build/test permissions do not carry
+over to the latest source expansion; the current owner instruction takes priority.
+
+### Earlier authorized scope and source
 
 The owner requested both annotated gap lists, deeper testing and sluggish **patient
 list/card** scrolling. Test creation/modification, offline JVM compilation/execution
 and new connected-device tests were explicitly authorized. No release/distribution,
 version/toolchain/schema changes or migration inspection/work is authorized.
 
-Source counts: **376 JVM methods/64 classes; 175 device methods/39 classes;
+Earlier source counts: **376 JVM methods/64 classes; 175 device methods/39 classes;
 60 desktop methods**. Counts are not passed-run counts or line/branch coverage.
 Most broad coverage is in `ae5479d`, with later biometric/native-scroll commits.
 
@@ -100,7 +146,8 @@ optimizations remain unmeasured. Retain old artifacts; save new results separate
   :app:compileDebugKotlin :app:compileDebugUnitTestKotlin :app:compileDebugAndroidTestKotlin
 ```
 
-4. If compile passes, run the full JVM suite and **13 focused device methods**:
+4. After separate execution authorization, if compile passes, run the full JVM suite
+   and the earlier **13 focused device methods** plus the new suites above:
 
 ```sh
 ./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \

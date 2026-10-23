@@ -2,8 +2,8 @@
 
 [Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
 
-The source suite contains **376 JVM methods in 64 classes** and **175 device
-methods in 39 classes**. Source counts do not measure line/branch coverage or
+The source suite contains **623 JVM methods in 81 classes** and **252 device
+methods in 50 classes**. Source counts do not measure line/branch coverage or
 establish that a run passed. See [current results and limits](../status/current-state.md#verification-and-limits)
 for the exact verified snapshot. The tests exercise production entry points with
 isolated clinical storage. [Deep scenarios and desktop/live commands](deep-testing.md)
@@ -12,6 +12,107 @@ map the expanded failure boundaries and hardware/external limits.
 Regression-driven fixes preserve revision/authority checks, transaction rollback,
 cancellation and password cleanup, reject malformed CSV/overflow and guard repeated
 saves/exports. No versions, dependencies or database/interchange schemas changed.
+
+## Latest source expansion — awaiting execution
+
+The source expansions add **247 JVM cases and 77 device cases** at the owner's
+request. The newest selected-gap pass adds **5 JVM and 30 device cases**. No Gradle task, compilation, test execution, device installation
+or live Telegram action was performed for this expansion. Earlier passed runs
+apply only to their recorded snapshots. Build and test execution await new owner
+permission; historical permissions below do not authorize the current snapshot.
+
+### Selected journey/provider/client/failure gaps — 24 October 2026
+
+| Suite | Added cases | Main boundaries |
+|---|---:|---|
+| `DoctorPickerContractTest` | 5 device | Real Doctors screen OpenDocument launch/result, preview without commit, cancellation, unavailable/revoked provider and delayed result after Activity recreation |
+| `IndependentClientsWorkflowTest` | 14 device | Separate Room/preferences/sessions/cursors/locks, real uploaded bytes, retrieve/edit/publish ordering, pending/stale guards, explicit last-successful-writer behavior, token reconnect and cross-project rejection; upload/index/delivery response loss, interrupted/racing download and trigger-driven apply rollback |
+| `ProductionNavigationJourneyTest` | 4 device | Actual WardAppRoot/WardNavHost and production models/screens: protected join → PIN login → patient edit → text review → confirmed publication/delivery, rotation before save/confirmation, background draft and sign-out navigation |
+| `ProductionAdaptiveScreensTest` | 4 device | Narrow/short large-font drawer/settings/doctor/report controls, native text focus/IME path, settings persistence during width changes/navigation |
+| `FoldSafePaneLayoutTest` | 3 device | Production pane geometry around synthetic vertical/horizontal hinges and preserved text while a hinge appears/disappears |
+| Existing `PatientPublicationCoordinatorTest` | 3 JVM | Active-shift change after review and forward/backward clock correction during upload must reject index publication |
+| Existing `ShiftDateTest` | 2 JVM | Local calendar deadline across DST changes and timezone switch; restores process timezone in finally |
+
+`IsolatedWorkflowActivity` is debug-only, non-exported and requires an installed
+fixture before composition. Real isolated ViewModels are installed under their
+normal store keys before Hilt looks up each screen; unsupported destinations fail
+closed. `WardAppRoot` accepts an optional composable navigation-controller factory,
+called in the same logged-in branch as ordinary navigation. Its default retains
+ordinary `rememberNavController` ownership/lifetime. No clinical/navigation rule,
+authorization, dependency, schema or version changed.
+
+The shared synthetic server intercepts **every** HTTP request; unexpected methods
+fail locally. Client DB/preferences/keys/session metadata are independently scoped;
+no installed clinical DB, real credentials or original private CSV are fixtures.
+The complete send journey deliberately requires the device's validated connectivity
+flag for the production send gate, even though HTTP remains intercepted. It skips
+with an explicit reason if that prerequisite is absent; a skip is not journey
+verification. No device/network setting is changed to satisfy it.
+
+OpenDocument results come through a controlled ActivityResultRegistry and a real
+ContentResolver/provider. This does **not** reproduce the original unknown picker
+exception or exercise OEM system-picker UI/grant behavior. Independent clients
+share one process/synthetic server, not two physical phones. Width/height/font
+constraints and hinge models are synthetic, not physical split-screen/fold evidence.
+Transport faults and SQLite-trigger storage failures are selected boundaries, not
+power loss or actual disk exhaustion. Existing process-kill suites remain unverified
+at their latest corrections. All additions are uncompiled/unrun; source checks alone
+cannot establish Hilt factory/store wiring, UI timing, rendering or lifecycle results.
+
+### Additional coverage — 24 October 2026
+
+| Suite | Added cases | Main regression boundaries |
+|---|---:|---|
+| `SettingsEmptyStartAndRoutingTest` | 15 | Destructive review/confirmation separation and consumption, busy gates, publication invalidation, cancelled/uncertain reset and supervisor destination validation/stale/cancellation guards |
+| `SettingsProvisioningOperationsTest` | 17 | Live authority before preparation and delivery, password/byte wiping, opaque saved IDs, picker recreation/cancellation/failure, partial-destination cleanup, download and share staging |
+| `BootstrapSeederTest` | 13 | Demo/initialized/occupied project rejection, initial actor validation, actual registry contents, project/pin races, upload/pin failure, cancellation and temporary-file deletion |
+| `DoctorsViewModelTest` | 23 | Local CRUD/team delegation, pending registry observation, stale edit/reload callbacks, cancellation, duplicate actions, guarded fetch and saved export cleanup/audit order |
+| `WardPreferencesTest` | 8 | Independent live settings, strict booleans, regrouping without clinical loss, stored expansion and hint state |
+| `WardSynchronizationTest` | 7 | Selected-snapshot status, unresolved delivery precedence, read-only publication gating and downloaded-reference freshness |
+| `WardShiftOperationsTest` | 18 | Doctor-first fetch, latest/previous failure and duplicate guards, newest-bundle choices, reviewed snapshot selection, download Undo, historical export and rollover preview/confirmation |
+| `WardTaskBoardInteractionTest` | 7 | Read-only completion disabled, exact task/patient revision callback, pending-only visibility, optional ownership filter and navigation |
+| `StaleEditReviewInteractionTest` | 4 | Both clinical versions visible, unavailable record protection and explicit keep-draft/use-saved choices |
+| `HandoverDashboardInteractionTest` | 6 | Admin-only Activity Center, optional synchronization action and urgent/overdue/pending filter actions |
+| Existing `PendingExportStoreTest` | 5 | Fresh authenticated ciphertext, independent discard, truncated-file rejection before destination write, expiry cleanup and malformed-ID containment |
+
+**Two intended-behavior regressions are expected to fail from source inspection; no
+run has confirmed them:** `confirmedRolloverReachesRepositoryWithFreshIdsPendingTasksAndExpectedRevision`
+exposes `applyRollover()` setting `saving` before calling a guard that rejects busy
+saves. `unconfirmedPinReceiptCannotReturnSuccessfulSeed` exposes the ignored false
+result from `pinMessage()`. Neither is ignored or rewritten to accept the faulty
+behavior. Production fixes remain in the [roadmap](../status/roadmap.md); this pass
+changes tests/documentation only. Compilation may reveal additional fixture issues.
+
+### Initial source expansion — 23 October 2026
+
+| New suite | Cases | Main regression boundaries |
+|---|---:|---|
+| `ProjectSetupViewModelTest` | 21 | File-only join, invalid configuration, draft-before-bootstrap order, occupied pin, bot/group validation, seed/bootstrap failure, imported key/topics, cancellation and repeated initialization |
+| `ProjectConnectionViewModelTest` | 19 | Prepare/review/apply separation, consumed/stale review, busy guards, safe transport messages, cancellation, provider metadata-only reads and cursor cleanup |
+| `AnnouncementViewModelTest` | 22 | Exact review, edited/dismissed/consumed tokens, ledger filtering/failure, uncertain send, resolution, concurrent actions and lifecycle cancellation |
+| `AdminViewModelTest` | 12 | Live registry actor/role, absent session, exact expected doctor delegation, failures, repeated actions and cancellation |
+| `WardActivityOperationsTest` | 8 | Authority before privileged reads, denied-state clearing, duplicate load, audit/journal failure, retry and cancellation |
+| `WardPatientOrderingTest` | 11 | All group partitions preserve clinical content, unknown/unassigned doctors, admission dates, stable within-group order, priority and consecutive export positions |
+| `PatientCsvExporterTest` | 10 | Missing/empty shifts, actual UTF-8 CSV contents, tasks/badges/revisions, stored order and temporary plaintext cleanup on success/failure/cancellation |
+| `SettingsDataOperationsTest` | 20 | Reviewed publication only, consumed/cancelled/stale tokens, offline and duplicate actions, doctors-before-patients fetch, Undo guards and local export results |
+| `SettingsPreferencesTest` | 9 | Serialized preference writes, stale failure rollback, cancellation, grouped PDF print options, independent appearance/accent and lock settings |
+| `UiPreferencesTest` | 9 | Malformed/partial/unknown settings, deterministic 192-combination round trip and independent appearance/font restoration |
+| `ShiftDoctorPickerInteractionTest` | 11 | Real RTL selector, optional search, 40-doctor roster, deleted doctors, explicit discard, busy controls and keep-draft/use-saved revision review |
+| `UiPreferencesCompositionTest` | 6 | Reduced-motion profile propagation/restoration, fallback profile, scoped overrides and large-font layout thresholds |
+| `AuditAndSettingsRepositoryTest` | 8 | Real isolated Room audit scope/order/limits/metadata, strict typed settings, overflow, lock bounds and batch/delete observation |
+
+New ViewModel cases share a dispatcher/store fixture that cancels collectors at
+teardown. Concurrency cases use deferred barriers or suspended operations, without
+wall-clock sleeps. CSV tests use a fresh temporary folder; Room cases use fresh
+in-memory databases. No original patient records, credentials, private CSV or
+installed clinical database are fixtures. The earlier expansions needed no production-source or dependency change; the
+latest journey pass adds only the optional root navigation-controller factory
+described above to production source.
+
+This is broad regression coverage, not a claim of complete line/branch coverage.
+Device, provider, hardware, performance and multi-device limits remain in
+[Deep regression checks](deep-testing.md). Static source/resource-reference and
+whitespace checks do not establish Kotlin compilation or runtime behavior.
 
 ## Coverage map
 
@@ -92,10 +193,10 @@ Then execute it:
   :app:testDebugUnitTest > /tmp/shiftreport-unit-tests.log 2>&1
 ```
 
-The owner authorized compilation, focused JVM execution and full JVM regression
-execution for the newest additions. Future runs still require the applicable
-AGENTS.md build/resource checks and authorization. Device execution was authorized
-for the earlier expansion only. The connected command builds
+Earlier expansions had separate compilation/JVM/device authorization. The latest
+source expansion has creation/modification authorization only. Obtain fresh build
+and test execution permission and follow AGENTS.md resource checks before using
+these commands. The connected command builds
 and installs debug app/test APKs on the selected authorized device, retaining the
 installation after execution:
 

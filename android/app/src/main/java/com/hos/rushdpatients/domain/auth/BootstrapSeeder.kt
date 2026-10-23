@@ -83,7 +83,9 @@ class BootstrapSeeder @Inject constructor(
             require(telegram.getChat(topics.chatId).pinnedMessage == null) {
                 "ظهرت رسالة مثبّتة أثناء الإعداد؛ لم يُستبدل سجل الفريق"
             }
-            telegram.pinMessage(topics.chatId, msg.messageId, disableNotification = true)
+            check(telegram.pinMessage(topics.chatId, msg.messageId, disableNotification = true)) {
+                "لم يؤكد تليجرام تثبيت سجل الأطباء؛ راجع الرسالة المثبّتة قبل إعادة المحاولة"
+            }
 
             Result.Success(msg.messageId, 1)
         } catch (e: CancellationException) {

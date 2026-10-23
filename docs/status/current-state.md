@@ -166,13 +166,36 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
-**Paused at the owner's request before the next compile/test step.**
+**Latest test expansion is source-only; builds and execution await owner permission.**
 [Continuation record and exact commands](testing-handoff.md) ·
 [Coverage boundaries](../guides/deep-testing.md).
 
-Current source contains **376 JVM methods/64 classes, 175 device methods/39 classes
+Current source contains **623 JVM methods/81 classes, 252 device methods/50 classes
 and 60 desktop methods**. Counts do not establish execution or complete branch
-coverage. The newest patient-scroll/stability changes, crash-boundary marker and
+coverage. Unexecuted additions total **247 JVM and 77 device cases** across the
+23–24 October expansions. The newest **5 JVM and 30 device cases** address selected
+picker/provider, independent-client, failure/clock, adaptive UI and actual root/
+navigation journey gaps. [Detailed suite map and prerequisites](../guides/android-testing.md#latest-source-expansion--awaiting-execution).
+Only static source/resource-reference, manifest and whitespace checks were performed;
+no build, test execution, device installation or live request was made.
+
+A non-exported debug Activity supplies isolated production ViewModels before screen
+lookup. The production root's only new seam is an optional composable navigation-
+controller factory, invoked in its existing logged-in branch with the ordinary
+remembered-controller default. Clinical/auth/sync rules are unchanged. The actual
+WardAppRoot/WardNavHost journey and Hilt/store wiring still need runtime evidence.
+Controlled OpenDocument results do not reproduce the original picker exception;
+independent clients and synthetic hinges/faults do not establish two-phone,
+physical fold/split-screen, power-loss or actual disk-full behavior. The complete
+send journey needs validated device connectivity for the production gate, with all
+HTTP intercepted; an absent-prerequisite skip is not verification.
+
+Two new intended-behavior cases are expected to fail from source review: rollover
+sets `saving` before entering a guard that rejects busy work; initial registry
+seeding ignores a false Telegram pin receipt. These are source findings, not
+executed failures. Those clinical/initialization paths are unchanged; [implementation fixes](roadmap.md)
+remain. All new cases still need compilation/execution, which may expose fixture
+issues. The earlier patient-scroll/stability changes, crash-boundary marker and
 birth-date fixture corrections, and two first/bulk-expansion tests are **not yet
 compiled or runtime verified**. Resume from the handoff rather than repeating
 finished work or treating source completion as verification.

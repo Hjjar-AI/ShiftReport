@@ -6,8 +6,10 @@ Use synthetic records and isolated storage. Automated success describes the
 specific scenarios exercised; it does not establish complete branch coverage or
 distributed transactions over Telegram. Hardware results apply to the observed device.
 
-**Paused work:** the latest scroll changes and crash-fixture corrections await
-verification. See the [handoff](../status/testing-handoff.md) before resuming.
+**Unverified source:** the latest 324 Android test additions, scroll changes and
+crash-fixture corrections await compilation/execution permission. Two intended-behavior
+regressions expose source findings in rollover and initial pin receipts; see the suite map. See the
+[handoff](../status/testing-handoff.md) and [new suite map](android-testing.md#latest-source-expansion--awaiting-execution).
 
 ## Coverage by failure boundary
 
@@ -17,10 +19,10 @@ verification. See the [handoff](../status/testing-handoff.md) before resuming.
 | Process termination | Dedicated debug service dies inside real receipt registration/confirmation, backup restore and download Undo, plus before/after a generic Room transaction; Python child exits before/after a SQLite commit | These selected kill boundaries do not establish power-loss safety or complete crash-window coverage of network publication/download |
 | Long clinical sequences | Save, task completion, CSV/report/PDF content, backup, download Undo, restore, stale edit rejection and a subsequent valid edit | Real multi-device sequences remain separate from local pipeline assertions |
 | Transaction consistency | SQLite-trigger failures verify patient revisions, audit and pending state roll back together; failed reset audit preserves clinical/settings state | Simulated disk-full errors do not reproduce every filesystem/device failure |
-| Overlapping operations | Patient/doctor publishers contend on the real shared store mutex, retain both pointers and recover after a waiting publisher is cancelled | This serializes one process only; different devices retain last-successful-write-wins behavior |
-| Active shift boundary | A ward Save starts in the current shift, crosses the date boundary while reading storage and must reject mutation; desktop publication rechecks its reviewed date | Arbitrary wall-clock/timezone changes throughout every workflow are not exhaustively simulated |
-| Production workflows | Ward patient actions, login ViewModel and settings backup operations cover busy/error/cancellation, debounced drafts, repeated actions and saved metadata | These do not replace a complete navigation end-to-end test |
-| Doctor import | Production ViewModel reads a ContentProvider, previews 33 rows and commits through the real repository; denied, malformed, oversized and cancelled paths | Optional owner CSV stays private; a provider URI does not reproduce every system-picker/provider combination |
+| Overlapping operations | Patient/doctor publishers contend on the real shared store mutex, retain both pointers and recover after a waiting publisher is cancelled | Independent clients now have separate DB/preferences/sessions/locks against an intercepted shared remote; physical two-phone behavior remains separate and last-successful-write-wins |
+| Active shift boundary | A ward Save starts in the current shift, crosses the date boundary while reading storage and must reject mutation; desktop publication rechecks its reviewed date | New publication review/upload tests model forward/backward active-shift changes, and deadlines cover timezone/DST; arbitrary clock changes through every workflow remain outside coverage |
+| Production workflows | Ward patient actions, login ViewModel and settings backup operations cover busy/error/cancellation, debounced drafts, repeated actions and saved metadata | New production root/graph journeys cover selected complete paths with isolated models; latest additions are uncompiled/unrun |
+| Doctor import | Production ViewModel reads a ContentProvider, previews 33 rows and commits through the real repository; denied, malformed, oversized and cancelled paths | Controlled OpenDocument callbacks include delayed results after recreation; original unknown failure and OEM picker/grant behavior remain unreproduced |
 | Desktop | Real encrypted SQLite, backup/join/cipher, PIN lockout/identity, receipt durability, authority/membership, reviewed publication and transport failure suites | Windows DPAPI, native GUI events and hardware behavior need Windows/device execution |
 | Cross-client files | Production Python creates fixtures consumed by Android cipher/join/backup; Android emits files consumed by Python | Current-format fixtures only; no schema conversion work is implied |
 | Input robustness | Deterministic generated Arabic/Unicode/quote/newline cases, duplicate/missing columns, negative revisions, unclosed quotes, incomplete tasks and bundle-delimiter rejection | Not an exhaustive fuzzing campaign or formal resource-exhaustion proof |
@@ -28,7 +30,7 @@ verification. See the [handoff](../status/testing-handoff.md) before resuming.
 | Telegram | Offline intercepted failure suites plus an explicitly invoked synthetic live harness using two independent clients | Harness edits its own synthetic index, not the project's pinned index; physical second-device UI and BotFather revocation are not exercised |
 | PDF | Clinical content preservation plus native rasterization of classic/A5 pages | Rasterization alone does not prove glyph/clipping correctness for every content/options combination |
 | Patient scrolling | Real 200-patient grid, collapsed/expanded large-font interaction, screenshot and frame-duration artifacts | Debug instrumentation timings are not a release performance SLA or a before/after speedup measurement |
-| Accessibility/appearance | RTL and large-font controls plus retained screenshots for review | Full TalkBack, physical foldables, multiple OS/device versions and cosmetic approval remain device/manual checks |
+| Accessibility/appearance | RTL and large-font controls plus retained screenshots for review | New constrained production screens and synthetic hinge geometry remain unrun; full TalkBack, physical foldables/split-screen, multiple OS/device versions and cosmetic approval remain manual |
 | Mutation sensitivity | Temporary Python source copies deliberately break deadline, lock, encryption-purpose, actor/registry review, pre-send receipt persistence and receipt-resolution authority rules; selected regressions must fail | Seven selected mutants do not measure mutation coverage of the whole application |
 
 ## Desktop execution

@@ -18,6 +18,7 @@ import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.sync.SyncService
 import com.hos.rushdpatients.util.NetworkStatus
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.catch
@@ -78,8 +79,8 @@ internal class WardShiftOperations(
     fun applyRollover(keepAssignments: Boolean) {
         val shiftId = saveGuard.editableShiftId() ?: return
         if (_state.value.saving || _state.value.syncing) return
-        _state.update { it.copy(saving = true) }
-        viewModelScope.launch {
+        // Enter the shared guard immediately so it owns both busy state and duplicate protection.
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             saveGuard.saveAction(onSuccess = {}) {
                 val expected = requireNotNull(_state.value.rolloverTarget) { uiText(R.string.ui_ward_shift_operations_008) }
                 require(expected.id == shiftId) { uiText(R.string.ui_ward_shift_operations_009) }

@@ -33,7 +33,10 @@ class PatientCardExpansionTest {
         compose.waitForIdle()
         compose.mainClock.autoAdvance = false
     }
-    private fun height() = compose.onNodeWithTag("card").getUnclippedBoundsInRoot().height.value
+    private fun height(): Float {
+        val bounds = compose.onNodeWithTag("card").getUnclippedBoundsInRoot()
+        return (bounds.bottom - bounds.top).value
+    }
     @Test fun firstIndividualExpansionRetainsIntermediateHeight() {
         show()
         val collapsed = height()
@@ -44,7 +47,7 @@ class PatientCardExpansionTest {
         compose.mainClock.advanceTimeBy(600)
         val complete = height()
         assertTrue("Individual expansion did not start", intermediate > collapsed)
-        assertTrue("First expansion snapped instead of animating", intermediate < complete)
+        assertTrue("First expansion snapped instead of animating: collapsed=$collapsed intermediate=$intermediate complete=$complete", intermediate < complete)
     }
     @Test fun bulkExpansionCompletesWithoutWaitingForMotionDuration() {
         show()

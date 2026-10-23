@@ -59,7 +59,7 @@ class PatientPublicationCoordinatorTest {
         coEvery { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) } returns
             TgMessage(10, date = 100, document = TgDocument(fileId = "uploaded"))
     }
-    @After fun cleanup() { directory.deleteRecursively() }
+    @After fun cleanup() { unmockkObject(ShiftDate); directory.deleteRecursively() }
     @Test fun `reviewed upload publishes exact local bundle and records confirmed cursor`() = runBlocking<Unit> {
         val review = coordinator.prepareCsvPublication(shift.id)
         var csv = ""
@@ -126,5 +126,38 @@ class PatientPublicationCoordinatorTest {
         coEvery { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) } throws CancellationException("cancelled")
         assertThrows(CancellationException::class.java) { runBlocking { coordinator.uploadReviewedCsv(review) } }
         assertTrue(directory.listFiles().orEmpty().isEmpty())
+    }
+    @Test fun `shift boundary changing after review blocks upload before transport`() = runBlocking<Unit> {
+        val review = coordinator.prepareCsvPublication(shift.id)
+        mockkObject(ShiftDate)
+        every { ShiftDate.current(any()) } returns shift.date.plusDays(1)
+        assertTrue(coordinator.uploadReviewedCsv(review).isFailure)
+        coVerify(exactly = 0) { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) }
+    }
+    @Test fun `clock correction changing active shift during upload blocks index publication`() = runBlocking<Unit> {
+        val review = coordinator.prepareCsvPublication(shift.id)
+        mockkObject(ShiftDate)
+        var current = shift.date
+        every { ShiftDate.current(any()) } answers { current }
+        coEvery { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) } answers {
+            current = shift.date.minusDays(1)
+            TgMessage(10, document = TgDocument(fileId = "uploaded"))
+        }
+        assertTrue(coordinator.uploadReviewedCsv(review).isFailure)
+        coVerify(exactly = 0) { remote.updateState(any()) }
+        assertTrue(directory.listFiles().orEmpty().isEmpty())
+    }
+    @Test fun `advance of active shift during upload requires renewed clinical review`() = runBlocking<Unit> {
+        val review = coordinator.prepareCsvPublication(shift.id)
+        mockkObject(ShiftDate)
+        var current = shift.date
+        every { ShiftDate.current(any()) } answers { current }
+        coEvery { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) } answers {
+            current = shift.date.plusDays(1)
+            TgMessage(10, document = TgDocument(fileId = "uploaded"))
+        }
+        assertTrue(coordinator.uploadReviewedCsv(review).isFailure)
+        coVerify(exactly = 0) { cursors.update(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { shifts.updatePublicationMetadata(any(), any()) }
     }
 }

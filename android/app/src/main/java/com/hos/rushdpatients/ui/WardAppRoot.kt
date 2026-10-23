@@ -28,6 +28,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.config.ProjectConfigStore
@@ -157,7 +159,8 @@ class RootViewModel @Inject constructor(
 @Composable
 fun WardAppRoot(
     activity: FragmentActivity,
-    viewModel: RootViewModel = hiltViewModel()
+    viewModel: RootViewModel = hiltViewModel(),
+    navController: @Composable () -> NavHostController = { rememberNavController() }
 ) {
     val session by viewModel.session.collectAsStateWithLifecycle()
     val unlockError by viewModel.unlockError.collectAsStateWithLifecycle()
@@ -226,6 +229,7 @@ fun WardAppRoot(
         )
         else -> WardNavHost(
             session = current,
+            navController = navController(),
             onSignOut = {
                 viewModel.signOut()
                 needsUnlock = false
