@@ -11,6 +11,8 @@ Feature summaries; [current behavior/evidence](current-state.md) · [unfinished 
 
 ## Interface and desktop
 
+- Add/Edit Patient uses shared settings-style bordered section cards for identity, admission, team, clinical fields and optional tasks; ordering, retained drafts and keyboard-safe actions stay in their existing owners. Source/diff checks only; compilation/device review pending.
+- Sample CSV uses varied shuffled food/drink names and randomized profiles with fresh default seeds; clinical fields omit testing boilerplate. Matching DEMO A5 refreshed:56 pages,50 index links,268 valid Fit destinations; no app import/build/tests.
 - Patient-card long press opens Edit with haptic feedback, guarded for read-only/saving/syncing/other-editor states. Tap, full-record button and accessibility details action remain bound to details; long-click accessibility label now identifies Edit. Source/diff checks only; no build/tests/device run.
 
 - Patient Previous/Next no longer keys the whole details subtree/dialog by patient ID. A stable details session saves only each patient’s selected section/scroll, retaining the window/scaffold and footer during navigation; shared activity reloads on details open/clinical revisions rather than each patient tap. Filter/order/edge/busy guards retained. Source/diff checks only; runtime flicker and recreation behavior unverified.

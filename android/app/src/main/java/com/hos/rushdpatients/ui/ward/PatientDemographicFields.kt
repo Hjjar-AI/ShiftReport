@@ -1,7 +1,5 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.components.AppDivider
-
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
@@ -48,133 +46,135 @@ internal fun PatientDemographicFields(
     onCompanionChanged: (Boolean) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    AppSectionHeader(
-        uiText(R.string.ui_patient_demographic_fields_005),
-        complete = name.isNotBlank() && birthYear != null && age != null
-    )
-    AppTextField(
-        value = name,
-        onValueChange = onNameChanged,
-        label = { Text(uiText(R.string.ui_patient_demographic_fields_006)) },
-        modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.NAME)),
-        singleLine = true,
-        textStyle = autoStyle,
-        isError = validationMessages.any { it.field == PatientFormField.NAME },
-        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.NAME }?.message,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-    )
-    AppFieldPair(
-        minimumRowWidth = UiLayout.patientFieldPairMinWidth, matchHeights = true,
-        separator = uiText(R.string.ui_or),
-        first = { fieldModifier ->
-            AppTextField(
-                value = ageText,
-                onValueChange = { value ->
-                    val cleaned = value.filter(Char::isDigit).take(3)
-                    val nextAge = cleaned
-                    val nextYear = cleaned.toIntOrNull()
-                        ?.takeIf { it in 0..120 }
-                        ?.let { currentYear - it }
-                        ?.toString()
-                        .orEmpty()
-                    onAgeAndYearChanged(nextAge, nextYear)
-                },
-                label = { Text(uiText(R.string.ui_patient_demographic_fields_008)) },
-                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.AGE)),
-                singleLine = true,
-                textStyle = autoStyle,
-                isError = validationMessages.any { it.field == PatientFormField.AGE },
-                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.AGE }?.message,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Next
+    PatientFormSection {
+        AppSectionHeader(
+            uiText(R.string.ui_patient_demographic_fields_005),
+            complete = name.isNotBlank() && birthYear != null && age != null
+        )
+        AppTextField(
+            value = name,
+            onValueChange = onNameChanged,
+            label = { Text(uiText(R.string.ui_patient_demographic_fields_006)) },
+            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.NAME)),
+            singleLine = true,
+            textStyle = autoStyle,
+            isError = validationMessages.any { it.field == PatientFormField.NAME },
+            errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.NAME }?.message,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        )
+        AppFieldPair(
+            minimumRowWidth = UiLayout.patientFieldPairMinWidth, matchHeights = true,
+            separator = uiText(R.string.ui_or),
+            first = { fieldModifier ->
+                AppTextField(
+                    value = ageText,
+                    onValueChange = { value ->
+                        val cleaned = value.filter(Char::isDigit).take(3)
+                        val nextAge = cleaned
+                        val nextYear = cleaned.toIntOrNull()
+                            ?.takeIf { it in 0..120 }
+                            ?.let { currentYear - it }
+                            ?.toString()
+                            .orEmpty()
+                        onAgeAndYearChanged(nextAge, nextYear)
+                    },
+                    label = { Text(uiText(R.string.ui_patient_demographic_fields_008)) },
+                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.AGE)),
+                    singleLine = true,
+                    textStyle = autoStyle,
+                    isError = validationMessages.any { it.field == PatientFormField.AGE },
+                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.AGE }?.message,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    )
                 )
-            )
-        },
-        second = { fieldModifier ->
-            AppTextField(
-                value = birthYearText,
-                onValueChange = { value ->
-                    val cleaned = value.filter(Char::isDigit).take(4)
-                    val nextYear = cleaned
-                    val nextAge = cleaned.toIntOrNull()
-                        ?.let { currentYear - it }
-                        ?.takeIf { it in 0..120 }
-                        ?.toString()
-                        .orEmpty()
-                    onAgeAndYearChanged(nextAge, nextYear)
-                },
-                label = { Text(uiText(R.string.ui_patient_demographic_fields_009)) },
-                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.BIRTH_YEAR)),
-                singleLine = true,
-                textStyle = autoStyle,
-                isError = validationMessages.any { it.field == PatientFormField.BIRTH_YEAR },
-                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.BIRTH_YEAR }?.message,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Next
+            },
+            second = { fieldModifier ->
+                AppTextField(
+                    value = birthYearText,
+                    onValueChange = { value ->
+                        val cleaned = value.filter(Char::isDigit).take(4)
+                        val nextYear = cleaned
+                        val nextAge = cleaned.toIntOrNull()
+                            ?.let { currentYear - it }
+                            ?.takeIf { it in 0..120 }
+                            ?.toString()
+                            .orEmpty()
+                        onAgeAndYearChanged(nextAge, nextYear)
+                    },
+                    label = { Text(uiText(R.string.ui_patient_demographic_fields_009)) },
+                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.BIRTH_YEAR)),
+                    singleLine = true,
+                    textStyle = autoStyle,
+                    isError = validationMessages.any { it.field == PatientFormField.BIRTH_YEAR },
+                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.BIRTH_YEAR }?.message,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    )
                 )
-            )
+            }
+        )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            FlowRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                Text(uiText(R.string.ui_patient_demographic_fields_010),
+                    modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium)
+                AppFilterChip(
+                    enabled = !saving,
+                    selected = gender == Gender.MALE,
+                    onClick = { onGenderChanged(Gender.MALE) },
+                    label = { Text(uiText(R.string.ui_male)) }
+                )
+                AppFilterChip(
+                    enabled = !saving,
+                    selected = gender == Gender.FEMALE,
+                    onClick = { onGenderChanged(Gender.FEMALE) },
+                    label = { Text(uiText(R.string.ui_female)) }
+                )
+            }
+            AppToggleRow(title = uiText(R.string.ui_patient_demographic_fields_013), checked = hasCompanion,
+                onCheckedChange = onCompanionChanged, enabled = !saving, modifier = Modifier.weight(.85f))
         }
-    )
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        FlowRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            Text(uiText(R.string.ui_patient_demographic_fields_010),
-                modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium)
-            AppFilterChip(
-                enabled = !saving,
-                selected = gender == Gender.MALE,
-                onClick = { onGenderChanged(Gender.MALE) },
-                label = { Text(uiText(R.string.ui_male)) }
-            )
-            AppFilterChip(
-                enabled = !saving,
-                selected = gender == Gender.FEMALE,
-                onClick = { onGenderChanged(Gender.FEMALE) },
-                label = { Text(uiText(R.string.ui_female)) }
-            )
-        }
-        AppToggleRow(title = uiText(R.string.ui_patient_demographic_fields_013), checked = hasCompanion,
-            onCheckedChange = onCompanionChanged, enabled = !saving, modifier = Modifier.weight(.85f))
     }
 
-    AppDivider()
-    AppSectionHeader(
-        uiText(R.string.ui_patient_demographic_fields_001),
-        complete = admittanceNumber.isNotBlank() && admittanceDate != null
-    )
-    AppFieldPair(
-        minimumRowWidth = UiLayout.patientFieldPairMinWidth, matchHeights = true,
-        first = { fieldModifier ->
-            AppTextField(
-                value = admittanceNumber,
-                onValueChange = onAdmissionNumberChanged,
-                label = { Text(uiText(R.string.ui_patient_demographic_fields_002)) },
-                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
-                singleLine = true,
-                textStyle = autoStyle,
-                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_NUMBER },
-                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_NUMBER }?.message,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-            )
-        },
-        second = { fieldModifier ->
-            DateField(
-                value = admittanceDate,
-                onValueChange = onAdmissionDateChanged,
-                label = uiText(R.string.ui_patient_demographic_fields_003),
-                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
-                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,
-                supportingText = null,
-                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
-            )
+    PatientFormSection {
+        AppSectionHeader(
+            uiText(R.string.ui_patient_demographic_fields_001),
+            complete = admittanceNumber.isNotBlank() && admittanceDate != null
+        )
+        AppFieldPair(
+            minimumRowWidth = UiLayout.patientFieldPairMinWidth, matchHeights = true,
+            first = { fieldModifier ->
+                AppTextField(
+                    value = admittanceNumber,
+                    onValueChange = onAdmissionNumberChanged,
+                    label = { Text(uiText(R.string.ui_patient_demographic_fields_002)) },
+                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
+                    singleLine = true,
+                    textStyle = autoStyle,
+                    isError = validationMessages.any { it.field == PatientFormField.ADMISSION_NUMBER },
+                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_NUMBER }?.message,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+                )
+            },
+            second = { fieldModifier ->
+                DateField(
+                    value = admittanceDate,
+                    onValueChange = onAdmissionDateChanged,
+                    label = uiText(R.string.ui_patient_demographic_fields_003),
+                    isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
+                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,
+                    supportingText = null,
+                    modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
+                )
+            }
+        )
+        admissionDays?.let {
+            Text(uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)),
+                modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-    )
-    admissionDays?.let {
-        Text(uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)),
-            modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-
 }

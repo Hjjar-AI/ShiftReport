@@ -1,7 +1,5 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.components.AppDivider
-
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -156,46 +154,48 @@ internal fun PatientFormDialog(
     }
 
     val teamFieldsContent: @Composable () -> Unit = {
-        AppSectionHeader(
-            uiText(R.string.ui_patient_form_dialog_014),
-            complete = residentId != null && specialistId != null && residentId != specialistId
-        )
-        AppFieldPair(
-            minimumRowWidth = com.hos.rushdpatients.ui.theme.UiLayout.patientFieldPairMinWidth,
-            matchHeights = true,
-            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
-            first = { fieldModifier ->
-                DoctorDropdown(
-                    label = uiText(R.string.ui_patient_form_dialog_015),
-                    isError = validationMessages.any { it.field == PatientFormField.TEAM },
-                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
-                    undefinedLabel = uiText(R.string.ui_patient_form_dialog_016),
-                    selectedId = residentId,
-                    doctors = residentDoctors, registry = doctors,
-                    onSelected = { residentId = it; validationMessages = emptyList() },
-                    modifier = fieldModifier
-                )
-            },
-            second = { fieldModifier ->
-                DoctorDropdown(
-                    label = uiText(R.string.ui_patient_form_dialog_017),
-                    isError = validationMessages.any { it.field == PatientFormField.TEAM },
-                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
-                    undefinedLabel = uiText(R.string.ui_patient_form_dialog_018),
-                    selectedId = specialistId,
-                    doctors = specialistDoctors, registry = doctors,
-                    onSelected = { specialistId = it; validationMessages = emptyList() },
-                    modifier = fieldModifier
-                )
-            }
-        )
+        PatientFormSection {
+            AppSectionHeader(
+                uiText(R.string.ui_patient_form_dialog_014),
+                complete = residentId != null && specialistId != null && residentId != specialistId
+            )
+            AppFieldPair(
+                minimumRowWidth = com.hos.rushdpatients.ui.theme.UiLayout.patientFieldPairMinWidth,
+                matchHeights = true,
+                modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
+                first = { fieldModifier ->
+                    DoctorDropdown(
+                        label = uiText(R.string.ui_patient_form_dialog_015),
+                        isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
+                        undefinedLabel = uiText(R.string.ui_patient_form_dialog_016),
+                        selectedId = residentId,
+                        doctors = residentDoctors, registry = doctors,
+                        onSelected = { residentId = it; validationMessages = emptyList() },
+                        modifier = fieldModifier
+                    )
+                },
+                second = { fieldModifier ->
+                    DoctorDropdown(
+                        label = uiText(R.string.ui_patient_form_dialog_017),
+                        isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
+                        undefinedLabel = uiText(R.string.ui_patient_form_dialog_018),
+                        selectedId = specialistId,
+                        doctors = specialistDoctors, registry = doctors,
+                        onSelected = { specialistId = it; validationMessages = emptyList() },
+                        modifier = fieldModifier
+                    )
+                }
+            )
 
-        Text(uiText(R.string.ui_patient_form_dialog_019),
-            style = MaterialTheme.typography.bodySmall)
-        if (com.hos.rushdpatients.domain.doctor.DoctorTeams.isCrossTeamCover(
-                activeDoctors.firstOrNull { it.id == residentId }, specialistId)) {
-            Text(uiText(R.string.ui_patient_form_dialog_020), style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.tertiary)
+            Text(uiText(R.string.ui_patient_form_dialog_019),
+                style = MaterialTheme.typography.bodySmall)
+            if (com.hos.rushdpatients.domain.doctor.DoctorTeams.isCrossTeamCover(
+                    activeDoctors.firstOrNull { it.id == residentId }, specialistId)) {
+                Text(uiText(R.string.ui_patient_form_dialog_020), style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.tertiary)
+            }
         }
     }
 
@@ -286,142 +286,142 @@ internal fun PatientFormDialog(
                     }
                     if (initial == null) {
                         admissionIdentityContent()
-                        AppDivider()
                         teamFieldsContent()
-                        AppDivider()
                     }
 
-                    AppSectionHeader(
-                        uiText(R.string.ui_patient_form_dialog_004),
-                        complete = initialDiagnosis.isNotBlank() &&
-                            (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
-                            (followUpItems + followUpDraft).any(String::isNotBlank)
-                    )
-                    Text(uiText(R.string.ui_patient_form_dialog_005), style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                        DiagnosisType.entries.forEach { type ->
-                            AppFilterChip(
-                                enabled = !saving,
-                                selected = diagnosisType == type,
-                                onClick = { diagnosisType = type },
-                                label = { Text(type.uiLabel(uiText)) }
-                            )
+                    PatientFormSection {
+                        AppSectionHeader(
+                            uiText(R.string.ui_patient_form_dialog_004),
+                            complete = initialDiagnosis.isNotBlank() &&
+                                (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
+                                (followUpItems + followUpDraft).any(String::isNotBlank)
+                        )
+                        Text(uiText(R.string.ui_patient_form_dialog_005), style = MaterialTheme.typography.labelMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                            DiagnosisType.entries.forEach { type ->
+                                AppFilterChip(
+                                    enabled = !saving,
+                                    selected = diagnosisType == type,
+                                    onClick = { diagnosisType = type },
+                                    label = { Text(type.uiLabel(uiText)) }
+                                )
+                            }
                         }
+                        MultilineField(
+                            initialDiagnosis,
+                            { initialDiagnosis = it; validationMessages = emptyList() },
+                            uiText(R.string.ui_patient_form_dialog_006),
+                            autoStyle,
+                            isError = validationMessages.any { it.field == PatientFormField.DIAGNOSIS },
+                            errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.DIAGNOSIS }?.message,
+                            modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.DIAGNOSIS)),
+                            placeholder = when (diagnosisType) {
+                                DiagnosisType.PSYCHIATRIC -> uiText(R.string.ui_patient_form_dialog_007)
+                                DiagnosisType.ADDICTION -> uiText(R.string.ui_patient_form_dialog_008)
+                                DiagnosisType.DUAL -> uiText(R.string.ui_patient_form_dialog_009)
+                            }
+                        )
                     }
-                    MultilineField(
-                        initialDiagnosis,
-                        { initialDiagnosis = it; validationMessages = emptyList() },
-                        uiText(R.string.ui_patient_form_dialog_006),
-                        autoStyle,
-                        isError = validationMessages.any { it.field == PatientFormField.DIAGNOSIS },
-                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.DIAGNOSIS }?.message,
-                        modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.DIAGNOSIS)),
-                        placeholder = when (diagnosisType) {
-                            DiagnosisType.PSYCHIATRIC -> uiText(R.string.ui_patient_form_dialog_007)
-                            DiagnosisType.ADDICTION -> uiText(R.string.ui_patient_form_dialog_008)
-                            DiagnosisType.DUAL -> uiText(R.string.ui_patient_form_dialog_009)
-                        }
-                    )
-
-                    AppDivider()
-                    AppSectionHeader(uiText(R.string.ui_patient_form_dialog_010))
-                    MultiValueEditor(
-                        label = uiText(R.string.ui_patient_form_dialog_011),
-                        items = treatmentItems,
-                        draft = treatmentDraft,
-                        onDraftChange = { treatmentDraft = it; validationMessages = emptyList() },
-                        onReplaceAll = { treatmentItems = parseFieldItems(it); treatmentDraft = ""; validationMessages = emptyList() },
-                        onEditItem = { index, value ->
-                            treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
-                            validationMessages = emptyList()
-                        },
-                        onMove = { from, to ->
-                            treatmentItems = reorder(treatmentItems, from, to)
-                        },
-                        onAdd = {
-                            val value = treatmentDraft.trim()
-                            if (value.isNotEmpty()) {
-                                treatmentItems = treatmentItems + value
-                                treatmentDraft = ""
-                            }
-                        },
-                        onRemove = { index ->
-                            treatmentItems = treatmentItems.filterIndexed { i, _ -> i != index }
-                        },
-                        onAddSeparator = { treatmentItems = treatmentItems + FIELD_SEPARATOR },
-                        onAddDate = null,
-                        textStyle = autoStyle,
-                        isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
-                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TREATMENT }?.message,
-                        modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
-                    )
-                    AppDivider()
-                    MultiValueEditor(
-                        label = uiText(R.string.ui_patient_form_dialog_012),
-                        items = followUpItems,
-                        draft = followUpDraft,
-                        onDraftChange = { followUpDraft = it; validationMessages = emptyList() },
-                        onReplaceAll = { followUpItems = parseFieldItems(it); followUpDraft = ""; validationMessages = emptyList() },
-                        onEditItem = { index, value ->
-                            followUpItems = followUpItems.toMutableList().also { it[index] = value }
-                            validationMessages = emptyList()
-                        },
-                        onMove = { from, to ->
-                            followUpItems = reorder(followUpItems, from, to)
-                        },
-                        onAdd = {
-                            followUpDraft.trim().takeIf { it.isNotEmpty() }?.let {
-                                followUpItems = followUpItems + it
-                                followUpDraft = ""
-                            }
-                        },
-                        onRemove = { index ->
-                            followUpItems = followUpItems.filterIndexed { i, _ -> i != index }
-                        },
-                        onAddSeparator = { followUpItems = followUpItems + FIELD_SEPARATOR },
-                        onAddDate = null,
-                        textStyle = autoStyle,
-                        isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
-                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.FOLLOW_UP }?.message,
-                        modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
-                    )
-                    AppDivider()
-                    MultiValueEditor(
-                        label = uiText(R.string.ui_labs),
-                        items = labItems,
-                        draft = labDraft,
-                        onDraftChange = { labDraft = it; validationMessages = emptyList() },
-                        onReplaceAll = { labItems = parseFieldItems(it); labDraft = ""; validationMessages = emptyList() },
-                        onEditItem = { index, value ->
-                            labItems = labItems.toMutableList().also { it[index] = value }
-                            validationMessages = emptyList()
-                        },
-                        onMove = { from, to ->
-                            labItems = reorder(labItems, from, to)
-                        },
-                        onAdd = {
-                            labDraft.trim().takeIf { it.isNotEmpty() }?.let {
-                                labItems = labItems + it
-                                labDraft = ""
-                            }
-                        },
-                        onRemove = { index ->
-                            labItems = labItems.filterIndexed { i, _ -> i != index }
-                        },
-                        onAddSeparator = { labItems = labItems + FIELD_SEPARATOR },
-                        onAddDate = { date ->
-                            labItems = labItems + dateMarkerFrom(date)
-                        },
-                        textStyle = autoStyle,
-                        isError = false
-                    )
-
-                    AppDivider()
-                    optionalFieldsContent()
+                    PatientFormSection {
+                        AppSectionHeader(uiText(R.string.ui_patient_form_dialog_010))
+                        MultiValueEditor(
+                            label = uiText(R.string.ui_patient_form_dialog_011),
+                            items = treatmentItems,
+                            draft = treatmentDraft,
+                            onDraftChange = { treatmentDraft = it; validationMessages = emptyList() },
+                            onReplaceAll = { treatmentItems = parseFieldItems(it); treatmentDraft = ""; validationMessages = emptyList() },
+                            onEditItem = { index, value ->
+                                treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
+                                validationMessages = emptyList()
+                            },
+                            onMove = { from, to ->
+                                treatmentItems = reorder(treatmentItems, from, to)
+                            },
+                            onAdd = {
+                                val value = treatmentDraft.trim()
+                                if (value.isNotEmpty()) {
+                                    treatmentItems = treatmentItems + value
+                                    treatmentDraft = ""
+                                }
+                            },
+                            onRemove = { index ->
+                                treatmentItems = treatmentItems.filterIndexed { i, _ -> i != index }
+                            },
+                            onAddSeparator = { treatmentItems = treatmentItems + FIELD_SEPARATOR },
+                            onAddDate = null,
+                            textStyle = autoStyle,
+                            isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
+                            errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TREATMENT }?.message,
+                            modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
+                        )
+                    }
+                    PatientFormSection {
+                        MultiValueEditor(
+                            label = uiText(R.string.ui_patient_form_dialog_012),
+                            items = followUpItems,
+                            draft = followUpDraft,
+                            onDraftChange = { followUpDraft = it; validationMessages = emptyList() },
+                            onReplaceAll = { followUpItems = parseFieldItems(it); followUpDraft = ""; validationMessages = emptyList() },
+                            onEditItem = { index, value ->
+                                followUpItems = followUpItems.toMutableList().also { it[index] = value }
+                                validationMessages = emptyList()
+                            },
+                            onMove = { from, to ->
+                                followUpItems = reorder(followUpItems, from, to)
+                            },
+                            onAdd = {
+                                followUpDraft.trim().takeIf { it.isNotEmpty() }?.let {
+                                    followUpItems = followUpItems + it
+                                    followUpDraft = ""
+                                }
+                            },
+                            onRemove = { index ->
+                                followUpItems = followUpItems.filterIndexed { i, _ -> i != index }
+                            },
+                            onAddSeparator = { followUpItems = followUpItems + FIELD_SEPARATOR },
+                            onAddDate = null,
+                            textStyle = autoStyle,
+                            isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
+                            errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.FOLLOW_UP }?.message,
+                            modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
+                        )
+                    }
+                    PatientFormSection {
+                        MultiValueEditor(
+                            label = uiText(R.string.ui_labs),
+                            items = labItems,
+                            draft = labDraft,
+                            onDraftChange = { labDraft = it; validationMessages = emptyList() },
+                            onReplaceAll = { labItems = parseFieldItems(it); labDraft = ""; validationMessages = emptyList() },
+                            onEditItem = { index, value ->
+                                labItems = labItems.toMutableList().also { it[index] = value }
+                                validationMessages = emptyList()
+                            },
+                            onMove = { from, to ->
+                                labItems = reorder(labItems, from, to)
+                            },
+                            onAdd = {
+                                labDraft.trim().takeIf { it.isNotEmpty() }?.let {
+                                    labItems = labItems + it
+                                    labDraft = ""
+                                }
+                            },
+                            onRemove = { index ->
+                                labItems = labItems.filterIndexed { i, _ -> i != index }
+                            },
+                            onAddSeparator = { labItems = labItems + FIELD_SEPARATOR },
+                            onAddDate = { date ->
+                                labItems = labItems + dateMarkerFrom(date)
+                            },
+                            textStyle = autoStyle,
+                            isError = false
+                        )
+                    }
+                    PatientFormSection {
+                        optionalFieldsContent()
+                    }
                     if (initial != null) {
-                        AppDivider()
                         teamFieldsContent()
-                        AppDivider()
                         admissionIdentityContent()
                     }
                 }

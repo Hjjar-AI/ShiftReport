@@ -14,14 +14,7 @@ COLUMNS = ('externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,'
            'responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,'
            'lastEditedBy,updatedAt,revision,tasksJson').split(',')
 NAME_POOLS = {
-    'ice_cream': [
-        'بوظة عربية', 'بوظة الفستق الحلبي', 'بوظة القشطة', 'بوظة الشوكولا',
-        'بوظة الفانيليا', 'بوظة الفراولة', 'بوظة التوت الشامي', 'بوظة الليمون',
-        'بوظة المانغا', 'بوظة الموز', 'بوظة الكرز', 'بوظة جوز الهند',
-        'بوظة الكراميل', 'بوظة البندق', 'بوظة اللوز', 'بوظة القهوة',
-        'بوظة المستكة', 'بوظة الورد', 'بوظة المشمش', 'بوظة الدراق',
-        'بوظة عربية بالمستكة والفستق الحلبي', 'بوظة القشطة مع اللوز المحمص',
-    ],
+    'ice_cream': ['بوظة عربية', 'مثلجات الفستق الحلبي', 'آيس كريم الفانيليا', 'سوربيه الليمون'],
     'hot_drinks': [
         'شاي أحمر', 'شاي أخضر', 'شاي بالنعناع', 'شاي بالهيل', 'شاي بالقرفة',
         'شاي بالليمون', 'قهوة عربية', 'قهوة تركية', 'قهوة بالحليب', 'قهوة بالهيل',
@@ -40,6 +33,32 @@ NAME_POOLS = {
         'أرز بالحليب', 'حلاوة الجبن', 'كنافة نابلسية', 'عش البلبل', 'برازق',
     ],
 }
+NAME_COUNTS = {'ice_cream': 4, 'hot_drinks': 14, 'syrian_food': 32}
+
+
+def patient_names(seed):
+    """Shuffle varied dishes/drinks without letting one name family dominate."""
+    rng = random.Random("patient-names/{}".format(seed))
+    names = []
+    for category, count in NAME_COUNTS.items():
+        candidates = list(NAME_POOLS[category])
+        rng.shuffle(candidates)
+        chosen, families = [], {}
+        for name in candidates:
+            family = name.split()[0]
+            if families.get(family, 0) >= 2:
+                continue
+            chosen.append(name)
+            families[family] = families.get(family, 0) + 1
+            if len(chosen) == count:
+                break
+        if len(chosen) != count:
+            raise ValueError('Not enough varied names in ' + category)
+        names.extend(chosen)
+    rng.shuffle(names)
+    return names
+
+
 CASES = [
     ('PSYCHIATRIC', 'أعراض اكتئابية مع اضطراب النوم والشهية'),
     ('PSYCHIATRIC', 'نشاط زائد مع قلة النوم وسرعة الكلام'),
@@ -73,9 +92,9 @@ CLINICAL_TERMS = {
         'WBC': ['4100', '4500', '5000', '6600', '11600', '13100'],
         'ALT': ['11', '33', '38', '52'], 'AST': ['18', '44', '67', '69'], 'Cr': ['1.1'],
     },
-    'observations': ['النوم متقطع في السيناريو الوهمي', 'الشهية متبدلة في هذا المثال',
-                     'التعاون جزئي أثناء المقابلة الافتراضية', 'القلق أقل في التقييم التجريبي',
-                     'الأفكار الوسواسية تحتاج توثيقاً في المثال'],
+    'observations': ['النوم متقطع', 'الشهية متبدلة',
+                     'التعاون جزئي أثناء المقابلة', 'القلق أقل مقارنة بالتقييم السابق',
+                     'استمرار الأفكار الوسواسية'],
 }
 
 
@@ -86,14 +105,13 @@ def mix_clinical_fragments(row, rng):
     dose_labels = [drug + ' ' + rng.choice(CLINICAL_TERMS['medications'][drug]) for drug in medications]
     observations = rng.sample(CLINICAL_TERMS['observations'], 3)
     row['initialDiagnosis'] += '؛ ' + ' مع '.join(symptoms) + '.'
-    row['treatmentPlan'] = ('خطة وهمية مركبة للعرض فقط:\n' + ' + '.join(dose_labels)
+    row['treatmentPlan'] = (' + '.join(dose_labels)
                             + '\n' + row['treatmentPlan'])
     if row['followUp']:
-        row['followUp'] = 'متابعة وهمية مركبة:\n' + '\n'.join(observations) + '\nلا تصف مريضاً حقيقياً.'
+        row['followUp'] = '\n'.join(observations)
     if row['labs']:
-        row['labs'] = ('تحاليل تجريبية بقيم مختلطة مستقلة:\n'
-                       + '، '.join(key + '=' + rng.choice(values) for key, values in CLINICAL_TERMS['labs'].items())
-                       + '\nDEMO — مجموعة نتائج وهمية لا تخص مريضاً حقيقياً.')
+        row['labs'] = ('تحاليل:\n'
+                       + '، '.join(key + '=' + rng.choice(values) for key, values in CLINICAL_TERMS['labs'].items()))
 
 
 def packed(value):
@@ -103,17 +121,13 @@ def packed(value):
 def generate(path, day, seed, mix_clinical=True):
     rng = random.Random(seed)
     clinical_rng = random.Random("clinical-fragments/{}".format(seed))
-    name_rng = random.Random("patient-names/{}".format(seed))
-    names = (name_rng.sample(NAME_POOLS['ice_cream'], 18)
-             + name_rng.sample(NAME_POOLS['hot_drinks'], 16)
-             + name_rng.sample(NAME_POOLS['syrian_food'], 16))
-    name_rng.shuffle(names)
+    names = patient_names(seed)
     namespace = uuid.uuid5(uuid.NAMESPACE_URL, 'shiftreport-synthetic-50/{}/{}'.format(day, seed))
     identity = lambda label: str(uuid.uuid5(namespace, label))
     now = datetime.combine(day, time(12), timezone(timedelta(hours=3)))
     epoch = lambda value: int(value.timestamp() * 1000)
     rows = []
-    for number in range(1, 51):
+    for position, number in enumerate(rng.sample(range(1, 51), 50), 1):
         kind, case = CASES[(number - 1) % len(CASES)]
         row = dict.fromkeys(COLUMNS, '')
         task_count = 8 if number in (10, 30, 50) else (number - 1) % 5
@@ -122,36 +136,39 @@ def generate(path, day, seed, mix_clinical=True):
             done = index % 4 == 3
             due = None if index % 5 == 4 else now + timedelta(hours=rng.choice([-30, -6, 2, 10, 28]))
             tasks.append(dict(id=identity('task-{}-{}'.format(number, index)),
-                description='مهمة تجريبية {}: {}'.format(index + 1, rng.choice([
+                description=rng.choice([
                     'توثيق ساعات النوم', 'مراجعة نتائج التقييم', 'إعادة تقييم الشهية',
-                    'التواصل التجريبي مع المرافق', 'تحضير ملخص المتابعة'])),
+                    'التواصل مع المرافق', 'تحضير ملخص المتابعة']),
                 ownerDoctorId=None, ownerName=None, priority=rng.choice(['LOW', 'NORMAL', 'HIGH']),
                 dueAtEpochMillis=epoch(due) if due else None,
                 dueShiftDate=day.isoformat() if due and index % 3 == 0 else None,
                 done=done, completedByDoctorId=identity('fictional-completer') if done else None,
-                completedByName='طبيب تجريبي وهمي' if done else None,
+                completedByName='د. الأرز' if done else None,
                 completedAtEpochMillis=epoch(now - timedelta(hours=1)) if done else None))
         badges = []
         if number % 3 == 0:
-            badges.append(('تنبيه تجريبي: يحتاج مراجعة مبكرة', 'high'))
+            badges.append(('يحتاج مراجعة مبكرة', 'high'))
         if number % 4 == 0:
-            badges.append(('ملاحظة تجريبية: تواصل مع المرافق', 'medium'))
+            badges.append(('تواصل مع المرافق', 'medium'))
         if number % 7 == 0:
-            badges.append(('شارة عرض طويلة لاختبار التفاف النص العربي والإنجليزي DEMO', 'low'))
-        treatment = 'خطة وهمية للعرض فقط: مراجعة التقييم والاستجابة وتسجيل الملاحظات اليومية.'
+            badges.append(('متابعة انتظام النوم والشهية والتواصل مع المرافق', 'low'))
+        treatment = 'مراجعة التقييم والاستجابة وتسجيل الملاحظات اليومية.'
         if number % 10 == 0:
-            treatment += '\n' + '\n'.join('فقرة تجريبية {}: محتوى عربي طويل مع English DEMO، فاصلة، و"نص مقتبس"؛ يجب الحفاظ عليه عند العرض والتصدير.'.format(i)
+            treatment += '\n' + '\n'.join('اليوم {}: {}'.format(i, rng.choice([
+                'تقييم النوم والشهية والتعاون أثناء المقابلة، مع توثيق التغير مقارنة باليوم السابق.',
+                'متابعة الاستجابة للخطة العلاجية والتحمل، وتسجيل الملاحظات خلال الجولة.',
+                'مراجعة الأعراض الحالية ونتائج التحاليل، ومناقشة المتابعة مع الفريق.']))
                                          for i in range(1, 19))
-        row.update(externalId=identity('patient-{}'.format(number)), admitNum='DEMO-{:03d}'.format(number),
+        row.update(externalId=identity('patient-{}'.format(number)), admitNum='SR-{:03d}'.format(position),
             admitDate=(day - timedelta(days=rng.randrange(0, 46))).isoformat(),
             gender='F' if number % 2 == 0 else 'M',
-            name=names[number - 1],
+            name=names[position - 1],
             birthDate=str(day.year - rng.randrange(18, 87)), hasCompanion='Y' if number % 3 == 0 else 'N',
-            diagnosisType=kind, initialDiagnosis='حالة تجريبية غير حقيقية: ' + case,
+            diagnosisType=kind, initialDiagnosis=case,
             treatmentPlan=treatment,
-            followUp='' if number % 6 == 0 else 'متابعة وهمية: النوم {} ساعات، الشهية {}، والاستجابة {}.\nلا توجد بيانات مريض حقيقي.'.format(
+            followUp='' if number % 6 == 0 else 'النوم {} ساعات، الشهية {}، والاستجابة {}.'.format(
                 rng.randrange(2, 10), rng.choice(['جيدة', 'متوسطة', 'ضعيفة']), rng.choice(['تحسن', 'ثبات', 'تحتاج إعادة تقييم'])),
-            labs='' if number % 4 == 0 else 'نتائج وهمية للعرض فقط: Hb={}، Na={}، K={}.\nECG: DEMO، وليس تقريراً طبياً.'.format(
+            labs='' if number % 4 == 0 else 'Hb={}، Na={}، K={}'.format(
                 rng.choice(['11.2', '13.5', '15.0']), rng.choice(['132', '139', '144']), rng.choice(['3.2', '4.1', '4.8'])),
             warningFlags='|'.join(level for text, level in badges),
             warningDetails='badges:' + ';'.join(level + ':' + base64.urlsafe_b64encode(text.encode()).decode().rstrip('=')
@@ -177,12 +194,13 @@ def main():
     parser.add_argument('--output', type=Path, default=Path(__file__).parent / 'synthetic-patients-50.csv')
     parser.add_argument('--date', type=date.fromisoformat,
                         default=datetime.now(timezone(timedelta(hours=3))).date())
-    parser.add_argument('--seed', type=int, default=50)
+    parser.add_argument('--seed', type=int, default=None, help='Optional seed for repeatable output')
     parser.add_argument('--generic-only', action='store_true',
                         help='Omit the reworded, mixed workbook-theme enrichment')
     args = parser.parse_args()
-    generate(args.output, args.date, args.seed, mix_clinical=not args.generic_only)
-    print('Created 50 fictional patients: ' + str(args.output))
+    seed = args.seed if args.seed is not None else random.SystemRandom().randrange(2**63)
+    generate(args.output, args.date, seed, mix_clinical=not args.generic_only)
+    print('Created 50 sample patients (seed={}): {}'.format(seed, args.output))
 
 
 if __name__ == '__main__':
