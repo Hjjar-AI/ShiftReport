@@ -86,6 +86,10 @@ def generate(path, day, seed):
                 for text, level in badges) if badges else '',
             isPriority='Y' if number % 5 == 0 else 'N', updatedAt=str(epoch(now)), revision='0',
             tasksJson=packed(tasks))
+        if number == 7:
+            row['name'] = 'زهورات 07 ذو الاسم التجريبي الطويل'
+        elif number == 23:
+            row['name'] = 'كاكاو 23 مثال لاسم تجريبي أطول من عرض الخلية'
         rows.append(row)
     meta = '# schemaVersion=7 shiftDate={} shiftId={} doctors= sortSpec={{"levels":[]}} shiftRevision=0 snapshotId= baseSnapshotId= deviceId='.format(
         day, identity('shift'))

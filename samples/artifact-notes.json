@@ -5,12 +5,11 @@
   "completedTasks": 13,
   "badgedPatients": 28,
   "priorityPatients": 10,
-  "pdfPages": 86,
+  "pdfPages": 74,
   "firstIndexPageLinks": 50,
-  "internalFitLinks": 385,
+  "internalFitLinks": 338,
   "visualInspection": [
-    "index page 1",
-    "patient card page 2"
+    "prior index/dark color snapshots; refreshed side-by-side badges on card page 18"
   ],
   "limits": [
     "No app import or Telegram operation",
@@ -18,7 +17,18 @@
     "No test-suite execution"
   ],
   "sha256": {
-    "synthetic-patients-50.csv": "2112a29f8578904d0c043f6722289d85aa00054acea85b25c7d2c896e8695c1d",
-    "synthetic-patients-50-A5.pdf": "3fa025c568d3b85d6c2d3059bfad1f65d37bb57011f88b03d72c835abd00305b"
-  }
+    "synthetic-patients-50.csv": "0ad77c3dcd7b222a5c498b6b12a566f421ca62076370cd932f0bef74edb2be5a",
+    "synthetic-patients-50-A5.pdf": "e5bef0293385fbb0a003ac98c5e347a756d5192d66047d762631027888d96574"
+  },
+  "indexCellHeightPt": 28,
+  "indexDefaultFontPt": 14,
+  "longNameExamples": 2,
+  "groupedTaskDescriptions": 112,
+  "titlePaddingPt": 3,
+  "navigationPaddingPt": 3,
+  "navigationBottomInsetPt": 3,
+  "badgePillCount": 35,
+  "badgeHorizontalGapPt": 6,
+  "badgeHorizontalPaddingPt": 6,
+  "badgeVerticalPaddingPt": 4
 }

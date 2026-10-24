@@ -241,6 +241,7 @@ internal fun PatientFormDialog(
                         )
                     }
                     PatientFormSectionNavigation(sectionOrder, activeSection, enabled = !saving) { section ->
+                        if (initial == null && section == PatientFormSection.TASKS) formState.extrasExpanded = true
                         sectionOffsets[section]?.let { offset ->
                             formScope.launch { scrollToSection(offset.coerceIn(0, formScrollState.maxValue)) }
                         }
@@ -396,7 +397,7 @@ internal fun PatientFormDialog(
                         modifier = sectionAnchor(PatientFormSection.LABS)
                     )
 
-                    PatientTaskEditor(tasks, doctors, !saving, formState = formState, modifier = sectionAnchor(PatientFormSection.TASKS)) { tasks = it }
+                    if (initial != null) PatientTaskEditor(tasks, doctors, !saving, formState = formState, modifier = sectionAnchor(PatientFormSection.TASKS)) { tasks = it }
 
                     AppSectionHeader(
                         uiText(R.string.ui_patient_form_dialog_014),
@@ -439,88 +440,104 @@ internal fun PatientFormDialog(
                             color = MaterialTheme.colorScheme.tertiary)
                     }
 
-                    AppSectionHeader(uiText(R.string.ui_patient_form_dialog_021))
-                    AppToggleRow(title = uiText(R.string.ui_patient_form_dialog_022), checked = isPriority,
-                        onCheckedChange = { isPriority = it }, enabled = !saving)
-                    AppTextButton(onClick = { showBadgeEditor = !showBadgeEditor },
-                        modifier = Modifier.semantics { stateDescription = if (showBadgeEditor) uiText(R.string.ui_patient_form_dialog_023) else uiText(R.string.ui_patient_form_dialog_024) }) {
-                        Text(if (showBadgeEditor) uiText(R.string.ui_patient_form_dialog_025) else uiText(R.string.ui_patient_form_dialog_026, uiNumber(badges.size)))
-                    }
-                    if (!showBadgeEditor && (badges.isNotEmpty() || badgeDraftText.isNotBlank())) {
-                        Text(
-                            (badges.map { it.text } + listOf(badgeDraftText).filter(String::isNotBlank)).joinToString(" · "),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (initial == null) {
+                        val extrasSummary = uiText(R.string.ui_patient_optional_summary,
+                            uiNumber(tasks.size), uiNumber(badges.size + if (badgeDraftText.isNotBlank()) 1 else 0)) +
+                            if (isPriority) " · " + uiText(R.string.ui_patient_form_dialog_022) else ""
+                        AppSectionHeader(
+                            title = uiText(R.string.ui_patient_optional_section),
+                            summary = extrasSummary,
+                            expanded = formState.extrasExpanded,
+                            onToggle = { formState.extrasExpanded = !formState.extrasExpanded },
+                            modifier = sectionAnchor(PatientFormSection.TASKS)
                         )
                     }
-                    if (showBadgeEditor) {
-                        badges.forEachIndexed { index, badge ->
-                            val badgeColors = patientBadgeColors(badge.priority)
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = badgeColors.container,
-                                contentColor = badgeColors.content,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = UiSpacing.small, top = UiSpacing.micro, bottom = UiSpacing.micro),
-                                    verticalAlignment = Alignment.CenterVertically
+                    if (initial != null || formState.extrasExpanded) {
+                        if (initial != null) AppSectionHeader(uiText(R.string.ui_patient_form_dialog_021))
+                        AppToggleRow(title = uiText(R.string.ui_patient_form_dialog_022), checked = isPriority,
+                            onCheckedChange = { isPriority = it }, enabled = !saving)
+                        if (initial != null) AppTextButton(onClick = { showBadgeEditor = !showBadgeEditor },
+                            modifier = Modifier.semantics { stateDescription = if (showBadgeEditor) uiText(R.string.ui_patient_form_dialog_023) else uiText(R.string.ui_patient_form_dialog_024) }) {
+                            Text(if (showBadgeEditor) uiText(R.string.ui_patient_form_dialog_025) else uiText(R.string.ui_patient_form_dialog_026, uiNumber(badges.size)))
+                        }
+                        if (initial != null && !showBadgeEditor && (badges.isNotEmpty() || badgeDraftText.isNotBlank())) {
+                            Text(
+                                (badges.map { it.text } + listOf(badgeDraftText).filter(String::isNotBlank)).joinToString(" · "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (initial == null || showBadgeEditor) {
+                            badges.forEachIndexed { index, badge ->
+                                val badgeColors = patientBadgeColors(badge.priority)
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = badgeColors.container,
+                                    contentColor = badgeColors.content,
+                                    shape = MaterialTheme.shapes.small
                                 ) {
-                                    Text(
-                                        buildString {
-                                            append(badge.text)
-                                            badge.priority?.let { append(" · ").append(it.uiLabel(uiText)) }
-                                        },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    AppIconButton(label = uiText(R.string.ui_patient_form_dialog_027),
-            icon = AppIcons.Close,
-            onClick = { badges = badges.filterIndexed { i, _ -> i != index } },
-            enabled = !saving)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = UiSpacing.small, top = UiSpacing.micro, bottom = UiSpacing.micro),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            buildString {
+                                                append(badge.text)
+                                                badge.priority?.let { append(" · ").append(it.uiLabel(uiText)) }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        AppIconButton(label = uiText(R.string.ui_patient_form_dialog_027),
+                icon = AppIcons.Close,
+                onClick = { badges = badges.filterIndexed { i, _ -> i != index } },
+                enabled = !saving)
+                                    }
                                 }
                             }
-                        }
-                        AppTextField(
-                            value = badgeDraftText,
-                            onValueChange = { badgeDraftText = it.take(80) },
-                            label = { Text(uiText(R.string.ui_patient_form_dialog_028)) },
-                            supportingText = { Text(uiText(R.string.ui_patient_form_dialog_029)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            textStyle = autoStyle
-                        )
-                        Text(uiText(R.string.ui_patient_form_dialog_030), style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                            AppFilterChip(
-                                enabled = !saving,
-                                selected = badgeDraftPriority == null,
-                                onClick = { badgeDraftPriority = null },
-                                label = { Text(uiText(R.string.ui_patient_form_dialog_031)) }
+                            AppTextField(
+                                value = badgeDraftText,
+                                onValueChange = { badgeDraftText = it.take(80) },
+                                label = { Text(uiText(R.string.ui_patient_form_dialog_028)) },
+                                supportingText = { Text(uiText(R.string.ui_patient_form_dialog_029)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                textStyle = autoStyle
                             )
-                            PatientBadgePriority.entries.forEach { level ->
+                            Text(uiText(R.string.ui_patient_form_dialog_030), style = MaterialTheme.typography.labelMedium)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 AppFilterChip(
                                     enabled = !saving,
-                                    selected = badgeDraftPriority == level,
-                                    onClick = { badgeDraftPriority = level },
-                                    label = { Text(level.uiLabel(uiText)) }
+                                    selected = badgeDraftPriority == null,
+                                    onClick = { badgeDraftPriority = null },
+                                    label = { Text(uiText(R.string.ui_patient_form_dialog_031)) }
                                 )
-                            }
-                        }
-                        AppOutlinedButton(
-                            onClick = {
-                                val text = badgeDraftText.trim()
-                                if (text.isNotEmpty()) {
-                                    badges = badges + PatientBadge(text, badgeDraftPriority)
-                                    badgeDraftText = ""
-                                    badgeDraftPriority = null
+                                PatientBadgePriority.entries.forEach { level ->
+                                    AppFilterChip(
+                                        enabled = !saving,
+                                        selected = badgeDraftPriority == level,
+                                        onClick = { badgeDraftPriority = level },
+                                        label = { Text(level.uiLabel(uiText)) }
+                                    )
                                 }
-                            },
-                            enabled = !saving && badgeDraftText.isNotBlank(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(uiText(R.string.ui_patient_form_dialog_032)) }
+                            }
+                            AppOutlinedButton(
+                                onClick = {
+                                    val text = badgeDraftText.trim()
+                                    if (text.isNotEmpty()) {
+                                        badges = badges + PatientBadge(text, badgeDraftPriority)
+                                        badgeDraftText = ""
+                                        badgeDraftPriority = null
+                                    }
+                                },
+                                enabled = !saving && badgeDraftText.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text(uiText(R.string.ui_patient_form_dialog_032)) }
 
+                        }
+
+                        if (initial == null) PatientTaskEditor(tasks, doctors, !saving, formState = formState) { tasks = it }
                     }
 
                     if (initial != null) admissionIdentityContent()

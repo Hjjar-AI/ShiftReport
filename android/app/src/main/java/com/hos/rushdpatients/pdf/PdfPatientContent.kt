@@ -5,19 +5,19 @@ import com.hos.rushdpatients.domain.task.PatientTasks
 
 /** Clinical formatting shared by the table and linked patient cards. */
 internal object PdfPatientContent {
-    fun buildPatientCell(patient: Patient): String {
+    fun buildPatientCell(patient: Patient, includeName: Boolean = true): String {
         val sb = StringBuilder()
         if (patient.isPriority) sb.append("[أولوية] ")
-        sb.append(patient.name)
+        if (includeName) sb.append(patient.name)
         patient.age?.let { age ->
-            sb.append('\n')
+            if (sb.isNotEmpty()) sb.append('\n')
             patient.birthDate?.let {
                 sb.append(it.year)
                 sb.append(" • ")
             }
             sb.append(age).append(' ').append(PdfStrings.YEAR_SUFFIX)
         }
-        sb.append(" • ")
+        if (sb.isNotEmpty()) sb.append(" • ")
         sb.append(if (patient.gender == com.hos.rushdpatients.data.model.Gender.MALE) "ذكر" else "أنثى")
         if (patient.hasCompanion) {
             sb.append('\n')
@@ -72,10 +72,10 @@ internal object PdfPatientContent {
         return sb.toString()
     }
 
-    fun buildDiagnosisCell(patient: Patient): String = buildString {
-        append(patient.diagnosisType.arabicLabel)
+    fun buildDiagnosisCell(patient: Patient, includeType: Boolean = true): String = buildString {
+        if (includeType) append(patient.diagnosisType.arabicLabel)
         if (patient.badges.isNotEmpty()) {
-            append('\n')
+            if (isNotEmpty()) append('\n')
             append(patient.badges.joinToString("\n") { badge ->
                 val level = badge.priority?.takeIf { it == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH }
                     ?.let { " · ${it.arabicLabel}" }.orEmpty()
@@ -83,7 +83,7 @@ internal object PdfPatientContent {
             })
         }
         if (patient.initialDiagnosis.isNotBlank()) {
-            append('\n')
+            if (isNotEmpty()) append('\n')
             append(patient.initialDiagnosis)
         }
     }
