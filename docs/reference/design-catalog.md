@@ -1,7 +1,6 @@
 # Android style and component guide
 
-Source defaults, not device measurements. [UI work guide](../guides/android-ui.md) ·
-[Current behavior/verification](../status/current-state.md#shared-android-presentation).
+Source defaults, not device measurements. [UI work guide](../guides/android-ui.md) · [Current behavior/verification](../status/current-state.md#shared-android-presentation).
 
 ## Source map
 
@@ -16,10 +15,7 @@ Source defaults, not device measurements. [UI work guide](../guides/android-ui.m
 | Theme surfaces, accent and shapes | [Theme.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/Theme.kt) |
 | Clinical badge severity | [PatientBadgeColors.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/PatientBadgeColors.kt) |
 
-UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common actions,
-numbered placeholders, `rememberUiStrings`, `UiLabels`, `uiNumber` and `uiPlural`.
-Model/interchange codes keep their own ownership. Never rewrite saved clinical text
-for display; labs use content-aware LTR/monospace, other clinical text content-aware RTL.
+UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common actions, numbered placeholders, `rememberUiStrings`, `UiLabels`, `uiNumber` and `uiPlural`. Model/interchange codes keep their own ownership. Never rewrite saved clinical text for display; labs use content-aware LTR/monospace, other clinical text content-aware RTL.
 
 ## Metrics
 
@@ -39,10 +35,7 @@ for display; labs use content-aware LTR/monospace, other clinical text content-a
 | Panes | Split width 760; primary/support minima 320/360; fold width/height 360/360 and clearance 8dp. Medium support ≥520×640, height 240dp. |
 | Rail / gestures | Rail window ≥600×480dp; pull threshold 72dp after damping; rounds swipe ≥64dp and 20% width. |
 
-Keep equal-valued purpose-specific tokens independent. Whole-row controls own their
-selection/toggle role; labels can wrap. Clinical severity stays separate from accent
-and density; diagnosis categories are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt)
-is authoritative for layout/border/motion constants.
+Keep equal-valued purpose-specific tokens independent. Whole-row controls own their selection/toggle role; labels can wrap. Clinical severity stays separate from accent and density; diagnosis categories are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) is authoritative for layout/border/motion constants.
 
 ## Profiles and local overrides
 
@@ -53,12 +46,7 @@ is authoritative for layout/border/motion constants.
 | `quiet` | هادئ | Current density; list 8dp | 1/2dp | 0/0dp | 120/100/180ms |
 | `clear` | أوضح | Current density; list 8dp | 1.5/2dp | 2/3dp | 160/130/220ms |
 
-`h/v` = horizontal/vertical dp. `LocalUiStyle` supplies profile roles; explicit Compact/
-Relaxed density overrides patient spacing, while Normal preserves the card-only compact
-preference. `UiPreferences` is encrypted device-local state; demo keeps it in memory.
-Appearance/accent/font/PDF choices are separate. Reduced motion zeroes app-owned motion;
-platform sheets/ripples follow Android settings. Auto-hide/header expansion default off;
-compact labelled Add defaults on. Touch exploration keeps the dock visible.
+`h/v` = horizontal/vertical dp. `LocalUiStyle` supplies profile roles; explicit Compact/ Relaxed density overrides patient spacing, while Normal preserves the card-only compact preference. `UiPreferences` is encrypted device-local state; demo keeps it in memory. Appearance/accent/font/PDF choices are separate. Reduced motion zeroes app-owned motion; platform sheets/ripples follow Android settings. Auto-hide/header expansion default off; compact labelled Add defaults on. Touch exploration keeps the dock visible.
 
 ```kotlin
 ProvideUiPreferences(UiPreferences(profile = "relaxed", density = UiDensity.RELAXED)) {
@@ -79,15 +67,9 @@ Use `ProvideUiDefaults` for a local size/density override without a new saved se
 | Label large | 14/22 | Bold |
 | Label medium / small | 13/20 · 13/20 | Medium |
 
-Tajawal Regular 400/Medium 500/Bold 700 is bundled and loaded asynchronously; PDFs
-resolve the same resources on IO. Upstream has no SemiBold 600; emphasized roles use
-real Bold. Small app scale and combined lower bound are .92; combined upper bound 2.0.
-Keep patient names bold in their context; font size need not match every screen.
+Tajawal Regular 400/Medium 500/Bold 700 is bundled and loaded asynchronously; PDFs resolve the same resources on IO. Upstream has no SemiBold 600; emphasized roles use real Bold. Small app scale and combined lower bound are .92; combined upper bound 2.0. Keep patient names bold in their context; font size need not match every screen.
 
-[Upstream Tajawal](https://github.com/google/fonts/tree/main/ofl/tajawal);
-license: `android/app/src/main/assets/fonts/OFL.txt`.
-Medium SHA-256: `1ff8bd943a261c9dd7906bdb1993cab87b6d925a7fb5f848cdb51ed301531090`.
-No runtime font download; technical/lab fields retain system monospace.
+[Upstream Tajawal](https://github.com/google/fonts/tree/main/ofl/tajawal); license: `android/app/src/main/assets/fonts/OFL.txt`. Medium SHA-256: `1ff8bd943a261c9dd7906bdb1993cab87b6d925a7fb5f848cdb51ed301531090`. No runtime font download; technical/lab fields retain system monospace.
 
 ## Component ownership
 
@@ -100,9 +82,4 @@ No runtime font download; technical/lab fields retain system monospace.
 | Dialogs/transient UI | `AppAlertDialog`, dialog action helpers, `AppSheet`, `AppMenu`, `AppSnackbarHost` | Body scrolling, confirmation, stale review, dismissal and permissions. |
 | Icon/text/loading/list chrome | `AppIcons`, `AppText`, `AppLoadingState`, `AppStateHost`, `AppListToolbar` | Labels, retry/operation lifecycle and navigation. |
 
-Visible text makes adjacent icons decorative. Generic actions (Edit/Full record/
-Restore/Review/«إرسال تقرير»/Save/Cancel) must not hide specific consequences such as
-recycle removal or previous-shift fetch. Specialized clinical/report reviews retain
-their detailed callbacks and fixed keyboard-safe controls. Previews use dummy data
-and do not alter system bars. Selected device/layout checks passed; full rendered
-accessibility remains in [Remaining checks](../status/testing-handoff.md).
+Visible text makes adjacent icons decorative. Generic actions (Edit/Full record/ Restore/Review/«إرسال تقرير»/Save/Cancel) must not hide specific consequences such as recycle removal or previous-shift fetch. Specialized clinical/report reviews retain their detailed callbacks and fixed keyboard-safe controls. Previews use dummy data and do not alter system bars. Selected device/layout checks passed; full rendered accessibility remains in [Remaining checks](../status/testing-handoff.md).

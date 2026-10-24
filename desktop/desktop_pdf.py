@@ -23,9 +23,9 @@ END_TIMESTAMP_GAP = 30  # Points between final report content and its creation d
 _reshaper = arabic_reshaper.ArabicReshaper(configuration={'use_unshaped_instead_of_isolated': True})
 
 
-def visual(text):
+def visual(text, direction='R'):
     # Tajawal maps isolated letters through base Unicode rather than presentation forms.
-    return get_display(_reshaper.reshape(str(text)), base_dir='R')
+    return get_display(_reshaper.reshape(str(text)), base_dir=direction)
 
 
 class RTLText(Flowable):
@@ -136,45 +136,21 @@ def styled_table(data, widths, colors, repeat=0, backgrounds=None):
     return table
 
 
-class ReportDocument(SimpleDocTemplate):
-    """Resolve the active card at page end so continuation pages retain navigation."""
-    def afterFlowable(self, flowable):
-        marker = getattr(flowable, 'patient_index', None)
-        if marker is not None:self.patient_index = marker
-
-    def afterPage(self):
-        index = getattr(self, 'patient_index', None)
-        if not getattr(self, 'cards', False) or index is None:return
-        patient = self.patients[index]
-        name = RTLText(patient['name'], 14, link='entry-'+str(index), color=white, align='center', bold=True)
-        name.wrap(self.width-12, 100000)
-        self.canv.setFillColor(HexColor(self.colors['title']))
-        self.canv.rect(self.leftMargin, self.pagesize[1]-self.card_margin-name.height-12, self.width, name.height+12, fill=1, stroke=0)
-        name.drawOn(self.canv, self.leftMargin+6, self.pagesize[1]-self.card_margin-6-name.height)
-        labels = [('السابق','patient-'+str(index-1)) if index>0 else ('—',None),
-                  ('الفهرس','entry-'+str(index)),
-                  ('التالي','patient-'+str(index+1)) if index+1<len(self.patients) else ('—',None)]
-        # Logical previous/index/next reads from the right, as on Android.
-        for column,(label,target) in enumerate(labels):
-            link = RTLText(label, 10, link=target, color=HexColor(self.colors['text']))
-            link.wrap(self.width/3, 30)
-            link.drawOn(self.canv, self.leftMargin+self.width-(column+1)*self.width/3, self.card_margin+35)
-
-
 def render_report(client, shift, supervisor=None, font_path=None, options=None):
     return _render_report(client, shift, supervisor, font_path, options,
                           datetime.now(ZoneInfo(client.zone)))
 
 
-def _render_report(client, shift, supervisor, font_path, options, now, total_pages=None):
+def _render_report(client, shift, supervisor, font_path, options, now):
     from desktop_pdf_content import normalize_options, palette, PAPERS, context_lines, patient_content, row_backgrounds, roster_label, created_at
     options = normalize_options(options)
     colors = palette(options)
-    cards = options['layout']=='cards'
-    page_size = PAPERS['A5'] if cards else PAPERS[options['paper']]
-    if not cards and options['orientation']=='landscape':page_size=page_size[::-1]
-    card_margin = 15*72/25.4
-    margin = card_margin+8 if cards else 8.5
+    if options['layout']=='cards':
+        from desktop_pdf_cards import render_cards
+        return render_cards(client, shift, supervisor, font_path, options, now)
+    page_size = PAPERS[options['paper']]
+    if options['orientation']=='landscape':page_size=page_size[::-1]
+    margin = 8.5
     width = page_size[0]-2*margin
     register_font(font_path)
     patients=[p for p in shift['patients'] if supervisor is None or p.get('responsibleSupervisorId')==supervisor]
@@ -190,37 +166,7 @@ def _render_report(client, shift, supervisor, font_path, options, now, total_pag
         len(patients),sum(p['diagnosisType'] in {'PSYCHIATRIC','DUAL'} for p in patients),
         sum(p['hasCompanion']=='Y' for p in patients),pending,overdue)
     story=[]
-    if cards:
-        story.append(text('فهرس المرضى',16,heading_color,anchor='index',bold=True,align='center'))
-        story.append(text(' · '.join(context),9))
-        story.extend([text(summary,10),text(roster_heading,11,heading_color),text(roster,11),
-                      text('اضغط المريض لفتح البطاقة؛ زر الفهرس يعيدك إلى صفحته.',9)])
-        for index,patient in enumerate(patients):
-            story.append(text('{} · {}'.format(index+1,patient['name']),12,heading_color,
-                              link='patient-'+str(index),anchor='entry-'+str(index)))
-        for index,patient in enumerate(patients):
-            story.append(PageBreak())
-            marker=text('',1,anchor='patient-'+str(index));marker.patient_index=index
-            story.append(marker)
-            content=patient_content(patient,client.doctors,client.zone,now)
-            intro=styled_table([
-                [text('القبول',11,heading_color,bold=True,align='center'),text('بيانات المريض',11,heading_color,bold=True,align='center')],
-                [text(content['admit'],10.5),text(content['personal'],10.5)]
-            ],[width/2,width/2],colors)
-            story.extend([intro,Spacer(1,8)])
-            sections=[('الفريق المسؤول',content['team']),
-                      ('التشخيص / التنبيهات',content['diagnosis']),('الخطة العلاجية',content['treatment']),('المتابعة',content['followUp'])]
-            sections += [('المهام',task) for task in content['tasks']]
-            sections += [('التحاليل',content['labs'])]
-            for title,value in sections:
-                if not value:continue
-                urgent=title=='المهام' and (value.startswith('متأخرة') or not value.startswith('مكتملة') and 'أولوية عالية' in value)
-                color=HexColor('#FFB4AB' if options['dark'] else '#8B1E1E') if urgent else heading_color
-                divider=HRFlowable(width='100%',thickness=colors['rule_width'],color=HexColor(colors['rule']),spaceBefore=4,spaceAfter=6)
-                divider.keepWithNext=True
-                title_text=text(title,11,color,bold=True);title_text.keepWithNext=True
-                story.extend([divider,title_text,text(value,10.5),Spacer(1,4)])
-    elif options['layout']=='table':
+    if options['layout']=='table':
         heading=styled_table([[text(roster_heading+': '+roster,11,white,bold=True,align='center')],
                               [text(' · '.join(context),8.5,white,align='center')]],[width],colors,
                              backgrounds=[colors['title'],colors['title']])
@@ -252,38 +198,17 @@ def _render_report(client, shift, supervisor, font_path, options, now, total_pag
                 if content[key]:story.append(text(label+': '+content[key]))
     timestamp=text(created_at(now),8.5)
     timestamp.wrap(width,100000)
-    if not cards:story.append(EndTimestamp(timestamp))
+    story.append(EndTimestamp(timestamp))
     path=temporary_pdf()
-    top_margin=18
-    if cards:
-        # Reserve enough header space for the longest patient name, including continuations.
-        heights=[]
-        for patient in patients:
-            name=text(patient['name'],14,bold=True);name.wrap(width-12,100000);heights.append(name.height)
-        top_margin=card_margin+max(heights)+24
-        require(top_margin+100<page_size[1], 'اسم المريض أطول من مساحة بطاقة A5؛ استخدم الجدول لحفظ كامل المحتوى')
-    document=ReportDocument(str(path),pagesize=page_size,leftMargin=margin,rightMargin=margin,
-                            topMargin=top_margin,bottomMargin=card_margin+68 if cards else 35+timestamp.height+END_TIMESTAMP_GAP,title='DEMO — ShiftReport' if getattr(client,'demo',False) else 'ShiftReport',author='ShiftReport')
-    document.cards,document.patients,document.colors=cards,patients,colors
-    document.card_margin=card_margin
+    document=SimpleDocTemplate(str(path),pagesize=page_size,leftMargin=margin,rightMargin=margin,
+                              topMargin=18,bottomMargin=35+timestamp.height+END_TIMESTAMP_GAP,
+                              title='DEMO — ShiftReport' if getattr(client,'demo',False) else 'ShiftReport',author='ShiftReport')
     def page_background(canvas,doc):
         canvas.setFillColor(HexColor(colors['page']))
         canvas.rect(0,0,page_size[0],page_size[1],fill=1,stroke=0)
-        if cards:
-            canvas.setStrokeColor(HexColor(colors['border']));canvas.setLineWidth(.5)
-            canvas.roundRect(card_margin,card_margin,page_size[0]-2*card_margin,page_size[1]-2*card_margin,5,stroke=1,fill=0)
-            card_footer(canvas,total_pages or '…')
-            return
         footer=text('{}{} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',shift['meta']['shiftDate'],doc.page),8)
         footer.wrap(width,30);footer.drawOn(canvas,margin,10)
-    def card_footer(canvas,total):
-        footer=text('{}ShiftReport · صفحة {} من {}\n{}'.format('DEMO · ' if getattr(client,'demo',False) else '',canvas._pageNumber,total,created_at(now)),7.5,align='center')
-        footer.wrap(width,100000);footer.drawOn(canvas,margin,card_margin+8)
     document.build(story,onFirstPage=page_background,onLaterPages=page_background)
-    if cards and total_pages is None:
-        # A pagination pass supplies totals without deferring PDF bookmark creation.
-        return _render_report(client,shift,supervisor,font_path,options,now,total_pages=document.page)
-    if cards:require(document.page==total_pages,'تغير عدد صفحات التقرير؛ أعد التصدير')
     return path
 
 

@@ -23,11 +23,13 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val width = PdfPaperSize.A5.widthPoints
     private val height = PdfPaperSize.A5.heightPoints
     private val margin = 15f * 72f / 25.4f
+    private val topMargin = 20f * 72f / 25.4f
+    private val bottomMargin = 10f * 72f / 25.4f
     private val padding = 8f
     private val gap = 6f
     private val left = margin + padding
     private val right = width - margin - padding
-    private val cardBottom = height - margin
+    private val cardBottom = height - bottomMargin
     private val bidi = BidiFormatter.getInstance()
     private val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = 10.5f
@@ -142,7 +144,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     cardPages += CardPage(index, pageIndex, drawNavigation(index, patients.size))
                 }
                 newPage(documentLabel, index = false)
-                destinations += Anchor(pageIndex, margin)
+                destinations += Anchor(pageIndex, topMargin)
                 cardHeader()
                 // Admission on the physical left, patient identity on the right.
                 val columnGap = 12f
@@ -213,15 +215,15 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             }
             entries.forEachIndexed { index, entry ->
                 val destination = destinations[index]
-                links += PdfInternalLinks.Link(entry.page, entry.rect, destination.page, destination.top)
+                links += PdfInternalLinks.Link(entry.page, entry.rect, destination.page, destination.top, fitPage = true)
             }
             cardPages.forEach { card ->
                 val indexEntry = entries[card.patientIndex]
                 val previous = destinations.getOrNull(card.patientIndex - 1)
                 val next = destinations.getOrNull(card.patientIndex + 1)
-                previous?.let { links += PdfInternalLinks.Link(card.page, card.rects[0], it.page, it.top) }
+                previous?.let { links += PdfInternalLinks.Link(card.page, card.rects[0], it.page, it.top, fitPage = true) }
                 links += PdfInternalLinks.Link(card.page, card.rects[1], indexEntry.page, indexEntry.rect.top, fitPage = true)
-                next?.let { links += PdfInternalLinks.Link(card.page, card.rects[2], it.page, it.top) }
+                next?.let { links += PdfInternalLinks.Link(card.page, card.rects[2], it.page, it.top, fitPage = true) }
             }
             finishPage()
             if (pageTotal > 0) {
@@ -251,10 +253,10 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         page = document.startPage(PdfDocument.PageInfo.Builder(width, height, pageIndex + 1).create())
         canvas.drawColor(palette.pageBackground)
         fill.color = palette.pageBackground
-        val card = RectF(margin, margin, width - margin, cardBottom)
+        val card = RectF(margin, topMargin, width - margin, cardBottom)
         canvas.drawRoundRect(card, 4f, 4f, fill)
         canvas.drawRoundRect(card, 4f, 4f, outline)
-        y = margin + padding
+        y = topMargin + padding
         footer.color = palette.text
         val label = listOfNotNull(documentLabel, "ShiftReport", "صفحة ${pageIndex + 1} من $pageTotal").joinToString(" · ")
         val firstBaseline = cardBottom - padding - PdfTextWrapper.lineHeight(footer) - footer.fontMetrics.bottom

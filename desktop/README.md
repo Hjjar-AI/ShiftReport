@@ -1,9 +1,6 @@
 # ShiftReport desktop — CustomTkinter
 
-Standalone source replacement for the Excel helper. No Excel, workbook, VBA, COM,
-pywin32 or Office PDF conversion is used. Targets: **Windows 7 SP1 / CPython
-3.8.10** and **Linux desktop / CPython 3.8 or later**, with Tcl/Tk installed. The owner will bundle it separately; no EXE or
-package is built by these scripts.
+Standalone source replacement for the Excel helper. No Excel, workbook, VBA, COM, pywin32 or Office PDF conversion is used. Targets: **Windows 7 SP1 / CPython 3.8.10** and **Linux desktop / CPython 3.8 or later**, with Tcl/Tk installed. The owner will bundle it separately; no EXE or package is built by these scripts.
 
 ## Run on Windows
 
@@ -71,224 +68,50 @@ confirming: launching a viewer alone does not establish that you reviewed it.
 
 ## Create a project from Windows or Linux
 
-1. Add your bot as a group administrator with permission to pin messages. Your
-   personal Telegram account must also own/administer the group. Enable topics if
-   you use topic IDs, create those topics in Telegram and copy their exact IDs;
-   desktop creation does not create the topics themselves. Use a new group; it refuses every existing
-   pinned item and never removes pins/messages to make room.
-2. Fill `.env` using its commented guide: choose `CONNECTION_MODE=raw`, leave
-   `JOIN_FILE` blank, and provide the hospital, bot, group and exact topic settings.
-   Encryption follows the configured setting/key; no key is silently generated,
-   replaced or used to convert an existing project.
-3. Start the desktop client. If connection reports no index, choose **إنشاء مشروع جديد**. Enter your full name, personal Telegram user
-   ID, gender and clinical role. Open your bot and press Start beforehand.
-4. Request and enter the private creation code. The app checks your group-admin
-   status and the bot's pin permission. On Linux, set/unlock the separate local
-   draft passphrase if the Telegram project is unencrypted.
-5. Review the group, hospital, topic mapping, first administrator and encryption
-   setting, then explicitly approve. The app uploads the first doctor registry,
-   sends/pins the current JSON index in General and reads both back for confirmation.
-   It creates no dummy patients or shift automatically.
-6. Choose **جلب / اختيار مناوبة** to start your first shift. Use
-   **تصدير ملف انضمام محمي** to save an Android-compatible `.srjoin.json` for other
-   devices; enter/confirm a password and send that password separately. The export
-   includes the connection and any shared data key, without patient/user records.
+1. Add your bot as a group administrator with permission to pin messages. Your personal Telegram account must also own/administer the group. Enable topics if you use topic IDs, create those topics in Telegram and copy their exact IDs; desktop creation does not create the topics themselves. Use a new group; it refuses every existing pinned item and never removes pins/messages to make room.
+2. Fill `.env` using its commented guide: choose `CONNECTION_MODE=raw`, leave `JOIN_FILE` blank, and provide the hospital, bot, group and exact topic settings. Encryption follows the configured setting/key; no key is silently generated, replaced or used to convert an existing project.
+3. Start the desktop client. If connection reports no index, choose **إنشاء مشروع جديد**. Enter your full name, personal Telegram user ID, gender and clinical role. Open your bot and press Start beforehand.
+4. Request and enter the private creation code. The app checks your group-admin status and the bot's pin permission. On Linux, set/unlock the separate local draft passphrase if the Telegram project is unencrypted.
+5. Review the group, hospital, topic mapping, first administrator and encryption setting, then explicitly approve. The app uploads the first doctor registry, sends/pins the current JSON index in General and reads both back for confirmation. It creates no dummy patients or shift automatically.
+6. Choose **جلب / اختيار مناوبة** to start your first shift. Use **تصدير ملف انضمام محمي** to save an Android-compatible `.srjoin.json` for other devices; enter/confirm a password and send that password separately. The export includes the connection and any shared data key, without patient/user records.
 
-The creation action locks once a project is open. Existing local drafts, baselines
-or operation receipts block bootstrap. A persisted encrypted UNKNOWN receipt is
-written before the first registry upload. If creation fails after it starts,
-inspect Telegram and reconnect once the correct index is pinned; do not blindly
-repeat creation or delete the workspace. Uploaded files/messages are not silently
-removed. Read/edit/publish and concurrent creation still have Telegram's
-last-successful-write-wins limitation, not a distributed transaction.
+The creation action locks once a project is open. Existing local drafts, baselines or operation receipts block bootstrap. A persisted encrypted UNKNOWN receipt is written before the first registry upload. If creation fails after it starts, inspect Telegram and reconnect once the correct index is pinned; do not blindly repeat creation or delete the workspace. Uploaded files/messages are not silently removed. Read/edit/publish and concurrent creation still have Telegram's last-successful-write-wins limitation, not a distributed transaction.
 
-Join-file export is visible to a verified admin and rechecks the live registry
-below the UI. It refuses existing output files and verifies the encrypted file
-by reopening it before reporting success. Windows uses its existing DPAPI path;
-Linux uses its existing shared-key/passphrase path. The new dialogs and protocol
-were checked on Linux with a fake Telegram transport; actual Windows runtime and
-live creation/export remain unverified.
+Join-file export is visible to a verified admin and rechecks the live registry below the UI. It refuses existing output files and verifies the encrypted file by reopening it before reporting success. Windows uses its existing DPAPI path; Linux uses its existing shared-key/passphrase path. The new dialogs and protocol were checked on Linux with a fake Telegram transport; actual Windows runtime and live creation/export remain unverified.
 
 ## Features and boundaries
 
-- Patient demographics, clinical notes/labs, optional resident/supervisor, priority,
-  structured tasks with optional owners/deadlines/completion, and multiple badges.
-- Search, priority/pending/overdue filters, per-patient/ward counts, explicit deletion,
-  stored manual/alphabetical/admission ordering, unlimited active-doctor roster.
-- New-patient forms optionally insert at a saved position with priority-first and
-  stale-draft protection. The Excel sort preset is available in the sort dialog.
-  Admission dates accept ISO or day/month/year with slashes/backslashes and Arabic digits.
-- «التراجع عن آخر تنزيل» restores the pre-download local view after confirmation,
-  rejecting later saved changes and preserving the current publication baseline
-  and delivery receipts. Recovery remains subject to reviewed publication.
-- Classic tables use compact text and adaptive supervisor/zebra striping. The
-  former separate Excel PDF choice is merged into Classic. PDF roster headings
-  follow roster count/gender, and text reports include
-  companion totals for their selected patients.
-- «لوحة تسليم المناوبة» shows actionable ward totals, including urgent patients,
-  own patients/tasks, missing assignments, admissions and pending/overdue tasks.
-  Report setup starts with the shift-doctor picker, including an empty roster;
-  completeness notes match Android and do not require optional task ownership.
-- Current 08:30 shift boundary in the selected IANA zone (default Asia/Damascus).
-  Archived shifts are viewable/exportable. Only current shifts are editable or
-  publishable/sendable. A new shift can explicitly carry patients and unfinished
-  tasks, preserving deadlines and optionally clearing assignments.
-- Existing Android state v4, bundle v1, CSV v7, doctor wire registry, join envelope
-  and authenticated encryption. Telegram remains retrieve/edit/publish with
-  last-successful-write-wins; pointer checks are not a distributed transaction.
-- Live identity/membership and pointer checks below the GUI. Clinical saves stamp
-  editor/task completion identity and time; reviewed publication preserves them.
-- First-admin project creation and protected join-file export work on desktop.
-  Reviewed doctor/role/destination administration is available to verified admins.
-  Reviewed announcement administration and an admin-only local clinical activity
-  center are also available. Each device retains its own activity and delivery history.
-- The app never opens/converts old workbooks. Private clinical artifacts remain
-  preserved in ignored local storage.
+- Full patient demographics/clinical notes/labs, badges/priority, optional resident/supervisor and structured optional-owner tasks/deadlines/completion; ward/patient counts, search/filter/grouping and stored sorting. New-position/priority-first entry rejects stale drafts; admission dates accept ISO/day-month-year and Arabic digits.
+- Dashboard/roster-first report setup shares Android readiness, without required task ownership or roster cap. Current shift: 08:30 in selected IANA zone (default Asia/Damascus); archives view/export only. Reviewed rollover preserves unfinished deadlines with keep/clear assignments.
+- Manual complete-snapshot retrieve/edit/review/publish, last-successful-write-wins; live membership/pointer checks below GUI. Local Save stamps editor/completion; publication preserves identity. No workbook conversion.
+- Shared [wire/security contract](../docs/reference/telegram-protocol.md); [results](../docs/status/current-state.md#verification-and-limits) and [remaining checks](../docs/status/testing-handoff.md).
 
 ## Desktop recovery, reports and doctor administration
 
-- **Recycle bin:** deleting a patient retains the full record, tasks, badges and
-  position in the encrypted workspace. Open **سلة المرضى المحذوفين**, review the
-  saved record and explicitly restore it to the current shift's local draft.
-  Existing IDs are never overwritten. Review assignments before publishing;
-  restoration uses complete-snapshot review. This is this device's recycle bin,
-  not a shared Telegram deletion archive. It survives reopen, publication and
-  encrypted draft backups. Previously published task completion identity/time
-  comes from the sealed recovery history; new completions are stamped at review.
-- **Reports:** choose PDF or text before preview/export. PDF supports paginated
-  Classic seven-column RTL tables, paragraphs and linked portrait A5 cards.
-  Paper size/orientation, five Android palettes, dark mode and separate local
-  supervisor files are available under Advanced. PDFs omit hospital and ward names;
-  the assignment overview also omits the shift date.
-  Card headings and Previous/Index/Next links remain on continuation pages. Patient order and full clinical content,
-  tasks and badges are retained. PDF delivery still requires opening the exact
-  file and confirming the destination. Text is reviewed in the app, then confirmed;
-  encrypted projects send it as an encrypted document, while readable projects
-  use plain Telegram messages split within the UTF-16 limit. Local text exports
-  are readable files deliberately saved by the user.
-- **Names-only overview (admins):** use **حفظ توزيع الفرق بالأسماء فقط (PDF)**
-  in the sidebar after Telegram verification. This action requires connectivity
-  and rechecks current registry admin status/membership during generation and
-  before saving. It is hidden from ordinary clinicians. Each supervisor has a distinct table, with one comma-separated row of
-  residents and a single column of patient-name rows. Residents come from independent one-supervisor team membership in doctor management,
-  including residents with no assigned patient. Empty supervisor teams are included. Unassigned
-  patients remain in their own labelled group. This exports fixed A4 portrait pages, with three 56.7 mm supervisor tables per
-  row. A right number column runs ١،٢،٣… through each table, across the row from
-  right to left, then down to the next row; long tables continue with team headers.
-  All names are retained; it does not follow the
-  separate-supervisor-file setting for full clinical reports.
-- **Administration:** a verified admin can add/edit/delete doctors, assign
-  supervisor report groups, promote regular doctors and demote eligible admins.
-  Review the complete before/after registry before publishing. The protocol checks
-  live identity, membership and admin role; permanent admins cannot be demoted,
-  and ordinary admins can demote only lower ranks. Removal/clinical-role changes
-  check published patient/task references and the local draft; deletion also
-  checks the current roster. Reassign and publish first. Desktop does not set or
-  export Android device-local PINs; shared publication uses private Telegram codes.
-- Registry publication rechecks patient/doctor pointers and the reviewed draft,
-  preserves other index fields and confirms the uploaded registry by reading it
-  back. The local patient baseline/draft is retained. Uncertain registry or partial
-  text delivery stays UNKNOWN in the operation ledger; inspect Telegram before
-  allowing another attempt. There is no automatic upload retry.
-
-Verification is consolidated in [Current state](../docs/status/current-state.md#verification-and-limits)
-and [Remaining checks](../docs/status/testing-handoff.md).
+| Action | Behavior / guard |
+|---|---|
+| Recycle/Undo download | Encrypted full records/tasks/badges/positions and sealed completion history survive reopen/backups. Restore never overwrites IDs; recheck draft/assignments and review full publication. Undo retains current baseline/receipts and rejects later saves. |
+| PDF/text | Classic seven-column RTL, paragraphs, linked A5 cards; full saved content/tasks/badges/order. Cards: Android geometry, 20mm top/10mm bottom/15mm sides, repeated continuation headings and full-page navigation. Advanced paper/orientation/five palettes/dark/separate supervisor files. Hospital/ward omitted; assignment overview also omits shift date. Open exact PDF before confirming; encrypted text uses protected documents, otherwise UTF-16-bounded messages. Local exports are readable. |
+| Names-only PDF | Verified live admin only, checked in renderer/before saving. Fixed A4 portrait, three 56.7mm supervisor tables/row; independent resident membership (including no-patient residents), empty teams, unassigned group, continuous numbering and continuation headers. Keeps every name; independent of separate-file setting. |
+| Doctors/teams/roles/destinations | Review full registry; permanent admins protected, demotion limited by rank. Reject unsafe patient/task/roster references; reassign/publish first. Stable IDs/omitted active doctors retained; no device PIN export. |
+| Registry publication | Live actor/admin, draft and patient/doctor pointers rechecked; preserve patient baseline and unrelated index fields, read back exact new registry. UNKNOWN before upload; never auto-retry. |
+| Delivery | Review pending full shift + exact report, final confirmation, publish then deliver. Cancel publishes nothing; unchanged content reuses publication/receipt. Shift/destination UNKNOWN blocks format/publication changes and requires live sender/admin resolution; extra confirmed copy needs approval. Publication and delivery outcomes stay separate; disk failure after confirmed send does not undo delivery. |
 
 ## Arabic display
 
-Labels, buttons, choices, status messages, tabs and readonly reviews use a
-presentation-only Arabic shaping/bidi adapter on Linux. Logical paragraphs wrap
-before each line is shaped, so wrapped clinical reviews keep the correct reading
-order. Choice values, doctor IDs and callbacks remain logical Unicode. The review
-copy action copies the complete original text, not presentation glyphs.
-
-In Linux auto/shaped mode, patient/task/badge and search fields use
-`desktop_input.py`. The editor keeps the original Unicode as its model and renders
-shaped visual lines inside the field, with mapped caret and selection positions.
-Typing, mouse placement/selection, copy/cut/paste, deletion, undo/redo and wrapping
-operate on logical text. `get()`, bound variables and patient Save return original
-Unicode, never presentation glyphs. The separate readback preview is no longer
-needed. Password fields and native-rendering mode retain native controls.
-
-TEXT_RENDERING accepts `auto`, `native` or `shaped`. Auto enables the Linux adapter
-and leaves Windows rendering unchanged. Use native on a Tk build that already
-handles bidi layout, or shaped to explicitly enable the adapter. PDF rendering
-continues through its separate existing renderer.
+Store/edit/copy logical Unicode; shape only presentation/PDF. Linux `TEXT_RENDERING=auto` enables shaping/bidi; `native` uses Tk, `shaped` forces adapter. `desktop_input.py` maps visual caret/selection/wrapping to logical typing, mouse, clipboard, undo and Save. Reviews wrap before shaping and copy full original text; IDs/callbacks remain logical. Passwords/native mode retain native controls; no duplicate readback.
 
 ## Configuration and local files
 
-`.env` supports literal `CONNECTION_MODE`, `JOIN_FILE`, `TIMEZONE`, `DATA_DIR`,
-`PDF_FONT`, `APPEARANCE` and `TEXT_RENDERING`. Quoted values are accepted; shell
-expansion, interpolation and inline comments are not. Relative paths are based
-on this folder. Unknown or duplicate keys fail explicitly. Pass another settings
-file with `--env PATH` if needed.
-
-The single [.env.example](.env.example) guide covers both connection methods.
-For occasional admin use, copy it to `.env.raw`, change `CONNECTION_MODE` to `raw`,
-uncomment/fill the raw fields, then run `python desktop_gui.py --env .env.raw` (use
-`py -3.8` on Windows or your Linux venv's Python). `CONNECTION_MODE=raw` explicitly
-enables `HOSPITAL_NAME`, `BOT_TOKEN`, `CHAT_ID`, `REPORTS_TOPIC_ID`, `CSV_TOPIC_ID`,
-`DOCTORS_TOPIC_ID`, optional `ANNOUNCEMENTS_TOPIC_ID`, `ENCRYPT_TELEGRAM` and
-`TELEGRAM_DATA_KEY`. Leave `JOIN_FILE` blank in raw mode. Use the existing project's
-exact topics and encryption setting; encrypted projects require the original
-Base64 data key. No key is generated or silently substituted. Missing/invalid
-credentials fail without falling back to another connection.
-
-Raw startup requires an online current-registry admin verified by a private
-Telegram code **before opening the local workspace**. Subsequent shared actions
-recheck the admin role and membership below the UI. Join-file startup retains
-ordinary member login and offline draft reopening. For an empty new group,
-the separate reviewed Create project action bootstraps its first registry/index.
-Reconnecting
-an already open project still uses a protected join file and rejects project/key/
-topic changes. Join passwords, login codes and local unlock passphrases are never
-read from `.env`.
-
-A filled raw settings file contains plaintext secrets. `.env` and `.env.*` are
-ignored by Git; keep them private and exclude them from bundles. These client
-checks do not restrict someone who extracts the bot token and uses Telegram
-directly. Revoke a suspected token through BotFather.
-
-The default workspace is `%LOCALAPPDATA%\ShiftReportDesktop` on Windows and
-`$XDG_DATA_HOME/ShiftReportDesktop` on Linux (otherwise
-`~/.local/share/ShiftReportDesktop`), with a separate project-fingerprint database. Clinical data, baseline, doctor cache and receipts
-are AES-GCM encrypted before entering SQLite. No raw connection config/password
-is persisted. Encrypted projects derive the local key from the shared key;
-unencrypted projects use a random local key protected by Windows DPAPI or the
-Linux passphrase. On Windows, keep the `.key` file and original Windows user
-profile. On Linux, keep the `.linux-key` file and remember the local passphrase.
-Copying the database alone is insufficient; losing the protection key/passphrase
-prevents opening its drafts. No automatic key replacement or plaintext fallback
-is performed. New Linux key/database files are owner-only. A Windows named mutex
-or Linux file lock permits one app instance per Windows session / Linux user.
-
-Replacing a draft automatically saves one encrypted `.previous.srdraft` recovery
-copy. Use the explicit backup action for additional copies. Restore accepts the
-same project/key only, preserves the current delivery ledger and requires fresh
-remote review. These are desktop drafts, not Android backup files. The ledger is
-local to this workspace; backups/other PCs do not establish whether a report was
-sent. Do not delete the workspace to retry an uncertain operation.
-
-Protected-file reconnect is accessible before clinician login. While an existing
-project is open it rejects different bots/groups/topics/keys and validates the
-candidate against Telegram before replacing the live client. Drafts and receipts
-are retained; clinician verification must be repeated. Revocation is in BotFather.
-There is no manual token-entry endpoint.
-
-«إعدادات PDF» under project/settings saves the default layout, paper, orientation,
-color, appearance and local per-supervisor-file choice. Advanced options include
-separator thickness/contrast and automatic, neutral zebra or no row shading, with
-Balanced/Clear/Print presets and a separator preview. Print selects light appearance
-without row shading. Report-review dialogs share these controls; Cancel saves
-nothing. Card paper/margins stay fixed, with shading controls hidden. These
-preferences are local to the encrypted project workspace (in-memory in demo).
-
-PDF generation uses ReportLab, Arabic shaping/bidi and embedded Tajawal Regular/
-Bold from `fonts/`, with its SIL Open Font License alongside. `PDF_FONT` can select
-another Arabic-capable TrueType font; a matching `-Bold.ttf` sibling is used when
-available. Reports paginate full clinical content/tasks/badges and omit patient last-edit,
-routine-priority and unassigned labels. Preview files are temporary and removed on
-normal interpreter exit; a crash can leave a readable PDF in the system temp folder.
+| Setting/storage | Contract |
+|---|---|
+| `.env` | Literal `CONNECTION_MODE`, `JOIN_FILE`, `TIMEZONE`, `DATA_DIR`, `PDF_FONT`, `APPEARANCE`, `TEXT_RENDERING`; quoted values accepted, expansion/interpolation/inline comments rejected; unknown/duplicate keys fail. Paths relative to source/EXE. Alternate file: `--env PATH`. |
+| Join/raw | [.env.example](.env.example) documents both. Default protected join prompts for password. Explicit raw mode: exact hospital/token/group/topics/encryption/original Base64 key, blank JOIN_FILE; no key generation/substitution/fallback. Raw startup verifies live registry admin before opening drafts and rechecks shared actions. Join supports offline reopening. Never store passwords/codes in env. |
+| Reconnect | Protected file before login; validate live, preserve drafts/receipts/key, reject other project/bot/group/topics/key, repeat clinician verification. No manual token endpoint; BotFather revokes. Private plaintext raw files stay ignored/outside bundles. Extracted tokens bypass client gates. |
+| Workspace | AES-GCM before SQLite; fingerprint per project. Windows `%LOCALAPPDATA%\ShiftReportDesktop`; Linux `$XDG_DATA_HOME/ShiftReportDesktop` or `~/.local/share/ShiftReportDesktop`. No raw config/passwords persisted. Shared key protects encrypted projects; otherwise random key wrapped by DPAPI or Linux passphrase. Retain Windows `.key`/original profile or Linux `.linux-key`/passphrase; DB alone is insufficient. No silent replacement/plaintext fallback. New Linux files owner-only. One instance per Windows session/Linux user. |
+| Recovery | Automatic encrypted `.previous.srdraft` before replacement; explicit backups for more copies. Same project/key only, fresh review, current delivery ledger retained. Draft backup/another PC never proves delivery; do not erase workspace to retry UNKNOWN. Android-compatible `.rpb` is separately labelled. |
+| PDF preferences | Encrypted device-local (demo memory): layout/paper/orientation/palette/appearance/supervisor files; advanced separator/contrast/shading and Balanced/Clear/Print presets. Cancel saves nothing; cards fix paper/margins and hide shading. |
+| Fonts/previews | ReportLab + shaping/bidi + bundled Tajawal Regular/Bold/OFL. Optional Arabic TTF override uses matching `-Bold.ttf` sibling if present. Full clinical/task/badge pagination; routine/unassigned/last-edit labels omitted. Temporary readable previews removed on normal exit; crashes can leave them. |
 
 ## Bundling later
 
@@ -301,115 +124,22 @@ workspace files out of any bundle.
 
 ## Verification
 
-Linux storage/crypto/transport/PIN/CSV/demo/PDF and selected Arabic GUI probes passed
-on their recorded snapshots. The later deep run passed 60 cases, including four
-reverse Android file checks; seven selected mutants were detected and synthetic
-live transport checks passed separately. These do not establish the latest full desktop
-GUI, Windows 7/DPAPI/packaged runtime or end-to-end Android/desktop live workflows.
-[Exact results](../docs/status/current-state.md#verification-and-limits) ·
-[Remaining checks](../docs/status/testing-handoff.md) ·
-[Desktop/interop/live commands](../docs/guides/deep-testing.md).
+Linux storage/crypto/transport/PIN/CSV/demo/PDF and selected Arabic GUI probes passed on their recorded snapshots. The later deep run passed 60 cases, including four reverse Android file checks; seven selected mutants were detected and synthetic live transport checks passed separately. These do not establish the latest full desktop GUI, Windows 7/DPAPI/packaged runtime or end-to-end Android/desktop live workflows. [Exact results](../docs/status/current-state.md#verification-and-limits) · [Remaining checks](../docs/status/testing-handoff.md) · [Desktop/interop/live commands](../docs/guides/deep-testing.md).
 
-Synchronization uses full downloads and reviewed full-shift replacement, including
-local deletions, order and roster. Remote clinical fields/additions are not merged
-into the proposed snapshot. Pointer/authority checks and UNKNOWN receipts remain;
-last successful publication wins. Local stale-edit review remains separate from
-remote synchronization. Neither platform schedules background synchronization.
-
+Synchronization uses full downloads and reviewed full-shift replacement, including local deletions, order and roster. Remote clinical fields/additions are not merged into the proposed snapshot. Pointer/authority checks and UNKNOWN receipts remain; last successful publication wins. Local stale-edit review remains separate from remote synchronization. Neither platform schedules background synchronization.
 
 ## Grouping, local PIN, CSV and demonstration
 
-- Use the grouping selector above the ward for supervisor/resident/diagnosis/gender/
-  admission-date groups. «ترتيب متعدد المستويات» saves up to five ordered criteria
-  with ascending/descending directions. Priority patients stay first. Manual arrows
-  return to manual order. Stored patient numbers and report/CSV order agree.
-- After Telegram verification, «إعداد PIN والقفل التلقائي» enrolls a clinician PIN
-  on this computer and selects a 1/5/15-minute idle timeout. «قفل الشاشة» locks
-  immediately. Reopening an enrolled workspace also locks it. Hidden editors retain
-  unsaved input. PIN unlocks local work; reverify Telegram for publishing/admin
-  actions. Telegram-code unlock is available if the PIN is forgotten. PIN hashes
-  and persistent attempt limits stay inside local encrypted storage and are excluded
-  from portable backups and CSV files.
-- «أدوات CSV» exports the selected shift's complete Android-format patient CSV,
-  or, for a live verified admin, exports/imports schema-1 doctor CSV. Import reviews
-  before/after and publishes through the existing guarded registry flow. Missing
-  rows do not delete doctors. Import does not carry device PINs. Unsupported extra
-  options are rejected. Telegram stores no doctor username/update/delete timestamp
-  fields; those CSV-only fields are not persisted, and exported update times are
-  the export time.
-- Start with `python desktop_gui.py --demo` (or open the independent demo from the
-  sidebar). Connection settings and real clinical storage are not opened by
-  `--demo`. Edit beverage patients/tree doctors using ordinary local forms; reset
-  or close to discard the session. Only explicit local PDF export is available,
-  with DEMO on every page. Demo has no Telegram transport.
+- Use the grouping selector above the ward for supervisor/resident/diagnosis/gender/ admission-date groups. «ترتيب متعدد المستويات» saves up to five ordered criteria with ascending/descending directions. Priority patients stay first. Manual arrows return to manual order. Stored patient numbers and report/CSV order agree.
+- After Telegram verification, «إعداد PIN والقفل التلقائي» enrolls a clinician PIN on this computer and selects a 1/5/15-minute idle timeout. «قفل الشاشة» locks immediately. Reopening an enrolled workspace also locks it. Hidden editors retain unsaved input. PIN unlocks local work; reverify Telegram for publishing/admin actions. Telegram-code unlock is available if the PIN is forgotten. PIN hashes and persistent attempt limits stay inside local encrypted storage and are excluded from portable backups and CSV files.
+- «أدوات CSV» exports the selected shift's complete Android-format patient CSV, or, for a live verified admin, exports/imports schema-1 doctor CSV. Import reviews before/after and publishes through the existing guarded registry flow. Missing rows do not delete doctors. Import does not carry device PINs. Unsupported extra options are rejected. Telegram stores no doctor username/update/delete timestamp fields; those CSV-only fields are not persisted, and exported update times are the export time.
+- Start with `python desktop_gui.py --demo` (or open the independent demo from the sidebar). Connection settings and real clinical storage are not opened by `--demo`. Edit beverage patients/tree doctors using ordinary local forms; reset or close to discard the session. Only explicit local PDF export is available, with DEMO on every page. Demo has no Telegram transport.
 
 Runtime limits are consolidated in [Remaining checks](../docs/status/testing-handoff.md).
 
-
 ## Consolidated workflows
 
-Doctor editing now includes a resident's supervisor team. Team membership is
-independent of the optional resident on an individual patient. A resident may be
-unassigned or linked to one active supervisor. Move linked residents before deleting
-or changing their supervisor's role. Membership travels through Telegram's added
-`teamSupervisorId` column and schema-1 doctor CSV's existing `extra_options` field;
-use updated Android and desktop clients when publishing teams. No database
-migration or numbered schema/toolchain version change was needed.
-
-«جلب نسخة كاملة / اختيار مناوبة» only retrieves/selects data. The separate
-«بدء مناوبة اليوم من السابقة» copies every previous-shift patient into new records,
-retains unfinished task deadlines and offers one keep/clear assignment choice.
-It refuses a nonempty today shift and rechecks remote pointers after confirmation.
-Copying saves locally; review and publish afterward. Android offers the same bulk
-choice from its drawer and optional empty-shift prompt, using the preceding local
-shift (download first to refresh it).
-
-The desktop sidebar groups project/identity, local data and publication, reports,
-and recovery/files. The current sort is visible above the ward; grouping is only
-for display and manual arrows clear sort levels. Local reports include unpublished
-edits, while sending reviews and publishes pending data before delivery. Doctor CSV reviews now name additions,
-changes, unchanged imported doctors and omitted doctors retained without change;
-publication then replaces the complete registry snapshot.
-
-
-Cross-team patient cover is allowed explicitly: selecting a resident from another
-supervisor's team does not move that resident's permanent team or change the
-patient's supervisor. The editor explains this; desktop text/full PDF reports mark
-known cross-team cover. Android editing shows the same indication and its report
-context explains that individual cover does not change team membership.
-
-The send action now reviews pending ward data and the report before final
-confirmation, publishes the reviewed full shift when needed, then sends the exact
-previewed report. Cancelling before final confirmation publishes nothing. Sending
-an unchanged published report reuses its publication so UNKNOWN receipts continue
-to block an accidental retry. An unresolved report also blocks its shift and
-destination when format or publication changes, checked before publication and
-again before delivery. Manual resolution requires live verification of the sender
-or a current admin. Earlier unresolved receipts without a shift label block their
-destination until resolved. A report delivery failure does not undo publication.
-Standalone review/publish remains available; local exports still do not publish.
-
-Before copying a shift, desktop confirmation shows the source date, patient count
-and when its Telegram bundle was fetched for that operation. Android shows the
-source local-shift date and the last recorded download time for its bundle, or
-explicitly says the download time is unknown. It also says Telegram was not checked
-now and offers cancelling to retrieve fresh data first. These timestamps do not
-claim the local copy is the newest remote version.
-
-
-The report pane retains separate publication and delivery results for the last
-send attempt. A successful publication is still shown when report delivery fails;
-uncertain delivery directs you to Telegram and the operation ledger before retry.
-Confirmed delivery remains confirmed if saving its local receipt fails. Attempt
-display is session-local; the existing encrypted receipt ledger remains durable.
-Manual movement arrows are disabled during grouping, filtering or search. Choose
-«دون تجميع», «الكل» and clear search to move patients in the full stored list.
-
-The ward status display shows the selected shift, known publication state, recorded
-last download and unresolved deliveries, with the next manual action. Older
-snapshot download times are labelled; the display does not check Telegram in the
-background. «مهام الجناح» lists individual pending tasks with supervisor/resident
-filters and opens the current patient for ordinary reviewed editing. Doctor
-administration includes «إدارة الفرق معاً» to review and publish several resident
-memberships together while retaining patient assignments. Manually confirming a
-report's arrival still requires explicit approval before sending an extra copy.
+- Resident team membership is independent of patient cover; one active supervisor per resident. Move linked residents before supervisor deletion/role change. Cross-team cover never moves membership and is labelled in editor/report context. Teams travel in Telegram `teamSupervisorId` and schema-1 CSV `extra_options=teamSupervisor:<id>`; use updated clients.
+- Fetch/select shift only retrieves. Separate «بدء مناوبة اليوم من السابقة» copies all previous patients and unfinished deadlines into an empty today shift after review, offers keep/clear assignments and rechecks pointers. Saves locally; publish separately. Source/download timestamps never promise current remote freshness; cancel/fetch first if needed.
+- Sidebar groups identity/project, local/publication, reports and recovery. Sort context stays visible; grouping is presentation. Manual arrows require no grouping/filter/search and clear sort levels. Local reports include unpublished edits; sending reviews/publishes them first. CSV review shows additions/changes/unchanged/retained omissions before full-registry publication.
+- Status shows selected shift, known publication/download and unresolved deliveries with next manual action, without background Telegram checks. «مهام الجناح» filters pending tasks and opens reviewed patient editing; «إدارة الفرق معاً» reviews bulk memberships without changing assignments.

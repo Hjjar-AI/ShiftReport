@@ -13,70 +13,43 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 | [`docs/`](docs/README.md) | Shared architecture, current state, guides and roadmap |
 | `local/` | Ignored private local artifacts, including the old Excel workspace |
 
-Open **`android/`** in Android Studio. For the PC client, use the launch scripts
-inside **`desktop/`**. Each platform keeps its existing application identity and
-shared Telegram formats. Root-level Git metadata and repository instructions stay
-shared.
+Open **`android/`** in Android Studio. For the PC client, use the launch scripts inside **`desktop/`**. Each platform keeps its existing application identity and shared Telegram formats. Root-level Git metadata and repository instructions stay shared.
 
 ## Current capabilities
 
-- Structured ward list with patient details, custom badges, priority, responsible clinicians, search, filters, grouping, and sorting that updates saved patient positions and CSV/text/PDF order. General and Advanced editing both include labs. Full-screen patient editing keeps clinical sections first and demographics last; new-patient entry starts with demographics.
-- Structured patient tasks with optional doctor assignment (unassigned by default), priority, deadlines, pending/done state, and completion actor/time. Collapsed cards show per-patient pending and overdue counts; the dashboard shows ward totals and task filters. Overdue tasks are included in the pending count.
-- Dashboard, personal patient view (including assigned tasks), admin-only Activity Center, per-patient history, recycle bin, guided rollover of unfinished tasks, and stored-shift viewing.
-- Top-bar expand/collapse-all control, individual card expansion, direct drawer destinations, and grouped Settings shortcuts.
-- Classic table and linked portrait A5 patient-card PDFs from fresh reviewed snapshots, with readable pagination and complete clinical/task content.
-- Shift doctors can be selected directly at the top of report preview, with no fixed maximum.
-- Administrator-controlled UTF-8 doctor-registry CSV import/export for fresh starts and spreadsheet editing.
-- Telegram report delivery, immutable CSV snapshots, background synchronization, three-way patient merging, and explicit conflict review.
-- Local stale-edit protection through patient and shift revisions.
-- Encrypted local database, encrypted project preferences, PIN/biometric access, encrypted backups, and verified admin authorization for core privileged actions.
-- Hospital/project setup with Demo, file-only Join, and Create paths, plus optional encryption of Telegram project data.
-- A splash that dismisses on tap or after 5 seconds; Splash and About use the white-field emblem and current credits.
-- Unified neutral surfaces with independent System/Light/Dark appearance and accent choices, readable typography, consistent status colors, compact cards, and advanced PDF settings. Distinct named palettes tint controls, section headings and surfaces. Individual expansion animates briefly; bulk expansion is immediate.
+- Ward details/labs/badges/priority, optional clinicians and structured tasks with deadlines/completion identity; overdue is included in pending. Search/filter/group/stored sorting agree across exports. Clinical-first editing, demographic-first creation and one retained draft.
+- Dashboard/personal tasks, admin Activity/history, recycle/rollover/archive, individual/bulk expansion and compact adaptive Arabic RTL controls.
+- Reviewed Classic/A5 reports, unlimited active-doctor roster first, UTF-8 doctor CSV and exact-artifact delivery with durable UNKNOWN handling.
+- Manual Telegram retrieve/edit/review/publish, complete snapshots/last-successful-write-wins, local revisions/conflicts; encrypted database/preferences/backups, clinician PIN/biometrics and service-level authorization.
+- Demo/file-only Join/Create, optional authenticated Telegram encryption, independent appearance/accent/PDF settings, retained emblem/About and five-second hold/tap splash.
 
 ## First launch
 
-For Arabic setup instructions and how to obtain the bot token, group/user IDs, and topic IDs, see [Telegram setup](docs/guides/telegram-setup.md).
+[Arabic Telegram setup](docs/guides/telegram-setup.md).
 
-Choose one of three paths:
+| Path | Use |
+|---|---|
+| Demo | In-memory beverage patients/tree doctors; real offline forms/tasks/cards/dashboard/preferences and explicit DEMO-labelled PDF export. No credentials, Telegram or clinical DB writes; reset/exit discards changes. |
+| Join (default) | Import administrator’s protected `.srjoin.json`/password; bot/group/topics/key come from the file. Validation retrieves pinned doctors; no manual join fields. |
+| Create | BotFather bot, group admin/send/pin rights, hospital/group/optional topics and first admin; optionally generate shared encryption key. Existing Android pin requires explicit reviewed override; old history remains. |
 
-- **Demo:** explore an offline ward with hot-beverage patient names and tree-named doctors. Try add/edit/copy/delete/restore, labs/tasks, search/filter/sort, card controls, the dashboard, appearance, doctor selection, and report options. Export a clearly labelled sample PDF to a chosen location. Clinical data and demo settings stay in memory; no Telegram credentials, uploads, or clinical database writes are involved. Exiting/resetting discards demo changes.
-- **Join project (default):** join the hospital Telegram group, then import the administrator-provided password-encrypted `.srjoin.json` file. Connection values, topic IDs, and any shared data-encryption key come from the file; manual joining is unavailable. The app validates the bot and group and downloads the pinned doctor registry.
-- **Create project:** create a Telegram bot through BotFather, add it as an administrator to a new supergroup with permission to send files and pin messages, then enter the hospital name, token, group ID, optional topic IDs, and first administrator identity. The creator can optionally enable Telegram-data encryption, generating a random shared project key before the first publication.
-
-To replace a bot token, an administrator revokes/regenerates it through [BotFather](https://t.me/BotFather), then uses **Settings → Security and privacy → Reconnect project → Replace token as administrator**. Export a fresh protected join file afterward. Other devices import it through Reconnect in Settings or login. The app validates the replacement before saving, retains the data key and local records, and rejects different-project/key/topic files. Switching projects around an existing database is blocked.
-
-After setup, the configured hospital name appears in the clinical header and drawer. The existing application logo and About page remain the permanent product identity and credits page.
+Token replacement: admin → [BotFather](https://t.me/BotFather) revoke/regenerate same bot → Settings/Security/Reconnect/Replace token → validate/save → export new protected join for other devices. Retains clinical state/key; other project/key/topics blocked. Hospital name is configuration; emblem/About remain product identity.
 
 ## Security and data handling
 
-The bot token and project identifiers are stored in encrypted Android preferences. They are not compiled into the APK, stored in Room, or included in application backups. Topic IDs are optional during project creation; an empty topic posts to General. Members joining by file do not enter topic IDs.
+Credentials/topics/key live in encrypted preferences, outside APK/Room/backups. Optional topics: blank means General. SQLCipher protects clinical Room; Android backup disabled. Join/backup files are password encrypted; share passwords separately.
 
-Clinical data is held in a SQLCipher-encrypted Room database. Android backup is disabled. Exported project-join and backup files are password encrypted; their passphrases are not embedded in the files and should be shared separately.
+Optional AES-256-GCM protects Telegram bundles/tasks, doctors, pinned state, announcements and text documents; PDFs/captions/Telegram metadata deliberately readable. Keep protected join/password for key recovery; existing unencrypted projects retain their mode. Conversion/key rotation are not implemented.
 
-New projects can optionally encrypt Telegram patient bundles (including tasks), doctor registries, pinned synchronization state, announcements, and text reports with a random shared AES-256-GCM key. Downloads are decrypted locally before parsing. The key is stored in encrypted device settings and travels inside the password-protected join file. Text reports are delivered as encrypted documents when encryption is enabled; PDF files and their captions remain readable. Telegram metadata remains visible. Keep the protected join file and its passphrase for key recovery. Existing projects without a key retain their previous storage mode; conversion and key rotation are not implemented.
-
-Admin-only operations are checked against the live local doctor registry below the navigation layer. Patient edits and shift controls reject stale local revisions rather than silently overwriting newer data.
-
-Telegram remains the shared synchronization and delivery channel. The accepted workflow is retrieve, edit, and publish; the last successful pinned-state write wins. Telegram pinned state is not an atomic multi-writer database. Guaranteed simultaneous collaboration is outside scope, and no authoritative backend is required. Existing revision checks, merges, conflict review, and report confirmation remain in place. See [Architecture](docs/reference/architecture.md).
-
-Appearance and accent are configured separately under **Settings → App interface**. Every accent supports light and dark appearance; AMOLED is available separately. Uncommon report options are under **Settings → Report → Advanced PDF options**. Collapsed cards summarize clinical content; expand a card for full details.
+Admin mutations are authorized below navigation; stale local revisions fail explicitly. Telegram offers reviewed complete snapshots/last-successful-write-wins, without atomic simultaneous collaboration or required backend. [Architecture](docs/reference/architecture.md). Appearance/accent are independent; uncommon PDF settings stay Advanced; expanded cards retain full content.
 
 ## Implementation status
 
-See [Current state](docs/status/current-state.md#verification-and-limits) for the exact
-source/build boundary and [Roadmap](docs/status/roadmap.md) for remaining work, including
-the CSV device failure, production signing and deferred voice/templates.
-[Remaining verification](docs/status/testing-handoff.md) lists test/device/runtime checks.
+[Current evidence/limits](docs/status/current-state.md#verification-and-limits) · [Unfinished CSV/signing and deferred proposals](docs/status/roadmap.md) · [Remaining device/runtime checks](docs/status/testing-handoff.md).
 
 ## Project documentation
 
-Start at the [documentation index](docs/README.md): current state, architecture,
-roadmap, changelog, troubleshooting, setup guides and unresolved review findings.
-
-- [Telegram setup — العربية](docs/guides/telegram-setup.md)
-- [Standalone Windows/Linux desktop workflow](desktop/README.md)
-- [Contributor rules](AGENTS.md)
+[Documentation index](docs/README.md) · [Arabic setup](docs/guides/telegram-setup.md) · [Desktop workflow](desktop/README.md) · [Agent rules](AGENTS.md).
 
 ## Developer commands
 

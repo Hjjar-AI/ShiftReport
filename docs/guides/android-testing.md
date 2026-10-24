@@ -2,8 +2,7 @@
 
 [Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md) · [Device procedures](device-coverage.md) · [Desktop/live](deep-testing.md)
 
-**683 JVM methods/85 classes; 288 device methods/55 classes.** Counts are not
-coverage percentages. Full and focused results describe different snapshots.
+**683 JVM methods/85 classes; 288 device methods/55 classes.** Counts are not coverage percentages. Full and focused results describe different snapshots.
 
 ## Coverage map
 
@@ -18,13 +17,9 @@ coverage percentages. Full and focused results describe different snapshots.
 
 ## Run deliberately
 
-[AGENTS.md](../../AGENTS.md) requires explicit build/test authorization and active-build,
-RAM/swap and durable-toolchain/cache checks before every Gradle attempt. Do not stop
-others' work, clear caches, download temporary toolchains or change versions.
-Installed Gradle 8.7/Java 21 have been used with Java/Kotlin target 17 and SDK 34.
+[AGENTS.md](../../AGENTS.md) requires explicit build/test authorization and active-build, RAM/swap and durable-toolchain/cache checks before every Gradle attempt. Do not stop others' work, clear caches, download temporary toolchains or change versions. Installed Gradle 8.7/Java 21 have been used with Java/Kotlin target 17 and SDK 34.
 
-From `android/`, define this helper in the current shell; it preserves offline,
-one-worker, in-process Kotlin and disabled version reservation for every command:
+From `android/`, define this helper in the current shell; it preserves offline, one-worker, in-process Kotlin and disabled version reservation for every command:
 
 ```sh
 srgradle() {
@@ -36,13 +31,9 @@ srgradle :app:compileDebugKotlin :app:compileDebugUnitTestKotlin \
 srgradle :app:testDebugUnitTest > /tmp/shiftreport-jvm.log 2>&1
 ```
 
-For a focused JVM run, add one or more `--tests 'fully.qualified.ClassName'` filters.
-The delivery-fixture scope is `domain.report.ReportDeliveryLedgerTest`,
-`domain.report.ReportDeliveryLedgerSafetyTest`, `network.ReportSenderTest` and
-`domain.announcement.AnnouncementPublisherTest`, all under `com.hos.rushdpatients`.
+For a focused JVM run, add one or more `--tests 'fully.qualified.ClassName'` filters. The delivery-fixture scope is `domain.report.ReportDeliveryLedgerTest`, `domain.report.ReportDeliveryLedgerSafetyTest`, `network.ReportSenderTest` and `domain.announcement.AnnouncementPublisherTest`, all under `com.hos.rushdpatients`.
 
-Device checks build/install debug app/test APKs. Compile first, then run on the
-owner-selected connected device; exclude the automatic Desktop export task:
+Device checks build/install debug app/test APKs. Compile first, then run on the owner-selected connected device; exclude the automatic Desktop export task:
 
 ```sh
 srgradle :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin \
@@ -52,24 +43,10 @@ srgradle -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
   > /tmp/shiftreport-device.log 2>&1
 ```
 
-To focus the device command, add
-`-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest`
-(or another fully qualified class, comma-separated classes, or `Class#method`).
-Select one phone with `ANDROID_SERIAL` when multiple devices are connected.
-Opt-in prerequisites/flags are in [Device procedures](device-coverage.md).
+To focus the device command, add `-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest` (or another fully qualified class, comma-separated classes, or `Class#method`). Select one phone with `ANDROID_SERIAL` when multiple devices are connected. Opt-in prerequisites/flags are in [Device procedures](device-coverage.md).
 
-Read JUnit XML for failures/errors/skips; duplicated console skip messages are not
-counts. Default output: `~/.gradle/shiftreport-project-cache/build-output/app/`;
-JVM XML: `test-results/testDebugUnitTest/`; device XML:
-`outputs/androidTest-results/connected/debug/`. Archive exact source/device/API,
-XML and failure details in ignored `local/verification/`; update Current state.
+Read JUnit XML for failures/errors/skips; duplicated console skip messages are not counts. Default output: `~/.gradle/shiftreport-project-cache/build-output/app/`; JVM XML: `test-results/testDebugUnitTest/`; device XML: `outputs/androidTest-results/connected/debug/`. Archive exact source/device/API, XML and failure details in ignored `local/verification/`; update Current state.
 
 ## Fixture rules
 
-Use synthetic beverage patients/tree doctors, fresh isolated Room/preferences/files
-and intercepted HTTP; never open installed clinical storage or use real credentials.
-Use deferred barriers/virtual clocks rather than scheduling sleeps. Cancel ViewModel
-collectors, close databases and remove only fixture-owned temporary files. Device
-method names use camelCase; spaced backticks can produce D8-invalid coroutine names.
-Native hardware/provider/live probes remain opt-in; a skip is not verification.
-Do not convert the [remaining limits](../status/testing-handoff.md) into an edge-case backlog.
+Use synthetic beverage patients/tree doctors, fresh isolated Room/preferences/files and intercepted HTTP; never open installed clinical storage or use real credentials. Use deferred barriers/virtual clocks rather than scheduling sleeps. Cancel ViewModel collectors, close databases and remove only fixture-owned temporary files. Device method names use camelCase; spaced backticks can produce D8-invalid coroutine names. Native hardware/provider/live probes remain opt-in; a skip is not verification. Do not convert the [remaining limits](../status/testing-handoff.md) into an edge-case backlog.

@@ -1,8 +1,6 @@
 # Optional UI decisions
 
-Unselected choices only; existing behavior remains the default. Pick IDs or narrower
-parts. Completed selections live in [Changelog](../status/changelog.md); current behavior,
-safety boundaries and verification limits live in [Current state](../status/current-state.md).
+Unselected choices only; existing behavior remains the default. Pick IDs or narrower parts. Completed selections live in [Changelog](../status/changelog.md); current behavior, safety boundaries and verification limits live in [Current state](../status/current-state.md).
 
 | ID | Optional choice |
 |---|---|
@@ -26,5 +24,4 @@ safety boundaries and verification limits live in [Current state](../status/curr
 | O22 | Dock desktop details/dashboard beside patients on wide windows. |
 | O23 | Automated screenshot matrix; production previews are expanded. |
 
-[AGENTS.md](../../AGENTS.md) governs verification/version authorization; O23 requires
-separate explicit test work approval. Voice/templates remain deferred in [Roadmap](../status/roadmap.md).
+[AGENTS.md](../../AGENTS.md) governs verification/version authorization; O23 requires separate explicit test work approval. Voice/templates remain deferred in [Roadmap](../status/roadmap.md).

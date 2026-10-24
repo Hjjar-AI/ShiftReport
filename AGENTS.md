@@ -1,86 +1,58 @@
-# Repository instructions for coding agents
+# Agent rules
 
-These instructions apply to the entire repository. Before work, check for additional `AGENTS.md` files in the affected directories and read the relevant work/plan documents. Explicit user authorization and preferences from the current session remain applicable.
+Repository-wide; read nested `AGENTS.md`, relevant source and current work documents first. Current-session owner instructions/authorization take precedence.
 
-## Working with the owner
+## Owner and scope
 
-- Treat “continue” and “do P…” as requests to implement the relevant unfinished work. Check the current roadmap and source first; priority labels may have been removed or completed. Ask only when the intended item cannot be determined.
-- After an interruption, inspect the working tree and affected source to identify what actually finished. Resume missing steps without discarding edits or repeating completed work.
-- Favor practical improvements to the current Telegram app. Do not expand a focused request into a redesign, backend replacement, legacy-support project, or speculative edge-case backlog. Preserve existing safety checks while keeping scope small.
-- Continue authorized, reversible work without repeated confirmation. Keep updates and final responses concise; explain what changed, what was checked, and any material limitation.
-- Do not delegate to additional agents unless the owner explicitly requests it.
-- Minimize chat/token overhead: read relevant source ranges and document sections, batch independent lookups, keep full build/tool logs in local files and report concise outcomes. Avoid rereading long history or repeating successful checks without a changed source/failure.
+- “Continue”/“do P…” means implement actual unfinished roadmap/source work. After interruption inspect the tree and resume missing steps; preserve unrelated edits. Ask only if intent remains unclear.
+- Keep changes practical and focused on this Telegram app; no speculative redesign, backend, legacy conversion or edge-case backlog. No delegation without explicit owner request.
+- Continue authorized reversible work; reuse approval for the same session/scope. Keep updates/results concise: outcome, checks, material limits. Read narrow ranges, batch independent lookups, keep full tool output local; avoid repeated history/checks.
+- Never inspect/review/edit/create migration files without explicit migration authorization. Fresh projects are normal; do not invent conversion work.
+- **Before builds/compilation/extensive tests:** describe commands/scope and obtain explicit approval unless already authorized for that scope. Editing/continuing alone is insufficient; supplied build failures authorize source fixes, not another build.
+- **Tests:** inspection/review/execution/modification require explicit test authorization; creating test files requires explicit approval for creation. Running existing tests or approving builds does not authorize test creation/modification. Consolidate shared fixtures without weakening actor/authority or failure coverage.
+- Do not change app/database/interchange/toolchain versions without explicit authorization: Gradle, AGP, Kotlin, KSP, Compose or SDK levels included. Preserve logo, white-field emblem and About/credits.
+- If available five-hour usage reporting reaches ≤20%, finish underway steps and stop. Never stage/commit or use destructive Git commands unless requested.
 
-## Scope restrictions
+## Build and device discipline
 
-- Do not inspect, review, edit, or create migration files unless the user explicitly requests migration work.
-- Ask the owner and receive explicit confirmation before starting any build/compilation or extensive test run. Describe the intended commands and scope first; a request to edit/fix source or continue work alone does not authorize them. Reuse confirmation already given for the same scope in the current session, unless the owner changes that preference.
-- Test files may be created only after asking the owner and receiving explicit approval for that test work. Test-suite inspection, review, modification and execution also require explicit test authorization; authorization to run existing tests does not authorize creating or modifying tests. Build confirmation alone does not authorize test work.
-- After build confirmation, start with a narrow offline debug compile using installed system tools or the existing pinned Gradle distribution and durable caches. Keep full logs in a local file and report only actionable results; avoid repeated builds after a successful relevant check.
-- Before every build/compile attempt, check for other active builds or compiler work, including IDE builds and other projects/accounts where visible, and inspect available RAM and swap pressure against the configured build/compiler heap needs. An idle Gradle daemon alone is not an active build; cached memory alone does not establish RAM pressure. Do not start another build while one is active or memory is under pressure. Continue independent work and recheck after a short wait, or finish source work and clearly tell the owner verification was skipped, why, and which command to run manually. If resource availability cannot be checked reliably, report that limitation and leave the build to the owner. Never stop another build, kill its processes or clear its caches to make room.
-- Preflight Java, the pinned Gradle distribution, Android SDK/build tools and cached dependencies. Do not repeatedly download toolchains/dependencies into temporary directories for verification. If a prerequisite is missing, identify the exact component and ask the owner to install it once in the durable system/shared cache; continue independent source work.
-- Prefer compile/resource checks over APK packaging. Verification builds must disable automatic version reservation (`-Pshiftreport.autoVersion=false`); do not change versions or export/distribute artifacts by assumption. A supplied build log authorizes fixing its source failures; ask for build confirmation before a focused cached verification build unless that scope is already confirmed in the current session.
-- Do not change versions unless explicitly requested, including database or interchange schema versions. Necessary schema changes must be covered by the user's explicit authorization. Do not change the Gradle, Android Gradle Plugin, Kotlin, KSP, Compose, compile SDK, target SDK, or minimum SDK versions unless explicitly requested.
-- The owner usually starts a fresh project after edits. Do not add legacy conversion or migration work by assumption; migration work still requires an explicit request.
-- When available usage reporting shows the five-hour allowance has 20% or less remaining, finish the steps already underway and stop, preserving the remaining allowance.
-- Preserve the current logo and the About/credits page unless the user explicitly asks to change them.
+- Before **every** compile/build check visible compiler/IDE/build activity across projects/accounts and available RAM/swap pressure against configured heaps. Idle daemons/cached RAM alone are not pressure. Defer if active, pressured or visibility unreliable; report reason/manual command. Never stop others' builds, kill their processes or clear their caches.
+- Preflight installed Java, pinned Gradle, SDK/build tools and durable dependencies. Use narrow offline debug compile first; prefer compile/resources over APK packaging. Set `-Pshiftreport.autoVersion=false`; do not export/distribute by assumption. Keep local full logs and concise actionable results; do not rebuild a successful unchanged scope.
+- Check the existing project environment (`desktop/.venv`) before declaring dependencies absent. Install missing prerequisites once in an authorized durable environment; no repeated temporary toolchain downloads or unrequested version changes.
+- Native UI: wait for navigation/search results to settle, inspect the actual target, then tap. A timeout is not an import failure; collect the visible error/result. Respect screenshot/device coordinate scaling. Do not run competing UiAutomator sessions during instrumentation.
+- Physical interaction needs owner availability; honor requested skips (fingerprint success was skipped this run). Use isolated dummy data/disposable projects for authorized device/live checks; remove only temporary files created for that check.
+- Distinguish source inventory, executed cases, passes and skips; overlapping reruns are not additional distinct coverage. Builds apply only to their source snapshot; static checks do not establish compilation, accessibility or device behavior.
 
-## Security and clinical-safety invariants
+## Security and clinical invariants
 
-- Never hardcode or commit bot tokens, chat IDs, signing keys, PINs, passphrases, or hospital credentials.
-- `docs/local/github-guide.local.md`, signing files, and `*.local.properties` files are intentionally local and ignored. The obsolete legacy Telegram properties file was removed; connection credentials belong in runtime project configuration.
-- Do not replace encryption with encoding, obfuscation, dummy lines, or reversible presentation tricks.
-- Do not silently overwrite stale patient or shift data. Preserve expected-revision checks and explicit conflict handling.
-- Keep admin authorization below the UI/navigation layer for every privileged mutation.
-- Never present Telegram pinned state as an atomic multi-writer database. Preserve the accepted retrieve/edit/publish and last-write-wins scope documented in `docs/reference/architecture.md` and `docs/status/current-state.md`; do not introduce a required collaboration backend.
-- Joining is file-only through a password-protected `.srjoin.json` file. Connection settings, topic IDs, and the optional shared data key come from that file. Manual group/topic entry belongs only to project creation; manual replacement of the same bot's token requires live admin authorization.
-- Optional Telegram-data encryption is chosen when creating a project. Preserve authenticated encryption, the shared key in encrypted device settings/protected join files, explicit decryption failures, and the deliberate readable-PDF exception. Replacing a bot token must not silently replace the project data key.
-- Do not mix one hospital/project's existing clinical database with another project's credentials. Same-project reconnect must validate candidate credentials before changing the live token and preserve local clinical state, pending edits, topics, and the data key. Cross-project/key/topic changes are blocked; do not bypass this protection or clear clinical records implicitly.
-- Keep file-based reconnect accessible before login. Token revocation belongs to BotFather; do not claim that saving a replacement locally revokes the old token. Updated credentials are distributed through new protected join files.
-- Report sending must retain review/confirmation. Do not turn the ward FAB into an accidental one-tap clinical publication action.
+- Never hardcode/commit credentials, bot tokens, chat IDs, signing keys, PINs or passphrases; exclude them from logs, saved UI state, clinical exports and draft/conflict summaries. `docs/local/github-guide.local.md`, signing files and `*.local.properties` stay private/ignored; runtime project configuration owns connection credentials.
+- Preserve authenticated encryption, explicit decryption errors and protected keys; encoding/obfuscation is not encryption. Telegram encryption is chosen at creation; protected settings/join files carry its shared key. Readable PDFs are deliberate. Token replacement must preserve that key.
+- Join is password-protected `.srjoin.json` only; manual group/topics belong to creation. Manual same-bot token replacement requires live admin authority. Reconnect remains accessible before login, validates candidates before replacing live credentials, and retains clinical data, pending edits, topics and key. Block cross-project/key/topic substitution; never clear records implicitly. BotFather revokes tokens; local replacement does not. Redistribute new protected join files.
+- Preserve expected-revision/conflict checks and admin authorization below UI for privileged mutations. Never silently overwrite stale patient/shift data.
+- Telegram remains retrieve/edit/review/publish, complete snapshots, last-successful-write-wins; no atomic multi-writer claim or required collaboration backend. Preserve [architecture](docs/reference/architecture.md) and [current scope](docs/status/current-state.md).
+- Sending requires review/final confirmation; the ward FAB must not publish clinical data in one tap. Retain durable UNKNOWN handling, exact-artifact/destination checks and explicit approval for extra copies.
 
-## Architecture conventions
+## Source ownership
 
-- The Android project root is `android/` (open it in Android Studio and run Gradle there); Android source-layer paths below are relative to `android/app/src/main/java/com/hos/rushdpatients/`. The Python PC client is in `desktop/`; shared documentation remains in `docs/`. Private local Excel artifacts are ignored under `local/excel/`.
+- Android root `android/`; source below `app/src/main/java/com/hos/rushdpatients/`. Desktop `desktop/`; shared docs `docs/`; private Excel originals `local/excel/`.
+- Compose `ui/` delegates state/mutations to Hilt ViewModels; keep navigation/dashboard/reviews/fields in dedicated files. `domain/` owns rules, `data/repository/` persistence, `network/telegram/` transport, `sync/` orchestration. `DoctorSyncCoordinator` owns doctor sync; patient/doctor writes share singleton `RemoteSyncStateStore` and mutex.
+- Database/file/crypto/network work stays off main; handle coroutine cancellation separately from ordinary errors. Shared-data changes must cover model/persistence/sync/backup/conflicts/counts/filters/text/PDF consistently; schema authorization still applies.
+- Use `domain/report/ReportReadiness.kt` and `domain/task/PatientTasks.kt` as rule owners. Tasks are explicit records, never parsed from follow-up; overdue ⊂ pending. Preserve persistence/sync/backup/report, expected revisions, repository-stamped completion actor/time and unfinished rollover. New tasks unassigned; optional ownership never blocks Save/readiness. No acknowledgment workflow.
+- Demo clinical/settings state stays in memory: no Room or sync. Reuse real offline forms/cards. Explicit dummy PDF export is allowed with DEMO on **every page**; beverage patients/tree doctors.
 
-- UI is Jetpack Compose under `ui/`; screens delegate state and mutations to Hilt ViewModels.
-- Keep ward navigation, dashboard, review dialogs, and reusable patient fields in their dedicated files. Doctor synchronization belongs in `DoctorSyncCoordinator`; patient/doctor pinned-state updates share the singleton `RemoteSyncStateStore` and its mutex.
-- Domain rules belong under `domain/`, persistence behind repositories under `data/repository/`, Telegram access under `network/telegram/`, and synchronization orchestration under `sync/`.
-- Keep blocking database, file, cryptographic, and network work off the main thread.
-- Keep credentials and passphrases out of logs, UI saved state, clinical exports, and draft/conflict summaries. Handle coroutine cancellation separately from ordinary failures.
-- When changing shared patient data, follow its existing model, persistence, sync/backup, conflict-review, count/filter, and text/PDF paths. Keep the representation consistent; schema changes still need explicit authorization.
-- Prefer one source of truth for shared rules: report readiness is shared through `domain/report/ReportReadiness.kt`, and task counts, deadlines, validation, and carry-forward rules through `domain/task/PatientTasks.kt`.
-- Tasks are explicit structured records, never inferred from follow-up text. Overdue is a subset of pending. Preserve task persistence, synchronization, backup/report output, expected-revision review, repository-stamped completion identity/time, and unfinished-task rollover. New tasks start unassigned; assigning a doctor is optional. No user acknowledgment workflow is required.
-- Keep demo clinical data/settings in memory only; demo mode must not write to Room or synchronize. Reuse real offline forms/cards where practical. The owner permits explicit local PDF export of dummy demo data; label every exported page as a demo. Use hot-beverage patient names and tree-named doctors.
+## Product rules
 
-## Product and interface preferences
+- Arabic, first-layout RTL, labelled ≥48dp targets, wrapping/semantics at large fonts and fold-safe placement. Compact navigation/drawer; hospital/app and user/shift in a short two-column header. Activity Center is admin-only everywhere; retain «إرسال تقرير» and reviewed report flow.
+- Frequent actions stay accessible; group secondary actions, avoid crowding/gaps, keep details in compact expandable sections. Sorting updates stored positions and agrees across exports.
+- Full-screen editing: clinical/tasks first, demographics last; creation: demographics first. Labs/per-field tools retain one draft, fixed keyboard-safe Save/Cancel. No restored global entry mode. Numeric admission/PIN keyboards, «أو» between birth year/age, diagnosis-specific hints, task-time picker.
+- Shared typography/shapes/`UiSpacing`; appearance independent of accent, severity through `patientBadgeColors`, diagnosis never error-colored. Brief individual expansion; immediate bulk/reduced motion. Keep individual/top-bar expand controls, card task counts and dashboard totals; collapsed zero/routine omissions never hide expanded clinical content.
+- Report preview starts with actionable shift-doctor selection, even with no roster. No fixed roster cap; preserve active-doctor/stale-edit checks. Uncommon PDF controls stay Advanced. Omit routine/unassigned labels and patient last-edit metadata without losing tasks/content.
+- Android/desktop cards retain shared A5 geometry/fonts/sections and full-page index/patient navigation so headers remain visible. Check matching fixtures before claiming parity; disclose renderer differences rather than claiming pixel identity.
+- Splash: five-second timer continues while held; expired hold dismisses on release, quick tap skips, recreation retains deadline. Preserve branding/credits.
 
-- Keep Activity Center visible only to admins across drawer, tabs, dashboard, and supporting panes. Keep the report action labelled «إرسال تقرير» and bottom navigation compact while preserving 48dp targets and report review. Patient sorting must update stored positions and agree across exported formats.
-- Keep drawer rows compact with 48dp minimum targets, and arrange hospital/app and user/shift details in a short two-column header.
-- Optimize frequent actions for quick access. Group secondary drawer/settings actions logically; avoid crowding forms or adding wide vertical gaps. Preserve useful details through compact sections and optional expansion.
-- Keep patient forms RTL from their first native/Compose layout. Use numeric keyboards for admission numbers and numeric PINs, «أو» between birth year and age, type-specific diagnosis placeholders, and a picker for task times. PDF output omits unassigned/routine-priority labels and patient last-edit metadata without dropping tasks or clinical content.
-- Keep patient editing full-screen with clinical/task sections first and demographic/personal fields last; new-patient entry starts with demographic/personal fields. Any simple/advanced field tools must expose labs and preserve the same draft, with fixed keyboard-safe Save/Cancel controls; do not restore a removed global entry mode by assumption.
-- Use shared theme typography, shapes, and `UiSpacing`; keep appearance independent of accent and badge severity mapping shared through `patientBadgeColors`. Diagnosis categories must not use error colors. Keep individual card expansion brief and bulk expansion immediate; retain uncommon PDF options under Advanced. Collapsed summaries may omit zero counts and routine metadata, but full saved clinical content must remain available when expanded.
-- Keep per-patient task counts on cards and ward totals on the dashboard. Optional task ownership must not become a required save or report-readiness condition.
-- Preserve top-bar expand/collapse-all and individual card expansion, plus an actionable shift-doctor selector as the first report-preview section, available before the roster is set. Do not restore a fixed maximum roster size in the picker, sync, or reports; retain active-doctor validation and stale-edit protection.
-- Preserve Arabic user-facing text, RTL layout, labelled 48dp targets, readable wrapping at large font sizes, semantic states, and adaptive/fold-safe placement.
-- Keep the splash responsive: keep the five-second timer running while held for reading, defer dismissal until release if the timer has expired, and allow a quick tap to skip, including across Activity recreation. Preserve the white-field emblem and existing About/credit content unless explicitly asked to change them.
+## Documentation and evidence
 
-## Work tracking
-
-- `docs/status/roadmap.md` contains only unfinished implementation work and the explicitly deferred voice/template proposals. Do not restore removed verification-only or edge-case backlog items. Record verification evidence and limitations in `docs/status/current-state.md` and `docs/status/changelog.md`.
-- Move genuinely completed items to `docs/status/changelog.md`; do not duplicate them in both files.
-- Keep history short: consolidate superseded chronological entries into feature summaries; retain current security/behavior and verification limits. Preserve and improve task-oriented guides and their working commands. Store unselected proposals/questions in `docs/decisions/android-ui-options.md`, separate from the implementation roadmap. Removing a proposal is a scope decision, not implementation.
-- Update `docs/status/current-state.md` when architecture, security boundaries, persistence, synchronization, onboarding, or major navigation changes.
-- Keep design/architecture rationale in `docs/reference/architecture.md`, implementation details in `docs/status/current-state.md`, and diagnostic procedures in `docs/guides/android-troubleshooting.md`. Keep documentation links and historical/current-state distinctions accurate.
-- Keep README build instructions intact unless the user explicitly asks to change them.
-- Keep voice dictation in “Far future” and specialty templates in “Far far future”, with their technology/design notes. Do not implement deferred proposals unless requested.
-
-## Safe verification
-
-- Always run `git diff --check` after edits.
-- If changes are staged, also run `git diff --cached --check`; an empty unstaged diff is not verification of staged edits. Do not stage or commit changes unless requested.
-- Use source-level inspection and narrowly scoped static checks by default.
-- State the verification actually performed. An earlier successful build applies only to its source snapshot; static checks do not establish compilation, device behavior, or rendered accessibility. Keep these limitations in the status docs rather than creating verification-only roadmap items.
-- Do not change toolchain versions to make a build pass. Test-suite inspection/work and migration work still require explicit requests; build permission does not authorize either.
-- Preserve unrelated user changes in the working tree and avoid destructive Git commands.
+- Keep Markdown extremely compact: one topic/home, concise tables/rules, no duplicated chronology or stale pending claims. Preserve working commands, required safety/design details and private source-bearing originals; do not rewrite embedded VBA as prose.
+- [Roadmap](docs/status/roadmap.md): unfinished implementation only, plus **Far future** voice and **Far far future** specialty templates with technology/design notes. No verification-only/edge-case backlog. Completed work → [changelog](docs/status/changelog.md); unselected proposals → [decisions](docs/decisions/android-ui-options.md). Removing a proposal is a scope decision.
+- [Current state](docs/status/current-state.md): current behavior, security/persistence/sync/onboarding/navigation and exact evidence/limits. [Testing handoff](docs/status/testing-handoff.md): single remaining-check/issue list. Architecture owns rationale; troubleshooting owns diagnostics. Keep README build commands intact.
+- Retain current useful summaries/results, necessary XML/receipts, reusable scripts/guides and selected current screenshots/PDFs. Delete redundant older success logs, generated noise and old visuals; remove failed-run evidence only once a later applicable pass proves resolution. Preserve unresolved failures, unique live receipts, private configuration and originals. Record pruning/replacement evidence locally; never delete unrelated phone/private files.
+- Always `git diff --check`; also `git diff --cached --check` when staged changes exist. Report only checks actually performed and material limits; no repeated successful builds/tests without changed source, failure or unresolved concern.

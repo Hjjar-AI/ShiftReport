@@ -1,11 +1,10 @@
 # Android build, cache and signing guide
 
-Run from `android/` as your ordinary account; open that directory in Studio.
-[Current verification](../status/current-state.md#verification-and-limits) ·
-[App diagnostics](android-troubleshooting.md) · [Windows EXE](windows-exe-packaging.md).
-Agent builds require explicit owner permission; these commands are reference only.
+Run from `android/` as your ordinary account; open that directory in Studio. [Current verification](../status/current-state.md#verification-and-limits) · [App diagnostics](android-troubleshooting.md) · [Windows EXE](windows-exe-packaging.md). Agent builds require explicit owner permission; these commands are reference only.
 
 ## Daily commands
+
+From `android/`: pinned Gradle 8.7/checksum, Java 17 target, Python 3, SDK 34/build tools and cached dependencies. System Gradle does not replace the pinned distribution. Preserve versions; release needs [production signing](#production-release-signing).
 
 ```bash
 ./gradlew assembleDebug
@@ -14,30 +13,18 @@ Agent builds require explicit owner permission; these commands are reference onl
 ./gradlew assembleDebug assembleRelease
 ```
 
-Use the pinned wrapper (Gradle 8.7/checksum), Java 17, Python 3 and Android SDK 34
-with installed build tools/dependencies. A system `gradle` of another version does
-not replace the wrapper distribution. Keep toolchain/app versions unchanged unless
-requested. Release requires [production signing](#production-release-signing).
-
 ## Cached verification without packaging
 
-Before an authorized compile, check active builds/compiler work across visible
-accounts/projects, available RAM/swap and configured heap needs. An idle daemon or
-cached RAM alone is not pressure. If another build is active, memory is tight or
-visibility is unreliable, defer verification; never kill others' work or clear caches.
-Preflight Java, the pinned distribution, SDK/tools and durable cached dependencies.
-Missing prerequisites need one approved persistent installation, not temporary downloads.
+Owner approval required. Check visible builds/compilers/IDE across accounts, available RAM/swap against heaps, Java/pinned Gradle/SDK/dependencies. Defer for active work, pressure or unreliable visibility; never kill others or clear caches. Missing prerequisites need one approved durable installation. Keep full logs locally; report task/path/result. Compilation proves neither rendering nor runtime and does not authorize test work.
 
 ```bash
 # Compile production source; no APK export or version reservation.
 ./gradlew --offline -Pshiftreport.autoVersion=false compileDebugKotlin > /tmp/shiftreport-compile.log 2>&1
 ```
 
-Keep the full log locally; report the failing task/path and concise result. Use the
-cache/output overrides below if isolation is needed. Compilation does not verify
-rendering, device behavior or Telegram. Builds do not authorize test-suite work.
-
 ## What is shared, and what is private
+
+Shared-root writability does not imply access to another account’s daemon registry: inspect `namei -l`/`getfacl`; choose private caches rather than repairing others’ permissions. Custom `GRADLE_USER_HOME="$HOME/.gradle-shiftreport"` bypasses automatic sharing and needs its own pinned distribution. No normal build needs sudo. Project/output paths are per-account, not per-checkout: isolate parallel checkouts; leave old shared caches/output untouched.
 
 | State/control | POSIX launcher default / override |
 |---|---|
@@ -46,17 +33,6 @@ rendering, device behavior or Telegram. Builds do not authorize test-suite work.
 | Generated output: `-Pshiftreport.buildRoot=/path` | `$HOME/.gradle/shiftreport-project-cache/build-output`; projects map to `root`, `app`, etc. |
 | APK copies: `-Pshiftreport.apkExportDir=/path` | XDG Desktop (`xdg-user-dir DESKTOP`), otherwise `$HOME/Desktop`, plus `/ShiftReport`; each variant has a subfolder |
 | Debug identity | Selected shared key, independently of caches; see [debug signing](#shared-debug-signing) |
-
-A writable shared root can contain another account's private `daemon/8.7` registry.
-Inspect the failing path with `namei -l`/`getfacl`; use your own writable cache rather
-than changing another account's permissions. To bypass automatic shared selection,
-choose a custom user home, e.g. `export GRADLE_USER_HOME="$HOME/.gradle-shiftreport"`.
-It needs its own accessible pinned distribution; a dependency snapshot does not
-contain wrapper distributions. No ordinary build needs `sudo`.
-
-Project caches/output are per account, not automatically per checkout. Give parallel
-checkouts distinct `--project-cache-dir` and `shiftreport.buildRoot` paths. Leave old
-shared `.gradle`/`app/build` directories untouched; other callers may still use them.
 
 ### Optional read-only dependency snapshot
 
@@ -114,44 +90,19 @@ builds and retain the old one until unused. Private dependencies require trusted
 
 ## Find the APK
 
-Successful assemble exports `Desktop/ShiftReport/<variant>/ShiftReport-v<version>-<variant>.apk`,
-using the selected Desktop above. Split/unsigned suffixes remain; the same
-version/variant may replace its previous copy. Original debug output defaults to:
+Assemble exports `Desktop/ShiftReport/<variant>/ShiftReport-v<version>-<variant>.apk` using the selected Desktop; split/unsigned suffixes remain and matching copies may be replaced. Release uses the same build root’s `app/outputs/apk/release/`. Compile-only creates no APK; stale exports prove nothing. Debug/release share app ID; signer still matters. Fallback opener: `xdg-open "$HOME/Desktop/ShiftReport"`; redirect with `-Pshiftreport.apkExportDir=/your/Desktop/ShiftReport`.
 
 ```text
 $HOME/.gradle/shiftreport-project-cache/build-output/app/outputs/apk/debug/app-debug.apk
 ```
 
-Release is under `app/outputs/apk/release/` of the same build root. Compile-only work
-creates no APK; an old Desktop copy after failure is not new output. Filenames do
-not change application ID or signer: debug/release currently share the app ID.
-Use your file manager, or `xdg-open "$HOME/Desktop/ShiftReport"` for the fallback
-Desktop. For redirected paths, supply `"-Pshiftreport.apkExportDir=/your/Desktop/ShiftReport"`.
-
 ## Shared debug signing
 
-Android normally creates each account's `~/.android/debug.keystore`; shared groups
-or caches do not align certificates. Updates need the same application ID and a
-compatible signer. [Official Android signing guidance](https://developer.android.com/studio/publish/app-signing).
-
-This checkout selects a protected copy of the existing `mhmmd` key through ignored
-`android/local.properties` (preserve its other settings):
+Accounts normally have separate `~/.android/debug.keystore`; caches/groups do not align certificates. This checkout uses the existing matching `mhmmd` key through ignored `android/local.properties` below. Nonblank `SHIFTREPORT_DEBUG_KEYSTORE` wins; paths may be absolute/Android-relative. Selected unreadable keys fail; absent selection uses normal per-account signing. Standard debug alias/passwords remain separate from release. Copy/backup the original key privately; never regenerate/overwrite it to fix updates. Current `.signing`: mhmmd:developer 2750, key 0640, inherited ACLs removed; trusted group/traversable parents required. Restart Studio after group/environment changes. Compare SHA-256 against installed APK. Existing certificates/mhmmd access passed; work login and its new build/update remain unverified. Reinstall can lose data. [Android signing](https://developer.android.com/studio/publish/app-signing).
 
 ```properties
 debug.keystore=.signing/debug.keystore
 ```
-
-A nonblank `SHIFTREPORT_DEBUG_KEYSTORE` overrides that property. Both accept absolute
-or Android-root-relative paths; selected missing/unreadable keys fail rather than
-silently changing identity. Without a selection, normal per-account signing applies.
-Standard Android debug alias/password defaults remain; production uses separate inputs.
-
-For another checkout/PC, copy the **existing matching key** once to a protected
-ignored location; never overwrite/regenerate it to repair an update. Keep a protected
-backup outside Git. Current `.signing` directory is `mhmmd:developer` mode 2750,
-key 0640, with inherited ACLs removed; `mhmmd`/`work` need active trusted-group
-membership and parent traversal. Restrict only the key location, not entire homes/caches.
-Restart Studio after environment/group changes. Read-only checks from `android/`:
 
 ```bash
 namei -l .signing/debug.keystore
@@ -161,16 +112,9 @@ keytool -list -keystore .signing/debug.keystore -alias androiddebugkey -storepas
 /path/to/sdk/build-tools/VERSION/apksigner verify --print-certs /path/to/app-debug.apk
 ```
 
-Compare SHA-256 certificates with the original installed build's APK. Existing local
-APKs match the selected key; `mhmmd` access passed. `work` membership/path checks
-passed, but its login-level check requires authentication and remains unverified,
-as does a new build/device update. Clean/cache deletion/version changes cannot
-repair different signers; recover the installed signer before any data-losing reinstall.
-
 ## Production release signing
 
-Release has no debug-key fallback. Supply a private production key through ignored
-`android/keystore.properties` or environment (nonblank environment takes precedence):
+No debug fallback. Protected `android/keystore.properties` or nonblank environment inputs below; paths absolute/Android-relative. Keep secrets outside Git/logs/history in private local/CI storage. No production key/artifact verified. Different-signer distribution requires an owner decision; debug signing is unsuitable.
 
 | Property | Environment |
 |---|---|
@@ -179,25 +123,9 @@ Release has no debug-key fallback. Supply a private production key through ignor
 | `keyAlias` | `SHIFTREPORT_KEY_ALIAS` |
 | `keyPassword` | `SHIFTREPORT_KEY_PASSWORD` |
 
-Paths are absolute or relative to `android/`. Keep key/configuration/passwords out
-of Git, logs and command histories; use protected local/CI secret storage. No
-production key/artifact is verified. Missing inputs do not produce a distributable
-signed release. Updating installations with another certificate requires the owner's
-deliberate distribution decision; a debug key is unsuitable for production.
-
 ## Automatic app patch and version-code increments
 
-The POSIX launcher recognizes normal assemble/build/bundle/package/export task names,
-including `:app:` prefixes. Each packaging **invocation** atomically reserves one
-patch/code pair in [app-version.properties](../../android/gradle/app-version.properties)
-using [next_app_version.py](../../android/gradle/next_app_version.py). Both variants in
-one invocation share it; failures/cancellation consume it. Do not reset gaps.
-The helper locks the parent directory and atomically replaces metadata, avoiding a
-private account-owned lock file; concurrent callers receive their own reserved pair.
-
-Version names use `major.minor.patch.YYYYMMDD` with the build-start date in
-Asia/Damascus from the timezone database; major/minor remain, patch/code increase.
-Debug adds `-debug`. New flavor task names would need launcher recognition.
+POSIX packaging invocations (assemble/build/bundle/package/export, including `:app:`) reserve one patch/code pair atomically through [counter](../../android/gradle/app-version.properties)/[helper](../../android/gradle/next_app_version.py). Both variants share it; failures/cancellation consume it. Parent-directory lock plus atomic replace avoids private lockfiles. Format `major.minor.patch.YYYYMMDD`, build-start Asia/Damascus date; debug adds `-debug`. Preserve gaps; new flavor names need recognition. Synchronize tracked counters across PCs before packaging; offline checkouts cannot guarantee globally unique codes. No auto-commit; counter changes may invalidate configuration cache.
 
 | Control | Effect |
 |---|---|
@@ -205,31 +133,13 @@ Debug adds `-debug`. New flavor task names would need launcher recognition.
 | Both `-Pshiftreport.versionCode=N` and `-Pshiftreport.versionName=X.Y.Z.YYYYMMDD` | Explicit owner-managed pair; no counter advance; supplying only one fails |
 | Help/version/listing, `--dry-run` / `-m` | No reservation |
 
-Synchronize the tracked counter across PCs/checkouts before packaging; independent
-offline copies cannot coordinate globally unique codes. Builds do not auto-commit.
-Changed version properties can normally invalidate the configuration cache.
-
 ## Overrides and Android Studio
 
-Studio/direct Gradle and Windows `gradlew.bat` do not execute POSIX launcher defaults
-or reserve versions; they use the recorded counter. Configure their JDK/user home,
-seed environment and output properties separately. Without `shiftreport.buildRoot`,
-standard `build/` paths apply. App assemble/export tasks still copy APKs, defaulting
-to Java user-home `Desktop/ShiftReport`; only the POSIX launcher discovers XDG Desktop.
+Studio/direct Gradle/Windows `gradlew.bat` bypass POSIX defaults/reservation and use recorded versions. Configure JDK/home/cache/output separately. Without `shiftreport.buildRoot`, normal `build/` applies. Assemble/export still copies APKs to Java user-home `Desktop/ShiftReport`; XDG discovery is POSIX-only.
 
 ## Reuse these preferences in future Android projects and PCs
 
-Carry the [launcher](../../android/gradlew), [root build mapping](../../android/build.gradle.kts),
-[app version/signing/artifact export](../../android/app/build.gradle.kts), counter/helper
-and [pinned wrapper settings](../../android/gradle/wrapper/gradle-wrapper.properties)
-together. Keep custom blocks when regenerating a wrapper. Adapt the project slug,
-property prefix, cache/output/export paths and APK prefix; isolate concurrent checkouts.
-Preserve the destination project's app identity, version format, toolchain and signing.
-
-Preflight Python/Java/SDK/pinned distribution, group access and Desktop on a new PC;
-`/opt/android-shared` is optional. Transfer the current counter and protected matching
-key separately; never copy whole private caches or connection secrets. Packaging,
-installation and distribution still require their own authorization.
+Carry [launcher](../../android/gradlew), [root output mapping](../../android/build.gradle.kts), [signing/export](../../android/app/build.gradle.kts), counter/helper and [wrapper pin](../../android/gradle/wrapper/gradle-wrapper.properties) together; retain custom blocks after wrapper regeneration. Adapt slug/property/path/APK prefixes and isolate checkouts while preserving destination identity/version/toolchain/signing. Preflight Python/Java/SDK/distribution/group/Desktop; shared root optional. Transfer matching key/counter separately, never private caches/secrets. Packaging/install/distribution need appropriate authorization.
 
 ## Problems and fixes
 
@@ -244,6 +154,4 @@ installation and distribution still require their own authorization.
 | KSP reflection/lookup-cache failure | Follow [targeted KSP diagnostics](android-troubleshooting.md#ksp-cannot-access-filteroutputstreamout) |
 | Signature mismatch | Compare installed/new certificates; use the original matching key |
 
-Historical permission/import/Material opt-in/export failures were corrected; they
-are not an active checklist. Successful-build evidence and subsequent unverified
-changes have one home: [Current state](../status/current-state.md#verification-and-limits).
+Historical permission/import/Material opt-in/export failures were corrected; they are not an active checklist. Successful-build evidence and subsequent unverified changes have one home: [Current state](../status/current-state.md#verification-and-limits).
