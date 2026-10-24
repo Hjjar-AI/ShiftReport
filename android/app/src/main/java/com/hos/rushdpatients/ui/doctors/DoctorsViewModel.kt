@@ -81,7 +81,7 @@ class DoctorsViewModel @Inject constructor(
 
     fun addDoctor(input: DoctorEditInput, onSuccess: () -> Unit = {}) {
         if (_state.value.saving || _state.value.importing) return
-        _state.update { it.copy(saving = true) }
+        _state.update { it.copy(saving = true, operationIssue = null) }
         viewModelScope.launch {
             try {
                 doctorMutations.add(input)
@@ -101,7 +101,7 @@ class DoctorsViewModel @Inject constructor(
         onSuccess: () -> Unit = {}
     ) {
         if (_state.value.saving || _state.value.importing) return
-        _state.update { it.copy(saving = true) }
+        _state.update { it.copy(saving = true, operationIssue = null) }
         viewModelScope.launch {
             try {
                 doctorMutations.edit(expected, input)
@@ -128,7 +128,7 @@ class DoctorsViewModel @Inject constructor(
 
     fun saveTeams(expected: List<Doctor>, assignments: Map<String, String?>, onSuccess: () -> Unit) {
         if (_state.value.saving || _state.value.importing) return
-        _state.update { it.copy(saving = true) }
+        _state.update { it.copy(saving = true, operationIssue = null) }
         viewModelScope.launch {
             try {
                 doctorMutations.updateTeams(expected, assignments)
@@ -141,7 +141,7 @@ class DoctorsViewModel @Inject constructor(
 
     fun deleteDoctor(expected: Doctor, onSuccess: () -> Unit = {}) {
         if (_state.value.saving || _state.value.importing) return
-        _state.update { it.copy(saving = true) }
+        _state.update { it.copy(saving = true, operationIssue = null) }
         viewModelScope.launch {
             try {
                 doctorMutations.delete(expected)
@@ -161,7 +161,7 @@ class DoctorsViewModel @Inject constructor(
 
     private fun registryOperation(publish: Boolean, expected: List<Doctor>? = null) {
         if (_state.value.saving || _state.value.importing || _state.value.exporting) return
-        _state.update { it.copy(saving = true) }
+        _state.update { it.copy(saving = true, operationIssue = null) }
         viewModelScope.launch {
             try {
                 adminAuthorizer.requireAdmin()
@@ -171,12 +171,15 @@ class DoctorsViewModel @Inject constructor(
                     }
                     syncService.uploadDoctors(reviewed).getOrThrow()
                 } else syncService.refreshDoctorsFromRemote().getOrThrow()
-                _state.update { it.copy(snackbar = if (publish) uiText(R.string.ui_doctors_view_model_010) else uiText(R.string.ui_doctors_view_model_011)) }
+                _state.update { it.copy(operationIssue = null, lastLocalOperation = null,
+                    snackbar = if (publish) uiText(R.string.ui_doctors_view_model_010) else uiText(R.string.ui_doctors_view_model_011)) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_doctors_view_model_012)) } }
+            catch (e: Exception) { _state.update { it.copy(operationIssue = e.message ?: uiText(R.string.ui_doctors_view_model_012)) } }
             finally { _state.update { it.copy(saving = false) } }
         }
     }
+
+    fun dismissOperationIssue() = _state.update { it.copy(operationIssue = null) }
 
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
 
@@ -370,12 +373,13 @@ class DoctorsViewModel @Inject constructor(
     }
 
     private fun finishLocally(localMessage: String, onSuccess: () -> Unit) {
-        _state.update { it.copy(saving = false, snackbar = uiText(R.string.ui_doctors_view_model_026, localMessage)) }
+        _state.update { it.copy(saving = false, operationIssue = null, lastLocalOperation = localMessage,
+            snackbar = uiText(R.string.ui_doctors_view_model_026, localMessage)) }
         onSuccess()
     }
 
     private fun fail(message: String) {
-        _state.update { it.copy(saving = false, snackbar = message) }
+        _state.update { it.copy(saving = false, operationIssue = message, snackbar = null) }
     }
 
     private suspend fun uploadRegistry(): Result<Unit> {

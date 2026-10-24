@@ -118,6 +118,8 @@ fun DoctorsScreen(
             .thenBy { it.fullName }
     )
 
+    LaunchedEffect(showAdd, editTarget?.id, deleteTarget?.id) { viewModel.dismissOperationIssue() }
+
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
             snackbar.showSnackbar(it)
@@ -165,10 +167,19 @@ fun DoctorsScreen(
                         }, size = com.hos.rushdpatients.ui.components.AppLoadingSize.SECTION)
                     }
                     item {
+                        state.operationIssue?.let { issue ->
+                            com.hos.rushdpatients.ui.components.AppNotice(issue,
+                                kind = com.hos.rushdpatients.ui.components.NoticeKind.ERROR)
+                        }
                         state.pendingRegistrySummary?.let { summary ->
-                            com.hos.rushdpatients.ui.components.AppNotice(uiText(R.string.ui_doctors_screen_007),
-                                actionLabel = if (pendingDetails) uiText(R.string.ui_doctors_screen_008) else uiText(R.string.ui_doctors_screen_009),
-                                onAction = { pendingDetails = !pendingDetails })
+                            com.hos.rushdpatients.ui.components.AppNotice(
+                                listOfNotNull(state.lastLocalOperation, uiText(R.string.ui_doctors_screen_007)).joinToString("\n"),
+                                actionLabel = uiText(R.string.ui_recovery_review_registry),
+                                onAction = { registryReview = state.doctors.toList(); registryAction = "publish" },
+                                actionEnabled = !busy)
+                            AppTextButton(onClick = { pendingDetails = !pendingDetails }) {
+                                Text(uiText(if (pendingDetails) R.string.ui_doctors_screen_008 else R.string.ui_doctors_screen_009))
+                            }
                             if (pendingDetails) Text(summary, style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -200,15 +211,15 @@ fun DoctorsScreen(
                                     Icon(AppIcons.FolderOpen, contentDescription = null)
                                     Text(uiText(R.string.ui_doctors_screen_015), Modifier.padding(start = UiSpacing.small))
                                 }
+                                AppOutlinedButton(onClick = { registryAction = "fetch" },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = !busy && state.pendingRegistrySummary == null) {
+                                    Text(uiText(R.string.ui_doctors_screen_005))
+                                }
                                 com.hos.rushdpatients.ui.components.AppSectionHeader(
                                     title = uiText(R.string.ui_doctors_secondary_tools), expanded = transferExpanded,
                                     onToggle = { transferExpanded = !transferExpanded })
                                 if (transferExpanded) {
-                                    AppOutlinedButton(onClick = { registryAction = "fetch" },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        enabled = !busy && state.pendingRegistrySummary == null) {
-                                        Text(uiText(R.string.ui_doctors_screen_005))
-                                    }
                                     AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy,
                                         modifier = Modifier.fillMaxWidth()) {
                                         Text(uiText(R.string.ui_team_management_dialog_002))
@@ -254,6 +265,7 @@ fun DoctorsScreen(
             existing = null,
             saving = state.saving,
             doctors = state.doctors,
+            operationIssue = state.operationIssue,
             onConfirm = { _, input, _ ->
                 viewModel.addDoctor(input) { showAdd = false }
             },
@@ -266,6 +278,7 @@ fun DoctorsScreen(
             existing = d,
             saving = state.saving,
             doctors = state.doctors,
+            operationIssue = state.operationIssue,
             onConfirm = { expected, input, onStale ->
                 if (expected != null) viewModel.editDoctor(expected, input, onStale) { editTarget = null }
             },
@@ -276,7 +289,7 @@ fun DoctorsScreen(
     deleteTarget?.let { d ->
         ConfirmDialog(
             title = uiText(R.string.ui_doctors_screen_021),
-            message = uiText(R.string.ui_doctors_screen_022, d.fullName),
+            message = listOfNotNull(uiText(R.string.ui_doctors_screen_022, d.fullName), state.operationIssue).joinToString("\n"),
             confirmText = uiText(R.string.ui_doctors_screen_023),
             destructive = true,
             onConfirm = {

@@ -189,6 +189,19 @@ internal class WardShiftOperations(
         }
     }
 
+    private fun showDownloadIssue(error: Throwable, retry: WardRetryAction) {
+        val recovery = when (error) {
+            is com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired ->
+                if (error.action == com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH)
+                    WardSyncRecovery.PUBLISH_DOCTORS else WardSyncRecovery.FETCH_DOCTORS
+            is com.hos.rushdpatients.sync.LocalPatientChangesPendingException -> WardSyncRecovery.PUBLISH_PATIENTS
+            else -> null
+        }
+        _state.update { it.copy(syncing = false, snackbar = null,
+            syncIssue = error.message ?: uiText(R.string.ui_ward_shift_operations_024),
+            syncRecovery = recovery, retryAction = retry) }
+    }
+
     private fun fetchRemoteData(previous: Boolean) {
         if (_state.value.syncing) return
         val retry = if (previous) WardRetryAction.FETCH_PREVIOUS
@@ -196,7 +209,8 @@ internal class WardShiftOperations(
         if (!NetworkStatus.isOnline(context)) {
             _state.update {
                 it.copy(
-                    snackbar = uiText(R.string.ui_ward_shift_operations_018),
+                    snackbar = null,
+                    syncIssue = uiText(R.string.ui_ward_shift_operations_018), syncRecovery = null,
                     retryAction = retry
                 )
             }
@@ -205,7 +219,7 @@ internal class WardShiftOperations(
         _state.update {
             it.copy(
                 syncing = true,
-                snackbar = null,
+                snackbar = null, syncIssue = null, syncRecovery = null,
                 retryAction = null
             )
         }
@@ -213,14 +227,8 @@ internal class WardShiftOperations(
             // Refresh the complete registry; pending local changes require explicit handling.
             val doctorsResult = syncService.refreshDoctorsFromRemote()
             if (doctorsResult.isFailure) {
-                _state.update {
-                    it.copy(
-                        syncing = false,
-                        snackbar = doctorsResult.exceptionOrNull()?.message
-                            ?: uiText(R.string.ui_ward_shift_operations_019),
-                        retryAction = retry
-                    )
-                }
+                showDownloadIssue(doctorsResult.exceptionOrNull()
+                    ?: IllegalStateException(uiText(R.string.ui_ward_shift_operations_019)), retry)
                 return@launch
             }
 
@@ -240,16 +248,7 @@ internal class WardShiftOperations(
                         retryAction = null
                     )
                 }
-            }.onFailure { error ->
-                _state.update {
-                    val message = error.message ?: uiText(R.string.ui_ward_shift_operations_024)
-                    it.copy(
-                        syncing = false,
-                        snackbar = message,
-                        retryAction = retry
-                    )
-                }
-            }
+            }.onFailure { error -> showDownloadIssue(error, retry) }
         }
     }
 

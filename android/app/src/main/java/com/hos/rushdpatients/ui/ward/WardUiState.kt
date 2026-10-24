@@ -35,6 +35,8 @@ enum class PatientSyncStatus(@StringRes private val arabicLabelRes: Int) {
     fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }
 
+enum class WardSyncRecovery { PUBLISH_DOCTORS, FETCH_DOCTORS, PUBLISH_PATIENTS }
+
 enum class WardRetryAction { FETCH_LATEST, FETCH_PREVIOUS, EXPORT_CSV }
 
 data class WardUiState(
@@ -71,7 +73,9 @@ data class WardUiState(
     val lastOperation: String? = null,
     val retryAction: WardRetryAction? = null,
     val error: String? = null,
-    val snackbar: String? = null
+    val snackbar: String? = null,
+    val syncIssue: String? = null,
+    val syncRecovery: WardSyncRecovery? = null
 ) {
     val syncStatus: PatientSyncStatus get() = synchronization.status(syncing)
     fun freshnessLabel(uiText: UiStrings): String = synchronization.description(uiText, syncing, shift?.csvMessageId)

@@ -178,6 +178,20 @@ class DoctorRepository @Inject constructor(
         DoctorTeams.remap(normalized, doctors.zip(normalized).associate { (source, target) -> source.id to target.id })
     }
 
+    /** Called only inside the authorized doctor-deletion transaction; historical rosters stay intact. */
+    internal suspend fun removeCurrentShiftAssignment(id: String): com.hos.rushdpatients.data.model.Shift? =
+        withContext(dispatchers.io) {
+            val shifts = database.shiftDao()
+            val shift = shifts.getByDate(ShiftDate.current().toEpochDay()) ?: return@withContext null
+            val ids = shift.doctorIdsCsv.split(',').filter(String::isNotBlank)
+            if (id !in ids) return@withContext null
+            val changed = shifts.updateDoctorIds(shift.id, ids.filterNot { it == id }.joinToString(","),
+                shift.revision, Instant.now().toEpochMilli())
+            if (changed != 1) throw StaleShiftEditException()
+            settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
+            com.hos.rushdpatients.data.mapper.ShiftMapper.fromEntity(shift)
+        }
+
     suspend fun requireNoClinicalReferences(id: String) = withContext(dispatchers.io) {
         require(patients.countActiveReferencesToDoctor(id) == 0) {
             "لا يمكن حذف طبيب مسؤول عن مرضى أو مهام معلقة؛ أعد الإسناد أولاً"

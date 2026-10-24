@@ -35,23 +35,12 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             val splash = com.hos.rushdpatients.ui.about.rememberLaunchSplashState()
-            if (splash.visible) {
-                RushdPatientsTheme(darkTheme = false) {
-                    AppSystemBars()
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        IntroAboutScreen(splash = true, onBack = splash::skip,
-                            remainingSeconds = splash.remainingSeconds, splashHeld = splash.held,
-                            onSplashHeldChange = splash::changeHold)
-                    }
-                }
-                return@setContent
-            }
             // Encrypted appearance preferences become readable only after this gate succeeds.
             RushdPatientsTheme(appearance = AppAppearance.SYSTEM) {
                 AppSystemBars()
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        com.hos.rushdpatients.ui.StorageAccessGate { AppContent() }
+                        com.hos.rushdpatients.ui.StorageAccessGate { AppContent(splash) }
                     }
                 }
             }
@@ -60,7 +49,7 @@ class MainActivity : FragmentActivity() {
 }
 
 @androidx.compose.runtime.Composable
-private fun MainActivity.AppContent() {
+private fun MainActivity.AppContent(splash: com.hos.rushdpatients.ui.about.LaunchSplashState) {
     val themeViewModel: ThemeViewModel = hiltViewModel()
     val themePreset by themeViewModel.preset.collectAsStateWithLifecycle()
     val appearance by themeViewModel.appearance.collectAsStateWithLifecycle()
@@ -88,8 +77,16 @@ private fun MainActivity.AppContent() {
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                WardAppRoot(activity = this@AppContent)
+                if (splash.visible) LaunchIntro(splash) else WardAppRoot(activity = this@AppContent)
             }
         }
     }
+}
+
+/** The launch deadline starts before storage loading; themed content shares that same state. */
+@androidx.compose.runtime.Composable
+private fun LaunchIntro(splash: com.hos.rushdpatients.ui.about.LaunchSplashState) {
+    IntroAboutScreen(splash = true, onBack = splash::skip,
+        remainingSeconds = splash.remainingSeconds, splashHeld = splash.held,
+        onSplashHeldChange = splash::changeHold)
 }

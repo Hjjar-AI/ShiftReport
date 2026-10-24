@@ -715,7 +715,7 @@
     <string name="ui_doctors_screen_004" formatted="false">"جار تحديث سجل الأطباء…"</string>
     <string name="ui_doctors_screen_005" formatted="false">"جلب سجل الأطباء"</string>
     <string name="ui_doctors_screen_006" formatted="false">"نشر سجل الأطباء"</string>
-    <string name="ui_doctors_screen_007" formatted="false">"سجل الأطباء محفوظ محلياً وينتظر النشر."</string>
+    <string name="ui_doctors_screen_007" formatted="false">"تعديلات الأطباء محفوظة على جهازك فقط. راجعها وانشر سجل الأطباء كي تظهر لبقية الفريق، ثم ارجع لجلب المرضى أو مراجعة التقرير."</string>
     <string name="ui_doctors_screen_008" formatted="false">"طي التعديلات"</string>
     <string name="ui_doctors_screen_009" formatted="false">"عرض التعديلات"</string>
     <string name="ui_doctors_screen_010" formatted="false">"البحث بالاسم أو معرف تليجرام"</string>
@@ -730,7 +730,7 @@
     <string name="ui_doctors_screen_019" formatted="false">"استورد سجل CSV أو أضف طبيباً جديداً"</string>
     <string name="ui_doctors_screen_020" formatted="false">"غيّر البحث أو مرشح الدور"</string>
     <string name="ui_doctors_screen_021" formatted="false">"حذف طبيب"</string>
-    <string name="ui_doctors_screen_022">"سيُحذف %1$s من سجل الأطباء بعد التحقق من الصلاحية."</string>
+    <string name="ui_doctors_screen_022">"سيُحذف %1$s ويُزال تلقائياً من أطباء المناوبة الحالية. المناوبات السابقة تبقى محفوظة. إذا كان مسؤولاً عن مرضى أو مهام غير مكتملة أو فريق، يلزم إعادة إسنادهم أولاً. الحذف محلي حتى نشر السجل والبيانات."</string>
     <string name="ui_doctors_screen_023" formatted="false">"حذف الطبيب"</string>
     <string name="ui_doctors_screen_024" formatted="false">"استيراد سجل الأطباء"</string>
     <string name="ui_doctors_screen_025" formatted="false">"جار قراءة السجل أو حفظ الاستيراد ونشره…"</string>
@@ -1125,7 +1125,7 @@
     <string name="ui_doctors_view_model_023" formatted="false">"تعذر استيراد سجل الأطباء"</string>
     <string name="ui_doctors_view_model_024" formatted="false">"تعذر فتح ملف الاستيراد"</string>
     <string name="ui_doctors_view_model_025" formatted="false">"ملف الأطباء أكبر من الحد المسموح"</string>
-    <string name="ui_doctors_view_model_026">"%1$s على الجهاز؛ اختر «نشر سجل الأطباء» لمشاركته"</string>
+    <string name="ui_doctors_view_model_026">"%1$s على هذا الجهاز. زر المراجعة والنشر ظاهر أعلى سجل الأطباء."</string>
     <string name="ui_add_edit_doctor_dialog_021" formatted="false">"غير متاح"</string>
     <string name="ui_add_edit_doctor_dialog_022">"مدير دائم؛ رتبة %1$s"</string>
     <string name="ui_add_edit_doctor_dialog_023">"مدير؛ رتبة %1$s"</string>
@@ -1333,4 +1333,13 @@
     <string name="ui_setup_replace_pin_confirm">إنشاء مشروع جديد رغم وجود التثبيت</string>
     <string name="ui_setup_pin_review_changed">تغيرت إعدادات المشروع بعد المراجعة؛ أعد التحقق وأكّد بدء المشروع الجديد.</string>
     <string name="ui_setup_existing_local_project">هذا الجهاز متصل بمشروع قائم؛ لا يمكن استبدال إعداداته من شاشة إنشاء مشروع جديد.</string>
+    <string name="ui_recovery_doctors_publish">تعديلات الأطباء لم تُنشر. افتح سجل الأطباء، راجعها وانشرها، ثم ارجع وأعد المحاولة. بيانات المرضى محفوظة.</string>
+    <string name="ui_recovery_doctors_fetch">نسخة الأطباء على الجهاز تحتاج تحديثاً. اجلب سجل الأطباء، ثم ارجع وأعد مراجعة بيانات المرضى أو التقرير.</string>
+    <string name="ui_recovery_patients_publish">تعديلات المرضى لم تُنشر. راجع التقرير وانشر بيانات المرضى، ثم أعد الجلب. تعديلاتك محفوظة.</string>
+    <string name="ui_recovery_open_doctors">فتح سجل الأطباء للمعالجة</string>
+    <string name="ui_recovery_review_patients">مراجعة التقرير ونشر البيانات</string>
+    <string name="ui_recovery_review_registry">مراجعة ونشر سجل الأطباء</string>
+    <string name="ui_recovery_retry_after_fix">إعادة الجلب بعد المعالجة</string>
+    <string name="ui_recovery_reload_report">تحديث التقرير بعد معالجة سجل الأطباء</string>
+    <string name="ui_recovery_ask_admin">اطلب من مدير المشروع معالجة سجل الأطباء، ثم أعد المحاولة.</string>
 </resources>

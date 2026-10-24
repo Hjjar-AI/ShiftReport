@@ -83,13 +83,8 @@ internal class PatientRetrievalCoordinator(
         withContext(dispatchers.io) {
             try {
                 if (!previous) {
-                    require(
-                        !settingsRepository.getBoolean(
-                            AppConstants.SETTING_PATIENTS_SYNC_PENDING,
-                            false
-                        )
-                    ) {
-                        "توجد تعديلات محلية غير منشورة؛ ارفعها أولاً كي لا تُستبدل بأحدث نسخة"
+                    if (settingsRepository.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)) {
+                        throw LocalPatientChangesPendingException()
                     }
                 }
                 val state = remoteState.readState()

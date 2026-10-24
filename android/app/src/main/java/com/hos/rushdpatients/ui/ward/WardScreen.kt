@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppTextButton
+
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.AppSheet
 import com.hos.rushdpatients.ui.components.AppIcons
@@ -412,6 +414,33 @@ private fun WardWorkspaceContent(
         Scaffold(
             topBar = {
                 Column {
+                    state.syncIssue?.let { issue ->
+                        val recovery = state.syncRecovery
+                        val doctorAction = recovery == WardSyncRecovery.PUBLISH_DOCTORS || recovery == WardSyncRecovery.FETCH_DOCTORS
+                        AppNotice(message = when (recovery) {
+                            WardSyncRecovery.PUBLISH_DOCTORS -> uiText(R.string.ui_recovery_doctors_publish)
+                            WardSyncRecovery.FETCH_DOCTORS -> uiText(R.string.ui_recovery_doctors_fetch)
+                            WardSyncRecovery.PUBLISH_PATIENTS -> uiText(R.string.ui_recovery_patients_publish)
+                            null -> issue
+                        } + if (doctorAction && !isAdmin) "\n" + uiText(R.string.ui_recovery_ask_admin) else "",
+                            kind = NoticeKind.WARNING,
+                            actionLabel = when {
+                                doctorAction && isAdmin -> uiText(R.string.ui_recovery_open_doctors)
+                                recovery == WardSyncRecovery.PUBLISH_PATIENTS -> uiText(R.string.ui_recovery_review_patients)
+                                recovery == null && state.retryAction != null -> uiText(R.string.ui_retry)
+                                else -> null
+                            },
+                            onAction = when {
+                                doctorAction && isAdmin -> navigation.onOpenDoctors
+                                recovery == WardSyncRecovery.PUBLISH_PATIENTS -> ({ state.shift?.id?.let(onOpenReport); Unit })
+                                recovery == null && state.retryAction != null -> viewModel::retryLastAction
+                                else -> null
+                            }, actionEnabled = !state.syncing && !state.saving)
+                        if (recovery != null) AppTextButton(onClick = viewModel::retryLastAction,
+                            enabled = !state.syncing && !state.saving) {
+                            Text(uiText(R.string.ui_recovery_retry_after_fix))
+                        }
+                    }
                 WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
                     onMenu = { scope.launch { drawerState.open() } }, onToggleCards = ::toggleAllCards,
                     showAddAction = !showAddFloatingAction,

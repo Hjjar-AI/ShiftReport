@@ -58,6 +58,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     val navigation = WardNavigation(
         onOpenReport = { navigate(DemoDestination.REPORT) },
         onOpenAdmin = { navigate(DemoDestination.TEAM) },
+        onOpenDoctors = { navigate(DemoDestination.TEAM) },
         onOpenSettings = { navigate(DemoDestination.SETTINGS) },
         onOpenAbout = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
         onOpenProject = { viewModel.message(uiText(R.string.ui_demo_local_only)) },

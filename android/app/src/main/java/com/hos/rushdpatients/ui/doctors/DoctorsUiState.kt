@@ -24,5 +24,7 @@ data class DoctorsUiState(
     val importPreview: DoctorImportPreview? = null,
     val importError: String? = null,
     val error: String? = null,
-    val snackbar: String? = null
+    val snackbar: String? = null,
+    val operationIssue: String? = null,
+    val lastLocalOperation: String? = null
 )

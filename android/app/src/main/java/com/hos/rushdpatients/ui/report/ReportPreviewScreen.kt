@@ -300,7 +300,11 @@ fun ReportPreviewScreen(
                 }
                 state.error?.let { err ->
                     AppSection(title = uiText(R.string.ui_report_preview_screen_036)) {
-                        AppNotice(err, kind = NoticeKind.ERROR,
+                        AppNotice(when (state.doctorRegistryAction) {
+                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH -> uiText(R.string.ui_recovery_doctors_publish)
+                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.FETCH -> uiText(R.string.ui_recovery_doctors_fetch)
+                            null -> err
+                        }, kind = NoticeKind.ERROR,
                             actionLabel = when (state.retryAction) {
                                 ReportRetryAction.PREVIEW -> uiText(R.string.ui_report_preview_screen_037)
                                 ReportRetryAction.SEND -> uiText(R.string.ui_report_preview_screen_038)
@@ -326,6 +330,10 @@ fun ReportPreviewScreen(
                                 else AppNotice(uiText(R.string.ui_report_preview_screen_044))
                             }
                             null -> Unit
+                        }
+                        if (state.doctorRegistryAction == com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH) {
+                            AppOutlinedButton(onClick = { viewModel.load() }, enabled = !busy,
+                                modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_recovery_reload_report)) }
                         }
                     }
                 }

@@ -282,8 +282,15 @@ class DoctorMutationRepository @Inject constructor(
             val current = requireCurrent(expected)
             require(!current.isAdmin) { "أزل صلاحية المدير قبل حذف الطبيب" }
             DoctorTeams.validate(doctors.getAll().filterNot { it.id == current.id })
+            val previousShift = doctors.removeCurrentShiftAssignment(current.id)
+            // A clinical/team/authority failure rolls back roster removal with the deletion.
             doctors.requireNoClinicalReferences(current.id)
             doctors.softDelete(current.id)
+            previousShift?.let { shift ->
+                audit.record(actor.id, actor.fullName, "shift_doctors_edited", shift.id,
+                    beforeValue = shift.doctorIds.joinToString(","),
+                    afterValue = shift.doctorIds.filterNot { it == current.id }.joinToString(","))
+            }
             audit.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_DELETED, current.fullName)
         }
     }

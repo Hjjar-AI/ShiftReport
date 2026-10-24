@@ -38,6 +38,7 @@ fun WardNavHost(
                     navController.navigate(Routes.reportPreview(shiftId))
                 },
                 onOpenAdmin = { navController.navigate(Routes.ADMIN) },
+                onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },

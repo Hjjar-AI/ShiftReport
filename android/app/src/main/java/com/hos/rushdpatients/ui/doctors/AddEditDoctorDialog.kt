@@ -59,7 +59,8 @@ fun AddEditDoctorDialog(
     onConfirm: (Doctor?, DoctorEditInput, (Doctor?) -> Unit) -> Unit,
     onDismiss: () -> Unit,
     saving: Boolean = false,
-    doctors: List<Doctor> = emptyList()
+    doctors: List<Doctor> = emptyList(),
+    operationIssue: String? = null
 ) {
     val uiText = rememberUiStrings()
     var baseline by remember(existing?.id) { mutableStateOf(existing) }
@@ -106,6 +107,10 @@ fun AddEditDoctorDialog(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
                 ) {
+                    operationIssue?.let {
+                        com.hos.rushdpatients.ui.components.AppNotice(it,
+                            kind = com.hos.rushdpatients.ui.components.NoticeKind.ERROR)
+                    }
                     if (rejectedInput != null) {
                         AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
                             Text(uiText(R.string.ui_edit_patient_dialog_004))
