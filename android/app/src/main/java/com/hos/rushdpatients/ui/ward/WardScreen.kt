@@ -163,7 +163,6 @@ private fun WardWorkspaceContent(
     var recentlyEditedId by remember { mutableStateOf<String?>(null) }
     var showSort by remember { mutableStateOf(false) }
     var confirmLatest by overlays::confirmLatest
-    var fetchReminderDismissed by rememberSaveable(state.shift?.id, currentDoctorId) { mutableStateOf(false) }
     var confirmPrevious by overlays::confirmPrevious
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var requestSearchFocus by remember { mutableStateOf(false) }
@@ -405,12 +404,6 @@ private fun WardWorkspaceContent(
             )
         }
     ) {
-        val fetchReminder: @Composable () -> Unit = {
-            if (viewModel.liveProject && !state.isReadOnly && !fetchReminderDismissed) PatientFetchReminder(
-                enabled = !state.syncing && !state.saving,
-                onFetch = { confirmLatest = true },
-                onDismiss = { fetchReminderDismissed = true })
-        }
         Scaffold(
             topBar = {
                 Column {
@@ -461,6 +454,13 @@ private fun WardWorkspaceContent(
                             WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
                         }
                     })
+                if (viewModel.liveProject && patientDestination) WardTransferBar(
+                    fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
+                        editor.dialog == null && detailsTargetId == null && !confirmLatest,
+                    reportEnabled = state.shift != null && !state.loading && !state.syncing && !state.saving &&
+                        editor.dialog == null && detailsTargetId == null,
+                    onFetch = { confirmLatest = true },
+                    onReport = { state.shift?.id?.let(onOpenReport) })
                 if (!viewModel.liveProject) AppNotice(uiText(R.string.ui_demo_navigation_001),
                     kind = NoticeKind.WARNING, icon = AppIcons.Info,
                     modifier = Modifier.fillMaxWidth().padding(UiPadding.screen))
@@ -543,18 +543,13 @@ private fun WardWorkspaceContent(
                         Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
                             if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) detailContent(true)
                             else WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                                showSynchronization = viewModel.liveProject, onOpenSyncCenter = onOpenDataManagement, onReviewReport = { state.shift?.id?.let(onOpenReport) },
+                                showSynchronization = viewModel.liveProject, onOpenSyncCenter = onOpenDataManagement,
                                 onActivity = { viewMode = WardViewMode.ACTIVITY })
                         }
                     },
                     compactOverlay = { if (patientDestination) detailContent(false) },
                     primary = { dualPane ->
-                    WardPullToFetch(
-                        enabled = viewModel.liveProject && patientDestination && !state.loading && state.error == null &&
-                            !state.isReadOnly && !state.saving && !state.syncing && !confirmLatest &&
-                            detailsTargetId == null && editor.dialog == null,
-                        onRequest = { confirmLatest = true }
-                    ) {
+                    Box(Modifier.fillMaxSize()) {
                         if (state.loading) {
                             com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_ward_screen_006), Modifier.align(Alignment.Center))
                         } else if (state.error != null) {
@@ -597,11 +592,9 @@ private fun WardWorkspaceContent(
                                 busy = state.syncing || state.saving, canCopy = state.shift != null,
                                 showSources = viewModel.liveProject,
                                 bottomClearance = scrollBottomClearance,
-                                onAdd = { editor.openAdd(state.patients, state.shift?.revision) }, onFetch = { confirmLatest = true },
+                                onAdd = { editor.openAdd(state.patients, state.shift?.revision) },
                                 onCopyPrevious = viewModel::offerPreviousShift,
-                                topContent = {
-                                    fetchReminder()
-                                })
+                                topContent = {})
                         } else {
                             WardPatientGrid(state, visiblePatients, dualPane, patientGridState,
                                 scrollBottomClearance, pinnedPatientIds, collapsedGroups,
@@ -626,20 +619,7 @@ private fun WardWorkspaceContent(
                                         }
                                     }
                                 },
-                                headerContent = {
-                                    Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                                                            fetchReminder()
-                                                                            if (viewModel.liveProject && !state.deliveryLogUnavailable && state.unresolvedDeliveries == 0) {
-                                                                                WardWorkflowStrip(state, onNext = {
-                                                                                    when (state.workflowAction) {
-                                                                                        WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
-                                                                                        WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
-                                                                                        WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
-                                                                                    }
-                                                                                })
-                                                                            }
-                                                                        }
-                                }, patientCard = { patient, cardModifier ->
+                                headerContent = {}, patientCard = { patient, cardModifier ->
                                     PatientCard(
         modifier = cardModifier,
         state = PatientCardState(patient = patient,
@@ -698,7 +678,7 @@ private fun WardWorkspaceContent(
                 listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                 modifier = Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight), primary = {
                 WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                    showSynchronization = viewModel.liveProject, onOpenSyncCenter = { showSupportingSheet = false; onOpenDataManagement() }, onReviewReport = { showSupportingSheet = false; state.shift?.id?.let(onOpenReport) },
+                    showSynchronization = viewModel.liveProject, onOpenSyncCenter = { showSupportingSheet = false; onOpenDataManagement() },
                     onActivity = { showSupportingSheet = false; viewMode = WardViewMode.ACTIVITY },
                     modifier = Modifier.fillMaxSize())
             })

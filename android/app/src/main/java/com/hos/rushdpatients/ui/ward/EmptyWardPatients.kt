@@ -22,7 +22,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 /** One manual-entry action, then clearly explained sources; mutations stay caller-owned. */
 @Composable
 internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Boolean,
-    bottomClearance: Dp, onAdd: () -> Unit, onFetch: () -> Unit, onCopyPrevious: () -> Unit,
+    bottomClearance: Dp, onAdd: () -> Unit, onCopyPrevious: () -> Unit,
     showSources: Boolean = true, topContent: @Composable () -> Unit = {}) {
     val uiText = rememberUiStrings()
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -45,9 +45,6 @@ internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Bool
                 Text(uiText(R.string.ui_empty_ward_patients_007), modifier = Modifier.fillMaxWidth()
                     .padding(top = UiSpacing.screen).semantics { heading() },
                     style = MaterialTheme.typography.titleSmall)
-                AppDestinationCard(title = uiText(R.string.ui_empty_ward_patients_008), icon = AppIcons.CloudDownload,
-                        summary = uiText(R.string.ui_empty_ward_patients_009),
-                        enabled = !busy, onClick = onFetch)
                 AppDestinationCard(title = uiText(R.string.ui_empty_ward_patients_010), icon = AppIcons.History,
                         summary = uiText(R.string.ui_empty_ward_patients_011),
                         enabled = !busy && canCopy, onClick = onCopyPrevious)

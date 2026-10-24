@@ -8,7 +8,6 @@ import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.ui.components.AppButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +30,6 @@ internal fun WardSupportingPane(
     freshnessLabel: String,
     online: Boolean,
     isAdmin: Boolean,
-    onReviewReport: () -> Unit,
     onActivity: () -> Unit,
     showSynchronization: Boolean = true,
     onOpenSyncCenter: (() -> Unit)? = null,
@@ -47,9 +45,6 @@ internal fun WardSupportingPane(
         if (showSynchronization) PatientSyncNotice(state.syncStatus, freshnessLabel, online, onDetails = onOpenSyncCenter)
         if (warnings.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_002))
         warnings.forEach { AppNotice(it, kind = NoticeKind.WARNING) }
-        AppButton(onClick = onReviewReport, enabled = state.shift != null, modifier = Modifier.fillMaxWidth()) {
-            Text(uiText(R.string.ui_ward_supporting_pane_003))
-        }
         if (isAdmin) {
             AppDivider()
             Text(uiText(R.string.ui_ward_supporting_pane_004), style = MaterialTheme.typography.titleMedium,

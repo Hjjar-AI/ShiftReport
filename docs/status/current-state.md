@@ -49,7 +49,7 @@ Settings search respects role visibility, searches names/descriptions, opens exi
 - Encrypted local profiles current/relaxed/quiet/clear, density/control size/reduced motion/compact Add/header/dock choices; demo temporary. Appearance/accent/PDF separate. Bundled Tajawal400/500/700, small labels13/20sp, combined scale0.92–2.0.
 - Sticky unpadded 48dp-growing filter row, counts/RTL hints/options/reset; expandable search, full filter context, visible UNKNOWN/read-only and accessible fetch advice.
 - Cards: age/sex/tasks/severity stripes, stable grid/content types, shared motion; bulk/reduced motion immediate. Dock translation preserves clearance; upward/boundary scrolling restores, touch exploration keeps visible. Rail ≥600×480dp.
-- Adaptive dashboard; one minute clock for tasks/overdue. IME settling before visibility adjustment. Deliberate pull opens confirmation only; demo/read-only/busy/editor/details disable it. No gesture automatically fetches/publishes.
+- Adaptive dashboard; one minute clock for tasks/overdue. IME settling before visibility adjustment. Patient screens retain a compact, non-dismissible header bar with «جلب أحدث البيانات» and «إرسال التقرير», shared long-press guidance and 48dp wrapping targets. Both require long press/haptic feedback; Fetch opens confirmation and Report opens the existing review/final-confirmation flow. Busy/editor/details guards remain; read-only wards disable fetch. Routine review/publish strip, supporting-pane review shortcut, duplicate empty-ward fetch card and pull-to-refresh are removed. Delivery-uncertainty/recovery notices remain visible. Latest bar/removal changes are source/XML/diff checked only; no compile/device run.
 
 ## Reports and exports
 

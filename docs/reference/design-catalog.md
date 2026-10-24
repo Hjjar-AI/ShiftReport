@@ -33,7 +33,7 @@ UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common a
 | Content widths | General 720; patient form 840; empty ward 520; dock 480; rail 80dp. |
 | Adaptive thresholds | Fields/grid 360; card columns 440; toolbar actions 240; metric pair 280dp. Fields/toolbar/metrics account for font scale. |
 | Panes | Split width 760; primary/support minima 320/360; fold width/height 360/360 and clearance 8dp. Medium support ≥520×640, height 240dp. |
-| Rail / gestures | Rail window ≥600×480dp; pull threshold 72dp after damping; rounds swipe ≥64dp and 20% width. |
+| Rail / gestures | Rail window ≥600×480dp; patient transfer shortcuts require long press; rounds swipe ≥64dp and 20% width. |
 
 Keep purpose-specific tokens independent; whole-row controls own selection/toggle semantics, labels wrap. Severity differs from accent/density; diagnoses are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) is authoritative for layout/border/motion constants.
 
