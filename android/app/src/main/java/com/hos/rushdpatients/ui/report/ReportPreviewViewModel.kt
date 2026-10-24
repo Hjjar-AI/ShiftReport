@@ -229,9 +229,21 @@ class ReportPreviewViewModel @Inject constructor(
     }
 
     fun setReportAsPdf(value: Boolean) {
+        val current = _state.value
+        if (current.loading || current.sending || current.savingDoctors || current.previewingPdf ||
+            current.exportingLocalPdf || current.sharingPdf || current.savingPdfOptions) return
+        _state.update { it.copy(savingPdfOptions = true) }
         viewModelScope.launch {
-            settingsRepository.setReportAsPdf(value)
-            _state.update { it.copy(reportAsPdf = value) }
+            try {
+                settingsRepository.setReportAsPdf(value)
+                _state.update { it.copy(reportAsPdf = value) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_report_preview_view_model_010)) }
+            } finally {
+                _state.update { it.copy(savingPdfOptions = false) }
+            }
         }
     }
 
@@ -333,22 +345,27 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun sendSupervisorReports(supervisorIds: Set<String>, forceLocal: Boolean = false) {
+    fun sendSupervisorReports(supervisorIds: Set<String>, forceLocal: Boolean = false) =
+        sendSelectedReports(false, supervisorIds, forceLocal)
+
+    fun send(forceLocal: Boolean = false) = sendSelectedReports(true, emptySet(), forceLocal)
+
+    fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>, forceLocal: Boolean = false) {
         val current = _state.value
         val reviewed = reviewedReport ?: return
-        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
-            current.sharingPdf || current.shift == null) return
+        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf ||
+            current.exportingLocalPdf || current.sharingPdf || current.shift == null) return
         if (current.isReadOnly) {
             _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_011)) }
             return
         }
-        if (!NetworkStatus.isOnline(context)) {
-            _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_022), retryAction = null) }
+        val selected = current.supervisorTargets.filter { it.doctorId in supervisorIds && it.chatId != null }
+        if ((!includeGeneral && selected.isEmpty()) || selected.size != supervisorIds.size) {
+            _state.update { it.copy(error = uiText(R.string.ui_report_no_destination)) }
             return
         }
-        val selected = current.supervisorTargets.filter { it.doctorId in supervisorIds && it.chatId != null }
-        if (selected.isEmpty()) {
-            _state.update { it.copy(error = uiText(R.string.ui_report_preview_screen_004)) }
+        if (!NetworkStatus.isOnline(context)) {
+            _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_022), retryAction = ReportRetryAction.SEND) }
             return
         }
         _state.update { it.copy(sending = true, error = null, doctorRegistryAction = null, retryAction = null,
@@ -357,24 +374,33 @@ class ReportPreviewViewModel @Inject constructor(
             var delivered = 0
             try {
                 ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
+                // Check every selected route/artifact before publishing or sending any copy.
+                if (includeGeneral) {
+                    reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
+                    if (current.reportAsPdf) checkedPdf(reviewed)
+                }
                 for (target in selected) {
                     reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId))
                     checkedPdf(reviewed, target.doctorId)
                 }
                 val built = prepareReviewedReport(reviewed, forceLocal)
                 val actor = activeSendingActor()
-                val targets = buildSupervisorTargets(built).filter {
-                    it.doctorId in supervisorIds && it.chatId != null
+                val targets = buildSupervisorTargets(built).filter { it.doctorId in supervisorIds && it.chatId != null }
+                check(targets == selected) { uiText(R.string.ui_report_preview_view_model_023) }
+                if (includeGeneral) {
+                    _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
+                    if (current.reportAsPdf) sendPdf(built, actor) else sendText(built, actor)
+                    delivered++
                 }
-                check(targets.size == selected.size) { uiText(R.string.ui_report_preview_view_model_023) }
                 for (target in targets) {
                     _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
                     sendSupervisorPdf(built, target, actor)
                     delivered++
                 }
                 _state.update {
-                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = uiText(R.string.ui_report_preview_view_model_024, delivered),
-                        lastOperation = uiText(R.string.ui_report_preview_view_model_025), retryAction = null)
+                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED,
+                        snackbar = uiText(R.string.ui_report_destinations_delivered, delivered),
+                        lastOperation = uiText(R.string.ui_report_destinations_delivered, delivered), retryAction = null)
                 }
             } catch (e: ReportChangedSinceReviewException) {
                 recordSendFailure(e, delivered)
@@ -384,47 +410,6 @@ class ReportPreviewViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 recordSendFailure(e, delivered)
-                _state.update { it.copy(retryAction = null) }
-            }
-        }
-    }
-
-    fun send(forceLocal: Boolean = false) {
-        val current = _state.value
-        val reviewed = reviewedReport ?: return
-        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf || current.exportingLocalPdf ||
-            current.sharingPdf || current.shift == null) return
-        if (current.isReadOnly) {
-            _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_011)) }
-            return
-        }
-        if (!NetworkStatus.isOnline(context)) {
-            _state.update { it.copy(error = uiText(R.string.ui_ward_shift_operations_018), retryAction = ReportRetryAction.SEND) }
-            return
-        }
-        _state.update { it.copy(sending = true, error = null, doctorRegistryAction = null, retryAction = null,
-            publicationOutcome = ReportStepOutcome.NOT_STARTED, deliveryOutcome = ReportStepOutcome.NOT_STARTED) }
-        viewModelScope.launch {
-            try {
-                reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
-                ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
-                if (current.reportAsPdf) checkedPdf(reviewed)
-                val built = prepareReviewedReport(reviewed, forceLocal)
-                val actor = activeSendingActor()
-                _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
-                if (current.reportAsPdf) sendPdf(built, actor) else sendText(built, actor)
-                _state.update {
-                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED, snackbar = uiText(R.string.ui_report_preview_view_model_026),
-                        lastOperation = uiText(R.string.ui_report_preview_view_model_027), retryAction = null)
-                }
-            } catch (e: ReportChangedSinceReviewException) {
-                recordSendFailure(e)
-                reloadChangedReport(e)
-            } catch (e: CancellationException) {
-                recordSendFailure(e, cancelled = true)
-                throw e
-            } catch (e: Exception) {
-                recordSendFailure(e)
             }
         }
     }

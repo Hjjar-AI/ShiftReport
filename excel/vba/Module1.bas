@@ -122,6 +122,7 @@ Public Sub InitializeWorkbook()
         shape.OnAction = macro
     Next i
     Sheet("AppState").Visible = xlSheetVeryHidden: Sheet("AppMeasure").Visible = xlSheetVeryHidden
+    ws.Range("B20").Locked = False
     ws.Protect UserInterfaceOnly:=True, DrawingObjects:=True
     Exit Sub
 Failed:

@@ -42,10 +42,13 @@ def build_window(owner, root, settings, demo):
     ctk.CTkLabel(identity,text='الطبيب الحالي',anchor='e').pack(fill='x',padx=8)
     owner.actor=ctk.CTkComboBox(identity,values=['اختر الطبيب'],state='readonly',justify='right',height=48)
     owner.actor.pack(fill='x',padx=8,pady=4)
-    if not demo:button(identity,'قفل الشاشة',lambda:owner.run(lambda:lock_screen(owner)))
+    if not demo:
+        button(identity,'الاتصال / إعادة الاتصال',lambda:owner.run(owner.connect))
+        owner.login_button=button(identity,'تسجيل الدخول برمز تليجرام',lambda:owner.run(owner.login))
+        button(identity,'قفل الشاشة',lambda:owner.run(lambda:lock_screen(owner)))
 
     from desktop_dashboard import handover_dashboard
-    ward_navigation = section('عرض الجناح')
+    ward_navigation = section('لوحة الجناح',expanded=False)
     button(ward_navigation, 'لوحة تسليم المناوبة', lambda: owner.run(lambda: handover_dashboard(owner)))
     button(ward_navigation, 'أطباء المناوبة', lambda: owner.run(owner.roster))
 
@@ -77,8 +80,8 @@ def build_window(owner, root, settings, demo):
     if demo:button(project,'إعادة ضبط البيانات التجريبية',lambda:owner.run(owner.reset_demo))
     else:
         button(project,'الاتصال بالمشروع / إعادة الاتصال',lambda:owner.run(owner.connect))
-        if settings.get('CONNECTION_MODE')=='raw':
-            owner.creation_button=button(project,'إنشاء مشروع جديد',lambda:owner.run(lambda:create_project(owner)))
+        owner.creation_button=button(project,'إنشاء مشروع جديد',lambda:owner.run(lambda:create_project(owner)))
+        if settings.get('CONNECTION_MODE')!='raw':owner.creation_button.pack_forget()
     button(team_area,'مراجعة ونشر تغييرات الأطباء',lambda:owner.run(lambda:administer(owner)))
     if not demo:
         button(team_area,'جلب سجل الأطباء',lambda:owner.run(owner.refresh_identity))
@@ -106,9 +109,11 @@ def build_window(owner, root, settings, demo):
         recovery=section('ملف استرداد لهذا الكمبيوتر فقط',expanded=False,parent=backup_area)
         button(recovery,'حفظ مسودة استرداد لهذا الكمبيوتر (.srdraft)',lambda:owner.run(owner.export_draft))
 
-    reports=section('التقارير')
+    reports=section('إرسال التقرير وحفظه')
     ctk.CTkLabel(reports,textvariable=owner.report_summary,wraplength=175,justify='right',anchor='e').pack(fill='x',padx=8,pady=3)
-    owner.supervisor=ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right')
+    ctk.CTkLabel(reports,text='وجهة التقرير',anchor='e').pack(fill='x',padx=8)
+    owner.supervisor=ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right',height=48)
+    owner.supervisor.pack(fill='x',padx=8,pady=4)
     if not demo:
         button(reports,'إرسال تقرير',lambda:owner.run(owner.report))
         button(reports,'تقارير المشرفين (PDF)',lambda:owner.run(owner.report_batch))
@@ -165,6 +170,7 @@ def build_window(owner, root, settings, demo):
         owner.status.set('DEMO — وضع تجريبي في الذاكرة. الإغلاق يحذف التجربة. يسمح بحفظ PDF تجريبي محلي فقط.')
         root.title('ShiftReport — DEMO');owner.render()
     else:
+        owner.render()
         root.after(200,lambda:owner.run(owner.connect))
         root.bind_all('<KeyPress>',owner.note_activity,add='+')
         root.bind_all('<ButtonPress>',owner.note_activity,add='+')

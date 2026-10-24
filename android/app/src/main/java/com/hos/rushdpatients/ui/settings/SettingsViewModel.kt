@@ -137,7 +137,7 @@ class SettingsViewModel @Inject constructor(
             try {
                 val session = sessionManager.current()
                 val bioAvailable = biometricHelper.isAvailable()
-                val bioEnabled = settingsRepository.getBoolean(AppConstants.SETTING_BIOMETRIC_ENABLED, false)
+                val bioEnabled = settingsRepository.getBoolean(AppConstants.SETTING_BIOMETRIC_ENABLED, true)
                 _state.update {
                     it.copy(
                         doctorName = session?.doctorName ?: "",

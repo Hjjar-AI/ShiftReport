@@ -59,7 +59,7 @@ class BiometricHelper @Inject constructor(
         val info = BiometricPrompt.PromptInfo.Builder()
             .setTitle("التحقق بالبصمة")
             .setSubtitle("افتح تطبيق تقرير المناوبة")
-            .setNegativeButtonText("إلغاء")
+            .setNegativeButtonText("استخدام الرقم السري")
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
             .build()
 

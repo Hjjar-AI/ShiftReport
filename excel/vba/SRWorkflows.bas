@@ -68,6 +68,7 @@ Public Sub ImportInitialRows()
     Need MsgBox("Import the ORIGINAL Excel rows into an empty current shift? Confirm B1 is the intended shift date, match all doctor names and select the full roster in AppDoctors (D=Y). Original ages estimate birth years; review column T. Auditor O becomes a labelled follow-up note. This saves locally only.", vbYesNo + vbQuestion + vbDefaultButton2) = vbYes, "Initial import cancelled."
     SnapshotBackup: Set candidate = CaptureShift(doctors, actor, True)
     If Not remote Is Nothing Then Put candidate, "meta", Clone(remote("meta")): Put candidate("meta"), "doctors", RosterSelection(doctors)
+    Put candidate("meta"), "sortSpec", "{""levels"":[]}"
     If remote Is Nothing Then Set remote = EmptyShift(ShiftToday()): Put remote("meta"), "shiftId", Txt(candidate("meta"), "shiftId")
     StateSet "publishedShift", Json(remote): StateSet "baselineState", Json(state)
     WriteShift candidate, doctors
@@ -93,7 +94,12 @@ Public Function SaveDraft() As Object
     Set candidate = CaptureShift(doctors, actor, False)
     If Len(StateText("savedShift")) Then
         Dim previous As Object: Set previous = ParseJson(StateText("savedShift"))
-        If candidate("patients").Count < previous("patients").Count Then
+        Dim currentIds As Object, row As Variant, removed As Long
+        Set currentIds = PatientMap(candidate)
+        For Each row In previous("patients")
+            If Not currentIds.Exists(Txt(row, "externalId")) Then removed = removed + 1
+        Next row
+        If removed > 0 Then
             Need MsgBox("Patients were removed from the Excel grid. Save these deletions locally? Publication still requires a separate complete-snapshot review.", vbYesNo + vbQuestion + vbDefaultButton2) = vbYes, "Local deletion cancelled."
             SnapshotBackup
         End If
@@ -223,7 +229,7 @@ Public Sub SendReport(Optional ByVal supervisor As String = "", Optional ByVal e
     Dim candidate As Object, state As Object, doctors As Object, actor As Object, indexId As String
     Dim grid As String, clinical As String, registry As String, path As String, digest As String, raw() As Byte
     Dim destination As String, topic As String, label As String, published As Object, uploaded As Object, receipt As String
-    Set candidate = SaveDraft(): clinical = ClinicalKey(candidate): grid = GridKey()
+    Set candidate = SaveDraft(): clinical = ClinicalKey(candidate): grid = ReportInputKey()
     Set state = ReadIndex(indexId): Set doctors = FetchDoctors(state): Set actor = Authorize(doctors)
     registry = RegistryPointer(state)
     Destination doctors, supervisor, destination, topic, label
@@ -237,7 +243,7 @@ Public Sub SendReport(Optional ByVal supervisor As String = "", Optional ByVal e
     End If
     ThisWorkbook.FollowHyperlink path 'Failure stops here, before publication or sending.
     Need MsgBox("Open and review this exact PDF in your viewer. Confirm only after inspecting all pages." & vbCrLf & "Destination: " & label & vbCrLf & "Continue to publication review and final Send confirmation?", vbYesNo + vbQuestion + vbDefaultButton2) = vbYes, "Report cancelled before publication."
-    Need GridKey() = grid, "Report cells changed after preview. Review again."
+    Need ReportInputKey() = grid, "Report cells/options changed after preview. Review again."
     Set state = PublishShift(candidate, False)
     Set doctors = FetchDoctors(state): Set actor = Authorize(doctors)
     Need RegistryPointer(state) = registry, "Doctor registry/destination changed; preview the report again."
@@ -245,12 +251,12 @@ Public Sub SendReport(Optional ByVal supervisor As String = "", Optional ByVal e
     Destination doctors, supervisor, destination, topic, label
     Need MsgBox("FINAL SEND: send the exact reviewed PDF to " & label & "? Shared data publication is already confirmed; cancellation does not undo it.", vbYesNo + vbQuestion + vbDefaultButton2) = vbYes, "Delivery cancelled; publication remains confirmed."
     Dim current As Object, currentId As String
-    Set current = ReadIndex(currentId): Need Pointers(current) = Pointers(state) And GridKey() = grid, "Data/destination changed after confirmation. Preview again."
+    Set current = ReadIndex(currentId): Need Pointers(current) = Pointers(state) And ReportInputKey() = grid, "Data/destination/options changed after confirmation. Preview again."
     Set doctors = FetchDoctors(current): Set actor = Authorize(doctors)
     Need ShiftToday() = Txt(published("meta"), "shiftDate"), "Shift ended before sending."
     raw = ReadBytes(path): Need Sha256(raw) = digest, "The exact reviewed PDF is missing or changed."
     LockReceipts
-    receipt = BeginReceipt("report", Txt(published("meta"), "shiftId"), destination, topic, Digest(clinical & "|" & supervisor & "|a5-v1"))
+    receipt = BeginReceipt("report", Txt(published("meta"), "shiftId"), destination, topic, Digest(clinical & "|" & supervisor & "|" & PdfStyleSetting()))
     Set uploaded = Upload(raw, destination, topic, True)
     ConfirmReceipt receipt, Txt(uploaded, "message_id")
     MsgBox "Telegram confirmed PDF delivery. Publication and delivery are recorded separately.", vbInformation

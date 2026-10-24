@@ -65,12 +65,12 @@ Public Sub WriteBytes(ByVal path As String, ByRef bytes() As Byte)
 End Sub
 
 Public Function NewId() As String
-    Dim g(0 To 15) As Byte, i As Long, result As String
+    Dim g(0 To 15) As Byte, i As Long, result As String, order As Variant
     Need CoCreateGuid(g(0)) = 0, "Cannot create an identifier."
-    'Byte order is irrelevant to uniqueness; output is a valid UUID string.
+    order = Array(3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15)
     For i = 0 To 15
         If i = 4 Or i = 6 Or i = 8 Or i = 10 Then result = result & "-"
-        result = result & LCase$(Right$("0" & Hex$(g(i)), 2))
+        result = result & LCase$(Right$("0" & Hex$(g(order(i))), 2))
     Next i
     NewId = result
 End Function

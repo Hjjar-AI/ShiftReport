@@ -14,6 +14,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +41,26 @@ fun PinUnlockScreen(
 ) {
     val uiText = rememberUiStrings()
     var pin by remember(doctorName) { mutableStateOf("") }
+    var automaticBiometricAttempted by rememberSaveable(doctorName) { mutableStateOf(false) }
+    val latestBiometric by rememberUpdatedState(onBiometric)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    // Prompt once per lock screen, only after the root has decided this is an
+    // actual lock and the Activity is resumed. Cancel/error leaves PIN available.
+    DisposableEffect(lifecycleOwner, onBiometric != null) {
+        fun promptIfReady() {
+            if (!automaticBiometricAttempted && latestBiometric != null &&
+                lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                automaticBiometricAttempted = true
+                latestBiometric?.invoke()
+            }
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) promptIfReady()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        promptIfReady()
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     fun submit() {
         if (!busy && pin.length >= com.hos.rushdpatients.config.AppConstants.PIN_MIN_LENGTH) {
             val submitted = pin

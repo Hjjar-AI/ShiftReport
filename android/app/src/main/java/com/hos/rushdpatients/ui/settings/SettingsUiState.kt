@@ -24,7 +24,7 @@ data class SettingsUiState(
     val emptyStartBusy: Boolean = false,
     val emptyStartReview: String? = null,
     val emptyStartResult: String? = null,
-    val reportAsPdf: Boolean = false,
+    val reportAsPdf: Boolean = true,
     val reportWardName: String = "",
     val pdfStyle: PdfStyle = PdfStyle.CLASSIC,
     val pdfPatientCardStyle: PatientCardStyle = PatientCardStyle.BADGE_HEADER,

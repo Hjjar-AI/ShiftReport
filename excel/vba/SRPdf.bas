@@ -3,13 +3,42 @@ Option Explicit
 Private ws As Worksheet, measure As Worksheet, rowAt As Long, pageAt As Long, used As Double
 Private currentPatient As String, currentPageTitle As String, pages As Long
 Private pageAnchors As Object, indexLinks As Collection, navLinks As Collection, previews As Collection
-Private Const PageBudget As Double = 503
+Private PageBudget As Double
 Private Const FontSize As Double = 12
+
+Public Function PdfStyleSetting() As String
+    PdfStyleSetting = UCase$(CStr(Sheet("AppHome").Range("B20").Value2))
+    Need PdfStyleSetting = "CARDS" Or PdfStyleSetting = "CLASSIC" Or PdfStyleSetting = "PARAGRAPHS", "Select the PDF style on AppHome."
+End Function
+
+Public Function ReportInputKey() As String
+    ReportInputKey = Digest(GridKey() & "|" & PdfStyleSetting())
+End Function
+
+Private Function WardSummary(ByVal shift As Object, ByVal supervisor As String) As String
+    Dim p As Variant, task As Variant, tasks As Object, patients As Long, psychiatric As Long, companions As Long, pending As Long, overdue As Long
+    For Each p In shift("patients")
+        If Len(supervisor) = 0 Or Txt(p, "responsibleSupervisorId") = supervisor Then
+            patients = patients + 1
+            If Txt(p, "diagnosisType") = "PSYCHIATRIC" Or Txt(p, "diagnosisType") = "DUAL" Then psychiatric = psychiatric + 1
+            If Txt(p, "hasCompanion") = "Y" Then companions = companions + 1
+            Set tasks = ParseJson(Txt(p, "tasksJson", "[]"))
+            For Each task In tasks
+                If Not Flag(task, "done") Then
+                    pending = pending + 1
+                    If Num(task, "dueAtEpochMillis") > 0 And Num(task, "dueAtEpochMillis") <= EpochMs() Then overdue = overdue + 1
+                End If
+            Next task
+        End If
+    Next p
+    WardSummary = Ui("patients") & ": " & patients & " | " & Ui("psychiatriccount") & ": " & psychiatric & " | " & Ui("companions") & ": " & companions & vbLf
+    WardSummary = WardSummary & Ui("pendingcount") & ": " & pending & " (" & Ui("overduecount") & ": " & overdue & ")"
+End Function
 
 Public Function Ui(ByVal key As String) As String
     Dim labels As Worksheet, r As Long
     Set labels = Sheet("AppHelp")
-    For r = 30 To 70
+    For r = 30 To LastContentRow(labels)
         If CStr(labels.Cells(r, 1).Value2) = key Then Ui = CStr(labels.Cells(r, 2).Value2): Exit Function
     Next r
     Ui = key
@@ -21,7 +50,10 @@ End Function
 
 Public Function PatientSummary(ByVal p As Object, ByVal doctors As Object) As String
     Dim task As Variant, tasks As Object, text As String
-    text = Txt(p, "name") & " | " & Ui("birth") & ": " & Txt(p, "birthDate") & " | " & Txt(p, "gender")
+    text = Txt(p, "name") & " | " & Ui("birth") & ": " & Txt(p, "birthDate") & " | " & GenderText(p)
+    text = text & " | " & Ui(LCase$(Txt(p, "diagnosisType")))
+    If Txt(p, "hasCompanion") = "Y" Then text = text & " | " & Ui("companion")
+    If Txt(p, "isPriority") = "Y" Then text = text & " | " & Ui("high")
     text = text & vbLf & Ui("admission") & ": " & Txt(p, "admitNum") & " / " & Txt(p, "admitDate")
     text = text & vbLf & Ui("diagnosis") & ": " & Txt(p, "initialDiagnosis")
     text = text & vbLf & Ui("treatment") & ": " & Txt(p, "treatmentPlan")
@@ -32,6 +64,10 @@ Public Function PatientSummary(ByVal p As Object, ByVal doctors As Object) As St
     Set tasks = ParseJson(Txt(p, "tasksJson", "[]"))
     For Each task In tasks: text = text & vbLf & Ui("tasks") & ": " & TaskText(task, doctors): Next task
     PatientSummary = text & BadgeText(p)
+End Function
+
+Private Function GenderText(ByVal p As Object) As String
+    If Txt(p, "gender") = "F" Then GenderText = Ui("female") Else GenderText = Ui("male")
 End Function
 
 Private Function BadgeText(ByVal p As Object) As String
@@ -60,6 +96,7 @@ Private Function TaskText(ByVal task As Object, ByVal doctors As Object) As Stri
     If Len(owner) Then text = text & " | " & owner
     due = Num(task, "dueAtEpochMillis")
     If due > 0 Then text = text & " | " & Ui("due") & ": " & Format$(#1/1/1970# + (due + 10800000#) / 86400000#, "yyyy-mm-dd hh:nn")
+    If Len(Txt(task, "dueShiftDate")) Then text = text & " | " & Txt(task, "dueShiftDate")
     If Flag(task, "done") Then
         text = text & " | " & Txt(task, "completedByName") & " " & Format$(#1/1/1970# + (Num(task, "completedAtEpochMillis") + 10800000#) / 86400000#, "yyyy-mm-dd hh:nn")
     End If
@@ -137,6 +174,9 @@ Public Function RenderPdf(ByVal shift As Object, ByVal doctors As Object, ByVal 
     Dim patient As Variant, selected As New Collection, key As Variant, names As String, header As String, ignored As Long
     Dim tasks As Object, task As Variant, text As String, item As Object, anchor As Long, position As Long, entry As Object, i As Long
     Dim width As Double, title As String, links As Variant, previous As String, following As String
+    If PdfStyleSetting() = "CLASSIC" Then RenderPdf = RenderClassic(shift, doctors, supervisor): Exit Function
+    If PdfStyleSetting() = "PARAGRAPHS" Then RenderPdf = RenderParagraphs(shift, doctors, supervisor): Exit Function
+    PageBudget = 503
     Set ws = Sheet("AppPdf"): Set measure = Sheet("AppMeasure")
     ws.Unprotect: ws.Cells.UnMerge: ws.Cells.Clear: ws.ResetAllPageBreaks
     ws.DisplayRightToLeft = True: ws.Cells.Font.Name = "Tajawal": ws.Cells.Font.Size = FontSize
@@ -156,6 +196,7 @@ Public Function RenderPdf(ByVal shift As Object, ByVal doctors As Object, ByVal 
     Next key
     title = Ui("index") & " | " & Txt(shift("meta"), "shiftDate"): currentPageTitle = title
     StartPage title: ignored = AddBlock(Ui("roster") & ": " & names)
+    ignored = AddBlock(WardSummary(shift, supervisor))
     For Each patient In selected
         Set entry = Dict(): Put entry, "patient", Txt(patient, "externalId")
         anchor = AddBlock(CStr(indexLinks.Count + 1) & ". " & Txt(patient, "name"))
@@ -167,7 +208,8 @@ Public Function RenderPdf(ByVal shift As Object, ByVal doctors As Object, ByVal 
         currentPageTitle = Txt(patient, "name") & " | " & Txt(shift("meta"), "shiftDate")
         StartPage currentPageTitle: Put pageAnchors, currentPatient, pageAt
         ignored = AddBlock(Ui("roster") & ": " & names)
-        header = Ui("birth") & ": " & Txt(patient, "birthDate") & " | " & Txt(patient, "gender")
+        header = Ui("birth") & ": " & Txt(patient, "birthDate") & " | " & GenderText(patient)
+        header = header & " | " & Ui(LCase$(Txt(patient, "diagnosisType")))
         If Txt(patient, "hasCompanion") = "Y" Then header = header & " | " & Ui("companion")
         If Txt(patient, "isPriority") = "Y" Then header = header & " | " & Ui("high")
         ignored = AddBlock(header)
@@ -203,6 +245,7 @@ Public Function RenderPdf(ByVal shift As Object, ByVal doctors As Object, ByVal 
     Next entry
     With ws.PageSetup
         .PaperSize = xlPaperA5: .Orientation = xlPortrait
+        .PrintTitleRows = ""
         .LeftMargin = Application.CentimetersToPoints(1.5): .RightMargin = Application.CentimetersToPoints(1.5)
         .TopMargin = Application.CentimetersToPoints(2): .BottomMargin = Application.CentimetersToPoints(1)
         .HeaderMargin = 0: .FooterMargin = Application.CentimetersToPoints(0.35)
@@ -216,6 +259,153 @@ Public Function RenderPdf(ByVal shift As Object, ByVal doctors As Object, ByVal 
     If previews Is Nothing Then Set previews = New Collection
     previews.Add RenderPdf
     ws.Protect UserInterfaceOnly:=True
+End Function
+
+Private Function RosterNames(ByVal shift As Object, ByVal doctors As Object) As String
+    Dim id As Variant
+    For Each id In Split(Txt(shift("meta"), "doctors"), ",")
+        If Len(RosterNames) Then RosterNames = RosterNames & " / "
+        RosterNames = RosterNames & NameOf(doctors, CStr(id))
+    Next id
+End Function
+
+Private Function SavePdfSheet(ByVal lastColumn As String) As String
+    With ws.PageSetup
+        .PrintArea = "$A$1:$" & lastColumn & "$" & (rowAt - 1)
+        .CenterFooter = "&P / &N": .PrintGridlines = False: .PrintHeadings = False
+        .LeftHeader = "": .CenterHeader = "": .RightHeader = ""
+    End With
+    SavePdfSheet = Environ$("TEMP") & "\ShiftReportExcel-" & NewId() & ".pdf"
+    ws.ExportAsFixedFormat Type:=xlTypePDF, Filename:=SavePdfSheet, Quality:=xlQualityStandard, IncludeDocProperties:=False, IgnorePrintAreas:=False, OpenAfterPublish:=False
+    Need Len(Dir$(SavePdfSheet)) > 0, "Excel did not create the PDF."
+    If previews Is Nothing Then Set previews = New Collection
+    previews.Add SavePdfSheet: ws.Protect UserInterfaceOnly:=True
+End Function
+
+Private Function RenderParagraphs(ByVal shift As Object, ByVal doctors As Object, ByVal supervisor As String) As String
+    Dim p As Variant, ignored As Long, i As Long, width As Double, count As Long
+    Set ws = Sheet("AppPdf"): Set measure = Sheet("AppMeasure")
+    ws.Unprotect: ws.Cells.UnMerge: ws.Cells.Clear: ws.ResetAllPageBreaks
+    ws.DisplayRightToLeft = True: ws.Cells.Font.Name = "Tajawal"
+    width = 595.276 - 17
+    ws.Columns("A:H").ColumnWidth = 10
+    For i = 1 To 4: ws.Columns("A:H").ColumnWidth = ws.Columns("A").ColumnWidth * width / ws.Range("A1:H1").Width: Next i
+    measure.Columns("A").ColumnWidth = 75
+    For i = 1 To 4: measure.Columns("A").ColumnWidth = measure.Columns("A").ColumnWidth * width / measure.Range("A1").Width: Next i
+    PageBudget = 765: rowAt = 1: pages = 0: used = 0: currentPatient = "": Set navLinks = New Collection
+    currentPageTitle = Txt(shift("meta"), "shiftDate"): StartPage currentPageTitle
+    ignored = AddBlock(Ui("roster") & ": " & RosterNames(shift, doctors))
+    ignored = AddBlock(WardSummary(shift, supervisor))
+    For Each p In shift("patients")
+        If Len(supervisor) = 0 Or Txt(p, "responsibleSupervisorId") = supervisor Then
+            count = count + 1
+            Section CStr(count) & ". " & Txt(p, "name"), PatientSummary(p, doctors)
+        End If
+    Next p
+    Need count > 0, "No patients in the selected report."
+    With ws.PageSetup
+        .PaperSize = xlPaperA4: .Orientation = xlPortrait: .Zoom = 100
+        .PrintTitleRows = ""
+        .LeftMargin = 8.5: .RightMargin = 8.5: .TopMargin = 18: .BottomMargin = 35
+        .HeaderMargin = 0: .FooterMargin = 12
+    End With
+    RenderParagraphs = SavePdfSheet("H")
+End Function
+
+Private Function TableHeight(ByVal text As String, ByVal width As Double, Optional ByVal size As Double = 9) As Double
+    Dim i As Long
+    measure.Columns("A").ColumnWidth = 20
+    For i = 1 To 3: measure.Columns("A").ColumnWidth = measure.Columns("A").ColumnWidth * (width - 6) / measure.Range("A1").Width: Next i
+    measure.Range("A1").NumberFormat = "@": measure.Range("A1").Value2 = text
+    measure.Range("A1").Font.Name = "Tajawal": measure.Range("A1").Font.Size = size
+    measure.Range("A1").WrapText = True: measure.Rows(1).AutoFit
+    TableHeight = measure.Rows(1).RowHeight + 7
+    If TableHeight < 18 Then TableHeight = 18
+End Function
+
+Private Function RenderClassic(ByVal shift As Object, ByVal doctors As Object, ByVal supervisor As String) As String
+    Dim weights As Variant, widths(0 To 6) As Double, headers As Variant, content(0 To 6) As String, chunks(0 To 6) As String
+    Dim p As Variant, tasks As Object, task As Variant, i As Long, count As Long, take As Long, height As Double, maximum As Double, more As Boolean
+    Dim totalWidth As Double, names As String, days As Long, startDate As Date, headerRow As Long, chunk As String
+    Set ws = Sheet("AppPdf"): Set measure = Sheet("AppMeasure")
+    ws.Unprotect: ws.Cells.UnMerge: ws.Cells.Clear: ws.ResetAllPageBreaks
+    ws.DisplayRightToLeft = True: ws.Cells.Font.Name = "Tajawal": ws.Cells.Font.Size = 9
+    totalWidth = 841.89 - 17: weights = Array(4, 16, 13, 12, 15, 30, 34)
+    headers = Array("#", Ui("patient"), Ui("diagnosis") & " / " & Ui("badges"), Ui("admission"), Ui("doctors"), Ui("treatment"), Ui("followup") & " / " & Ui("tasks") & " / " & Ui("labs"))
+    For i = 0 To 6
+        widths(i) = totalWidth * weights(i) / 124
+        ws.Columns(i + 1).ColumnWidth = 15
+        Dim pass As Long
+        For pass = 1 To 3: ws.Columns(i + 1).ColumnWidth = ws.Columns(i + 1).ColumnWidth * widths(i) / ws.Cells(1, i + 1).Width: Next pass
+    Next i
+    names = RosterNames(shift, doctors)
+    ws.Range("A1:G1").Merge: ws.Range("A1").NumberFormat = "@": ws.Range("A1").Value2 = Cfg("hospitalName") & " | " & Txt(shift("meta"), "shiftDate")
+    ws.Range("A1:G1").WrapText = True: ws.Range("A1:G1").Font.Size = 11: ws.Rows(1).RowHeight = 32: rowAt = 2
+    names = Ui("roster") & ": " & names
+    Do While Len(names)
+        take = Len(names): If take > 1000 Then take = 1000
+        Do
+            chunk = Left$(names, take): height = TableHeight(chunk, totalWidth, 11)
+            If height <= 190 Then Exit Do
+            take = take \ 2
+        Loop
+        With ws.Range(ws.Cells(rowAt, 1), ws.Cells(rowAt, 7))
+            .Merge: .NumberFormat = "@": .Value2 = chunk: .WrapText = True: .Font.Size = 11
+        End With
+        ws.Rows(rowAt).RowHeight = height: rowAt = rowAt + 1: names = Mid$(names, take + 1)
+    Loop
+    With ws.Range(ws.Cells(rowAt, 1), ws.Cells(rowAt, 7))
+        .Merge: .NumberFormat = "@": .Value2 = WardSummary(shift, supervisor): .WrapText = True
+    End With
+    ws.Rows(rowAt).RowHeight = 36: rowAt = rowAt + 1: headerRow = rowAt
+    For i = 0 To 6: ws.Cells(rowAt, i + 1).Value2 = headers(i): Next i
+    With ws.Range(ws.Cells(rowAt, 1), ws.Cells(rowAt, 7))
+        .Font.Bold = True: .Interior.Color = RGB(227, 239, 245): .WrapText = True
+    End With
+    ws.Rows(rowAt).RowHeight = 32: rowAt = rowAt + 1
+    For Each p In shift("patients")
+        If Len(supervisor) = 0 Or Txt(p, "responsibleSupervisorId") = supervisor Then
+            count = count + 1
+            content(0) = CStr(count): content(1) = Txt(p, "name") & vbLf & Ui("birth") & ": " & Txt(p, "birthDate") & " | " & GenderText(p)
+            If Txt(p, "hasCompanion") = "Y" Then content(1) = content(1) & vbLf & Ui("companion")
+            content(2) = Txt(p, "initialDiagnosis") & BadgeText(p)
+            If Txt(p, "isPriority") = "Y" Then content(2) = Ui("high") & vbLf & content(2)
+            startDate = DateSerial(CInt(Left$(Txt(p, "admitDate"), 4)), CInt(Mid$(Txt(p, "admitDate"), 6, 2)), CInt(Right$(Txt(p, "admitDate"), 2)))
+            days = DateDiff("d", startDate, DateSerial(CInt(Left$(Txt(shift("meta"), "shiftDate"), 4)), CInt(Mid$(Txt(shift("meta"), "shiftDate"), 6, 2)), CInt(Right$(Txt(shift("meta"), "shiftDate"), 2)))) + 1
+            content(3) = Txt(p, "admitNum") & vbLf & Txt(p, "admitDate") & vbLf & CStr(days) & " " & Ui("days")
+            content(4) = NameOf(doctors, Txt(p, "responsibleSupervisorId")) & vbLf & NameOf(doctors, Txt(p, "responsibleResidentId"))
+            content(5) = Txt(p, "treatmentPlan"): content(6) = Txt(p, "followUp")
+            Set tasks = ParseJson(Txt(p, "tasksJson", "[]"))
+            For Each task In tasks: content(6) = content(6) & vbLf & Ui("tasks") & ": " & TaskText(task, doctors): Next task
+            If Len(Txt(p, "labs")) Then content(6) = content(6) & vbLf & Ui("labs") & ": " & Txt(p, "labs")
+            Do
+                more = False: maximum = 18
+                For i = 0 To 6
+                    take = Len(content(i)): If take > 600 Then take = 600
+                    Do
+                        chunks(i) = Left$(content(i), take): height = TableHeight(chunks(i), widths(i))
+                        If height <= 160 Or take <= 1 Then Exit Do
+                        take = take \ 2
+                    Loop
+                    content(i) = Mid$(content(i), take + 1)
+                    If Len(content(i)) Then more = True
+                    If height > maximum Then maximum = height
+                    ws.Cells(rowAt, i + 1).NumberFormat = "@": ws.Cells(rowAt, i + 1).Value2 = chunks(i)
+                Next i
+                ws.Range(ws.Cells(rowAt, 1), ws.Cells(rowAt, 7)).WrapText = True
+                ws.Range(ws.Cells(rowAt, 1), ws.Cells(rowAt, 7)).VerticalAlignment = xlTop
+                If count Mod 2 = 0 Then ws.Range(ws.Cells(rowAt, 1), ws.Cells(rowAt, 7)).Interior.Color = RGB(246, 249, 251)
+                ws.Rows(rowAt).RowHeight = maximum: rowAt = rowAt + 1
+            Loop While more
+        End If
+    Next p
+    Need count > 0, "No patients in the selected report."
+    With ws.PageSetup
+        .PaperSize = xlPaperA4: .Orientation = xlLandscape: .Zoom = 100
+        .LeftMargin = 8.5: .RightMargin = 8.5: .TopMargin = 18: .BottomMargin = 35
+        .HeaderMargin = 0: .FooterMargin = 12: .PrintTitleRows = "$" & headerRow & ":$" & headerRow
+    End With
+    RenderClassic = SavePdfSheet("G")
 End Function
 
 Public Sub CleanupPreviews()

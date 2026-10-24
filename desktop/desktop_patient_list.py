@@ -16,7 +16,17 @@ from desktop_patient_filters import CLINICAL_FILTERS, TASK_FILTERS, OWNER_FILTER
 def render(owner):
     if not hasattr(owner,'patients') or owner.locked:return
     if owner.creation_button is not None:
+        if owner.settings.get('CONNECTION_MODE')=='raw':owner.creation_button.pack(fill='x',padx=8,pady=4)
+        else:owner.creation_button.pack_forget()
         owner.creation_button.configure(state='disabled' if owner.client or owner.busy else 'normal')
+    if not owner.demo:
+        connected = owner.client is not None and owner.store is not None
+        authenticated = connected and owner.client._actor is not None and time.time()<owner.client._expires
+        has_shift = connected and owner.store.state.get('draft') is not None
+        owner.login_button.configure(state='normal' if connected and not owner.busy else 'disabled')
+        owner.fetch_button.configure(state='normal' if authenticated and not owner.busy else 'disabled')
+        owner.send_report_button.configure(state='normal' if authenticated and has_shift and not owner.busy else 'disabled')
+        owner.publish_button.configure(state='normal' if authenticated and has_shift and not owner.busy else 'disabled')
     actor=owner.client.doctors.get(owner.client._actor) if owner.client else None
     if actor and is_admin(actor) and time.time()<owner.client._expires:
         if not owner.demo and not owner.admin_sidebar.winfo_manager():owner.admin_sidebar.pack(fill='x',padx=3,pady=3,before=owner.help_sidebar)
@@ -61,7 +71,15 @@ def render(owner):
         owner.operation_notice_text.configure(text='توجد عملية غير محسومة. افحص تليجرام وسجل العمليات قبل إعادة النشر أو الإرسال.')
         if not owner.operation_notice.winfo_manager():owner.operation_notice.pack(fill='x',padx=5,pady=4,before=owner.ward_toolbar)
     else:owner.operation_notice.pack_forget()
-    owner.workflow_action.configure(text=action.value, state='disabled' if owner.busy or owner.demo or owner.store is None else 'normal')
+    next_label = action.value
+    if not owner.demo:
+        if not connected:
+            next_label='اتصال بالمشروع'
+            owner.workflow.configure(text='ابدأ هنا: اتصل بالمشروع، ثم اختر اسمك وسجّل الدخول.')
+        elif not authenticated:
+            next_label='تسجيل الدخول'
+            owner.workflow.configure(text='اختر اسمك من قائمة الطبيب الحالي، ثم سجّل الدخول. بيانات الجهاز تبقى محفوظة.')
+    owner.workflow_action.configure(text=next_label, state='disabled' if owner.busy or owner.demo else 'normal')
     if action is WorkflowAction.DELIVERY_HISTORY and not owner.demo:owner.workflow_action.grid_remove()
     else:owner.workflow_action.grid(row=0,column=0,sticky='n',padx=8,pady=3)
     if owner.store is None or owner.store.state['draft'] is None:

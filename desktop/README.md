@@ -13,25 +13,31 @@ Standalone source replacement for the Excel helper. No Excel, workbook, VBA, COM
    py -3.8 desktop_gui.py
    ```
 
-3. Optionally copy `.env.example` to `.env` beside the script. Without it, startup
-   prompts for the protected `.srjoin.json` file and its password. Connections,
-   topics and the optional shared key normally come from that file. An optional
-   admin-only raw `.env` path is described below; Android joining remains file-only.
-   No credentials should be pasted into source or chat.
+3. Put a protected `.srjoin.json` beside the script or bundled executable. Startup
+   discovers it and asks for its password. A configured `.env` in that same folder
+   takes precedence; a preferences-only `.env` can accompany the join file.
+   Valid named `*.env` files are also discovered. Multiple candidates open a chooser;
+   if none is found, use the normal file picker. Explicit `--env PATH` overrides
+   automatic environment selection. Relative paths inside an environment file are
+   resolved beside that file, independently of the launch working directory.
+   Bundled discovery uses the executable folder, not its temporary extraction folder.
+   Connections/topics/shared key still require protected-file validation or the
+   existing explicit admin-only raw mode; passwords are never saved in `.env`.
 4. For an existing project, publish the doctor registry and current patient data
    from the current Android source first. For a new group, use desktop creation
    below. Its complete CSV metadata must be quoted; rebuild/republish older
    incorrectly quoted snapshots using Android. Protocol/schema versions stay unchanged.
-5. Update the doctor list, select yourself, request a private Telegram code and
-   enter it. Open the bot and press Start beforehand if it cannot deliver the code.
-6. Fetch/select a shift. Choose the shift doctors; edit patients, tasks and badges
+5. In the visible **الطبيب الحالي** panel, connect, select yourself and press
+   **تسجيل الدخول برمز تليجرام**; enter the private code. Open the bot and press Start beforehand if it cannot deliver the code.
+6. Use **١ جلب مناوبة** in the main window to fetch/select a shift. Choose the shift doctors; edit patients, tasks and badges
    in the app. Every patient Save and roster/order/delete action saves the local
    encrypted draft. Form changes are private until Save; Cancel requires discard
    confirmation. Existing saved drafts can be reopened/edited offline.
-7. Review the complete proposed replacement snapshot, then publish the
-   reviewed version. A changed draft, actor, remote pointer or registry invalidates
+7. Use **٢ مراجعة ونشر** to review the complete proposed replacement snapshot,
+   then confirm publication. A changed draft, actor, remote pointer or registry invalidates
    the review. There is no automatic upload or automatic retry.
-8. Select the general or supervisor destination, use «إرسال تقرير», inspect the
+8. Select the general or supervisor destination in the visible sidebar selector,
+   use **٣ إرسال تقرير** in the main window, inspect the
    actual PDF opened in your default PDF viewer, then confirm delivery. Local PDF
    export is also available offline. PDFs deliberately remain readable.
 
@@ -105,7 +111,7 @@ Store/edit/copy logical Unicode; shape only presentation/PDF. Linux `TEXT_RENDER
 
 | Setting/storage | Contract |
 |---|---|
-| `.env` | Literal `CONNECTION_MODE`, `JOIN_FILE`, `TIMEZONE`, `DATA_DIR`, `PDF_FONT`, `APPEARANCE`, `TEXT_RENDERING`; quoted values accepted, expansion/interpolation/inline comments rejected; unknown/duplicate keys fail. Paths relative to source/EXE. Alternate file: `--env PATH`. |
+| `.env` | Literal `CONNECTION_MODE`, `JOIN_FILE`, `TIMEZONE`, `DATA_DIR`, `PDF_FONT`, `APPEARANCE`, `TEXT_RENDERING`; quoted values accepted, expansion/interpolation/inline comments rejected; unknown/duplicate keys fail. Relative paths resolve beside the chosen environment file. Discovery: configured `.env`, otherwise adjacent protected joins/valid named `*.env`; multiple candidates require selection. Explicit override: `--env PATH`. |
 | Join/raw | [.env.example](.env.example) documents both. Default protected join prompts for password. Explicit raw mode: exact hospital/token/group/topics/encryption/original Base64 key, blank JOIN_FILE; no key generation/substitution/fallback. Raw startup verifies live registry admin before opening drafts and rechecks shared actions. Join supports offline reopening. Never store passwords/codes in env. |
 | Reconnect | Protected file before login; validate live, preserve drafts/receipts/key, reject other project/bot/group/topics/key, repeat clinician verification. No manual token endpoint; BotFather revokes. Private plaintext raw files stay ignored/outside bundles. Extracted tokens bypass client gates. |
 | Workspace | AES-GCM before SQLite; fingerprint per project. Windows `%LOCALAPPDATA%\ShiftReportDesktop`; Linux `$XDG_DATA_HOME/ShiftReportDesktop` or `~/.local/share/ShiftReportDesktop`. No raw config/passwords persisted. Shared key protects encrypted projects; otherwise random key wrapped by DPAPI or Linux passphrase. Retain Windows `.key`/original profile or Linux `.linux-key`/passphrase; DB alone is insufficient. No silent replacement/plaintext fallback. New Linux files owner-only. One instance per Windows session/Linux user. |

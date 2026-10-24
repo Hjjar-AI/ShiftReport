@@ -580,9 +580,9 @@
     <string name="ui_report_preview_screen_053" formatted="false">"تخصيص PDF"</string>
     <string name="ui_report_preview_screen_054" formatted="false">"حجم الورق والاتجاه"</string>
     <string name="ui_report_preview_screen_055" formatted="false">"بعد تغيير المظهر، عاين PDF مجدداً قبل الإرسال."</string>
-    <string name="ui_report_preview_screen_056" formatted="false">"عاين ملف PDF لكل مجموعة مختارة، ثم انتقل إلى مراجعة الإرسال."</string>
+    <string name="ui_report_preview_screen_056" formatted="false">"عاين كل تقرير مختار وافحص الوجهات أدناه، ثم أكّد الإرسال."</string>
     <string name="ui_report_preview_screen_057" formatted="false">"افتح التقرير وافحص محتواه، ثم انتقل إلى مراجعة الإرسال."</string>
-    <string name="ui_report_preview_screen_058" formatted="false">"معاينة ملفات المشرفين"</string>
+    <string name="ui_report_preview_screen_058" formatted="false">"معاينة التقارير المختارة"</string>
     <string name="ui_report_preview_screen_059" formatted="false">"معاينة PDF"</string>
     <string name="ui_report_preview_screen_060" formatted="false">"معاينة النص"</string>
     <string name="ui_report_preview_screen_061" formatted="false">"تم فتح المعاينة؛ يمكنك المتابعة إلى الإرسال."</string>
@@ -751,7 +751,7 @@
     <string name="ui_doctors_screen_040">"السجلات المحذوفة: %1$s"</string>
     <string name="ui_doctors_screen_041">"%1$s أطباء جدد سيختار كل منهم رقماً سرياً بعد أول تحقق عبر تليجرام. لا تُصدّر أرقام PIN أو مشتقاتها إلى CSV."</string>
     <string name="ui_doctors_screen_042" formatted="false">"الاستيراد يضيف ويحدّث حسب المعرّف أو تليجرام أو الاسم ويحفظ الغائبين. بعد الموافقة يُحفظ محلياً ويُنشر السجل الكامل على تليجرام. يبقى المدير الحالي والمديرون الدائمون محميين."</string>
-    <string name="ui_doctors_screen_043" formatted="false">"حفظ الاستيراد ونشر السجل الكامل"</string>
+    <string name="ui_doctors_screen_043" formatted="false">"حفظ ونشر"</string>
     <string name="ui_doctors_screen_044" formatted="false">"مدير دائم"</string>
     <string name="ui_doctors_screen_045" formatted="false">"عضو طبي"</string>
     <string name="ui_doctors_screen_046" formatted="false">"مشرف الفريق: "</string>
@@ -1293,6 +1293,18 @@
     <string name="ui_settings_preferences_001" formatted="false">"حُفظ اسم الجناح للتقارير"</string>
     <string name="ui_back" formatted="false">"رجوع"</string>
     <string name="ui_demo_local_only">هذا العرض محلي ومؤقت؛ لا يتصل بالمشروع. تغيّرت البيانات؟ أعد فتح الإجراء وراجعه.</string>
+    <string name="ui_report_preview_each_selected">افتح معاينة كل تقرير مختار قبل الإرسال.</string>
+    <string name="ui_report_setup_step">الأطباء والوجهات</string>
+    <string name="ui_report_review_send_step">المعاينة والإرسال</string>
+    <string name="ui_report_no_destination">اختر وجهة واحدة على الأقل.</string>
+    <string name="ui_report_select_all_destinations">تحديد الكل</string>
+    <string name="ui_report_destination_checklist_hint">اختر العام وأي مشرفين تريدهم، أو ألغِ العام لإرسال تقارير المشرفين فقط. تقارير المشرفين بصيغة PDF؛ راجع كل تقرير مختار قبل الإرسال.</string>
+    <string name="ui_report_selected_destinations">الوجهات المختارة: %1$s</string>
+    <string name="ui_report_destinations_delivered">تم الإرسال إلى %1$s وجهة.</string>
+    <string name="ui_report_mixed_format">نص للعام وPDF للمشرفين</string>
+    <string name="ui_pin_unlock_retry">تعذر التحقق من الرقم السري؛ أعد المحاولة.</string>
+    <string name="ui_biometric_retry_pin">تعذر التحقق بالبصمة؛ استخدم الرقم السري أو أعد محاولة البصمة.</string>
+    <string name="ui_doctors_secondary_tools">جلب السجل والفرق والتصدير</string>
     <string name="ui_doctor_registry_tools">إدارة سجل الأطباء</string>
     <string name="ui_style_profile">نمط الواجهة</string>
     <string name="ui_density">مسافات المحتوى</string>

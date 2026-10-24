@@ -20,6 +20,12 @@ data class SupervisorReportTarget(
     val patientCount: Int
 )
 
+internal data class ReportDestinationReview(
+    val includeGeneral: Boolean,
+    val supervisors: List<SupervisorReportTarget>,
+    val generalAsPdf: Boolean
+)
+
 enum class ReportStepOutcome(@StringRes private val arabicLabelRes: Int) {
     NOT_STARTED(R.string.ui_report_ui_state_001), IN_PROGRESS(R.string.ui_report_ui_state_002), CONFIRMED(R.string.ui_report_ui_state_003),
     PARTIAL(R.string.ui_report_ui_state_004), UNCERTAIN(R.string.ui_report_preview_screen_084);
@@ -41,7 +47,7 @@ data class ReportUiState(
     val supervisorTargets: List<SupervisorReportTarget> = emptyList(),
     val summary: ReportSummary? = null,
     val previewMarkdown: String = "",
-    val reportAsPdf: Boolean = false,
+    val reportAsPdf: Boolean = true,
     val pdfStyle: com.hos.rushdpatients.pdf.PdfStyle = com.hos.rushdpatients.pdf.PdfStyle.CLASSIC,
     val pdfOptions: com.hos.rushdpatients.pdf.PdfExportOptions = com.hos.rushdpatients.pdf.PdfExportOptions(),
     val savingPdfOptions: Boolean = false,

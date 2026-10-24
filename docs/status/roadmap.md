@@ -2,10 +2,6 @@
 
 [Current state/limits](current-state.md) · [Completed work](changelog.md) · [Optional UI](../decisions/android-ui-options.md)
 
-## Active — Android doctor CSV import
-
-Original private CSV preview/isolated commit and synthetic33-row/native provider import pass. Original phone-picker failure remains unreproduced; exception unavailable. Capture actual file/provider/error before changing import logic; preserve identity/reference/authority guards.
-
 ## P0 — production signing
 
 Owner protected production key/certificate required. Local/CI inputs exist without debug fallback; signed release unverified. [Inputs](../guides/android-build.md#production-release-signing).

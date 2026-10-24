@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -10,7 +9,6 @@ import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppDialogDismissAction
 import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
 import com.hos.rushdpatients.ui.components.AppDialogHeader
-import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppCheckRow
 import com.hos.rushdpatients.ui.components.AppSearchField
@@ -18,6 +16,7 @@ import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -59,14 +58,12 @@ fun ShiftDoctorPicker(
     val requestDismiss: () -> Unit = {
         if (!saving) { if (selected.toSet() != initialSelected.toSet()) confirmDiscard = true else onDismiss() }
     }
-    if (!reviewing && !confirmDiscard) AppAlertDialog(
+    if (!reviewing && !confirmDiscard) WardFormDialog(
         onDismissRequest = requestDismiss,
         title = { AppDialogHeader(uiText(R.string.ui_shift_doctor_picker_001)) },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .appDialogBody().verticalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 Text(
@@ -82,7 +79,7 @@ fun ShiftDoctorPicker(
                     }
                 }
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
                     if (matchingDoctors.isEmpty()) {

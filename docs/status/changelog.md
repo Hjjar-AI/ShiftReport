@@ -4,17 +4,22 @@ Feature summaries; [current behavior/evidence](current-state.md) · [unfinished 
 
 ## Clinical and security
 
+- Android locked-session biometrics now start automatically once the lock decision is ready and Activity resumed; cancellation/error leaves PIN and explicit biometric retry. System enrollment is checked on foreground entry, default-enabled with explicit app opt-out retained. Lock stays latched across short resumes; success checks the same active session/identity, PIN hashing runs off main. Source-only; compile/device verification pending.
 - Protected file-only join/authenticated Telegram encryption/safe reconnect; clinician PIN/biometrics and service-level authority. Existing-pin Android creation now requires bound review/live admin checks; scrollable warning/fixed actions handles200% text without removing history.
 - Revision/audit/pending saves, retained fullscreen drafts/labs/tools, optional-owner structured tasks with stamped completion, recycle/restore/rollover and shared sorting/team/CSV/readiness rules.
 - Reviewed exact-artifact reports/publication, durable UNKNOWN/duplicate controls; shared debug key preserves existing signer independently of caches; production signing remains separate.
 
 ## Interface and desktop
 
+- A5 Android/desktop source: condensed 3-column index with14pt links,10mm index top and full roster; one-line page/creation/DEMO footer outside every card, reclaiming body space. Added fictional50-patient CSV7/generator and DEMO desktop PDF:50 links on index page1,86 pages/valid Fit destinations; sampled index/card visually inspected. CSV rows passed production validators; no app import/Telegram, Android compile/render or suite run.
+- Desktop exposes connection/login, main-window Fetch/Review-Publish/Send actions and the previously undisplayed report destination selector. Workflow guidance handles disconnected/unauthenticated states. Startup discovers protected joins/valid named environment files beside the source or executable, with configured `.env`/explicit `--env` precedence, relative-path normalization, ambiguous-candidate choice and generic invalid-file notices. Password/live authority/crypto/publication/delivery guards unchanged. Python3.8 grammar/source checks only; no GUI/build/package/live run.
+- Android report flow now has two screens (doctors/destinations; preview/send), default-on PDF, initially checked General with Select All/manual supervisor destinations, combined route confirmation and one reviewed publication before per-route guarded delivery. A5 Android/desktop cards now use 5mm sides, 11.5pt body/12pt headings/15pt name and patient/admission/team first row. Source/XML/Python syntax checks only; no compilation/render/device/live run.
+- Android doctor Publish/CSV Import are visible without expanding tools; secondary fetch/team/export remain grouped. Shift-doctor selection and registry/import/team reviews reuse the full-screen, inset-aware editor with fixed actions; selection search/count stay above the scrolling roster. Import uses a short «حفظ ونشر» action with full publication explanation in review. Source-only; no compile/device run.
 - Android PDF-open status now stays with the report ViewModel across privacy/PIN and Activity recreation, preventing a completed preview from being forgotten; regeneration/invalidation clears it. Source-only fix; compilation/device verification pending.
 - Compact adaptive Arabic RTL production/demo workspace, genuine Tajawal/profiles/density/reduced motion, retained branding; guarded rounds/pull-to-fetch, task board revision-safe Undo, retained privacy/editor/picker state.
 - Selected O2/O6/O10/O11/O13/O16 and preview portion O23: motion, sticky filters, age/sex, drawer/Settings search and broader previews. Unselected choices remain separate.
 - Encrypted standalone Windows/Linux clinical client with reviewed administration/recovery/reports, logical Arabic input, local PIN/demo, retained/debounced widgets, sidebar/native menus/shortcuts.
-- A5 cards share Android/desktop geometry/fonts/sections/continuation: top20/bottom10/sides15mm; all links fit destination page. Matching pagination/link/header checks plus 4 Android PDF/60 desktop cases passed; minor glyph shaping differs.
+- Prior A5 layout snapshot: matching pagination/link/header checks plus 4 Android PDF/60 desktop cases passed; minor glyph shaping differs. Those results predate the current margins/font/three-column changes.
 
 ## Verification and documentation
 

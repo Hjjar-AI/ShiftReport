@@ -83,8 +83,7 @@ fun ReportPreviewScreen(
     var step by rememberSaveable { mutableStateOf(ReportFlowStep.DOCTORS) }
     val context = LocalContext.current
     var supervisorMenuOpen by remember { mutableStateOf(false) }
-    var supervisorMode by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    var supervisorSelectionInitialized by rememberSaveable { mutableStateOf(false) }
+    var generalSelected by rememberSaveable { mutableStateOf(true) }
     var showRosterDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showTextPreview by remember { mutableStateOf(false) }
     var reviewedText by remember { mutableStateOf<String?>(null) }
@@ -95,11 +94,11 @@ fun ReportPreviewScreen(
     var showTools by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var customizeReport by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    var confirmSend by remember { mutableStateOf(false) }
-    var pendingSupervisorTargets by remember { mutableStateOf<List<SupervisorReportTarget>?>(null) }
+    var pendingDelivery by remember { mutableStateOf<ReportDestinationReview?>(null) }
     val selectedTargets = state.supervisorTargets.filter { it.doctorId in selectedSupervisorIds && it.chatId != null }
+    val supervisorMode = selectedTargets.isNotEmpty()
     val pdfSelected = supervisorMode || state.reportAsPdf
-    val flowGate = reportFlowGate(state, step, supervisorMode, selectedTargets, reviewedText, state.openedPdfUris)
+    val flowGate = reportFlowGate(state, step, supervisorMode, selectedTargets, reviewedText, state.openedPdfUris, generalSelected)
     val busy = flowGate.busy
     val previewReady = flowGate.previewReady
     val destinationReady = flowGate.destinationReady
@@ -173,9 +172,7 @@ fun ReportPreviewScreen(
 
     val stepScrolls = mapOf(
         ReportFlowStep.DOCTORS to rememberScrollState(),
-        ReportFlowStep.DESTINATION to rememberScrollState(),
-        ReportFlowStep.PREVIEW to rememberScrollState(),
-        ReportFlowStep.SEND to rememberScrollState()
+        ReportFlowStep.PREVIEW to rememberScrollState()
     )
     val contentScroll = stepScrolls.getValue(step)
     Scaffold(
@@ -189,9 +186,9 @@ fun ReportPreviewScreen(
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = com.hos.rushdpatients.ui.theme.LocalUiStyle.current.actionBarElevation) {
                 Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(UiSpacing.small),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    val targetSummary = if (supervisorMode) uiText(R.string.ui_report_preview_screen_014, uiNumber(selectedTargets.size))
-                        else uiText(R.string.ui_report_preview_screen_016, if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015))
-                    val disabledReason = if (step == ReportFlowStep.SEND) sendDisabledReason else nextDisabledReason
+                    val targetSummary = uiText(R.string.ui_report_selected_destinations,
+                        uiNumber(selectedTargets.size + if (generalSelected) 1 else 0))
+                    val disabledReason = if (step == ReportFlowStep.PREVIEW) sendDisabledReason else nextDisabledReason
                     Text(listOfNotNull(targetSummary, disabledReason).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall)
                     AppFieldPair(first = { buttonModifier ->
@@ -199,12 +196,11 @@ fun ReportPreviewScreen(
                             Text(if (step == ReportFlowStep.DOCTORS) uiText(R.string.ui_cancel) else uiText(R.string.ui_previous))
                         }
                     }, second = { buttonModifier ->
-                        if (step == ReportFlowStep.SEND) {
+                        if (step == ReportFlowStep.PREVIEW) {
                             LoadingButton(text = UiAction.SEND_REPORT.label(uiText), loading = state.sending,
                                 modifier = buttonModifier, enabled = sendDisabledReason == null,
                                 onClick = {
-                                    if (supervisorMode) pendingSupervisorTargets = selectedTargets.toList()
-                                    else confirmSend = true
+                                    pendingDelivery = ReportDestinationReview(generalSelected, selectedTargets.toList(), state.reportAsPdf)
                                 })
                         } else {
                             AppButton(onClick = { step = step.next() }, enabled = nextDisabledReason == null,
@@ -248,43 +244,41 @@ fun ReportPreviewScreen(
                             if (showRosterDetails) state.doctors.forEach { Text("• ${it.fullName}") }
                         }
                         if (!state.isReadOnly) AppOutlinedButton(
-                            onClick = { confirmSend = false; showShiftDoctors = true },
+                            onClick = { pendingDelivery = null; showShiftDoctors = true },
                             enabled = !state.savingPdfOptions && state.shift != null && !state.savingDoctors && !state.sending &&
                                 !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text(if (state.doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_022) else uiText(R.string.ui_report_preview_screen_023)) }
                     }
                 }
-                if (step == ReportFlowStep.DESTINATION) {
+                if (step == ReportFlowStep.DOCTORS) {
                     AppSection(title = uiText(R.string.ui_report_preview_screen_024)) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                            AppFilterChip(selected = !supervisorMode, enabled = !busy, onClick = { supervisorMode = false },
-                                label = { Text(uiText(R.string.ui_report_preview_screen_025)) })
-                            AppFilterChip(selected = supervisorMode, enabled = !busy, onClick = {
-                                if (!supervisorSelectionInitialized) {
-                                    supervisorSelectionInitialized = true
-                                    selectedSupervisorIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
-                                }
-                                supervisorMode = true
-                            }, label = { Text(uiText(R.string.ui_settings_project_sections_009)) })
+                        AppCheckRow(label = uiText(R.string.ui_report_preview_screen_025),
+                            checked = generalSelected, enabled = !busy,
+                            onCheckedChange = { generalSelected = it })
+                        val selectableIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
+                        AppCheckRow(label = uiText(R.string.ui_report_select_all_destinations),
+                            checked = generalSelected && selectableIds.all { it in selectedSupervisorIds },
+                            enabled = !busy,
+                            onCheckedChange = { checked ->
+                                generalSelected = checked
+                                selectedSupervisorIds = if (checked) selectableIds else emptySet()
+                            })
+                        Text(uiText(R.string.ui_report_destination_checklist_hint), style = MaterialTheme.typography.bodySmall)
+                        state.supervisorTargets.forEach { target ->
+                            AppCheckRow(label = uiText(R.string.ui_report_preview_screen_028, target.doctorName, uiNumber(target.patientCount)) +
+                                if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "",
+                                checked = target.doctorId in selectedSupervisorIds && target.chatId != null,
+                                enabled = !busy && target.chatId != null,
+                                onCheckedChange = { checked -> selectedSupervisorIds = if (checked) selectedSupervisorIds + target.doctorId else selectedSupervisorIds - target.doctorId })
                         }
-                        if (supervisorMode) {
-                            Text(uiText(R.string.ui_report_preview_screen_026), style = MaterialTheme.typography.bodySmall)
-                            if (state.supervisorTargets.isEmpty()) EmptyState(uiText(R.string.ui_report_preview_screen_027))
-                            state.supervisorTargets.forEach { target ->
-                                AppCheckRow(label = uiText(R.string.ui_report_preview_screen_028, target.doctorName, uiNumber(target.patientCount)) +
-                                    if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "",
-                                    checked = target.doctorId in selectedSupervisorIds, enabled = !busy && target.chatId != null,
-                                    onCheckedChange = { checked -> selectedSupervisorIds = if (checked) selectedSupervisorIds + target.doctorId else selectedSupervisorIds - target.doctorId })
-                            }
-                        } else {
-                            Text(uiText(R.string.ui_report_preview_screen_030), style = MaterialTheme.typography.bodySmall)
-                            AppToggleRow(title = uiText(R.string.ui_report_preview_screen_031), checked = state.reportAsPdf,
-                                onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
-                        }
+                        if (state.supervisorTargets.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_027),
+                            style = MaterialTheme.typography.bodySmall)
+                        if (generalSelected) AppToggleRow(title = uiText(R.string.ui_report_preview_screen_031), checked = state.reportAsPdf,
+                            onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
                     }
                 }
-                if (step == ReportFlowStep.PREVIEW || step == ReportFlowStep.SEND) {
+                if (step == ReportFlowStep.PREVIEW) {
                     state.summary?.let { summary ->
                         AppSection(title = uiText(R.string.ui_report_preview_screen_032)) {
                             Text(uiText(R.string.ui_report_preview_screen_033, uiNumber(summary.patientCount), uiNumber(summary.escortCount), uiNumber(summary.shiftDate)))
@@ -317,8 +311,9 @@ fun ReportPreviewScreen(
                             },
                             onAction = if (state.retryAction == null) null else ({
                                 if (state.retryAction == ReportRetryAction.SEND) {
-                                    step = if (previewReady) ReportFlowStep.SEND else ReportFlowStep.PREVIEW
-                                } else viewModel.retryLastAction()
+                                    step = ReportFlowStep.PREVIEW
+                                } else if (state.retryAction == ReportRetryAction.PREVIEW) openPreview()
+                                else viewModel.retryLastAction()
                             }),
                             actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
                         when (state.doctorRegistryAction) {
@@ -339,7 +334,7 @@ fun ReportPreviewScreen(
                     AppNotice(uiText(R.string.ui_report_preview_screen_045))
                 }
 
-                if (step == ReportFlowStep.PREVIEW || step == ReportFlowStep.SEND) {
+                if (step == ReportFlowStep.PREVIEW) {
                     if (state.readinessWarnings.isNotEmpty()) {
                         AppSection(
                             title = uiText(R.string.ui_report_preview_screen_046),
@@ -425,11 +420,13 @@ fun ReportPreviewScreen(
                         enabled = !busy && destinationReady, onClick = ::openPreview)
                     if (previewReady) Text(uiText(R.string.ui_report_preview_screen_061), style = MaterialTheme.typography.bodySmall)
                 }
-                if (step == ReportFlowStep.SEND) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
+                if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
                     Text(uiText(R.string.ui_report_preview_screen_063) + state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
-                    if (supervisorMode) selectedTargets.forEach { target ->
+                    if (generalSelected) Text(uiText(R.string.ui_report_preview_screen_065,
+                        if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
+                    selectedTargets.forEach { target ->
                         Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
-                    } else Text(uiText(R.string.ui_report_preview_screen_065, if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
+                    }
                     Text(uiText(R.string.ui_report_preview_screen_066),
                         style = MaterialTheme.typography.bodySmall)
                 }
@@ -471,6 +468,10 @@ fun ReportPreviewScreen(
         AppAlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text(uiText(R.string.ui_report_preview_screen_058)) }, text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) {
                 Text(uiText(R.string.ui_report_preview_screen_078))
+                if (generalSelected) AppTextButton(onClick = {
+                    if (state.reportAsPdf) viewModel.previewPdf()
+                    else { reviewedText = state.previewMarkdown; showTextPreview = true }
+                }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_025)) }
                 selectedTargets.forEach { target ->
                     AppTextButton(onClick = { viewModel.previewSupervisorPdf(target.doctorId) }, enabled = !busy) {
                         Text(uiText(R.string.ui_report_preview_screen_079, target.doctorName))
@@ -515,23 +516,25 @@ fun ReportPreviewScreen(
             dismissButton = { AppTextButton(onClick = { deliveryDecision = null }) { Text(uiText(R.string.ui_cancel)) } })
     }
 
-    pendingSupervisorTargets?.let { targets ->
-        val targetsUnchanged = targets.all { it in state.supervisorTargets }
-        ReportSendConfirmation(destinations = targets.map { uiText(R.string.ui_report_preview_screen_095, it.doctorName, uiNumber(it.patientCount)) },
-            format = "PDF", warningCount = state.readinessWarnings.size,
-            enabled = sendDisabledReason == null && targetsUnchanged && targets.isNotEmpty(),
+    pendingDelivery?.let { review ->
+        val targetsUnchanged = review.supervisors == selectedTargets &&
+            review.supervisors.all { it in state.supervisorTargets } &&
+            review.includeGeneral == generalSelected && review.generalAsPdf == state.reportAsPdf
+        val destinations = buildList {
+            if (review.includeGeneral) add(uiText(R.string.ui_report_preview_screen_097))
+            review.supervisors.forEach { add(uiText(R.string.ui_report_preview_screen_095, it.doctorName, uiNumber(it.patientCount))) }
+        }
+        val format = if (!review.includeGeneral || review.generalAsPdf) "PDF"
+            else if (review.supervisors.isEmpty()) uiText(R.string.ui_report_preview_screen_015)
+            else uiText(R.string.ui_report_mixed_format)
+        ReportSendConfirmation(destinations = destinations, format = format,
+            warningCount = state.readinessWarnings.size,
+            enabled = sendDisabledReason == null && targetsUnchanged && destinations.isNotEmpty(),
             unavailableReason = if (targetsUnchanged) sendDisabledReason else uiText(R.string.ui_report_preview_screen_096),
             onConfirm = { forceLocal ->
-                pendingSupervisorTargets = null
-                viewModel.sendSupervisorReports(targets.mapTo(linkedSetOf()) { it.doctorId }, forceLocal)
-            }, onDismiss = { pendingSupervisorTargets = null })
-    }
-
-    if (confirmSend) {
-        ReportSendConfirmation(destinations = listOf(uiText(R.string.ui_report_preview_screen_097)),
-            format = if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015), warningCount = state.readinessWarnings.size,
-            enabled = sendDisabledReason == null,
-            unavailableReason = sendDisabledReason,
-            onConfirm = { forceLocal -> confirmSend = false; viewModel.send(forceLocal) }, onDismiss = { confirmSend = false })
+                pendingDelivery = null
+                viewModel.sendSelectedReports(review.includeGeneral,
+                    review.supervisors.mapTo(linkedSetOf()) { it.doctorId }, forceLocal)
+            }, onDismiss = { pendingDelivery = null })
     }
 }

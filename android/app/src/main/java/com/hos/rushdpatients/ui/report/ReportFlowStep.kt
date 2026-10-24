@@ -21,7 +21,7 @@ import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal enum class ReportFlowStep(@StringRes private val arabicLabelRes: Int) {
-    DOCTORS(R.string.ui_doctors), DESTINATION(R.string.ui_report_flow_step_003), PREVIEW(R.string.ui_report_flow_step_004), SEND(R.string.ui_report_flow_step_005);
+    DOCTORS(R.string.ui_report_setup_step), PREVIEW(R.string.ui_report_review_send_step);
 
     fun previous() = entries[(ordinal - 1).coerceAtLeast(0)]
     fun next() = entries[(ordinal + 1).coerceAtMost(entries.lastIndex)]

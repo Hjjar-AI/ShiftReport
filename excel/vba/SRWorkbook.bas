@@ -104,8 +104,10 @@ Public Function DoctorLabel(ByVal doctors As Object, ByVal id As String) As Stri
 End Function
 
 Public Function ResolveDoctor(ByVal text As String, ByVal role As String, ByVal doctors As Object) As String
-    Dim key As Variant, matches As Long, candidate As String
+    Dim key As Variant, matches As Long, candidate As String, bracket As Long
     text = Trim$(text): If Len(text) = 0 Then Exit Function
+    bracket = InStrRev(text, "[")
+    If bracket > 0 And Right$(text, 1) = "]" Then text = Mid$(text, bracket + 1, Len(text) - bracket - 1)
     For Each key In doctors.Keys
         If Txt(doctors(key), "clinicalRole") = role Then
             If text = CStr(key) Or text = Txt(doctors(key), "name") Or text = DoctorLabel(doctors, CStr(key)) Then

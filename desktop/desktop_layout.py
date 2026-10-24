@@ -41,6 +41,19 @@ def build_ward_controls(window):
     window.operation_notice_text.pack(fill='x',padx=8,pady=3)
     ctk.CTkButton(window.operation_notice,text='مراجعة سجل العمليات والتسليم',height=48,
         command=lambda:window.run(window.resolve)).pack(fill='x',padx=8,pady=4)
+    if not window.demo:
+        actions = ctk.CTkFrame(parent)
+        actions.pack(fill='x',padx=5,pady=4)
+        for column in range(3):actions.grid_columnconfigure(column,weight=1,uniform='daily')
+        window.fetch_button=ctk.CTkButton(actions,text='١ جلب مناوبة',height=48,
+            command=lambda:window.run(window.download))
+        window.fetch_button.grid(row=0,column=2,sticky='ew',padx=3,pady=4)
+        window.publish_button=ctk.CTkButton(actions,text='٢ مراجعة ونشر',height=48,
+            command=lambda:window.run(window.publish))
+        window.publish_button.grid(row=0,column=1,sticky='ew',padx=3,pady=4)
+        window.send_report_button=ctk.CTkButton(actions,text='٣ إرسال تقرير',height=48,
+            command=lambda:window.run(window.report))
+        window.send_report_button.grid(row=0,column=0,sticky='ew',padx=3,pady=4)
     status = ctk.CTkFrame(parent)
     status.pack(fill='x', padx=5, pady=4)
     window.workflow = ctk.CTkLabel(status, text='', anchor='e', justify='right', wraplength=650)

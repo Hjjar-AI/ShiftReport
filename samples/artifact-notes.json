@@ -1,0 +1,24 @@
+{
+  "dataset": "synthetic-patients-50.csv",
+  "patients": 50,
+  "tasks": 112,
+  "completedTasks": 13,
+  "badgedPatients": 28,
+  "priorityPatients": 10,
+  "pdfPages": 86,
+  "firstIndexPageLinks": 50,
+  "internalFitLinks": 385,
+  "visualInspection": [
+    "index page 1",
+    "patient card page 2"
+  ],
+  "limits": [
+    "No app import or Telegram operation",
+    "No Android compilation or rendering",
+    "No test-suite execution"
+  ],
+  "sha256": {
+    "synthetic-patients-50.csv": "2112a29f8578904d0c043f6722289d85aa00054acea85b25c7d2c896e8695c1d",
+    "synthetic-patients-50-A5.pdf": "3fa025c568d3b85d6c2d3059bfad1f65d37bb57011f88b03d72c835abd00305b"
+  }
+}

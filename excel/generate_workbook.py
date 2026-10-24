@@ -8,7 +8,6 @@ modules and paste ThisWorkbook.txt in Excel before using its buttons.
 from __future__ import annotations
 
 import argparse
-from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
@@ -45,6 +44,11 @@ LABELS = {
     'due': 'الموعد', 'index': 'الفهرس', 'previous': 'السابق', 'next': 'التالي',
     'continued': 'يتبع', 'roster': 'أطباء المناوبة', 'companion': 'يوجد مرافق',
     'badges': 'الشارات', 'supervisor': 'المشرف', 'resident': 'المقيم', 'doctors': 'الأطباء',
+    'patient': 'المريض', 'days': 'يوم',
+    'male': 'ذكر', 'female': 'أنثى', 'psychiatric': 'نفسي',
+    'addiction': 'إدمان', 'dual': 'نفسي + إدمان',
+    'patients': 'المرضى', 'psychiatriccount': 'نفسي وإدمان مشترك',
+    'companions': 'المرافقون', 'pendingcount': 'مهام معلقة', 'overduecount': 'منها متأخرة',
 }
 DATA_HEADERS = ['#', 'الاسم', 'العمر', 'الجنس', 'رقم القبول', 'تاريخ القبول',
                 'الحالة المرضية', 'مرافق', 'التشخيص', 'العلاج والحقن المديدة',
@@ -117,6 +121,20 @@ def remove(root, *names):
     for child in list(root):
         if child.tag.rsplit('}', 1)[-1] in names:
             root.remove(child)
+
+
+def strip_old_relationship_markup(root):
+    """Remove nested legacy controls and their references, including mc fallbacks."""
+    discarded = {'controls', 'control', 'oleObjects', 'legacyDrawing', 'legacyDrawingHF',
+                 'drawing', 'extLst', 'tableParts', 'AlternateContent', 'hyperlinks'}
+    for parent in list(root.iter()):
+        for child in list(parent):
+            local = child.tag.rsplit('}', 1)[-1]
+            if local in discarded or not child.tag.startswith('{' + S + '}'):
+                parent.remove(child)
+        for attribute in list(parent.attrib):
+            if attribute.startswith('{') and not attribute.startswith('{http://www.w3.org/XML/1998/namespace}'):
+                del parent.attrib[attribute]
 
 
 def ordered_sheet(root):
@@ -265,7 +283,9 @@ def read_source(source):
                 for child in list(c):
                     c.remove(child)
                 c.set('t', 'inlineStr')
-                ET.SubElement(ET.SubElement(c, tag('is')), tag('t')).text = value
+                node = ET.SubElement(ET.SubElement(c, tag('is')), tag('t'))
+                node.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
+                node.text = value
         sheets[entry.get('name')] = root
     return parts, sheets, book
 
@@ -274,6 +294,7 @@ def prepare(source, output, kind, blank):
     parts, sheets, old_book = read_source(source)
     source_styles = ET.fromstring(parts['xl/styles.xml']) if 'xl/styles.xml' in parts else None
     styles, style = new_styles(source_styles)
+    strip_old_relationship_markup(styles)
     for name in ['Data', 'Report', 'Settings', 'Lists', 'Backup', 'Sheet1']:
         sheets.setdefault(name, make_sheet())
     for name in NEW_SHEETS:
@@ -281,6 +302,7 @@ def prepare(source, output, kind, blank):
     today = (datetime.now(timezone.utc) - timedelta(hours=5, minutes=30)).date().isoformat()
     #Strip old controls/macros/connection cells, but retain clinical input and pictures.
     for name, root in sheets.items():
+        strip_old_relationship_markup(root)
         remove(root, 'sheetProtection', 'controls', 'oleObjects', 'legacyDrawing', 'legacyDrawingHF',
                'extLst', 'dataValidations', 'drawing', 'tableParts')
         for c in root.findall('.//' + tag('c')):
@@ -340,9 +362,9 @@ def prepare(source, output, kind, blank):
     for view in data.find(tag('sheetViews')):
         remove(view, 'pane', 'selection')
         ET.SubElement(view, tag('pane'), ySplit='5', topLeftCell='A6', activePane='bottomLeft', state='frozen')
-    validation(data, 'D6:D1000', 'M,F')
-    validation(data, 'G6:G1000', 'PSYCHIATRIC,ADDICTION,DUAL')
-    validation(data, 'H6:H1000 R6:R1000', 'Y,N')
+    validation(data, 'D6:D1000', 'M,F,ذكر,أنثى')
+    validation(data, 'G6:G1000', 'PSYCHIATRIC,ADDICTION,DUAL,نفسي,إدمان,نفسي + إدمان')
+    validation(data, 'H6:H1000 R6:R1000', 'Y,N,نعم,لا')
     for address, value in {'D40': 'سنة', 'D41': 'يوجد مرافق', 'D42': 'نعم', 'D43': 'لا',
                            'D50': 'أنثى', 'D51': 'ذكر', 'D52': 'نفسي',
                            'D53': 'نفسي + إدمان', 'D54': 'إدمان'}.items():
@@ -380,6 +402,11 @@ def prepare(source, output, kind, blank):
         merge(home, 'A{0}:J{0}'.format(row))
         set_cell(home, 'A' + str(row), text, style['hint'])
         row_height(home, row, 40)
+    set_cell(home, 'A20', 'نمط PDF', style['header'])
+    set_cell(home, 'B20', 'CARDS', style['body'])
+    merge(home, 'C20:J21')
+    set_cell(home, 'C20', 'CARDS: بطاقات A5 مع فهرس • CLASSIC: جدول A4 • PARAGRAPHS: فقرات A4. تُراجع النسخة النهائية قبل الإرسال.', style['hint'])
+    validation(home, 'B20', 'CARDS,CLASSIC,PARAGRAPHS')
     help_sheet = sheets['AppHelp']
     columns(help_sheet, [25, 100])
     set_cell(help_sheet, 'B1', 'دليل العمل', style['title'])
@@ -464,6 +491,9 @@ def prepare(source, output, kind, blank):
         shutil.copy2(str(path), str(adjacent / path.name))
     shutil.copy2(str(BASE / 'ThisWorkbook.txt'), str(output.parent / 'ThisWorkbook.txt'))
     manifest = {'format': kind, 'vbaEmbedded': False, 'vbaImportRequired': True,
+                'vba_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((BASE / 'vba').glob('*.bas'))},
+                'document_events_sha256': hashlib.sha256((BASE / 'ThisWorkbook.txt').read_bytes()).hexdigest(),
+                'generator_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest() if source else None,
                 'workbook_sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
                 'originalCredentialsUsed': False, 'networkCalls': 0,

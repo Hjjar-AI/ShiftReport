@@ -14,7 +14,8 @@ from desktop_widgets import messagebox, simpledialog
 import desktop_widgets as ctk
 from desktop_protocol import BridgeError, MissingProjectIndex, Client, ZoneInfo, current_date, fingerprint, is_admin, open_join, require
 from desktop_model import doctor_label
-from desktop_settings import read_settings, raw_config
+from desktop_settings import raw_config
+from desktop_connection_files import discover_connections
 from desktop_store import Workspace
 from desktop_platform import data_directory, acquire_instance_lock
 from desktop_forms import dialog_actions, button, modal
@@ -33,8 +34,9 @@ import desktop_report_actions
 import desktop_shell_layout
 
 class Window:
-    def __init__(self, root, settings, demo=False):
+    def __init__(self, root, settings, demo=False, connection_candidates=None, startup_notice=''):
         self.root, self.settings = root, settings
+        self.connection_candidates = list(connection_candidates or [])
         self.client = self.store = self.plan = self.raw_draft = None
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.busy = False
@@ -44,6 +46,7 @@ class Window:
         self.actor_ids, self.destinations = [], [None]
         self.project_creator = None
         desktop_shell_layout.build_window(self, root, settings, demo)
+        if startup_notice:self.status.set(startup_notice)
 
     def tool_window(self,title):
         window=ctk.CTkToplevel(self.root)
@@ -207,6 +210,21 @@ class Window:
 
     def connect(self):
         require(not self.demo,'الوضع التجريبي معزول عن المشاريع الحقيقية')
+        if self.client is None and self.connection_candidates:
+            candidates = self.connection_candidates
+            choice = 0 if len(candidates) == 1 else self.choose(
+                'عُثر على أكثر من ملف اتصال؛ اختر المشروع',
+                [('ملف انضمام محمي: ' if kind == 'join' else 'إعدادات اتصال: ') + path.name
+                 for kind, path, values in candidates] + ['اختيار ملف انضمام آخر…'])
+            if choice is None:return
+            if choice < len(candidates):
+                kind, path, values = candidates[choice]
+                if kind == 'join':
+                    self.settings = dict(self.settings, JOIN_FILE=str(path), CONNECTION_MODE='join')
+                else:
+                    self.settings = dict(self.settings, **values)
+                    self.zone.set(self.settings.get('TIMEZONE') or 'Asia/Damascus')
+            self.connection_candidates = []
         raw = self.client is None and self.settings.get('CONNECTION_MODE') == 'raw'
         if raw:
             config = raw_config(self.settings)
@@ -380,6 +398,8 @@ class Window:
         return desktop_patient_list.manual_movement_allowed(self)
 
     def workflow_next(self):
+        if self.client is None:return self.connect()
+        if self.client._actor is None or time.time()>=self.client._expires:return self.login()
         self.ready(False)
         _,action=workflow_status(self.client,self.store,self.demo)
         if action is WorkflowAction.DELIVERY_HISTORY:self.resolve()
@@ -453,20 +473,20 @@ class Window:
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--env',type=Path,default=BASE/'.env',help='Optional literal settings file; defaults beside script')
+    parser.add_argument('--env',type=Path,help='Explicit literal settings file; otherwise discover beside script or bundled executable')
     parser.add_argument('--demo',action='store_true',help='Disposable offline demo; no workspace or Telegram connection')
     args=parser.parse_args()
     lock=None
     try:
         if os.name!='nt':os.umask(0o077)
         if not args.demo:lock=acquire_instance_lock()
-        settings={} if args.demo else read_settings(args.env)
+        settings,candidates,notice = ({}, [], '') if args.demo else discover_connections(BASE,args.env)
         ctk.configure_rendering(settings.get('TEXT_RENDERING') or 'auto')
         ctk.set_appearance_mode(settings.get('APPEARANCE') or 'Light')
         from desktop_appearance import set_palette_theme
         set_palette_theme()
         root=ctk.CTk()
-        Window(root,settings,demo=args.demo)
+        Window(root,settings,demo=args.demo,connection_candidates=candidates,startup_notice=notice)
         root.mainloop()
     except BridgeError as error:
         messagebox.showerror('ShiftReport',str(error));return 1

@@ -5,7 +5,7 @@
 | Symptom | Check / action |
 |---|---|
 | Startup | Keep all modules together. Windows:CPython3.8.10/Tk/pip/launcher and pinned requirements. Linux:Python≥3.8/Tk/venv/graphical session, Setup_Linux.sh then Start_Linux.sh; select interpreter with PYTHON_BIN. Check existing `.venv` before installing; launchers retain errors. |
-| Configuration | Literal `.env` only; [example](../../desktop/.env.example). Join/password default; explicit raw mode needs exact credentials/key, blank JOIN_FILE and live admin before workspace access. No password/env expansion. |
+| Configuration | Discover protected joins/configured `.env` beside the source/EXE, or choose among adjacent valid `*.env`/joins. `--env PATH` overrides automatic environment selection; paths resolve beside that file. Invalid auto-discovered envs produce a generic notice and manual join remains available. Literal settings only; [example](../../desktop/.env.example). Join/password default; explicit raw mode needs exact credentials/key, blank JOIN_FILE and live admin before workspace access. No password/env expansion. |
 | Offline/validation | Protected join opens saved drafts; edits require Save. Invalid/incomplete diagnosis/treatment/follow-up stays in editor. |
 | Decryption | Preserve DB plus Windows `.key`/original profile or Linux `.linux-key`/local passphrase. Join password differs. Never delete/regenerate keys to bypass errors; restore same project/key only. |
 | Reconnect | Protected file available before login; candidate must validate live. Other project/key/topics blocked; BotFather revokes token. |

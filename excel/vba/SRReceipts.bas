@@ -57,17 +57,18 @@ Private Sub Persist(ByVal ledger As Object)
 End Sub
 
 Public Function BeginReceipt(ByVal kind As String, ByVal shiftId As String, ByVal chat As String, ByVal topic As String, ByVal content As String, Optional ByVal snapshotId As String = "") As String
-    Dim ledger As Object, records As Collection, row As Variant, route As String, record As Object
+    Dim ledger As Object, records As Collection, row As Variant, route As String, record As Object, duplicate As Boolean
     Set ledger = LoadReceipts(): Set records = ledger("records")
     route = Digest(kind & "|" & shiftId & "|" & chat & "|" & topic)
     For Each row In records
         If Txt(row, "route") = route Then
             Need Txt(row, "status") <> "UNKNOWN", "An UNKNOWN operation blocks this shift/destination. Inspect Telegram, then explicitly resolve its receipt."
             If Txt(row, "status") = "SENT" And Txt(row, "content") = content And kind = "report" Then
-                Need MsgBox("This exact report was already delivered. Do you explicitly approve an additional copy?", vbYesNo + vbQuestion + vbDefaultButton2) = vbYes, "Additional copy cancelled."
+                duplicate = True
             End If
         End If
     Next row
+    If duplicate Then Need MsgBox("This exact report was already delivered. Do you explicitly approve an additional copy?", vbYesNo + vbQuestion + vbDefaultButton2) = vbYes, "Additional copy cancelled."
     Set record = Dict(): BeginReceipt = NewId()
     Put record, "id", BeginReceipt: Put record, "kind", kind: Put record, "shiftId", shiftId
     Put record, "route", route: Put record, "content", content: Put record, "actor", Actor()

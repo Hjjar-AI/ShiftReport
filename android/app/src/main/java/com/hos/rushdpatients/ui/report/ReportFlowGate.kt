@@ -11,35 +11,38 @@ internal data class ReportFlowGate(
 
 internal fun reportFlowGate(
     state: ReportUiState, step: ReportFlowStep, supervisorMode: Boolean,
-    selectedTargets: List<SupervisorReportTarget>, reviewedText: String?, openedPdfUris: Set<String>
+    selectedTargets: List<SupervisorReportTarget>, reviewedText: String?, openedPdfUris: Set<String>,
+    includeGeneral: Boolean = !supervisorMode
 ): ReportFlowGate {
     val busy = state.loading || state.savingDoctors || state.sending || state.previewingPdf ||
         state.exportingLocalPdf || state.sharingPdf || state.savingPdfOptions
-    val pdfSelected = supervisorMode || state.reportAsPdf
-    val previewReady = if (!pdfSelected) reviewedText == state.previewMarkdown
-        else if (supervisorMode) selectedTargets.isNotEmpty() && selectedTargets.all { target ->
-            state.pdfReviewUris["supervisor:${target.doctorId}"]?.let { it in openedPdfUris } == true
-        }
-        else state.pdfReviewUris["general"]?.let { it in openedPdfUris } == true
-    val destinationReady = state.summary != null && (!supervisorMode || selectedTargets.isNotEmpty())
+    val targets = if (supervisorMode) selectedTargets else emptyList()
+    val hasDestination = includeGeneral || targets.isNotEmpty()
+    val generalReady = !includeGeneral || if (state.reportAsPdf)
+        state.pdfReviewUris["general"]?.let { it in openedPdfUris } == true
+        else reviewedText == state.previewMarkdown
+    val supervisorsReady = targets.all { target ->
+        state.pdfReviewUris["supervisor:${target.doctorId}"]?.let { it in openedPdfUris } == true
+    }
+    val previewReady = hasDestination && generalReady && supervisorsReady
+    val destinationReady = state.summary != null && hasDestination
     val nextDisabledReason = when {
         busy -> R.string.ui_report_preview_screen_001
         step == ReportFlowStep.DOCTORS && state.shift == null -> R.string.ui_report_preview_screen_002
         step == ReportFlowStep.DOCTORS && state.doctors.isEmpty() -> R.string.ui_report_preview_screen_003
-        step != ReportFlowStep.DOCTORS && !destinationReady ->
-            if (supervisorMode && selectedTargets.isEmpty()) R.string.ui_report_preview_screen_004
+        !destinationReady ->
+            if (!hasDestination) R.string.ui_report_no_destination
             else R.string.ui_report_preview_screen_005
         step == ReportFlowStep.PREVIEW && !previewReady ->
-            if (supervisorMode) R.string.ui_report_preview_screen_006 else R.string.ui_report_preview_screen_007
+            R.string.ui_report_preview_each_selected
         else -> null
     }
     val sendDisabledReason = when {
         busy -> R.string.ui_report_preview_screen_001
         state.isReadOnly -> R.string.ui_report_preview_screen_008
         state.summary == null -> if (state.doctors.isEmpty()) R.string.ui_report_preview_screen_003 else R.string.ui_report_preview_screen_009
-        supervisorMode && selectedTargets.isEmpty() -> R.string.ui_report_preview_screen_004
-        !previewReady -> if (supervisorMode) R.string.ui_report_preview_screen_010
-            else R.string.ui_report_preview_screen_011
+        !hasDestination -> R.string.ui_report_no_destination
+        !previewReady -> R.string.ui_report_preview_each_selected
         else -> null
     }
     return ReportFlowGate(busy, previewReady, destinationReady, nextDisabledReason, sendDisabledReason)

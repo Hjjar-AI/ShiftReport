@@ -57,7 +57,7 @@ class SettingsRepository @Inject constructor(
     // ---------- Domain-specific accessors ----------
 
     suspend fun isReportAsPdf(): Boolean =
-        getBoolean(AppConstants.SETTING_REPORT_AS_PDF, false)
+        getBoolean(AppConstants.SETTING_REPORT_AS_PDF, true)
 
     suspend fun setReportAsPdf(enabled: Boolean) =
         putBoolean(AppConstants.SETTING_REPORT_AS_PDF, enabled)

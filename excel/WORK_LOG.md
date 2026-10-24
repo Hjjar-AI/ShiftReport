@@ -1,0 +1,16 @@
+# Completed source work and limits
+
+24 October 2026. Owner requested an Excel/VBA-only client, light workbook layout, shared app-format data/PDFs, Win7+ targeting and a separate generator/source project. The original workbook and ten extracted components are preserved under ignored `private/`; the original source at its prior location is unchanged.
+
+- Added the standard-library Python generator and eleven native VBA modules, plus document-event paste code. Generated macro-enabled OOXML has no executable VBA until manual import; no old compiled VBA/control package is carried over. Real BIFF `.xls` has an explicit Windows/installed-Excel conversion path, not an extension rename.
+- Added full roster, patient UUID/birth-year/priority columns, explicit tasks/badges, review and durable receipt sheets. App CSV7/bundle1/index4, protected join/PBKDF2/AES-GCM, membership challenge, baseline/review guards, exact PDF verification and uncertain/duplicate delivery handling are implemented in source. Project fingerprint binds all topic IDs and key. Saved task completion is attributed to the verified saver.
+- A5 cards use shared page/margin/font choices; Classic uses the app's seven column proportions; paragraphs retain clinical/tasks/badges. Excel renderer differences and PDF-link survival are disclosed; no visual parity claim.
+- Real legacy Settings credentials are saved only in ignored `private/legacy-credentials.local.json`, as reference. Generated workbook copies exclude them. The current app protected-join path is still owner input; `private/app-connection.local.json` records that absence rather than invented/verification credentials. Passwords are interactive and never written to cells.
+
+Executed: actual XLSM-container and blank XLSX generation; Python 3.8 grammar parsing; VBA procedure/name/string/line-length inspection; OOXML parsing/relationship/legacy-control inspection; credential-pattern/original-value scanning; original clinical-cell comparison; Git-ignore checks and `git diff --check`. Initial generated controls/printer references were corrected before the final artifact review. Local detailed receipts: `private/artifact-checks.local.json` and `private/source-artifact-review.local.json`.
+
+Evidence: **616** original clinical cells compared unchanged; original workbook SHA-256 unchanged. Generated copies contain no legacy credential values/token patterns or old VBA/control parts; OOXML references resolve. Native modules use pointer-sized declarations with 32/64-bit CNG structure branches and Win7 APIs. Source-only work is not runtime verification.
+
+Not executed: Gradle, builds, compilation, test-suite inspection/work, Excel/VBA, Windows 7/other Windows, BIFF conversion, actual PDF generation/viewer/navigation/printing or live Telegram. No original groups/tokens were contacted. No app/database/interchange/toolchain version was changed by this work; unrelated edits are retained.
+
+Extraction prerequisite: added oletools and its dependencies once to the existing desktop virtual environment; no app dependency/version files changed. Its raw extraction stays private; the generator/runtime do not require oletools. The earlier ignored extraction-work directory was relocated to `private/extraction-2026-10-24`; canonical editable source is `excel/vba`, not its archived source snapshot.

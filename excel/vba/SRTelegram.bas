@@ -24,7 +24,7 @@ End Function
 
 Public Function ProjectFingerprint(ByVal config As Object) As String
     Dim key As Variant, identity As String
-    For Each key In Array("chatId", "csvTopicId", "reportsTopicId", "doctorsTopicId", "telegramDataKey")
+    For Each key In Array("chatId", "csvTopicId", "reportsTopicId", "doctorsTopicId", "announcementsTopicId", "telegramDataKey")
         identity = identity & CStr(key) & ":" & Txt(config, CStr(key)) & vbLf
     Next key
     identity = identity & Split(Txt(config, "botToken"), ":")(0)

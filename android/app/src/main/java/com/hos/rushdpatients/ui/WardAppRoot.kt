@@ -54,6 +54,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -84,7 +87,9 @@ class RootViewModel @Inject constructor(
     private val _unlocking = MutableStateFlow(false)
     val unlocking: StateFlow<Boolean> = _unlocking.asStateFlow()
 
-    val biometricAvailable: Boolean = biometricHelper.isAvailable()
+    private val _biometricAvailable = MutableStateFlow(false)
+    val biometricAvailable: StateFlow<Boolean> = _biometricAvailable.asStateFlow()
+    private var unlockRequired = false
 
     private var backgroundedAt: Instant? = null
     private var failedPinAttempts = 0
@@ -94,50 +99,102 @@ class RootViewModel @Inject constructor(
     }
 
     suspend fun shouldPromptUnlock(): Boolean {
-        val current = sessionManager.current() ?: return false
+        val current = sessionManager.current() ?: run {
+            unlockRequired = false
+            return false
+        }
+        _biometricAvailable.value = biometricHelper.isAvailable() &&
+            settingsRepository.getBoolean(AppConstants.SETTING_BIOMETRIC_ENABLED, true)
         if (doctorRepository.getActiveById(current.doctorId) == null) {
             sessionManager.clear()
+            unlockRequired = false
             return false
         }
         val threshold = settingsRepository.getAutoLockMinutes().toLong()
         val inactiveSince = backgroundedAt ?: current.unlockedAt
         backgroundedAt = null
-        return Duration.between(inactiveSince, Instant.now()).toMinutes() >= threshold
+        // Once locked, a cancelled system prompt/short background visit cannot
+        // clear the lock merely because its new inactivity interval is short.
+        unlockRequired = unlockRequired || Duration.between(inactiveSince, Instant.now()).toMinutes() >= threshold
+        return unlockRequired
     }
 
     fun unlockWithPin(pin: String) {
         val current = sessionManager.current() ?: return
+        if (_unlocking.value) return
+        _unlocking.value = true
         viewModelScope.launch {
-            _unlocking.value = true
-            val doctor = doctorRepository.getById(current.doctorId)
-            val stored = doctor?.extraOptions
-                ?.firstOrNull { it.startsWith("pin:") }
-                ?.removePrefix("pin:")
-            val ok = stored != null && hasher.verify(pin, stored)
-            _unlocking.value = false
-            if (ok) {
-                failedPinAttempts = 0
-                _unlockError.value = null
-                sessionManager.markUnlocked()
-            } else {
-                failedPinAttempts++
-                _unlockError.value = if (failedPinAttempts >= AppConstants.LOGIN_MAX_ATTEMPTS) {
+            try {
+                val doctor = doctorRepository.getActiveById(current.doctorId)
+                val stored = doctor?.extraOptions
+                    ?.firstOrNull { it.startsWith("pin:") }
+                    ?.removePrefix("pin:")
+                val ok = stored != null && withContext(Dispatchers.IO) { hasher.verify(pin, stored) }
+                if (sessionManager.current() != current) return@launch
+                val latest = doctorRepository.getActiveById(current.doctorId)
+                if (sessionManager.current() != current) return@launch
+                if (latest == null || latest.telegramId != current.telegramId ||
+                    latest.extraOptions.firstOrNull { it.startsWith("pin:") } != stored?.let { "pin:$it" }) {
                     signOut()
-                    uiText(R.string.ui_ward_app_root_001)
-                } else {
-                    uiText(R.string.ui_ward_app_root_002)
+                    return@launch
                 }
+                if (ok) {
+                    failedPinAttempts = 0
+                    _unlockError.value = null
+                    unlockRequired = false
+                    sessionManager.markUnlocked()
+                } else {
+                    failedPinAttempts++
+                    _unlockError.value = if (failedPinAttempts >= AppConstants.LOGIN_MAX_ATTEMPTS) {
+                        signOut()
+                        uiText(R.string.ui_ward_app_root_001)
+                    } else {
+                        uiText(R.string.ui_ward_app_root_002)
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _unlockError.value = uiText(R.string.ui_pin_unlock_retry)
+            } finally {
+                _unlocking.value = false
             }
         }
     }
 
-    fun markUnlockedAfterBiometric() {
-        sessionManager.markUnlocked()
+    fun markUnlockedAfterBiometric(expected: Session) {
+        if (_unlocking.value || sessionManager.current() != expected) return
+        _unlocking.value = true
+        viewModelScope.launch {
+            try {
+                val doctor = doctorRepository.getActiveById(expected.doctorId)
+                if (sessionManager.current() != expected) return@launch
+                if (doctor == null || doctor.telegramId != expected.telegramId) {
+                    signOut()
+                    return@launch
+                }
+                failedPinAttempts = 0
+                _unlockError.value = null
+                unlockRequired = false
+                sessionManager.markUnlocked()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _unlockError.value = uiText(R.string.ui_biometric_retry_pin)
+            } finally {
+                _unlocking.value = false
+            }
+        }
+    }
+
+    fun biometricFailed() {
+        _unlockError.value = uiText(R.string.ui_biometric_retry_pin)
     }
 
     fun biometricHelper(): BiometricHelper = biometricHelper
 
     fun signOut() {
+        unlockRequired = false
         val actor = sessionManager.current()
         sessionManager.clear()
         viewModelScope.launch {
@@ -166,9 +223,11 @@ fun WardAppRoot(
     val session by viewModel.session.collectAsStateWithLifecycle()
     val unlockError by viewModel.unlockError.collectAsStateWithLifecycle()
     val unlocking by viewModel.unlocking.collectAsStateWithLifecycle()
+    val biometricAvailable by viewModel.biometricAvailable.collectAsStateWithLifecycle()
     val projectConfig by viewModel.projectConfig.collectAsStateWithLifecycle()
 
     var needsUnlock by remember { mutableStateOf(false) }
+    var unlockDecisionReady by remember { mutableStateOf(false) }
     var foregroundTick by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -177,6 +236,7 @@ fun WardAppRoot(
             when (event) {
                 Lifecycle.Event.ON_START -> foregroundTick++
                 Lifecycle.Event.ON_STOP -> {
+                    unlockDecisionReady = false
                     viewModel.onBackground()
                     // Replace clinical content before Android captures the background task card.
                     if (session != null) needsUnlock = true
@@ -196,6 +256,7 @@ fun WardAppRoot(
             return@LaunchedEffect
         }
         needsUnlock = viewModel.shouldPromptUnlock()
+        unlockDecisionReady = true
     }
 
     val current = session
@@ -219,15 +280,14 @@ fun WardAppRoot(
             onUnlock = { pin ->
                 viewModel.unlockWithPin(pin)
             },
-            onBiometric = if (viewModel.biometricAvailable) {
+            onBiometric = if (unlockDecisionReady && biometricAvailable) {
                 {
                     viewModel.biometricHelper().prompt(
                         activity = activity,
                         onSuccess = {
-                            viewModel.markUnlockedAfterBiometric()
-                            needsUnlock = false
+                            viewModel.markUnlockedAfterBiometric(current)
                         },
-                        onError = {},
+                        onError = { viewModel.biometricFailed() },
                         onCancel = {}
                     )
                 }
