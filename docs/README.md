@@ -15,4 +15,4 @@
 | Diagnose | [Android](guides/android-troubleshooting.md), [Desktop](guides/desktop-troubleshooting.md) |
 | Shared wire format / contributor rules | [Protocol](reference/telegram-protocol.md), [AGENTS.md](../AGENTS.md) |
 
-Each topic has one home; review ledgers and temporary selection sheets are absorbed into the records above. Operational guides retain their commands. Private machine notes remain ignored under `docs/local/` and excluded from packages.
+One topic/home; commands stay in guides. Private `docs/local/` notes remain ignored/excluded from packages.

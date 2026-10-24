@@ -2,7 +2,7 @@
 
 [Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md) · [Device procedures](device-coverage.md) · [Desktop/live](deep-testing.md)
 
-**683 JVM methods/85 classes; 288 device methods/55 classes.** Counts are not coverage percentages. Full and focused results describe different snapshots.
+Inventory: **683 JVM methods/85 classes; 288 device methods/55 classes**; not coverage percentages. Results are snapshot-specific.
 
 ## Coverage map
 
@@ -45,7 +45,7 @@ srgradle -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
 
 To focus the device command, add `-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest` (or another fully qualified class, comma-separated classes, or `Class#method`). Select one phone with `ANDROID_SERIAL` when multiple devices are connected. Opt-in prerequisites/flags are in [Device procedures](device-coverage.md).
 
-Read JUnit XML for failures/errors/skips; duplicated console skip messages are not counts. Default output: `~/.gradle/shiftreport-project-cache/build-output/app/`; JVM XML: `test-results/testDebugUnitTest/`; device XML: `outputs/androidTest-results/connected/debug/`. Archive exact source/device/API, XML and failure details in ignored `local/verification/`; update Current state.
+Count failures/errors/skips from JUnit XML, not duplicated console messages. Default output: `~/.gradle/shiftreport-project-cache/build-output/app/`; JVM XML: `test-results/testDebugUnitTest/`; device XML: `outputs/androidTest-results/connected/debug/`. Archive exact source/device/API, XML and failure details in ignored `local/verification/`; update Current state.
 
 ## Fixture rules
 

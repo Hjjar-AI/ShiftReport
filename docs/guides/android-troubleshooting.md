@@ -6,10 +6,7 @@ Use an already installed development app. These recipes do not authorize builds,
 
 ## Doctor registry needs attention
 
-- In «سجل الأطباء», «جلب سجل الأطباء» only retrieves the published registry; «نشر سجل الأطباء» reviews and publishes the saved local registry. Ordinary edits to doctors, teams, permissions and report destinations stay local until Publish.
-- «عرض التعديلات» identifies portable additions/deletions/changed fields. A local PIN or unchanged save alone should not count as a publication change.
-- Confirmed patient publication/report sending can proceed with unrelated local doctor edits or different registry fields. Doctor-account changes remain local. If a roster member, patient assignment or pending-task owner is not published with a valid clinical role, publish the registry or correct that assignment first. The blocking message offers the registry page to an admin. Explicit Fetch invalidates previews; review the report again afterward. Neither direction runs implicitly.
-- Confirming patient publication replaces the published shift with the complete reviewed local copy under last-write-wins. Verify that copy and destination before confirming; delivery uncertainty still requires checking Telegram before repeating.
+«جلب سجل الأطباء» retrieves; «نشر سجل الأطباء» reviews/publishes local doctors/teams/permissions/destinations. «عرض التعديلات» shows portable changes, excluding local PIN/unchanged saves. Unrelated registry edits need not block patient publication; unpublished invalid roster/assignment/pending-owner references must be published/corrected first (admin registry shortcut). Fetch invalidates previews; review again. Publication replaces the complete reviewed local shift, last-write-wins; check destination/UNKNOWN before retry.
 
 ## Build, cache and signing failures
 
@@ -17,15 +14,15 @@ Use the [build/cache/signing guide](android-build.md) for [offline verification]
 
 ## KSP cannot access FilterOutputStream.out
 
-`InaccessibleObjectException` mentioning unopened `java.io` requires the compiler daemon option already set in `android/gradle.properties`: `kotlin.daemon.jvmargs=--add-opens=java.base/java.io=ALL-UNNAMED`. Keep it on the Kotlin daemon, where KSP runs; no cache deletion or toolchain change is needed. [Kotlin daemon arguments](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments). The later owner build passed; see [snapshot limits](../status/current-state.md#verification-and-limits).
+For unopened `java.io`/`InaccessibleObjectException`, retain `kotlin.daemon.jvmargs=--add-opens=java.base/java.io=ALL-UNNAMED` in `android/gradle.properties` on the **Kotlin daemon** where KSP runs. No toolchain/cache change. [Arguments](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments); earlier owner build passed, not newer-source proof.
 
 ## KSP lookup cache cannot be read
 
-`NegativeArraySizeException` in `IOUtil.readString`, `LookupSymbolExternalizer` or `FileToSymbolsMap` indicates an unreadable incremental lookup cache; the trace alone does not prove its cause. Capture the trace and actual output path first. With owner authorization and no active writers, quarantine only the affected account's generated `app/kspCaches/debug` to a uniquely named sibling backup; preserve it for diagnosis. Do not clear dependency caches, application data or another account's output. A prior targeted quarantine was followed by a successful owner build; this does not verify newer source. [KSP incremental tracking](https://kotlinlang.org/docs/ksp-incremental.html).
+`NegativeArraySizeException` in `IOUtil.readString`/`LookupSymbolExternalizer`/`FileToSymbolsMap`: capture trace/output path; cause unproven. With owner approval/no writers, quarantine only affected account’s generated `app/kspCaches/debug` to unique sibling, preserving diagnosis. Never clear dependencies/app data/others’ output. Earlier targeted repair passed an owner build. [Tracking](https://kotlinlang.org/docs/ksp-incremental.html).
 
 ## Capture one failure
 
-Install Android platform-tools using your normal SDK setup; enable USB debugging, unlock the phone and accept its computer authorization prompt. On Windows, install the manufacturer's USB driver if needed; on Linux check USB/udev permissions. From the project root:
+Use installed platform-tools, USB debugging/unlocked authorized phone; check Windows driver/Linux udev. From repo root capture below, reproduce once, record exact Arabic action/error, stop Ctrl+C; do not clear prior logs. CSV errors may exist only in snackbar. Keep captures ignored/redacted (`git check-ignore -v local-debug/reproduction.txt`). App-only capture: `adb shell pidof com.hos.rushdpatients`, then `adb logcat --pid=THE_PID -v threadtime`; refresh PID after restart. Do **not** run hierarchy dumps alongside instrumentation. Wait for native search results to settle before selecting exact file; picker timeout alone is not import failure.
 
 ```bash
 adb devices -l
@@ -34,8 +31,6 @@ mkdir -p local-debug
 adb logcat -v threadtime > local-debug/reproduction.txt
 ```
 
-Reproduce once, record the exact Arabic message and action, then stop capture with Ctrl+C. Avoid clearing existing logs before collecting a failure. Capture the screen or UI hierarchy if the error is only a short-lived snackbar:
-
 ```bash
 adb exec-out screencap -p > local-debug/error.png
 adb shell uiautomator dump /sdcard/shiftreport-window.xml
@@ -43,10 +38,6 @@ adb pull /sdcard/shiftreport-window.xml local-debug/window.xml
 adb shell rm /sdcard/shiftreport-window.xml
 rg -n -i 'Rushd|AndroidRuntime|FATAL EXCEPTION|ANR|SecurityException|IOException|CSV|telegram|timeout|denied' local-debug/reproduction.txt
 ```
-
-`DoctorsViewModel` displays CSV exceptions in a snackbar rather than always logging them under `Rushd`. Save the visible error as well as Logcat. Verify captures are ignored with `git check-ignore -v local-debug/reproduction.txt` before sharing.
-
-For an app-only stream, obtain its running PID with `adb shell pidof com.hos.rushdpatients`, then use `adb logcat --pid=THE_PID -v threadtime`. A restarted process has a different PID.
 
 ## Choose the right diagnostic
 
@@ -77,11 +68,9 @@ Ordinary Excel Save as CSV is not a substitute for app metadata or current bundl
 
 ## Joining and empty exports
 
-Join requires the administrator's protected file/passphrase; connection/topic entry is only for Create. A zero-byte file is invalid. New Android 10+ exports primarily save verified JSON directly to `Downloads/ShiftReport`; sharing and optional picker remain. On older Android sharing is primary. Record the displayed save result and retry a fresh local export; the owner's original empty-provider cause is unconfirmed.
+Protected join/password only; zero bytes invalid. Android10+ prefers verified JSON in `Downloads/ShiftReport`, optional share/picker; older Android primarily shares. Record save result/retry fresh local export; original empty-provider cause unknown. Doctor/backup encrypted staging keeps random IDs/counts across recreation; cancel/verification failure cleans owned output, expired admin needs new login/export.
 
-Doctor/backup exports stage encrypted bytes before the picker. Only random IDs/counts survive recreation; cancellation or failed verification cleans new staging/output. An expired admin session requires sign-in and a new export. Never manually paste credentials or fake metadata into a join file.
-
-Wrong key/password/tampered data must fail explicitly. Recover the correct join file/key rather than generating a new key. Same-bot token replacement is through BotFather and protected reconnect; different project/key/topics are blocked to protect existing clinical data. Reconnect is available before login. An enrolled same-device administrator may return using the existing PIN; erased devices still need joining and first enrollment.
+Wrong keys/passwords/tampering fail; recover correct key rather than replacing it. Pre-login same-project file reconnect preserves state and blocks changed project/key/topics; same-bot token revocation belongs to BotFather. Existing enrolled admin may use PIN; erased devices require join/enrollment.
 
 ## Doctor CSV import
 
@@ -143,30 +132,18 @@ UTF-8 with or without a UTF-8 BOM is accepted. A UTF-16 spreadsheet export is no
 
 ### Spreadsheet pitfalls
 
-- Export as **CSV UTF-8**, not legacy ANSI, UTF-16, XLS, or XLSX.
-- Keep the exact header names.
-- Do not let a spreadsheet convert long Telegram IDs to scientific notation.
-- Do not introduce thousands separators or decimal `.0` suffixes into numeric IDs.
-- Preserve negative supervisor group chat IDs.
-- Quote fields containing commas, quotes, or line breaks according to CSV rules.
-- Do not create duplicate active administrator ranks.
-- Blank Telegram IDs are allowed; blank doctor IDs and name parts are not.
-- Valid `gender` values are `M`, `MALE`, `F`, or `FEMALE`.
-- Valid `clinical_role` values are `RESIDENT` and `SUPERVISOR`.
-- `schema_version` must currently be `1`.
+CSV UTF-8 (BOM optional), exact header/schema1; no ANSI/UTF16/XLSX. Preserve numeric IDs (negative group IDs, no scientific notation/separators/`.0`), CSV quoting and unique active admin ranks. Blank Telegram IDs allowed; doctor IDs/name parts required. Gender `M/MALE/F/FEMALE`; roles `RESIDENT/SUPERVISOR`.
 
 ## Tasks and reports
 
-Pending includes overdue; never add the two counts together. Cards count one patient, dashboards the ward. Only unfinished records with reached deadlines are overdue. The minute timer refreshes counts; shift-end means 08:30 next calendar day. New tasks may remain unassigned. Completion is stamped on patient save; rollover keeps unfinished tasks/deadlines and copies start without tasks. Narrative notes are never inferred as task records.
+Overdue ⊂ pending: never add counts. Card=patient,dashboard=ward; minute refresh, shift-end08:30 next calendar day. Optional owners, Save-stamped completion, rollover unfinished deadlines, patient copies start without tasks; notes never tasks.
 
-Use a **demo** PDF to check Arabic names, mixed Arabic/Latin text, long paragraphs, tasks/badges, and multiple pages without exposing clinical data. Open the same file in Acrobat and a browser; select/copy/search text and try index/name/Previous/Next links. Check ordering, every demo-page label, headings/footers and continuation pages. A5 cards should report approximately 420×595pt in `pdfinfo`; `pdftotext -enc UTF-8` checks extraction but does not establish viewer behavior. Selected pages passed native rendering/visual review; remaining viewer/link/print checks are consolidated in [Remaining checks](../status/testing-handoff.md).
+Use dummy DEMO PDF: mixed Arabic/Latin,long content/tasks,badges,order/continuations/headings/footer. Acrobat/browser: search/copy/selection,index/name/Previous/Next,print. A5≈420×595pt; `pdfinfo`/`pdftotext -enc UTF-8` do not establish viewer behavior. [Remaining](../status/testing-handoff.md).
 
 ## Appearance and navigation
 
-Appearance and accent are independent; badge severity is shared and diagnoses are neutral. Check field-label focus/error/disabled states, large Arabic font wrapping, 48dp targets, keyboard-safe form actions and fold-safe regions. Transparent bottom navigation gutters require content behind the pill, with end clearance for the last row. Bulk expansion is immediate; individual expansion animates briefly.
-
-For Save and next, use a filtered/pinned demo ward: successful save advances in rounds order; invalid/stale save, discard or a missing successor must not advance. These device/rendering checks have not been performed here.
+Check independent appearance/accent and neutral diagnosis/shared severity; field focus/error/disabled,large Arabic wrapping,48dp,IME-safe actions,fold-safe regions and last-row dock clearance. Bulk immediate/individual brief. In filtered/pinned demo rounds, only successful Save-next advances; invalid/stale/discard/no-successor must not. See [actual limits](../status/current-state.md#verification-and-limits).
 
 ## Report a problem
 
-Include app version, Android/Windows version, device/viewer, action sequence, expected/actual result, exact displayed error, selected file facts, local-save versus remote-send status, and redacted capture timestamps. Identify source-only evidence separately from build/device/live-Telegram verification. Keep logs and reports in ignored local storage; never include secrets or clinical records.
+Record app/source/OS/device/viewer,steps,expected/actual,error,file/provider facts,local-save versus remote-send and redacted timestamps. Distinguish static/build/device/live evidence. Keep logs/reports ignored/private; no credentials/clinical records.

@@ -1,6 +1,6 @@
 # Optional UI decisions
 
-Unselected choices only; existing behavior remains the default. Pick IDs or narrower parts. Completed selections live in [Changelog](../status/changelog.md); current behavior, safety boundaries and verification limits live in [Current state](../status/current-state.md).
+Unselected only; choose IDs/subsets. [Completed](../status/changelog.md) · [Current behavior/limits](../status/current-state.md).
 
 | ID | Optional choice |
 |---|---|

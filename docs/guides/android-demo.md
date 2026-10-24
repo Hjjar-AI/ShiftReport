@@ -4,29 +4,25 @@ The demo follows the real ward's navigation and patient workflow with a smaller 
 
 ## Navigation
 
-- **Patients and Dashboard** are the main destinations, using the real ward's compact navigation bar/rail. The drawer holds secondary destinations.
-- **Patients** uses the real search/count/filter toolbar, patient cards, full details and patient/task forms. View Options groups filtering, card layout and session sorting. Grouping is omitted from this reduced demo.
-- **Dashboard** reuses the real ward metrics and filter actions. Synchronization and admin Activity controls are omitted, rather than simulating network work.
-- **Shift doctors** groups roster selection and the current demo doctor. Selecting another tree-named doctor changes “My patients” and task-completion identity for subsequent demo edits; it does not log in or alter a real account.
-- **Report review** is a separate destination, with the actionable roster first, scope/destination/PDF layout next and uncommon styling under Advanced. The ward's report action opens this review step. Demo delivery is exclusively a local PDF export through the system file picker; there is no Telegram send/publish action.
-- **Settings** groups temporary appearance/font controls and Save-and-next. The appearance section reuses the real settings controls and dummy-card preview.
-- **Recycle bin, reset and exit** are secondary drawer actions. Reset and exit require confirmation; reset restores demo clinical data, while exit discards the session and returns to initial setup.
+| Destination | Behavior |
+|---|---|
+| Patients/Dashboard | Real compact bar/rail, search/count/filter/cards/details/forms/metrics; options group filters/layout/sort, no demo grouping or sync/admin Activity. |
+| Shift doctors | Roster plus tree-named actor; changes My patients/new completion attribution, never real login. |
+| Report review | Roster first, scope/destination/layout then Advanced; explicit local picker PDF export only, no Telegram publication. |
+| Settings | Temporary shared appearance/font controls, dummy preview and Save-next. |
+| Recycle/reset/exit | Drawer actions; confirmed reset restores dummy data, confirmed exit returns to setup/discards session. |
 
-A short, persistent demo strip identifies the workspace. It replaces the repeated large explanation and avoids mixing appearance controls into dashboard metrics.
+Persistent compact demo strip identifies the workspace.
 
 ## Shared behavior
 
-The demo reuses real patient cards, full-screen forms, structured task editor, patient details/rounds, roster picker, saved-sort editor, dashboard, theme controls and PDF renderer. General/Advanced form modes share the same draft and expose labs. The list offers all shared dashboard filters, compact/two-column cards, brief individual expansion and immediate bulk expansion. Sorting also determines PDF order; temporary filtering does not remove patients from the report.
-
-Main-list position, expanded/pinned cards and per-page UI state remain available when navigating the demo. Edited patients are revealed/highlighted when visible; filter-hidden results are explained. Task deadline counts refresh during the session. Width-adaptive bar/rail navigation and the shared fold-aware content container retain labelled controls and scroll clearance below the report action.
+Real cards/fullscreen forms/task editor/details/rounds/roster/sort/dashboard/theme/PDF; one draft including labs. Compact/two-column cards, brief individual/immediate bulk expansion. Stored order drives PDF; filters never drop report patients. Navigation retains viewport/expanded/pinned/per-page state; saved patients reveal/highlight or explain hidden filters. Minute task refresh, adaptive/fold-aware labelled controls and report-action clearance.
 
 ## Isolation and data
 
-`DemoWardViewModel` holds clinical records, roster and the chosen demo actor in memory. It does not depend on clinical repositories, a settings store, login/session authorization or Telegram. Presentation choices are local Compose state; real settings controls receive only callbacks that update that state.
+`DemoWardViewModel`: memory-only clinical/roster/actor; no real repository/settings/login/session/Telegram. Beverage patients/tree doctors, optional-owner new tasks, revision/task validation and selected-actor completion stamps preserving existing attribution.
 
-Patients retain hot-beverage names and doctors retain tree names. New tasks remain unassigned unless explicitly chosen in the form. Saving still checks the demo patient revision, validates structured tasks and stamps task completion with the selected demo actor. Existing completion identity/time is retained.
-
-The one explicit file output is a user-requested PDF. Options are prepared before opening the file picker and kept in the ViewModel across Activity recreation. Cancellation clears that pending request. Export snapshots the demo records, runs file/PDF work off the main thread, preserves cancellation, verifies written bytes and keeps the existing demo label on every exported page. Exit/reset clears pending export selection; controls prevent ending/resetting during active file export. Process death starts a fresh clinical demo rather than restoring real project data.
+Explicit PDF only: options survive recreation, cancellation clears pending request; snapshot/file work off-main, cancellation preserved, bytes verified, DEMO every page. Reset/exit clears selection and is blocked during export. Process death starts fresh, never loads clinical state.
 
 ## Source organization
 

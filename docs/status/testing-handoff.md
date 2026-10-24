@@ -2,7 +2,7 @@
 
 [Results](current-state.md#verification-and-limits) · [Android commands](../guides/android-testing.md) · [Device procedures](../guides/device-coverage.md) · [Desktop/live commands](../guides/deep-testing.md)
 
-Audited repository Markdown on 24 October 2026, including ignored historical/private notes (retained unchanged). This is the single list of outstanding verification; it is not an implementation roadmap or authorization to run anything. Full JVM, device and desktop execution is now recorded in Results; physical fingerprint success was skipped at the owner's request, and the private CSV was not provisioned.
+Single outstanding-check list (Markdown audit: 24 October 2026); not an implementation roadmap or run authorization. Original/source-bearing private artifacts remain preserved. Results belong in Current state; this run’s physical fingerprint success was skipped by owner.
 
 | Work | Remaining check / prerequisite |
 |---|---|
@@ -19,4 +19,4 @@ Audited repository Markdown on 24 October 2026, including ignored historical/pri
 
 No required unimplemented test-creation item was found. O23's screenshot matrix is an [unselected proposal](../decisions/android-ui-options.md), not approved work. Exhaustive fuzzing/mutation coverage, arbitrary clock changes, every crash/power-loss/ disk-full boundary and every PDF glyph are limits, not a new backlog or passing claim.
 
-Use synthetic isolated data. Follow [AGENTS.md](../../AGENTS.md) for separate build/ test authorization and per-build process, RAM/swap and durable-cache preflight. Live mutations require an explicitly designated disposable project; do not change device settings automatically. Current run: 682 JVM passed/one opt-in skip; 285 device passed/three opt-in skips plus a separate native-provider pass; all 60 desktop cases passed. Remaining hardware/live/manual work above was not exercised.
+Use isolated synthetic data; [AGENTS.md](../../AGENTS.md) governs build/test authorization and per-build resource/cache checks. Live work needs an owner-designated disposable project; do not change device settings automatically.

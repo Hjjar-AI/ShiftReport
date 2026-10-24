@@ -1,6 +1,6 @@
 # Android style and component guide
 
-Source defaults, not device measurements. [UI work guide](../guides/android-ui.md) · [Current behavior/verification](../status/current-state.md#shared-android-presentation).
+Source defaults (not measurements). [UI guide](../guides/android-ui.md) · [Current behavior/verification](../status/current-state.md#shared-android-presentation).
 
 ## Source map
 
@@ -35,7 +35,7 @@ UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common a
 | Panes | Split width 760; primary/support minima 320/360; fold width/height 360/360 and clearance 8dp. Medium support ≥520×640, height 240dp. |
 | Rail / gestures | Rail window ≥600×480dp; pull threshold 72dp after damping; rounds swipe ≥64dp and 20% width. |
 
-Keep equal-valued purpose-specific tokens independent. Whole-row controls own their selection/toggle role; labels can wrap. Clinical severity stays separate from accent and density; diagnosis categories are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) is authoritative for layout/border/motion constants.
+Keep purpose-specific tokens independent; whole-row controls own selection/toggle semantics, labels wrap. Severity differs from accent/density; diagnoses are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) is authoritative for layout/border/motion constants.
 
 ## Profiles and local overrides
 
