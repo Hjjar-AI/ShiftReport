@@ -13,7 +13,10 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppButton
-import com.hos.rushdpatients.ui.components.ConfirmDialog
+import com.hos.rushdpatients.ui.components.AppAlertDialog
+import com.hos.rushdpatients.ui.components.AppDialogHeader
+import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
+import com.hos.rushdpatients.ui.components.AppDialogDismissAction
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -251,13 +254,24 @@ fun ProjectSetupScreen(
         }
     }
     if (state.confirmPinnedProjectReplacement) {
-        ConfirmDialog(
-            title = uiText(R.string.ui_setup_replace_pin_title),
-            message = uiText(R.string.ui_setup_replace_pin_message),
-            confirmText = uiText(R.string.ui_setup_replace_pin_confirm),
-            destructive = true,
-            onConfirm = viewModel::confirmPinnedProjectReplacement,
-            onDismiss = viewModel::dismissPinnedProjectReplacement
+        AppAlertDialog(
+            onDismissRequest = viewModel::dismissPinnedProjectReplacement,
+            title = { AppDialogHeader(uiText(R.string.ui_setup_replace_pin_title)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text(uiText(R.string.ui_setup_replace_pin_message))
+                }
+            },
+            confirmButton = {
+                AppDialogConfirmAction(
+                    text = uiText(R.string.ui_setup_replace_pin_confirm),
+                    destructive = true,
+                    onClick = viewModel::confirmPinnedProjectReplacement
+                )
+            },
+            dismissButton = {
+                AppDialogDismissAction(onClick = viewModel::dismissPinnedProjectReplacement)
+            }
         )
     }
 }

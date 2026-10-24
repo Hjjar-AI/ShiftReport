@@ -1,35 +1,18 @@
 package com.hos.rushdpatients.domain.report
 
+import com.hos.rushdpatients.testutil.DeliveryFixture
 import com.hos.rushdpatients.testutil.Fixtures
-import com.hos.rushdpatients.data.model.*
+import com.hos.rushdpatients.data.model.Role
 import org.junit.Assert.*
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
-
-import com.hos.rushdpatients.data.repository.SettingsRepository
-import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.domain.auth.Session
-import com.hos.rushdpatients.domain.auth.SessionManager
 import io.mockk.*
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.Before
+import java.time.Instant
 
-class ReportDeliveryLedgerTest {
-    private val settings = mockk<SettingsRepository>()
-    private val sessions = mockk<SessionManager>()
-    private val doctors = mockk<DoctorRepository>()
-    private val raw = MutableStateFlow<String?>(null)
-    private val ledger = ReportDeliveryLedger(settings, sessions, doctors)
-    @Before fun setUp() {
-        coEvery { settings.get("report_delivery_ledger") } answers { raw.value }
-        coEvery { settings.put("report_delivery_ledger", any()) } answers { raw.value = secondArg(); Unit }
-        every { settings.observe("report_delivery_ledger") } returns raw
-        every { sessions.current() } returns Session("doc-1", "أرز", null, Role.NON_ADMIN, Instant.EPOCH)
-        coEvery { doctors.getActiveById("doc-1") } returns Fixtures.doctor()
-    }
+class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor()) {
+    private val ledger = ledger()
     private suspend fun begin(block: suspend (ReportDeliveryRecord) -> Unit = {}) =
         ledger.deliver("shift", -100, "content", "TEXT", "synthetic", "doc-1", block = block)
     @Test fun `UNKNOWN persists before transport and blocks all content on same route`() = runBlocking<Unit> {

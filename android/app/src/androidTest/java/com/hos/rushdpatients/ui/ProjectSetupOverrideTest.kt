@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.test.*
@@ -153,6 +154,16 @@ class ProjectSetupOverrideTest {
         assertTrue(layouts.isNotEmpty())
         assertTrue("Dialog must actually render enlarged text", layouts.single().layoutInput.style.fontSize.value >= 28f)
         assertFalse("Warning must wrap without losing text", layouts.single().hasVisualOverflow)
+        val scroll = compose.onNode(hasScrollAction() and hasAnyDescendant(
+            hasText(label(R.string.ui_setup_replace_pin_message))), useUnmergedTree = true)
+        val range = scroll.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+        assertTrue("Large warning needs a scrollable viewport", range.maxValue() > 0f)
+        scroll.performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 10_000f) }
+        compose.waitForIdle()
+        assertEquals("The warning's final lines must be reachable", range.maxValue(), range.value(), 1f)
+        confirm.assertIsDisplayed().assertIsEnabled()
+        cancel.assertIsDisplayed().assertIsEnabled()
+        record("large-font-end")
         cancel.performClick()
         assertNoPublication()
     }

@@ -184,6 +184,18 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
+The latest test-only consolidation reuses `DeliveryFixture` in both delivery-ledger
+suites while retaining their non-admin actors and existing sender/publisher defaults.
+Six new regressions cover resolution/permission write failures, copy-permit recovery,
+concurrent destinations, revoked admin authority and sender-owned resolution after
+recreation. Offline production/JVM compilation passed, followed by one focused run:
+**38 cases/four classes passed, zero failures/errors/skips**, including all six new
+cases and both existing sender/publisher consumers of the fixture. Gradle 8.7 ran
+on installed Java 21 with target 17, one worker and automatic version reservation
+disabled. Logs/XML: ignored `local/verification/ledger-consolidation-2026-10-24/`.
+Source counts and whitespace checks also passed. The full JVM suite was not rerun;
+subsequent focused device verification is recorded below.
+
 The existing-group pin override adds 18 focused JVM regression cases plus one
 opt-in production-seeder check against the owner's designated disposable Telegram
 group. Offline production/JVM compilation passed on 24 October 2026, followed by
@@ -193,21 +205,23 @@ and confirmed cleanup restored the original active pin. Only synthetic pins were
 removed; messages/files remain. Logs/XML and the private receipt are in ignored
 `local/verification/pin-override-2026-10-24/`.
 
-The first isolated phone run passed five cases on PPA-LX2/API 29, with no failures
-or skips: confirm/cancel, changed pin, recreation and a nominal 200% text case.
-Debug app/test APKs were installed and retained; installed clinical storage was
-not opened by the fixtures. Visual review of all four fresh dialog captures found
-identical hashes: the dialog's separate Android composition owner reset the fixture's
-LocalDensity override. Thus **four behavior cases are verified; large-text coverage
-is not yet verified**. The fixture now scales Material typography across the dialog
-boundary and asserts rendered text size plus no text-layout overflow. Its targeted
-rerun was stopped at the owner's request during `kspDebugAndroidTestKotlin` (exit
-130), before compilation finished or a phone result. No production layout defect
-has yet been established. Normal-size warning/actions were visually readable.
+The corrected setup-dialog typography fixture exposed real warning clipping at
+200% text on PPA-LX2/Android 10/API 29: the first resumed run passed four cases and
+failed the overflow check. The setup warning now has a scrollable message body with
+fixed actions, using existing components without changing shared dialogs or callbacks.
+After offline production/device-test compilation, **all five affected device cases
+passed with zero failures/errors/skips**: confirm/cancel, changed pin, recreation and
+200% text. The latter checks actual enlarged text, no layout overflow, 48dp actions,
+scrolling to the final warning lines and cancellation without publication. Fresh
+normal/enlarged/scrolled-end captures were visually inspected; enlarged captures
+have distinct hashes, while normal-size captures match the preceding run.
 
-Remaining: compile/run the corrected large-text case, inspect its newly captured
-image and rendered text assertions, fix any evidenced clipping, then rerun affected
-cases. [Resume details](testing-handoff.md#pin-override-phone-check--stopped-at-owner-request).
+Logs, XML and captures for both the initial failure and passing fix are ignored under
+`local/verification/setup-device-2026-10-24/`. Debug app/test APKs remain installed;
+Desktop APK export was excluded. Fixtures used isolated preferences/Room and
+intercepted HTTP, without opening installed clinical storage. This focused typography
+stress check does not establish whole-app accessibility, TalkBack or other devices.
+[Execution details](testing-handoff.md#pin-override-phone-check--corrected-large-text-case-passed).
 Earlier full runs below apply to their preceding source snapshots.
 
 On 24 October 2026 the final full Android verification **succeeded**:
@@ -227,7 +241,7 @@ duplicate skip notifications. Earlier failures/focused reruns remain archived.
 [Handoff](testing-handoff.md) · [Coverage map/commands](../guides/android-testing.md) ·
 [External boundaries](../guides/deep-testing.md).
 
-Source contains **677 JVM methods/85 classes, 288 device methods/55 classes and
+Source contains **683 JVM methods/85 classes, 288 device methods/55 classes and
 60 desktop methods**. Counts do not establish complete line/branch coverage.
 The preceding coverage expansion added **33 JVM and 30 device methods** after the full run
 above (22 report cases, then 41 additional cases). It covers review/fingerprint

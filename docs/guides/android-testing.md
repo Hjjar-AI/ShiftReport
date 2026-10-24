@@ -2,8 +2,8 @@
 
 [Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
 
-The source suite contains **658 JVM methods in 84 classes** and **283 device
-methods in 54 classes**. Source counts do not measure line/branch coverage or
+The source suite contains **683 JVM methods in 85 classes** and **288 device
+methods in 55 classes**. Source counts do not measure line/branch coverage or
 establish that a run passed. See [current results and limits](../status/current-state.md#verification-and-limits)
 for the exact verified snapshot. The tests exercise production entry points with
 isolated clinical storage. [Deep scenarios and desktop/live commands](deep-testing.md)
@@ -14,6 +14,41 @@ cancellation and password cleanup, reject malformed CSV/overflow and guard repea
 saves/exports. No versions, dependencies or database/interchange schemas changed.
 
 ## Latest expansion — October 2026
+
+### Setup warning — five device cases passed
+
+`ProjectSetupOverrideTest` uses isolated Room/preferences, real setup models and
+intercepted HTTP. Its corrected typography fixture exposed 200% warning clipping;
+only this setup dialog now uses a scrollable body with fixed actions. After offline
+production/device-test compilation, all five cases passed on PPA-LX2/Android 10/API 29,
+zero failures/errors/skips: confirm/cancel, changed pin, recreation and 200% text.
+The large-text case asserts actual rendered size, no text-layout overflow, labelled
+48dp actions, scrolling to the end and cancellation without publication. Captures
+at normal size and the top/end of enlarged text were visually inspected. This does
+not establish whole-app OS font scaling or TalkBack behavior. Debug APKs remain
+installed. Initial failing and final passing logs/XML/captures are ignored under
+`local/verification/setup-device-2026-10-24/`.
+
+### Delivery-ledger consolidation — focused verification passed
+
+`ReportDeliveryLedgerTest` and `ReportDeliveryLedgerSafetyTest` now reuse
+`DeliveryFixture`, alongside report-sender and announcement-publisher tests.
+The fixture accepts an explicit actor so ledger cases retain non-admin authority;
+its default admin actor for sender/publisher cases is unchanged. Each case owns
+its mocks and stored ledger, and failed-write recovery restores only the write stub.
+
+Six additional safety cases cover failed manual-resolution and copy-permission
+writes, retention of a copy permit after failed registration, a second destination
+finishing while the first transport waits, live admin demotion after resolution
+review, and a non-admin sender resolving their own record after recreation.
+Concurrency uses deferred barriers and a bounded timeout. Offline production/JVM
+compilation passed, followed by one focused run of both
+ledger suites, `ReportSenderTest` and `AnnouncementPublisherTest`: **38 cases in
+four classes passed**, zero failures/errors/skips, including all six additions.
+Both commands used the pinned Gradle 8.7, installed Java 21 runtime (Java/Kotlin
+target 17), one worker and automatic version reservation disabled. Logs/XML are
+in ignored `local/verification/ledger-consolidation-2026-10-24/`. The complete JVM
+suite and device tests were not rerun. No production code or dependencies changed.
 
 ### Additional failure/device boundaries — focused JVM verification
 

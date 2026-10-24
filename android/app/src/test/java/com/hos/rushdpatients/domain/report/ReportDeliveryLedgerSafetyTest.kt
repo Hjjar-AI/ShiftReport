@@ -1,39 +1,22 @@
 package com.hos.rushdpatients.domain.report
 
-import com.hos.rushdpatients.data.repository.DoctorRepository
-import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.Session
-import com.hos.rushdpatients.domain.auth.SessionManager
+import com.hos.rushdpatients.testutil.DeliveryFixture
 import com.hos.rushdpatients.testutil.Fixtures
 import io.mockk.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 
-class ReportDeliveryLedgerSafetyTest {
-    private val settings = mockk<SettingsRepository>()
-    private val sessions = mockk<SessionManager>()
-    private val doctors = mockk<DoctorRepository>()
-    private val raw = MutableStateFlow<String?>(null)
-    private val actor = Fixtures.doctor()
-    private var ledger = ReportDeliveryLedger(settings, sessions, doctors)
-
-    @Before fun setup() {
-        coEvery { settings.get("report_delivery_ledger") } answers { raw.value }
-        coEvery { settings.put("report_delivery_ledger", any()) } answers { raw.value = secondArg(); Unit }
-        every { settings.observe("report_delivery_ledger") } returns raw
-        every { sessions.current() } returns Session(actor.id, actor.fullName, null, actor.role, Fixtures.timestamp)
-        coEvery { doctors.getActiveById(actor.id) } returns actor
-    }
+class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()) {
+    private var ledger = ledger()
 
     private suspend fun attempt(block: suspend (ReportDeliveryRecord) -> Unit = {}) =
         ledger.deliver("shift", -100, "content", "TEXT", "synthetic", actor.id, block = block)
     private suspend fun record() = ledger.observe().first().single()
-    private fun recreated() = ReportDeliveryLedger(settings, sessions, doctors)
+    private fun recreated() = ledger()
 
     @Test fun `simultaneous same-route requests admit exactly one transport`() = runBlocking<Unit> {
         withTimeout(5_000) {
@@ -207,5 +190,103 @@ class ReportDeliveryLedgerSafetyTest {
         }
         assertEquals("transport-result", result)
         assertEquals(mapOf("publicationMessageId" to 42L), recreated().observe().first().single().metadata)
+    }
+
+    @Test fun `failed manual resolution preserves uncertainty until a successful retry`() = runBlocking<Unit> {
+        attempt()
+        val row = record()
+        val before = raw.value
+        coEvery { settings.put("report_delivery_ledger", any()) } throws IllegalStateException("resolution storage failure")
+        val failure = assertThrows(IllegalStateException::class.java) {
+            runBlocking { ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED) }
+        }
+        assertEquals("resolution storage failure", failure.message)
+        assertEquals(before, raw.value)
+        ledger = recreated()
+        assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
+        acceptLedgerWrites()
+        ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED)
+        attempt { ledger.confirm(it.id, listOf(21)) }
+        assertEquals(listOf("NOT_SENT", "SENT"), ledger.observe().first().map { it.status })
+    }
+
+    @Test fun `failed copy permission write cannot authorize another delivery`() = runBlocking<Unit> {
+        attempt { ledger.confirm(it.id, listOf(1)) }
+        val row = record()
+        val before = raw.value
+        coEvery { settings.put("report_delivery_ledger", any()) } throws IllegalStateException("permission storage failure")
+        val failure = assertThrows(IllegalStateException::class.java) {
+            runBlocking { ledger.resolve(row.id, "SENT", DeliveryResolution.ALLOW_COPY) }
+        }
+        assertEquals("permission storage failure", failure.message)
+        assertEquals(before, raw.value)
+        acceptLedgerWrites()
+        ledger = recreated()
+        assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
+        assertEquals(before, raw.value)
+    }
+
+    @Test fun `failed repeat registration retains its durable one-use permission`() = runBlocking<Unit> {
+        attempt { ledger.confirm(it.id, listOf(1)) }
+        ledger.resolve(record().id, "SENT", DeliveryResolution.ALLOW_COPY)
+        val before = raw.value
+        coEvery { settings.put("report_delivery_ledger", any()) } throws IllegalStateException("registration storage failure")
+        val failure = assertThrows(IllegalStateException::class.java) {
+            runBlocking { attempt { fail("Unexpected transport") } }
+        }
+        assertEquals("registration storage failure", failure.message)
+        assertEquals(before, raw.value)
+        acceptLedgerWrites()
+        ledger = recreated()
+        attempt { ledger.confirm(it.id, listOf(2)) }
+        assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
+        assertEquals(listOf(listOf(1L), listOf(2L)), ledger.observe().first().map { it.messageIds })
+    }
+
+    @Test fun `another destination can finish while the first transport remains active`() = runBlocking<Unit> {
+        withTimeout(5_000) {
+            val entered = CompletableDeferred<ReportDeliveryRecord>()
+            val release = CompletableDeferred<Unit>()
+            val first = async(Dispatchers.Default) {
+                attempt { entered.complete(it); release.await() }
+            }
+            try {
+                val firstRow = entered.await()
+                ledger.deliver("shift", -200, "content", "TEXT", "synthetic", actor.id) {
+                    ledger.confirm(it.id, listOf(22))
+                }
+                val rows = ledger.observe().first()
+                assertEquals("UNKNOWN", rows.single { it.id == firstRow.id }.status)
+                assertEquals(listOf(22L), rows.single { it.id != firstRow.id }.messageIds)
+                assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
+            } finally { release.complete(Unit); first.await() }
+        }
+    }
+
+    @Test fun `admin demotion after opening resolution rejects the write without changing history`() = runBlocking<Unit> {
+        attempt()
+        val row = record()
+        val admin = Fixtures.doctor(id = "other-admin", fullName = "بلوط", rank = 1)
+        every { sessions.current() } returns Session(admin.id, admin.fullName, null, admin.role, Fixtures.timestamp)
+        coEvery { doctors.getActiveById(admin.id) } returns admin
+        ledger.requireResolvable(row.id, "UNKNOWN")
+        val before = raw.value
+        coEvery { doctors.getActiveById(admin.id) } returns admin.copy(rank = 0)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.RECEIVED) }
+        }
+        assertEquals(before, raw.value)
+        assertEquals("UNKNOWN", recreated().observe().first().single().status)
+    }
+
+    @Test fun `non-admin sender can resolve their own delivery after ledger recreation`() = runBlocking<Unit> {
+        assertFalse(actor.isAdmin)
+        attempt()
+        val row = record()
+        ledger = recreated()
+        ledger.requireResolvable(row.id, "UNKNOWN")
+        ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.RECEIVED)
+        assertEquals("SENT", record().status)
+        assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
     }
 }

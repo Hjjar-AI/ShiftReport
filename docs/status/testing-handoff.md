@@ -5,52 +5,62 @@ PPA-LX2 (Android 10/API 29). The optional physical fingerprint-success check was
 also authorized and passed with the owner's touch. Read `AGENTS.md` and preserve
 unrelated working-tree changes; do not stage/commit or inspect migration files.
 
-## Pin override phone check — stopped at owner request
+## Pin override phone check — corrected large-text case passed
 
-Current source totals: **677 JVM/85 classes, 288 device/55 classes**. The existing-pin
-feature and 18 new JVM regressions are implemented. Production/JVM compilation and
-**56 focused JVM cases** passed, including the opt-in live production seeder in the
-owner's supplied disposable Telegram group; original active pin restoration confirmed.
+Current source totals: **683 JVM/85 classes, 288 device/55 classes**. Existing-pin
+creation and its 18 JVM regressions plus opt-in live seeder were previously verified
+in 56 focused cases; cleanup restored the disposable group's original active pin.
+Private receipt and prior evidence remain under ignored
+`local/verification/pin-override-2026-10-24/`. No live mutation was repeated.
 
-The first `ProjectSetupOverrideTest` run on PPA-LX2/API 29 passed all five cases.
-Confirm, cancel, changed-pin rejection and Activity recreation are verified using
-fresh isolated preferences/Room with intercepted HTTP. Debug APKs remain installed.
-All four captures were inspected individually: identical SHA-256 hashes exposed
-that the dialog reset the fixture's LocalDensity override. Do **not** claim 200%
-text coverage from that first pass. The updated fixture explicitly scales Material
-typography across the dialog boundary, checks rendered font size and rejects text
-layout overflow. Its targeted rerun was interrupted on request during test KSP
-compilation, exit 130. The corrected test has no compile/runtime result yet.
-No production layout change or clipping defect has been established.
+The original phone fixture's LocalDensity override did not cross the dialog boundary;
+its nominal large-text pass was invalidated by identical capture hashes. The corrected
+fixture scales Material typography and asserts its rendered size. On resuming the
+phone check, it exposed actual warning truncation: **four passed, one failed**.
+The setup warning now uses the existing scrollable-body/fixed-actions pattern locally;
+shared dialogs and publication/authority callbacks are unchanged.
 
-Remaining when the owner resumes:
+Offline production/device-test compilation passed, and the focused rerun on
+PPA-LX2/Android 10/API 29 passed **all five cases, zero failures/errors/skips**:
+confirm, cancel, changed-pin rejection, recreation and actual 200% typography.
+The large-text test also checks 48dp controls, no text-layout overflow, scroll to
+the final warning lines, fixed enabled actions and cancellation without publication.
+Normal-size, enlarged top and scrolled-end captures were visually inspected; their
+hashes establish distinct enlarged/scroll positions, and normal captures match the
+preceding run. This is a focused typography stress check, not whole-app font/TalkBack
+or multiple-device verification.
 
-1. Recheck AGENTS, connected phone, active builds and RAM/swap. Reuse the existing
-   focused phone-test authorization unless the owner changes scope/preferences.
-2. Compile and run only the corrected large-text case with the cached offline
-   toolchain. From `android/`, use the command below; it builds/installs debug APKs.
-3. Inspect the **new** `large-font.png` and rendered text assertions; compare its hash
-   with normal captures to confirm the larger rendering. If clipping is evidenced,
-   fix this setup warning using the existing scrollable dialog patterns, then rerun
-   the affected device cases. Do not alter shared dialogs speculatively.
-4. Record final XML/results and limitations in current-state/changelog. No need to
-   repeat the already successful live Telegram mutation check for test-only edits.
+Evidence is ignored under `local/verification/setup-device-2026-10-24/`:
+`compile.log`, `tests.log`, `results-01/`, `captures-01/` retain the initial failure;
+`fix-compile.log`, `fix-tests.log`, `results-02/`, `captures-02/` retain the verified fix.
+Gradle 8.7 ran offline on installed Java 21 with target 17, one worker, in-process
+Kotlin and `-Pshiftreport.autoVersion=false`. Debug app/test APKs remain installed;
+Desktop APK export was excluded. Fresh isolated preferences/Room and intercepted
+HTTP were used; installed clinical storage was not opened by the fixtures. No
+full-suite run, version/schema change, staging/commit or migration work occurred.
+No setup-dialog verification remains pending for this source snapshot.
 
-```sh
-./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
-  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
-  '-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest#twoHundredPercentFontKeepsWarningAndActionsReachable' \
-  :app:connectedDebugAndroidTest
-```
+## Delivery-ledger consolidation — focused execution passed
 
-Evidence is ignored under `local/verification/pin-override-2026-10-24/`:
-`compile.log`, `tests.log`, `jvm-results/`, private live receipt,
-`device-compile.log`, `device-tests.log`, `device-results/`, four original captures
-under `device-artifacts/setup-override/`, and interrupted `device-large-text.log`.
-Device images are under external app files `verification-artifacts/setup-override/`.
-Credentials remain in ignored protected local files and must never be printed or
-committed. No staging/commit, version/schema changes or migration work was done.
+Current totals are **683 JVM/85 classes and 288 device/55 classes** after six new
+ledger safety cases. Both ledger suites now use `DeliveryFixture` with explicit
+non-admin actors; sender/publisher defaults remain admin. No production code changed.
+The pin-override totals above describe the preceding snapshot.
+
+The owner authorized one verification pass in this session. Resource/toolchain
+preflight found no active build or memory/swap pressure. Offline production/JVM
+compilation passed in 5m 51s using pinned Gradle 8.7 and installed Java 21 with
+Java/Kotlin target 17. One focused execution then passed **38 cases/four classes**,
+zero failures/errors/skips, in 53s: `ReportDeliveryLedgerTest` (6),
+`ReportDeliveryLedgerSafetyTest` (22), `ReportSenderTest` (5) and
+`AnnouncementPublisherTest` (5). All six new cases passed. Both commands used one
+worker, in-process Kotlin and `-Pshiftreport.autoVersion=false`.
+
+Logs and copied JUnit XML are in ignored
+`local/verification/ledger-consolidation-2026-10-24/`: `compile.log`, `tests.log`
+and `jvm-results/`. Source counts and whitespace checks passed. That JVM pass performed no device install,
+live Telegram request or full-suite rerun. The subsequent focused phone result is
+recorded above. No rerun is needed for the ledger refactor.
 
 ## Earlier coverage execution
 
