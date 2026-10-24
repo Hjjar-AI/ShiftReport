@@ -13,6 +13,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppButton
+import com.hos.rushdpatients.ui.components.ConfirmDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -248,6 +249,16 @@ fun ProjectSetupScreen(
                 }, loading = state.busy)
             }
         }
+    }
+    if (state.confirmPinnedProjectReplacement) {
+        ConfirmDialog(
+            title = uiText(R.string.ui_setup_replace_pin_title),
+            message = uiText(R.string.ui_setup_replace_pin_message),
+            confirmText = uiText(R.string.ui_setup_replace_pin_confirm),
+            destructive = true,
+            onConfirm = viewModel::confirmPinnedProjectReplacement,
+            onDismiss = viewModel::dismissPinnedProjectReplacement
+        )
     }
 }
 

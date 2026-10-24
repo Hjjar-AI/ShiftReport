@@ -31,10 +31,13 @@ class BootstrapManager @Inject constructor(
     private val doctorRepository: DoctorRepository
 ) {
 
-    suspend fun bootstrap(): BootstrapResult = withContext(Dispatchers.IO) {
+    suspend fun bootstrap(expectedPinnedMessageId: Long? = null): BootstrapResult = withContext(Dispatchers.IO) {
         try {
             val chat = telegram.getChat(topics.chatId)
             val pinned = chat.pinnedMessage ?: return@withContext BootstrapResult.NoPin
+            require(expectedPinnedMessageId == null || pinned.messageId == expectedPinnedMessageId) {
+                "تغيرت الرسالة المثبّتة بعد إنشاء السجل؛ لم يُفعّل المشروع. أعد التحقق من المجموعة"
+            }
 
             // Case A — pinned document IS the registry (bootstrap.txt)
             pinned.document?.let { doc ->
@@ -42,6 +45,7 @@ class BootstrapManager @Inject constructor(
                 val text = try { local.readText(Charsets.UTF_8) } finally { local.delete() }
                 val decoded = runCatching { DoctorsRegistryCodec.decode(text) }.getOrNull()
                 if (decoded != null && decoded.doctors.isNotEmpty()) {
+                    requireExpectedPin(expectedPinnedMessageId)
                     doctorRepository.replaceAll(decoded.doctors)
                     return@withContext BootstrapResult.Success(decoded.doctors.size)
                 }
@@ -59,6 +63,7 @@ class BootstrapManager @Inject constructor(
                     val registryText = try { local.readText(Charsets.UTF_8) } finally { local.delete() }
                     val decoded = DoctorsRegistryCodec.decode(registryText)
                     if (decoded.doctors.isNotEmpty()) {
+                        requireExpectedPin(expectedPinnedMessageId)
                         doctorRepository.replaceAll(decoded.doctors)
                         return@withContext BootstrapResult.Success(decoded.doctors.size)
                     }
@@ -70,6 +75,13 @@ class BootstrapManager @Inject constructor(
             throw e
         } catch (e: Exception) {
             BootstrapResult.Failed(e.message ?: "فشل الاتصال بتليجرام")
+        }
+    }
+
+    private suspend fun requireExpectedPin(messageId: Long?) {
+        if (messageId == null) return
+        require(telegram.getChat(topics.chatId).pinnedMessage?.messageId == messageId) {
+            "تغيرت الرسالة المثبّتة أثناء تحميل السجل؛ لم يُفعّل المشروع. أعد التحقق من المجموعة"
         }
     }
 

@@ -36,6 +36,13 @@ reconnect validates before replacing credentials, preserves clinical/key/topic s
 and works before login. Cross-project/key/topic substitutions are blocked. Signing
 out retains project enrollment; local clinician PINs support return/offline access,
 while first enrollment and privileged shared operations retain identity checks.
+Android creation may supersede an existing pin only after explicit review bound to
+its configuration and pin content. The seeder verifies the proposed first admin's
+live Telegram-group membership and rechecks authority/pin/config before publication.
+Bootstrap accepts only the newly seeded pin before importing. This is a new project
+reference, with no history deletion, old-data import or automatic device transfer;
+creation cannot replace an already initialized local project. Telegram pin checks
+remain best-effort rather than atomic compare-and-swap.
 Token revocation belongs to BotFather; a token holder can access Telegram outside
 client restrictions.
 

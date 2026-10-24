@@ -18,7 +18,7 @@ class BootstrapSeederTest {
     private val telegram = mockk<TelegramClient>()
     private val projects = mockk<ProjectConfigStore>()
     private val topics = mockk<Topics> { every { chatId } returns -100 }
-    private var config = ProjectConfig(initialAdmin = InitialAdminConfig("د. أرز شجرة", 123, "F", "SUPERVISOR"))
+    private var config = ProjectConfig(chatId = -100, initialAdmin = InitialAdminConfig("د. أرز شجرة", 123, "F", "SUPERVISOR"))
     private var uploaded: File? = null
     private var registry: List<Doctor> = emptyList()
     private fun seeder() = BootstrapSeeder(telegram, topics, projects)
@@ -31,6 +31,7 @@ class BootstrapSeederTest {
             TgMessage(42)
         }
         coEvery { telegram.pinMessage(-100, 42, true) } returns true
+        coEvery { telegram.getChatAdministrators(-100) } returns listOf(TgChatMember(TgUser(123), "administrator"))
     }
     private fun assertNoPublication() {
         coVerify(exactly = 0) { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) }
@@ -47,7 +48,7 @@ class BootstrapSeederTest {
         assertTrue(seeder().seed() is BootstrapSeeder.Result.Failure)
         assertNoPublication()
     }
-    @Test fun existingPinIsNeverReplaced() = runBlocking<Unit> {
+    @Test fun existingPinRequiresExplicitReview() = runBlocking<Unit> {
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(1))
         assertTrue(seeder().seed() is BootstrapSeeder.Result.Failure)
         assertNoPublication()
@@ -122,5 +123,79 @@ class BootstrapSeederTest {
         assertTrue("An unconfirmed pin must require review", seeder().seed() is BootstrapSeeder.Result.Failure)
         coVerify(exactly = 1) { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) }
         assertFalse(requireNotNull(uploaded).exists())
+    }
+
+    private fun reviewedPin(message: TgMessage = TgMessage(1, text = "synthetic previous project")) =
+        BootstrapSeeder.PinReview(-100, message).also {
+            coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = message)
+        }
+
+    @Test fun reviewedPinAllowsFreshRegistryWithoutDeletingOrUnpinningExistingMessages() = runBlocking<Unit> {
+        val review = reviewedPin(TgMessage(1, document = TgDocument("previous-registry")))
+        assertEquals(BootstrapSeeder.Result.Success(42, 1), seeder().seed(review))
+        assertEquals(123L, registry.single().telegramId)
+        coVerify(exactly = 2) { telegram.getChatAdministrators(-100) }
+        coVerify(exactly = 1) { telegram.pinMessage(-100, 42, true) }
+        coVerify(exactly = 0) { telegram.unpinMessage(any(), any()) }
+        coVerify(exactly = 0) { telegram.unpinAllMessages(any()) }
+        coVerify(exactly = 0) { telegram.deleteMessage(any(), any()) }
+        coVerify(exactly = 0) { telegram.getFile(any()) }
+        assertFalse(requireNotNull(uploaded).exists())
+    }
+
+    @Test fun reviewForAnotherGroupCannotUpload() = runBlocking<Unit> {
+        val review = reviewedPin().copy(chatId = -200)
+        assertTrue(seeder().seed(review) is BootstrapSeeder.Result.Failure)
+        assertNoPublication()
+    }
+
+    @Test fun editedPinnedTextWithSameMessageIdRequiresAnotherReview() = runBlocking<Unit> {
+        val review = reviewedPin()
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup",
+            pinnedMessage = review.message.copy(text = "changed"))
+        assertTrue(seeder().seed(review) is BootstrapSeeder.Result.Failure)
+        assertNoPublication()
+    }
+
+    @Test fun removedReviewedPinCannotSilentlyFallBackToUnreviewedCreation() = runBlocking<Unit> {
+        val review = reviewedPin()
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup")
+        assertTrue(seeder().seed(review) is BootstrapSeeder.Result.Failure)
+        assertNoPublication()
+    }
+
+    @Test fun changedPinnedDocumentDuringUploadCannotBeSuperseded() = runBlocking<Unit> {
+        val review = reviewedPin(TgMessage(1, caption = "old", document = TgDocument("old-document")))
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = review.message) andThen
+            TgChat(-100, "supergroup", pinnedMessage = review.message.copy(document = TgDocument("new-document")))
+        assertTrue(seeder().seed(review) is BootstrapSeeder.Result.Failure)
+        coVerify(exactly = 0) { telegram.pinMessage(any(), any(), any()) }
+        assertFalse(requireNotNull(uploaded).exists())
+    }
+
+    @Test fun nonAdminInitialIdentityCannotOverrideReviewedPin() = runBlocking<Unit> {
+        val review = reviewedPin()
+        coEvery { telegram.getChatAdministrators(-100) } returns listOf(TgChatMember(TgUser(456), "administrator"))
+        assertTrue(seeder().seed(review) is BootstrapSeeder.Result.Failure)
+        assertNoPublication()
+    }
+
+    @Test fun groupAdminRevokedDuringUploadPreventsPinning() = runBlocking<Unit> {
+        val review = reviewedPin()
+        coEvery { telegram.getChatAdministrators(-100) } returns listOf(TgChatMember(TgUser(123), "administrator")) andThen emptyList()
+        assertTrue(seeder().seed(review) is BootstrapSeeder.Result.Failure)
+        coVerify(exactly = 0) { telegram.pinMessage(any(), any(), any()) }
+        assertFalse(requireNotNull(uploaded).exists())
+    }
+
+    @Test fun projectChangedDuringFinalAdminLookupPreventsPinning() = runBlocking<Unit> {
+        val review = reviewedPin()
+        var calls = 0
+        coEvery { telegram.getChatAdministrators(-100) } answers {
+            if (++calls == 2) config = config.copy(botToken = "changed synthetic credential")
+            listOf(TgChatMember(TgUser(123), "administrator"))
+        }
+        assertTrue(seeder().seed(review) is BootstrapSeeder.Result.Failure)
+        coVerify(exactly = 0) { telegram.pinMessage(any(), any(), any()) }
     }
 }

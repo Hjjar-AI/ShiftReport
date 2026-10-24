@@ -45,6 +45,8 @@ class ProjectSetupViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(ProjectSetupUiState())
     val state: StateFlow<ProjectSetupUiState> = _state.asStateFlow()
+    private data class PinnedProjectReview(val config: ProjectConfig, val pin: BootstrapSeeder.PinReview)
+    private var pendingPinnedProjectReview: PinnedProjectReview? = null
 
     fun setMode(value: ProjectSetupMode) = update {
         if (mode == value || busy) this else copy(mode = value, error = null, status = null,
@@ -112,7 +114,28 @@ class ProjectSetupViewModel @Inject constructor(
     }
 
     fun initialize() {
+        dismissPinnedProjectReplacement()
+        initializeReviewed(null)
+    }
+
+    fun dismissPinnedProjectReplacement() {
+        pendingPinnedProjectReview = null
+        _state.update { it.copy(confirmPinnedProjectReplacement = false) }
+    }
+
+    fun confirmPinnedProjectReplacement() {
         if (_state.value.busy) return
+        val review = pendingPinnedProjectReview ?: return
+        dismissPinnedProjectReplacement()
+        initializeReviewed(review)
+    }
+
+    private fun initializeReviewed(review: PinnedProjectReview?) {
+        if (_state.value.busy) return
+        if (projectConfigStore.current().initialized) {
+            _state.update { it.copy(error = uiText(R.string.ui_setup_existing_local_project)) }
+            return
+        }
         val input = _state.value
         if (input.mode == ProjectSetupMode.DEMO) {
             sessionManager.clear()
@@ -125,6 +148,10 @@ class ProjectSetupViewModel @Inject constructor(
         }
         val config = runCatching { validate(input) }.getOrElse { error ->
             _state.update { it.copy(error = error.message ?: uiText(R.string.ui_project_setup_view_model_006)) }
+            return
+        }
+        if (review != null && (input.mode != ProjectSetupMode.CREATE || config != review.config)) {
+            _state.update { it.copy(error = uiText(R.string.ui_setup_pin_review_changed)) }
             return
         }
         viewModelScope.launch {
@@ -145,12 +172,15 @@ class ProjectSetupViewModel @Inject constructor(
                 }
 
                 val bootstrap = if (input.mode == ProjectSetupMode.CREATE) {
-                    require(chat.pinnedMessage == null) {
-                        uiText(R.string.ui_project_setup_view_model_010)
+                    if (review == null && chat.pinnedMessage != null) {
+                        pendingPinnedProjectReview = PinnedProjectReview(configured,
+                            BootstrapSeeder.PinReview(config.chatId, chat.pinnedMessage))
+                        _state.update { it.copy(busy = false, status = null, confirmPinnedProjectReplacement = true) }
+                        return@launch
                     }
                     _state.update { it.copy(status = uiText(R.string.ui_project_setup_view_model_011)) }
-                    when (val seeded = bootstrapSeeder.seed()) {
-                        is BootstrapSeeder.Result.Success -> bootstrapManager.bootstrap()
+                    when (val seeded = bootstrapSeeder.seed(review?.pin)) {
+                        is BootstrapSeeder.Result.Success -> bootstrapManager.bootstrap(expectedPinnedMessageId = seeded.messageId)
                         is BootstrapSeeder.Result.Failure -> error(seeded.message)
                     }
                 } else {
@@ -225,7 +255,9 @@ class ProjectSetupViewModel @Inject constructor(
         value.filterIndexed { index, char -> char.isDigit() || (signed && index == 0 && char == '-') }
 
     private inline fun update(transform: ProjectSetupUiState.() -> ProjectSetupUiState) {
-        _state.update { current -> current.transform() }
+        if (_state.value.busy) return
+        pendingPinnedProjectReview = null
+        _state.update { current -> current.transform().copy(confirmPinnedProjectReplacement = false) }
     }
 
     private companion object {

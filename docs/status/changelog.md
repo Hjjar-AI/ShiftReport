@@ -6,6 +6,19 @@ have separate homes. Source completion is not runtime verification.
 
 ## Clinical and security
 
+- Android project creation now offers a confirmed existing-pin override, tied to the
+  reviewed group/configuration and pin, with live group-admin checks below the UI.
+  New registry bootstrap requires its expected pin before importing; previous group
+  files/messages/pins stay intact. Added 18 focused regressions and one opt-in live
+  seeder check. Offline production/JVM compilation and all 56 focused cases passed,
+  including live changed-pin rejection, replacement/registry download and confirmed
+  restoration of the original active pin. Initial phone build/install and five cases
+  passed, but screenshot review invalidated the large-text fixture: four behavior
+  cases are verified. Corrected typography/overflow assertions await compilation and
+  execution; its targeted rerun was interrupted at the owner's request. Normal-size
+  warning/actions were visually reviewed.
+  Evidence: ignored `local/verification/pin-override-2026-10-24/`.
+
 - Added shared debug-keystore selection for both Linux accounts, preserving the
   existing certificate and separate caches/release signing.
 - Protected file-only join, optional authenticated Telegram encryption, safe same-project

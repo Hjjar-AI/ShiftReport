@@ -50,4 +50,39 @@ class BootstrapManagerTest {
         coEvery { telegram.getChat(-100) } throws CancellationException("cancelled")
         assertThrows(CancellationException::class.java) { runBlocking { manager.bootstrap() } }
     }
+
+    @Test fun `new project never imports a different pin after seeding`() = runBlocking<Unit> {
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup",
+            pinnedMessage = TgMessage(99, document = TgDocument("unreviewed")))
+        assertTrue(manager.bootstrap(expectedPinnedMessageId = 42) is BootstrapResult.Failed)
+        coVerify(exactly = 0) { telegram.getFile(any()) }
+        coVerify(exactly = 0) { doctors.replaceAll(any()) }
+    }
+
+    @Test fun `new project rechecks expected pin after download before importing`() = runBlocking<Unit> {
+        val registry = listOf(Fixtures.doctor(rank = 1))
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup",
+            pinnedMessage = TgMessage(42, document = TgDocument("registry"))) andThen
+            TgChat(-100, "supergroup", pinnedMessage = TgMessage(99))
+        coEvery { telegram.getFile("registry") } returns TgFile("registry", filePath = "registry.txt")
+        coEvery { telegram.downloadFile("registry.txt", any()) } answers {
+            secondArg<File>().apply { writeText(DoctorsRegistryCodec.encode(registry)) }
+        }
+        assertTrue(manager.bootstrap(expectedPinnedMessageId = 42) is BootstrapResult.Failed)
+        coVerify(exactly = 0) { doctors.replaceAll(any()) }
+        assertTrue(directory.listFiles().orEmpty().isEmpty())
+    }
+
+    @Test fun `newly seeded registry imports when expected pin remains current`() = runBlocking<Unit> {
+        val registry = listOf(Fixtures.doctor(rank = 1))
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup",
+            pinnedMessage = TgMessage(42, document = TgDocument("registry")))
+        coEvery { telegram.getFile("registry") } returns TgFile("registry", filePath = "registry.txt")
+        coEvery { telegram.downloadFile("registry.txt", any()) } answers {
+            secondArg<File>().apply { writeText(DoctorsRegistryCodec.encode(registry)) }
+        }
+        assertEquals(BootstrapResult.Success(1), manager.bootstrap(expectedPinnedMessageId = 42))
+        coVerify(exactly = 1) { doctors.replaceAll(any()) }
+        coVerify(exactly = 2) { telegram.getChat(-100) }
+    }
 }

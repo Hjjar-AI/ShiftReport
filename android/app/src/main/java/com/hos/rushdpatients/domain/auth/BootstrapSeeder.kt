@@ -7,6 +7,7 @@ import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.domain.doctor.DoctorNaming
 import com.hos.rushdpatients.network.telegram.TelegramClient
+import com.hos.rushdpatients.network.telegram.dto.TgMessage
 import com.hos.rushdpatients.sync.DoctorsRegistryCodec
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -29,13 +30,15 @@ class BootstrapSeeder @Inject constructor(
         data class Failure(val message: String) : Result
     }
 
-    suspend fun seed(): Result = withContext(Dispatchers.IO) {
+    /** Transient review only; never persist or export another project's pinned content. */
+    data class PinReview(val chatId: Long, val message: TgMessage)
+
+    suspend fun seed(reviewedPin: PinReview? = null): Result = withContext(Dispatchers.IO) {
         try {
             val config = projectConfigStore.current()
             check(!config.initialized && !config.demoMode) { "إنشاء السجل متاح أثناء إعداد مشروع جديد فقط" }
-            require(telegram.getChat(topics.chatId).pinnedMessage == null) {
-                "توجد رسالة مثبّتة؛ استخدم الانضمام إلى المشروع ولا تستبدل سجل الفريق"
-            }
+            require(reviewedPin == null || reviewedPin.chatId == config.chatId) { "تغيرت مجموعة المشروع؛ أعد المراجعة" }
+            requireReviewedPin(reviewedPin, telegram.getChat(topics.chatId).pinnedMessage)
             val admin = config.initialAdmin
             val telegramId = admin.telegramId
             require(telegramId > 0L) {
@@ -45,6 +48,7 @@ class BootstrapSeeder @Inject constructor(
             require(name.isNotEmpty()) {
                 "اسم المدير الأول فارغ"
             }
+            if (reviewedPin != null) requireGroupAdmin(telegramId)
 
             val doctor = Doctor(
                 id = DoctorNaming.stableId(name),
@@ -80,9 +84,9 @@ class BootstrapSeeder @Inject constructor(
             }
 
             check(projectConfigStore.current() == config) { "تغير إعداد المشروع؛ أعد مراجعته" }
-            require(telegram.getChat(topics.chatId).pinnedMessage == null) {
-                "ظهرت رسالة مثبّتة أثناء الإعداد؛ لم يُستبدل سجل الفريق"
-            }
+            if (reviewedPin != null) requireGroupAdmin(telegramId)
+            requireReviewedPin(reviewedPin, telegram.getChat(topics.chatId).pinnedMessage)
+            check(projectConfigStore.current() == config) { "تغير إعداد المشروع؛ أعد مراجعته" }
             check(telegram.pinMessage(topics.chatId, msg.messageId, disableNotification = true)) {
                 "لم يؤكد تليجرام تثبيت سجل الأطباء؛ راجع الرسالة المثبّتة قبل إعادة المحاولة"
             }
@@ -92,6 +96,20 @@ class BootstrapSeeder @Inject constructor(
             throw e
         } catch (e: Exception) {
             Result.Failure(e.message ?: "فشل إنشاء سجل الأطباء الأولي")
+        }
+    }
+
+    private suspend fun requireGroupAdmin(telegramId: Long) {
+        require(telegram.getChatAdministrators(topics.chatId).any { it.user.id == telegramId && it.isAdmin }) {
+            "لبدء مشروع جديد مع وجود رسالة مثبّتة، يجب أن يكون المدير الأول مديرًا في مجموعة تليجرام"
+        }
+    }
+
+    private fun requireReviewedPin(review: PinReview?, current: TgMessage?) {
+        val expected = review?.message
+        require(expected?.messageId == current?.messageId && expected?.text == current?.text &&
+            expected?.caption == current?.caption && expected?.document?.fileId == current?.document?.fileId) {
+            "تغيرت الرسالة المثبّتة أو لم تُراجع بعد؛ أعد التحقق وأكّد بدء المشروع الجديد"
         }
     }
 

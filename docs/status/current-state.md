@@ -16,6 +16,13 @@ transport, and `sync/` orchestrates transfer. [Protocol](../reference/telegram-p
 - Join through protected `.srjoin.json` files; manual group/topics belong to creation.
   Optional authenticated Telegram-data encryption is selected at creation; the shared
   key travels in protected settings/join files. PDFs deliberately remain readable.
+- Android creation in an existing group offers explicit confirmation when a pin exists.
+  Confirmation is bound to the reviewed configuration and pin; seeding checks live
+  Telegram-group admin membership before upload and pinning, and rechecks pin/config.
+  The new registry becomes the project reference; existing files/messages/pins remain
+  and old project data is not imported. Existing local enrollment cannot be replaced
+  from creation. Members need new protected join files; old devices do not switch
+  automatically. Telegram still provides no atomic compare-and-pin guarantee.
 - Same-project reconnect validates candidate credentials before replacement, retaining
   clinical state, pending edits, topics and key. Cross-project/key/topic substitution
   is blocked. Reconnect works before login; BotFather handles token revocation.
@@ -177,6 +184,32 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
+The existing-group pin override adds 18 focused JVM regression cases plus one
+opt-in production-seeder check against the owner's designated disposable Telegram
+group. Offline production/JVM compilation passed on 24 October 2026, followed by
+**56 cases across four classes**, zero failures/errors/skips. The live check rejected
+a changed pin, seeded a freshly reviewed replacement, downloaded/decoded its registry,
+and confirmed cleanup restored the original active pin. Only synthetic pins were
+removed; messages/files remain. Logs/XML and the private receipt are in ignored
+`local/verification/pin-override-2026-10-24/`.
+
+The first isolated phone run passed five cases on PPA-LX2/API 29, with no failures
+or skips: confirm/cancel, changed pin, recreation and a nominal 200% text case.
+Debug app/test APKs were installed and retained; installed clinical storage was
+not opened by the fixtures. Visual review of all four fresh dialog captures found
+identical hashes: the dialog's separate Android composition owner reset the fixture's
+LocalDensity override. Thus **four behavior cases are verified; large-text coverage
+is not yet verified**. The fixture now scales Material typography across the dialog
+boundary and asserts rendered text size plus no text-layout overflow. Its targeted
+rerun was stopped at the owner's request during `kspDebugAndroidTestKotlin` (exit
+130), before compilation finished or a phone result. No production layout defect
+has yet been established. Normal-size warning/actions were visually readable.
+
+Remaining: compile/run the corrected large-text case, inspect its newly captured
+image and rendered text assertions, fix any evidenced clipping, then rerun affected
+cases. [Resume details](testing-handoff.md#pin-override-phone-check--stopped-at-owner-request).
+Earlier full runs below apply to their preceding source snapshots.
+
 On 24 October 2026 the final full Android verification **succeeded**:
 
 - **625 JVM tests/81 classes passed**, zero failures/errors/skips.
@@ -194,9 +227,9 @@ duplicate skip notifications. Earlier failures/focused reruns remain archived.
 [Handoff](testing-handoff.md) · [Coverage map/commands](../guides/android-testing.md) ·
 [External boundaries](../guides/deep-testing.md).
 
-Source contains **658 JVM methods/84 classes, 283 device methods/54 classes and
+Source contains **677 JVM methods/85 classes, 288 device methods/55 classes and
 60 desktop methods**. Counts do not establish complete line/branch coverage.
-The latest expansion adds **33 JVM and 30 device methods** after the full run
+The preceding coverage expansion added **33 JVM and 30 device methods** after the full run
 above (22 report cases, then 41 additional cases). It covers review/fingerprint
 scope and real report assembly, long-report limits/Markdown, deterministic rate
 limiting, transaction-consistent snapshots, revoked authority through open UI
@@ -211,7 +244,7 @@ The report/Telegram JVM run **passed 98 cases/12 classes**, zero failures/errors
 skips, including all **33 new JVM cases**. The focused JVM run needed no source
 corrections. Logs, summary and copied JUnit XML are in ignored
 `local/verification/coverage-2026-10-24/`: `compile.log`, `jvm.log`, `jvm-summary.txt`
-and `jvm-results/`. Full 658-case JVM execution was not requested or rerun.
+and `jvm-results/`. Full 658-case JVM execution for that coverage snapshot was not requested or rerun.
 
 After the owner connected the PPA-LX2/Android 10 and approved debug packaging,
 installation and focused execution, the main device run **passed 49 cases with

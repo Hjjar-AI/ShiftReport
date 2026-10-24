@@ -867,7 +867,7 @@
     <string name="ui_project_setup_screen_040" formatted="false">"إنشاء وتهيئة المشروع"</string>
     <string name="ui_project_setup_screen_041" formatted="false">"شاهد التطبيق فوراً بمرضى وهميين بأسماء المشروبات الساخنة وأطباء بأسماء الأشجار. لا يحتاج رمز بوت، ولا يحفظ أو يزامن أي بيانات. يمكنك الخروج والعودة للتهيئة الحقيقية في أي وقت."</string>
     <string name="ui_project_setup_screen_042" formatted="false">"اطلب ملف الانضمام من المدير وعبارة مروره عبر قناة منفصلة. يستورد الملف بيانات الاتصال والمواضيع ومفتاح المشروع إن كان التشفير مفعلاً. راجع اسم المشروع ثم اضغط التحقق والانضمام."</string>
-    <string name="ui_project_setup_screen_043" formatted="false">"١. أنشئ بوتاً عبر BotFather.\n٢. أنشئ مجموعة Supergroup وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل.\n٣. أنشئ المواضيع المطلوبة إن رغبت، ثم أدخل المعرفات أدناه.\n٤. استخدم مجموعة جديدة لا تحتوي رسالة مشروع مثبّتة.\n٥. بعد التهيئة، صدّر ملف انضمام مشفراً للأعضاء من إعدادات المدير."</string>
+    <string name="ui_project_setup_screen_043" formatted="false">"١. أنشئ بوتاً عبر BotFather.\n٢. أضف البوت مديراً إلى مجموعة Supergroup بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل.\n٣. أنشئ المواضيع المطلوبة إن رغبت، ثم أدخل المعرفات أدناه.\n٤. يمكن استخدام مجموعة موجودة؛ إذا وجدت رسالة مثبّتة، راجع تأكيد بدء مشروع جديد. يجب أن يكون المدير الأول مديراً في مجموعة تليجرام.\n٥. بعد التهيئة، صدّر ملف انضمام مشفراً للأعضاء من إعدادات المدير."</string>
     <string name="ui_app_pdf_appearance_controls_001" formatted="false">"اختيار سريع"</string>
     <string name="ui_app_pdf_appearance_controls_002" formatted="false">"سماكة الفواصل الأفقية"</string>
     <string name="ui_app_pdf_appearance_controls_003" formatted="false">"وضوح الفواصل"</string>
@@ -1158,7 +1158,7 @@
     <string name="ui_project_setup_view_model_007" formatted="false">"جارٍ التحقق من البوت والمجموعة…"</string>
     <string name="ui_project_setup_view_model_008" formatted="false">"الرمز لا يعود إلى بوت تليجرام"</string>
     <string name="ui_project_setup_view_model_009" formatted="false">"المعرف لا يعود إلى مجموعة تليجرام"</string>
-    <string name="ui_project_setup_view_model_010" formatted="false">"توجد رسالة مثبّتة في المجموعة؛ استخدم الانضمام إلى مشروع موجود أو مجموعة جديدة"</string>
+    <string name="ui_project_setup_view_model_010" formatted="false">"توجد رسالة مثبّتة في المجموعة؛ راجع تأكيد بدء مشروع جديد أو انضم إلى المشروع الموجود"</string>
     <string name="ui_project_setup_view_model_011" formatted="false">"جارٍ إنشاء سجل المدير الأول…"</string>
     <string name="ui_project_setup_view_model_012" formatted="false">"جارٍ تنزيل سجل المشروع…"</string>
     <string name="ui_project_setup_view_model_013" formatted="false">"لا توجد بيانات مشروع مثبّتة في المجموعة"</string>
@@ -1314,4 +1314,9 @@
     <string name="ui_profile_quiet">هادئ</string>
     <string name="ui_profile_clear">أوضح</string>
     <string name="ui_interface_save_failed">تعذر حفظ تخصيص الواجهة. حاول مجدداً.</string>
+    <string name="ui_setup_replace_pin_title">بدء مشروع جديد في هذه المجموعة؟</string>
+    <string name="ui_setup_replace_pin_message">توجد رسالة مثبّتة. سيُنشأ سجل جديد للمدير الأول ويُثبّت ليصبح مرجع المشروع الجديد. لن تُحذف الرسائل أو الملفات أو التثبيتات السابقة، ولن تُستورد بياناتها إلى المشروع الجديد. إذا كانت المجموعة لمشروع سابق، فلن تنتقل أجهزته تلقائيًا؛ وزّع ملف انضمام جديدًا للأعضاء. يلزم أن يكون المدير الأول مديرًا في مجموعة تليجرام.</string>
+    <string name="ui_setup_replace_pin_confirm">إنشاء مشروع جديد رغم وجود التثبيت</string>
+    <string name="ui_setup_pin_review_changed">تغيرت إعدادات المشروع بعد المراجعة؛ أعد التحقق وأكّد بدء المشروع الجديد.</string>
+    <string name="ui_setup_existing_local_project">هذا الجهاز متصل بمشروع قائم؛ لا يمكن استبدال إعداداته من شاشة إنشاء مشروع جديد.</string>
 </resources>

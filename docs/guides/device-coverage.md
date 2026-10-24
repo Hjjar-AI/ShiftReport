@@ -48,6 +48,24 @@ validated connectivity prerequisite can also skip the send journeys even though
 their HTTP is intercepted. Count results from JUnit XML, including skip reasons.
 Preserve compile/run logs and artifacts with the source snapshot and device/API.
 
+## Existing-pin setup confirmation
+
+`com.hos.rushdpatients.ui.ProjectSetupOverrideTest` exercises the production setup
+screen/ViewModel, seeder and bootstrap with fresh isolated Room/preferences and
+intercepted Telegram. Five cases cover confirm/cancel, a changed pin, Activity
+recreation and simulated 200% text through scaled Material typography on the actual
+device window. The first nominal large-font run was invalidated by screenshot review;
+the corrected test's rendered-size/overflow assertions still await execution. See the
+[current handoff](../status/testing-handoff.md#pin-override-phone-check--stopped-at-owner-request). It never opens the
+installed clinical database or contacts the live group. Dialog screenshots remain
+under external app files at `verification-artifacts/setup-override/`, with separate
+names for cancel, confirm, recreation and large text. Inspect each current image.
+
+Use the device command above with its class property replaced by this class. Keep
+auto-versioning disabled and APKs installed after the run. The owner must authorize
+compilation/install/execution and resource checks still apply. This suite complements
+the opt-in [live production-seeder check](deep-testing.md#android-bootstrap-pin-override).
+
 ## Real document provider
 
 1. Copy the committed synthetic fixture

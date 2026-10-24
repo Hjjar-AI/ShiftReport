@@ -10,6 +10,9 @@ import com.hos.rushdpatients.network.telegram.dto.*
 import com.hos.rushdpatients.testutil.ViewModelFixture
 import io.mockk.*
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -33,8 +36,9 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
     @Before fun configureTransport() {
         coEvery { telegram.getMe() } returns TgUser(12345, isBot = true)
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup")
-        coEvery { seeder.seed() } returns BootstrapSeeder.Result.Success(1, 1)
-        coEvery { bootstrap.bootstrap() } returns BootstrapResult.Success(1)
+        every { projects.current() } returns ProjectConfig()
+        coEvery { seeder.seed(any()) } returns BootstrapSeeder.Result.Success(1, 1)
+        coEvery { bootstrap.bootstrap(any()) } returns BootstrapResult.Success(1)
     }
     private fun assertNoInitialization() {
         verify(exactly = 0) { projects.markInitialized() }
@@ -44,7 +48,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         vm().initialize()
         verifyOrder { sessions.clear(); projects.enterDemo() }
         coVerify(exactly = 0) { telegram.getMe() }
-        coVerify(exactly = 0) { seeder.seed() }
+        coVerify(exactly = 0) { seeder.seed(any()) }
         verify(exactly = 0) { projects.saveDraft(any()) }
     }
     @Test fun joinRequiresProtectedFileRegardlessOfManualFields() {
@@ -82,22 +86,94 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         val vm = validCreate(); vm.setHospitalName("  مشفى تجريبي  "); vm.setReportsTopicId("12"); vm.initialize()
         verify { projects.saveDraft(match { it.hospitalName == "مشفى تجريبي" && it.botToken == token &&
             it.chatId == -100L && it.reportsTopicId == 12L && it.telegramDataKey.isEmpty() }) }
-        coVerifyOrder { telegram.getMe(); telegram.getChat(-100); seeder.seed(); bootstrap.bootstrap() }
+        coVerifyOrder { telegram.getMe(); telegram.getChat(-100); seeder.seed(); bootstrap.bootstrap(1) }
         verifyOrder { projects.saveDraft(any()); sessions.clear(); projects.markInitialized() }
     }
-    @Test fun existingPinnedMessageBlocksCreateBeforeSeeding() {
+    @Test fun existingPinnedMessageOffersConfirmationBeforeSeeding() {
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(10))
         val vm = validCreate(); vm.initialize()
-        assertNotNull(vm.state.value.error)
+        assertNull(vm.state.value.error)
+        assertTrue(vm.state.value.confirmPinnedProjectReplacement)
         assertFalse(vm.state.value.busy)
-        coVerify(exactly = 0) { seeder.seed() }
+        coVerify(exactly = 0) { seeder.seed(any()) }
+        assertNoInitialization()
+    }
+    private fun existingPin(): TgMessage = TgMessage(10, text = "synthetic previous project").also {
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = it)
+    }
+    @Test fun confirmedReplacementSeedsOnlyReviewedPinAndBootstrapsNewRegistry() {
+        val pin = existingPin()
+        val vm = validCreate(); vm.initialize(); vm.confirmPinnedProjectReplacement()
+        assertFalse(vm.state.value.confirmPinnedProjectReplacement)
+        coVerify(exactly = 1) { seeder.seed(BootstrapSeeder.PinReview(-100, pin)) }
+        coVerify(exactly = 1) { bootstrap.bootstrap(1) }
+        verify(exactly = 1) { projects.markInitialized() }
+    }
+    @Test fun cancelledReplacementCannotPublishThroughStaleConfirmation() {
+        existingPin()
+        val vm = validCreate(); vm.initialize(); vm.dismissPinnedProjectReplacement()
+        vm.confirmPinnedProjectReplacement()
+        assertFalse(vm.state.value.confirmPinnedProjectReplacement)
+        coVerify(exactly = 0) { seeder.seed(any()) }
+        assertNoInitialization()
+    }
+    @Test fun editingSettingsInvalidatesPendingReplacement() {
+        existingPin()
+        val vm = validCreate(); vm.initialize(); vm.setChatId("-200")
+        vm.confirmPinnedProjectReplacement()
+        assertFalse(vm.state.value.confirmPinnedProjectReplacement)
+        coVerify(exactly = 0) { seeder.seed(any()) }
+        assertNoInitialization()
+    }
+    @Test fun changingModeInvalidatesPendingReplacement() {
+        existingPin()
+        val vm = validCreate(); vm.initialize(); vm.setMode(ProjectSetupMode.JOIN)
+        vm.confirmPinnedProjectReplacement()
+        assertFalse(vm.state.value.confirmPinnedProjectReplacement)
+        coVerify(exactly = 0) { seeder.seed(any()) }
+        assertNoInitialization()
+    }
+    @Test fun changedPinFailureKeepsOriginalReviewAndDoesNotInitialize() {
+        val pin = existingPin()
+        coEvery { seeder.seed(any()) } returns BootstrapSeeder.Result.Failure("synthetic changed pin")
+        val vm = validCreate(); vm.initialize()
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(20))
+        vm.confirmPinnedProjectReplacement()
+        assertEquals("synthetic changed pin", vm.state.value.error)
+        coVerify(exactly = 1) { seeder.seed(BootstrapSeeder.PinReview(-100, pin)) }
+        coVerify(exactly = 0) { bootstrap.bootstrap(any()) }
+        assertNoInitialization()
+    }
+    @Test fun encryptedReplacementRetainsReviewedSharedKey() = runBlocking<Unit> {
+        existingPin()
+        val key = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { 7 })
+        val vm = validCreate(); vm.setEncryptTelegram(true)
+        mockkObject(ProjectDataCipher.Companion)
+        try {
+            every { ProjectDataCipher.generateKey() } returns key
+            every { ProjectDataCipher.validKey(any()) } answers { firstArg<String>() == key }
+            vm.initialize()
+            withTimeout(5_000) { vm.state.first { it.confirmPinnedProjectReplacement } }
+            assertEquals(key, vm.state.value.telegramDataKey)
+            vm.confirmPinnedProjectReplacement()
+            verify(exactly = 1) { ProjectDataCipher.generateKey() }
+            verify(exactly = 2) { projects.saveDraft(match { it.telegramDataKey == key }) }
+            verify(exactly = 1) { projects.markInitialized() }
+        } finally { unmockkObject(ProjectDataCipher.Companion) }
+    }
+    @Test fun initializedLocalProjectCannotBeReplacedFromSetup() {
+        every { projects.current() } returns ProjectConfig(initialized = true)
+        val vm = validCreate(); vm.initialize()
+        assertNotNull(vm.state.value.error)
+        verify(exactly = 0) { projects.saveDraft(any()) }
+        coVerify(exactly = 0) { telegram.getMe() }
         assertNoInitialization()
     }
     @Test fun privateChatCannotBeInitialized() {
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "private")
         val vm = validCreate(); vm.initialize()
         assertNotNull(vm.state.value.error)
-        coVerify(exactly = 0) { seeder.seed() }
+        coVerify(exactly = 0) { seeder.seed(any()) }
         assertNoInitialization()
     }
     @Test fun nonBotIdentityCannotBeInitialized() {
@@ -112,24 +188,24 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         val vm = validCreate(); vm.initialize()
         assertEquals("synthetic seed failure", vm.state.value.error)
         assertFalse(vm.state.value.busy)
-        coVerify(exactly = 0) { bootstrap.bootstrap() }
+        coVerify(exactly = 0) { bootstrap.bootstrap(any()) }
         assertNoInitialization()
     }
     @Test fun bootstrapFailurePreservesExistingSession() {
-        coEvery { bootstrap.bootstrap() } returns BootstrapResult.Failed("synthetic bootstrap failure")
+        coEvery { bootstrap.bootstrap(1) } returns BootstrapResult.Failed("synthetic bootstrap failure")
         val vm = validCreate(); vm.initialize()
         assertEquals("synthetic bootstrap failure", vm.state.value.error)
         assertFalse(vm.state.value.busy)
         assertNoInitialization()
     }
     @Test fun missingBootstrapPinDoesNotInitialize() {
-        coEvery { bootstrap.bootstrap() } returns BootstrapResult.NoPin
+        coEvery { bootstrap.bootstrap(1) } returns BootstrapResult.NoPin
         val vm = validCreate(); vm.initialize()
         assertNotNull(vm.state.value.error)
         assertNoInitialization()
     }
     @Test fun unrecognizedBootstrapPinDoesNotInitialize() {
-        coEvery { bootstrap.bootstrap() } returns BootstrapResult.UnrecognizedPin
+        coEvery { bootstrap.bootstrap(1) } returns BootstrapResult.UnrecognizedPin
         val vm = validCreate(); vm.initialize()
         assertNotNull(vm.state.value.error)
         assertNoInitialization()
@@ -154,7 +230,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         vm.initialize()
         verify { projects.saveDraft(match { it.telegramDataKey == imported.telegramDataKey &&
             it.reportsTopicId == 1L && it.announcementsTopicId == 2L && it.csvTopicId == 3L && it.doctorsTopicId == 4L }) }
-        coVerify(exactly = 0) { seeder.seed() }
+        coVerify(exactly = 0) { seeder.seed(any()) }
         verify(exactly = 1) { projects.markInitialized() }
     }
     @Test fun importFailureClearsPassphraseAndBusyState() {
@@ -187,6 +263,6 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         val vm = validCreate(); vm.initialize(); clearViewModels()
         assertNull(vm.state.value.error)
         assertNoInitialization()
-        coVerify(exactly = 0) { seeder.seed() }
+        coVerify(exactly = 0) { seeder.seed(any()) }
     }
 }

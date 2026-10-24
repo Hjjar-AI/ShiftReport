@@ -20,6 +20,7 @@ data class ProjectSetupUiState(
     val adminGenderCode: String = "M",
     val adminClinicalRoleCode: String = "RESIDENT",
     val busy: Boolean = false,
+    val confirmPinnedProjectReplacement: Boolean = false,
     val status: String? = null,
     val error: String? = null
 )

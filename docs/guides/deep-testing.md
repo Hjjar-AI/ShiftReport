@@ -78,6 +78,27 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=desktop python3 desktop/tests/live_telegram
   --report local/verification/deep-tests-2026-10-23/live-telegram.json
 ```
 
+### Android bootstrap pin override
+
+`LiveBootstrapOverrideTest` is skipped unless `SHIFTREPORT_LIVE_BOOTSTRAP_CONFIG`
+points to a protected local JSON containing `botToken`, `chatId` and
+`adminTelegramId`. Use only the owner's explicitly designated disposable group.
+It calls the production Android seeder/Telegram client, creates two synthetic pins,
+checks rejection of a changed pin, reviews again and seeds/downloads a fresh registry.
+It unpins only its created messages and verifies the original active pin returns;
+messages/files stay in the group. A private `live-bootstrap-receipt.txt` alongside
+that config records created message IDs and cleanup. Inspect it and the group before
+retrying an incomplete/uncertain run. No clinical database or device install is used.
+
+After build/test permission and resource checks, from `android/`:
+
+```sh
+SHIFTREPORT_LIVE_BOOTSTRAP_CONFIG="/absolute/path/to/protected-live-config.local.json" \
+./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
+  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
+  :app:testDebugUnitTest --tests 'com.hos.rushdpatients.domain.auth.LiveBootstrapOverrideTest'
+```
+
 ## Device/manual checks
 
 The hardware fingerprint probe is opt-in: run only

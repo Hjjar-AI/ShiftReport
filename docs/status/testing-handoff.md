@@ -5,7 +5,54 @@ PPA-LX2 (Android 10/API 29). The optional physical fingerprint-success check was
 also authorized and passed with the owner's touch. Read `AGENTS.md` and preserve
 unrelated working-tree changes; do not stage/commit or inspect migration files.
 
-## Current execution
+## Pin override phone check — stopped at owner request
+
+Current source totals: **677 JVM/85 classes, 288 device/55 classes**. The existing-pin
+feature and 18 new JVM regressions are implemented. Production/JVM compilation and
+**56 focused JVM cases** passed, including the opt-in live production seeder in the
+owner's supplied disposable Telegram group; original active pin restoration confirmed.
+
+The first `ProjectSetupOverrideTest` run on PPA-LX2/API 29 passed all five cases.
+Confirm, cancel, changed-pin rejection and Activity recreation are verified using
+fresh isolated preferences/Room with intercepted HTTP. Debug APKs remain installed.
+All four captures were inspected individually: identical SHA-256 hashes exposed
+that the dialog reset the fixture's LocalDensity override. Do **not** claim 200%
+text coverage from that first pass. The updated fixture explicitly scales Material
+typography across the dialog boundary, checks rendered font size and rejects text
+layout overflow. Its targeted rerun was interrupted on request during test KSP
+compilation, exit 130. The corrected test has no compile/runtime result yet.
+No production layout change or clipping defect has been established.
+
+Remaining when the owner resumes:
+
+1. Recheck AGENTS, connected phone, active builds and RAM/swap. Reuse the existing
+   focused phone-test authorization unless the owner changes scope/preferences.
+2. Compile and run only the corrected large-text case with the cached offline
+   toolchain. From `android/`, use the command below; it builds/installs debug APKs.
+3. Inspect the **new** `large-font.png` and rendered text assertions; compare its hash
+   with normal captures to confirm the larger rendering. If clipping is evidenced,
+   fix this setup warning using the existing scrollable dialog patterns, then rerun
+   the affected device cases. Do not alter shared dialogs speculatively.
+4. Record final XML/results and limitations in current-state/changelog. No need to
+   repeat the already successful live Telegram mutation check for test-only edits.
+
+```sh
+./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
+  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
+  '-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest#twoHundredPercentFontKeepsWarningAndActionsReachable' \
+  :app:connectedDebugAndroidTest
+```
+
+Evidence is ignored under `local/verification/pin-override-2026-10-24/`:
+`compile.log`, `tests.log`, `jvm-results/`, private live receipt,
+`device-compile.log`, `device-tests.log`, `device-results/`, four original captures
+under `device-artifacts/setup-override/`, and interrupted `device-large-text.log`.
+Device images are under external app files `verification-artifacts/setup-override/`.
+Credentials remain in ignored protected local files and must never be printed or
+committed. No staging/commit, version/schema changes or migration work was done.
+
+## Earlier coverage execution
 
 Subsequent additions total **33 JVM and 30 device cases**, bringing
 source totals to **658 JVM/84 classes and 283 device/54 classes**. They cover

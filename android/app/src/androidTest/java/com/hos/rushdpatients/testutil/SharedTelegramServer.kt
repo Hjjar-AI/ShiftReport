@@ -2,6 +2,8 @@ package com.hos.rushdpatients.testutil
 
 import com.hos.rushdpatients.config.*
 import com.hos.rushdpatients.network.telegram.*
+import com.hos.rushdpatients.network.telegram.dto.TgMessage
+import com.hos.rushdpatients.network.telegram.dto.TgDocument
 import com.hos.rushdpatients.sync.SyncState
 import com.hos.rushdpatients.util.DispatcherProvider
 import kotlinx.serialization.encodeToString
@@ -14,6 +16,8 @@ import okio.Buffer
 class SharedTelegramServer {
     val json = Json { ignoreUnknownKeys = true }
     var state = SyncState()
+    var bootstrapPin: TgMessage? = null
+    private val uploadedMessages = mutableMapOf<Long, TgMessage>()
     val files = mutableMapOf<String, ByteArray>()
     val calls = mutableListOf<Pair<String, String>>()
     val deliveredTexts = mutableListOf<String>()
@@ -33,9 +37,18 @@ class SharedTelegramServer {
                 val result = when (method) {
                     "getChat" -> envelope(buildJsonObject {
                         put("id", -100); put("type", "supergroup")
-                        put("pinned_message", buildJsonObject { put("message_id", 1); put("text", json.encodeToString(state)) })
+                        put("pinned_message", bootstrapPin?.let { json.encodeToJsonElement(it) }
+                            ?: buildJsonObject { put("message_id", 1); put("text", json.encodeToString(state)) })
                     }).toByteArray()
                     "getMe" -> envelope(buildJsonObject { put("id", 12345); put("is_bot", true) }).toByteArray()
+                    "getChatAdministrators" -> envelope(buildJsonArray {
+                        add(buildJsonObject { put("status", "administrator")
+                            put("user", buildJsonObject { put("id", 123); put("is_bot", false) }) })
+                    }).toByteArray()
+                    "pinChatMessage" -> {
+                        bootstrapPin = requireNotNull(uploadedMessages[field("message_id").toLong()])
+                        envelope(JsonPrimitive(true)).toByteArray()
+                    }
                     "getChatMember" -> envelope(buildJsonObject {
                         put("status", "administrator"); put("can_pin_messages", true)
                         put("user", buildJsonObject { put("id", 12345); put("is_bot", true) })
@@ -49,6 +62,7 @@ class SharedTelegramServer {
                         val upload = (request.body as MultipartBody).parts.first {
                             it.headers?.get("Content-Disposition")?.contains("name=\"document\"") == true }
                         files[id] = Buffer().also { upload.body.writeTo(it) }.readByteArray()
+                        uploadedMessages[nextMessage] = TgMessage(nextMessage, document = TgDocument(id))
                         envelope(buildJsonObject {
                             put("message_id", nextMessage++); put("date", 1800000000)
                             put("document", buildJsonObject { put("file_id", id) })
