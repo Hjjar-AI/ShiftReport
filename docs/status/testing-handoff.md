@@ -1,161 +1,31 @@
-# Android verification handoff — 24 October 2026
+# Remaining verification
 
-The owner authorized full Android builds/JVM/device execution and connected the
-PPA-LX2 (Android 10/API 29). The optional physical fingerprint-success check was
-also authorized and passed with the owner's touch. Read `AGENTS.md` and preserve
-unrelated working-tree changes; do not stage/commit or inspect migration files.
+[Results](current-state.md#verification-and-limits) · [Android commands](../guides/android-testing.md) · [Device procedures](../guides/device-coverage.md) · [Desktop/live commands](../guides/deep-testing.md)
 
-## Pin override phone check — corrected large-text case passed
+Audited repository Markdown on 24 October 2026, including ignored historical/private
+notes (retained unchanged). This is the single list of outstanding verification;
+it is not an implementation roadmap or authorization to run anything.
 
-Current source totals: **683 JVM/85 classes, 288 device/55 classes**. Existing-pin
-creation and its 18 JVM regressions plus opt-in live seeder were previously verified
-in 56 focused cases; cleanup restored the disposable group's original active pin.
-Private receipt and prior evidence remain under ignored
-`local/verification/pin-override-2026-10-24/`. No live mutation was repeated.
+| Work | Remaining check / prerequisite |
+|---|---|
+| Full current snapshot | When requested, run all 683 JVM and 288 device methods. Latest full runs predate additions; focused additions passed. Record opt-in skips separately. |
+| Original doctor CSV failure | Owner's original file, actual OEM provider/picker and displayed exception. Preview/isolated commit and synthetic native selection passed; the original phone failure remains unreproduced. |
+| Android accessibility/windows | Full TalkBack reading/order/states; real IME at large system fonts; physical split-screen/fold/unfold with drafts/reviews; demo navigation/local labelled PDF export; other supported OS/vendors, especially API 23–25 bars. Simulated geometry/typography and one API 29 phone are already covered. |
+| Android privacy/auth | Physical screenshot/recents protection; background clipboard restrictions/replacement; biometric failure/lock/resume paths beyond the passed native cancel and owner-assisted success cases. |
+| Two physical phones / real Telegram | Disposable project: protected join, retrieve/edit/publish order, pending-edit/revision guards, last-successful-write behavior, interrupted upload/index/delivery and uncertain-receipt recovery. Existing two-client tests/harness do not establish two-phone UI behavior. |
+| Desktop runtime | Latest Linux GUI workflows/dialogs/locking/demo and real PDF opener; fresh supported/pinned Python installation. Prior dummy GUI and automated storage/transport checks passed. |
+| Windows/distribution | Windows 7/DPAPI/Tk/fonts/viewer, intended x86/x64 target and packaged startup/resources/CA/tzdata. Second-account shared Android debug signing; protected production key/certificate and actual release-signature verification. [Packaging](../guides/windows-exe-packaging.md), [signing](../guides/android-build.md#production-release-signing). |
+| Cross-client end to end | Android ↔ desktop live join/reconnect/publish/report/backup workflows. Current-format encrypted file interop already passed both directions; a repeat requires fresh Android artifacts. |
+| PDF viewers/printing | Selection/search/copy, internal links, print output and names-only A4/advanced options and remaining font/layout combinations in real viewers. Selected classic/A5/task-heavy pages were rasterized and visually reviewed. |
+| Performance | Named-device release baseline/comparison for 200 patients. Existing native-clock debug samples do not establish release performance or a speedup. |
+| Live credentials | Desktop live creation/protected join export/login/admin/delivery; BotFather revocation only with owner action and a disposable bot. Saving a replacement token does not revoke the old one. |
 
-The original phone fixture's LocalDensity override did not cross the dialog boundary;
-its nominal large-text pass was invalidated by identical capture hashes. The corrected
-fixture scales Material typography and asserts its rendered size. On resuming the
-phone check, it exposed actual warning truncation: **four passed, one failed**.
-The setup warning now uses the existing scrollable-body/fixed-actions pattern locally;
-shared dialogs and publication/authority callbacks are unchanged.
+No required unimplemented test-creation item was found. O23's screenshot matrix is
+an [unselected proposal](../decisions/android-ui-options.md), not approved work.
+Exhaustive fuzzing/mutation coverage, arbitrary clock changes, every crash/power-loss/
+disk-full boundary and every PDF glyph are limits, not a new backlog or passing claim.
 
-Offline production/device-test compilation passed, and the focused rerun on
-PPA-LX2/Android 10/API 29 passed **all five cases, zero failures/errors/skips**:
-confirm, cancel, changed-pin rejection, recreation and actual 200% typography.
-The large-text test also checks 48dp controls, no text-layout overflow, scroll to
-the final warning lines, fixed enabled actions and cancellation without publication.
-Normal-size, enlarged top and scrolled-end captures were visually inspected; their
-hashes establish distinct enlarged/scroll positions, and normal captures match the
-preceding run. This is a focused typography stress check, not whole-app font/TalkBack
-or multiple-device verification.
-
-Evidence is ignored under `local/verification/setup-device-2026-10-24/`:
-`compile.log`, `tests.log`, `results-01/`, `captures-01/` retain the initial failure;
-`fix-compile.log`, `fix-tests.log`, `results-02/`, `captures-02/` retain the verified fix.
-Gradle 8.7 ran offline on installed Java 21 with target 17, one worker, in-process
-Kotlin and `-Pshiftreport.autoVersion=false`. Debug app/test APKs remain installed;
-Desktop APK export was excluded. Fresh isolated preferences/Room and intercepted
-HTTP were used; installed clinical storage was not opened by the fixtures. No
-full-suite run, version/schema change, staging/commit or migration work occurred.
-No setup-dialog verification remains pending for this source snapshot.
-
-## Delivery-ledger consolidation — focused execution passed
-
-Current totals are **683 JVM/85 classes and 288 device/55 classes** after six new
-ledger safety cases. Both ledger suites now use `DeliveryFixture` with explicit
-non-admin actors; sender/publisher defaults remain admin. No production code changed.
-The pin-override totals above describe the preceding snapshot.
-
-The owner authorized one verification pass in this session. Resource/toolchain
-preflight found no active build or memory/swap pressure. Offline production/JVM
-compilation passed in 5m 51s using pinned Gradle 8.7 and installed Java 21 with
-Java/Kotlin target 17. One focused execution then passed **38 cases/four classes**,
-zero failures/errors/skips, in 53s: `ReportDeliveryLedgerTest` (6),
-`ReportDeliveryLedgerSafetyTest` (22), `ReportSenderTest` (5) and
-`AnnouncementPublisherTest` (5). All six new cases passed. Both commands used one
-worker, in-process Kotlin and `-Pshiftreport.autoVersion=false`.
-
-Logs and copied JUnit XML are in ignored
-`local/verification/ledger-consolidation-2026-10-24/`: `compile.log`, `tests.log`
-and `jvm-results/`. Source counts and whitespace checks passed. That JVM pass performed no device install,
-live Telegram request or full-suite rerun. The subsequent focused phone result is
-recorded above. No rerun is needed for the ledger refactor.
-
-## Earlier coverage execution
-
-Subsequent additions total **33 JVM and 30 device cases**, bringing
-source totals to **658 JVM/84 classes and 283 device/54 classes**. They cover
-report assembly/review, bounded long messages, rate limiting, concurrent snapshot
-reads, revoked authority, process-death recovery, PDF/task pages, accessibility
-semantics and actual-window/provider paths. The chunker and rate-limiter clock
-seam also changed. The owner authorized offline compilation and focused JVM tests:
-production/JVM/device-test Kotlin compilation passed, and **98 report/Telegram JVM
-cases in 12 classes passed with zero failures/errors/skips**, including all 33 new
-JVM cases. No corrections were needed for the JVM run. Logs and copied XML are
-in ignored `local/verification/coverage-2026-10-24/`. The full JVM suite was not rerun.
-
-The owner then connected the PPA-LX2/Android 10 and approved focused device
-packaging/installation/execution. The main run passed **49 cases with zero
-failures/errors and one expected opt-in skip**, 50 cases/9 classes in XML.
-`device-01.log` and `device-01-results/` are archived under the same verification
-directory. Actual native selection exposed lost ActivityResult registration state
-when background privacy removed NavHost. A session-owned saveable-state holder
-now retains it alongside the controller/ViewModels while clinical content remains
-hidden and sign-out discards both owners. The **22-case affected UI rerun passed
-with no failures/skips**, including the new background-result regression.
-`device-root-fix-01.log` and `device-root-fix-01-results/` record it. The actual
-picker/grant/preview/isolated commit then passed separately with assisted native
-selection: `real-provider-06.log`, `OK (1 test)`. Earlier selection/result timeouts
-remain separately archived. The opt-in test accepts manual native selection and
-an optional 30–120-second selection window, preserving all fixture assertions.
-
-**51 distinct focused device cases passed**, including all 30 new cases; do not
-sum repeated cases or claim a full 283-case run. All 11 new task-heavy PDF pages
-and selected native report images were visually reviewed. Artifacts are copied
-under `device-artifacts/`. The two CSV copies and temporary empty folder created
-for this run were removed; existing files/settings were preserved. Debug APKs
-remain installed. No build/test remains running. Full TalkBack, physical two-phone/
-fold/split-screen and other OS/vendor checks remain outside this evidence.
-[Focused commands and hardware/provider preparation](../guides/device-coverage.md).
-The full-run results below describe the preceding snapshot, not these additions.
-
-The final complete run **succeeded**: **625 JVM tests/81 classes passed, no
-failures/errors/skips**; **253 device cases/50 classes: 251 passed, zero failures/
-errors, two expected skips**. XML is authoritative: the Gradle console counts
-skip notifications twice and printed 255. Physical fingerprint success passed
-separately with the owner's touch, so **252 distinct device cases are verified**.
-Only the optional original-private-CSV case remains unrun because its fixture was
-not provisioned. That private file was not recopied to the phone.
-
-Final log: ignored `local/verification/android-tests-2026-10-24/all-final.log`.
-Archived final XML: `unit-final-results/` and `device-final-results/` alongside it.
-The first device run's 8 failures and all focused reruns remain archived separately;
-follow-up runs confirmed the corrections rather than suppressing failed cases.
-
-## Findings and corrections
-
-- Rollover no longer pre-sets the busy flag before entering the shared guard. It
-  enters immediately, blocks duplicate confirmation, retains expected revision and
-  releases busy state on failure. Two extra JVM regressions cover these boundaries.
-- Initial registry seeding requires a positive Telegram pin receipt, retaining
-  existing pin/project race checks, cancellation and temporary-file cleanup.
-- The pinned Compose version remembers its initial size-animation spec. A stable
-  spec reads the current duration per transition, so first individual expansion/
-  collapse animate and bulk expansion remains immediate. Three device cases pass.
-- Background privacy locking now retains the signed-in navigation controller and
-  editor ViewModels. Clinical screens still leave composition while locked;
-  sign-out discards the controller. The real background/resume draft test passes.
-- Test corrections use actual Settings workspaces, fixed-button visibility,
-  complete comparison text, real card actions and foreground authorization waits.
-  Clipboard tests wait for Activity focus. LazyColumn may retain unplaced semantics;
-  the ownership-filter test checks that the excluded task is not displayed.
-- Native biometric cancellation recycles nodes only before API 33. The narrow
-  legacy-call suppression removes deprecation warnings while retaining Android 10
-  cleanup. Native cancellation passed after the change.
-
-## Evidence and prerequisites
-
-Logs and archived XML: `local/verification/android-tests-2026-10-24/`.
-Initial failed runs remain separate from focused/final results. All eight corrected
-process-death cases, fourteen independent-client cases, five controlled picker
-cases, synthetic fold geometry and scrolling suites passed both full device runs.
-All HTTP is intercepted; no installed clinical database or real report destination
-is used. No device settings were changed; no build/test remains running. Earlier private phone CSV was not copied
-again. Desktop/live transport checks were not rerun for this Android request.
-
-Use the existing cached Gradle 8.7, Java 21 and SDK/build-tools 34. Before every
-attempt check visible builds/compiler activity and RAM/swap pressure; do not stop
-others or clear caches. Commands and source coverage are in the
-[Android testing guide](../guides/android-testing.md). The latest output root is
-`/home/work/.gradle/shiftreport-project-cache/build-output/app/`.
-
-## Remaining limits
-
-Original unknown OEM picker failure remains unreproduced. Controlled results and
-provider faults do not exercise every OEM grant path. Independent clients share
-one process, not two physical phones; hinges/window constraints and storage faults
-are synthetic. Power loss, actual disk exhaustion, every workflow clock change,
-full TalkBack, physical split-screen/foldables, other OS versions and release
-performance remain outside this evidence. Existing signing/deferred proposals are
-in the [roadmap](roadmap.md); keep verification-only limits out of that list.
+Use synthetic isolated data. Follow [AGENTS.md](../../AGENTS.md) for separate build/
+test authorization and per-build process, RAM/swap and durable-cache preflight.
+Live mutations require an explicitly designated disposable project; do not change
+device settings automatically. No build/test was run during this Markdown cleanup.

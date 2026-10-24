@@ -216,10 +216,7 @@ the selected shift ID/date in the current project and valid registry references,
 an expected-draft recheck, review and confirmation. Recovery keeps current receipts
 and saved imported task attribution. `.srdraft` remains separately labelled desktop
 workspace recovery. Both clients block downloaded snapshots over pending saved
-clinical changes until publication. Source-based backup compatibility still needs
-an actual Android/desktop exchange; dummy desktop crypto/recovery checks passed.
-
-Offline crypto/Unicode CSV/bundle/baseline/merge checks and source/artifact checks
-passed for the implementation snapshot. A long dummy Arabic PDF generated eight pages and its first page was visually
-inspected. Windows 7/DPAPI/Tk execution, live Telegram and current Android
-compilation/device behavior remain unverified. See the desktop README.
+clinical changes until publication. Current-format backup/join/cipher fixtures passed
+both Android → desktop and desktop → Android checks. This does not establish live cross-client GUI workflows.
+[Exact results](../status/current-state.md#verification-and-limits) ·
+[Remaining checks](../status/testing-handoff.md).

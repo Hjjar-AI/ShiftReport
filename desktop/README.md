@@ -191,12 +191,8 @@ live creation/export remain unverified.
   text delivery stays UNKNOWN in the operation ledger; inspect Telegram before
   allowing another attempt. There is no automatic upload retry.
 
-Source checks for this addition covered Python 3.8 grammar, encrypted local
-recovery/backup and receipt preservation, fake-transport administration and text
-delivery, and long Arabic PDFs in table/card/paragraph layouts. An A5 table page
-was visually inspected. These checks used the existing Linux environment, not
-Windows 7 or a fresh pinned installation. Live Telegram, Android round trips and
-new dialog interaction remain unverified. No builds, packaging or test-suite work ran.
+Verification is consolidated in [Current state](../docs/status/current-state.md#verification-and-limits)
+and [Remaining checks](../docs/status/testing-handoff.md).
 
 ## Arabic display
 
@@ -305,47 +301,14 @@ workspace files out of any bundle.
 
 ## Verification
 
-On 2026-10-18, Python 3.8 grammar/import inspection and offline Unicode CSV/bundle,
-encrypted SQLite reopening/tamper, UNKNOWN-retry, receipt-preserving restoration, task completion stamps, five-doctor
-rosters, stale-publication rejection, receipt-before-upload and remote/concurrent
-order checks passed. A long dummy Arabic report generated eight PDF pages and its first
-page was visually inspected. Python 3.8 x86/x64 wheel resolution is recorded in
-[Current state](../docs/status/current-state.md). The checks used the host Python, not
-Python 3.8.10, and did not exercise a real project.
-
-On 2026-10-19, Linux checks passed for both shared-key and passphrase-protected
-SQLite reopening, wrong/missing/tampered key rejection, owner-only key/database
-permissions, delivery-ledger-preserving restore, cross-process lock/release, XDG
-paths and default font discovery. A dummy Arabic PDF was generated with the Linux
-default font; simulated PDF openers verified argument handling and missing/failed
-handler errors without launching a real viewer. Linux launchers passed shell syntax
-checks; all desktop modules passed Python 3.8 grammar inspection and whitespace checks.
-The host is Python 3.14 with temporary dependency imports from the prior checks,
-so these probes do not establish a fresh pinned Python 3.8–3.11 installation.
-
-Arabic presentation checks on 2026-10-19 constructed the actual Linux main window
-and dummy single/multiline editors, verified logical selection/status/copy values,
-and inspected screenshots of labels, choices, reviews and live readbacks. Original
-editable Unicode remained unchanged. Full clinical editing workflows, Windows
-7/DPAPI execution, target fonts and
-PDF viewer, live Telegram login/publication/delivery and Android-device round trips
-remain unverified. Wheel availability is not Windows 7 certification. The pinned
-legacy dependencies are compatibility choices, not a current-support claim.
-See [protocol](../docs/reference/telegram-protocol.md) and
-[desktop troubleshooting](../docs/guides/desktop-troubleshooting.md).
-
-The subsequent Linux update installed unpinned dependencies through Setup_Linux.sh
-on the owner's system Python. Actual form/search editing, visual cursor/mouse
-mapping, mixed Arabic/English text, clipboard, deletion, undo/redo, numeric
-validation and patient Save passed dummy GUI checks; screenshots confirmed Arabic
-inside the fields. Native-rendering/password exclusions and encrypted storage/PDF
-checks also passed. This does not establish full clinical or live Telegram workflows.
-
-The names-only overview and Android-style PDF update was checked through Python
-3.8 grammar, dummy grouping/unassigned-name probes, fixed-A4 three-table grids and 200-patient overflow
-exports, all five Classic palettes in light/dark and long paginated reports.
-Overview, Classic and continuation-card images were inspected. New dialog use,
-Android rendering/compilation, Windows and live Telegram remain unverified.
+Linux storage/crypto/transport/PIN/CSV/demo/PDF and selected Arabic GUI probes passed
+on their recorded snapshots. The later deep run passed 60 cases, including four
+reverse Android file checks; seven selected mutants were detected and synthetic
+live transport checks passed separately. These do not establish the latest full desktop
+GUI, Windows 7/DPAPI/packaged runtime or end-to-end Android/desktop live workflows.
+[Exact results](../docs/status/current-state.md#verification-and-limits) ·
+[Remaining checks](../docs/status/testing-handoff.md) ·
+[Desktop/interop/live commands](../docs/guides/deep-testing.md).
 
 Synchronization uses full downloads and reviewed full-shift replacement, including
 local deletions, order and roster. Remote clinical fields/additions are not merged
@@ -380,9 +343,7 @@ remote synchronization. Neither platform schedules background synchronization.
   or close to discard the session. Only explicit local PDF export is available,
   with DEMO on every page. Demo has no Telegram transport.
 
-Source/PIN/CSV/demo/PDF probes passed; graphical screen-lock/dialog behavior,
-Windows and live Telegram still need runtime verification. No build or packaging
-was run for these additions.
+Runtime limits are consolidated in [Remaining checks](../docs/status/testing-handoff.md).
 
 
 ## Consolidated workflows

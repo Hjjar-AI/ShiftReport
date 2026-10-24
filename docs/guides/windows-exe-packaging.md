@@ -322,8 +322,7 @@ missing-module warnings as failures. See the official
 
 ## Verification status of this guide
 
-This document was checked against the current desktop source paths, pinned
-Windows requirements and the linked vendor documentation. The commands have not
-been executed on Windows in this session. No EXE, installer or signed artifact was
-created; no packaging, Android build or test-suite task was run. Actual Windows
-and especially Windows 7 compatibility remain to be established by the operator.
+Commands are reference procedures, not a verified Windows build. No EXE/installer
+or Windows 7/DPAPI/Tk certification is established. Keep target-runtime/package
+checks in [Remaining checks](../status/testing-handoff.md); observed results belong
+in [Current state](../status/current-state.md#verification-and-limits).

@@ -1,317 +1,75 @@
-# Android test coverage
+# Android tests
 
-[Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
+[Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md) · [Device procedures](device-coverage.md) · [Desktop/live](deep-testing.md)
 
-The source suite contains **683 JVM methods in 85 classes** and **288 device
-methods in 55 classes**. Source counts do not measure line/branch coverage or
-establish that a run passed. See [current results and limits](../status/current-state.md#verification-and-limits)
-for the exact verified snapshot. The tests exercise production entry points with
-isolated clinical storage. [Deep scenarios and desktop/live commands](deep-testing.md)
-map the expanded failure boundaries and hardware/external limits.
-
-Regression-driven fixes preserve revision/authority checks, transaction rollback,
-cancellation and password cleanup, reject malformed CSV/overflow and guard repeated
-saves/exports. No versions, dependencies or database/interchange schemas changed.
-
-## Latest expansion — October 2026
-
-### Setup warning — five device cases passed
-
-`ProjectSetupOverrideTest` uses isolated Room/preferences, real setup models and
-intercepted HTTP. Its corrected typography fixture exposed 200% warning clipping;
-only this setup dialog now uses a scrollable body with fixed actions. After offline
-production/device-test compilation, all five cases passed on PPA-LX2/Android 10/API 29,
-zero failures/errors/skips: confirm/cancel, changed pin, recreation and 200% text.
-The large-text case asserts actual rendered size, no text-layout overflow, labelled
-48dp actions, scrolling to the end and cancellation without publication. Captures
-at normal size and the top/end of enlarged text were visually inspected. This does
-not establish whole-app OS font scaling or TalkBack behavior. Debug APKs remain
-installed. Initial failing and final passing logs/XML/captures are ignored under
-`local/verification/setup-device-2026-10-24/`.
-
-### Delivery-ledger consolidation — focused verification passed
-
-`ReportDeliveryLedgerTest` and `ReportDeliveryLedgerSafetyTest` now reuse
-`DeliveryFixture`, alongside report-sender and announcement-publisher tests.
-The fixture accepts an explicit actor so ledger cases retain non-admin authority;
-its default admin actor for sender/publisher cases is unchanged. Each case owns
-its mocks and stored ledger, and failed-write recovery restores only the write stub.
-
-Six additional safety cases cover failed manual-resolution and copy-permission
-writes, retention of a copy permit after failed registration, a second destination
-finishing while the first transport waits, live admin demotion after resolution
-review, and a non-admin sender resolving their own record after recreation.
-Concurrency uses deferred barriers and a bounded timeout. Offline production/JVM
-compilation passed, followed by one focused run of both
-ledger suites, `ReportSenderTest` and `AnnouncementPublisherTest`: **38 cases in
-four classes passed**, zero failures/errors/skips, including all six additions.
-Both commands used the pinned Gradle 8.7, installed Java 21 runtime (Java/Kotlin
-target 17), one worker and automatic version reservation disabled. Logs/XML are
-in ignored `local/verification/ledger-consolidation-2026-10-24/`. The complete JVM
-suite and device tests were not rerun. No production code or dependencies changed.
-
-### Additional failure/device boundaries — focused JVM verification
-
-After the 22 report cases below, a further **23 JVM and 18 device cases** cover:
-
-| Suite | Added cases | Boundary |
-|---|---:|---|
-| `ReportChunkingBoundaryTest` | 12 JVM | Exact limits, oversized clinical/title/summary blocks, Arabic/emoji/escape preservation, balanced formatting, whole links, patient order and explicit indivisible-link failure |
-| `TelegramRateLimiterTest` | 11 JVM | Virtual-clock cooldown, same/different chats, queued contention, cancellation, failure recovery and scoped reset |
-| `ReportSnapshotConsistencyTest` | 3 device | Barrier-held real Room report/assignments reads versus a queued roster/clinical writer; cancellation releases the transaction |
-| `DoctorPickerContractTest`, `ProductionNavigationJourneyTest` | 5 device | Admin revoked/deleted after import preview, export picker result after revocation, report confirmation after deactivation and picker registration after background privacy |
-| `ProcessDeathWorkflowTest` | 3 device | Dedicated worker killed after encrypted staging, verified output before staging discard, and synthetic accepted delivery before confirmation |
-| `PdfRenderingTest` | 2 device | Small-page classic and dark A5 continuations with 40 tasks; every page rasterized and retained |
-| `ProductionAdaptiveScreensTest` | 2 device | 200% text and labelled 48dp footer targets; focused unsaved draft during constrained-window resizing |
-| `NativeDeviceLayoutTest` | 2 device | Production report/editor recreation using actual window/density/font configuration; native report artifacts |
-| `RealDocumentProviderImportTest` | 1 opt-in device | Actual system picker/grant, synthetic CSV preview and isolated commit; no controlled result registry |
-
-The chunker now bounds oversized blocks without cutting escaped characters,
-surrogate pairs, formatting or links. An indivisible oversized link fails explicitly.
-The rate limiter has an injectable clock and keeps its no-argument Hilt constructor.
-All default Telegram HTTP remains intercepted. Native/provider tests and page
-rasterization do not prove two-phone, physical hinge, TalkBack or every-glyph behavior.
-[Focused commands and physical/provider/PDF procedures](device-coverage.md).
-Production, JVM and device-test Kotlin compilation passed offline. The focused
-report/Telegram run passed **98 JVM cases/12 classes**, zero failures/errors/skips,
-including all 33 new JVM cases across this and the following section. The main
-device run passed 49 cases with one opt-in skip. After a native-picker lifecycle
-fix, all 22 affected UI cases passed, including the new background-registration
-regression; the real-provider case then passed separately with native selection
-assistance. **51 distinct device cases are verified**, including all 30 additions.
-The complete 658-case JVM/283-case device suites were not rerun. Logs and XML are in ignored
-`local/verification/coverage-2026-10-24/`.
-
-### Report assembly and review safety — JVM and device cases passed
-
-`ReportReviewSafetyTest` adds 10 JVM cases covering clinical/demographic fields,
-assignments/task metadata, shift settings, patient/task/message order, supervisor
-destinations, task owners outside the roster and fingerprint scope. Registry order,
-unrelated doctors and device-only metadata must not invalidate a review.
-
-`ReportBuilderTest` adds 12 device cases using the existing isolated Room/repository
-fixture and real text builder: missing shift/roster, assignments-only export,
-empty/mixed wards, deleted/other-shift patient exclusion, 40-doctor roster order,
-historical names, configured/manual sorting, full clinical/task text and generation
-without persistence mutations. No real Telegram or installed clinical DB is used.
-Both suites compiled; the 10 review-safety JVM and 12 report-builder device cases
-passed in focused runs. The full-run totals below predate these additions.
-
-The earlier source expansions added **249 JVM cases and 78 device cases** at the owner's
-request, including the selected journey/provider/client/failure cases below and
-follow-up rollover/animation regressions. On 24 October the owner authorized full
-Android execution on the connected device. [Results, fixes and remaining limits](../status/current-state.md#verification-and-limits)
-record the verified snapshot; earlier runs apply only to their recorded source.
-
-### Selected journey/provider/client/failure gaps — 24 October 2026
-
-| Suite | Added cases | Main boundaries |
-|---|---:|---|
-| `DoctorPickerContractTest` | 5 device | Real Doctors screen OpenDocument launch/result, preview without commit, cancellation, unavailable/revoked provider and delayed result after Activity recreation |
-| `IndependentClientsWorkflowTest` | 14 device | Separate Room/preferences/sessions/cursors/locks, real uploaded bytes, retrieve/edit/publish ordering, pending/stale guards, explicit last-successful-writer behavior, token reconnect and cross-project rejection; upload/index/delivery response loss, interrupted/racing download and trigger-driven apply rollback |
-| `ProductionNavigationJourneyTest` | 4 device | Actual WardAppRoot/WardNavHost and production models/screens: protected join → PIN login → patient edit → text review → confirmed publication/delivery, rotation before save/confirmation, background draft and sign-out navigation |
-| `ProductionAdaptiveScreensTest` | 4 device | Narrow/short large-font drawer/settings/doctor/report controls, native text focus/IME path, settings persistence during width changes/navigation |
-| `FoldSafePaneLayoutTest` | 3 device | Production pane geometry around synthetic vertical/horizontal hinges and preserved text while a hinge appears/disappears |
-| Existing `PatientPublicationCoordinatorTest` | 3 JVM | Active-shift change after review and forward/backward clock correction during upload must reject index publication |
-| Existing `ShiftDateTest` | 2 JVM | Local calendar deadline across DST changes and timezone switch; restores process timezone in finally |
-
-`IsolatedWorkflowActivity` is debug-only, non-exported and requires an installed
-fixture before composition. Real isolated ViewModels are installed under their
-normal store keys before Hilt looks up each screen; unsupported destinations fail
-closed. `WardAppRoot` accepts an optional composable navigation-controller factory,
-retained for the signed-in session across temporary privacy/PIN screens so the
-back stack and editor ViewModels survive backgrounding. Locked clinical screens
-still leave composition; sign-out discards the controller. The default remains
-`rememberNavController`. No dependency, schema or version changed.
-
-The shared synthetic server intercepts **every** HTTP request; unexpected methods
-fail locally. Client DB/preferences/keys/session metadata are independently scoped;
-no installed clinical DB, real credentials or original private CSV are fixtures.
-The complete send journey deliberately requires the device's validated connectivity
-flag for the production send gate, even though HTTP remains intercepted. It skips
-with an explicit reason if that prerequisite is absent; a skip is not journey
-verification. No device/network setting is changed to satisfy it.
-
-OpenDocument results come through a controlled ActivityResultRegistry and a real
-ContentResolver/provider. This does **not** reproduce the original unknown picker
-exception or exercise OEM system-picker UI/grant behavior. Independent clients
-share one process/synthetic server, not two physical phones. Width/height/font
-constraints and hinge models are synthetic, not physical split-screen/fold evidence.
-Transport faults and SQLite-trigger storage failures are selected boundaries, not
-power loss or actual disk exhaustion. The corrected eight process-kill cases passed the full device run. See the current
-results for UI/lifecycle verification and any remaining failures or skips.
-
-### Additional coverage — 24 October 2026
-
-| Suite | Added cases | Main regression boundaries |
-|---|---:|---|
-| `SettingsEmptyStartAndRoutingTest` | 15 | Destructive review/confirmation separation and consumption, busy gates, publication invalidation, cancelled/uncertain reset and supervisor destination validation/stale/cancellation guards |
-| `SettingsProvisioningOperationsTest` | 17 | Live authority before preparation and delivery, password/byte wiping, opaque saved IDs, picker recreation/cancellation/failure, partial-destination cleanup, download and share staging |
-| `BootstrapSeederTest` | 13 | Demo/initialized/occupied project rejection, initial actor validation, actual registry contents, project/pin races, upload/pin failure, cancellation and temporary-file deletion |
-| `DoctorsViewModelTest` | 23 | Local CRUD/team delegation, pending registry observation, stale edit/reload callbacks, cancellation, duplicate actions, guarded fetch and saved export cleanup/audit order |
-| `WardPreferencesTest` | 8 | Independent live settings, strict booleans, regrouping without clinical loss, stored expansion and hint state |
-| `WardSynchronizationTest` | 7 | Selected-snapshot status, unresolved delivery precedence, read-only publication gating and downloaded-reference freshness |
-| `WardShiftOperationsTest` | 20 | Doctor-first fetch, latest/previous failure and duplicate guards, newest-bundle choices, reviewed snapshot selection, download Undo, historical export and rollover preview/confirmation |
-| `WardTaskBoardInteractionTest` | 7 | Read-only completion disabled, exact task/patient revision callback, pending-only visibility, optional ownership filter and navigation |
-| `StaleEditReviewInteractionTest` | 4 | Both clinical versions visible, unavailable record protection and explicit keep-draft/use-saved choices |
-| `HandoverDashboardInteractionTest` | 6 | Admin-only Activity Center, optional synchronization action and urgent/overdue/pending filter actions |
-| Existing `PendingExportStoreTest` | 5 | Fresh authenticated ciphertext, independent discard, truncated-file rejection before destination write, expiry cleanup and malformed-ID containment |
-
-The first full JVM execution confirmed the rollover nested-busy-guard defect and
-ignored false pin receipt. Production fixes preserve duplicate-action protection,
-revision review and pin-race checks. Rollover additionally covers a suspended duplicate
-confirmation and rejection recovery. Neither regression was ignored or changed to
-accept the defect. Device execution also exposed the pinned Compose version retaining
-the initial size-animation spec; the card now selects the current duration for each
-size transition, preserving individual motion and immediate bulk expansion.
-
-### Initial source expansion — 23 October 2026
-
-| New suite | Cases | Main regression boundaries |
-|---|---:|---|
-| `ProjectSetupViewModelTest` | 21 | File-only join, invalid configuration, draft-before-bootstrap order, occupied pin, bot/group validation, seed/bootstrap failure, imported key/topics, cancellation and repeated initialization |
-| `ProjectConnectionViewModelTest` | 19 | Prepare/review/apply separation, consumed/stale review, busy guards, safe transport messages, cancellation, provider metadata-only reads and cursor cleanup |
-| `AnnouncementViewModelTest` | 22 | Exact review, edited/dismissed/consumed tokens, ledger filtering/failure, uncertain send, resolution, concurrent actions and lifecycle cancellation |
-| `AdminViewModelTest` | 12 | Live registry actor/role, absent session, exact expected doctor delegation, failures, repeated actions and cancellation |
-| `WardActivityOperationsTest` | 8 | Authority before privileged reads, denied-state clearing, duplicate load, audit/journal failure, retry and cancellation |
-| `WardPatientOrderingTest` | 11 | All group partitions preserve clinical content, unknown/unassigned doctors, admission dates, stable within-group order, priority and consecutive export positions |
-| `PatientCsvExporterTest` | 10 | Missing/empty shifts, actual UTF-8 CSV contents, tasks/badges/revisions, stored order and temporary plaintext cleanup on success/failure/cancellation |
-| `SettingsDataOperationsTest` | 20 | Reviewed publication only, consumed/cancelled/stale tokens, offline and duplicate actions, doctors-before-patients fetch, Undo guards and local export results |
-| `SettingsPreferencesTest` | 9 | Serialized preference writes, stale failure rollback, cancellation, grouped PDF print options, independent appearance/accent and lock settings |
-| `UiPreferencesTest` | 9 | Malformed/partial/unknown settings, deterministic 192-combination round trip and independent appearance/font restoration |
-| `ShiftDoctorPickerInteractionTest` | 11 | Real RTL selector, optional search, 40-doctor roster, deleted doctors, explicit discard, busy controls and keep-draft/use-saved revision review |
-| `UiPreferencesCompositionTest` | 6 | Reduced-motion profile propagation/restoration, fallback profile, scoped overrides and large-font layout thresholds |
-| `AuditAndSettingsRepositoryTest` | 8 | Real isolated Room audit scope/order/limits/metadata, strict typed settings, overflow, lock bounds and batch/delete observation |
-
-New ViewModel cases share a dispatcher/store fixture that cancels collectors at
-teardown. Concurrency cases use deferred barriers or suspended operations, without
-wall-clock sleeps. CSV tests use a fresh temporary folder; Room cases use fresh
-in-memory databases. No original patient records, credentials, private CSV or
-installed clinical database are fixtures. The earlier expansions needed no production-source or dependency change; the
-latest journey pass adds only the optional root navigation-controller factory
-described above to production source.
-
-This is broad regression coverage, not a claim of complete line/branch coverage.
-Device, provider, hardware, performance and multi-device limits remain in
-[Deep regression checks](deep-testing.md). Static source/resource-reference and
-whitespace checks do not establish Kotlin compilation or runtime behavior.
+**683 JVM methods/85 classes; 288 device methods/55 classes.** Counts are not
+coverage percentages. Full and focused results describe different snapshots.
 
 ## Coverage map
 
-| Area | JVM coverage | Device coverage |
-|---|---|---|
-| Clinical records | Required fields, invalid dates, optional assignments, predicates and dashboard totals | Patient DAO ordering, shift isolation, recycle visibility and foreign keys |
-| Tasks | Ward search/filter intersections and stable pin ordering; counts, exact overdue boundary, ordering, team filters, validation, rollover, metadata and JSON | Repository-stamped completion actor/time, attribution preservation/reopening, rejected anonymous completion/unknown owners and audit/pending rollback |
-| Doctors | Name rules, team membership/cover/aliases, CSV parsing, duplicate identities and import preview retention | Existing doctor DAO identity, rank and soft-deletion cases |
-| Persistence | Patient/doctor/shift mapper round trips including tasks, badges, revisions and publication lineage | Stale patient edits/deletes/restores, nonempty rollover rejection, shift revision guards, settings and sync channel isolation, duplicate-add/cross-shift-delete rejection, stale roster/sort rollback and whole-shift rollover guards |
-| Security/onboarding | PIN format/enrollment, lockout persistence/expiry, live identity recheck and cancellation; role-use-case delegation; live admin registry checks; same-project reconnect, topic/key protection, stale actor/config guards and password wiping | Project AES-GCM round trips, tampering/wrong keys, fresh nonces, readable-PDF exception and salted password hashes |
-| Backup | — | Encrypted export, password wiping, wrong-password/tampering rejection without clinical mutation, content restore |
-| Synchronization | Recovery rotation by message ID, publication-source invalidation, pinned-index disappearance/confirmation, stale-pointer merge and bounded journal; patient equality distinctions, known-snapshot state, current CSV, multi-shift bundles, registry codec and unlimited roster round trips | Snapshot soft deletion scoped to the selected shift |
-| Report safety | Readiness, reviewed-content fingerprints, changed clinical/tasks/roster/destination rejection, UNKNOWN receipts, repeat permission, actor/status guards | Explicit enabled confirmation and cancellation in an RTL dialog |
-| Telegram | Markdown, request/envelope handling, encrypted-message parse-mode omission, topic routing, retry/backoff, ambiguous send and cancellation behavior | — |
-| Presentation/export | Editor draft retention/submission/validation, save/error/cancellation handling, text report content and long rosters, PDF clinical content retention, compact task labels, settings visibility, rounds/list return, report text/PDF review gates | Confirmation button enabled state |
-| Demo/time/sorting | Valid synthetic demo records, independent in-memory state, 08:30 rollover/leap-day deadlines, sort rules and serialization | — |
-
-## Integration and device suites
-
-| Suites | Boundaries exercised |
+| Area | Existing coverage |
 |---|---|
-| `DoctorMutationRepositoryTest` | Real Room/admin authorization, stale editors/import previews, clinical references, protected ranks, PIN retention/invalidation, identity merging, synthetic 33-row CSV commit |
-| `WardMutationSafetyTest`, `WardAssignmentSafetyTest`, `BackupRestoreSafetyTest` | Mutation rollback, task attribution, live clinical roles at add/save/restore/rollover, restore invalidation of patient/shift drafts, rejected restore pending-state rollback |
-| `PatientRetrievalCoordinatorTest`, `LocalDownloadUndoTest`, `DoctorSyncCoordinatorTest` | Intercepted HTTP with real repositories: download/apply/Undo, persisted Undo after recreation, concurrent local edits, recovery cursor/baseline protection, doctor pull/identity/secret retention |
-| `PatientPublicationCoordinatorTest`, `RemoteSyncStateStoreTest` | Exact reviewed upload, actor/source/local edit races, interrupted upload, index failure, temporary cleanup, pointer/history/journal rules |
-| `ReportPreviewViewModelTest`, `ReportSenderTest`, `AnnouncementPublisherTest` | Explicit review-to-publication-to-delivery, changed review rejection, partial/uncertain delivery, durable duplicate blocking after recreation, announcement review/index failure |
-| `ReportPdfWorkspaceTest`, `PdfRenderingTest` | Reviewed file digest/options/content/existence guards; native rendering of every page in multipage Arabic classic and A5 card PDFs |
-| `ProjectProvisioningManagerTest`, `PendingExportStoreTest` | Real encrypted join-file round trip, staging/recreation/discard, wrong passwords/tampering, password wiping and encrypted export staging |
-| `EncryptedDatabasePersistenceTest`, `SessionPersistenceTest` | SQLCipher close/reopen/wrong key, retained device key, absent-key preservation guard, encrypted session reload/unlock/clear in isolated storage |
-| `TelegramLoginManagerTest`, `BootstrapManagerTest` | Challenge identity/offset handling, nonce format, connection failures/cancellation, guarded bootstrap and temporary cleanup |
-| `PatientEditorInteractionTest`, `PinUnlockInteractionTest`, `SplashIntroScreenTest` | RTL editor Save/labs/tasks, large-font busy footer, task checkbox draft metadata, PIN IME submit/clearing, explicit biometric/sign-out actions, splash tap/hold/accessibility actions |
-
-## Additional safety coverage
-
-| New suite | Cases | Behaviors asserted |
-|---|---:|---|
-| `ReportDeliveryLedgerSafetyTest` | 16 | Twelve competing attempts against an active delivery; cancellation releases the active guard while retaining UNKNOWN; registration/receipt storage failures; corrupt ledger rejection; durable duplicate blocking and one-use copy permission after recreation; live actor checks and receipt/metadata integrity |
-| `WardEditorStateTest` | 10 | Captured insertion revisions, retained unsaved drafts/conflict review, mutually exclusive dialogs, delayed dismissal callbacks, independent copied identities and cleared admission/task/editor metadata |
-| `DemoWardViewModelTest` | 24 | Production demo controller save/recycle/sort/roster actions, stale edit/delete/insertion rejection, completion attribution/reopening, callbacks with saved revisions, reset/session isolation and local-only remote actions |
-| `PatientTasksInvariantTest` | 12 | Deterministic 48-record completion/owner/deadline/priority matrix; count partitions, monotonic overdue rules, stable/idempotent ordering and rollover, wire round trips, incomplete attribution and resident/supervisor filter combinations |
-| `CsvClinicalIntegrityTest` | 10 | Arabic/quotes/CR/LF and nested JSON, long clinical fields/200 tasks, rejection of invalid nested records without partial imports, reordered columns, persisted positions and a 120-doctor roster |
-
-Concurrency cases use explicit coroutine barriers and bounded timeouts, without
-sleep-based scheduling. Storage faults are injected at the settings boundary;
-these are JVM behavior checks, not power-loss or filesystem-durability simulations.
-The task matrix uses deterministic combinations without another testing dependency.
-No production behavior, dependencies, versions or schema definitions changed.
-All 72 additions passed in a focused run, followed by a passing full 337-case JVM
-run. Both used the existing pinned toolchain offline with one worker and automatic
-version reservation disabled. Logs and JUnit XML are retained under
-`local/verification/expanded-tests-2026-10-23/` (ignored).
-
-The original domain/codec/transport/report-review suites remain. Fixture records are
-synthetic. HTTP interceptors handle every request locally; these suites never
-contact a real bot. Pinned-state tests model observed reads/writes and the documented
-last-write-wins behavior, not cross-device atomicity. Check Current state for actual
-results and source counts; a compiled test is not a passed test.
+| Clinical/tasks | Validation, search/filter/counts, ownership/completion, revision-safe edits, audit/pending rollback, rollover, sorting and full report/export content |
+| Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, same-project reconnect, key/topic protection, cancellation and secret cleanup |
+| Sync/delivery | Reviewed uploads/download Undo, pointer/history/mutex races, independent clients, UNKNOWN receipts, duplicate permission, write failure and actor revocation |
+| Reports/Telegram | Readiness/fingerprints, exact PDF review, Room snapshot consistency, long Markdown/Unicode chunks, retry/rate-limit/cancellation and intercepted transport |
+| Device/UI | Production navigation, privacy/recreation/picker results, editor/task/roster controls, setup 200% text/scrolling, adaptive/synthetic folds, clipboard/splash, native PDF/process-kill and scrolling |
+| Shared fixtures | `Fixtures`, `ViewModelFixture`, `DeliveryFixture`; device database/repository/sync/production-UI fixtures. Each case owns isolated state. |
 
 ## Run deliberately
 
-Run from `android/`, following the resource/toolchain checks in
-[AGENTS.md](../../AGENTS.md). Keep the existing pinned distribution and durable
-caches; do not change toolchain versions to unblock verification.
+[AGENTS.md](../../AGENTS.md) requires explicit build/test authorization and active-build,
+RAM/swap and durable-toolchain/cache checks before every Gradle attempt. Do not stop
+others' work, clear caches, download temporary toolchains or change versions.
+Installed Gradle 8.7/Java 21 have been used with Java/Kotlin target 17 and SDK 34.
 
-First compile the JVM suite without packaging:
-
-```sh
-./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
-  :app:compileDebugKotlin :app:compileDebugUnitTestKotlin > /tmp/shiftreport-test-compile.log 2>&1
-```
-
-Then execute it:
+From `android/`, define this helper in the current shell; it preserves offline,
+one-worker, in-process Kotlin and disabled version reservation for every command:
 
 ```sh
-./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
-  :app:testDebugUnitTest > /tmp/shiftreport-unit-tests.log 2>&1
+srgradle() {
+  ./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
+    -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false "$@"
+}
+srgradle :app:compileDebugKotlin :app:compileDebugUnitTestKotlin \
+  > /tmp/shiftreport-test-compile.log 2>&1
+srgradle :app:testDebugUnitTest > /tmp/shiftreport-jvm.log 2>&1
 ```
 
-The owner authorized full Android execution on 24 October. Future sessions must
-follow the current session authorization and AGENTS.md resource checks before
-using these commands. The connected command builds
-and installs debug app/test APKs on the selected authorized device, retaining the
-installation after execution:
+For a focused JVM run, add one or more `--tests 'fully.qualified.ClassName'` filters.
+The delivery-fixture scope is `domain.report.ReportDeliveryLedgerTest`,
+`domain.report.ReportDeliveryLedgerSafetyTest`, `network.ReportSenderTest` and
+`domain.announcement.AnnouncementPublisherTest`, all under `com.hos.rushdpatients`.
+
+Device checks build/install debug app/test APKs. Compile first, then run on the
+owner-selected connected device; exclude the automatic Desktop export task:
 
 ```sh
-./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
-  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
-  :app:connectedDebugAndroidTest > /tmp/shiftreport-device-tests.log 2>&1
+srgradle :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin \
+  > /tmp/shiftreport-device-compile.log 2>&1
+srgradle -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
+  -x :app:exportDebugApk :app:connectedDebugAndroidTest \
+  > /tmp/shiftreport-device.log 2>&1
 ```
 
-Use camelCase method names in `androidTest`; spaced backtick names can produce
-coroutine class names that D8 rejects at the current Android level.
+To focus the device command, add
+`-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest`
+(or another fully qualified class, comma-separated classes, or `Class#method`).
+Select one phone with `ANDROID_SERIAL` when multiple devices are connected.
+Opt-in prerequisites/flags are in [Device procedures](device-coverage.md).
 
-Most database cases create fresh in-memory databases and seed required parent
-shifts. SQLCipher persistence cases use uniquely isolated on-disk test databases.
-They do not open or upgrade an installed clinical database. Cryptographic cases use
-synthetic data, uniquely prefixed encrypted preferences and temporary files, then
-clean up their test data. Telegram JVM cases intercept HTTP inside OkHttp and never
-open a socket or contact Telegram. No real credentials or clinical records belong
-in fixtures.
+Read JUnit XML for failures/errors/skips; duplicated console skip messages are not
+counts. Default output: `~/.gradle/shiftreport-project-cache/build-output/app/`;
+JVM XML: `test-results/testDebugUnitTest/`; device XML:
+`outputs/androidTest-results/connected/debug/`. Archive exact source/device/API,
+XML and failure details in ignored `local/verification/`; update Current state.
 
-## Limits
+## Fixture rules
 
-This is broad regression coverage, not measured complete line/branch coverage.
-Recreating repositories/managers and reopening a database exercise persistence;
-they do not simulate Android process death. Rendered PDF checks establish page
-creation and nonblank native rasterization, not visual approval of every glyph or
-clipping boundary. Touch/semantics tests do not establish physical fingerprint
-success, full TalkBack operation, real foldable/IME configurations, or performance.
-Splash screen interaction tests do not establish the Activity's deadline behavior
-across recreation. Third-party document-provider failures, actual BotFather/token
-revocation and competing multi-device publication remain external/manual checks.
-The synthetic 33-row import validates the repository route; it does not reproduce
-the owner's original unavailable CSV exception.
-
-Record actual compile/run outcomes in [Current state](../status/current-state.md),
-not as verification-only roadmap items.
+Use synthetic beverage patients/tree doctors, fresh isolated Room/preferences/files
+and intercepted HTTP; never open installed clinical storage or use real credentials.
+Use deferred barriers/virtual clocks rather than scheduling sleeps. Cancel ViewModel
+collectors, close databases and remove only fixture-owned temporary files. Device
+method names use camelCase; spaced backticks can produce D8-invalid coroutine names.
+Native hardware/provider/live probes remain opt-in; a skip is not verification.
+Do not convert the [remaining limits](../status/testing-handoff.md) into an edge-case backlog.

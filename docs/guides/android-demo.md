@@ -77,11 +77,7 @@ Process death starts a fresh clinical demo rather than restoring real project da
 
 ## Verification
 
-Source checks cover Kotlin delimiters/imports, complete destination/filter branches,
-retained real form callbacks, unchanged PDF write/verification logic, actor-based
-completion identity, memory-only dependencies and default-preserving dashboard
-reuse. Git whitespace checks also passed, including new source files.
-
-No Gradle, compilation, packaging, device rendering or test-suite work ran for
-this reorganization. Source checks do not establish compilation or accessibility
-on devices. A desktop demo redesign is outside this change.
+Memory-only demo mutations, stale revisions, task attribution and local-only actions
+have JVM regression coverage. Source/layout checks are not complete demo-device/PDF
+acceptance. [Results](../status/current-state.md#verification-and-limits) ·
+[Remaining checks](../status/testing-handoff.md).

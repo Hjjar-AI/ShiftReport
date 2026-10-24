@@ -68,9 +68,9 @@ even when DATA_DIR selects a different workspace; its empty file can remain afte
 exit, while the lock itself releases on process exit. Do not remove a held lock
 file to start a second instance. File-based locks require a normal local filesystem.
 
-Windows 7/DPAPI, graphical Linux/Tk and live Android/Telegram operation remain
-unverified on this host. Dependency wheel resolution and source checks are not target certification.
-Use this folder and README as the current desktop entry point.
+Selected Linux GUI/storage/transport and cross-client file checks passed; Windows
+7/DPAPI, packaged runtime and complete live GUI workflows remain in
+[Remaining checks](../status/testing-handoff.md). Wheel resolution is not target certification.
 
 If Arabic labels or inputs appear reversed on Linux, keep TEXT_RENDERING=auto
 (or use shaped), then restart the app. Form/search fields shape the text inside

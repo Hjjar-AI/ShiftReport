@@ -1,168 +1,45 @@
-# Additional coverage execution
+# Device and manual checks
 
-[Suite map](android-testing.md) · [Measured results](../status/current-state.md#verification-and-limits)
+[Remaining work](../status/testing-handoff.md) · [Results](../status/current-state.md#verification-and-limits) · [Gradle commands](android-testing.md#run-deliberately)
 
-These procedures cover the external parts of the latest test expansion. The
-offline compile, 98 focused JVM cases and 51 distinct focused device cases passed,
-including assisted native selection after its privacy-lifecycle fix. See Current
-state for the separate runs, preserved earlier timeouts and physical limits.
-Use synthetic patients/doctors and disposable projects; never
-select a clinical database for fault or two-phone experiments. Follow `AGENTS.md`
-authorization, active-build, RAM/swap and cached-toolchain checks before Gradle.
+Use the selected test device, synthetic data and isolated storage. Get required
+build/install/test permission, preflight resources and keep auto-versioning disabled.
+Do not toggle device settings automatically or contact a live project by assumption.
+The following are procedures, not a list of new failures or automatic rerun requests.
 
-## Focused automated verification
+## Focused device probes
 
-From `android/`, first compile the changed production/JVM/device sources without
-packaging. Keep full logs in ignored local verification storage or `/tmp`:
+Set the class/extra properties on the device command in the Android guide.
+Class names below have prefix `com.hos.rushdpatients.`.
 
-```sh
-./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
-  :app:compileDebugKotlin :app:compileDebugUnitTestKotlin :app:compileDebugAndroidTestKotlin \
-  > /tmp/shiftreport-coverage-compile.log 2>&1
-```
+| Class | Preparation / evidence |
+|---|---|
+| `ui.ProjectSetupOverrideTest` | Five cases already passed, including actual 200% typography, 48dp fixed actions, scroll-to-end, pin races and recreation. Captures: external app files `verification-artifacts/setup-override/`; inspect normal, `large-font.png` and `large-font-end.png`. |
+| `ui.doctors.RealDocumentProviderImportTest` | Copy committed `android/app/src/androidTest/assets/shiftreport-provider-doctors.csv` to Downloads/chosen provider. Add `-Pandroid.testInstrumentationRunnerArguments.realDocumentProvider=true`; optionally `-Pandroid.testInstrumentationRunnerArguments.providerSelectionTimeoutMs=120000` (30–120 s). Select the exact synthetic file natively; verify preview before isolated commit. Controlled callbacks are not a real URI grant. Artifact: `verification-artifacts/real-provider/result.txt`. |
+| `ui.doctors.DoctorImportWorkflowTest#ownersOriginalPrivateCsvCommitsOnlyIntoIsolatedRegistry` | Skips unless the owner privately provisions app-internal `filesDir/verification-inputs/doctors-import.local.csv`. Uses an isolated registry and `Uri.fromFile`; this is separate from reproducing the original OEM picker failure. |
+| `ui.login.PhysicalBiometricTest` | Success needs `-Pandroid.testInstrumentationRunnerArguments.physicalBiometric=true`, enrolled biometrics and owner touch; it waits up to two minutes. Native cancellation is separate. Both passed previously on API 29; default success skip is expected. |
+| `config.CrossClientInteropTest` | Produces `verification-artifacts/interop/` for the four reverse desktop checks; pull it and set `SHIFTREPORT_ANDROID_INTEROP`. |
+| `pdf.PdfRenderingTest` | Retains PDFs and every rasterized page in `verification-artifacts/pdf/`; selected classic/A5/task-heavy pages already passed visual review. |
+| `ui.NativeDeviceLayoutTest` | Actual density/font/window artifacts in `verification-artifacts/native-layout/`; constrained geometry/200% tests are separate from real OS configuration changes. |
+| `ui.ward.PatientScrollPerformanceTest` | Native frame-clock/touch 200-patient profile. Retain device/build/motion/frame artifacts; compare a named release baseline, not Compose gesture totals. |
 
-Run the affected JVM report and Telegram suites:
+The original private-CSV case requires owner-provisioned private input. Reproduce
+its actual provider/picker flow with the owner and retain the displayed error/stack
+privately. A synthetic native-picker pass does not explain the original exception.
+Production send journeys may skip without validated device connectivity despite
+intercepted HTTP; record the prerequisite, never report that skip as a pass.
 
-```sh
-./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
-  :app:testDebugUnitTest --tests 'com.hos.rushdpatients.domain.report.*' \
-  --tests 'com.hos.rushdpatients.network.telegram.*' \
-  > /tmp/shiftreport-coverage-jvm.log 2>&1
-```
+## Manual acceptance
 
-With the owner-selected test device connected, run the affected instrumented
-suites. This builds/installs debug app/test APKs, so it needs explicit approval:
+| Area | Check |
+|---|---|
+| Accessibility/windows | TalkBack: drawer → ward → editor/tasks → roster → review/confirmation → Settings; Arabic order, names, state and announcements. Real IME/large system fonts: all fields and fixed Save/Cancel. Supported physical split-screen/fold/unfold: retained drafts/reviews and hinge/footer reachability. Record model/API/settings. |
+| Privacy/auth | Screenshot/recents protection, background clipboard expiry without deleting a replacement clip, lock/resume and biometric failure. Do not infer these from semantics assertions. |
+| PDF | In real viewers inspect Arabic/mixed text, first/last clinical lines/tasks, attribution, page transitions, contrast, links/index/footer, selection/copy/search and printing. Nonblank rasterization is not every-glyph approval. |
+| Two physical clients | Disposable project: create A, protected-file join B, publish/retrieve, retain local edits until explicit download, review pending conflicts, publish both in recorded order. Final accepted snapshot follows last successful write; no atomic multi-writer guarantee. |
+| Interrupted live operations | Separately interrupt upload/index/report delivery; relaunch, inspect remote/local receipts before explicit retry. UNKNOWN must not resend automatically. BotFather revocation needs owner action; token replacement is not revocation. |
 
-```sh
-./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-  -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
-  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.domain.report.ReportBuilderTest,com.hos.rushdpatients.domain.report.ReportSnapshotConsistencyTest,com.hos.rushdpatients.data.db.ProcessDeathWorkflowTest,com.hos.rushdpatients.pdf.PdfRenderingTest,com.hos.rushdpatients.ui.ProductionNavigationJourneyTest,com.hos.rushdpatients.ui.doctors.DoctorPickerContractTest,com.hos.rushdpatients.ui.ward.ProductionAdaptiveScreensTest,com.hos.rushdpatients.ui.NativeDeviceLayoutTest,com.hos.rushdpatients.ui.doctors.RealDocumentProviderImportTest \
-  :app:connectedDebugAndroidTest > /tmp/shiftreport-coverage-device.log 2>&1
-```
-
-The real-provider case skips unless explicitly enabled and prepared below. A
-validated connectivity prerequisite can also skip the send journeys even though
-their HTTP is intercepted. Count results from JUnit XML, including skip reasons.
-Preserve compile/run logs and artifacts with the source snapshot and device/API.
-
-## Existing-pin setup confirmation
-
-`com.hos.rushdpatients.ui.ProjectSetupOverrideTest` exercises the production setup
-screen/ViewModel, seeder and bootstrap with fresh isolated Room/preferences and
-intercepted Telegram. Five cases cover confirm/cancel, a changed pin, Activity
-recreation and simulated 200% text through scaled Material typography on the actual
-device window. The first nominal large-font run was invalidated by screenshot review;
-the corrected test's rendered-size/overflow assertions still await execution. See the
-[current handoff](../status/testing-handoff.md#pin-override-phone-check--stopped-at-owner-request). It never opens the
-installed clinical database or contacts the live group. Dialog screenshots remain
-under external app files at `verification-artifacts/setup-override/`, with separate
-names for cancel, confirm, recreation and large text. Inspect each current image.
-
-Use the device command above with its class property replaced by this class. Keep
-auto-versioning disabled and APKs installed after the run. The owner must authorize
-compilation/install/execution and resource checks still apply. This suite complements
-the opt-in [live production-seeder check](deep-testing.md#android-bootstrap-pin-override).
-
-## Real document provider
-
-1. Copy the committed synthetic fixture
-   `android/app/src/androidTest/assets/shiftreport-provider-doctors.csv` to the
-   test device's Downloads folder or the provider being examined. Keep its name.
-2. Run only `com.hos.rushdpatients.ui.doctors.RealDocumentProviderImportTest` using
-   the device command above with the class property replaced and add
-   `-Pandroid.testInstrumentationRunnerArguments.realDocumentProvider=true`.
-3. The real system picker opens. Within 30 seconds, navigate to the folder/provider
-   containing the fixture; add
-   `-Pandroid.testInstrumentationRunnerArguments.providerSelectionTimeoutMs=120000`
-   for up to two minutes of manual OEM navigation. The test can select the filename
-   through native accessibility or accept a manual native selection. It does not
-   inject an ActivityResult or URI grant, and still checks the exact fixture preview
-   before confirming its isolated commit.
-4. Expected: one new doctor in preview, no registry writes before confirmation,
-   then one isolated committed row. HTTP publication is intercepted locally.
-   The test never opens the installed clinical registry.
-
-The provider remains responsible for making its document visible and granting
-access; some OEMs expose a different filename or an extra confirmation. Record that
-as an unsupported automation path, not an import failure. The test leaves the
-owner-provisioned fixture in place. App artifacts are under external app files:
-`verification-artifacts/real-provider/result.txt` (device and preview/error result).
-
-To reproduce the original private-file failure, use its actual provider flow only
-with the owner present. Record provider/model/API, whether preview appeared and the
-displayed error. Keep any file, screenshot or redacted crash stack private. A
-passing synthetic fixture does not explain the unknown original exception or
-justify changing identity/clinical-reference checks.
-
-## PDF visual review
-
-`PdfRenderingTest` retains PDFs and every rendered page under external app files
-`verification-artifacts/pdf/`. Review `classic-a5-task-heavy` and
-`cards-dark-task-heavy`, alongside the original classic/A5 fixtures:
-
-- Read the beginning/end of the treatment text, first/last task and completed-task
-  attribution. Check Arabic shaping, emoji availability, mixed `12.5 mg` text and
-  line endings. A rasterization assertion only establishes nonblank pages.
-- Inspect page transitions for clipped/repeated/missing lines and task labels;
-  inspect header/footer, index links and page numbers at normal reading zoom.
-- Compare dark/light contrast, narrow A5 columns, strong rules and print settings.
-  Record the page number and a private crop for any failure. Text formatting checks
-  before export do not prove the PDF contains every glyph.
-
-## TalkBack, IME and real windows
-
-`NativeDeviceLayoutTest` uses actual device density, font scale and window size;
-it does not apply the fixture's simulated 320dp/large-font overrides. Report
-screenshots and configuration are in `verification-artifacts/native-layout/`.
-`ProductionAdaptiveScreensTest` separately exercises simulated constrained windows,
-200% font, labelled 48dp footer controls, focus and unsaved drafts during resizing.
-
-On a test device, with the owner's chosen accessibility/window settings:
-
-1. With TalkBack, traverse drawer → ward card actions → editor → report roster →
-   review/confirmation → Settings. Check Arabic reading order, control names,
-   selected/disabled states and task completion announcements. Back must not send.
-2. Open labs and a task description with the real IME. At large system font sizes,
-   scroll to all fields; Save/Cancel must remain reachable and keep the draft.
-3. On supported hardware, resize split-screen and fold/unfold with an unsaved
-   editor and then with report review open. Check both hinge orientations, footer
-   reachability and draft/review behavior; explicitly save or cancel afterward.
-4. Run the native-layout suite on each actual OS/device/window configuration and
-   archive its XML and screenshots separately. Record a real configuration change
-   as such; Activity recreation and synthetic geometry are different evidence.
-
-Do not toggle device settings automatically. Semantics/focus assertions do not
-establish TalkBack speech, actual IME occlusion or physical hinge behavior.
-
-## Two physical phones and interrupted publication
-
-Use an owner-designated disposable Telegram project, not an existing clinical
-project. No automated suite here contacts a real bot or changes a live pinned index.
-
-1. Create the synthetic project on phone A; join B through its protected join file.
-   Add hot-beverage patients/tree-named doctors. Publish A and explicitly retrieve B;
-   compare clinical fields, task status, roster and saved order.
-2. Edit A, publish its reviewed snapshot, and verify B retains its local state until
-   retrieval. Exercise B's pending-edit warning/review before accepting a download.
-3. From known snapshots, make reviewed publications on both phones in recorded
-   order. Verify the final accepted pinned snapshot follows the documented last
-   successful write; do not expect automatic field merging or atomic multi-writer
-   protection. Retain the replaced snapshot/history as supported by the app.
-4. Send one synthetic reviewed report. Interrupt connectivity at upload/index and
-   delivery boundaries in separate trials. After reconnect/relaunch, inspect both
-   Telegram and local receipt/publication state before any explicit retry. An
-   uncertain delivery must not automatically resend; saving a token is not revocation.
-5. Compare current Android versions and a second vendor. Record model/API, source
-   snapshot, action order, receipt/snapshot identifiers and observed result without
-   credentials or clinical content.
-
-The process-death suites already kill a dedicated debug worker around real Room,
-receipt, restore, Undo and encrypted-export operations. The new acceptance-before-
-confirmation case uses a durable synthetic acceptance marker, not a live remote.
-These checks do not simulate every power-loss, disk-full or network crash window.
-
-Record executed evidence and remaining limits in Current state/handoff; do not
-convert unexecuted hardware checks into passing results or roadmap implementation.
+Existing process-kill/SQLite-trigger/independent-client tests exercise selected
+boundaries, not every power-loss/disk-full/network window or two physical phones.
+Record observed failures and exact scope in Current state; keep private files and
+credentials out of screenshots committed to Git.

@@ -67,6 +67,7 @@ Appearance and accent are configured separately under **Settings → App interfa
 See [Current state](docs/status/current-state.md#verification-and-limits) for the exact
 source/build boundary and [Roadmap](docs/status/roadmap.md) for remaining work, including
 the CSV device failure, production signing and deferred voice/templates.
+[Remaining verification](docs/status/testing-handoff.md) lists test/device/runtime checks.
 
 ## Project documentation
 

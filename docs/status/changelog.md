@@ -8,18 +8,8 @@ have separate homes. Source completion is not runtime verification.
 
 - Android project creation now offers a confirmed existing-pin override, tied to the
   reviewed group/configuration and pin, with live group-admin checks below the UI.
-  New registry bootstrap requires its expected pin before importing; previous group
-  files/messages/pins stay intact. Added 18 focused regressions and one opt-in live
-  seeder check. Offline production/JVM compilation and all 56 focused cases passed,
-  including live changed-pin rejection, replacement/registry download and confirmed
-  restoration of the original active pin. The corrected phone typography fixture
-  exposed warning clipping at 200% text; this setup warning now has a scrollable
-  body and fixed actions. Offline production/device-test compilation and all five
-  focused cases passed on PPA-LX2/API 29, zero failures/errors/skips, including
-  enlarged rendering, 48dp actions and scrolling to the final lines. Normal and
-  enlarged/scrolled captures were visually inspected. Debug APKs remain installed.
-  Evidence: ignored `local/verification/pin-override-2026-10-24/` and
-  `local/verification/setup-device-2026-10-24/` (initial failure and verified fix).
+  New bootstrap rechecks the expected pin; previous group content remains intact.
+  Large-text clipping was fixed locally with a scrollable warning and fixed actions.
 
 - Added shared debug-keystore selection for both Linux accounts, preserving the
   existing certificate and separate caches/release signing.
@@ -48,89 +38,25 @@ have separate homes. Source completion is not runtime verification.
 
 ## Regression coverage and hardening
 
-Consolidated both delivery-ledger suites onto the existing shared delivery fixture,
-preserving non-admin ledger actors and admin sender/publisher defaults. Added six
-regressions for failed resolution/permission writes, repeat-registration recovery,
-concurrent destinations and live resolution authority. Offline production/JVM
-compilation passed; one focused run passed **38 cases/four classes**, zero failures,
-errors or skips. Full logs/XML are in ignored
-`local/verification/ledger-consolidation-2026-10-24/`. No production code changed.
-[Coverage and verification scope](../guides/android-testing.md#delivery-ledger-consolidation--focused-verification-passed).
+- Broad isolated JVM/Room/UI/transport coverage now includes structured tasks,
+  authority/revision races, encrypted storage/join/backup, file interop, process death,
+  publication/delivery recovery, report review/chunking, PDF pages and real picker paths.
+- Shared delivery fixtures retain explicit non-admin actors; six regressions add
+  resolution/permission write failures, repeat recovery, concurrent routes and authority.
+- Verified fixes include rollover busy guards, false pin receipts, card timing,
+  retained background drafts/picker keys and the setup warning at 200% typography.
+- CSV/overflow/cancellation/password cleanup and long PDF Unicode boundaries were
+  hardened. Splash recreation retains its deadline; debug workers stay isolated.
+- Desktop storage/publication/authority/transport suites, seven selected mutants,
+  synthetic live transport and bidirectional Android file fixtures passed.
 
-Added 33 JVM and 30 device cases: report-review scope and Room report assembly,
-long-message boundaries, virtual-clock rate limiting, concurrent snapshots,
-revoked authority in open import/export/report workflows, export/uncertain-delivery
-process death, task-heavy PDF pages, 200% font/48dp controls, native-window journeys
-and an opt-in actual document picker. Fixed oversized report chunks to preserve
-escaped Unicode/formatting and whole links within message limits; indivisible
-oversized links fail explicitly. The rate limiter retains its Hilt constructor
-with a clock seam for deterministic tests. Debug crash export files are isolated.
-Added [focused execution and external-device procedures](../guides/device-coverage.md).
-Offline production/JVM/device-source compilation passed, followed by **98 focused
-JVM cases/12 classes**, zero failures/errors/skips, including all 33 new JVM cases.
-The main focused device run passed **49 cases**, zero failures/errors and one
-expected opt-in skip, on PPA-LX2/Android 10. Native selection exposed a lost-result
-boundary when privacy removed NavHost: retaining its controller did not retain
-the screen's saveable picker registration keys. A session-owned saveable-state
-holder now retains these while clinical content stays hidden; sign-out discards
-both owners. All **22 affected UI cases passed** after the fix, and the real native
-picker/preview/isolated commit passed separately with assisted selection. This
-verifies **51 distinct device cases**, including all 30 additions; earlier native
-timeouts remain archived. Visually reviewed the 11 new task-heavy PDF pages and
-native report samples; physical two-phone/fold/TalkBack limits remain.
-Logs/XML: ignored `local/verification/coverage-2026-10-24/`. The full-run
-evidence below applies to the preceding snapshot. Dependencies, versions and
-schemas are unchanged.
-
-The earlier 23–24 October expansion added **249 JVM and 78 device cases**; its verified totals were
-**625 JVM methods/81 classes and 253 device methods/50 classes**. Coverage includes
-controlled picker results, independent clients, response-loss/storage/clock
-boundaries, actual root/navigation journeys and constrained/fold-model UI.
-
-Execution confirmed and verified fixes for rollover's nested busy guard, ignored
-false initial pin receipts, the first individual card animation and editor loss
-across background privacy locking. Duplicate/revision/authority checks remain;
-locked clinical screens still leave composition and sign-out discards navigation.
-Fixtures now use the actual workspace/text/focus/lifecycle contracts; excluded lazy
-items are checked for visibility. Biometric native-node cleanup remains compatible
-with old Android without deprecation warnings. The final full run passed **625 JVM tests** and **251 device cases**, with zero
-failures and two expected device skips; physical fingerprint success passed
-separately. Only the optional private-CSV fixture remains unrun.
-[Exact evidence and remaining limits](current-state.md#verification-and-limits).
-No dependency/version/schema changes.
-
-Expanded Android coverage for destructive-reset review/failure boundaries, real
-transaction process death, trigger-driven rollback, long clinical sequences,
-production ward/login/settings/import orchestration, adversarial CSV input,
-provider failures, Android–desktop encrypted files, native PDF wrapping/rendering,
-clipboard cleanup and Activity splash recreation. Added desktop encrypted storage,
-publication/authority/receipt/transport suites and seven isolated mutation checks.
-Synthetic live Telegram upload/download, two-client edit ordering and report checks
-passed; the owner's physical biometric success callback also passed.
-
-Regression-driven fixes reject malformed CSV headers/quotes/revisions and bundle
-boundary injection, reject backup revision overflow, preserve settings-restore
-cancellation/password cleanup, guard repeated saves/exports and preserve long PDF
-text/surrogate pairs. Splash launch state retains its deadline across recreation;
-secondary processes skip main-process WorkManager/cache startup. Patient scrolling
-isolates dock visibility from the clinical workspace and removes redundant card
-animation layers. Native-clock profiling is separate from Compose interaction tests.
-
-[Coverage and commands](../guides/android-testing.md) ·
-[Deep scenarios/limits](../guides/deep-testing.md) ·
-[Measured results](current-state.md#verification-and-limits).
-No versions, dependencies, schemas or migration files changed.
-Corrected process-death and scrolling suites passed on the connected phone.
-[Verification handoff](testing-handoff.md).
+[Exact results/evidence](current-state.md#verification-and-limits) ·
+[Remaining checks](testing-handoff.md) · [Commands](../guides/android-testing.md).
+No versions, dependencies or schemas changed.
 
 ## Documentation
 
-Consolidated status/history/rationale/choices; absorbed review ledgers and `full.md`.
-Grouped documentation under `docs/{guides,reference,status,decisions}` with updated
-links; root/desktop READMEs remain entry points.
-Retained source concerns and exact build/runtime limits live in Current state.
-Merged duplicate build/cache instructions and replaced superseded failure history
-with targeted diagnostics; retained operational guides/commands and consolidated
-shared debug signing, production signing and optional read-only snapshot setup.
-Latest UI changes have static checks only; consult Current state before reusing
-earlier build evidence.
+Consolidated test work into one remaining-check table, current results and compact
+execution guides; removed duplicated histories and stale pending claims. Pruned
+older successful logs while retaining XML, reports, receipts, captures, failures
+and latest JVM/device success logs. Build instructions and private notes remain intact.

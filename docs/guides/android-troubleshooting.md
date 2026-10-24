@@ -232,8 +232,9 @@ tasks/badges, and multiple pages without exposing clinical data. Open the same f
 in Acrobat and a browser; select/copy/search text and try index/name/Previous/Next
 links. Check ordering, every demo-page label, headings/footers and continuation pages.
 A5 cards should report approximately 420×595pt in `pdfinfo`; `pdftotext -enc UTF-8`
-checks extraction but does not establish viewer behavior. Actual rendering, selection,
-links and printing remain unverified for the current source.
+checks extraction but does not establish viewer behavior. Selected pages passed native
+rendering/visual review; remaining viewer/link/print checks are consolidated in
+[Remaining checks](../status/testing-handoff.md).
 
 ## Appearance and navigation
 

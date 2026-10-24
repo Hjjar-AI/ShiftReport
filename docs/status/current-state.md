@@ -184,172 +184,38 @@ the three previously retained Android source findings; no schema/version changed
 
 ## Verification and limits
 
-The latest test-only consolidation reuses `DeliveryFixture` in both delivery-ledger
-suites while retaining their non-admin actors and existing sender/publisher defaults.
-Six new regressions cover resolution/permission write failures, copy-permit recovery,
-concurrent destinations, revoked admin authority and sender-owned resolution after
-recreation. Offline production/JVM compilation passed, followed by one focused run:
-**38 cases/four classes passed, zero failures/errors/skips**, including all six new
-cases and both existing sender/publisher consumers of the fixture. Gradle 8.7 ran
-on installed Java 21 with target 17, one worker and automatic version reservation
-disabled. Logs/XML: ignored `local/verification/ledger-consolidation-2026-10-24/`.
-Source counts and whitespace checks also passed. The full JVM suite was not rerun;
-subsequent focused device verification is recorded below.
+Source: **683 JVM methods/85 classes, 288 device methods/55 classes, 60 desktop
+methods**. Counts are not line/branch coverage. All results below passed on their
+recorded snapshots; focused runs overlap and must not be added together.
 
-The existing-group pin override adds 18 focused JVM regression cases plus one
-opt-in production-seeder check against the owner's designated disposable Telegram
-group. Offline production/JVM compilation passed on 24 October 2026, followed by
-**56 cases across four classes**, zero failures/errors/skips. The live check rejected
-a changed pin, seeded a freshly reviewed replacement, downloaded/decoded its registry,
-and confirmed cleanup restored the original active pin. Only synthetic pins were
-removed; messages/files remain. Logs/XML and the private receipt are in ignored
-`local/verification/pin-override-2026-10-24/`.
+| Snapshot / scope | Result | Retained evidence under ignored `local/verification/` |
+|---|---|---|
+| Earlier complete Android run, 24 October | 625 JVM passed; 253 device cases: 251 passed, two expected skips. Owner-assisted fingerprint success passed separately. Original private-CSV device case remained skipped. | `android-tests-2026-10-24/{unit-final-results,device-final-results}/`; biometric outcome in cleanup manifest |
+| Report/Telegram expansion | 98 JVM passed; 51 distinct device cases passed across focused runs, including all 30 additions, 22 affected UI reruns and assisted native-picker selection. | `coverage-2026-10-24/` XML/artifacts and cleanup manifest |
+| Existing-pin override | Production/JVM compilation and 56 cases passed, including opt-in live seeder; original active pin restored. | `pin-override-2026-10-24/jvm-results/` and private live receipt |
+| Delivery fixture consolidation | Production/JVM compilation and 38 cases/four classes passed, including six new regressions. | `ledger-consolidation-2026-10-24/{compile.log,tests.log,jvm-results}/` |
+| Setup warning fix, latest device snapshot | Production/device-test compilation and all five cases passed on PPA-LX2/Android 10/API 29; zero failures/errors/skips. | `setup-device-2026-10-24/{fix-compile.log,fix-tests.log,results-02,captures-02}/` |
+| Desktop / shared files, 23 October | 60 passed without skips, including four reverse Android file checks; seven selected mutants detected; three synthetic live checks passed using their own index. | `deep-tests-2026-10-23/` reports/XML and cleanup manifest |
 
-The corrected setup-dialog typography fixture exposed real warning clipping at
-200% text on PPA-LX2/Android 10/API 29: the first resumed run passed four cases and
-failed the overflow check. The setup warning now has a scrollable message body with
-fixed actions, using existing components without changing shared dialogs or callbacks.
-After offline production/device-test compilation, **all five affected device cases
-passed with zero failures/errors/skips**: confirm/cancel, changed pin, recreation and
-200% text. The latter checks actual enlarged text, no layout overflow, 48dp actions,
-scrolling to the final warning lines and cancellation without publication. Fresh
-normal/enlarged/scrolled-end captures were visually inspected; enlarged captures
-have distinct hashes, while normal-size captures match the preceding run.
+Device execution verified fixes for rollover busy guards, false pin receipts,
+card-animation timing, background draft/picker-state retention and setup-warning
+clipping at actual 200% typography. The last uses a local scrollable body/fixed
+actions; enlarged size, no layout overflow, 48dp actions and scroll-to-end passed.
+Fresh normal/enlarged/scrolled captures were visually inspected. Selected Room,
+process-kill, provider, independent-client, PDF and adaptive-screen cases passed;
+these do not prove every hardware/fault/viewer configuration. Native-clock debug
+200-card samples were 9.47/17.79 ms median/p95 (normal) and 9.09/14.88 ms (reduced),
+not a release baseline.
 
-Logs, XML and captures for both the initial failure and passing fix are ignored under
-`local/verification/setup-device-2026-10-24/`. Debug app/test APKs remain installed;
-Desktop APK export was excluded. Fixtures used isolated preferences/Room and
-intercepted HTTP, without opening installed clinical storage. This focused typography
-stress check does not establish whole-app accessibility, TalkBack or other devices.
-[Execution details](testing-handoff.md#pin-override-phone-check--corrected-large-text-case-passed).
-Earlier full runs below apply to their preceding source snapshots.
+Verification used cached Gradle 8.7, installed Java 21 (target 17), SDK 34, offline
+mode, one worker, in-process Kotlin and automatic version reservation disabled.
+Debug APKs remain installed; no release artifact was distributed. Fixtures use
+isolated storage and intercepted HTTP except explicitly authorized synthetic live
+checks. The latest setup run excluded Desktop APK export.
 
-On 24 October 2026 the final full Android verification **succeeded**:
-
-- **625 JVM tests/81 classes passed**, zero failures/errors/skips.
-- **253 device cases/50 classes: 251 passed, zero failures/errors, two expected
-  skips** on PPA-LX2/Android 10. Physical fingerprint success passed separately
-  with the owner's touch: **252 distinct device cases verified**. Only the optional
-  private-original-CSV case remains unrun because its fixture was not provisioned.
-- The final test compilation has no `AccessibilityNodeInfo.recycle()` deprecation
-  warnings. Debug build and device installation succeeded; no device setting changed.
-
-Final logs/XML are in ignored `local/verification/android-tests-2026-10-24/`:
-`all-final.log`, `unit-final-results/`, `device-final-results/` and
-`physical-biometric-02.log`. XML counts are authoritative; the Gradle console prints
-duplicate skip notifications. Earlier failures/focused reruns remain archived.
-[Handoff](testing-handoff.md) · [Coverage map/commands](../guides/android-testing.md) ·
-[External boundaries](../guides/deep-testing.md).
-
-Source contains **683 JVM methods/85 classes, 288 device methods/55 classes and
-60 desktop methods**. Counts do not establish complete line/branch coverage.
-The preceding coverage expansion added **33 JVM and 30 device methods** after the full run
-above (22 report cases, then 41 additional cases). It covers review/fingerprint
-scope and real report assembly, long-report limits/Markdown, deterministic rate
-limiting, transaction-consistent snapshots, revoked authority through open UI
-workflows, export/uncertain-delivery process death, task-heavy PDF continuations,
-200% font/48dp controls and actual-window recreation. A real system-picker test is
-opt-in with the committed synthetic CSV. The debug crash worker's export files
-and preferences are isolated by its validated test namespace.
-
-The owner authorized offline compilation and focused JVM execution. Production,
-JVM and device-test Kotlin compilation **passed** with the pinned cached toolchain.
-The report/Telegram JVM run **passed 98 cases/12 classes**, zero failures/errors/
-skips, including all **33 new JVM cases**. The focused JVM run needed no source
-corrections. Logs, summary and copied JUnit XML are in ignored
-`local/verification/coverage-2026-10-24/`: `compile.log`, `jvm.log`, `jvm-summary.txt`
-and `jvm-results/`. Full 658-case JVM execution for that coverage snapshot was not requested or rerun.
-
-After the owner connected the PPA-LX2/Android 10 and approved debug packaging,
-installation and focused execution, the main device run **passed 49 cases with
-zero failures/errors and one expected opt-in skip** (50 cases/9 classes in XML).
-Actual native selection exposed a distinct lost-callback boundary: hiding NavHost
-for background privacy discarded its saveable ActivityResult registration keys,
-despite retaining its controller/ViewModels. A session-owned saveable-state holder
-now retains these keys while clinical content remains out of composition when
-locked; sign-out still discards it. All **22 affected UI cases passed** after the
-fix, including the added background-result regression. The real system-picker
-case then **passed separately** with assisted native selection of the exact
-synthetic CSV, real URI/grant delivery, preview and isolated commit.
-
-Across the focused runs, **51 distinct device cases passed**, including all 30
-new device cases. The main run's skip is superseded for that same real-provider
-case by its separate pass; these are not 51 cases in a single Gradle run. Full
-283-case device execution was not rerun. Earlier native selection/result timeouts
-remain in `real-provider-01.log` through `real-provider-05.log` and the available
-failed XML; successful evidence is `device-root-fix-01.log`,
-`device-root-fix-01-results/` and `real-provider-06.log` (`OK (1 test)`). The 11 new
-task-heavy PDF pages and native report screenshots were visually reviewed; this
-sample does not establish every glyph/options combination. Artifacts are copied
-to `device-artifacts/`. Both temporary CSV copies and the new empty fixture folder
-were removed, preserving pre-existing device files. No device setting changed.
-The installed debug APKs are retained; no release artifact was produced. Earlier
-full-run results describe their prior snapshot, not a full run of this expansion.
-[Suite map](../guides/android-testing.md#additional-failuredevice-boundaries--focused-jvm-verification)
-and [focused commands/external procedures](../guides/device-coverage.md) distinguish
-automated/sampled evidence from the original private-file failure, two physical
-phones, other OS/vendors, full TalkBack/IME and physical fold/split-window checks
-that remain unperformed. The original unknown exception is not established as
-the same issue as the now-verified callback loss. No versions/dependencies or
-schema definitions changed; no migration files were inspected.
-
-The first full JVM run confirmed rollover's nested busy-guard conflict and a false
-initial pin receipt being treated as success. After correction and two extra
-rollover cases, **625 JVM tests passed with zero failures/errors/skips**.
-
-The first complete device run on PPA-LX2/Android 10 had **252 cases: 242 passed,
-8 failed, 2 skipped**. Focused reruns verified the corrections: first individual
-expansion/collapse now uses the current animation duration while bulk changes stay
-immediate; background privacy locking retains navigation/editor ViewModels while
-clinical screens leave composition, and sign-out discards navigation. Test fixtures
-now honor actual workspace/text, Activity focus, foreground-authorization and lazy
-item visibility contracts. The version-aware native biometric cleanup compiled
-without its old deprecation warnings, and native cancellation passed. Physical
-fingerprint success passed separately with the owner's touch. The private-original-
-CSV case was not provisioned and skips; no private file was recopied to the phone.
-
-The corrected **8 process-death cases** passed, including explicit boundary markers,
-real receipt durability, backup restore and download Undo. This supersedes the old
-fixture run whose missing birth date made postcommit tests fail and precommit
-results unreliable. **14 independent-client, 5 controlled picker and 3 synthetic
-fold-layout cases** passed in the final full run, together with scrolling and selected constrained
-production UI. The protected join → PIN login → edit → review → explicit publication
-journey, recreation and background draft checks passed the final full run through the
-actual root/navigation graph with isolated production models. Every HTTP request
-is intercepted; no real report is sent or installed clinical database opened.
-
-The original unknown picker exception remains unreproduced; controlled OpenDocument
-results do not exercise OEM picker UI/grant behavior. Independent clients and
-synthetic hinges/faults do not establish two-phone, physical fold/split-screen,
-power-loss or actual disk-full behavior. The complete send journey requires
-validated device connectivity for the production gate despite intercepted HTTP;
-a missing-prerequisite skip is not verification. Clock/DST cases cover selected
-boundaries, not arbitrary clock changes in every workflow. Full TalkBack, other OS/
-device versions, every PDF glyph/options combination and release performance remain
-outside this evidence. Optional initial encryption and project/clinical safeguards
-remain; no dependency, toolchain, version, schema or migration changes were made.
-
-The final native-clock 200-card profile recorded normal motion
-**9.47 ms median/17.79 ms p95** (236 frames), reduced motion
-**9.09 ms/14.88 ms** (232 frames). These single-device debug samples do not
-prove a release baseline or speedup. Earlier samples varied; old Compose-clock
-gesture totals included unknown delay and are unsuitable for responsiveness
-comparisons. Raw reports are retained separately for each full run.
-
-Historical 23 October evidence remains separate: **60 desktop tests passed without
-skips**, including four reverse Android file checks; seven selected temporary-source
-mutations were detected. Three live synthetic Telegram checks passed using their
-own index, leaving existing pinned state untouched. The original private doctor CSV
-passed production preview and isolated commit; a synthetic 33-row provider import
-also passed. Native PDF wrapping/rasterization and selected Classic/A5 pages were
-checked; this is not every-glyph approval. Desktop/live checks were not rerun for
-this Android-only request. Older evidence is in ignored
-`local/verification/deep-tests-2026-10-23/`.
-
-Verification uses cached pinned Gradle 8.7, installed Java 21/SDK 34, offline mode,
-one worker, in-process Kotlin and `-Pshiftreport.autoVersion=false`. Host build and
-compiler activity plus RAM/swap pressure are checked before every Gradle attempt.
-Authorized debug app/test APKs are retained after connected execution; no release
-artifact was exported. Device settings were not changed during the current run.
-
-No build/test remains running after final verification.
+[Remaining checks](testing-handoff.md) is authoritative; [commands](../guides/android-testing.md)
+and [device procedures](../guides/device-coverage.md) describe execution. Older
+successful `.log` files were pruned at owner request; XML, reports, private receipts,
+captures, failed/interrupted logs and the latest JVM/device success logs remain.
+`local/verification/log-cleanup-2026-10-24.json` records removed log names, hashes and
+outcomes. This documentation cleanup ran source/link/whitespace checks only.

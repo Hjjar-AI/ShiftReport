@@ -104,4 +104,5 @@ Visible text makes adjacent icons decorative. Generic actions (Edit/Full record/
 Restore/Review/«إرسال تقرير»/Save/Cancel) must not hide specific consequences such as
 recycle removal or previous-shift fetch. Specialized clinical/report reviews retain
 their detailed callbacks and fixed keyboard-safe controls. Previews use dummy data
-and do not alter system bars; device/rendered accessibility remains unverified.
+and do not alter system bars. Selected device/layout checks passed; full rendered
+accessibility remains in [Remaining checks](../status/testing-handoff.md).
