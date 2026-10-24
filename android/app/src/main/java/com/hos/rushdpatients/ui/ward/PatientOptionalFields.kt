@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppDivider
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -59,6 +61,7 @@ internal fun PatientOptionalFields(
     )
     if (formState.extrasExpanded) {
         PatientTaskEditor(tasks, doctors, !saving, formState = formState) { tasks = it }
+        AppDivider()
         AppSectionHeader(uiText(R.string.ui_patient_form_dialog_021))
         AppToggleRow(title = uiText(R.string.ui_patient_form_dialog_022), checked = isPriority,
             onCheckedChange = { isPriority = it }, enabled = !saving)

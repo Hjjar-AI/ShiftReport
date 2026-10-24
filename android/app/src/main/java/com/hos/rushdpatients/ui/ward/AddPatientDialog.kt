@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppDivider
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -45,6 +47,7 @@ internal fun AddPatientDialog(
         entryOptions = {
             if (positionLimit != null) Column(Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                AppDivider()
                 AppSectionHeader(
                     title = uiText(R.string.ui_add_patient_dialog_002) + if (position.isBlank()) uiText(R.string.ui_add_patient_dialog_003) else uiNumber(position))
                 com.hos.rushdpatients.ui.components.AppTextField(

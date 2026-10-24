@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppDivider
+
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
@@ -40,7 +42,7 @@ internal fun PatientDemographicFields(
     ageText: String, birthYearText: String, birthYear: Int?, age: Int?, currentYear: Int,
     gender: Gender, hasCompanion: Boolean, saving: Boolean, autoStyle: TextStyle,
     validationMessages: List<PatientFormError>, fieldRequests: Map<PatientFormField, BringIntoViewRequester>,
-    personalAnchor: Modifier, onAdmissionNumberChanged: (String) -> Unit,
+    onAdmissionNumberChanged: (String) -> Unit,
     onAdmissionDateChanged: (LocalDate?) -> Unit, onNameChanged: (String) -> Unit,
     onAgeAndYearChanged: (String, String) -> Unit, onGenderChanged: (Gender) -> Unit,
     onCompanionChanged: (Boolean) -> Unit
@@ -48,8 +50,7 @@ internal fun PatientDemographicFields(
     val uiText = rememberUiStrings()
     AppSectionHeader(
         uiText(R.string.ui_patient_demographic_fields_005),
-        complete = name.isNotBlank() && birthYear != null && age != null,
-        modifier = personalAnchor
+        complete = name.isNotBlank() && birthYear != null && age != null
     )
     AppTextField(
         value = name,
@@ -63,7 +64,7 @@ internal fun PatientDemographicFields(
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
     )
     AppFieldPair(
-        minimumRowWidth = UiLayout.patientFieldPairMinWidth,
+        minimumRowWidth = UiLayout.patientFieldPairMinWidth, matchHeights = true,
         separator = uiText(R.string.ui_or),
         first = { fieldModifier ->
             AppTextField(
@@ -119,7 +120,8 @@ internal fun PatientDemographicFields(
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         FlowRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            Text(uiText(R.string.ui_patient_demographic_fields_010), style = MaterialTheme.typography.labelMedium)
+            Text(uiText(R.string.ui_patient_demographic_fields_010),
+                modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium)
             AppFilterChip(
                 enabled = !saving,
                 selected = gender == Gender.MALE,
@@ -137,12 +139,13 @@ internal fun PatientDemographicFields(
             onCheckedChange = onCompanionChanged, enabled = !saving, modifier = Modifier.weight(.85f))
     }
 
+    AppDivider()
     AppSectionHeader(
         uiText(R.string.ui_patient_demographic_fields_001),
         complete = admittanceNumber.isNotBlank() && admittanceDate != null
     )
     AppFieldPair(
-        minimumRowWidth = UiLayout.patientFieldPairMinWidth,
+        minimumRowWidth = UiLayout.patientFieldPairMinWidth, matchHeights = true,
         first = { fieldModifier ->
             AppTextField(
                 value = admittanceNumber,
@@ -163,9 +166,15 @@ internal fun PatientDemographicFields(
                 label = uiText(R.string.ui_patient_demographic_fields_003),
                 isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
                 errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,
-                supportingText = admissionDays?.let { uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)) },
+                supportingText = null,
                 modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
             )
         }
     )
+    admissionDays?.let {
+        Text(uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)),
+            modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+
 }

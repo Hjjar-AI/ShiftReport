@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -82,10 +83,10 @@ internal fun PatientDetailsScreen(
     val uiText = rememberUiStrings()
     val now = LocalWardTaskNow.current
     val haptics = LocalHapticFeedback.current
-    var section by rememberSaveable(patient.id, key = "patient-detail-section") {
-        mutableStateOf(PatientDetailSection.CLINICAL)
-    }
-    val detailScroll = rememberSaveable(patient.id, key = "patient-detail-scroll", saver = ScrollState.Saver) { ScrollState(0) }
+    val session = rememberSaveable(saver = PatientDetailsSession.Saver) { PatientDetailsSession() }
+    val position = session.forPatient(patient.id)
+    var section by position::section
+    val detailScroll = position.scroll
     val content: @Composable () -> Unit = {
         Scaffold(
             modifier = (if (embedded) Modifier else Modifier.safeDrawingPadding()).imePadding(),
@@ -102,9 +103,6 @@ internal fun PatientDetailsScreen(
             onClick = onDismiss)
                         }
                     )
-                    roundsNavigation?.let { navigation ->
-                        PatientRoundsBar(navigation, enabled = navigationEnabled, onNavigate = onNavigateToPatient)
-                    }
                     Surface(tonalElevation = UiElevation.raised) {
                         Row(
                             modifier = Modifier
@@ -133,15 +131,19 @@ internal fun PatientDetailsScreen(
                 }
             },
             bottomBar = {
-                if (!readOnly) {
+                if (roundsNavigation != null || !readOnly) {
                     Surface(tonalElevation = com.hos.rushdpatients.ui.theme.LocalUiStyle.current.actionBarElevation) {
-                        AppButton(
-                            onClick = onEdit,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(UiPadding.content)
-                        ) {
-                            AppActionLabel(UiAction.EDIT)
+                        if (roundsNavigation != null) {
+                            PatientRoundsBar(roundsNavigation, enabled = navigationEnabled, onNavigate = onNavigateToPatient,
+                                centerAction = if (readOnly) null else ({ buttonModifier ->
+                                    AppButton(onClick = onEdit, modifier = buttonModifier, enabled = navigationEnabled) {
+                                        AppActionLabel(UiAction.EDIT)
+                                    }
+                                }))
+                        } else if (!readOnly) {
+                            AppButton(onClick = onEdit, modifier = Modifier.fillMaxWidth().padding(UiPadding.content)) {
+                                AppActionLabel(UiAction.EDIT)
+                            }
                         }
                     }
                 }
@@ -219,6 +221,31 @@ internal fun PatientDetailsScreen(
                     primary = { content() })
             }
         }
+    }
+}
+
+/** Only presentation state is saved; the dialog/scaffold stay mounted across patient changes. */
+private class PatientDetailsPosition(section: PatientDetailSection = PatientDetailSection.CLINICAL, scroll: Int = 0) {
+    var section by mutableStateOf(section)
+    val scroll = ScrollState(scroll)
+}
+
+private class PatientDetailsSession {
+    private val positions = mutableMapOf<String, PatientDetailsPosition>()
+    fun forPatient(id: String) = positions.getOrPut(id) { PatientDetailsPosition() }
+
+    companion object {
+        val Saver = listSaver<PatientDetailsSession, Any>(
+            save = { session -> session.positions.flatMap { (id, position) ->
+                listOf(id, position.section.name, position.scroll.value)
+            } },
+            restore = { saved -> PatientDetailsSession().apply {
+                saved.chunked(3).forEach { entry ->
+                    positions[entry[0] as String] = PatientDetailsPosition(
+                        PatientDetailSection.valueOf(entry[1] as String), entry[2] as Int)
+                }
+            } }
+        )
     }
 }
 

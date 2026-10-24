@@ -5,6 +5,8 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,18 +42,26 @@ internal fun patientRoundsNavigation(orderedIds: List<String>, selectedId: Strin
 internal fun PatientRoundsBar(
     navigation: PatientRoundsNavigation,
     enabled: Boolean,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    centerAction: (@Composable (Modifier) -> Unit)? = null
 ) {
     val uiText = rememberUiStrings()
-    Row(Modifier.padding(UiPadding.content), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        AppOutlinedButton(onClick = { navigation.previousId?.let(onNavigate) },
-            enabled = enabled && navigation.previousId != null, modifier = Modifier.weight(1f)) { Text(uiText(R.string.ui_previous)) }
+    val counter: @Composable (Modifier) -> Unit = { modifier ->
         Text(ArabicNumbers.toArabicDigits("${navigation.index + 1} / ${navigation.total}"),
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.semantics { contentDescription = uiText(R.string.ui_patient_rounds_navigation_002, navigation.index + 1, navigation.total) })
-        AppOutlinedButton(onClick = { navigation.nextId?.let(onNavigate) },
-            enabled = enabled && navigation.nextId != null, modifier = Modifier.weight(1f)) { Text(if (navigation.nextId == null) uiText(R.string.ui_patient_rounds_navigation_003) else uiText(R.string.ui_next)) }
+            modifier = modifier.semantics { contentDescription = uiText(R.string.ui_patient_rounds_navigation_002, navigation.index + 1, navigation.total) })
+    }
+    Column(Modifier.fillMaxWidth().padding(UiPadding.content),
+        verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (centerAction != null) counter(Modifier)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+            AppOutlinedButton(onClick = { navigation.previousId?.let(onNavigate) },
+                enabled = enabled && navigation.previousId != null, modifier = Modifier.weight(1f)) { Text(uiText(R.string.ui_previous)) }
+            if (centerAction != null) centerAction(Modifier.weight(1f)) else counter(Modifier)
+            AppOutlinedButton(onClick = { navigation.nextId?.let(onNavigate) },
+                enabled = enabled && navigation.nextId != null, modifier = Modifier.weight(1f)) { Text(if (navigation.nextId == null) uiText(R.string.ui_patient_rounds_navigation_003) else uiText(R.string.ui_next)) }
+        }
     }
 }
 

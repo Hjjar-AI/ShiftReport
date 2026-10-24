@@ -298,7 +298,7 @@ private fun WardWorkspaceContent(
         })
     val detailContent: @Composable (Boolean) -> Unit = { embedded ->
         if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) {
-            detailStateHolder.SaveableStateProvider(selectedPatient.id) {
+            detailStateHolder.SaveableStateProvider("patient-details") {
                 PatientDetailsScreen(
                     patient = selectedPatient, doctorNames = doctorNames,
                     activity = state.recentActivity.filter { it.patientId == selectedPatient.id },
@@ -327,7 +327,7 @@ private fun WardWorkspaceContent(
             if (isAdmin) viewModel.loadRecentActivity() else viewMode = WardViewMode.ALL
         }
     }
-    LaunchedEffect(detailsTargetId, state.patients.map { it.revision }) { viewModel.loadLocalActivity() }
+    LaunchedEffect(detailsTargetId != null, state.patients.map { it.id to it.revision }) { viewModel.loadLocalActivity() }
     LaunchedEffect(state.loading, state.shift?.id, state.patients.map { it.id }) {
         if (!state.loading && selectedPatient == null) detailsTargetId = null
     }

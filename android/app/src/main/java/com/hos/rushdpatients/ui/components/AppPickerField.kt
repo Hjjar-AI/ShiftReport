@@ -36,7 +36,8 @@ fun AppPickerField(
     Box(
         modifier = modifier.fillMaxWidth().appFieldLayout(uiText, hasLabel = true, isError = isError, errorMessage = errorMessage)
             .clickable(interactionSource = interactionSource, indication = null,
-                enabled = active, role = Role.Button, onClickLabel = label, onClick = onClick)
+                enabled = active, role = Role.Button, onClickLabel = label, onClick = onClick),
+        propagateMinConstraints = true
     ) {
         AppFieldDecoration(
             value = value, enabled = active, isError = isError, interactionSource = interactionSource,

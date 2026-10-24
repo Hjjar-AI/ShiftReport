@@ -71,7 +71,7 @@ internal fun WardFormDialog(
                                     Row(
                                         Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.tiny),
                                         horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.Bottom
                                     ) {
                                         Box(Modifier.weight(1f)) { confirmButton() }
                                         dismissButton()

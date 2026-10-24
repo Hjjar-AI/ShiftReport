@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppDivider
+
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -32,10 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
-import kotlin.math.roundToInt
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -115,18 +113,8 @@ internal fun PatientFormDialog(
     val specialistDoctors = activeDoctors.filter { it.clinicalRole.canBeSupervisor() }
     val autoStyle = autoDirTextStyle()
     val formScrollState = rememberScrollState()
-    val scrollToSection = com.hos.rushdpatients.ui.components.rememberUiScrollTo(formScrollState)
+    val scrollFormTo = com.hos.rushdpatients.ui.components.rememberUiScrollTo(formScrollState)
     val formScope = rememberCoroutineScope()
-    val sectionOffsets = remember(initial) { mutableStateMapOf<PatientFormSection, Int>() }
-    val sectionOrder = remember(initial == null) {
-        if (initial == null) listOf(PatientFormSection.PERSONAL, PatientFormSection.CLINICAL,
-            PatientFormSection.LABS, PatientFormSection.TASKS)
-        else PatientFormSection.entries.toList()
-    }
-    val activeSection = com.hos.rushdpatients.ui.components.activeAppSection(sectionOrder, sectionOffsets, formScrollState)
-    fun sectionAnchor(section: PatientFormSection) = Modifier.onGloballyPositioned {
-        sectionOffsets[section] = it.positionInParent().y.roundToInt()
-    }
     // Compare the complete editable form, including text not yet added to clinical lists.
     val formValues = listOf(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
@@ -158,7 +146,7 @@ internal fun PatientFormDialog(
     val admissionIdentityContent: @Composable () -> Unit = {
         PatientDemographicFields(admittanceNumber, admittanceDate, admissionDays, name,
             ageText, birthYearText, birthYear, age, currentYear, gender, hasCompanion, saving,
-            autoStyle, validationMessages, fieldRequests, sectionAnchor(PatientFormSection.PERSONAL),
+            autoStyle, validationMessages, fieldRequests,
             onAdmissionNumberChanged = { admittanceNumber = it; validationMessages = emptyList() },
             onAdmissionDateChanged = { admittanceDate = it; validationMessages = emptyList() },
             onNameChanged = { name = it; validationMessages = emptyList() },
@@ -174,6 +162,7 @@ internal fun PatientFormDialog(
         )
         AppFieldPair(
             minimumRowWidth = com.hos.rushdpatients.ui.theme.UiLayout.patientFieldPairMinWidth,
+            matchHeights = true,
             modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
             first = { fieldModifier ->
                 DoctorDropdown(
@@ -212,7 +201,6 @@ internal fun PatientFormDialog(
 
     val optionalFieldsContent: @Composable () -> Unit = {
         PatientOptionalFields(formState, doctors, saving, autoStyle,
-            modifier = sectionAnchor(PatientFormSection.TASKS),
             entryOptionsSummary = entryOptionsSummary, entryOptions = entryOptions)
     }
 
@@ -264,9 +252,6 @@ internal fun PatientFormDialog(
                         Text(it, style = MaterialTheme.typography.bodyMedium,
                             fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
                     }
-                    Text(uiText(R.string.ui_patient_form_dialog_001, activeSection.label(uiText)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     reviewAction()
                     if (hasUnsavedChanges) {
                         Text(
@@ -274,12 +259,6 @@ internal fun PatientFormDialog(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
-                    }
-                    PatientFormSectionNavigation(sectionOrder, activeSection, enabled = !saving) { section ->
-                        if (section == PatientFormSection.TASKS) formState.extrasExpanded = true
-                        sectionOffsets[section]?.let { offset ->
-                            formScope.launch { scrollToSection(offset.coerceIn(0, formScrollState.maxValue)) }
-                        }
                     }
                 }
             },
@@ -307,15 +286,16 @@ internal fun PatientFormDialog(
                     }
                     if (initial == null) {
                         admissionIdentityContent()
+                        AppDivider()
                         teamFieldsContent()
+                        AppDivider()
                     }
 
                     AppSectionHeader(
                         uiText(R.string.ui_patient_form_dialog_004),
                         complete = initialDiagnosis.isNotBlank() &&
                             (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
-                            (followUpItems + followUpDraft).any(String::isNotBlank),
-                        modifier = sectionAnchor(PatientFormSection.CLINICAL)
+                            (followUpItems + followUpDraft).any(String::isNotBlank)
                     )
                     Text(uiText(R.string.ui_patient_form_dialog_005), style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
@@ -343,6 +323,7 @@ internal fun PatientFormDialog(
                         }
                     )
 
+                    AppDivider()
                     AppSectionHeader(uiText(R.string.ui_patient_form_dialog_010))
                     MultiValueEditor(
                         label = uiText(R.string.ui_patient_form_dialog_011),
@@ -374,6 +355,7 @@ internal fun PatientFormDialog(
                         errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TREATMENT }?.message,
                         modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
                     )
+                    AppDivider()
                     MultiValueEditor(
                         label = uiText(R.string.ui_patient_form_dialog_012),
                         items = followUpItems,
@@ -403,6 +385,7 @@ internal fun PatientFormDialog(
                         errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.FOLLOW_UP }?.message,
                         modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
                     )
+                    AppDivider()
                     MultiValueEditor(
                         label = uiText(R.string.ui_labs),
                         items = labItems,
@@ -430,13 +413,15 @@ internal fun PatientFormDialog(
                             labItems = labItems + dateMarkerFrom(date)
                         },
                         textStyle = autoStyle,
-                        isError = false,
-                        modifier = sectionAnchor(PatientFormSection.LABS)
+                        isError = false
                     )
 
+                    AppDivider()
                     optionalFieldsContent()
                     if (initial != null) {
+                        AppDivider()
                         teamFieldsContent()
+                        AppDivider()
                         admissionIdentityContent()
                     }
                 }
@@ -466,7 +451,7 @@ internal fun PatientFormDialog(
                         resolvedFollowUp, residentId, specialistId)
                     if (errors.isNotEmpty()) {
                         validationMessages = errors
-                        formScope.launch { scrollToSection(0) }
+                        formScope.launch { scrollFormTo(0) }
                         return@submit
                     }
 
