@@ -653,18 +653,23 @@ private fun WardWorkspaceContent(
             pinned = patient.id in pinnedIds,
             taskNowEpochMillis = taskNowEpochMillis,
             compact = state.compactCards),
-        actions = remember(patient, state.patientDetailsExpanded, viewModel, editor, haptics) {
+        actions = remember(patient, state.patientDetailsExpanded, state.isReadOnly, state.saving, state.syncing, viewModel, editor, haptics) {
             PatientCardActions(
             onOpen = {
                                                                                         viewModel.loadLocalActivity()
                                                                                         detailsTargetId = patient.id
                                                                                     },
             onLongPress = {
-                                                                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                                        viewModel.loadLocalActivity()
-                                                                                        detailsTargetId = patient.id
-                                                                                    },
-            onEdit = { editor.editTarget = patient },
+                if (!state.isReadOnly && !state.saving && !state.syncing && editor.dialog == null) {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    editor.editTarget = patient
+                }
+            },
+            onEdit = {
+                if (!state.isReadOnly && !state.saving && !state.syncing && editor.dialog == null) {
+                    editor.editTarget = patient
+                }
+            },
             onDelete = { editor.deleteTarget = patient },
             onCopy = { editor.copyTarget = patient },
             onPriorityChange = { viewModel.setPriority(patient, it) },

@@ -168,7 +168,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     if (showViewControls) {
                         if (canExpand) add(CustomAccessibilityAction(if (expanded) uiText(R.string.ui_patient_card_011) else uiText(R.string.ui_patient_card_012)) { onExpandToggle(); true })
                         add(CustomAccessibilityAction(if (pinned) uiText(R.string.ui_patient_card_013) else uiText(R.string.ui_patient_card_014)) { onPinToggle(); true })
-                        add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_015)) { onLongClick(); true })
+                        add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_015)) { onClick(); true })
                         if (!readOnly) {
                             add(CustomAccessibilityAction(uiText(R.string.ui_edit_patient_dialog_001)) { onEdit(); true })
                             add(CustomAccessibilityAction(if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) { onPriorityChange(!patient.isPriority); true })
@@ -179,7 +179,9 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 }
             }
             .combinedClickable(enabled = showViewControls, role = androidx.compose.ui.semantics.Role.Button,
-                onClickLabel = uiText(R.string.ui_patient_card_015), onClick = onClick, onLongClick = onLongClick),
+                onClickLabel = uiText(R.string.ui_patient_card_015), onClick = onClick,
+                onLongClickLabel = if (readOnly) null else uiText(R.string.ui_edit_patient_dialog_001),
+                onLongClick = if (readOnly) null else onLongClick),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = cardColor),
         border = UiPatientCard.border(selected = selected || recentlyEdited)
     ) {
@@ -270,7 +272,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (expanded && showViewControls) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 if (!readOnly) com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
-                com.hos.rushdpatients.ui.components.AppTextButton(onClick = onLongClick) { AppActionLabel(UiAction.FULL_RECORD) }
+                com.hos.rushdpatients.ui.components.AppTextButton(onClick = onClick) { AppActionLabel(UiAction.FULL_RECORD) }
             }
             if (expanded) patient.lastEditedByName?.let { editor ->
                 val time = remember(patient.updatedAt) {

@@ -11,6 +11,8 @@ Feature summaries; [current behavior/evidence](current-state.md) · [unfinished 
 
 ## Interface and desktop
 
+- Patient-card long press opens Edit with haptic feedback, guarded for read-only/saving/syncing/other-editor states. Tap, full-record button and accessibility details action remain bound to details; long-click accessibility label now identifies Edit. Source/diff checks only; no build/tests/device run.
+
 - Patient Previous/Next no longer keys the whole details subtree/dialog by patient ID. A stable details session saves only each patient’s selected section/scroll, retaining the window/scaffold and footer during navigation; shared activity reloads on details open/clinical revisions rather than each patient tap. Filter/order/edge/busy guards retained. Source/diff checks only; runtime flicker and recreation behavior unverified.
 
 - Patient-details Previous/Edit/Next share one fixed bottom action row with Edit centred and the position count above, including embedded details. Read-only views retain navigation without Edit; filtered order, disabled edge buttons, guards and swipes unchanged. Source/diff checks only; no build/tests/device run.
