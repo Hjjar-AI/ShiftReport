@@ -143,7 +143,7 @@ internal fun PatientFormDialog(
 
     val admissionIdentityContent: @Composable () -> Unit = {
         PatientDemographicFields(admittanceNumber, admittanceDate, admissionDays, name,
-            ageText, birthYearText, birthYear, age, currentYear, gender, hasCompanion, saving,
+            ageText, birthYearText, currentYear, gender, hasCompanion, saving,
             autoStyle, validationMessages, fieldRequests,
             onAdmissionNumberChanged = { admittanceNumber = it; validationMessages = emptyList() },
             onAdmissionDateChanged = { admittanceDate = it; validationMessages = emptyList() },
@@ -442,9 +442,8 @@ internal fun PatientFormDialog(
                         .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
                         .joinToString("\n")
 
-                    val errors = validatePatientForm(uiText, admittanceNumber, admittanceDate, today, name,
-                        ageText, birthYear, currentYear, age, initialDiagnosis, resolvedTreatments,
-                        resolvedFollowUp, residentId, specialistId)
+                    val errors = validatePatientForm(uiText, admittanceDate, today,
+                        ageText, birthYear, currentYear, age, residentId, specialistId)
                     if (errors.isNotEmpty()) {
                         validationMessages = errors
                         formScope.launch { scrollFormTo(0) }

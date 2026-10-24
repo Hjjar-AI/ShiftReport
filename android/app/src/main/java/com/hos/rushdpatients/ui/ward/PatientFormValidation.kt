@@ -13,9 +13,8 @@ internal enum class PatientFormField {
 internal data class PatientFormError(val field: PatientFormField, val message: String)
 
 internal fun validatePatientForm(uiText: UiStrings,
-    admittanceNumber: String, admittanceDate: LocalDate?, today: LocalDate, name: String,
-    ageText: String, birthYear: Int?, currentYear: Int, age: Int?, initialDiagnosis: String,
-    resolvedTreatments: List<String>, resolvedFollowUp: List<String>, residentId: String?, specialistId: String?
+    admittanceDate: LocalDate?, today: LocalDate,
+    ageText: String, birthYear: Int?, currentYear: Int, age: Int?, residentId: String?, specialistId: String?
 ): List<PatientFormError> = buildList {
     if (admittanceDate?.isAfter(today) == true) {
         add(PatientFormError(PatientFormField.ADMISSION_DATE, uiText(R.string.ui_patient_form_validation_002)))

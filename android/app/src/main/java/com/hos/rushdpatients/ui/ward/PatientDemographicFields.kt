@@ -37,7 +37,7 @@ import java.time.LocalDate
 @Composable
 internal fun PatientDemographicFields(
     admittanceNumber: String, admittanceDate: LocalDate?, admissionDays: Int?, name: String,
-    ageText: String, birthYearText: String, birthYear: Int?, age: Int?, currentYear: Int,
+    ageText: String, birthYearText: String, currentYear: Int,
     gender: Gender, hasCompanion: Boolean, saving: Boolean, autoStyle: TextStyle,
     validationMessages: List<PatientFormError>, fieldRequests: Map<PatientFormField, BringIntoViewRequester>,
     onAdmissionNumberChanged: (String) -> Unit,
