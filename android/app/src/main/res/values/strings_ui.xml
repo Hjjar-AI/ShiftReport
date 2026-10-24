@@ -314,7 +314,7 @@
     <string name="ui_ward_drawer_010" formatted="false">"لوحة تسليم المناوبة"</string>
     <string name="ui_ward_drawer_011" formatted="false">"خيارات العرض والتصفية"</string>
     <string name="ui_ward_drawer_012" formatted="false">"بيانات المرضى"</string>
-    <string name="ui_ward_drawer_013" formatted="false">"جلب البيانات ونشرها"</string>
+    <string name="ui_ward_drawer_013" formatted="false">"مركز المزامنة"</string>
     <string name="ui_ward_drawer_014" formatted="false">"ملفات المرضى"</string>
     <string name="ui_ward_drawer_015" formatted="false">"نسخة مشفرة في ملف"</string>
     <string name="ui_ward_drawer_016" formatted="false">"نسخة منشورة سابقة — للعرض"</string>
@@ -373,14 +373,14 @@
     <string name="ui_unspecified" formatted="false">"غير محدد"</string>
     <string name="ui_patient_form_fields_019" formatted="false">"رجوع"</string>
     <string name="ui_patient_demographic_fields_001" formatted="false">"بيانات الدخول"</string>
-    <string name="ui_patient_demographic_fields_002" formatted="false">"رقم القبول الحالي *"</string>
-    <string name="ui_patient_demographic_fields_003" formatted="false">"تاريخ الدخول *"</string>
+    <string name="ui_patient_demographic_fields_002" formatted="false">"رقم القبول الحالي"</string>
+    <string name="ui_patient_demographic_fields_003" formatted="false">"تاريخ الدخول"</string>
     <string name="ui_patient_demographic_fields_004">"مدة الإقامة: %1$s يوم"</string>
     <string name="ui_patient_demographic_fields_005" formatted="false">"البيانات الشخصية"</string>
-    <string name="ui_patient_demographic_fields_006" formatted="false">"اسم المريض *"</string>
+    <string name="ui_patient_demographic_fields_006" formatted="false">"اسم المريض"</string>
     <string name="ui_or" formatted="false">"أو"</string>
-    <string name="ui_patient_demographic_fields_008" formatted="false">"العمر *"</string>
-    <string name="ui_patient_demographic_fields_009" formatted="false">"سنة الميلاد *"</string>
+    <string name="ui_patient_demographic_fields_008" formatted="false">"العمر"</string>
+    <string name="ui_patient_demographic_fields_009" formatted="false">"سنة الميلاد"</string>
     <string name="ui_patient_demographic_fields_010" formatted="false">"الجنس"</string>
     <string name="ui_male" formatted="false">"ذكر"</string>
     <string name="ui_female" formatted="false">"أنثى"</string>
@@ -1230,7 +1230,7 @@
     <string name="ui_settings_screen_038" formatted="false">"تفضيلات التقارير"</string>
     <string name="ui_settings_screen_039" formatted="false">"الصيغة الافتراضية وتخطيط ملفات التقارير."</string>
     <string name="ui_settings_screen_040" formatted="false">"التحقق المحلي والقفل التلقائي وتسجيل الخروج."</string>
-    <string name="ui_settings_screen_041" formatted="false">"جلب النسخة المنشورة أو مراجعة تعديلات المرضى ونشرها."</string>
+    <string name="ui_settings_screen_041" formatted="false">"تابع نقل بيانات المرضى والأطباء، واستيراد الملفات وتصديرها والنسخ الاحتياطية من مكان واحد."</string>
     <string name="ui_settings_screen_042" formatted="false">"تصدير بيانات المرضى أو استيراد ملف مرضى بعد المراجعة."</string>
     <string name="ui_settings_screen_043" formatted="false">"حفظ نسخة مشفرة أو استعادة نسخة محفوظة."</string>
     <string name="ui_settings_screen_044" formatted="false">"إعادة الاتصال بالمشروع الحالي. لا تتغير بيانات المرضى عند إعادة الاتصال."</string>

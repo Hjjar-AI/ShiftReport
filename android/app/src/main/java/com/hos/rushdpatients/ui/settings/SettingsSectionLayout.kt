@@ -126,7 +126,8 @@ internal enum class SettingsSectionId(
     PATIENT_CARDS(R.string.ui_settings_section_layout_028, SettingsWorkspace.APPEARANCE),
     WORKFLOW(R.string.ui_settings_section_layout_029, SettingsWorkspace.WORKFLOW),
     REPORT(R.string.ui_settings_section_layout_030, SettingsWorkspace.REPORTS),
-    SYNC(R.string.ui_ward_drawer_013, SettingsWorkspace.DATA),
+    SYNC(R.string.ui_sync_center_patients, SettingsWorkspace.DATA),
+    DOCTORS(R.string.ui_sync_center_doctors, SettingsWorkspace.DATA),
     FILES(R.string.ui_ward_drawer_014, SettingsWorkspace.FILES),
     BACKUP(R.string.ui_settings_section_layout_031, SettingsWorkspace.BACKUP),
     CONNECTION(R.string.ui_ward_drawer_019, SettingsWorkspace.PROJECT),
@@ -149,7 +150,8 @@ internal fun SettingsSectionId.summary(uiText: UiStrings, state: SettingsUiState
     SettingsSectionId.WORKFLOW -> uiText(R.string.ui_settings_section_layout_012) + (if (state.saveAndNext) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014)) +
         uiText(R.string.ui_settings_section_layout_015) + if (state.guidedRollover) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014)
     SettingsSectionId.REPORT -> if (state.reportAsPdf) "PDF · ${state.pdfStyle.uiLabel(uiText)}" else uiText(R.string.ui_settings_section_layout_016)
-    SettingsSectionId.SYNC -> uiText(R.string.ui_settings_section_layout_017)
+    SettingsSectionId.SYNC -> syncCenterSummary(uiText, state.patientsPending, state.lastCsvSync)
+    SettingsSectionId.DOCTORS -> syncCenterSummary(uiText, state.doctorsPending, state.lastDoctorsSync)
     SettingsSectionId.FILES -> uiText(R.string.ui_settings_section_layout_018)
     SettingsSectionId.BACKUP -> uiText(R.string.ui_settings_section_layout_019)
     SettingsSectionId.CONNECTION -> uiText(R.string.ui_settings_section_layout_020)
@@ -159,3 +161,10 @@ internal fun SettingsSectionId.summary(uiText: UiStrings, state: SettingsUiState
     SettingsSectionId.SECURITY -> uiText(R.string.ui_settings_section_layout_024, state.autoLockMinutes) + if (state.biometricEnabled) uiText(R.string.ui_settings_section_layout_025) else uiText(R.string.ui_settings_section_layout_026)
     SettingsSectionId.STORAGE -> uiText(R.string.ui_settings_section_layout_027, state.databaseSize, state.storedShifts)
 }
+
+private fun syncCenterSummary(uiText: UiStrings, pending: Boolean?, lastContact: String?): String =
+    listOf(uiText(when (pending) {
+        true -> R.string.ui_sync_center_pending_short
+        false -> R.string.ui_sync_center_local_short
+        null -> R.string.ui_sync_center_loading
+    }), uiText(R.string.ui_sync_center_last_short, lastContact ?: uiText(R.string.ui_unknown))).joinToString(" · ")

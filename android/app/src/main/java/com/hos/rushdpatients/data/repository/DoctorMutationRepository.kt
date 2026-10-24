@@ -63,9 +63,11 @@ class DoctorMutationRepository @Inject constructor(
         val pinHash = passwordHasher.hash(pin)
         database.withTransaction {
             val actor = authorizer.requireAdmin()
-            val name = DoctorNaming.formatName(input.firstName, input.lastName)
+            val unnamed = input.firstName.isBlank() && input.lastName.isBlank()
+            val generatedId = if (unnamed) java.util.UUID.randomUUID().toString() else null
+            val name = DoctorNaming.formatName(input.firstName, input.lastName, generatedId)
             val doctor = DoctorTeams.assign(Doctor(
-                id = DoctorNaming.stableId(name), fullName = name,
+                id = generatedId ?: DoctorNaming.stableId(name), fullName = name,
                 firstName = input.firstName.trim(), lastName = input.lastName.trim(),
                 gender = input.gender, clinicalRole = input.clinicalRole,
                 telegramId = input.telegramId, customTitle = input.customTitle?.takeIf { it.isNotBlank() },
@@ -91,7 +93,7 @@ class DoctorMutationRepository @Inject constructor(
                 "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب"
             }
             val updated = DoctorTeams.assign(current.copy(
-                fullName = DoctorNaming.formatName(input.firstName, input.lastName),
+                fullName = DoctorNaming.formatName(input.firstName, input.lastName, current.id),
                 firstName = input.firstName.trim(), lastName = input.lastName.trim(),
                 gender = input.gender, clinicalRole = input.clinicalRole,
                 supervisorGroupChatId = current.supervisorGroupChatId.takeIf { input.clinicalRole == ClinicalRole.SUPERVISOR },

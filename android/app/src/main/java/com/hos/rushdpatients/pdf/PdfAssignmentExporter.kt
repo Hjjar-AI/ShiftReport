@@ -86,7 +86,7 @@ class PdfAssignmentExporter @Inject constructor(
             var rows = mutableListOf<Row>()
             var used = supervisor.height + residentRow.height
             members.forEach { patient ->
-                val patientRow = row(patient.name, body, tableWidth - numberWidth, number++)
+                val patientRow = row(patient.displayName, body, tableWidth - numberWidth, number++)
                 require(supervisor.height + residentRow.height + patientRow.height <= maxTableHeight) {
                     "اسم المريض أو أسماء الفريق أطول من مساحة جدول A4؛ راجع الأسماء قبل التصدير"
                 }

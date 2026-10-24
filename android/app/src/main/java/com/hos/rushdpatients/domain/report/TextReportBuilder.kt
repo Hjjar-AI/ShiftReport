@@ -72,7 +72,7 @@ class TextReportBuilder @Inject constructor() {
         val header = buildString {
             append(patient.sortOrder)
             append(". ")
-            append(patient.name)
+            append(patient.displayName)
             if (patient.hasCompanion) append(" (مرافق)")
         }
         append(Markdown.bold(header))

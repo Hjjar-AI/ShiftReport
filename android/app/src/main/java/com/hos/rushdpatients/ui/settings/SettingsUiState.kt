@@ -15,6 +15,7 @@ import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.AppThemePreset
 
 enum class SettingsRetryAction { FETCH, UPLOAD, EXPORT }
+enum class SettingsSyncRecovery { DOCTORS, PATIENTS }
 
 data class SettingsUiState(
     val doctorName: String = "",
@@ -52,6 +53,12 @@ data class SettingsUiState(
     val autoLockMinutes: Int = 5,
     val lastCsvSync: String? = null,
     val lastDoctorsSync: String? = null,
+    val online: Boolean = false,
+    val patientsPending: Boolean? = null,
+    val doctorsPending: Boolean? = null,
+    val syncIssue: String? = null,
+    val syncRecovery: SettingsSyncRecovery? = null,
+    val syncRetryAction: SettingsRetryAction? = null,
     val syncing: Boolean = false,
     val canUndoDownload: Boolean = false,
     val publicationReviewText: String? = null,

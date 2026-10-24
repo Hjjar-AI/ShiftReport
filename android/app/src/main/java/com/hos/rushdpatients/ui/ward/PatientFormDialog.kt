@@ -156,8 +156,7 @@ internal fun PatientFormDialog(
     val teamFieldsContent: @Composable () -> Unit = {
         PatientFormSection {
             AppSectionHeader(
-                uiText(R.string.ui_patient_form_dialog_014),
-                complete = residentId != null && specialistId != null && residentId != specialistId
+                uiText(R.string.ui_patient_form_dialog_014)
             )
             AppFieldPair(
                 minimumRowWidth = com.hos.rushdpatients.ui.theme.UiLayout.patientFieldPairMinWidth,
@@ -291,10 +290,7 @@ internal fun PatientFormDialog(
 
                     PatientFormSection {
                         AppSectionHeader(
-                            uiText(R.string.ui_patient_form_dialog_004),
-                            complete = initialDiagnosis.isNotBlank() &&
-                                (treatmentItems + treatmentDraft).any(String::isNotBlank) &&
-                                (followUpItems + followUpDraft).any(String::isNotBlank)
+                            uiText(R.string.ui_patient_form_dialog_004)
                         )
                         Text(uiText(R.string.ui_patient_form_dialog_005), style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {

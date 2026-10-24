@@ -85,7 +85,7 @@ internal fun DemoReportContent(
             Text(if (showContents) uiText(R.string.ui_demo_secondary_screens_008) else uiText(R.string.ui_demo_secondary_screens_009))
         }
         if (showContents) state.ordered.forEach { patient ->
-            AppSection("${uiNumber(patient.sortOrder)}. ${patient.name}") {
+            AppSection("${uiNumber(patient.sortOrder)}. ${patient.displayName}") {
                 AppClinicalSection(uiText(R.string.ui_patient_card_024), patient.initialDiagnosis)
                 AppClinicalSection(uiText(R.string.ui_demo_secondary_screens_010), patient.treatmentPlan)
                 AppClinicalSection(uiText(R.string.ui_patient_form_dialog_012), patient.followUp)

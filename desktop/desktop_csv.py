@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import csv
 import io
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from desktop_protocol import encode_bundle, require
@@ -26,7 +27,7 @@ def doctor_csv(doctors):
     writer.writerow(DOCTOR_COLUMNS)
     for key,doctor in doctors.items():
         name=doctor['name'];plain=name[2:].strip() if name.startswith('د.') else name
-        parts=plain.split(' ',1)
+        parts=['',''] if re.fullmatch(r'د\. بلا اسم [0-9a-fA-F]{8}',name) else plain.split(' ',1)
         writer.writerow(['1',key,parts[0],parts[1] if len(parts)>1 else '',name,doctor['gender'],
                          doctor['clinicalRole'],doctor.get('destination') or '',doctor.get('telegram_id') or '',
                          '',doctor.get('title',''),rank(doctor),str(permanent(doctor)).lower(),
@@ -50,7 +51,7 @@ def decode_doctors(raw):
             values=dict(first=source['first_name'],last=source['last_name'],title=source['custom_title'],
                         gender=gender,clinicalRole=source['clinical_role'].strip().upper(),
                         telegram_id=source['telegram_id'],destination=source['supervisor_group_chat_id'])
-            candidate=profile(values)
+            candidate=profile(values, {'uid':identity})
             candidate['uid']=identity
             full=source['full_name'].strip()
             require(not full or full==candidate['name'],'الاسم الكامل لا يطابق الاسم والكنية')

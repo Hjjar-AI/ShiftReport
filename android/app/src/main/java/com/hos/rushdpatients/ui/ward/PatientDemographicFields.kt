@@ -48,8 +48,7 @@ internal fun PatientDemographicFields(
     val uiText = rememberUiStrings()
     PatientFormSection {
         AppSectionHeader(
-            uiText(R.string.ui_patient_demographic_fields_005),
-            complete = name.isNotBlank() && birthYear != null && age != null
+            uiText(R.string.ui_patient_demographic_fields_005)
         )
         AppTextField(
             value = name,
@@ -141,8 +140,7 @@ internal fun PatientDemographicFields(
 
     PatientFormSection {
         AppSectionHeader(
-            uiText(R.string.ui_patient_demographic_fields_001),
-            complete = admittanceNumber.isNotBlank() && admittanceDate != null
+            uiText(R.string.ui_patient_demographic_fields_001)
         )
         AppFieldPair(
             minimumRowWidth = UiLayout.patientFieldPairMinWidth, matchHeights = true,
@@ -163,6 +161,7 @@ internal fun PatientDemographicFields(
                 DateField(
                     value = admittanceDate,
                     onValueChange = onAdmissionDateChanged,
+                    onClear = { onAdmissionDateChanged(null) },
                     label = uiText(R.string.ui_patient_demographic_fields_003),
                     isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
                     errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,

@@ -35,8 +35,14 @@ object DoctorNaming {
     /**
      * Build "د. First Last" from first and last name parts.
      */
-    fun formatName(firstName: String, lastName: String): String =
-        "$DR_PREFIX ${firstName.trim()} ${lastName.trim()}".trim()
+    fun formatName(firstName: String, lastName: String, fallbackId: String? = null): String {
+        val parts = listOf(firstName.trim(), lastName.trim()).filter(String::isNotBlank)
+        return if (parts.isEmpty() && fallbackId != null) "$DR_PREFIX بلا اسم ${fallbackId.take(8)}"
+        else (listOf(DR_PREFIX) + parts).joinToString(" ")
+    }
+
+    private fun unnamed(fullName: String): Boolean =
+        Regex("د\\. بلا اسم [0-9a-fA-F]{8}").matches(fullName.trim())
 
     fun stableId(fullName: String): String {
         val normalized = fullName.trim().replace(Regex("\\s+"), " ").lowercase(Locale.ROOT)
@@ -48,11 +54,13 @@ object DoctorNaming {
      * "د. First Last" or "د. First".
      */
     fun extractFirstName(fullName: String): String {
+        if (unnamed(fullName)) return ""
         val cleaned = fullName.removePrefix(DR_PREFIX).trim()
         return cleaned.substringBefore(' ').trim()
     }
 
     fun extractLastName(fullName: String): String {
+        if (unnamed(fullName)) return ""
         val cleaned = fullName.removePrefix(DR_PREFIX).trim()
         val idx = cleaned.indexOf(' ')
         return if (idx < 0) "" else cleaned.substring(idx + 1).trim()

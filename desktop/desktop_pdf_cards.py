@@ -7,7 +7,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.lib.colors import HexColor
 from desktop_protocol import require
-from desktop_model import DIAGNOSIS, GENDER, badges_decode
+from desktop_model import patient_name, DIAGNOSIS, GENDER, badges_decode
 from desktop_pdf_content import palette, roster_label
 from desktop_tasks import read_tasks, ordered_for_display, status_label, metadata, overdue
 
@@ -154,7 +154,7 @@ class _Cards:
         self.y += 3
 
     def header(self, index):
-        lines = self.wrap(self.patients[index]['name'], self.name, RIGHT - LEFT)
+        lines = self.wrap(patient_name(self.patients[index]), self.name, RIGHT - LEFT)
         height = len(lines) * self.name.height + 2 * TITLE_PADDING
         require(self.y + height + GAP + 2 * self.heading.height <= self.bottom,
                 'اسم المريض أطول من مساحة البطاقة')
@@ -334,7 +334,7 @@ class _Cards:
             # Fill the rightmost column downward, then move left.
             for offset in range(count):
                 patient = self.patients[first + offset]
-                value = '{} · {}'.format(first + offset + 1, patient['name'])
+                value = '{} · {}'.format(first + offset + 1, patient_name(patient))
                 paint = _Paint(14, self.heading.color, True)
                 available_width = tile_width - 2 * tile_padding
                 available_height = height - 2 * tile_padding
@@ -404,7 +404,7 @@ class _Cards:
                 lines = self.wrap(value, self.body, RIGHT - LEFT) if value.strip() else []
                 columns = self.treatment_columns(value, len(lines)) if title == TREATMENT_TITLE else None
                 needed = GAP + self.heading.height + len(lines) * self.body.height + GAP
-                fresh_top = TOP + PADDING + len(self.wrap(row['name'], self.name, RIGHT - LEFT)) * self.name.height + 2 * TITLE_PADDING + GAP
+                fresh_top = TOP + PADDING + len(self.wrap(patient_name(row), self.name, RIGHT - LEFT)) * self.name.height + 2 * TITLE_PADDING + GAP
                 move_group = keep_together and needed <= self.bottom - fresh_top and self.y + needed > self.bottom
                 if move_group or self.y + GAP + self.heading.height + (self.body.height if lines else 0) > self.bottom:
                     self.new_page(); self.header(index)

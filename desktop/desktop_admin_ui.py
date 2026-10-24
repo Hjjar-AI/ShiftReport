@@ -10,6 +10,8 @@ def doctor_form(owner, doctor=None, registry=None):
     doctor = doctor or {}
     registry=owner.client.doctors if registry is None else registry
     name = doctor.get('name', '')
+    import re
+    if re.fullmatch(r'د\. بلا اسم [0-9a-fA-F]{8}',name):name=''
     if name.startswith('د.'): name = name[2:].strip()
     parts = name.split(' ', 1)
     window = modal(owner, 'تحرير الطبيب' if doctor else 'إضافة طبيب')

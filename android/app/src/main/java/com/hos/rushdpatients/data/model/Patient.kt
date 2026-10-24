@@ -10,7 +10,7 @@ data class Patient(
     val admittanceNumber: String = "",
     val admittanceDate: LocalDate? = null,
     val gender: Gender = Gender.MALE,
-    val name: String,
+    val name: String = "",
     val birthDate: LocalDate? = null,
     val hasCompanion: Boolean = false,
     val diagnosisType: DiagnosisType = DiagnosisType.PSYCHIATRIC,
@@ -30,6 +30,8 @@ data class Patient(
     val updatedAt: Instant = Instant.now(),
     val deletedAt: Instant? = null
 ) {
+    val displayName: String get() = name.ifBlank { "مريض بلا اسم · ${id.take(8)}" }
+
     val isDeleted: Boolean get() = deletedAt != null
 
     val age: Int?

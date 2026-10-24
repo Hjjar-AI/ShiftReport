@@ -458,7 +458,7 @@ private fun WardWorkspaceContent(
                         when (state.workflowAction) {
                             WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
                             WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
-                            WardWorkflowAction.DOWNLOAD -> confirmLatest = true
+                            WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
                         }
                     })
                 if (!viewModel.liveProject) AppNotice(uiText(R.string.ui_demo_navigation_001),
@@ -543,7 +543,7 @@ private fun WardWorkspaceContent(
                         Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
                             if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) detailContent(true)
                             else WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                                showSynchronization = viewModel.liveProject, onReviewReport = { state.shift?.id?.let(onOpenReport) },
+                                showSynchronization = viewModel.liveProject, onOpenSyncCenter = onOpenDataManagement, onReviewReport = { state.shift?.id?.let(onOpenReport) },
                                 onActivity = { viewMode = WardViewMode.ACTIVITY })
                         }
                     },
@@ -586,7 +586,7 @@ private fun WardWorkspaceContent(
                                 nowEpochMillis = taskNowEpochMillis,
                                 bottomClearance = scrollBottomClearance,
                                 onFilter = ::applyDashboardFilter,
-                                onSync = { confirmLatest = true },
+                                onSync = onOpenDataManagement,
                                 onActivity = {
                                     viewMode = WardViewMode.ACTIVITY
                                 },
@@ -634,7 +634,7 @@ private fun WardWorkspaceContent(
                                                                                     when (state.workflowAction) {
                                                                                         WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
                                                                                         WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
-                                                                                        WardWorkflowAction.DOWNLOAD -> confirmLatest = true
+                                                                                        WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
                                                                                     }
                                                                                 })
                                                                             }
@@ -698,7 +698,7 @@ private fun WardWorkspaceContent(
                 listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                 modifier = Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight), primary = {
                 WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                    showSynchronization = viewModel.liveProject, onReviewReport = { showSupportingSheet = false; state.shift?.id?.let(onOpenReport) },
+                    showSynchronization = viewModel.liveProject, onOpenSyncCenter = { showSupportingSheet = false; onOpenDataManagement() }, onReviewReport = { showSupportingSheet = false; state.shift?.id?.let(onOpenReport) },
                     onActivity = { showSupportingSheet = false; viewMode = WardViewMode.ACTIVITY },
                     modifier = Modifier.fillMaxSize())
             })

@@ -55,7 +55,7 @@ internal fun RolloverReviewDialog(
                 if (!keepAssignments) Text(uiText(R.string.ui_ward_review_dialogs_004))
                 LazyColumn(modifier = Modifier.appDialogBody(UiDialog.compactBodyMaxHeight)) {
                     items(patients, key = { it.id }) { patient ->
-                        Text(patient.name + uiText(R.string.ui_ward_review_dialogs_005) + uiNumber(patient.tasks.count { !it.done }))
+                        Text(patient.displayName + uiText(R.string.ui_ward_review_dialogs_005) + uiNumber(patient.tasks.count { !it.done }))
                     }
                 }
                 Text(uiText(R.string.ui_ward_review_dialogs_006))
@@ -94,7 +94,7 @@ internal fun PatientRecycleBinDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(patient.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(patient.displayName, style = MaterialTheme.typography.bodyMedium)
                                 Text(
                                     patient.admittanceNumber,
                                     style = MaterialTheme.typography.labelSmall

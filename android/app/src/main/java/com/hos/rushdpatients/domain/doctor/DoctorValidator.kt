@@ -26,8 +26,6 @@ object DoctorValidator {
     ): DoctorValidationResult {
         val errors = mutableListOf<DoctorValidationError>()
 
-        if (firstName.isBlank()) errors += DoctorValidationError.FIRST_NAME_EMPTY
-        if (lastName.isBlank()) errors += DoctorValidationError.LAST_NAME_EMPTY
 
         if (firstName.any { it in FORBIDDEN } ||
             lastName.any { it in FORBIDDEN } ||

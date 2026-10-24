@@ -9,7 +9,7 @@ internal enum class WardTaskFilter { PENDING, OVERDUE, UNASSIGNED }
 
 /** Normalize each field once per patient snapshot; preserve field-by-field substring matching. */
 internal fun wardSearchIndex(patients: List<Patient>): Map<String, List<String>> = patients.associate { patient ->
-    patient.id to listOf(patient.name, patient.admittanceNumber, patient.initialDiagnosis,
+    patient.id to listOf(patient.displayName, patient.admittanceNumber, patient.initialDiagnosis,
         patient.treatmentPlan, patient.followUp, patient.labs,
         patient.tasks.joinToString(" ") { it.description }).map(ArabicSearchNormalizer::normalize)
 }

@@ -30,54 +30,53 @@ internal class SettingsDataOperations(
 
     fun invalidateReview() { publicationReview = null }
 
+    private fun transferFailure(error: Throwable?, fallback: Int, retry: SettingsRetryAction) {
+        if (error is CancellationException) throw error
+        val recovery = when (error) {
+            is com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired -> SettingsSyncRecovery.DOCTORS
+            is com.hos.rushdpatients.sync.LocalPatientChangesPendingException -> SettingsSyncRecovery.PATIENTS
+            else -> null
+        }
+        _state.update { it.copy(syncIssue = error?.message ?: uiText(fallback),
+            syncRecovery = recovery, syncRetryAction = retry, retryAction = retry) }
+    }
+
     fun bringLatest() {
-        if (_state.value.syncing) return
+        if (_state.value.syncing || _state.value.backupBusy || _state.value.exportingCsv) return
         if (!NetworkStatus.isOnline(context)) {
             _state.update {
                 it.copy(
                     snackbar = uiText(R.string.ui_settings_data_operations_001),
+                    syncIssue = uiText(R.string.ui_settings_data_operations_001), syncRecovery = null,
+                    syncRetryAction = SettingsRetryAction.FETCH,
                     retryAction = SettingsRetryAction.FETCH
                 )
             }
             return
         }
-        _state.update { it.copy(syncing = true, snackbar = null, retryAction = null) }
+        _state.update { it.copy(syncing = true, snackbar = null, retryAction = null,
+            syncIssue = null, syncRecovery = null, syncRetryAction = null) }
         viewModelScope.launch {
-            // An explicit fetch is allowed to accept the authoritative remote doctor registry.
-            // Background sync remains conservative and will not overwrite a newer registry.
-            val doctorsResult = syncService.refreshDoctorsFromRemote()
-            if (doctorsResult.isFailure) {
-                _state.update {
-                    it.copy(
-                        syncing = false,
-                        snackbar = doctorsResult.exceptionOrNull()?.message
-                            ?: uiText(R.string.ui_ward_shift_operations_019),
-                        retryAction = SettingsRetryAction.FETCH
-                    )
-                }
-                return@launch
+            var fallback = R.string.ui_ward_shift_operations_019
+            try {
+                // Explicit fetch accepts the authoritative registry through its existing guards.
+                syncService.refreshDoctorsFromRemote().getOrThrow()
+                fallback = R.string.ui_ward_shift_operations_024
+                val result = syncService.fetchLatestCsv().getOrThrow()
+                _state.update { it.copy(
+                    snackbar = uiText(R.string.ui_settings_data_operations_002, result.inserted, result.updated),
+                    lastOperation = uiText(R.string.ui_settings_data_operations_003),
+                    syncIssue = null, syncRecovery = null, syncRetryAction = null, retryAction = null,
+                    lastCsvSync = format(Instant.now().toEpochMilli())
+                ) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                transferFailure(e, fallback, SettingsRetryAction.FETCH)
+                _state.update { it.copy(snackbar = e.message ?: uiText(fallback)) }
+            } finally {
+                _state.update { it.copy(syncing = false) }
             }
-            syncService.fetchLatestCsv()
-                .onSuccess { r ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = uiText(R.string.ui_settings_data_operations_002, r.inserted, r.updated),
-                            lastOperation = uiText(R.string.ui_settings_data_operations_003),
-                            retryAction = null,
-                            lastCsvSync = format(Instant.now().toEpochMilli())
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    _state.update {
-                        it.copy(
-                            syncing = false,
-                            snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_024),
-                            retryAction = SettingsRetryAction.FETCH
-                        )
-                    }
-                }
         }
     }
 
@@ -102,9 +101,10 @@ internal class SettingsDataOperations(
     /** Prepare only: no publication occurs until the reviewed snapshot is confirmed. */
 
     fun uploadCurrent() {
-        if (_state.value.syncing) return
+        if (_state.value.syncing || _state.value.backupBusy || _state.value.exportingCsv) return
         publicationReview = null
-        _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
+        _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null,
+            syncIssue = null, syncRecovery = null, syncRetryAction = null) }
         viewModelScope.launch {
             try {
                 check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_004) }
@@ -115,6 +115,7 @@ internal class SettingsDataOperations(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                transferFailure(e, R.string.ui_settings_data_operations_006, SettingsRetryAction.UPLOAD)
                 _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_data_operations_006), retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
                 _state.update { it.copy(syncing = false) }
@@ -129,7 +130,7 @@ internal class SettingsDataOperations(
     }
 
     fun confirmPublication() {
-        if (_state.value.syncing) return
+        if (_state.value.syncing || _state.value.backupBusy || _state.value.exportingCsv) return
         val review = publicationReview ?: return
         publicationReview = null
         _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
@@ -138,10 +139,12 @@ internal class SettingsDataOperations(
                 check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_007) }
                 val result = syncService.uploadReviewedCsv(review, forceLocal = true).getOrThrow()
                 _state.update { it.copy(snackbar = uiText(R.string.ui_settings_data_operations_008, result.patientCount),
+                    syncIssue = null, syncRecovery = null, syncRetryAction = null,
                     lastOperation = uiText(R.string.ui_settings_data_operations_009)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                transferFailure(e, R.string.ui_settings_data_operations_010, SettingsRetryAction.UPLOAD)
                 _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_data_operations_010),
                     retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
@@ -151,7 +154,7 @@ internal class SettingsDataOperations(
     }
 
     fun exportCsv() {
-        if (_state.value.exportingCsv) return
+        if (_state.value.exportingCsv || _state.value.syncing || _state.value.backupBusy) return
         _state.update { it.copy(exportingCsv = true, snackbar = null, retryAction = null) }
         viewModelScope.launch {
             try {

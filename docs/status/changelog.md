@@ -4,6 +4,7 @@ Feature summaries; [current behavior/evidence](current-state.md) · [unfinished 
 
 ## Clinical and security
 
+- Android/desktop patient and doctor profile fields accept blanks; remove required patient markers/completion marks, add admission-date Clear/preserve empty dates, align validators/CSV/PDF and identity-based unnamed labels. Authentication/valid-value/revision guards remain; no schema/version changes. Static source/grammar/XML/diff inspection only; compile/runtime unverified.
 - Android locked-session biometrics now start automatically once the lock decision is ready and Activity resumed; cancellation/error leaves PIN and explicit biometric retry. System enrollment is checked on foreground entry, default-enabled with explicit app opt-out retained. Lock stays latched across short resumes; success checks the same active session/identity, PIN hashing runs off main. Source-only; compile/device verification pending.
 - Protected file-only join/authenticated Telegram encryption/safe reconnect; clinician PIN/biometrics and service-level authority. Existing-pin Android creation now requires bound review/live admin checks; scrollable warning/fixed actions handles200% text without removing history.
 - Revision/audit/pending saves, retained fullscreen drafts/labs/tools, optional-owner structured tasks with stamped completion, recycle/restore/rollover and shared sorting/team/CSV/readiness rules.
@@ -11,6 +12,7 @@ Feature summaries; [current behavior/evidence](current-state.md) · [unfinished 
 
 ## Interface and desktop
 
+- Android Sync Center groups patient/doctor status, reviewed patient transfers, file tools and encrypted backups into four collapsible cards (one open at a time), with retained selection, status summaries and always-visible connection/recovery feedback; drawer/settings/status shortcuts, persistent typed recovery, independent sync retry and confirmed fetch reuse existing operations. Doctor registry mutations remain admin-only. Source/resource/diff inspection only; compile/device/live behavior unverified.
 - Add/Edit Patient uses shared settings-style bordered section cards for identity, admission, team, clinical fields and optional tasks; ordering, retained drafts and keyboard-safe actions stay in their existing owners. Source/diff checks only; compilation/device review pending.
 - Sample CSV uses varied shuffled food/drink names and randomized profiles with fresh default seeds; clinical fields omit testing boilerplate. Matching DEMO A5 refreshed:56 pages,50 index links,268 valid Fit destinations; no app import/build/tests.
 - Patient-card long press opens Edit with haptic feedback, guarded for read-only/saving/syncing/other-editor states. Tap, full-record button and accessibility details action remain bound to details; long-click accessibility label now identifies Edit. Source/diff checks only; no build/tests/device run.

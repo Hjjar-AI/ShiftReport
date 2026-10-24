@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter
 internal enum class WardWorkflowAction(@StringRes private val labelRes: Int) {
     DELIVERY_HISTORY(R.string.ui_ward_synchronization_006),
     REVIEW_PUBLICATION(R.string.ui_ward_synchronization_007),
-    DOWNLOAD(R.string.ui_handover_dashboard_003);
+    DOWNLOAD(R.string.ui_ward_drawer_013);
 
     fun label(uiText: UiStrings): String = uiText(labelRes)
 }

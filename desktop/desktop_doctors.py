@@ -52,8 +52,8 @@ def profile(values, existing=None):
     first, last = (str(values.get(key, '')).strip() for key in ('first', 'last'))
     title = str(values.get('title', '')).strip()
     forbidden = set('\\"\'=,|@+&\n\r')
-    require(first and last and not any(c in forbidden for c in first+last+title) and len(title) <= 16,
-            'أدخل الاسم والكنية ولقباً لا يتجاوز 16 محرفاً دون رموز ممنوعة')
+    require(not any(c in forbidden for c in first+last+title) and len(title) <= 16,
+            'الاسم والكنية واللقب لا تقبل رموزاً ممنوعة؛ اللقب حتى 16 محرفاً')
     require(values.get('gender') in {'M', 'F'} and values.get('clinicalRole') in {'RESIDENT', 'SUPERVISOR'},
             'الجنس أو التصنيف السريري غير صالح')
     identity, destination = str(values.get('telegram_id', '')).strip(), str(values.get('destination', '')).strip()
@@ -62,9 +62,11 @@ def profile(values, existing=None):
     require(not destination or values['clinicalRole'] == 'SUPERVISOR' and
             re.fullmatch(r'-[0-9]+', destination) and -(2**63) <= int(destination) < 0,
             'مجموعة التقارير متاحة للمشرف ويجب أن يكون معرّفها سالباً')
-    name = 'د. '+first+' '+last
+    unnamed = not first and not last
+    generated_id = (existing or {}).get('uid') or str(uuid.uuid4())
+    name = 'د. بلا اسم '+generated_id[:8] if unnamed else 'د. '+' '.join(filter(None,[first,last]))
     key = str(uuid.UUID(bytes=hashlib.md5(('shift-report-doctor|'+re.sub(r'\s+', ' ', name).lower()).encode()).digest(), version=3))
-    result = copy.deepcopy(existing) if existing else dict(uid=key, **{'#':'0', 'options':''})
+    result = copy.deepcopy(existing) if existing else dict(uid=generated_id if unnamed else key, **{'#':'0', 'options':''})
     result.update(name=name, gender=values['gender'], title=title, clinicalRole=values['clinicalRole'],
                   telegram_id=int(identity) if identity else None, destination=int(destination) if destination else None)
     result['id'] = identity

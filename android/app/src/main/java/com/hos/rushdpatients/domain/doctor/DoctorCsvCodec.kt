@@ -93,7 +93,7 @@ object DoctorCsvCodec {
             val firstName = row.value("first_name")
             val lastName = row.value("last_name")
             val fullName = row.value("full_name")
-                .ifBlank { DoctorNaming.formatName(firstName, lastName) }
+                .ifBlank { DoctorNaming.formatName(firstName, lastName, id) }
             require(id.isNotBlank()) { "معرّف الطبيب مطلوب في السطر $line" }
             val validation = DoctorValidator.validate(firstName, lastName, row.value("custom_title"))
             require(validation is DoctorValidationResult.Valid) {

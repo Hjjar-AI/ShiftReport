@@ -120,9 +120,9 @@ internal fun WardDrawer(
                         com.hos.rushdpatients.ui.components.AppActionLabel(UiAction.SEND_REPORT)
                     }
 
+                    WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_012), AppIcons.Folder, dataMenuExpanded,
                         onToggle = { dataMenuExpanded = !dataMenuExpanded }) {
-                        WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_014), AppIcons.Description) { onAction(WardDrawerAction.FILES) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_015), AppIcons.Backup) { onAction(WardDrawerAction.BACKUP) }
                         WardDrawerRow(uiText(R.string.ui_ward_review_dialogs_001), AppIcons.History,

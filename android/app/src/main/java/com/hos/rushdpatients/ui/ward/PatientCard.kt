@@ -145,7 +145,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
             .semantics {
                 this.selected = selected
                 contentDescription = buildString {
-                    append(patient.name)
+                    append(patient.displayName)
                     append(uiText(R.string.ui_patient_card_001)).append(patient.admittanceNumber)
                     append(uiText(R.string.ui_patient_card_002)).append(PatientIdentityText.personal(uiText, patient))
                     append(uiText(R.string.ui_patient_card_002)).append(patient.diagnosisType.uiLabel(uiText))

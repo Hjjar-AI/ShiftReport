@@ -52,7 +52,7 @@ internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modif
     showPersonal: Boolean = false, showOrdinal: Boolean = false, showDemographics: Boolean = false) {
     val uiText = rememberUiStrings()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        PatientName(if (showOrdinal) "${uiNumber(patient.sortOrder)} · ${patient.name}" else patient.name, style = nameStyle)
+        PatientName(if (showOrdinal) "${uiNumber(patient.sortOrder)} · ${patient.displayName}" else patient.displayName, style = nameStyle)
         FlowRow(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny),
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             if (pinned) Icon(AppIcons.Bookmark, contentDescription = uiText(R.string.ui_patient_identity_001), modifier = Modifier.size(UiSize.iconSmall))

@@ -67,7 +67,8 @@ internal fun DateField(
     modifier: Modifier = Modifier,
     enabled: Boolean = LocalFieldEnabled.current,
     isError: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    onClear: (() -> Unit)? = null
 ) {
     val uiText = rememberUiStrings()
     var open by remember { mutableStateOf(false) }
@@ -92,7 +93,12 @@ internal fun DateField(
                 }) { Text(uiText(R.string.ui_patient_form_fields_002)) }
             },
             dismissButton = {
-                AppTextButton(onClick = { open = false }) { Text(uiText(R.string.ui_cancel)) }
+                Row {
+                    if (onClear != null && value != null) AppTextButton(onClick = {
+                        onClear(); open = false
+                    }) { Text(uiText(R.string.ui_patient_clear_date)) }
+                    AppTextButton(onClick = { open = false }) { Text(uiText(R.string.ui_cancel)) }
+                }
             }
         ) { DatePicker(state = state) }
     }
@@ -176,11 +182,11 @@ internal fun MultiValueEditor(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         if (!tools) MultilineField(
             value = (items + draft).filter(String::isNotBlank).joinToString("\n"),
-            onValueChange = onReplaceAll, label = if (label == uiText(R.string.ui_labs)) label else "$label *",
+            onValueChange = onReplaceAll, label = label,
             textStyle = textStyle, isError = isError, errorMessage = errorMessage)
         else {
             Text(
-                uiText(R.string.ui_patient_form_fields_003, label, if (label == uiText(R.string.ui_labs)) "" else " *"),
+                uiText(R.string.ui_patient_form_fields_003, label, ""),
                 style = MaterialTheme.typography.labelMedium
             )
 

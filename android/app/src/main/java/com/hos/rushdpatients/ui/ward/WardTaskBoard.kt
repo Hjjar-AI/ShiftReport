@@ -127,7 +127,7 @@ internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
         containerColor = if (overdue) clinical.urgentContainer else clinical.pendingContainer,
         contentColor = if (overdue) clinical.onUrgentContainer else clinical.onPendingContainer)) {
         Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            Text(entry.patient.name, style = MaterialTheme.typography.titleSmall)
+            Text(entry.patient.displayName, style = MaterialTheme.typography.titleSmall)
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Checkbox(checked = false, enabled = editable, onCheckedChange = { onComplete(entry) },
                     modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)

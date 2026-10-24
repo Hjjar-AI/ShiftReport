@@ -227,10 +227,8 @@ object CsvCodec {
         }
 
         val name = field(CsvSchema.COL_NAME).trim()
-        require(name.isNotEmpty()) { "السطر $rowNumber: اسم المريض مطلوب" }
 
         val admissionNumber = field(CsvSchema.COL_ADMIT_NUM).trim()
-        require(admissionNumber.isNotEmpty()) { "السطر $rowNumber: رقم القبول الحالي مطلوب" }
 
         val genderText = field(CsvSchema.COL_GENDER).trim().uppercase()
         require(genderText in setOf("M", "MALE", "F", "FEMALE")) {
@@ -245,14 +243,14 @@ object CsvCodec {
         val hasCompanion = companionText in setOf("Y", "TRUE", "1")
 
         val admitDateText = field(CsvSchema.COL_ADMIT_DATE).trim()
-        require(admitDateText.isNotEmpty()) { "السطر $rowNumber: تاريخ الدخول مطلوب" }
-        val admitDate = runCatching { LocalDate.parse(admitDateText) }
+        val admitDate = if (admitDateText.isBlank()) null else runCatching { LocalDate.parse(admitDateText) }
             .getOrElse { throw IllegalArgumentException("السطر $rowNumber: تاريخ الدخول غير صالح") }
 
         val birthDateText = field(CsvSchema.COL_BIRTH_DATE).trim()
-        require(birthDateText.isNotEmpty()) { "السطر $rowNumber: تاريخ الميلاد مطلوب" }
-        val birthDate = parseBirthDate(birthDateText)
-            ?: throw IllegalArgumentException("السطر $rowNumber: سنة الميلاد غير صالحة")
+        val birthDate = if (birthDateText.isBlank()) null else {
+            parseBirthDate(birthDateText)
+                ?: throw IllegalArgumentException("السطر $rowNumber: سنة الميلاد غير صالحة")
+        }
 
         val diagnosisText = field(CsvSchema.COL_DIAGNOSIS_TYPE).trim().uppercase()
         val diagnosisType = DiagnosisType.entries.firstOrNull { it.code == diagnosisText }

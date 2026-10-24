@@ -39,13 +39,14 @@ def parse_doctors(raw):
 
 def validate_wire_patient(patient):
     """Reject malformed shared records before replacing any saved local draft."""
-    require(all(patient.get(k, '').strip() for k in ['externalId', 'name', 'admitNum']), 'هوية مريض ناقصة')
+    require(patient.get('externalId', '').strip(), 'هوية مريض ناقصة')
     require(patient['gender'] in {'M', 'F'} and patient['hasCompanion'] in {'Y', 'N'} and
             patient['diagnosisType'] in {'PSYCHIATRIC', 'ADDICTION', 'DUAL'} and
             patient.get('isPriority', 'N') in {'Y', 'N'}, 'تصنيف مريض غير صالح')
-    date.fromisoformat(patient['admitDate'])
-    require(re.fullmatch(r'[0-9]{4}', patient['birthDate']), 'مطلوب عام الميلاد الحالي')
-    require(1900 <= int(patient['birthDate']) <= 2100, 'سنة الميلاد غير صالحة')
+    if patient['admitDate']:date.fromisoformat(patient['admitDate'])
+    if patient['birthDate']:
+        require(re.fullmatch(r'[0-9]{4}', patient['birthDate']), 'سنة الميلاد غير صالحة')
+        require(1900 <= int(patient['birthDate']) <= 2100, 'سنة الميلاد غير صالحة')
     require(int(patient.get('revision') or 0) >= 0, 'نسخة مريض غير صالحة')
     from desktop_tasks import read_tasks, validate as validate_tasks
     validate_tasks(read_tasks(patient))

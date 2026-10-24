@@ -14,7 +14,7 @@ from reportlab.platypus import Flowable, SimpleDocTemplate, Spacer, Table, Table
 from reportlab.platypus import HRFlowable
 from desktop_protocol import ZoneInfo, require
 from desktop_platform import default_pdf_fonts
-from desktop_model import task_counts
+from desktop_model import patient_name, task_counts
 
 
 END_TIMESTAMP_GAP = 30  # Points between final report content and its creation date.
@@ -193,7 +193,7 @@ def _render_report(client, shift, supervisor, font_path, options, now):
             content=patient_content(patient,client.doctors,client.zone,now)
             divider=HRFlowable(width='100%',thickness=colors['rule_width'],color=HexColor(colors['rule']),spaceBefore=8,spaceAfter=6)
             divider.keepWithNext=True
-            story.extend([divider,text(str(index)+': '+patient['name'],14,heading_color,bold=True)])
+            story.extend([divider,text(str(index)+': '+patient_name(patient),14,heading_color,bold=True)])
             for key,label in [('personal','بيانات المريض'),('admit','القبول'),('team','الفريق المسؤول'),('diagnosis','التشخيص / التنبيهات'),('treatment','العلاج'),('notes','المتابعة / المهام / التحاليل')]:
                 if content[key]:story.append(text(label+': '+content[key]))
     timestamp=text(created_at(now),8.5)

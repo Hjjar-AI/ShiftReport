@@ -16,7 +16,7 @@ internal object PdfPatientContent {
         }.joinToString("\n")
         val sb = StringBuilder()
         if (patient.isPriority) sb.append("[أولوية] ")
-        if (includeName) sb.append(patient.name)
+        if (includeName) sb.append(patient.displayName)
         patient.age?.let { age ->
             if (sb.isNotEmpty()) sb.append('\n')
             patient.birthDate?.let {

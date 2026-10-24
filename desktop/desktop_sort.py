@@ -34,7 +34,7 @@ def ordered(shift, doctors, zone, levels=None):
         if field == 'GENDER': return 0 if row['gender']=='M' else 1
         if field == 'DIAGNOSIS':
             return ({'PSYCHIATRIC':0,'ADDICTION':1,'DUAL':2}.get(row['diagnosisType'],2**31-1),row['initialDiagnosis'].lower())
-        if field == 'DAYS_OF_ADMITTANCE': return (today-date.fromisoformat(row['admitDate'])).days
+        if field == 'DAYS_OF_ADMITTANCE': return (today-date.fromisoformat(row['admitDate'])).days if row.get('admitDate') else -1
         return doctors.get(row.get('responsibleSupervisorId'),{}).get('name','').lower()
     def compare(a,b):
         priority = (b.get('isPriority')=='Y')-(a.get('isPriority')=='Y')

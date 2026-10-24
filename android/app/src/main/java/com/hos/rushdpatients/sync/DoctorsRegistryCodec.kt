@@ -239,14 +239,7 @@ object DoctorsRegistryCodec {
         return out
     }
 
-    private fun extractFirstName(fullName: String): String {
-        val cleaned = fullName.removePrefix("د.").trim()
-        return cleaned.substringBefore(' ')
-    }
+    private fun extractFirstName(fullName: String): String = DoctorNaming.extractFirstName(fullName)
 
-    private fun extractLastName(fullName: String): String {
-        val cleaned = fullName.removePrefix("د.").trim()
-        val idx = cleaned.indexOf(' ')
-        return if (idx < 0) "" else cleaned.substring(idx + 1)
-    }
+    private fun extractLastName(fullName: String): String = DoctorNaming.extractLastName(fullName)
 }

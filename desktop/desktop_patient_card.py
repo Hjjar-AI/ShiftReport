@@ -3,7 +3,7 @@ import copy
 import tkinter as tk
 from desktop_tokens import ButtonStyle, button_options, CLINICAL_URGENT, CLINICAL_WARNING, CLINICAL_PENDING, STATUS_EDGE
 import desktop_widgets as ctk
-from desktop_model import DIAGNOSIS, patient_text, task_counts, badges_decode
+from desktop_model import patient_name, DIAGNOSIS, patient_text, task_counts, badges_decode
 
 
 def patient_card(owner, parent, row, index, total, movement_allowed, preview_style=None):
@@ -25,7 +25,7 @@ def patient_card(owner, parent, row, index, total, movement_allowed, preview_sty
     if edge:
         stripe = ctk.CTkFrame(frame, width=STATUS_EDGE, corner_radius=0, fg_color=edge)
         stripe.place(relx=1, rely=0, relheight=1, anchor='ne')
-    ctk.CTkLabel(frame,text='{} · {}'.format(index+1,row['name']),font=('Arial',round(18*scale),'bold'),text_color=foreground,
+    ctk.CTkLabel(frame,text='{} · {}'.format(index+1,patient_name(row)),font=('Arial',round(18*scale),'bold'),text_color=foreground,
         anchor='e',justify='right',wraplength=width).pack(fill='x',padx=inset,pady=(gap,1))
     alerts=(["أولوية"] if row.get('isPriority')=='Y' else [])+[text for text,level in badges_decode(row.get('warningDetails','')) if level=='high']
     if alerts:

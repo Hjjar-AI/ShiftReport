@@ -108,7 +108,19 @@ fun SettingsScreen(
     val searchableSections = remember(canManageProject, state.isPermanentAdmin) {
         availableSettingsSections(canManageProject, state.isPermanentAdmin)
     }
-    val sections = remember(searchableSections, workspace) { searchableSections.filter { it.workspace == workspace } }
+    val sections = remember(searchableSections, workspace) {
+        searchableSections.filter {
+            it.workspace == workspace || (workspace == SettingsWorkspace.DATA &&
+                it in listOf(SettingsSectionId.FILES, SettingsSectionId.BACKUP))
+        }
+    }
+    var expandedSyncSection by rememberSaveable(workspace) { mutableStateOf(SettingsSectionId.SYNC.name) }
+    LaunchedEffect(state.syncIssue, state.syncRecovery) {
+        if (state.syncIssue != null) expandedSyncSection = when (state.syncRecovery) {
+            SettingsSyncRecovery.DOCTORS -> SettingsSectionId.DOCTORS.name
+            else -> SettingsSectionId.SYNC.name
+        }
+    }
     androidx.activity.compose.BackHandler(enabled = searchVisible) { searchVisible = false }
     val sectionTitles = sections.map { it.title(uiText) }
     val settingsScope = rememberCoroutineScope()
@@ -127,6 +139,20 @@ fun SettingsScreen(
             text = { Text(result) }, confirmButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text(uiText(R.string.ui_settings_screen_006)) } })
     }
     var showRecovery by rememberSaveable { mutableStateOf(false) }
+    var confirmFetch by rememberSaveable { mutableStateOf(false) }
+    val retryTransfer: () -> Unit = {
+        when (state.syncRetryAction) {
+            SettingsRetryAction.FETCH -> confirmFetch = true
+            SettingsRetryAction.UPLOAD -> viewModel.uploadCurrent()
+            else -> Unit
+        }
+    }
+    if (confirmFetch) com.hos.rushdpatients.ui.components.ConfirmDialog(
+        title = uiText(R.string.ui_ward_data_review_dialogs_001),
+        message = uiText(R.string.ui_ward_data_review_dialogs_002),
+        confirmText = uiText(R.string.ui_ward_data_review_dialogs_003),
+        onConfirm = { confirmFetch = false; viewModel.bringLatest() },
+        onDismiss = { confirmFetch = false })
     var confirmUndoDownload by remember { mutableStateOf(false) }
     if (confirmUndoDownload) com.hos.rushdpatients.ui.components.ConfirmDialog(
         title = uiText(R.string.ui_settings_screen_007),
@@ -214,7 +240,8 @@ fun SettingsScreen(
             )
             viewModel.dismissSnackbar()
             if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                viewModel.retryLastAction()
+                if (state.retryAction == SettingsRetryAction.FETCH) confirmFetch = true
+                else viewModel.retryLastAction()
             }
         }
     }
@@ -233,7 +260,7 @@ fun SettingsScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
         Column(Modifier.fillMaxSize()) {
-            if (sections.size > 1) {
+            if (sections.size > 1 && workspace != SettingsWorkspace.DATA) {
                 val activeSection = activeAppSection(sectionTitles, sectionOffsets, settingsScroll)
                 AppSectionIndex(sections = sectionTitles, selected = activeSection, label = { it },
                     onSelect = { title ->
@@ -283,13 +310,19 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = UiSpacing.tiny)
                 )
 
+                if (workspace == SettingsWorkspace.DATA) SettingsSyncOverview(
+                    state, viewModel, canManageProject, onOpenDoctors, retryTransfer)
+
                 sections.forEach { section ->
+                    val collapsible = workspace == SettingsWorkspace.DATA
                     SettingsSection(
                         title = section.title(uiText),
                         showHeader = sections.size > 1,
                         summary = section.summary(uiText, state),
-                        expanded = true,
-                        onToggle = null,
+                        expanded = !collapsible || expandedSyncSection == section.name,
+                        onToggle = if (collapsible) ({
+                            expandedSyncSection = if (expandedSyncSection == section.name) "" else section.name
+                        }) else null,
                         onPositioned = { sectionOffsets[section.title(uiText)] = it }
                     ) {
                         when (section) {
@@ -303,9 +336,12 @@ fun SettingsScreen(
                             SettingsSectionId.PATIENT_CARDS -> SettingsPatientCardsContent(state, viewModel)
                             SettingsSectionId.WORKFLOW -> SettingsWorkflowContent(state, viewModel)
                             SettingsSectionId.REPORT -> SettingsReportContent(state, viewModel, advancedPdf, { advancedPdf = !advancedPdf })
-                            SettingsSectionId.SYNC -> SettingsSyncContent(state, viewModel, showRecovery, { showRecovery = !showRecovery }, { confirmUndoDownload = true })
-                            SettingsSectionId.FILES -> SettingsFilesContent(state, viewModel, canManageProject, onOpenVbaImport)
-                            SettingsSectionId.BACKUP -> SettingsBackupContent(state, { backupPassword = ""; backupDialogMode = "export" }, { openBackup.launch(arrayOf("application/octet-stream", "*/*")) })
+                            SettingsSectionId.SYNC -> SettingsSyncContent(
+                                state, viewModel, showRecovery, { showRecovery = !showRecovery },
+                                { confirmUndoDownload = true }, { confirmFetch = true })
+                            SettingsSectionId.DOCTORS -> SettingsDoctorSyncContent(state, canManageProject, onOpenDoctors)
+                            SettingsSectionId.FILES -> SettingsFilesContent(state, viewModel, canManageProject, onOpenVbaImport, showHeading = !collapsible)
+                            SettingsSectionId.BACKUP -> SettingsBackupContent(state, { backupPassword = ""; backupDialogMode = "export" }, { openBackup.launch(arrayOf("application/octet-stream", "*/*")) }, showHeading = !collapsible)
                             SettingsSectionId.CONNECTION -> SettingsConnectionContent(canManageProject)
                             SettingsSectionId.RESET -> SettingsResetContent(state, viewModel)
                             SettingsSectionId.INVITATIONS -> SettingsInvitationsContent(state, { provisioningPassphrase = ""; provisioningDialog = true })
@@ -317,10 +353,11 @@ fun SettingsScreen(
                 }
 
                 if (workspace == SettingsWorkspace.PREFERENCES) {
-                    listOf(SettingsWorkspace.APPEARANCE, SettingsWorkspace.WORKFLOW,
+                    listOf(SettingsWorkspace.DATA, SettingsWorkspace.APPEARANCE, SettingsWorkspace.WORKFLOW,
                         SettingsWorkspace.REPORTS, SettingsWorkspace.SECURITY).forEach { destination ->
                         AppDestinationRow(title = destination.title(uiText), summary = destination.description(uiText),
                             icon = when (destination) {
+                                SettingsWorkspace.DATA -> AppIcons.Sync
                                 SettingsWorkspace.APPEARANCE -> AppIcons.Palette
                                 SettingsWorkspace.WORKFLOW -> AppIcons.Route
                                 SettingsWorkspace.REPORTS -> AppIcons.PictureAsPdf

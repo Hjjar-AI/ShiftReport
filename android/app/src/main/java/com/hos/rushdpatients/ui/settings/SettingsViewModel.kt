@@ -214,6 +214,21 @@ class SettingsViewModel @Inject constructor(
 
     private fun observeSyncState() {
         viewModelScope.launch {
+            com.hos.rushdpatients.util.NetworkStatus.observe(context).collect { online ->
+                _state.update { it.copy(online = online) }
+            }
+        }
+        viewModelScope.launch {
+            settingsRepository.observe(AppConstants.SETTING_PATIENTS_SYNC_PENDING).collect { pending ->
+                _state.update { it.copy(patientsPending = pending == "true") }
+            }
+        }
+        viewModelScope.launch {
+            settingsRepository.observe(AppConstants.SETTING_DOCTORS_SYNC_PENDING).collect { pending ->
+                _state.update { it.copy(doctorsPending = pending == "true") }
+            }
+        }
+        viewModelScope.launch {
             syncStateRepository.observe(SyncChannel.CSV).collect { sync ->
                 _state.update {
                     it.copy(lastCsvSync = sync?.lastSyncedAtEpochMillis?.let(::format))

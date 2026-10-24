@@ -16,8 +16,11 @@ internal class PatientFormState(initial: Patient?, draft: PatientDraft?) {
     var taskDraft by mutableStateOf<TaskDraftState?>(null)
     var tasks by mutableStateOf(initial?.tasks ?: draft?.tasks.orEmpty())
     var admittanceNumber by mutableStateOf(initial?.admittanceNumber ?: draft?.admittanceNumber.orEmpty())
-    var admittanceDate by mutableStateOf<LocalDate?>(initial?.admittanceDate
-        ?: draft?.admittanceDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now())
+    var admittanceDate by mutableStateOf<LocalDate?>(when {
+        initial != null -> initial.admittanceDate
+        draft != null -> draft.admittanceDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        else -> LocalDate.now()
+    })
     var gender by mutableStateOf(initial?.gender ?: Gender.fromCode(draft?.gender.orEmpty()))
     var name by mutableStateOf(initial?.name ?: draft?.name.orEmpty())
     var birthYearText by mutableStateOf(initial?.birthDate?.year?.toString() ?: draft?.birthYear.orEmpty())

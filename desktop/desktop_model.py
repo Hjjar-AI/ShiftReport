@@ -48,6 +48,10 @@ def badges_encode(badges):
                               for text, level in badges) if badges else ''
 
 
+def patient_name(row):
+    return row.get('name') or 'مريض بلا اسم · '+row['externalId'][:8]
+
+
 def new_patient(zone):
     row = {key: '' for key in COLUMNS}
     row.update(externalId=str(uuid.uuid4()), admitDate=datetime.now(ZoneInfo(zone)).date().isoformat(),
@@ -56,17 +60,16 @@ def new_patient(zone):
 
 
 def validate_patient(row, doctors, zone):
-    require(row['name'].strip() and row['admitNum'].strip(), 'الاسم ورقم القبول مطلوبان')
-    require(all(row.get(key, '').strip() for key in ['initialDiagnosis', 'treatmentPlan', 'followUp']),
-            'التشخيص والعلاج والمتابعة مطلوبة لحفظ المريض')
     today = datetime.now(ZoneInfo(zone)).date()
-    require(re.fullmatch(r'[0-9]{4}', row['birthDate']), 'أدخل سنة الميلاد بأربعة أرقام')
-    require(1900 <= int(row['birthDate']) <= today.year and today.year-int(row['birthDate']) <= 120, 'سنة الميلاد خارج المجال')
-    require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}', row['admitDate']), 'تاريخ القبول YYYY-MM-DD')
-    try:
-        require(date.fromisoformat(row['admitDate']) <= today, 'تاريخ قبول مستقبلي')
-    except ValueError:
-        require(False, 'تاريخ القبول غير صالح')
+    if row['birthDate']:
+        require(re.fullmatch(r'[0-9]{4}', row['birthDate']), 'أدخل سنة الميلاد بأربعة أرقام')
+        require(1900 <= int(row['birthDate']) <= today.year and today.year-int(row['birthDate']) <= 120, 'سنة الميلاد خارج المجال')
+    if row['admitDate']:
+        require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}', row['admitDate']), 'تاريخ القبول YYYY-MM-DD')
+        try:
+            require(date.fromisoformat(row['admitDate']) <= today, 'تاريخ قبول مستقبلي')
+        except ValueError:
+            require(False, 'تاريخ القبول غير صالح')
     for key, role in [('responsibleResidentId', 'RESIDENT'), ('responsibleSupervisorId', 'SUPERVISOR')]:
         value = row.get(key)
         require(not value or value in doctors and doctors[value]['clinicalRole'] == role, 'اختر طبيبا نشطا بالدور الصحيح')

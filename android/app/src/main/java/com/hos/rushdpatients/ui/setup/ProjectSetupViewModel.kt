@@ -221,11 +221,10 @@ class ProjectSetupViewModel @Inject constructor(
 
         val admin = if (input.mode == ProjectSetupMode.CREATE) {
             val name = input.adminName.trim()
-            require(name.length >= 3) { uiText(R.string.ui_project_setup_view_model_019) }
             val telegramId = input.adminTelegramId.toLongOrNull()
             require(telegramId != null && telegramId > 0L) { uiText(R.string.ui_project_setup_view_model_020) }
             InitialAdminConfig(
-                fullName = name,
+                fullName = name.ifBlank { "د. بلا اسم ${com.hos.rushdpatients.domain.doctor.DoctorNaming.stableId(telegramId.toString()).take(8)}" },
                 telegramId = telegramId,
                 genderCode = input.adminGenderCode,
                 clinicalRoleCode = input.adminClinicalRoleCode

@@ -25,27 +25,16 @@ object PatientValidator {
     fun validate(patient: Patient): PatientValidationResult {
         val errors = mutableListOf<PatientValidationError>()
 
-        if (patient.name.isBlank()) {
-            errors += PatientValidationError.NAME_EMPTY
-        }
-
-        if (patient.admittanceNumber.isBlank()) {
-            errors += PatientValidationError.ADMITTANCE_NUMBER_EMPTY
-        }
-
         val today = java.time.LocalDate.now()
-        if (patient.admittanceDate == null || patient.admittanceDate.isAfter(today)) {
+        if (patient.admittanceDate?.isAfter(today) == true) {
             errors += PatientValidationError.ADMITTANCE_DATE_INVALID
         }
 
         val age = patient.age
-        if (patient.birthDate == null || patient.birthDate.isAfter(today) || age == null || age !in 0..120) {
+        if (patient.birthDate != null && (patient.birthDate.isAfter(today) || age == null || age !in 0..120)) {
             errors += PatientValidationError.BIRTH_DATE_INVALID
         }
 
-        if (patient.initialDiagnosis.isBlank()) errors += PatientValidationError.INITIAL_DIAGNOSIS_EMPTY
-        if (patient.treatmentPlan.isBlank()) errors += PatientValidationError.TREATMENT_PLAN_EMPTY
-        if (patient.followUp.isBlank()) errors += PatientValidationError.FOLLOW_UP_EMPTY
         if (!patient.responsibleResidentId.isNullOrBlank() &&
             patient.responsibleResidentId == patient.responsibleSpecialistId
         ) {

@@ -73,7 +73,7 @@ internal fun HandoverDashboard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            if (showSynchronization) AppTextButton(onClick = onSync) { Text(uiText(R.string.ui_handover_dashboard_003)) }
+            if (showSynchronization) AppTextButton(onClick = onSync) { Text(uiText(R.string.ui_ward_drawer_013)) }
             if (isAdmin) AppTextButton(onClick = onActivity) { Text(uiText(R.string.ui_ward_activity_screen_003)) }
             AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text(uiText(R.string.ui_handover_dashboard_004)) }
         }
@@ -102,7 +102,7 @@ internal fun HandoverDashboard(
         ) {
             Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Text(uiText(R.string.ui_handover_dashboard_017), style = MaterialTheme.typography.titleSmall)
-                PatientSyncNotice(syncStatus, freshnessLabel, online)
+                PatientSyncNotice(syncStatus, freshnessLabel, online, onDetails = onSync)
                 Text(uiText(R.string.ui_handover_dashboard_018))
             }
         }

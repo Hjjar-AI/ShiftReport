@@ -1,7 +1,7 @@
 """Logical PDF content and Android's current palette; no shaping or saved-data edits."""
 from __future__ import annotations
 from datetime import datetime
-from desktop_model import DIAGNOSIS, GENDER, badges_decode
+from desktop_model import patient_name, DIAGNOSIS, GENDER, badges_decode
 from desktop_protocol import require
 from desktop_tasks import read_tasks, ordered_for_display, task_text
 
@@ -90,7 +90,7 @@ def assignment_groups(shift, doctors):
     groups={}
     for patient in shift['patients']:
         supervisor=patient.get('responsibleSupervisorId') or None
-        groups.setdefault(supervisor,[]).append(patient['name'])
+        groups.setdefault(supervisor,[]).append(patient_name(patient))
     for key,doctor in doctors.items():
         if doctor['clinicalRole']=='SUPERVISOR':groups.setdefault(key,[])
     return [dict(supervisorId=supervisor,
@@ -102,10 +102,14 @@ def assignment_groups(shift, doctors):
 
 def patient_content(row, doctors, zone, now):
     def doctor(key): return doctors.get(row.get(key), {}).get('name', 'طبيب محفوظ') if row.get(key) else ''
-    personal = ('[أولوية] ' if row.get('isPriority')=='Y' else '')+row['name']
-    personal += '\n{} · {} سنة · {}'.format(row['birthDate'], now.year-int(row['birthDate'][:4]), GENDER[row['gender']])
+    personal = ('[أولوية] ' if row.get('isPriority')=='Y' else '')+patient_name(row)
+    personal += '\n'+GENDER[row['gender']]
+    if row.get('birthDate'):
+        personal += '\n{} · {} سنة'.format(row['birthDate'], now.year-int(row['birthDate'][:4]))
     if row['hasCompanion']=='Y': personal+='\n(مرافق)'
-    admit = '{}\n---\nيوم {}\n{}'.format(row['admitNum'], max(0,(now.date()-datetime.fromisoformat(row['admitDate']).date()).days),row['admitDate'])
+    admit = row.get('admitNum','')
+    if row.get('admitDate'):
+        admit += '\n---\nيوم {}\n{}'.format(max(0,(now.date()-datetime.fromisoformat(row['admitDate']).date()).days),row['admitDate'])
     diagnosis = [DIAGNOSIS[row['diagnosisType']]]
     for text, priority in badges_decode(row.get('warningDetails','')):
         level = {'low':'منخفضة','medium':'متوسطة','high':'عالية'}.get(priority)

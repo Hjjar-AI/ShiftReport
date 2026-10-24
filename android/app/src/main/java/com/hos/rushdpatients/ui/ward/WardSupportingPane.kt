@@ -34,6 +34,7 @@ internal fun WardSupportingPane(
     onReviewReport: () -> Unit,
     onActivity: () -> Unit,
     showSynchronization: Boolean = true,
+    onOpenSyncCenter: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiText = rememberUiStrings()
@@ -43,7 +44,7 @@ internal fun WardSupportingPane(
         Text(if (isAdmin) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_supporting_pane_001), style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() })
         Text(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)))
-        if (showSynchronization) PatientSyncNotice(state.syncStatus, freshnessLabel, online)
+        if (showSynchronization) PatientSyncNotice(state.syncStatus, freshnessLabel, online, onDetails = onOpenSyncCenter)
         if (warnings.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_002))
         warnings.forEach { AppNotice(it, kind = NoticeKind.WARNING) }
         AppButton(onClick = onReviewReport, enabled = state.shift != null, modifier = Modifier.fillMaxWidth()) {

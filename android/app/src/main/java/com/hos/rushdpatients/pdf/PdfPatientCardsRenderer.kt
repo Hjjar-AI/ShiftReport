@@ -127,7 +127,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 // Fill each RTL column downward before advancing to the next column.
                 repeat(count) { offset ->
                     val patient = patients[firstPatient + offset]
-                    val text = "${patient.sortOrder} · ${patient.name}"
+                    val text = "${patient.sortOrder} · ${patient.displayName}"
                     val paint = Paint(heading).apply { textSize = 14f }
                     val availableWidth = tileWidth - 2 * tilePadding
                     val availableHeight = rowHeight - 2 * tilePadding
@@ -167,7 +167,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 coroutineContext.ensureActive()
                 val entry = entries[index]
                 fun cardHeader() {
-                    val lines = PdfTextWrapper.wrap(patient.name, name, right - left)
+                    val lines = PdfTextWrapper.wrap(patient.displayName, name, right - left)
                     val h = lines.size * PdfTextWrapper.lineHeight(name) + 2 * titlePadding
                     check(y + h + gap + 2 * PdfTextWrapper.lineHeight(heading) <= bottom) {
                         "اسم المريض أطول من مساحة البطاقة"
@@ -308,7 +308,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     val labelHeight = PdfTextWrapper.lineHeight(heading)
                     val requiredHeight = gap + labelHeight + lines.size * PdfTextWrapper.lineHeight(body) + gap
                     val freshTop = topMargin + padding +
-                        PdfTextWrapper.wrap(patient.name, name, right - left).size * PdfTextWrapper.lineHeight(name) + 2 * titlePadding + gap
+                        PdfTextWrapper.wrap(patient.displayName, name, right - left).size * PdfTextWrapper.lineHeight(name) + 2 * titlePadding + gap
                     val keepOnFreshPage = section.keepTogether && requiredHeight <= bottom - freshTop && y + requiredHeight > bottom
                     if (keepOnFreshPage || y + gap + labelHeight + (if (lines.isEmpty()) 0f else PdfTextWrapper.lineHeight(body)) > bottom) {
                         newPage(documentLabel, index = false)
