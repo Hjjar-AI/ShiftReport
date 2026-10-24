@@ -4,10 +4,11 @@ Feature summaries; [current behavior/evidence](current-state.md) · [unfinished 
 
 ## 24 October 2026 — reviewed sync and checklist simplification
 
+- Owner `installDebug` subsequently passed (3m36s) and installed on PPA-LX2/Android10, resolving the four compiler errors (rollover timestamp scope, two flat-settings references, composable plural in semantics). Subsequent warning cleanup removes unused private arguments/locals and explicitly marks retained compatibility parameters; diff/source checks only, no rebuild. Installation does not verify app workflows.
 - Android: recoverable fetch choices, combined doctor/patient review/publication, captured CSV/text/PDF with later edits pending, two-hour late-handover publication, confirmed admin previous-CSV rollback/older-remote override, bounded sync cache, permanent pending/publication chip, device-local report status, flat grouped settings and inline one-use uncertain-delivery resolution.
 - Plain checklist behavior across Android/desktop; imported legacy columns retained. Existing twelve task-related test files updated (not run); no new tests. Repository completion stamps, local revision/role/admin checks, encryption and reviewed destinations retained.
 - Persisted re-lock PIN throttle/five-minute unset lock default/neutral privacy cover; persisted edit drafts, stale-editor warning/optional differences, structured readiness links/ready state, field-specific errors, persistent report order instead of local-only pins, admission/ordinal unnamed labels and screenshot explanation. Removed deadline minute updates and guarded needless activity reloads. Broad whole-screen extraction/whole-repository string sweep were not treated as evidenced defects; focused new UI strings use resources.
-- Checks: production Python3.8 grammar, Android values XML, changed Kotlin delimiters/default string references and `git diff --check`. Source checks do not establish Kotlin compilation, runtime accessibility, device behavior or transport success. No builds, test execution, migration/version changes, staging or commits.
+- Checks: production Python3.8 grammar, Android values XML, changed Kotlin delimiters/default string references and `git diff --check`. Source checks do not establish Kotlin compilation, runtime accessibility, device behavior or transport success. No agent-run builds, test execution, migration/version changes, staging or commits.
 
 ## Clinical and security
 

@@ -32,6 +32,8 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
+// Keep the former personal-task argument source-compatible; all pending checklist items are shown.
+@Suppress("UNUSED_PARAMETER")
 internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: Long,
     onDismiss: () -> Unit, onPatient: (String) -> Unit, currentDoctorId: String? = null,
     editable: Boolean = false, snackbarHost: SnackbarHostState,
@@ -103,6 +105,8 @@ private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: Str
 }
 
 @Composable
+// Legacy row presentation arguments remain compatible; pending rows need only checklist text.
+@Suppress("UNUSED_PARAMETER")
 internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
     names: Map<String, String>, now: Long, onPatient: (String) -> Unit,
     editable: Boolean = false, onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit = {}) {

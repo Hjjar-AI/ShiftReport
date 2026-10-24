@@ -115,6 +115,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val sectionGap = cardDensity.sectionGap
     val taskCounts = remember(patient.tasks, taskNowEpochMillis) { PatientTasks.counts(patient.tasks, taskNowEpochMillis) }
     val badgesLabel = uiPlural(R.plurals.patient_badges, patient.badges.size)
+    val pendingTasksLabel = uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending)
     val clinicalColors = LocalClinicalColors.current
     val visibleBadges = remember(patient.badges, expanded) {
         if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
@@ -155,7 +156,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     if (patient.badges.isNotEmpty()) {
                         append(uiText(R.string.ui_patient_card_002)).append(badgesLabel)
                     }
-                    if (patient.tasks.isNotEmpty()) append(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending))
+                    if (patient.tasks.isNotEmpty()) append(pendingTasksLabel)
                     if (pinned) append(uiText(R.string.ui_patient_card_005))
                     append(uiText(R.string.ui_patient_card_002)).append(relativeFreshness(uiText, patient.updatedAt))
                 }

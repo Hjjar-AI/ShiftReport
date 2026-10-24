@@ -14,6 +14,8 @@ internal fun wardSearchIndex(patients: List<Patient>): Map<String, List<String>>
         patient.tasks.joinToString(" ") { it.description }).map(ArabicSearchNormalizer::normalize)
 }
 
+// Retain the legacy time argument for callers; checklist filtering is time-independent.
+@Suppress("UNUSED_PARAMETER")
 internal fun filterWardPatients(
     patients: List<Patient>, filters: WardFilterOptions, currentDoctorId: String,
     nowEpochMillis: Long, pinnedPatientIds: Set<String>, searchIndex: Map<String, List<String>>

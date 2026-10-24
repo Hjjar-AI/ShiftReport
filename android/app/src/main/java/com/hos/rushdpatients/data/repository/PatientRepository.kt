@@ -62,7 +62,7 @@ class PatientRepository @Inject constructor(
                 if (patients.isNotEmpty()) {
                     val now = Instant.now()
                     dao.upsertAll(
-                        patients.map { PatientMapper.toEntity(if (preserveUpdatedAt) it else it.copy(updatedAt = now), shiftId) }
+                        patients.map { PatientMapper.toEntity(it.copy(updatedAt = now), shiftId) }
                     )
                 }
             }

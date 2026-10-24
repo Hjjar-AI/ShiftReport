@@ -132,7 +132,6 @@ private fun WardWorkspaceContent(
     var searchQuery by filtersState::searchQuery
     var viewMode by filtersState::viewMode
     var newAdmissionsOnly by filtersState::newAdmissionsOnly
-    var taskFilter by filtersState::taskFilter
     var previousRequestedView by rememberSaveable { mutableStateOf(initialView) }
     LaunchedEffect(initialView) {
         if (initialView != null && previousRequestedView != initialView) {

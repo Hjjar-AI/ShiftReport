@@ -53,6 +53,8 @@ internal class PatientPublicationCoordinator(
     private val database: AppDatabase
 ) {
 
+    // Legacy force argument is retained for callers; every review captures a complete replacement.
+    @Suppress("UNUSED_PARAMETER")
     suspend fun prepareCsvPublication(shiftId: String, forceLocal: Boolean = false, reviewed: BuiltReport? = null): CsvPublicationReview = patientSyncMutex.withLock {
         withContext(dispatchers.io) {
             val source = requireNotNull(remoteState.readState()) { "فهرس المشروع غير متاح؛ أعد الجلب" }

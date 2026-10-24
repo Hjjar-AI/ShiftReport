@@ -44,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import android.app.TimePickerDialog
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -112,7 +111,7 @@ internal fun PatientTaskEditor(
             style = MaterialTheme.typography.bodySmall)
     }
     formState.taskDraft?.let { draft ->
-        TaskDraftDialog(state = draft, doctors = doctors.filterNot { it.isDeleted }, enabled = enabled,
+        TaskDraftDialog(state = draft, enabled = enabled,
             onDismiss = { formState.taskDraft = null },
             onConfirm = { task ->
                 onChange(if (draft.initial == null) tasks + task else tasks.map { if (it.id == task.id) task else it })
@@ -163,14 +162,13 @@ private fun TaskDraftRow(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskDraftDialog(
-    state: TaskDraftState, doctors: List<Doctor>, enabled: Boolean,
+    state: TaskDraftState, enabled: Boolean,
     onDismiss: () -> Unit, onConfirm: (PatientTask) -> Unit
 ) {
     val uiText = rememberUiStrings()
     var description by state::description
     var confirmDiscard by state::confirmDiscard
     val initial = state.initial
-    val context = LocalContext.current
     val requestDismiss: () -> Unit = {
         if (enabled) {
             if (listOf(description) != state.initialValues) confirmDiscard = true

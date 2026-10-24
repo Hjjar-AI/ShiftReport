@@ -356,8 +356,8 @@ fun SettingsScreen(
                                 state, viewModel, showRecovery, { showRecovery = !showRecovery },
                                 { confirmUndoDownload = true }, { confirmFetch = true })
                             SettingsSectionId.DOCTORS -> SettingsDoctorSyncContent(state, canManageProject, onOpenDoctors)
-                            SettingsSectionId.FILES -> SettingsFilesContent(state, viewModel, canManageProject, onOpenVbaImport, showHeading = !collapsible)
-                            SettingsSectionId.BACKUP -> SettingsBackupContent(state, { backupPassword = ""; backupDialogMode = "export" }, { openBackup.launch(arrayOf("application/octet-stream", "*/*")) }, showHeading = !collapsible)
+                            SettingsSectionId.FILES -> SettingsFilesContent(state, viewModel, canManageProject, onOpenVbaImport, showHeading = false)
+                            SettingsSectionId.BACKUP -> SettingsBackupContent(state, { backupPassword = ""; backupDialogMode = "export" }, { openBackup.launch(arrayOf("application/octet-stream", "*/*")) }, showHeading = false)
                             SettingsSectionId.CONNECTION -> SettingsConnectionContent(canManageProject)
                             SettingsSectionId.RESET -> SettingsResetContent(state, viewModel)
                             SettingsSectionId.INVITATIONS -> SettingsInvitationsContent(state, { provisioningPassphrase = ""; provisioningDialog = true })
