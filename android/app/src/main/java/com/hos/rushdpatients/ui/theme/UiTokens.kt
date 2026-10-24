@@ -97,6 +97,7 @@ object UiLayout {
     const val expandedWindowWidthDp = 600
     const val expandedWindowMinHeightDp = 480
     val fieldPairMinWidth = 360.dp
+    val patientFieldPairMinWidth = 280.dp
     val patientGridMinWidth = 360.dp
     val patientCardColumnsMinWidth = 440.dp
     val emptyWardMaxWidth = 520.dp

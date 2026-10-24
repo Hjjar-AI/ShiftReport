@@ -12,7 +12,7 @@ import java.time.LocalDate
 
 /** Editable clinical values only. Retained in memory by the ward ViewModel, never in a Bundle. */
 internal class PatientFormState(initial: Patient?, draft: PatientDraft?) {
-    var extrasExpanded by mutableStateOf(false)
+    var extrasExpanded by mutableStateOf(initial != null)
     var taskDraft by mutableStateOf<TaskDraftState?>(null)
     var tasks by mutableStateOf(initial?.tasks ?: draft?.tasks.orEmpty())
     var admittanceNumber by mutableStateOf(initial?.admittanceNumber ?: draft?.admittanceNumber.orEmpty())

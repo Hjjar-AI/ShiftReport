@@ -7,15 +7,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 /** Two related controls keep their own state and callbacks when their arrangement changes. */
 @Composable
 fun AppFieldPair(modifier: Modifier = Modifier, separator: String? = null, stackWhenNarrow: Boolean = true,
+    minimumRowWidth: Dp = UiLayout.fieldPairMinWidth,
     first: @Composable (Modifier) -> Unit, second: @Composable (Modifier) -> Unit) {
     val fontScale = com.hos.rushdpatients.ui.theme.uiLayoutScale()
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (stackWhenNarrow && maxWidth < UiLayout.fieldPairMinWidth * fontScale) {
+        if (stackWhenNarrow && maxWidth < minimumRowWidth * fontScale) {
             Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 first(Modifier.fillMaxWidth())
                 separator?.let { Text(it, style = MaterialTheme.typography.labelMedium) }

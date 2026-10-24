@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.UiLayout
 import java.time.LocalDate
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -46,41 +47,9 @@ internal fun PatientDemographicFields(
 ) {
     val uiText = rememberUiStrings()
     AppSectionHeader(
-        uiText(R.string.ui_patient_demographic_fields_001),
-        complete = admittanceNumber.isNotBlank() && admittanceDate != null,
-        modifier = personalAnchor
-    )
-    AppFieldPair(
-        stackWhenNarrow = true,
-        first = { fieldModifier ->
-            AppTextField(
-                value = admittanceNumber,
-                onValueChange = onAdmissionNumberChanged,
-                label = { Text(uiText(R.string.ui_patient_demographic_fields_002)) },
-                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
-                singleLine = true,
-                textStyle = autoStyle,
-                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_NUMBER },
-                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_NUMBER }?.message,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-            )
-        },
-        second = { fieldModifier ->
-            DateField(
-                value = admittanceDate,
-                onValueChange = onAdmissionDateChanged,
-                label = uiText(R.string.ui_patient_demographic_fields_003),
-                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
-                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,
-                supportingText = admissionDays?.let { uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)) },
-                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
-            )
-        }
-    )
-
-    AppSectionHeader(
         uiText(R.string.ui_patient_demographic_fields_005),
-        complete = name.isNotBlank() && birthYear != null && age != null
+        complete = name.isNotBlank() && birthYear != null && age != null,
+        modifier = personalAnchor
     )
     AppTextField(
         value = name,
@@ -94,7 +63,7 @@ internal fun PatientDemographicFields(
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
     )
     AppFieldPair(
-        stackWhenNarrow = true,
+        minimumRowWidth = UiLayout.patientFieldPairMinWidth,
         separator = uiText(R.string.ui_or),
         first = { fieldModifier ->
             AppTextField(
@@ -167,4 +136,36 @@ internal fun PatientDemographicFields(
         AppToggleRow(title = uiText(R.string.ui_patient_demographic_fields_013), checked = hasCompanion,
             onCheckedChange = onCompanionChanged, enabled = !saving, modifier = Modifier.weight(.85f))
     }
+
+    AppSectionHeader(
+        uiText(R.string.ui_patient_demographic_fields_001),
+        complete = admittanceNumber.isNotBlank() && admittanceDate != null
+    )
+    AppFieldPair(
+        minimumRowWidth = UiLayout.patientFieldPairMinWidth,
+        first = { fieldModifier ->
+            AppTextField(
+                value = admittanceNumber,
+                onValueChange = onAdmissionNumberChanged,
+                label = { Text(uiText(R.string.ui_patient_demographic_fields_002)) },
+                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
+                singleLine = true,
+                textStyle = autoStyle,
+                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_NUMBER },
+                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_NUMBER }?.message,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+            )
+        },
+        second = { fieldModifier ->
+            DateField(
+                value = admittanceDate,
+                onValueChange = onAdmissionDateChanged,
+                label = uiText(R.string.ui_patient_demographic_fields_003),
+                isError = validationMessages.any { it.field == PatientFormField.ADMISSION_DATE },
+                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.ADMISSION_DATE }?.message,
+                supportingText = admissionDays?.let { uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)) },
+                modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_DATE))
+            )
+        }
+    )
 }

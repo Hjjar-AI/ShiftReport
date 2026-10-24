@@ -22,14 +22,15 @@ import kotlin.coroutines.coroutineContext
 internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val width = PdfPaperSize.A5.widthPoints
     private val height = PdfPaperSize.A5.heightPoints
-    private val margin = 5f * 72f / 25.4f
-    private val topMargin = 20f * 72f / 25.4f
-    private val bottomMargin = 10f * 72f / 25.4f
-    private val padding = 8f
-    private val titlePadding = 3f
-    private val navigationPadding = 3f
-    private val navigationInset = 3f
-    private val gap = 6f
+    private val margin = 4f * 72f / 25.4f
+    private val topMargin = 12f * 72f / 25.4f
+    private val bottomMargin = 8f * 72f / 25.4f
+    private val padding = 5f
+    private val titlePadding = 2f
+    private val navigationPadding = 2f
+    private val navigationInset = 2f
+    private val gap = 4f
+    private val treatmentColumnGap = 8f
     private val left = margin + padding
     private val right = width - margin - padding
     private val cardBottom = height - bottomMargin
@@ -69,7 +70,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private data class IndexEntry(val page: Int, val rect: RectF)
     private data class CardPage(val patientIndex: Int, val page: Int, val rects: List<RectF>)
     private data class BadgeCell(val width: Float, val lines: List<String>, val foreground: Int, val background: Int, val border: Int)
-    private data class Section(val title: String, val text: String, val urgent: Boolean = false, val keepTogether: Boolean = false, val alwaysShow: Boolean = false)
+    private data class Section(val title: String, val text: String, val urgent: Boolean = false, val keepTogether: Boolean = false, val alwaysShow: Boolean = false, val allowColumns: Boolean = false)
 
     suspend fun export(
         patients: List<Patient>, doctors: List<Doctor>, summary: ReportSummary,
@@ -110,13 +111,22 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             indexText("${summary.shiftDate} · ${summary.patientCount} مريض · ${summary.psychoCount} حالة نفسية · ${summary.escortCount} مرافق", metadataPaint, documentLabel)
             if (doctors.isNotEmpty()) indexText(ReportRosterLabel.forDoctors(doctors) + ": " +
                 doctors.joinToString(" / ") { it.fullName }, metadataPaint, documentLabel)
-            val indexGap = 8f
+            val indexGap = 5f
             val tilePadding = 2f
             val rowHeight = 28f
             val tileWidth = (right - left - 2 * indexGap) / 3f
-            patients.chunked(3).forEach { row ->
+            var firstPatient = 0
+            while (firstPatient < patients.size) {
                 coroutineContext.ensureActive()
-                val fitted = row.map { patient ->
+                if (y + rowHeight > bottom) newPage(documentLabel, index = true)
+                val capacity = ((bottom - y + 1f) / (rowHeight + 1f)).toInt()
+                check(capacity > 0) { "اسم المريض أطول من مساحة صفحة الفهرس" }
+                val count = minOf(patients.size - firstPatient, capacity * 3)
+                val rows = (count + 2) / 3
+                val gridTop = y
+                // Fill each RTL column downward before advancing to the next column.
+                repeat(count) { offset ->
+                    val patient = patients[firstPatient + offset]
                     val text = "${patient.sortOrder} · ${patient.name}"
                     val paint = Paint(heading).apply { textSize = 14f }
                     val availableWidth = tileWidth - 2 * tilePadding
@@ -133,29 +143,25 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                         paint.textSize = low
                     }
                     check(fits()) { "اسم المريض أطول من مساحة خلية الفهرس" }
-                    paint to PdfTextWrapper.wrap(text, paint, availableWidth)
-                }
-                if (y + rowHeight > bottom) {
-                    newPage(documentLabel, index = true)
-                }
-                check(y + rowHeight <= bottom) { "اسم المريض أطول من مساحة صفحة الفهرس" }
-                val top = y
-                fitted.forEachIndexed { column, (indexLink, wrapped) ->
+                    val wrapped = PdfTextWrapper.wrap(text, paint, availableWidth)
+                    val column = offset / rows
+                    val top = gridTop + (offset % rows) * (rowHeight + 1f)
                     val end = right - column * (tileWidth + indexGap)
                     val rect = RectF(end - tileWidth, top, end, top + rowHeight)
                     canvas.drawRoundRect(rect, 3f, 3f, outline)
-                    val textHeight = wrapped.size * PdfTextWrapper.lineHeight(indexLink)
+                    val textHeight = wrapped.size * PdfTextWrapper.lineHeight(paint)
                     canvas.save()
                     canvas.clipRect(rect.left + tilePadding, rect.top + tilePadding,
                         rect.right - tilePadding, rect.bottom - tilePadding)
                     wrapped.forEachIndexed { lineIndex, line ->
                         canvas.drawText(directed(line), end - tilePadding,
-                            top + (rowHeight - textHeight) / 2f + lineIndex * PdfTextWrapper.lineHeight(indexLink) - indexLink.fontMetrics.top, indexLink)
+                            top + (rowHeight - textHeight) / 2f + lineIndex * PdfTextWrapper.lineHeight(paint) - paint.fontMetrics.top, paint)
                     }
                     canvas.restore()
                     entries += IndexEntry(pageIndex, rect)
                 }
-                y = top + rowHeight + 1f
+                firstPatient += count
+                y = gridTop + rows * (rowHeight + 1f)
             }
             patients.forEachIndexed { index, patient ->
                 coroutineContext.ensureActive()
@@ -183,7 +189,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 destinations += Anchor(pageIndex, topMargin)
                 cardHeader()
                 // RTL introduction: patient identity, admission, responsible team.
-                val columnGap = 10f
+                val columnGap = 6f
                 val columnWidth = (right - left - 2 * columnGap) / 3f
                 val introColumns = listOf(
                     Triple("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames), left + columnWidth),
@@ -227,9 +233,9 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     }
                 val badgePaint = Paint(body).apply { typeface = fonts.bold }
                 val badgeLineHeight = PdfTextWrapper.lineHeight(badgePaint)
-                val badgeXPadding = 6f
-                val badgeYPadding = 4f
-                val badgeGap = 6f
+                val badgeXPadding = 4f
+                val badgeYPadding = 2f
+                val badgeGap = 4f
                 val visibleBadges = patient.badges.filter { it.text.isNotBlank() }
                 val maximumBadgeWidth = if (visibleBadges.size > 1) (right - left - badgeGap) / 2f else right - left
                 suspend fun drawBadgeRow(cells: List<BadgeCell>) {
@@ -263,7 +269,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                             }
                             end -= cell.width + badgeGap
                         }
-                        y += height + 4f
+                        y += height + 3f
                         offset += take
                         if (offset < count) { newPage(documentLabel, index = false); cardHeader() }
                     }
@@ -286,7 +292,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 if (badgeRow.isNotEmpty()) drawBadgeRow(badgeRow)
                 val sections = listOf(
                     Section("التشخيص · ${patient.diagnosisType.arabicLabel}", patient.initialDiagnosis, alwaysShow = true),
-                    Section(PdfStrings.HEADER_TREATMENT, patient.treatmentPlan),
+                    Section(PdfStrings.HEADER_TREATMENT, patient.treatmentPlan, allowColumns = true),
                     Section("المتابعة", patient.followUp),
                     Section("المهام (${tasks.size})", taskText,
                         urgent = tasks.any { PatientTasks.overdue(it, options.generatedAtEpochMillis) ||
@@ -298,6 +304,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     val text = section.text
                     val titlePaint = if (section.urgent) urgentHeading else heading
                     val lines = if (text.isBlank()) emptyList() else PdfTextWrapper.wrap(text, body, right - left)
+                    val columns = if (section.allowColumns) treatmentColumns(text, lines.size) else null
                     val labelHeight = PdfTextWrapper.lineHeight(heading)
                     val requiredHeight = gap + labelHeight + lines.size * PdfTextWrapper.lineHeight(body) + gap
                     val freshTop = topMargin + padding +
@@ -310,13 +317,57 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     canvas.drawLine(left, y, right, y, divider)
                     y += gap
                     drawLine(title, titlePaint)
-                    lines.forEach { line ->
-                        if (y + PdfTextWrapper.lineHeight(body) > bottom) {
-                            newPage(documentLabel, index = false)
-                            cardHeader()
-                            drawLine("$title (تابع)", titlePaint)
+                    if (columns != null) {
+                        var offset = 0
+                        while (offset < columns.lines.size) {
+                            var capacity = ((bottom - y) / PdfTextWrapper.lineHeight(body)).toInt()
+                            if (capacity < 1) {
+                                newPage(documentLabel, index = false)
+                                cardHeader()
+                                drawLine("$title (تابع)", titlePaint)
+                                capacity = ((bottom - y) / PdfTextWrapper.lineHeight(body)).toInt()
+                            }
+                            check(capacity > 0) { "لا توجد مساحة لعرض العلاج" }
+                            val limit = minOf(columns.lines.size, offset + 2 * capacity)
+                            // Leave room unused rather than split a source line when both columns can fit it.
+                            val wholeLines = columns.boundaries.asReversed().asSequence()
+                                .filter { it > offset && it <= limit }
+                                .mapNotNull { end ->
+                                    val count = end - offset
+                                    val split = columns.boundaries.asSequence().map { it - offset }
+                                        .filter { it in maxOf(1, count - capacity)..minOf(capacity, count) }
+                                        .minWithOrNull(compareBy<Int> { kotlin.math.abs(2 * it - count) }.thenByDescending { it })
+                                    split?.let { end to it }
+                                }.firstOrNull()
+                            val end = wholeLines?.first ?: limit
+                            val count = end - offset
+                            val split = wholeLines?.second ?: minOf(capacity, (count + 1) / 2)
+                            val top = y
+                            for (column in 0..1) {
+                                val start = offset + if (column == 0) 0 else split
+                                val finish = offset + if (column == 0) split else count
+                                for (lineIndex in start until finish) {
+                                    canvas.drawText(directed(columns.lines[lineIndex]), right - column * (columns.width + treatmentColumnGap),
+                                        top + (lineIndex - start) * PdfTextWrapper.lineHeight(body) - body.fontMetrics.top, body)
+                                }
+                            }
+                            y = top + maxOf(split, count - split) * PdfTextWrapper.lineHeight(body)
+                            offset = end
+                            if (offset < columns.lines.size) {
+                                newPage(documentLabel, index = false)
+                                cardHeader()
+                                drawLine("$title (تابع)", titlePaint)
+                            }
                         }
-                        drawLine(line, body)
+                    } else {
+                        lines.forEach { line ->
+                            if (y + PdfTextWrapper.lineHeight(body) > bottom) {
+                                newPage(documentLabel, index = false)
+                                cardHeader()
+                                drawLine("$title (تابع)", titlePaint)
+                            }
+                            drawLine(line, body)
+                        }
                     }
                     y += gap
                 }
@@ -351,6 +402,21 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private fun finishPage() {
         page?.let { document.finishPage(it) }
         page = null
+    }
+
+    private data class TreatmentColumns(val lines: List<String>, val boundaries: List<Int>, val width: Float)
+
+    private fun treatmentColumns(text: String, fullLineCount: Int): TreatmentColumns? {
+        val paragraphs = text.replace("\r\n", "\n").replace('\r', '\n').split('\n')
+        if (paragraphs.count { it.isNotBlank() } < 4) return null
+        val width = (right - left - treatmentColumnGap) / 2f
+        val lines = mutableListOf<String>()
+        val boundaries = paragraphs.map { paragraph ->
+            lines += PdfTextWrapper.wrap(paragraph, body, width)
+            lines.size
+        }
+        val height = boundaries.dropLast(1).minOfOrNull { maxOf(it, lines.size - it) } ?: return null
+        return if (height < fullLineCount) TreatmentColumns(lines, boundaries, width) else null
     }
 
     private suspend fun newPage(documentLabel: String?, index: Boolean) {

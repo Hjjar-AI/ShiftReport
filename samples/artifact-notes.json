@@ -1,15 +1,24 @@
 {
   "dataset": "synthetic-patients-50.csv",
   "patients": 50,
+  "uniqueNames": 50,
+  "nameCategories": {
+    "iceCream": 18,
+    "hotDrinks": 16,
+    "syrianFood": 16
+  },
+  "enrichedPatients": 30,
   "tasks": 112,
   "completedTasks": 13,
   "badgedPatients": 28,
   "priorityPatients": 10,
-  "pdfPages": 74,
+  "pdfPages": 64,
   "firstIndexPageLinks": 50,
-  "internalFitLinks": 338,
+  "internalFitLinks": 298,
+  "validFitLinks": 298,
+  "indexOrder": "top-to-bottom within each column, right-to-left",
   "visualInspection": [
-    "prior index/dark color snapshots; refreshed side-by-side badges on card page 18"
+    "Earlier column-first index/enriched/priority cards; current two medication examples and long two-column treatment continuation"
   ],
   "limits": [
     "No app import or Telegram operation",
@@ -17,18 +26,24 @@
     "No test-suite execution"
   ],
   "sha256": {
-    "synthetic-patients-50.csv": "0ad77c3dcd7b222a5c498b6b12a566f421ca62076370cd932f0bef74edb2be5a",
-    "synthetic-patients-50-A5.pdf": "e5bef0293385fbb0a003ac98c5e347a756d5192d66047d762631027888d96574"
+    "synthetic-patients-50.csv": "b57487c48354b13dfa3fdec04fd95e5865c13e6f13883d42a3bd0baf54f2c28b",
+    "synthetic-patients-50-A5.pdf": "7c01809a5850d0adfc3ab2564eb303ce7bdca79dcd24b9f55973f2b9df3cb123"
   },
   "indexCellHeightPt": 28,
   "indexDefaultFontPt": 14,
-  "longNameExamples": 2,
   "groupedTaskDescriptions": 112,
-  "titlePaddingPt": 3,
-  "navigationPaddingPt": 3,
-  "navigationBottomInsetPt": 3,
+  "sideMarginMm": 4,
+  "topMarginMm": 12,
+  "bottomMarginMm": 8,
+  "bodyPaddingPt": 5,
+  "sectionGapPt": 4,
+  "titlePaddingPt": 2,
+  "navigationPaddingPt": 2,
+  "navigationBottomInsetPt": 2,
   "badgePillCount": 35,
-  "badgeHorizontalGapPt": 6,
-  "badgeHorizontalPaddingPt": 6,
-  "badgeVerticalPaddingPt": 4
+  "badgeHorizontalGapPt": 4,
+  "badgeHorizontalPaddingPt": 4,
+  "badgeVerticalPaddingPt": 2,
+  "treatmentColumns": "Two RTL columns for 4+ nonempty source lines when wrapping saves height; 8pt gap; original-line boundaries preferred",
+  "treatmentPreview": "Both supplied lists visually inspected in a separate 3-page DEMO preview; long treatment continuation also inspected; Android uncompiled"
 }

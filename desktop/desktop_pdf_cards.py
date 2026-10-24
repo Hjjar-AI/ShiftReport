@@ -13,12 +13,14 @@ from desktop_tasks import read_tasks, ordered_for_display, status_label, metadat
 
 
 WIDTH, HEIGHT = 420, 595
-SIDE = 5 * 72 / 25.4
-TOP = 20 * 72 / 25.4
-BOTTOM = 10 * 72 / 25.4
-PADDING, GAP = 8, 6
-TITLE_PADDING, NAV_PADDING, NAV_INSET = 3, 3, 3
+SIDE = 4 * 72 / 25.4
+TOP = 12 * 72 / 25.4
+BOTTOM = 8 * 72 / 25.4
+PADDING, GAP = 5, 4
+TITLE_PADDING, NAV_PADDING, NAV_INSET = 2, 2, 2
 LEFT, RIGHT = SIDE + PADDING, WIDTH - SIDE - PADDING
+TREATMENT_TITLE = 'الخطة العلاجية'
+TREATMENT_COLUMN_GAP = 8
 
 
 class _Paint:
@@ -182,7 +184,7 @@ class _Cards:
 
     def patient_badges(self, index, row):
         paint = _Paint(11.5, self.body.color, True)
-        x_padding, y_padding, badge_gap = 6, 4, 6
+        x_padding, y_padding, badge_gap = 4, 2, 4
         badges = [(text, priority) for text, priority in badges_decode(row.get('warningDetails', '')) if text.strip()]
         maximum_width = (RIGHT - LEFT - badge_gap) / 2 if len(badges) > 1 else RIGHT - LEFT
         def draw_row(cells):
@@ -212,7 +214,7 @@ class _Cards:
                         for n, line in enumerate(chunk):
                             self.draw(line, text_paint, self.y + (height - len(chunk) * paint.height) / 2 + n * paint.height, right=end - x_padding)
                     end -= width + badge_gap
-                self.y += height + 4
+                self.y += height + 3
                 offset += take
                 if offset < count:
                     self.new_page(); self.header(index)
@@ -231,12 +233,58 @@ class _Cards:
         if cells:
             draw_row(cells)
 
+    def treatment_columns(self, value, full_line_count):
+        paragraphs = value.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        if sum(bool(p.strip()) for p in paragraphs) < 4:
+            return None
+        width = (RIGHT - LEFT - TREATMENT_COLUMN_GAP) / 2
+        lines, boundaries = [], []
+        for paragraph in paragraphs:
+            lines.extend(self.wrap(paragraph, self.body, width))
+            boundaries.append(len(lines))
+        height = min(max(n, len(lines) - n) for n in boundaries[:-1])
+        return (lines, boundaries, width) if height < full_line_count else None
+
+    def draw_treatment_columns(self, index, title, paint, columns):
+        lines, boundaries, width = columns
+        offset = 0
+        while offset < len(lines):
+            capacity = int((self.bottom - self.y) / self.body.height)
+            if capacity < 1:
+                self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
+                capacity = int((self.bottom - self.y) / self.body.height)
+            require(capacity > 0, 'لا توجد مساحة لعرض العلاج')
+            limit = min(len(lines), offset + 2 * capacity)
+            # Prefer leaving unused space over splitting an original line between columns.
+            end, split = limit, None
+            for candidate_end in reversed(boundaries):
+                if not offset < candidate_end <= limit:
+                    continue
+                count = candidate_end - offset
+                candidates = [n - offset for n in boundaries if max(1, count - capacity) <= n - offset <= min(capacity, count)]
+                if candidates:
+                    end = candidate_end
+                    split = min(candidates, key=lambda n: (abs(2 * n - count), -n))
+                    break
+            count = end - offset
+            if split is None:
+                split = min(capacity, (count + 1) // 2)
+            top = self.y
+            for column, chunk in enumerate([lines[offset:offset + split], lines[offset + split:end]]):
+                for n, line in enumerate(chunk):
+                    self.draw(line, self.body, top + n * self.body.height, right=RIGHT - column * (width + TREATMENT_COLUMN_GAP))
+            self.y = top + max(split, count - split) * self.body.height
+            offset = end
+            if offset < len(lines):
+                self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
+
     def content(self, row):
-        personal = '[أولوية]' if row.get('isPriority') == 'Y' else ''
+        personal = GENDER.get(row.get('gender', 'M'), 'ذكر')
         birth = row.get('birthDate')
         if birth:
-            personal += ('\n' if personal else '') + '{} • {} سنة'.format(birth[:4], max(0, self.now.year - int(birth[:4])))
-        personal += (' • ' if personal else '') + GENDER.get(row.get('gender', 'M'), 'ذكر')
+            personal += '\n{} • {} سنة'.format(birth[:4], max(0, self.now.year - int(birth[:4])))
+        if row.get('isPriority') == 'Y':
+            personal += '\n[أولوية]'
         if row.get('hasCompanion') == 'Y':
             personal += '\n(مرافق)'
         admit = row.get('admitNum', '') + '\n---\n'
@@ -247,7 +295,7 @@ class _Cards:
         team = '\n---\n'.join(doctors.get(row[key], {}).get('name') or 'طبيب محفوظ' for key in
                                 ['responsibleSupervisorId', 'responsibleResidentId'] if row.get(key))
         sections = [('التشخيص · ' + DIAGNOSIS[row.get('diagnosisType', 'PSYCHIATRIC')], row.get('initialDiagnosis', ''), False, False, True),
-                    ('الخطة العلاجية', row.get('treatmentPlan', ''), False, False, False),
+                    (TREATMENT_TITLE, row.get('treatmentPlan', ''), False, False, False),
                     ('المتابعة', row.get('followUp', ''), False, False, False)]
         tasks = ordered_for_display(read_tasks(row), self.now_ms)
         groups = {}
@@ -272,13 +320,21 @@ class _Cards:
         doctors = [self.client.doctors[key] for key in self.shift['meta'].get('doctors', '').split(',') if key in self.client.doctors]
         if doctors:
             self.index_text(roster_label(doctors) + ': ' + ' / '.join(d['name'] for d in doctors), self.body)
-        index_gap, tile_padding, height = 8, 2, 28
+        index_gap, tile_padding, height = 5, 2, 28
         tile_width = (RIGHT - LEFT - 2 * index_gap) / 3
-        for start in range(0, len(self.patients), 3):
-            row = self.patients[start:start + 3]
-            fitted = []
-            for col, patient in enumerate(row):
-                value = '{} · {}'.format(start + col + 1, patient['name'])
+        first = 0
+        while first < len(self.patients):
+            if self.y + height > self.bottom:
+                self.new_page(index=True)
+            capacity = int((self.bottom - self.y + 1) / (height + 1))
+            require(capacity > 0, 'اسم المريض أطول من مساحة صفحة الفهرس')
+            count = min(len(self.patients) - first, capacity * 3)
+            rows = (count + 2) // 3
+            grid_top = self.y
+            # Fill the rightmost column downward, then move left.
+            for offset in range(count):
+                patient = self.patients[first + offset]
+                value = '{} · {}'.format(first + offset + 1, patient['name'])
                 paint = _Paint(14, self.heading.color, True)
                 available_width = tile_width - 2 * tile_padding
                 available_height = height - 2 * tile_padding
@@ -294,14 +350,11 @@ class _Cards:
                             high = candidate.size
                     paint = _Paint(low, self.heading.color, True)
                 require(fits(paint), 'اسم المريض أطول من مساحة خلية الفهرس')
-                fitted.append((paint, self.wrap(value, paint, available_width)))
-            if self.y + height > self.bottom:
-                self.new_page(index=True)
-            require(self.y + height <= self.bottom, 'اسم المريض أطول من مساحة صفحة الفهرس')
-            top = self.y
-            for col, (index_link, wrapped) in enumerate(fitted):
+                wrapped = self.wrap(value, paint, available_width)
+                col, row = divmod(offset, rows)
+                top = grid_top + row * (height + 1)
                 end = RIGHT - col * (tile_width + index_gap)
-                self.canvas.bookmarkPage('entry-' + str(start + col), fit='Fit')
+                self.canvas.bookmarkPage('entry-' + str(first + offset), fit='Fit')
                 self.canvas.setStrokeColor(HexColor(self.colors['border']))
                 self.canvas.setLineWidth(.5)
                 self.canvas.roundRect(end - tile_width, HEIGHT - top - height, tile_width, height, 3, stroke=1, fill=0)
@@ -310,18 +363,19 @@ class _Cards:
                 clip.rect(end - tile_width + tile_padding, HEIGHT - top - height + tile_padding,
                           tile_width - 2 * tile_padding, height - 2 * tile_padding)
                 self.canvas.clipPath(clip, stroke=0, fill=0)
-                text_top = top + (height - len(wrapped) * index_link.height) / 2
+                text_top = top + (height - len(wrapped) * paint.height) / 2
                 for n, line in enumerate(wrapped):
-                    self.draw(line, index_link, text_top + n * index_link.height, right=end - tile_padding)
+                    self.draw(line, paint, text_top + n * paint.height, right=end - tile_padding)
                 self.canvas.restoreState()
-                self.link('patient-' + str(start + col), (end - tile_width, top, end, top + height))
-            self.y = top + height + 1
+                self.link('patient-' + str(first + offset), (end - tile_width, top, end, top + height))
+            first += count
+            self.y = grid_top + rows * (height + 1)
         for index, row in enumerate(self.patients):
             self.new_page()
             self.canvas.bookmarkPage('patient-' + str(index), fit='Fit')
             self.header(index)
             personal, admit, team, sections = self.content(row)
-            gap = 10
+            gap = 6
             column = (RIGHT - LEFT - 2 * gap) / 3
             intro_columns = [('الفريق المسؤول', team, LEFT + column),
                              ('القبول', admit, LEFT + 2 * column + gap),
@@ -348,6 +402,7 @@ class _Cards:
                     continue
                 paint = self.urgent if urgent else self.heading
                 lines = self.wrap(value, self.body, RIGHT - LEFT) if value.strip() else []
+                columns = self.treatment_columns(value, len(lines)) if title == TREATMENT_TITLE else None
                 needed = GAP + self.heading.height + len(lines) * self.body.height + GAP
                 fresh_top = TOP + PADDING + len(self.wrap(row['name'], self.name, RIGHT - LEFT)) * self.name.height + 2 * TITLE_PADDING + GAP
                 move_group = keep_together and needed <= self.bottom - fresh_top and self.y + needed > self.bottom
@@ -358,10 +413,13 @@ class _Cards:
                 self.canvas.line(LEFT, HEIGHT - self.y, RIGHT, HEIGHT - self.y)
                 self.y += GAP
                 self.line(title, paint)
-                for line in lines:
-                    if self.y + self.body.height > self.bottom:
-                        self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
-                    self.line(line, self.body)
+                if columns is not None:
+                    self.draw_treatment_columns(index, title, paint, columns)
+                else:
+                    for line in lines:
+                        if self.y + self.body.height > self.bottom:
+                            self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
+                        self.line(line, self.body)
                 self.y += GAP
         self.canvas.save()
         return self.page

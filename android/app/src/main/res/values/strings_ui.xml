@@ -1294,7 +1294,7 @@
     <string name="ui_back" formatted="false">"رجوع"</string>
     <string name="ui_demo_local_only">هذا العرض محلي ومؤقت؛ لا يتصل بالمشروع. تغيّرت البيانات؟ أعد فتح الإجراء وراجعه.</string>
     <string name="ui_report_preview_each_selected">افتح معاينة كل تقرير مختار قبل الإرسال.</string>
-    <string name="ui_patient_optional_section">المهام والأولوية والشارات</string>
+    <string name="ui_patient_optional_section">المهام وخيارات إضافية</string>
     <string name="ui_patient_optional_summary">المهام: %1$s · الشارات: %2$s</string>
     <string name="ui_report_setup_step">الأطباء والوجهات</string>
     <string name="ui_report_review_send_step">المعاينة والإرسال</string>

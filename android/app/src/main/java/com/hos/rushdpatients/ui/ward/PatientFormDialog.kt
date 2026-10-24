@@ -1,18 +1,13 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
-import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.components.AppFieldPair
-import com.hos.rushdpatients.ui.components.AppToggleRow
-import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppButton
@@ -23,15 +18,11 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -46,10 +37,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import kotlin.math.roundToInt
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDirection
 import com.hos.rushdpatients.data.model.DiagnosisType
@@ -57,9 +45,7 @@ import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientBadge
-import com.hos.rushdpatients.ui.theme.patientBadgeColors
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import com.hos.rushdpatients.data.model.PatientBadgePriority
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
@@ -83,6 +69,7 @@ internal fun PatientFormDialog(
     saving: Boolean,
     reviewAction: @Composable () -> Unit = {},
     entryOptions: @Composable () -> Unit = {},
+    entryOptionsSummary: String? = null,
     onDraftChanged: (PatientDraft) -> Unit = {},
     onConfirm: (Patient) -> Unit,
     onConfirmAndNext: ((Patient) -> Unit)? = null,
@@ -112,7 +99,6 @@ internal fun PatientFormDialog(
     var labDraft by formState::labDraft
     var residentId by formState::residentId
     var specialistId by formState::specialistId
-    var showBadgeEditor by remember(initial) { mutableStateOf(false) }
     val today = LocalDate.now()
     val currentYear = today.year
     var validationMessages by remember(initial) { mutableStateOf(emptyList<PatientFormError>()) }
@@ -181,6 +167,55 @@ internal fun PatientFormDialog(
             }, onGenderChanged = { gender = it }, onCompanionChanged = { hasCompanion = it })
     }
 
+    val teamFieldsContent: @Composable () -> Unit = {
+        AppSectionHeader(
+            uiText(R.string.ui_patient_form_dialog_014),
+            complete = residentId != null && specialistId != null && residentId != specialistId
+        )
+        AppFieldPair(
+            minimumRowWidth = com.hos.rushdpatients.ui.theme.UiLayout.patientFieldPairMinWidth,
+            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
+            first = { fieldModifier ->
+                DoctorDropdown(
+                    label = uiText(R.string.ui_patient_form_dialog_015),
+                    isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
+                    undefinedLabel = uiText(R.string.ui_patient_form_dialog_016),
+                    selectedId = residentId,
+                    doctors = residentDoctors, registry = doctors,
+                    onSelected = { residentId = it; validationMessages = emptyList() },
+                    modifier = fieldModifier
+                )
+            },
+            second = { fieldModifier ->
+                DoctorDropdown(
+                    label = uiText(R.string.ui_patient_form_dialog_017),
+                    isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
+                    undefinedLabel = uiText(R.string.ui_patient_form_dialog_018),
+                    selectedId = specialistId,
+                    doctors = specialistDoctors, registry = doctors,
+                    onSelected = { specialistId = it; validationMessages = emptyList() },
+                    modifier = fieldModifier
+                )
+            }
+        )
+
+        Text(uiText(R.string.ui_patient_form_dialog_019),
+            style = MaterialTheme.typography.bodySmall)
+        if (com.hos.rushdpatients.domain.doctor.DoctorTeams.isCrossTeamCover(
+                activeDoctors.firstOrNull { it.id == residentId }, specialistId)) {
+            Text(uiText(R.string.ui_patient_form_dialog_020), style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.tertiary)
+        }
+    }
+
+    val optionalFieldsContent: @Composable () -> Unit = {
+        PatientOptionalFields(formState, doctors, saving, autoStyle,
+            modifier = sectionAnchor(PatientFormSection.TASKS),
+            entryOptionsSummary = entryOptionsSummary, entryOptions = entryOptions)
+    }
+
     LaunchedEffect(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
         hasCompanion, diagnosisType, initialDiagnosis, treatmentItems, treatmentDraft,
@@ -241,7 +276,7 @@ internal fun PatientFormDialog(
                         )
                     }
                     PatientFormSectionNavigation(sectionOrder, activeSection, enabled = !saving) { section ->
-                        if (initial == null && section == PatientFormSection.TASKS) formState.extrasExpanded = true
+                        if (section == PatientFormSection.TASKS) formState.extrasExpanded = true
                         sectionOffsets[section]?.let { offset ->
                             formScope.launch { scrollToSection(offset.coerceIn(0, formScrollState.maxValue)) }
                         }
@@ -270,8 +305,10 @@ internal fun PatientFormDialog(
                                 }
                             })
                     }
-                    if (initial == null) admissionIdentityContent()
-                    entryOptions()
+                    if (initial == null) {
+                        admissionIdentityContent()
+                        teamFieldsContent()
+                    }
 
                     AppSectionHeader(
                         uiText(R.string.ui_patient_form_dialog_004),
@@ -397,150 +434,11 @@ internal fun PatientFormDialog(
                         modifier = sectionAnchor(PatientFormSection.LABS)
                     )
 
-                    if (initial != null) PatientTaskEditor(tasks, doctors, !saving, formState = formState, modifier = sectionAnchor(PatientFormSection.TASKS)) { tasks = it }
-
-                    AppSectionHeader(
-                        uiText(R.string.ui_patient_form_dialog_014),
-                        complete = residentId != null && specialistId != null && residentId != specialistId
-                    )
-                    AppFieldPair(
-                        stackWhenNarrow = true,
-                        modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
-                        first = { fieldModifier ->
-                            DoctorDropdown(
-                                label = uiText(R.string.ui_patient_form_dialog_015),
-                                isError = validationMessages.any { it.field == PatientFormField.TEAM },
-                                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
-                                undefinedLabel = uiText(R.string.ui_patient_form_dialog_016),
-                                selectedId = residentId,
-                                doctors = residentDoctors, registry = doctors,
-                                onSelected = { residentId = it; validationMessages = emptyList() },
-                                modifier = fieldModifier
-                            )
-                        },
-                        second = { fieldModifier ->
-                            DoctorDropdown(
-                                label = uiText(R.string.ui_patient_form_dialog_017),
-                                isError = validationMessages.any { it.field == PatientFormField.TEAM },
-                                errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
-                                undefinedLabel = uiText(R.string.ui_patient_form_dialog_018),
-                                selectedId = specialistId,
-                                doctors = specialistDoctors, registry = doctors,
-                                onSelected = { specialistId = it; validationMessages = emptyList() },
-                                modifier = fieldModifier
-                            )
-                        }
-                    )
-
-                    Text(uiText(R.string.ui_patient_form_dialog_019),
-                        style = MaterialTheme.typography.bodySmall)
-                    if (com.hos.rushdpatients.domain.doctor.DoctorTeams.isCrossTeamCover(
-                            activeDoctors.firstOrNull { it.id == residentId }, specialistId)) {
-                        Text(uiText(R.string.ui_patient_form_dialog_020), style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.tertiary)
+                    optionalFieldsContent()
+                    if (initial != null) {
+                        teamFieldsContent()
+                        admissionIdentityContent()
                     }
-
-                    if (initial == null) {
-                        val extrasSummary = uiText(R.string.ui_patient_optional_summary,
-                            uiNumber(tasks.size), uiNumber(badges.size + if (badgeDraftText.isNotBlank()) 1 else 0)) +
-                            if (isPriority) " · " + uiText(R.string.ui_patient_form_dialog_022) else ""
-                        AppSectionHeader(
-                            title = uiText(R.string.ui_patient_optional_section),
-                            summary = extrasSummary,
-                            expanded = formState.extrasExpanded,
-                            onToggle = { formState.extrasExpanded = !formState.extrasExpanded },
-                            modifier = sectionAnchor(PatientFormSection.TASKS)
-                        )
-                    }
-                    if (initial != null || formState.extrasExpanded) {
-                        if (initial != null) AppSectionHeader(uiText(R.string.ui_patient_form_dialog_021))
-                        AppToggleRow(title = uiText(R.string.ui_patient_form_dialog_022), checked = isPriority,
-                            onCheckedChange = { isPriority = it }, enabled = !saving)
-                        if (initial != null) AppTextButton(onClick = { showBadgeEditor = !showBadgeEditor },
-                            modifier = Modifier.semantics { stateDescription = if (showBadgeEditor) uiText(R.string.ui_patient_form_dialog_023) else uiText(R.string.ui_patient_form_dialog_024) }) {
-                            Text(if (showBadgeEditor) uiText(R.string.ui_patient_form_dialog_025) else uiText(R.string.ui_patient_form_dialog_026, uiNumber(badges.size)))
-                        }
-                        if (initial != null && !showBadgeEditor && (badges.isNotEmpty() || badgeDraftText.isNotBlank())) {
-                            Text(
-                                (badges.map { it.text } + listOf(badgeDraftText).filter(String::isNotBlank)).joinToString(" · "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        if (initial == null || showBadgeEditor) {
-                            badges.forEachIndexed { index, badge ->
-                                val badgeColors = patientBadgeColors(badge.priority)
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = badgeColors.container,
-                                    contentColor = badgeColors.content,
-                                    shape = MaterialTheme.shapes.small
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(start = UiSpacing.small, top = UiSpacing.micro, bottom = UiSpacing.micro),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            buildString {
-                                                append(badge.text)
-                                                badge.priority?.let { append(" · ").append(it.uiLabel(uiText)) }
-                                            },
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        AppIconButton(label = uiText(R.string.ui_patient_form_dialog_027),
-                icon = AppIcons.Close,
-                onClick = { badges = badges.filterIndexed { i, _ -> i != index } },
-                enabled = !saving)
-                                    }
-                                }
-                            }
-                            AppTextField(
-                                value = badgeDraftText,
-                                onValueChange = { badgeDraftText = it.take(80) },
-                                label = { Text(uiText(R.string.ui_patient_form_dialog_028)) },
-                                supportingText = { Text(uiText(R.string.ui_patient_form_dialog_029)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                textStyle = autoStyle
-                            )
-                            Text(uiText(R.string.ui_patient_form_dialog_030), style = MaterialTheme.typography.labelMedium)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                AppFilterChip(
-                                    enabled = !saving,
-                                    selected = badgeDraftPriority == null,
-                                    onClick = { badgeDraftPriority = null },
-                                    label = { Text(uiText(R.string.ui_patient_form_dialog_031)) }
-                                )
-                                PatientBadgePriority.entries.forEach { level ->
-                                    AppFilterChip(
-                                        enabled = !saving,
-                                        selected = badgeDraftPriority == level,
-                                        onClick = { badgeDraftPriority = level },
-                                        label = { Text(level.uiLabel(uiText)) }
-                                    )
-                                }
-                            }
-                            AppOutlinedButton(
-                                onClick = {
-                                    val text = badgeDraftText.trim()
-                                    if (text.isNotEmpty()) {
-                                        badges = badges + PatientBadge(text, badgeDraftPriority)
-                                        badgeDraftText = ""
-                                        badgeDraftPriority = null
-                                    }
-                                },
-                                enabled = !saving && badgeDraftText.isNotBlank(),
-                                modifier = Modifier.fillMaxWidth()
-                            ) { Text(uiText(R.string.ui_patient_form_dialog_032)) }
-
-                        }
-
-                        if (initial == null) PatientTaskEditor(tasks, doctors, !saving, formState = formState) { tasks = it }
-                    }
-
-                    if (initial != null) admissionIdentityContent()
                 }
             },
             confirmButton = {

@@ -5,11 +5,9 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.Text
@@ -34,7 +32,6 @@ internal fun AddPatientDialog(
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var insertionExpanded by rememberSaveable { mutableStateOf(position.isNotBlank()) }
     PatientFormDialog(
         title = uiText(R.string.ui_add_patient),
         initial = null,
@@ -42,21 +39,22 @@ internal fun AddPatientDialog(
         stateStore = stateStore,
         doctors = doctors,
         saving = saving,
+        entryOptionsSummary = position.takeIf { positionLimit != null && it.isNotBlank() }?.let {
+            uiText(R.string.ui_add_patient_dialog_002) + uiNumber(it)
+        },
         entryOptions = {
-            if (positionLimit != null) Column(Modifier.fillMaxWidth()) {
+            if (positionLimit != null) Column(Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 AppSectionHeader(
-                    title = uiText(R.string.ui_add_patient_dialog_002) + if (position.isBlank()) uiText(R.string.ui_add_patient_dialog_003) else uiNumber(position),
-                    expanded = insertionExpanded, onToggle = { insertionExpanded = !insertionExpanded })
-                if (insertionExpanded) {
-                    com.hos.rushdpatients.ui.components.AppTextField(
-                        value = position, onValueChange = onPositionChange,
-                        label = { Text(uiText(R.string.ui_add_patient_dialog_004, uiNumber(1), uiNumber(positionLimit))) },
-                        supportingText = { Text(uiText(R.string.ui_add_patient_dialog_005)) },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        enabled = !saving, singleLine = true)
-                    if (position.isNotBlank()) AppTextButton(onClick = { onPositionChange("") }, enabled = !saving) {
-                        Text(uiText(R.string.ui_add_patient_dialog_006))
-                    }
+                    title = uiText(R.string.ui_add_patient_dialog_002) + if (position.isBlank()) uiText(R.string.ui_add_patient_dialog_003) else uiNumber(position))
+                com.hos.rushdpatients.ui.components.AppTextField(
+                    value = position, onValueChange = onPositionChange,
+                    label = { Text(uiText(R.string.ui_add_patient_dialog_004, uiNumber(1), uiNumber(positionLimit))) },
+                    supportingText = { Text(uiText(R.string.ui_add_patient_dialog_005)) },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    enabled = !saving, singleLine = true)
+                if (position.isNotBlank()) AppTextButton(onClick = { onPositionChange("") }, enabled = !saving) {
+                    Text(uiText(R.string.ui_add_patient_dialog_006))
                 }
             }
         },
