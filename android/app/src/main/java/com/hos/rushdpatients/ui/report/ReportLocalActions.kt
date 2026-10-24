@@ -43,6 +43,7 @@ internal class ReportLocalActions(
         if (current.savingPdfOptions || current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
         val reviewGeneration = current.pdfReviewGeneration
         _state.update { it.copy(previewingPdf = true, error = null, doctorRegistryAction = null, retryAction = null,
+            openedPdfUris = it.openedPdfUris - listOfNotNull(it.pdfReviewUris[pdfWorkspace.pdfKey(supervisorId)]).toSet(),
             pdfReviewUris = it.pdfReviewUris - pdfWorkspace.pdfKey(supervisorId)) }
         viewModelScope.launch {
             var temporary: File? = null
@@ -82,7 +83,12 @@ internal class ReportLocalActions(
         }
     }
 
-    fun consumePdfPreview() = _state.update { it.copy(pdfPreviewUri = null) }
+    // Retain successful viewer launches with the artifact owner across privacy/recreation.
+    fun onPdfPreviewOpened(uri: android.net.Uri) = _state.update { current ->
+        if (current.pdfPreviewUri == uri && uri.toString() in current.pdfReviewUris.values) {
+            current.copy(pdfPreviewUri = null, openedPdfUris = current.openedPdfUris + uri.toString())
+        } else current
+    }
 
     fun sharePdf() {
         val current = _state.value
@@ -210,7 +216,7 @@ internal class ReportLocalActions(
 
     fun onPdfViewerUnavailable() {
         pdfWorkspace.clearReviews()
-        _state.update { it.copy(pdfPreviewUri = null, pdfReviewUris = emptyMap(),
+        _state.update { it.copy(pdfPreviewUri = null, pdfReviewUris = emptyMap(), openedPdfUris = emptySet(),
             pdfReviewGeneration = it.pdfReviewGeneration + 1,
             error = uiText(R.string.ui_report_local_actions_012)) }
     }

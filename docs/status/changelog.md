@@ -10,6 +10,7 @@ Feature summaries; [current behavior/evidence](current-state.md) · [unfinished 
 
 ## Interface and desktop
 
+- Android PDF-open status now stays with the report ViewModel across privacy/PIN and Activity recreation, preventing a completed preview from being forgotten; regeneration/invalidation clears it. Source-only fix; compilation/device verification pending.
 - Compact adaptive Arabic RTL production/demo workspace, genuine Tajawal/profiles/density/reduced motion, retained branding; guarded rounds/pull-to-fetch, task board revision-safe Undo, retained privacy/editor/picker state.
 - Selected O2/O6/O10/O11/O13/O16 and preview portion O23: motion, sticky filters, age/sex, drawer/Settings search and broader previews. Unselected choices remain separate.
 - Encrypted standalone Windows/Linux clinical client with reviewed administration/recovery/reports, logical Arabic input, local PIN/demo, retained/debounced widgets, sidebar/native menus/shortcuts.

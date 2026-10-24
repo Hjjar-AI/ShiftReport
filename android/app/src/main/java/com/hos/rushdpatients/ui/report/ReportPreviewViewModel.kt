@@ -117,7 +117,7 @@ class ReportPreviewViewModel @Inject constructor(
     private fun clearPdfReviews() {
         pdfWorkspace.clearReviews()
         _state.update { it.copy(pdfReviewGeneration = it.pdfReviewGeneration + 1,
-            pdfPreviewUri = null, pdfReviewUris = emptyMap()) }
+            pdfPreviewUri = null, pdfReviewUris = emptyMap(), openedPdfUris = emptySet()) }
     }
 
     fun load(reviewNotice: String? = null) {
@@ -435,7 +435,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     private suspend fun checkedPdf(built: BuiltReport, supervisorId: String? = null): File = pdfWorkspace.checkedPdf(built, supervisorId)
 
-    fun consumePdfPreview() = localActions.consumePdfPreview()
+    fun onPdfPreviewOpened(uri: android.net.Uri) = localActions.onPdfPreviewOpened(uri)
 
     fun sharePdf() = localActions.sharePdf()
 

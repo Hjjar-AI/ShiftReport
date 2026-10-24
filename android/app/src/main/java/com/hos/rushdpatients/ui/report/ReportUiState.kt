@@ -50,6 +50,7 @@ data class ReportUiState(
     val sharingPdf: Boolean = false,
     val pdfPreviewUri: Uri? = null,
     val pdfReviewUris: Map<String, String> = emptyMap(),
+    val openedPdfUris: Set<String> = emptySet(),
     val pdfReviewGeneration: Long = 0L,
     val pdfShareUri: Uri? = null,
     val sending: Boolean = false,

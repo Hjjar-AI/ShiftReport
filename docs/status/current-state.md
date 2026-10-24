@@ -49,6 +49,8 @@ Settings search respects role visibility, searches names/descriptions, opens exi
 
 Doctors → Destination → Preview → Send; unlimited active roster, revisions, exact current text/PDF opening and final confirmation. `ReportFlowGate` owns presentation; services enforce actor/date/revision/destination, publish-before-delivery and artifact options/content/SHA-256. Durable UNKNOWN blocks retry until authorized resolution; confirmed extra copy needs approval. Publication/delivery outcomes remain independent, including partial uncertainty.
 
+PDF-open status lives in ViewModel memory alongside reviewed artifacts, surviving privacy/PIN composition removal and Activity recreation; regeneration/invalidation removes opening evidence. This preview-return fix has source inspection only, no compilation/device verification; earlier results below predate it.
+
 Classic/paragraph/A5 cards/local exports retain clinical/tasks/order; omit routine/unassigned/last-edit labels. Cards: 420×595pt, sides15/top20/bottom10mm, all internal links fit whole destination page. Desktop `desktop_pdf_cards.py` follows Android geometry/Tajawal/sections/continuations. Admin names-only A4 team tables retain numbering and historical current-roster limits.
 
 Text chunking preserves escaped Unicode, bold/underline and whole doctor links; indivisible oversize links fail before sending. Focused JVM boundaries passed, live Telegram rendering unverified.

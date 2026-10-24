@@ -1,0 +1,11 @@
+Option Explicit
+
+Private Sub Workbook_Open()
+    Module1.InitializeWorkbook
+End Sub
+
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    SRTelegram.DisconnectProject
+    SRReceipts.UnlockReceipts
+    SRPdf.CleanupPreviews
+End Sub

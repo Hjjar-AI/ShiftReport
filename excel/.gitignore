@@ -1,0 +1,9 @@
+/private/
+/output/
+*.local.md
+*.local.json
+*.xlsm
+*.xlsx
+*.xls
+*.pdf
+__pycache__/

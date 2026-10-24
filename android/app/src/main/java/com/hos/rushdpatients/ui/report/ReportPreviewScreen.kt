@@ -98,9 +98,8 @@ fun ReportPreviewScreen(
     var confirmSend by remember { mutableStateOf(false) }
     var pendingSupervisorTargets by remember { mutableStateOf<List<SupervisorReportTarget>?>(null) }
     val selectedTargets = state.supervisorTargets.filter { it.doctorId in selectedSupervisorIds && it.chatId != null }
-    var openedPdfUris by remember(state.pdfReviewGeneration) { mutableStateOf(emptySet<String>()) }
     val pdfSelected = supervisorMode || state.reportAsPdf
-    val flowGate = reportFlowGate(state, step, supervisorMode, selectedTargets, reviewedText, openedPdfUris)
+    val flowGate = reportFlowGate(state, step, supervisorMode, selectedTargets, reviewedText, state.openedPdfUris)
     val busy = flowGate.busy
     val previewReady = flowGate.previewReady
     val destinationReady = flowGate.destinationReady
@@ -133,8 +132,7 @@ fun ReportPreviewScreen(
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
             )
-            openedPdfUris = openedPdfUris + uri.toString()
-            viewModel.consumePdfPreview()
+            viewModel.onPdfPreviewOpened(uri)
         } catch (_: ActivityNotFoundException) {
             viewModel.onPdfViewerUnavailable()
         } catch (_: Exception) {
