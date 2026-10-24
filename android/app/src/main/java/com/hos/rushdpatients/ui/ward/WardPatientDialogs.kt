@@ -16,15 +16,19 @@ internal fun WardPatientDialogs(
     onSaveEdited: (Patient, Patient, (Patient?) -> Unit, Boolean) -> Unit,
     onSaveAndNextChanged: (Boolean) -> Unit, onDismissEdit: () -> Unit,
     onCopyConfirmed: (Patient) -> Unit, onDismissCopy: () -> Unit,
-    onDeleteConfirmed: (Patient) -> Unit, onDismissDelete: () -> Unit
+    onDeleteConfirmed: (Patient) -> Unit, onDismissDelete: () -> Unit,
+    onLoadEditDraft: (String, (PatientDraft?) -> Unit) -> Unit = { _, done -> done(null) },
+    onEditDraftChanged: (String, PatientDraft) -> Unit = { _, _ -> },
+    onDiscardEditDraft: (String) -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
     editTarget?.let { p ->
 
         key(p.id) {
             EditPatientDialog(
-                patient = p,
+                patient = state.patients.firstOrNull { it.id == p.id } ?: p,
                 retainedState = editSession,
+                onLoadDraft = onLoadEditDraft, onDraftChanged = onEditDraftChanged, onDiscardDraft = onDiscardEditDraft,
                 doctors = state.doctors,
                 saving = state.saving,
                 onConfirm = { draft, onStale -> onSaveEdited(p, draft, onStale, false) },

@@ -65,15 +65,11 @@ class WardTaskBoardInteractionTest {
         compose.onNodeWithText(pending.description).assertExists()
         compose.onNodeWithText(done.description).assertDoesNotExist()
     }
-    @Test fun mineFilterShowsOnlyExplicitlyOwnedTasksAndCanBeCleared() {
+    @Test fun legacyTaskOwnersDoNotFilterChecklist() {
         val other = pending.copy(id = "other", description = "فحص القهوة", ownerDoctorId = null)
         show(listOf(patient.copy(tasks = listOf(pending, other))), currentDoctorId = "cedar")
-        val mine = compose.onNode(hasText(label(R.string.ui_ward_task_board_005)) and isSelectable())
-        mine.assertIsNotSelected().performClick().assertIsSelected()
+        compose.onNodeWithText(label(R.string.ui_ward_task_board_005)).assertDoesNotExist()
         compose.onNodeWithText(pending.description).assertExists()
-        // LazyColumn may retain a removed item's semantics while it is not placed.
-        compose.onNodeWithText(other.description).assertIsNotDisplayed()
-        mine.performClick().assertIsNotSelected()
         compose.onNodeWithText(other.description).assertExists()
     }
     @Test fun noSessionDoesNotOfferPersonalOwnershipFilter() {

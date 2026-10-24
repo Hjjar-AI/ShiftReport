@@ -34,16 +34,16 @@ Join export: current verified live registry admin, only connection/topics/key in
 
 Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre-download backup and explicit shift choice. Preserve patient/doctor/task IDs,revisions,sort/roster/app-only fields; no connection secrets in drafts. CSV row order is stored order; filters never remove unpublished rows. Order conflicts need review.
 
-Only current08:30 IANA-zone shift editable/publishable/sendable; active roster uncapped, capacity follows app. Optional-owner explicit tasks, verified completion actor/time, reviewed carry-forward; notes never become tasks.
+Current08:30 IANA-zone shift editable. Android permits previous-shift publication/delivery until10:30; desktop retains its current-shift gate. Active roster uncapped. Plain task checklist with verified completion actor/time; legacy owner/deadline/priority fields still read/persist without affecting current clients. Reviewed carry-forward; notes never become tasks.
 
 ## Publication
 
 1. Fetch authority/pointers; review **complete local replacement**, including deletions/roster/order; no remote merge.
-2. Recheck actor/registry/pointers/exact plan/draft hash; changes invalidate approval.
+2. Android sends captured reviewed CSV/text/PDF, leaving subsequent local edits pending; recheck live identity/authority/assignments/destinations. Combined reviewed registry publication runs before patients under admin authority. Desktop retains its existing plan/pointer checks.
 3. Persist UNKNOWN before immutable upload; recheck pointers, update existing pinned index retaining unrelated fields.
-4. Preserve10h recovery/journal (≤12entries/message budget); read back actual pointer before success.
+4. Retain immediate previous immutable publication and bounded journal (≤12entries/message budget); read back actual pointer before success.
 
-Last-successful-write-wins, not atomic transactions. No force/automatic retry; upload alone is not publication. Matching journal may confirm; absence from bounded journal does not prove failure.
+Last-successful-write-wins, not atomic transactions. No automatic retry; Android older-remote fetch requires explicit live-admin confirmation. Upload alone is not publication. Matching journal may confirm; absence from bounded journal does not prove failure.
 
 ## Desktop registry mutation and local recovery
 
@@ -71,4 +71,4 @@ General destination Reports; supervisor live registry group. Telegram `ok`/messa
 
 Details follow captured visible stable IDs; activity reads recheck current admin; readonly copy updates logical text.
 
-Android-compatible `.rpb`: same project/selected shift ID/date, valid registry references, expected-draft check/review/confirmation; retains receipts/imported completion attribution. `.srdraft` remains separate workspace recovery. Pending saved changes block downloaded replacement on both clients. Current-format backup/join/cipher fixtures passed both directions; live GUI workflows unverified. [Results](../status/current-state.md#verification-and-limits) · [Remaining](../status/testing-handoff.md).
+Android-compatible `.rpb`: same project/selected shift ID/date, valid registry references, expected-draft check/review/confirmation; retains receipts/imported completion attribution. `.srdraft` remains separate workspace recovery. Android pending saved changes require publish-then-fetch/recoverable replacement/cancel; desktop retains its guarded replacement flow. Current-format backup/join/cipher fixtures passed both directions; live GUI workflows unverified. [Results](../status/current-state.md#verification-and-limits) · [Remaining](../status/testing-handoff.md).

@@ -29,22 +29,45 @@ internal fun EditPatientDialog(
     roundsNavigation: PatientRoundsNavigation? = null,
     saveAndNextEnabled: Boolean = false,
     onSaveAndNextChanged: (Boolean) -> Unit = {},
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onLoadDraft: (String, (PatientDraft?) -> Unit) -> Unit = { _, done -> done(null) },
+    onDraftChanged: (String, PatientDraft) -> Unit = { _, _ -> },
+    onDiscardDraft: (String) -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
     val session = retainedState ?: remember(patient.id) { EditPatientState(patient) }
+    androidx.compose.runtime.LaunchedEffect(patient.id) {
+        if (!session.draftLoaded) onLoadDraft(patient.id) { draft ->
+            if (draft != null) {
+                session.form.restore(session.initial, draft)
+                session.latest = patient
+                session.restoredEditDraft = true
+            }
+            session.draftLoaded = true
+        }
+    }
+    if (!session.draftLoaded) return
     var initial by session::initial
     var baseline by session::baseline
     var rejected by session::rejected
     var latest by session::latest
     var reviewing by session::reviewing
+    androidx.compose.runtime.LaunchedEffect(patient.revision, patient.updatedAt) {
+        if (patient.revision != baseline.revision || patient.updatedAt != baseline.updatedAt) {
+            latest = patient
+            baseline = patient
+        }
+    }
     fun submit(draft: Patient, advance: Boolean) {
         val onStale: (Patient?) -> Unit = { saved ->
             rejected = draft
             latest = saved
-            reviewing = true
+            if (saved != null && !saved.isDeleted) baseline = saved
         }
-        if (advance) onConfirmAndNext?.invoke(draft, onStale) else onConfirm(draft, onStale)
+        val replacement = draft.copy(revision = baseline.revision, sortOrder = baseline.sortOrder,
+            updatedAt = baseline.updatedAt, deletedAt = baseline.deletedAt,
+            lastEditedByDoctorId = baseline.lastEditedByDoctorId, lastEditedByName = baseline.lastEditedByName)
+        if (advance) onConfirmAndNext?.invoke(replacement, onStale) else onConfirm(replacement, onStale)
     }
     PatientFormDialog(
         title = uiText(R.string.ui_edit_patient_dialog_001),
@@ -65,19 +88,24 @@ internal fun EditPatientDialog(
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
             }
 
-            if (rejected != null) {
+            if (latest != null || rejected != null) {
+                Text(when {
+                    latest?.isDeleted != false -> uiText(R.string.patient_refresh_unavailable)
+                    session.restoredEditDraft && baseline.revision == initial.revision -> uiText(R.string.patient_edit_draft_restored)
+                    else -> uiText(R.string.patient_refresh_warning)
+                }, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
                 AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                    Text(uiText(R.string.ui_edit_patient_dialog_004))
+                    Text(uiText(R.string.patient_refresh_differences))
                 }
             }
         },
-        onDraftChanged = {},
+        onDraftChanged = { onDraftChanged(patient.id, it) },
         onConfirm = { submit(it, false) },
         onConfirmAndNext = if (onConfirmAndNext == null) null else { draft -> submit(draft, true) },
-        onDismiss = onDismiss
+        onDismiss = { onDiscardDraft(patient.id); onDismiss() }
     )
     if (reviewing) {
-        val draft = rejected ?: return
+        val draft = rejected ?: initial
         val saved = latest
         StaleEditReviewDialog(
             differences = saved?.let { patientDifferences(uiText, draft, it, doctors) }.orEmpty(),

@@ -124,16 +124,16 @@ internal enum class SettingsSectionId(
 ) {
     APPEARANCE(R.string.ui_demo_secondary_screens_014, SettingsWorkspace.APPEARANCE),
     PATIENT_CARDS(R.string.ui_settings_section_layout_028, SettingsWorkspace.APPEARANCE),
-    WORKFLOW(R.string.ui_settings_section_layout_029, SettingsWorkspace.WORKFLOW),
+    WORKFLOW(R.string.ui_settings_section_layout_029, SettingsWorkspace.APPEARANCE),
     REPORT(R.string.ui_settings_section_layout_030, SettingsWorkspace.REPORTS),
     SYNC(R.string.ui_sync_center_patients, SettingsWorkspace.DATA),
     DOCTORS(R.string.ui_sync_center_doctors, SettingsWorkspace.DATA),
-    FILES(R.string.ui_ward_drawer_014, SettingsWorkspace.FILES),
-    BACKUP(R.string.ui_settings_section_layout_031, SettingsWorkspace.BACKUP),
+    FILES(R.string.ui_ward_drawer_014, SettingsWorkspace.DATA),
+    BACKUP(R.string.ui_settings_section_layout_031, SettingsWorkspace.DATA),
     CONNECTION(R.string.ui_ward_drawer_019, SettingsWorkspace.PROJECT),
-    INVITATIONS(R.string.ui_ward_drawer_022, SettingsWorkspace.INVITATIONS, true),
-    DESTINATIONS(R.string.ui_ward_drawer_021, SettingsWorkspace.DESTINATIONS, true),
-    RESET(R.string.ui_ward_drawer_025, SettingsWorkspace.RESET, true),
+    INVITATIONS(R.string.ui_ward_drawer_022, SettingsWorkspace.PROJECT, true),
+    DESTINATIONS(R.string.ui_ward_drawer_021, SettingsWorkspace.PROJECT, true),
+    RESET(R.string.ui_ward_drawer_025, SettingsWorkspace.DATA, true),
     SECURITY(R.string.ui_settings_section_layout_032, SettingsWorkspace.SECURITY),
     STORAGE(R.string.ui_settings_section_layout_033, SettingsWorkspace.DIAGNOSTICS);
 

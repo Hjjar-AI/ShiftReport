@@ -75,8 +75,13 @@ import com.hos.rushdpatients.domain.report.DeliveryResolution
 fun ReportPreviewScreen(
     onBack: () -> Unit,
     onOpenDoctors: () -> Unit = {},
-    viewModel: ReportPreviewViewModel = hiltViewModel()
+    viewModel: ReportPreviewViewModel = hiltViewModel(),
+    onReviewPatients: (String, Set<String>) -> Unit = { _, _ -> },
+    refreshRequest: Boolean = false, onRefreshConsumed: () -> Unit = {}
 ) {
+    LaunchedEffect(refreshRequest) {
+        if (refreshRequest) { viewModel.load(); onRefreshConsumed() }
+    }
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -189,8 +194,17 @@ fun ReportPreviewScreen(
                     val targetSummary = uiText(R.string.ui_report_selected_destinations,
                         uiNumber(selectedTargets.size + if (generalSelected) 1 else 0))
                     val disabledReason = if (step == ReportFlowStep.PREVIEW) sendDisabledReason else nextDisabledReason
-                    Text(listOfNotNull(targetSummary, disabledReason).joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall)
+                    Text(targetSummary, style = MaterialTheme.typography.bodySmall)
+                    disabledReason?.let { reason ->
+                        AppNotice(reason, kind = NoticeKind.WARNING, actionLabel = uiText(R.string.report_open_required_step),
+                            onAction = {
+                                when {
+                                    state.doctors.isEmpty() -> { step = ReportFlowStep.DOCTORS; showShiftDoctors = true }
+                                    !destinationReady -> step = ReportFlowStep.DOCTORS
+                                    else -> { step = ReportFlowStep.PREVIEW; openPreview() }
+                                }
+                            })
+                    }
                     AppFieldPair(first = { buttonModifier ->
                         AppOutlinedButton(onClick = ::previousStep, enabled = !busy, modifier = buttonModifier) {
                             Text(if (step == ReportFlowStep.DOCTORS) uiText(R.string.ui_cancel) else uiText(R.string.ui_previous))
@@ -337,12 +351,24 @@ fun ReportPreviewScreen(
                         }
                     }
                 }
+                state.deliveryRecords.filter { it.status == "UNKNOWN" }.forEach { receipt ->
+                    AppSection(title = receipt.label) {
+                        DeliveryQuestion(receipt, !busy, viewModel::resolveDelivery)
+                    }
+                }
                 state.lastOperation?.let { AppNotice(it) }
                 if (state.isReadOnly) {
                     AppNotice(uiText(R.string.ui_report_preview_screen_045))
                 }
 
                 if (step == ReportFlowStep.PREVIEW) {
+                    state.registryChangeSummary?.let { summary ->
+                        AppSection(title = uiText(R.string.sync_publish_all)) {
+                            Text(summary)
+                            if (!state.isAdmin) Text(uiText(R.string.sync_doctors_stay_pending))
+                        }
+                    }
+                    if (state.readinessWarnings.isEmpty()) AppNotice(uiText(R.string.report_readiness_ready), kind = NoticeKind.SUCCESS)
                     if (state.readinessWarnings.isNotEmpty()) {
                         AppSection(
                             title = uiText(R.string.ui_report_preview_screen_046),
@@ -351,8 +377,10 @@ fun ReportPreviewScreen(
                                 containerColor = noticeColors(NoticeKind.WARNING).container
                             )
                         ) {
-                            state.readinessWarnings.forEach { warning ->
-                                Text("• $warning", color = noticeColors(NoticeKind.WARNING).content)
+                            state.readinessIssues.forEach { issue ->
+                                AppTextButton(onClick = { state.shift?.id?.let { onReviewPatients(it, issue.patientIds) } }, enabled = !busy) {
+                                    Text(issue.message, color = noticeColors(NoticeKind.WARNING).content)
+                                }
                             }
                             Text(
                                 uiText(R.string.ui_report_preview_screen_047),
@@ -494,14 +522,13 @@ fun ReportPreviewScreen(
                 Text(uiText(R.string.ui_report_preview_screen_082))
                 if (state.deliveryRecords.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_083))
                 state.deliveryRecords.asReversed().forEach { row ->
-                    val label = when (row.status) { "UNKNOWN" -> uiText(R.string.ui_report_preview_screen_084); "SENT" -> uiText(R.string.ui_report_preview_screen_085); else -> uiText(R.string.ui_report_preview_screen_086) }
+                    val label = when (row.status) { "UNKNOWN_COPY_ALLOWED" -> uiText(R.string.delivery_uncertain_copy_allowed); "UNKNOWN" -> uiText(R.string.ui_report_preview_screen_084); "SENT" -> uiText(R.string.ui_report_preview_screen_085); else -> uiText(R.string.ui_report_preview_screen_086) }
                     Text("${row.label} · ${row.format} · $label")
                     Text(java.time.Instant.ofEpochMilli(row.at).atZone(java.time.ZoneId.systemDefault())
                         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                         style = MaterialTheme.typography.bodySmall)
                     if (row.status == "UNKNOWN") {
-                        AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.RECEIVED }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_087)) }
-                        AppTextButton(onClick = { deliveryDecision = row to DeliveryResolution.NOT_RECEIVED }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_088)) }
+                        DeliveryQuestion(row, !busy, viewModel::resolveDelivery)
                     } else if (row.status == "SENT") {
                         Text(uiText(R.string.ui_report_preview_screen_092), style = MaterialTheme.typography.bodySmall)
                         AppOutlinedButton(onClick = { deliveryDecision = row to DeliveryResolution.ALLOW_COPY }, enabled = !busy) {
@@ -545,4 +572,14 @@ fun ReportPreviewScreen(
                     review.supervisors.mapTo(linkedSetOf()) { it.doctorId }, forceLocal)
             }, onDismiss = { pendingDelivery = null })
     }
+}
+
+@Composable
+private fun DeliveryQuestion(row: ReportDeliveryRecord, enabled: Boolean,
+    resolve: (ReportDeliveryRecord, DeliveryResolution) -> Unit) {
+    val uiText = rememberUiStrings()
+    Text(uiText(R.string.delivery_inline_question))
+    AppTextButton(onClick = { resolve(row, DeliveryResolution.RECEIVED) }, enabled = enabled) { Text(uiText(R.string.ui_yes)) }
+    AppTextButton(onClick = { resolve(row, DeliveryResolution.NOT_RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_inline_no)) }
+    AppTextButton(onClick = { resolve(row, DeliveryResolution.ALLOW_COPY) }, enabled = enabled) { Text(uiText(R.string.delivery_inline_extra)) }
 }

@@ -8,11 +8,11 @@ import java.time.Instant
 import java.time.LocalDate
 
 class PatientTasksTest {
-    @Test fun `overdue is a subset of pending including exact deadline`() {
+    @Test fun `legacy deadlines and ownership do not affect checklist counts`() {
         val tasks = listOf(Fixtures.task("due").copy(dueAtEpochMillis = 100),
             Fixtures.task("future").copy(dueAtEpochMillis = 101, ownerDoctorId = "doc"),
             Fixtures.task("done", done = true).copy(dueAtEpochMillis = 1))
-        assertEquals(TaskCounts(2, 1, 1), PatientTasks.counts(tasks, 100))
+        assertEquals(TaskCounts(2, 0, 0), PatientTasks.counts(tasks, 100))
         assertFalse(PatientTasks.overdue(tasks.last(), 100))
     }
     @Test fun `rollover drops completed tasks and optionally clears both owner fields`() {
@@ -23,12 +23,12 @@ class PatientTasksTest {
             PatientTasks.carryForward(input, true))
         assertEquals("doc", input.first().ownerDoctorId)
     }
-    @Test fun `display orders deadline before priority and completed last without mutation`() {
+    @Test fun `display keeps checklist order with completed last without mutation`() {
         val input = listOf(Fixtures.task("done", true), Fixtures.task("undated"),
             Fixtures.task("low").copy(priority = TaskPriority.LOW, dueAtEpochMillis = 100),
             Fixtures.task("high").copy(priority = TaskPriority.HIGH, dueAtEpochMillis = 100),
             Fixtures.task("earlier").copy(dueAtEpochMillis = 50))
-        assertEquals(listOf("earlier", "high", "low", "undated", "done"),
+        assertEquals(listOf("undated", "low", "high", "earlier", "done"),
             PatientTasks.orderedForDisplay(input, 100).map { it.id })
         assertEquals("done", input.first().id)
     }
@@ -39,12 +39,9 @@ class PatientTasksTest {
         assertTrue(PatientTasks.wardPending(listOf(patient), "other", "r", 100).isEmpty())
         assertEquals(1, PatientTasks.wardPending(listOf(patient), null, null, 100).size)
     }
-    @Test fun `validation rejects malformed task identities deadlines and completion records`() {
+    @Test fun `validation rejects malformed identities and completion records`() {
         val task = Fixtures.task()
         val invalid = listOf(task.copy(id = " "), task.copy(description = " "),
-            task.copy(ownerDoctorId = ""), task.copy(dueAtEpochMillis = 0),
-            task.copy(dueShiftDate = "2026-01-01"),
-            task.copy(dueAtEpochMillis = 100, dueShiftDate = "bad"),
             task.copy(done = true), task.copy(completedByDoctorId = "doc"))
         invalid.forEach { value ->
             assertThrows(value.toString(), IllegalArgumentException::class.java) {
@@ -63,7 +60,7 @@ class PatientTasksTest {
         assertFalse(summary.contains("غير معيّنة"))
         assertFalse(summary.contains("أولوية"))
         val owned = task.copy(ownerDoctorId = "doc", ownerName = "اسم محفوظ", priority = TaskPriority.HIGH)
-        assertTrue(PatientTasks.metadata(owned, mapOf("doc" to "أرز")).contains("أرز"))
-        assertTrue(PatientTasks.metadata(owned).contains("اسم محفوظ"))
+        assertEquals("", PatientTasks.metadata(owned, mapOf("doc" to "أرز")))
+        assertEquals("", PatientTasks.metadata(owned))
     }
 }

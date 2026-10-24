@@ -37,6 +37,17 @@ class SettingsRepository @Inject constructor(
         dao.getAll().associate { it.key to it.value }
     }
 
+    /** Bound snapshot/contact cache only; clinical shifts, Undo, audit and receipts are untouched. */
+    suspend fun pruneShiftSyncCache(keepShiftIds: Set<String>) = withContext(dispatchers.io) {
+        val prefixes = listOf(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX,
+            AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX, AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX,
+            AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX)
+        dao.getAll().forEach { setting ->
+            val prefix = prefixes.firstOrNull { setting.key.startsWith(it) }
+            if (prefix != null && setting.key.removePrefix(prefix) !in keepShiftIds) dao.delete(setting.key)
+        }
+    }
+
     // ---------- Typed helpers ----------
 
     suspend fun getBoolean(key: String, default: Boolean): Boolean =
@@ -63,7 +74,7 @@ class SettingsRepository @Inject constructor(
         putBoolean(AppConstants.SETTING_REPORT_AS_PDF, enabled)
 
     suspend fun getAutoLockMinutes(): Int =
-        getInt(AppConstants.SETTING_AUTO_LOCK_MINUTES, 20).coerceIn(1, 60)
+        getInt(AppConstants.SETTING_AUTO_LOCK_MINUTES, 5).coerceIn(1, 60)
 
     suspend fun setAutoLockMinutes(minutes: Int) =
         putInt(AppConstants.SETTING_AUTO_LOCK_MINUTES, minutes.coerceIn(1, 60))

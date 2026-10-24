@@ -28,8 +28,8 @@ internal fun filterWardPatients(
             (!filters.newAdmissionsOnly || PatientPredicates.newAdmission(patient)) &&
             when (filters.taskFilter) {
                 WardTaskFilter.PENDING -> patient.tasks.any { !it.done }
-                WardTaskFilter.OVERDUE -> patient.tasks.any { PatientTasks.overdue(it, nowEpochMillis) }
-                WardTaskFilter.UNASSIGNED -> patient.tasks.any { !it.done && it.ownerDoctorId == null }
+                WardTaskFilter.OVERDUE -> patient.tasks.any { !it.done }
+                WardTaskFilter.UNASSIGNED -> patient.tasks.any { !it.done }
                 null -> true
             } && (needle.isEmpty() || searchIndex[patient.id].orEmpty().any { needle in it })
     }.sortedByDescending { it.id in pinnedPatientIds }

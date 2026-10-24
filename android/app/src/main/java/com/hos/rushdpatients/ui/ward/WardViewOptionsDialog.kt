@@ -78,9 +78,7 @@ internal fun WardViewOptionsDialog(
                         AppFilterChip(filters.unassignedOnly, { onFiltersChanged { it.copy(unassignedOnly = !it.unassignedOnly) } }, uiText(R.string.ui_ward_screen_010))
                         AppFilterChip(filters.urgentOnly, { onFiltersChanged { it.copy(urgentOnly = !it.urgentOnly) } }, uiText(R.string.ui_ward_patient_list_controls_007))
                         AppFilterChip(filters.newAdmissionsOnly, { onFiltersChanged { it.copy(newAdmissionsOnly = !it.newAdmissionsOnly) } }, uiText(R.string.ui_handover_dashboard_016))
-                        listOf(WardTaskFilter.PENDING to uiText(R.string.ui_ward_screen_011),
-                            WardTaskFilter.OVERDUE to uiText(R.string.ui_ward_patient_list_controls_008),
-                            WardTaskFilter.UNASSIGNED to uiText(R.string.ui_ward_screen_012)).forEach { (value, label) ->
+                        listOf(WardTaskFilter.PENDING to uiText(R.string.ui_ward_screen_011)).forEach { (value, label) ->
                             AppFilterChip(selected = filters.taskFilter == value,
                                 onClick = { onFiltersChanged { it.copy(taskFilter = if (it.taskFilter == value) null else value) } }, label = label)
                         }

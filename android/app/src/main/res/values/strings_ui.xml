@@ -146,7 +146,7 @@
     <string name="ui_handover_dashboard_005" formatted="false">"يحتاج انتباهك"</string>
     <string name="ui_handover_dashboard_006" formatted="false">"عاجل أو أولوية"</string>
     <string name="ui_handover_dashboard_007" formatted="false">"المهام المتأخرة (ضمن المعلقة)"</string>
-    <string name="ui_handover_dashboard_008" formatted="false">"لا توجد حالات عاجلة أو مهام متأخرة"</string>
+    <string name="ui_handover_dashboard_008" formatted="false">"لا توجد حالات عاجلة"</string>
     <string name="ui_handover_dashboard_009" formatted="false">"ملخص المناوبة"</string>
     <string name="ui_handover_dashboard_010" formatted="false">"إجمالي المرضى"</string>
     <string name="ui_handover_dashboard_011" formatted="false">"مرضاي"</string>
@@ -184,7 +184,7 @@
     <string name="ui_search" formatted="false">"بحث"</string>
     <string name="ui_ward_view_options_dialog_003" formatted="false">"تصفية · للعرض فقط"</string>
     <string name="ui_ward_view_options_dialog_004" formatted="false">"مهام الجناح"</string>
-    <string name="ui_ward_view_options_dialog_005" formatted="false">"مرضاي ومهامي"</string>
+    <string name="ui_ward_view_options_dialog_005" formatted="false">"مرضاي"</string>
     <string name="ui_ward_view_options_dialog_006" formatted="false">"أولوية فقط"</string>
     <string name="ui_ward_view_options_dialog_007" formatted="false">"تجميع · للعرض فقط"</string>
     <string name="ui_ward_view_options_dialog_008" formatted="false">"بطاقات المرضى · تفضيلات الجهاز"</string>
@@ -229,7 +229,7 @@
     <string name="ui_patient_card_011" formatted="false">"طي تفاصيل المريض"</string>
     <string name="ui_patient_card_012" formatted="false">"توسيع تفاصيل المريض"</string>
     <string name="ui_patient_card_013" formatted="false">"إلغاء التثبيت المؤقت"</string>
-    <string name="ui_patient_card_014" formatted="false">"تثبيت مؤقت"</string>
+    <string name="ui_patient_card_014" formatted="false">"نقل إلى بداية مجموعة الأولوية"</string>
     <string name="ui_patient_card_015" formatted="false">"فتح تفاصيل المريض"</string>
     <string name="ui_patient_card_016" formatted="false">"تعديل شارات المريض"</string>
     <string name="ui_patient_card_017" formatted="false">"إلغاء الأولوية"</string>
@@ -247,7 +247,7 @@
     <string name="ui_patient_card_029" formatted="false">"لا توجد متابعة أو تحاليل"</string>
     <string name="ui_patient_card_030" formatted="false">"خيارات المريض"</string>
     <string name="ui_patient_card_031" formatted="false">"إلغاء التثبيت"</string>
-    <string name="ui_patient_card_032" formatted="false">"تثبيت للعرض"</string>
+    <string name="ui_patient_card_032" formatted="false">"نقل إلى بداية مجموعة الأولوية"</string>
     <string name="ui_sort_sheet_001" formatted="false">"ترتيب المرضى"</string>
     <string name="ui_sort_sheet_002" formatted="false">"مراجعة الترتيب المرفوض"</string>
     <string name="ui_sort_sheet_003" formatted="false">"المستوى "</string>
@@ -477,7 +477,7 @@
     <string name="ui_settings_screen_026" formatted="false">"حفظ إلى التنزيلات"</string>
     <string name="ui_settings_screen_027" formatted="false">"مشاركة الملف"</string>
     <string name="ui_settings_screen_028" formatted="false">"مراجعة نشر النسخة الكاملة"</string>
-    <string name="ui_settings_screen_029" formatted="false">"التأكيد ينشر البيانات فقط؛ إرسال التقرير إجراء منفصل يتطلب معاينته."</string>
+    <string name="ui_settings_screen_029" formatted="false">سيُنشر سجل الأطباء المراجع أولاً عند وجود تعديلات عليه وبصلاحية مدير، ثم نسخة المرضى المراجعة. التعديلات المحلية اللاحقة تبقى معلقة.</string>
     <string name="ui_settings_screen_030" formatted="false">"راجعت النسخة وأؤكد نشرها"</string>
     <string name="ui_settings_screen_031" formatted="false">"تأكيد استعادة النسخة"</string>
     <string name="ui_settings_screen_032" formatted="false">"ستستبدل النسخة الاحتياطية البيانات المحلية الحالية. لا يمكن التراجع عن هذه العملية من داخل التطبيق."</string>
@@ -569,7 +569,7 @@
     <string name="ui_report_preview_screen_042" formatted="false">"جلب سجل الأطباء ثم إعادة المراجعة"</string>
     <string name="ui_report_preview_screen_043" formatted="false">"فتح سجل الأطباء لنشر التعديلات"</string>
     <string name="ui_report_preview_screen_044" formatted="false">"اطلب من مدير المشروع مراجعة تعديلات سجل الأطباء ونشرها أولاً."</string>
-    <string name="ui_report_preview_screen_045" formatted="false">"تقرير مناوبة محفوظة: المعاينة والحفظ المحلي متاحان، أما الإرسال والنشر فمتوقفان."</string>
+    <string name="ui_report_preview_screen_045" formatted="false">انتهت مهلة نشر هذه المناوبة. تبقى البيانات متاحة للعرض والاستعادة.</string>
     <string name="ui_report_preview_screen_046" formatted="false">"ملاحظات جاهزية التقرير"</string>
     <string name="ui_report_preview_screen_047" formatted="false">"يمكن المتابعة رغم هذه الملاحظات."</string>
     <string name="ui_report_preview_screen_048" formatted="false">"ما الذي تغيّر منذ آخر نشر؟"</string>
@@ -885,11 +885,11 @@
     <string name="ui_report_send_confirmation_001" formatted="false">"إرسال التقرير"</string>
     <string name="ui_report_send_confirmation_002">"الصيغة: %1$s"</string>
     <string name="ui_report_send_confirmation_003" formatted="false">"الوجهة:"</string>
-    <string name="ui_report_send_confirmation_004" formatted="false">"ستُحدّث بيانات المناوبة المنشورة أولاً، ثم يُرسل التقرير من النسخة المقبولة بعد التحقق من مطابقتها للمراجعة. إذا فشل الإرسال بعد النشر، تبقى البيانات منشورة؛ راجع حالة العملية قبل الإعادة."</string>
-    <string name="ui_report_send_confirmation_005" formatted="false">"تأكيد الإرسال ينشر النسخة المحلية الكاملة للمناوبة مكان المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة؛ آخر نشر ناجح هو المعتمد."</string>
-    <string name="ui_report_send_confirmation_006" formatted="false">"اختلاف نسخة المرضى أو وجود تعديلات أخرى في سجل الأطباء لا يمنع التأكيد. تغييرات حسابات الأطباء نفسها لا تُنشر بهذا الإجراء؛ يجب أن يكون الأطباء المسندون في المناوبة منشورين بتصنيف صالح."</string>
+    <string name="ui_report_send_confirmation_004" formatted="false">سيُنشر ما راجعته أولاً: سجل الأطباء عند وجود تعديلات عليه وبصلاحية مدير، ثم المرضى، ثم يُرسل التقرير المعروض نفسه. التعديلات المحلية اللاحقة تبقى للنشر التالي. فشل التقرير بعد النشر لا يلغي البيانات المنشورة؛ افحص حالة العملية قبل الإعادة.</string>
+    <string name="ui_report_send_confirmation_005" formatted="false">التأكيد ينشر نسخة المراجعة الكاملة بما فيها الحذف والترتيب وأطباء المناوبة؛ آخر نشر ناجح هو المعتمد.</string>
+    <string name="ui_report_send_confirmation_006" formatted="false">يلزم بقاء حساب المرسل وصلاحياته وتصنيفات الأطباء ووجهات الإرسال صالحة. نشر تعديلات سجل الأطباء متاح لمدير نشط فقط.</string>
     <string name="ui_report_send_confirmation_007">"توجد %1$s ملاحظات جاهزية غير مانعة."</string>
-    <string name="ui_report_send_confirmation_008" formatted="false">"نشر نسختي وإرسال التقرير"</string>
+    <string name="ui_report_send_confirmation_008" formatted="false">نشر ما راجعته وإرسال التقرير</string>
     <string name="ui_app_metric_row_001">"عرض %1$s"</string>
     <string name="ui_password_field_001" formatted="false">"إخفاء كلمة المرور"</string>
     <string name="ui_password_field_002" formatted="false">"إظهار كلمة المرور"</string>
@@ -1054,8 +1054,8 @@
     <string name="ui_report_preview_view_model_008" formatted="false">"جُلب سجل الأطباء؛ راجع التقرير وعاينه مجدداً قبل الإرسال."</string>
     <string name="ui_report_preview_view_model_009" formatted="false">"تعذر حفظ أطباء المناوبة"</string>
     <string name="ui_report_preview_view_model_010" formatted="false">"تعذر حفظ تخصيص التقرير"</string>
-    <string name="ui_report_preview_view_model_011" formatted="false">"لا يمكن إرسال أو نشر تقرير مناوبة محفوظة"</string>
-    <string name="ui_report_preview_view_model_012" formatted="false">"انتهت المناوبة؛ أعد مراجعة التقرير"</string>
+    <string name="ui_report_preview_view_model_011" formatted="false">يمكن نشر المناوبة الحالية والسابقة حتى ساعتين بعد 08:30.</string>
+    <string name="ui_report_preview_view_model_012" formatted="false">انتهت مهلة نشر هذه المناوبة.</string>
     <string name="ui_report_preview_view_model_013" formatted="false">"يجب تسجيل الدخول قبل إرسال التقرير"</string>
     <string name="ui_report_preview_view_model_014" formatted="false">"المستخدم الحالي لم يعد نشطاً؛ أعد تسجيل الدخول"</string>
     <string name="ui_report_preview_view_model_015" formatted="false">"حُفظ قرار التسليم؛ أي إرسال جديد يمر بالمراجعة والتأكيد"</string>

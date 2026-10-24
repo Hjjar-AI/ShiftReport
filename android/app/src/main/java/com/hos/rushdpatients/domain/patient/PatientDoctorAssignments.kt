@@ -16,10 +16,5 @@ object PatientDoctorAssignments {
                 "الاختصاصي المسؤول غير موجود أو تصنيفه غير صالح"
             }
         }
-        patient.tasks.filterNot { it.done }.forEach { task ->
-            task.ownerDoctorId?.let { id ->
-                require(doctors[id]?.isDeleted == false) { "مسؤول المهمة غير موجود أو غير فعال" }
-            }
-        }
     }
 }

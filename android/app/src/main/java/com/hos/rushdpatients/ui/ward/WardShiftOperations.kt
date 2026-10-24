@@ -44,6 +44,39 @@ internal class WardShiftOperations(
     private val observeShift: (String) -> Unit
 ) {
 
+    private var fetchPublication: com.hos.rushdpatients.sync.CsvPublicationReview? = null
+    fun replaceAndFetch(allowOlder: Boolean = false) = fetchRemoteData(false, replaceLocal = true, allowOlder = allowOlder)
+    fun dismissFetchReview() {
+        fetchPublication = null
+        _state.update { it.copy(fetchReviewText = null, olderRemoteConfirmation = false, fetchChoiceRequired = false) }
+    }
+    fun reviewPublishAndFetch() {
+        val shift = _state.value.shift ?: return
+        if (_state.value.syncing || _state.value.saving) return
+        _state.update { it.copy(syncing = true) }
+        viewModelScope.launch {
+            try {
+                val review = syncService.prepareCsvPublication(shift.id)
+                fetchPublication = review
+                _state.update { it.copy(fetchReviewText = review.text) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { showDownloadIssue(e, WardRetryAction.FETCH_LATEST) }
+            finally { _state.update { it.copy(syncing = false) } }
+        }
+    }
+    fun confirmPublishAndFetch() {
+        val review = fetchPublication ?: return
+        if (_state.value.syncing || _state.value.saving) return
+        dismissFetchReview()
+        _state.update { it.copy(syncing = true) }
+        viewModelScope.launch {
+            val result = syncService.uploadReviewedCsv(review)
+            _state.update { it.copy(syncing = false) }
+            result.onSuccess { fetchRemoteData(false) }
+                .onFailure { showDownloadIssue(it, WardRetryAction.FETCH_LATEST) }
+        }
+    }
+
     fun bringLatestData() = fetchRemoteData(previous = false)
 
     suspend fun rolloverSourceLabel(source: com.hos.rushdpatients.data.model.Shift): String {
@@ -199,11 +232,13 @@ internal class WardShiftOperations(
         }
         _state.update { it.copy(syncing = false, snackbar = null,
             syncIssue = error.message ?: uiText(R.string.ui_ward_shift_operations_024),
+            olderRemoteConfirmation = error is com.hos.rushdpatients.sync.OlderRemoteSnapshotException,
+            fetchChoiceRequired = error is com.hos.rushdpatients.sync.LocalPatientChangesPendingException,
             syncRecovery = recovery, retryAction = retry) }
     }
 
-    private fun fetchRemoteData(previous: Boolean) {
-        if (_state.value.syncing) return
+    private fun fetchRemoteData(previous: Boolean, replaceLocal: Boolean = false, allowOlder: Boolean = false) {
+        if (_state.value.syncing || _state.value.saving) return
         val retry = if (previous) WardRetryAction.FETCH_PREVIOUS
         else WardRetryAction.FETCH_LATEST
         if (!NetworkStatus.isOnline(context)) {
@@ -225,7 +260,7 @@ internal class WardShiftOperations(
         }
         viewModelScope.launch {
             // Refresh the complete registry; pending local changes require explicit handling.
-            val doctorsResult = syncService.refreshDoctorsFromRemote()
+            val doctorsResult = syncService.refreshDoctorsForPatientFetch()
             if (doctorsResult.isFailure) {
                 showDownloadIssue(doctorsResult.exceptionOrNull()
                     ?: IllegalStateException(uiText(R.string.ui_ward_shift_operations_019)), retry)
@@ -235,7 +270,7 @@ internal class WardShiftOperations(
             val result = if (previous) {
                 syncService.fetchPreviousCsv()
             } else {
-                syncService.fetchLatestCsv()
+                syncService.fetchLatestCsv(replaceLocal, allowOlder)
             }
             result.onSuccess { fetched ->
                 observeShift(fetched.shiftId)

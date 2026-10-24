@@ -84,12 +84,13 @@ class ReportPreviewViewModel @Inject constructor(
     private val _state = MutableStateFlow(ReportUiState())
     val state: StateFlow<ReportUiState> = _state.asStateFlow()
     private var reviewedReport: BuiltReport? = null
+    private var reviewedActor: com.hos.rushdpatients.domain.auth.Session? = null
     private val pdfWorkspace = ReportPdfWorkspace(uiText, context, settingsRepository, projectConfigStore,
         classicPdfExporter, cardsPdfExporter, mediaStoreSaver)
 
     private val localActions = ReportLocalActions(uiText, _state, viewModelScope, shiftId,
         context, reportBuilder, settingsRepository, assignmentPdfExporter, mediaStoreSaver,
-        adminAuthorizer, pdfWorkspace)
+        adminAuthorizer, pdfWorkspace, { reviewedReport })
 
     init {
         viewModelScope.launch {
@@ -136,7 +137,7 @@ class ReportPreviewViewModel @Inject constructor(
                 val available = doctorRepository.getAll().filterNot { it.isDeleted }
                 _state.update { it.copy(shift = shift, availableDoctors = available,
                     doctors = available.filter { doctor -> doctor.id in shift.doctorIds },
-                    isReadOnly = shift.date != ShiftDate.current()) }
+                    isReadOnly = !ShiftDate.canPublish(shift.date)) }
                 if (_state.value.doctors.isEmpty()) {
                     _state.update { it.copy(loading = false, previewMarkdown = "", error = null, doctorRegistryAction = null) }
                     return@launch
@@ -151,11 +152,12 @@ class ReportPreviewViewModel @Inject constructor(
                     changes.removed.forEach { add(uiText(R.string.ui_report_preview_view_model_005, it)) }
                 }
                 reviewedReport = built
+                reviewedActor = sessionManager.current()
                 _state.update {
                     it.copy(
                         loading = false,
                         shift = built.shift,
-                        isReadOnly = built.shift.date != ShiftDate.current(),
+                        isReadOnly = !ShiftDate.canPublish(built.shift.date),
                         patients = built.patients,
                         doctors = built.doctors,
                         supervisorTargets = supervisorTargets,
@@ -163,8 +165,14 @@ class ReportPreviewViewModel @Inject constructor(
                         previewMarkdown = built.textChunks.joinToString("\n\n") {
                             Markdown.toPlainText(it)
                         },
-                        readinessWarnings = ReportReadiness.warnings(built.patients),
+                        readinessWarnings = ReportReadiness.issues(built.patients, built.shift.date).map { it.message },
+                        readinessIssues = ReportReadiness.issues(built.patients, built.shift.date),
                         changeBriefing = briefing,
+                        registryChangeSummary = built.registryChangeSummary?.substringBefore("\nافتح")?.let { summary ->
+                            summary + "\n" + built.registryDoctors.filterNot { it.isDeleted }.joinToString("\n") {
+                                it.fullName + " · " + it.clinicalRole.arabicLabel
+                            }
+                        },
                         reportAsPdf = asPdf
                     )
                 }
@@ -277,24 +285,15 @@ class ReportPreviewViewModel @Inject constructor(
     }
 
     private suspend fun prepareReviewedReport(reviewed: BuiltReport, forceLocal: Boolean): BuiltReport {
-        activeSendingActor()
-        val beforeSync = reportBuilder.build(shiftId)
-        check(beforeSync.shift.date == ShiftDate.current()) {
-            uiText(R.string.ui_report_preview_view_model_011)
-        }
-        ReportReview.requireMatches(reviewed, beforeSync)
-        // Registry fetch/publication is explicit; publication validates current published identities.
-        activeSendingActor()
-        ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
-        val publication = syncService.prepareCsvPublication(shiftId, forceLocal)
-        ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
+        val actor = activeSendingActor()
+        val reviewer = reviewedActor
+        require(reviewer != null && actor.id == reviewer.doctorId && actor.telegramId == reviewer.telegramId) { "تغير حساب المراجع؛ افتح التقرير بالحساب الذي راجعه" }
+        check(ShiftDate.canPublish(reviewed.shift.date)) { uiText(R.string.ui_report_preview_view_model_011) }
+        val publication = syncService.prepareCsvPublication(shiftId, forceLocal, reviewed)
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.IN_PROGRESS) }
         syncService.uploadReviewedCsv(publication, forceLocal).getOrThrow()
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.CONFIRMED) }
-        val accepted = reportBuilder.build(shiftId)
-        ReportReview.requireMatches(reviewed, accepted)
-        check(accepted.shift.date == ShiftDate.current()) { uiText(R.string.ui_report_preview_view_model_012) }
-        return accepted
+        return reviewed
     }
 
     private suspend fun activeSendingActor(): com.hos.rushdpatients.data.model.Doctor {
@@ -373,7 +372,6 @@ class ReportPreviewViewModel @Inject constructor(
         viewModelScope.launch {
             var delivered = 0
             try {
-                ReportReview.requireMatches(reviewed, reportBuilder.build(shiftId))
                 // Check every selected route/artifact before publishing or sending any copy.
                 if (includeGeneral) {
                     reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
@@ -387,6 +385,12 @@ class ReportPreviewViewModel @Inject constructor(
                 val actor = activeSendingActor()
                 val targets = buildSupervisorTargets(built).filter { it.doctorId in supervisorIds && it.chatId != null }
                 check(targets == selected) { uiText(R.string.ui_report_preview_view_model_023) }
+                for (target in targets) {
+                    val live = doctorRepository.getActiveById(target.doctorId)
+                    require(live != null && live.supervisorGroupChatId == target.chatId && live.clinicalRole.canBeSupervisor()) {
+                        uiText(R.string.ui_report_preview_view_model_023)
+                    }
+                }
                 if (includeGeneral) {
                     _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
                     if (current.reportAsPdf) sendPdf(built, actor) else sendText(built, actor)

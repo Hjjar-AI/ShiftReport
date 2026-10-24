@@ -75,6 +75,9 @@ data class WardUiState(
     val error: String? = null,
     val snackbar: String? = null,
     val syncIssue: String? = null,
+    val fetchReviewText: String? = null,
+    val olderRemoteConfirmation: Boolean = false,
+    val fetchChoiceRequired: Boolean = false,
     val syncRecovery: WardSyncRecovery? = null
 ) {
     val syncStatus: PatientSyncStatus get() = synchronization.status(syncing)

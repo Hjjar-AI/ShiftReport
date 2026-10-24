@@ -91,7 +91,6 @@ class DemoWardViewModel @Inject constructor(
     )
     private val workspace = _state.map(::wardState).stateIn(viewModelScope,
         SharingStarted.Eagerly, wardState(_state.value))
-    init { viewModelScope.launch { while (true) { delay(60_000L - System.currentTimeMillis() % 60_000L); clock.value = System.currentTimeMillis() } } }
 
     internal val controller: WardController = object : WardController {
         override val liveProject = false
@@ -200,8 +199,7 @@ class DemoWardViewModel @Inject constructor(
             sortOrder = before?.sortOrder ?: current.patients.size + 1,
             tasks = patient.tasks.map { task ->
                 val old = oldTasks[task.id]
-                task.copy(ownerName = task.ownerDoctorId?.let(current.names::get),
-                    completedByDoctorId = if (task.done) old?.completedByDoctorId ?: actor.id else null,
+                task.copy(completedByDoctorId = if (task.done) old?.completedByDoctorId ?: actor.id else null,
                     completedByName = if (task.done) old?.completedByName ?: actor.fullName else null,
                     completedAtEpochMillis = if (task.done) old?.completedAtEpochMillis ?: System.currentTimeMillis() else null)
             }

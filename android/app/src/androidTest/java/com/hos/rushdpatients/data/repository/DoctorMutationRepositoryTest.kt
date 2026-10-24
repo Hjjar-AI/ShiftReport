@@ -46,14 +46,14 @@ class DoctorMutationRepositoryTest : ClinicalRepositoryFixture() {
         assertTrue(rejected { mutations.edit(stale, input()) } is StaleDoctorEditException)
         assertEquals(live, doctors.getById(stale.id))
     }
-    @Test fun activePatientAndPendingTaskPreventRoleChangeAndDeletion() = runBlocking<Unit> {
+    @Test fun activePatientProtectsDoctorButLegacyTaskOwnerDoesNotBlockDeletion() = runBlocking<Unit> {
         val target = target()
         patients.upsert(Patient(id = "p", name = "شاي", responsibleResidentId = target.id), "shift-1")
         rejected { mutations.edit(target, input(ClinicalRole.SUPERVISOR)) }
         rejected { mutations.delete(target) }
         patients.upsert(Patient(id = "p", name = "شاي", tasks = listOf(PatientTask("t", "فحص", ownerDoctorId = target.id))), "shift-1")
-        rejected { mutations.delete(target) }
-        assertEquals(target, doctors.getById(target.id))
+        mutations.delete(target)
+        assertTrue(requireNotNull(doctors.getById(target.id)).isDeleted)
     }
     @Test fun permanentAdminAndEqualRankAreProtectedFromDemotion() = runBlocking<Unit> {
         rejected { mutations.demote(admin, admin.id) }

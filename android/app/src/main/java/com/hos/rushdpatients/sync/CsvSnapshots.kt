@@ -21,7 +21,7 @@ internal fun SyncState.previousCsvSnapshot(): CsvSnapshot? {
 
 /**
  * Telegram documents are immutable. The current pointer can advance repeatedly during the
- * 10-hour editing window while the previous recovery version remains fixed.
+ * publication while retaining the immediately preceding publication for rollback.
  */
 internal fun SyncState.withPublishedCsv(
     uploaded: CsvSnapshot,

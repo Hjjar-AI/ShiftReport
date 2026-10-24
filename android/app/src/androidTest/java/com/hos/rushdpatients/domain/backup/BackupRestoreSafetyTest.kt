@@ -53,13 +53,13 @@ class BackupRestoreSafetyTest : ClinicalRepositoryFixture() {
         assertEquals(shift, shifts.getById("today"))
         assertFalse(settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true))
     }
-    @Test fun deletedTaskOwnerRejectsRestoreButHistoricalCompletionCanRemain() = runBlocking<Unit> {
+    @Test fun legacyDeletedTaskOwnerDoesNotBlockRestore() = runBlocking<Unit> {
         val patient = seed()
         doctors.upsert(doctor("owner"))
         patients.upsert(patient.copy(tasks = listOf(PatientTask("t", "فحص", ownerDoctorId = "owner"))), "today")
         val uri = export()
         doctors.softDelete("owner")
-        rejected { manager().restore(uri, password) }
+        manager().restore(uri, password)
         assertEquals("owner", patients.getById("p")?.tasks?.single()?.ownerDoctorId)
     }
     @Test fun crossShiftIdentityRejectsRestoreAndRollsBackPendingMarker() = runBlocking<Unit> {

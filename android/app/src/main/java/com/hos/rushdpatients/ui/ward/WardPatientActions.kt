@@ -38,6 +38,36 @@ internal class WardPatientActions(
 ) {
     private var draftSaveJob: Job? = null
 
+    private val editDraftJobs = mutableMapOf<String, Job>()
+    fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val draft = settingsRepository.get("patient_edit_draft:$id")?.let { json.decodeFromString<PatientDraft>(it) }
+                done(draft)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { saveGuard.showError(uiText(R.string.patient_edit_draft_unavailable)); done(null) }
+        }
+    }
+    fun saveEditDraft(id: String, draft: PatientDraft) {
+        editDraftJobs.remove(id)?.cancel()
+        editDraftJobs[id] = viewModelScope.launch {
+            delay(350)
+            settingsRepository.put("patient_edit_draft:$id", json.encodeToString(PatientDraft.serializer(), draft))
+        }
+    }
+    fun discardEditDraft(id: String) {
+        editDraftJobs.remove(id)?.cancel()
+        viewModelScope.launch {
+            try { settingsRepository.delete("patient_edit_draft:$id") }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { saveGuard.showError(uiText(R.string.patient_edit_draft_discard_failed)) }
+        }
+    }
+    private suspend fun clearEditDraft(id: String) {
+        editDraftJobs.remove(id)?.cancel()
+        settingsRepository.delete("patient_edit_draft:$id")
+    }
+
     fun loadDraft() {
         viewModelScope.launch {
             val draft = settingsRepository.get(AppConstants.SETTING_PATIENT_DRAFT)
@@ -86,6 +116,16 @@ internal class WardPatientActions(
         }
     }
 
+    fun movePatientToTop(patient: Patient) {
+        val shiftId = saveGuard.editableShiftId() ?: return
+        val revision = _state.value.shift?.revision ?: return
+        viewModelScope.launch {
+            saveGuard.saveAction(onSuccess = {}) {
+                wardMutations.movePatientToTop(patient, shiftId, revision, sessionManager.current())
+            }
+        }
+    }
+
     fun updatePatient(
         patient: Patient,
         onStale: (Patient?) -> Unit = {},
@@ -106,6 +146,7 @@ internal class WardPatientActions(
             }) {
                 saveGuard.requireEditableShift(shiftId)
                 wardMutations.updatePatient(patient, shiftId, sessionManager.current())
+                clearEditDraft(patient.id)
             }
         }
     }

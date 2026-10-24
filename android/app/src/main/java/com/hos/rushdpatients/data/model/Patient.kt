@@ -30,7 +30,7 @@ data class Patient(
     val updatedAt: Instant = Instant.now(),
     val deletedAt: Instant? = null
 ) {
-    val displayName: String get() = name.ifBlank { "مريض بلا اسم · ${id.take(8)}" }
+    val displayName: String get() = name.ifBlank { if (admittanceNumber.isNotBlank()) "مريض · $admittanceNumber" else "مريض ${sortOrder.coerceAtLeast(1)}" }
 
     val isDeleted: Boolean get() = deletedAt != null
 

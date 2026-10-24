@@ -92,8 +92,7 @@ class Administration:
                 require(key not in shift['meta'].get('doctors', '').split(','), 'أزل الطبيب من أطباء المناوبة الحالية أولاً')
             for patient in shift['patients']:
                 tasks = json.loads(patient.get('tasksJson') or '[]')
-                require(key not in (patient.get('responsibleResidentId'), patient.get('responsibleSupervisorId')) and
-                        not any(t.get('ownerDoctorId') == key and not t.get('done') for t in tasks),
+                require(key not in (patient.get('responsibleResidentId'), patient.get('responsibleSupervisorId')),
                         'أعد إسناد المرضى والمهام المعلقة وانشرها قبل حذف الطبيب أو تغيير تصنيفه')
 
     def propose(self, snapshot, action, key=None, values=None):

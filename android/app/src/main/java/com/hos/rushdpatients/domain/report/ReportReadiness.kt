@@ -2,16 +2,23 @@ package com.hos.rushdpatients.domain.report
 
 import com.hos.rushdpatients.data.model.Patient
 
-/** Non-blocking completeness notes shared by the ward FAB and report preview. */
+enum class ReadinessKind { SUPERVISOR, RESIDENT, DIAGNOSIS, TREATMENT, FOLLOW_UP, NOT_UPDATED }
+data class ReadinessIssue(val kind: ReadinessKind, val patientIds: Set<String>, val message: String)
+
+/** Non-blocking notes carry the exact affected identities for review navigation. */
 object ReportReadiness {
-    fun warnings(patients: List<Patient>): List<String> = buildList {
-        val noSupervisor = patients.count { it.responsibleSpecialistId.isNullOrBlank() }
-        val noResident = patients.count { it.responsibleResidentId.isNullOrBlank() }
-        val noDiagnosis = patients.count { it.initialDiagnosis.isBlank() }
-        val noTreatment = patients.count { it.treatmentPlan.isBlank() }
-        if (noSupervisor > 0) add("$noSupervisor مريض دون اختصاصي")
-        if (noResident > 0) add("$noResident مريض دون مقيم")
-        if (noDiagnosis > 0) add("$noDiagnosis مريض دون تشخيص أولي")
-        if (noTreatment > 0) add("$noTreatment مريض دون خطة علاجية")
+    fun issues(patients: List<Patient>, shiftDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): List<ReadinessIssue> = buildList {
+        fun issue(kind: ReadinessKind, label: String, predicate: (Patient) -> Boolean) {
+            val ids = patients.filter(predicate).mapTo(linkedSetOf()) { it.id }
+            if (ids.isNotEmpty()) add(ReadinessIssue(kind, ids, "${ids.size} $label"))
+        }
+        issue(ReadinessKind.SUPERVISOR, "مريض دون اختصاصي") { it.responsibleSpecialistId.isNullOrBlank() }
+        issue(ReadinessKind.RESIDENT, "مريض دون مقيم") { it.responsibleResidentId.isNullOrBlank() }
+        issue(ReadinessKind.DIAGNOSIS, "مريض دون تشخيص أولي") { it.initialDiagnosis.isBlank() }
+        issue(ReadinessKind.TREATMENT, "مريض دون خطة علاجية") { it.treatmentPlan.isBlank() }
+        issue(ReadinessKind.FOLLOW_UP, "مريض دون متابعة") { it.followUp.isBlank() }
+        val start = com.hos.rushdpatients.util.ShiftDate.endOf(shiftDate.minusDays(1))
+        issue(ReadinessKind.NOT_UPDATED, "مريض لم يُحدّث خلال المناوبة") { it.updatedAt.isBefore(start) }
     }
+    fun warnings(patients: List<Patient>): List<String> = issues(patients).map { it.message }
 }

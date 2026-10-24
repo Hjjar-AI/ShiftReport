@@ -41,10 +41,10 @@ class SyncService @Inject constructor(
     private val patientSyncMutex = Mutex()
 
     private val retrieval = PatientRetrievalCoordinator(
-        patientSyncMutex, context, telegram, shiftRepository, patientRepository, doctorRepository, syncStateRepository, settingsRepository, database, auditRepository, dispatchers, remoteState, downloadUndo)
+        patientSyncMutex, context, telegram, shiftRepository, patientRepository, doctorRepository, syncStateRepository, settingsRepository, database, auditRepository, dispatchers, remoteState, downloadUndo, doctorSync)
 
     private val publication = PatientPublicationCoordinator(
-        patientSyncMutex, context, telegram, topics, shiftRepository, patientRepository, doctorRepository, syncStateRepository, settingsRepository, auditRepository, dispatchers, remoteState, doctorSync, reportBuilder)
+        patientSyncMutex, context, telegram, topics, shiftRepository, patientRepository, doctorRepository, syncStateRepository, settingsRepository, auditRepository, dispatchers, remoteState, doctorSync, reportBuilder, database)
 
     fun observeDownloadUndo() = downloadUndo.available
     suspend fun undoLastDownload(): Result<String> = patientSyncMutex.withLock {
@@ -56,20 +56,25 @@ class SyncService @Inject constructor(
     suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSync.uploadDoctors(registryData)
     suspend fun uploadCurrentDoctors(): Result<Unit> = doctorSync.uploadCurrentDoctors()
     suspend fun synchronizeDoctors(): Result<Unit> = doctorSync.synchronizeDoctors()
+    suspend fun refreshDoctorsForPatientFetch(): Result<Unit> = doctorSync.refreshDoctorsForPatientFetch()
     suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSync.refreshDoctorsFromRemote()
     suspend fun fetchLatestDoctors(): Result<String> = doctorSync.fetchLatestDoctors()
     suspend fun fetchAndApplyLatestDoctors(): Result<Int> = doctorSync.fetchAndApplyLatestDoctors()
-    suspend fun fetchLatestCsv(): Result<CsvFetchResult> = retrieval.fetchLatestCsv()
+    suspend fun fetchLatestCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> =
+        retrieval.fetchLatestCsv(replaceLocal, allowOlder)
 
     suspend fun fetchPreviousCsv(): Result<CsvFetchResult> = retrieval.fetchPreviousCsv()
 
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary = retrieval.describeLocalChanges(shiftId)
 
-    suspend fun prepareCsvPublication(shiftId: String, forceLocal: Boolean = false): CsvPublicationReview = publication.prepareCsvPublication(shiftId, forceLocal)
+    suspend fun prepareCsvPublication(shiftId: String, forceLocal: Boolean = false, reviewed: com.hos.rushdpatients.domain.report.BuiltReport? = null): CsvPublicationReview = publication.prepareCsvPublication(shiftId, forceLocal, reviewed)
 
     suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> = publication.uploadCsv(shiftId)
 
     suspend fun uploadReviewedCsv(review: CsvPublicationReview, forceLocal: Boolean = false): Result<CsvUploadResult> = publication.uploadReviewedCsv(review, forceLocal)
+
+    suspend fun prepareRollback(): CsvRollbackReview = publication.prepareRollback()
+    suspend fun publishRollback(review: CsvRollbackReview): Result<Unit> = publication.publishRollback(review)
 
     suspend fun getOrCreateDeviceId(): String = publication.getOrCreateDeviceId()
 

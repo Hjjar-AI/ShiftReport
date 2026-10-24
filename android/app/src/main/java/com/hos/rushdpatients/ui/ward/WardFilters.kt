@@ -40,8 +40,8 @@ internal class WardFilters(initial: WardFilterOptions = WardFilterOptions()) {
             DashboardFilter.UNASSIGNED -> unassignedOnly = true
             DashboardFilter.NEW_ADMISSIONS -> newAdmissionsOnly = true
             DashboardFilter.TASK_PENDING -> taskFilter = WardTaskFilter.PENDING
-            DashboardFilter.TASK_OVERDUE -> taskFilter = WardTaskFilter.OVERDUE
-            DashboardFilter.TASK_UNASSIGNED -> taskFilter = WardTaskFilter.UNASSIGNED
+            DashboardFilter.TASK_OVERDUE -> taskFilter = WardTaskFilter.PENDING
+            DashboardFilter.TASK_UNASSIGNED -> taskFilter = WardTaskFilter.PENDING
         }
     }
 
@@ -68,8 +68,8 @@ internal class WardFilters(initial: WardFilterOptions = WardFilterOptions()) {
         if (newAdmissionsOnly) add(uiText(R.string.ui_handover_dashboard_016))
         when (taskFilter) {
             WardTaskFilter.PENDING -> add(uiText(R.string.ui_ward_screen_011))
-            WardTaskFilter.OVERDUE -> add(uiText(R.string.ui_ward_patient_list_controls_008))
-            WardTaskFilter.UNASSIGNED -> add(uiText(R.string.ui_ward_screen_012))
+            WardTaskFilter.OVERDUE -> add(uiText(R.string.ui_ward_screen_011))
+            WardTaskFilter.UNASSIGNED -> add(uiText(R.string.ui_ward_screen_011))
             null -> Unit
         }
     }

@@ -24,17 +24,17 @@ class PatientTasksInvariantTest {
         for (time in listOf(now - 2, now, now + 2)) {
             val counts = PatientTasks.counts(tasks, time)
             assertEquals(tasks.size / 2, counts.pending)
-            assertEquals(counts.pending / 2, counts.unassigned)
-            assertEquals(tasks.count { !it.done && it.dueAtEpochMillis?.let { due -> due <= time } == true }, counts.overdue)
+            assertEquals(0, counts.unassigned)
+            assertEquals(0, counts.overdue)
             assertTrue(counts.overdue in 0..counts.pending)
         }
     }
 
-    @Test fun `overdue is monotonic while completed and undated records remain excluded`() {
+    @Test fun `legacy deadlines never change checklist status`() {
         combinations().forEach { task ->
             val values = listOf(now - 2, now, now + 2).map { PatientTasks.overdue(task, it) }
             assertFalse(values.zipWithNext().any { (before, after) -> before && !after })
-            if (task.done || task.dueAtEpochMillis == null) assertTrue(values.none { it })
+            assertTrue(values.none { it })
         }
     }
 
@@ -101,12 +101,12 @@ class PatientTasksInvariantTest {
         }
     }
 
-    @Test fun `leap day shift deadline accepted but impossible shift date rejected`() {
+    @Test fun `legacy shift deadlines are read tolerantly and preserved`() {
         val task = Fixtures.task().copy(dueAtEpochMillis = now, dueShiftDate = "2024-02-29")
         PatientTasks.requireValid(listOf(task))
-        assertThrows(IllegalArgumentException::class.java) {
-            PatientTasks.requireValid(listOf(task.copy(dueShiftDate = "2025-02-29")))
-        }
+        val legacy = task.copy(dueShiftDate = "2025-02-29")
+        PatientTasks.requireValid(listOf(legacy))
+        assertEquals(listOf(legacy), PatientTaskCodec.decode(PatientTaskCodec.encode(listOf(legacy))))
     }
 
     @Test fun `ward filters cover null and independent resident supervisor combinations`() {
@@ -132,13 +132,13 @@ class PatientTasksInvariantTest {
         assertTrue(PatientTasks.carryForward(emptyList(), true).isEmpty())
     }
 
-    @Test fun `compact summary preserves multiline descriptions high priority and completion names`() {
+    @Test fun `checklist summary preserves multiline descriptions and completion names`() {
         val tasks = listOf(Fixtures.task().copy(description = "قياس\nثم مراجعة", priority = TaskPriority.HIGH),
             Fixtures.task("done", true))
         val text = PatientTasks.summary(tasks, includeUnassigned = false, includeRoutinePriority = false,
             nowEpochMillis = now)
         assertTrue(text.contains("قياس\nثم مراجعة"))
-        assertTrue(text.contains("عالية"))
+        assertFalse(text.contains("عالية"))
         assertTrue(text.contains("أتمها أرز"))
         assertFalse(text.contains("غير معيّنة"))
         assertFalse(text.contains("عادية"))

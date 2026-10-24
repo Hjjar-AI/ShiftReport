@@ -127,8 +127,12 @@ class ReportDeliveryLedger @Inject constructor(
             val log = load()
             val row = resolvable(log, id, expectedStatus)
             if (resolution == DeliveryResolution.ALLOW_COPY) {
-                require(row.status == "SENT") { "احسم التسليم غير المؤكد أولاً" }
-                save(log.copy(repeatPermits = log.repeatPermits + row.key))
+                require(row.status == "SENT" || row.status == "UNKNOWN") { "هذه العملية لا تحتاج إذن نسخة إضافية" }
+                // An explicit resolution records uncertainty without claiming receipt or deleting evidence.
+                // A failed extra send creates its own UNKNOWN record and blocks again.
+                save(log.copy(records = log.records.map {
+                    if (it.id == id && it.status == "UNKNOWN") it.copy(status = "UNKNOWN_COPY_ALLOWED") else it
+                }, repeatPermits = log.repeatPermits + row.key))
             } else {
                 require(row.status == "UNKNOWN") { "هذه العملية محسومة بالفعل" }
                 val status = if (resolution == DeliveryResolution.RECEIVED) "SENT" else "NOT_SENT"

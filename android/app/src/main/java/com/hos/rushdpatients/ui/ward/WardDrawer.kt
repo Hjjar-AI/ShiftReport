@@ -123,12 +123,10 @@ internal fun WardDrawer(
                     WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_012), AppIcons.Folder, dataMenuExpanded,
                         onToggle = { dataMenuExpanded = !dataMenuExpanded }) {
-                        WardDrawerRow(uiText(R.string.ui_ward_drawer_014), AppIcons.Description) { onAction(WardDrawerAction.FILES) }
-                        WardDrawerRow(uiText(R.string.ui_ward_drawer_015), AppIcons.Backup) { onAction(WardDrawerAction.BACKUP) }
-                        WardDrawerRow(uiText(R.string.ui_ward_review_dialogs_001), AppIcons.History,
+                        WardDrawerRow(uiText(R.string.drawer_start_shift), AppIcons.History,
                             enabled = !state.isReadOnly && !state.syncing && !state.saving && state.patients.isEmpty()) { onAction(WardDrawerAction.START_SHIFT) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_016), AppIcons.History, enabled = !state.syncing && !state.saving) { onAction(WardDrawerAction.PREVIOUS) }
-                        WardDrawerRow(uiText(R.string.ui_ward_review_dialogs_009), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
+                        WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
                     }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_017), AppIcons.Settings, preferencesMenuExpanded,
                         onToggle = { preferencesMenuExpanded = !preferencesMenuExpanded }) {
@@ -139,8 +137,6 @@ internal fun WardDrawer(
                         DrawerToolGroup(uiText(R.string.ui_ward_drawer_020), AppIcons.AdminPanelSettings, adminMenuExpanded,
                             onToggle = { adminMenuExpanded = !adminMenuExpanded }) {
                             WardDrawerRow(uiText(R.string.ui_admin_screen_001), AppIcons.Groups) { onAction(WardDrawerAction.ADMIN) }
-                            WardDrawerRow(uiText(R.string.ui_ward_drawer_021), AppIcons.PictureAsPdf) { onAction(WardDrawerAction.DESTINATIONS) }
-                            WardDrawerRow(uiText(R.string.ui_ward_drawer_022), AppIcons.PersonAdd) { onAction(WardDrawerAction.INVITATIONS) }
                             WardDrawerRow(uiText(R.string.ui_ward_drawer_023), AppIcons.Campaign) { onAction(WardDrawerAction.ANNOUNCEMENT) }
                         }
                     }

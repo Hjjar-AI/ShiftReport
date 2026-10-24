@@ -29,8 +29,7 @@ data class SyncState(
     val csvUpdatedAt: Long = 0L,
     val publicationJournal: List<PublicationJournalEntry> = emptyList(),
 
-    // One immutable recovery version. Uploads inside the 10-hour editing window update the
-    // current pointer without rotating this version.
+    // Immediate previous immutable publication, retained for confirmed rollback.
     val previousCsvFileId: String? = null,
     val previousCsvMessageId: Long? = null,
     val previousCsvDate: String? = null,

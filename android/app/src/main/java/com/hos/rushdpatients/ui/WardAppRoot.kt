@@ -38,7 +38,6 @@ import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.BiometricHelper
-import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.ui.login.LoginScreen
@@ -55,8 +54,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -69,7 +66,7 @@ class RootViewModel @Inject constructor(
     private val biometricHelper: BiometricHelper,
     private val auditRepository: AuditRepository,
     private val doctorRepository: DoctorRepository,
-    private val hasher: PasswordHasher,
+    private val localPinLogin: com.hos.rushdpatients.domain.auth.LocalPinLoginManager,
     private val projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
 
@@ -92,7 +89,6 @@ class RootViewModel @Inject constructor(
     private var unlockRequired = false
 
     private var backgroundedAt: Instant? = null
-    private var failedPinAttempts = 0
 
     fun onBackground() {
         backgroundedAt = Instant.now()
@@ -125,37 +121,19 @@ class RootViewModel @Inject constructor(
         _unlocking.value = true
         viewModelScope.launch {
             try {
-                val doctor = doctorRepository.getActiveById(current.doctorId)
-                val stored = doctor?.extraOptions
-                    ?.firstOrNull { it.startsWith("pin:") }
-                    ?.removePrefix("pin:")
-                val ok = stored != null && withContext(Dispatchers.IO) { hasher.verify(pin, stored) }
+                val doctor = localPinLogin.verify(current.doctorId, pin)
                 if (sessionManager.current() != current) return@launch
-                val latest = doctorRepository.getActiveById(current.doctorId)
-                if (sessionManager.current() != current) return@launch
-                if (latest == null || latest.telegramId != current.telegramId ||
-                    latest.extraOptions.firstOrNull { it.startsWith("pin:") } != stored?.let { "pin:$it" }) {
+                if (doctor.telegramId != current.telegramId) {
                     signOut()
                     return@launch
                 }
-                if (ok) {
-                    failedPinAttempts = 0
-                    _unlockError.value = null
-                    unlockRequired = false
-                    sessionManager.markUnlocked()
-                } else {
-                    failedPinAttempts++
-                    _unlockError.value = if (failedPinAttempts >= AppConstants.LOGIN_MAX_ATTEMPTS) {
-                        signOut()
-                        uiText(R.string.ui_ward_app_root_001)
-                    } else {
-                        uiText(R.string.ui_ward_app_root_002)
-                    }
-                }
+                _unlockError.value = null
+                unlockRequired = false
+                sessionManager.markUnlocked()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _unlockError.value = uiText(R.string.ui_pin_unlock_retry)
+                _unlockError.value = e.message ?: uiText(R.string.ui_pin_unlock_retry)
             } finally {
                 _unlocking.value = false
             }
@@ -173,7 +151,6 @@ class RootViewModel @Inject constructor(
                     signOut()
                     return@launch
                 }
-                failedPinAttempts = 0
                 _unlockError.value = null
                 unlockRequired = false
                 sessionManager.markUnlocked()
@@ -273,6 +250,12 @@ fun WardAppRoot(
         !projectConfig.initialized -> ProjectSetupScreen()
         projectConfig.demoMode -> DemoWardScreen(onExit = viewModel::exitDemo)
         current == null -> LoginScreen()
+        !unlockDecisionReady -> Column(Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            androidx.compose.foundation.Image(
+                androidx.compose.ui.res.painterResource(R.drawable.app_emblem_transparent), contentDescription = null,
+                modifier = Modifier.padding(32.dp))
+        }
         needsUnlock -> PinUnlockScreen(
             doctorName = current.doctorName,
             error = unlockError,

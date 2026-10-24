@@ -92,7 +92,7 @@ def render(owner):
     display=owner.patient_display(draft)
     roster_names=[owner.client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in draft['meta'].get('doctors','').split(',') if key]
     roster=' / '.join(roster_names[:2])+(' · +'+str(len(roster_names)-2) if len(roster_names)>2 else '')
-    owner.metrics.configure(text='{} · {} من {} مريض · مهام الجناح المعلقة {} (منها متأخرة {})\nأطباء المناوبة: {}'.format(draft['meta']['shiftDate'],len(display),len(rows),pending,overdue,roster or 'لم تحدد'))
+    owner.metrics.configure(text='{} · {} من {} مريض · مهام الجناح المعلقة {}\nأطباء المناوبة: {}'.format(draft['meta']['shiftDate'],len(display),len(rows),pending,roster or 'لم تحدد'))
     movement_allowed=owner.manual_movement_allowed()
     owner.update_patient_list(display,movement_allowed,draft)
 

@@ -8,8 +8,7 @@ import com.hos.rushdpatients.domain.task.TaskCounts
 /** Shared display predicates for ward filters, dashboard totals and the in-memory demo. */
 object PatientPredicates {
     fun mine(patient: Patient, doctorId: String): Boolean =
-        patient.responsibleResidentId == doctorId || patient.responsibleSpecialistId == doctorId ||
-            patient.tasks.any { !it.done && it.ownerDoctorId == doctorId }
+        patient.responsibleResidentId == doctorId || patient.responsibleSpecialistId == doctorId
     fun urgent(patient: Patient): Boolean = patient.isPriority ||
         patient.badges.any { it.priority == PatientBadgePriority.HIGH }
     fun warnings(patient: Patient): Boolean = patient.badges.isNotEmpty()

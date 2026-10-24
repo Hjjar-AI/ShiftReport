@@ -137,12 +137,25 @@ class WardViewModel @Inject constructor(
                     _state.map { it.shift to it.patients }.distinctUntilChanged(),
                     settingsRepository.observe(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + id)
                 ) { current, csv ->
-                    withContext(Dispatchers.Default) { KnownShiftSnapshot.compare(current.first, current.second, csv) }
+                    withContext(Dispatchers.Default) {
+                        val status = KnownShiftSnapshot.compare(current.first, current.second, csv)
+                        val before = csv?.let { runCatching { com.hos.rushdpatients.sync.CsvCodec.decode(it) }.getOrNull() }
+                        val baseline = before?.patients.orEmpty().associateBy { it.id }
+                        val after = current.second.associateBy { it.id }
+                        val count = (baseline.keys + after.keys).count {
+                            !com.hos.rushdpatients.sync.samePatientContent(baseline[it], after[it]) ||
+                                baseline[it]?.sortOrder != after[it]?.sortOrder
+                        } + if (before != null && (before.doctorIds != current.first?.doctorIds ||
+                            before.sortSpecJson != current.first?.sortSpecJson)) 1 else 0
+                        status to count
+                    }
                 }
                 // An unreadable delivery ledger must not hide publication/download metadata.
                 val deliveries = deliveryLedger.observe().map { records ->
-                    records.count { it.shiftId == id && it.status == "UNKNOWN" } to false
-                }.catch { emit(0 to true) }
+                    val rows = records.filter { it.shiftId == id }
+                    Triple(rows.count { it.status == "UNKNOWN" }, false,
+                        rows.filter { it.status == "SENT" }.maxOfOrNull { it.at })
+                }.catch { emit(Triple(0, true, null)) }
                 combine(
                     publication,
                     settingsRepository.observe(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + id),
@@ -150,9 +163,9 @@ class WardViewModel @Inject constructor(
                     deliveries,
                     selectedSnapshot
                 ) { published, at, message, delivery, selected ->
-                    WardSynchronization(pending = published.first, selectedSnapshot = selected, lastSynchronizedAt = published.second, publishedAt = published.third,
+                    WardSynchronization(pending = published.first, selectedSnapshot = selected.first, pendingCount = selected.second, lastSynchronizedAt = published.second, publishedAt = published.third,
                         downloadedAt = at?.toLongOrNull(), downloadedMessage = message?.toLongOrNull(),
-                        unresolvedDeliveries = delivery.first, deliveryLogUnavailable = delivery.second)
+                        unresolvedDeliveries = delivery.first, deliveryLogUnavailable = delivery.second, lastReportAt = delivery.third)
                 }.collect { synchronization ->
                     _state.update { current ->
                         if (current.shift?.id == id) current.copy(synchronization = synchronization) else current
@@ -165,7 +178,9 @@ class WardViewModel @Inject constructor(
     private fun monitorEditabilityBoundary() {
         viewModelScope.launch {
             while (true) {
-                delay(60_000L - System.currentTimeMillis() % 60_000L)
+                val midnight = java.time.LocalDate.now().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                val nextBoundary = minOf(midnight, ShiftDate.endOf(ShiftDate.current()).toEpochMilli())
+                delay((nextBoundary - System.currentTimeMillis()).coerceAtLeast(1_000L))
                 _taskNow.value = System.currentTimeMillis()
                 _state.update { current ->
                     current.copy(isReadOnly = current.shift?.date?.let { it != ShiftDate.current() } ?: false)
@@ -176,17 +191,24 @@ class WardViewModel @Inject constructor(
 
     private fun loadDraft() = patientActions.loadDraft()
 
+    fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) = patientActions.loadEditDraft(id, done)
+    fun discardEditDraft(id: String) = patientActions.discardEditDraft(id)
+    fun saveEditDraft(id: String, draft: PatientDraft) = patientActions.saveEditDraft(id, draft)
+
     fun saveDraft(draft: PatientDraft) = patientActions.saveDraft(draft)
 
     private fun observePreferences() = preferences.observePreferences()
+
+    private var requestedReviewShiftId: String? = null
+    fun selectReviewShift(id: String) { requestedReviewShiftId = id; observeShift(id) }
 
     fun load() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
             try {
                 val initialShift = shiftRepository.getOrCreateForDate(ShiftDate.current())
-                observeShift(initialShift.id)
-                if (patientRepository.countForShift(initialShift.id) == 0 &&
+                observeShift(requestedReviewShiftId ?: initialShift.id)
+                if (requestedReviewShiftId == null && patientRepository.countForShift(initialShift.id) == 0 &&
                     settingsRepository.getBoolean(AppConstants.SETTING_GUIDED_ROLLOVER, false)
                 ) {
                     val previous = shiftRepository.getRecent(12)
@@ -248,6 +270,11 @@ class WardViewModel @Inject constructor(
         }
     }
 
+    fun replaceAndFetch(allowOlder: Boolean) = shiftOperations.replaceAndFetch(allowOlder)
+    fun reviewPublishAndFetch() = shiftOperations.reviewPublishAndFetch()
+    fun confirmPublishAndFetch() = shiftOperations.confirmPublishAndFetch()
+    fun dismissFetchReview() = shiftOperations.dismissFetchReview()
+
     fun bringLatestData() = shiftOperations.bringLatestData()
 
     private suspend fun rolloverSourceLabel(source: com.hos.rushdpatients.data.model.Shift): String = shiftOperations.rolloverSourceLabel(source)
@@ -288,6 +315,8 @@ class WardViewModel @Inject constructor(
 
     fun addPatient(patient: Patient, position: Int? = null, expectedPatients: List<Patient>? = null,
         expectedShiftRevision: Long? = null, onSuccess: () -> Unit = {}) = patientActions.addPatient(patient, position, expectedPatients, expectedShiftRevision, onSuccess)
+
+    fun movePatientToTop(patient: Patient) = patientActions.movePatientToTop(patient)
 
     fun updatePatient(
         patient: Patient,

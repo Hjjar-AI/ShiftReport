@@ -21,9 +21,9 @@ class PatientDoctorAssignmentsTest {
         assertThrows(IllegalArgumentException::class.java) { PatientDoctorAssignments.requireValid(
             Fixtures.patient(responsibleResidentId = "r"), registry + ("r" to resident.copy(deletedAt = Fixtures.timestamp))) }
     }
-    @Test fun `unfinished task requires active owner while completed history is preserved`() {
+    @Test fun `legacy task ownership does not constrain patient assignment validation`() {
         val pending = Fixtures.patient().copy(tasks = listOf(Fixtures.task().copy(ownerDoctorId = "missing")))
-        assertThrows(IllegalArgumentException::class.java) { PatientDoctorAssignments.requireValid(pending, registry) }
+        PatientDoctorAssignments.requireValid(pending, registry)
         PatientDoctorAssignments.requireValid(pending.copy(tasks = listOf(Fixtures.task(done = true).copy(ownerDoctorId = "missing"))), registry)
     }
 }

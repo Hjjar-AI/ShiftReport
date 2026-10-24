@@ -22,13 +22,13 @@ class WardPatientFilteringTest {
         assertTrue(filter(listOf(Fixtures.patient(name = "شاي", initialDiagnosis = "قهوة")),
             WardFilterOptions(searchQuery = "شاي قهوة")).isEmpty())
     }
-    @Test fun `task filters distinguish pending overdue unassigned and completed`() {
+    @Test fun `legacy task filters resolve to the pending checklist without ownership or deadlines`() {
         val patients = listOf(Fixtures.patient(id = "due").copy(tasks = listOf(Fixtures.task().copy(dueAtEpochMillis = 100))),
             Fixtures.patient(id = "future").copy(tasks = listOf(Fixtures.task().copy(ownerDoctorId = "doctor", dueAtEpochMillis = 101))),
             Fixtures.patient(id = "done").copy(tasks = listOf(Fixtures.task(done = true))), Fixtures.patient(id = "none"))
         assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.PENDING)))
-        assertEquals(listOf("due"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.OVERDUE)))
-        assertEquals(listOf("due"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.UNASSIGNED)))
+        assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.OVERDUE)))
+        assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.UNASSIGNED)))
     }
     @Test fun `mine and priority filters intersect rather than expand results`() {
         val patients = listOf(Fixtures.patient(id = "mine", responsibleResidentId = "doctor").copy(isPriority = true),

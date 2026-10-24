@@ -152,17 +152,12 @@ private fun TaskDraftRow(
                 }
             }
             Text(PatientTasks.statusLabel(task, nowEpochMillis), style = MaterialTheme.typography.labelMedium,
-                color = if (PatientTasks.overdue(task, nowEpochMillis)) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.onSurfaceVariant)
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
             val metadata = PatientTasks.metadata(task, names, includeUnassigned = false, includeRoutinePriority = false)
             if (metadata.isNotBlank()) Text(metadata, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-}
-
-internal enum class TaskDeadline(@StringRes private val labelRes: Int) { NONE(R.string.ui_patient_task_editor_031), TIME(R.string.ui_patient_task_editor_032), SHIFT(R.string.ui_patient_task_editor_033);
-    fun label(uiText: UiStrings): String = uiText(labelRes)
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -173,18 +168,12 @@ private fun TaskDraftDialog(
 ) {
     val uiText = rememberUiStrings()
     var description by state::description
-    var owner by state::owner
-    var priority by state::priority
-    var deadline by state::deadline
-    var date by state::date
-    var time by state::time
     var confirmDiscard by state::confirmDiscard
     val initial = state.initial
     val context = LocalContext.current
-    var error by remember(initial) { mutableStateOf<String?>(null) }
     val requestDismiss: () -> Unit = {
         if (enabled) {
-            if (listOf(description, owner, priority, deadline, date, time) != state.initialValues) confirmDiscard = true
+            if (listOf(description) != state.initialValues) confirmDiscard = true
             else onDismiss()
         }
     }
@@ -193,54 +182,16 @@ private fun TaskDraftDialog(
         title = { Text(if (initial == null) uiText(R.string.ui_patient_task_editor_014) else uiText(R.string.ui_patient_task_editor_015), Modifier.semantics { heading() }) },
         text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                AppTextField(description, { description = it; error = null }, label = { Text(uiText(R.string.ui_patient_task_editor_016)) },
-                    modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = error != null, errorMessage = error)
-                AppSectionHeader(uiText(R.string.ui_patient_task_editor_017))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    TaskDeadline.entries.forEach { option ->
-                        AppFilterChip(selected = deadline == option, onClick = { deadline = option; error = null },
-                            label = { Text(option.label(uiText)) }, enabled = enabled)
-                    }
-                }
-                if (deadline != TaskDeadline.NONE) {
-                    DateField(date, { date = it }, if (deadline == TaskDeadline.SHIFT) uiText(R.string.ui_patient_task_editor_018) else uiText(R.string.ui_patient_task_editor_019),
-                        if (deadline == TaskDeadline.SHIFT) uiText(R.string.ui_patient_task_editor_020) else null, enabled = enabled)
-                }
-                if (deadline == TaskDeadline.TIME) {
-                    AppPickerField(value = time.toString(), label = uiText(R.string.ui_patient_task_editor_021), icon = AppIcons.Schedule,
-                        valueTextDirection = TextDirection.Ltr, onClick = {
-                        TimePickerDialog(context, { _, hour, minute ->
-                            time = LocalTime.of(hour, minute)
-                            error = null
-                        }, time.hour, time.minute, true).show()
-                    }, enabled = enabled, modifier = Modifier.fillMaxWidth())
-                }
-                AppSectionHeader(uiText(R.string.ui_patient_task_editor_022))
-                DoctorDropdown(label = uiText(R.string.ui_patient_task_editor_023), undefinedLabel = uiText(R.string.ui_patient_task_editor_024), selectedId = owner,
-                    doctors = doctors, onSelected = { owner = it }, modifier = Modifier.fillMaxWidth(), enabled = enabled)
-                AppSectionHeader(uiText(R.string.ui_patient_task_editor_025))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    TaskPriority.entries.forEach { option ->
-                        AppFilterChip(selected = priority == option, onClick = { priority = option },
-                            label = { Text(option.uiLabel(uiText)) }, enabled = enabled)
-                    }
-                }
+                AppTextField(description, { description = it }, label = { Text(uiText(R.string.ui_patient_task_editor_016)) },
+                    modifier = Modifier.fillMaxWidth(), enabled = enabled)
                 Text(uiText(R.string.ui_patient_task_editor_026),
                     style = MaterialTheme.typography.bodySmall)
-                error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
             }
         },
         confirmButton = {
             AppButton(enabled = enabled && description.isNotBlank(), onClick = {
-                val dueAt = when (deadline) {
-                    TaskDeadline.NONE -> null
-                    TaskDeadline.SHIFT -> ShiftDate.endOf(date).toEpochMilli()
-                    TaskDeadline.TIME -> date.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                }
                 onConfirm((initial ?: PatientTask(UUID.randomUUID().toString(), description.trim())).copy(
-                    description = description.trim(), ownerDoctorId = owner,
-                    ownerName = doctors.firstOrNull { it.id == owner }?.fullName, priority = priority,
-                    dueAtEpochMillis = dueAt, dueShiftDate = date.toString().takeIf { deadline == TaskDeadline.SHIFT }
+                    description = description.trim()
                 ))
             }) { Text(uiText(R.string.ui_patient_task_editor_027)) }
         },
@@ -252,19 +203,9 @@ private fun TaskDraftDialog(
         onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
 }
 
-/** Nested task entry belongs to the patient draft, including unfinished text and deadline choices. */
+/** Nested task entry belongs to the patient draft, including unfinished text. */
 internal class TaskDraftState(val initial: PatientTask?) {
     var description by mutableStateOf(initial?.description.orEmpty())
-    var owner by mutableStateOf(initial?.ownerDoctorId)
-    var priority by mutableStateOf(initial?.priority ?: TaskPriority.NORMAL)
-    var deadline by mutableStateOf(when {
-        initial?.dueShiftDate != null -> TaskDeadline.SHIFT
-        initial?.dueAtEpochMillis != null -> TaskDeadline.TIME
-        else -> TaskDeadline.NONE
-    })
-    private val due = initial?.dueAtEpochMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()) }
-    var date by mutableStateOf(initial?.dueShiftDate?.let(LocalDate::parse) ?: due?.toLocalDate() ?: ShiftDate.current())
-    var time by mutableStateOf(due?.toLocalTime()?.withSecond(0)?.withNano(0) ?: LocalTime.of(18, 0))
-    val initialValues = listOf(description, owner, priority, deadline, date, time)
+    val initialValues = listOf(description)
     var confirmDiscard by mutableStateOf(false)
 }

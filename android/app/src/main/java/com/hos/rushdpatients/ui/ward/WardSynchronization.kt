@@ -22,12 +22,14 @@ internal enum class WardWorkflowAction(@StringRes private val labelRes: Int) {
 /** Device publication metadata and selected-shift download metadata have different scopes. */
 data class WardSynchronization(
     val pending: Boolean = false,
+    val pendingCount: Int? = null,
     val selectedSnapshot: KnownShiftState = KnownShiftState.UNKNOWN,
     val lastSynchronizedAt: Long? = null,
     val publishedAt: Long? = null,
     val downloadedAt: Long? = null,
     val downloadedMessage: Long? = null,
     val unresolvedDeliveries: Int = 0,
+    val lastReportAt: Long? = null,
     val deliveryLogUnavailable: Boolean = false
 ) {
     fun status(syncing: Boolean): PatientSyncStatus = when {

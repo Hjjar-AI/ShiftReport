@@ -91,13 +91,8 @@ internal class WardSaveGuard(
 
     fun validationMessage(result: PatientValidationResult.Invalid): String =
         when (result.errors.firstOrNull()) {
-            PatientValidationError.NAME_EMPTY -> uiText(R.string.ui_ward_save_guard_006)
-            PatientValidationError.ADMITTANCE_NUMBER_EMPTY -> uiText(R.string.ui_ward_save_guard_007)
             PatientValidationError.ADMITTANCE_DATE_INVALID -> uiText(R.string.ui_ward_save_guard_008)
             PatientValidationError.BIRTH_DATE_INVALID -> uiText(R.string.ui_ward_save_guard_009)
-            PatientValidationError.INITIAL_DIAGNOSIS_EMPTY -> uiText(R.string.ui_ward_save_guard_010)
-            PatientValidationError.TREATMENT_PLAN_EMPTY -> uiText(R.string.ui_ward_save_guard_011)
-            PatientValidationError.FOLLOW_UP_EMPTY -> uiText(R.string.ui_ward_save_guard_012)
             PatientValidationError.TASKS_INVALID -> uiText(R.string.ui_ward_save_guard_013)
             PatientValidationError.RESIDENT_EQUALS_SUPERVISOR -> uiText(R.string.ui_ward_save_guard_014)
             null -> uiText(R.string.ui_ward_save_guard_015)

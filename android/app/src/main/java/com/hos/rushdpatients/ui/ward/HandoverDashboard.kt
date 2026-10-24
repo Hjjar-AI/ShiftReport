@@ -48,7 +48,8 @@ internal fun HandoverDashboard(
     onActivity: () -> Unit,
     modifier: Modifier = Modifier,
     bottomClearance: Dp = UiSpacing.screen,
-    showSynchronization: Boolean = true
+    showSynchronization: Boolean = true,
+    reportStatus: String? = null, onReportStatus: () -> Unit = onSync
 ) {
     val uiText = rememberUiStrings()
     val summary = remember(patients, currentDoctorId, nowEpochMillis) {
@@ -67,6 +68,9 @@ internal fun HandoverDashboard(
             .verticalScroll(rememberScrollState()).padding(bottom = bottomClearance),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {
+        reportStatus?.let { status ->
+            AppTextButton(onClick = onReportStatus) { Text(status, style = MaterialTheme.typography.titleSmall) }
+        }
         Text(
             if (showSynchronization) uiText(R.string.ui_handover_dashboard_001)
             else uiText(R.string.ui_handover_dashboard_002),
@@ -80,7 +84,6 @@ internal fun HandoverDashboard(
         Text(uiText(R.string.ui_handover_dashboard_005), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
         val attention = buildList {
             if (urgent > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_006), urgent, Tone.URGENT) { onFilter(DashboardFilter.URGENT) })
-            if (taskCounts.overdue > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_007), taskCounts.overdue, Tone.URGENT) { onFilter(DashboardFilter.TASK_OVERDUE) })
         }
         AppMetricGrid(attention)
         if (attention.isEmpty()) com.hos.rushdpatients.ui.components.AppNotice(
@@ -92,7 +95,6 @@ internal fun HandoverDashboard(
             AppMetric(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending, Tone.PENDING) { onFilter(DashboardFilter.TASK_PENDING) },
             AppMetric(uiText(R.string.ui_handover_dashboard_013), warnings) { onFilter(DashboardFilter.WARNINGS) },
             AppMetric(uiText(R.string.ui_handover_dashboard_014), unassigned) { onFilter(DashboardFilter.UNASSIGNED) },
-            AppMetric(uiText(R.string.ui_handover_dashboard_015), taskCounts.unassigned) { onFilter(DashboardFilter.TASK_UNASSIGNED) },
             AppMetric(uiText(R.string.ui_handover_dashboard_016), newAdmissions) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
         ))
         if (showSynchronization) Surface(

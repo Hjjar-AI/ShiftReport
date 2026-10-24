@@ -58,9 +58,7 @@ private fun SelectedWardPreview(preferences: UiPreferences, appearance: AppAppea
             val summary = WardSummary.from(patients, doctors.first().id, now)
             val visible = if (search) patients.filter { it.name.contains("شاي") } else patients
             val counts = mapOf(DashboardFilter.ALL to patients.size, DashboardFilter.MINE to summary.mine,
-                DashboardFilter.URGENT to summary.urgent, DashboardFilter.TASK_OVERDUE to patients.count { patient ->
-                    patient.tasks.any { PatientTasks.overdue(it, now) }
-                })
+                DashboardFilter.URGENT to summary.urgent, DashboardFilter.TASK_PENDING to summary.tasks.pending)
             Surface(Modifier.fillMaxSize()) {
                 Column {
                     // A persistent important notice precedes the actual pinned controls/grid.

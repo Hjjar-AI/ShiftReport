@@ -18,6 +18,10 @@ internal interface WardController {
     fun applySort(spec: SortSpec, expectedRevision: Long, onStale: (Shift?) -> Unit,
         onSuccess: () -> Unit = {})
     fun bringLatestData()
+    fun replaceAndFetch(allowOlder: Boolean = false) {}
+    fun reviewPublishAndFetch() {}
+    fun confirmPublishAndFetch() {}
+    fun dismissFetchReview() {}
     fun bringPreviousData()
     fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {})
     fun dismissRollover()
@@ -29,6 +33,9 @@ internal interface WardController {
     fun offerPreviousShift()
     fun restorePatient(patient: Patient)
     fun retryLastAction()
+    fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) { done(null) }
+    fun discardEditDraft(id: String) {}
+    fun saveEditDraft(id: String, draft: PatientDraft) {}
     fun saveDraft(draft: PatientDraft)
     fun selectDownloadedSnapshot(shiftId: String)
     fun setCompactCards(compact: Boolean)
@@ -38,6 +45,7 @@ internal interface WardController {
     fun setPriority(patient: Patient, priority: Boolean)
     fun setSaveAndNext(enabled: Boolean)
     fun setTwoColumn(enabled: Boolean)
+    fun movePatientToTop(patient: Patient) {}
     fun updatePatient(patient: Patient, onStale: (Patient?) -> Unit = {},
         onSuccess: () -> Unit = {})
 }
@@ -53,6 +61,10 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun applySort(spec: SortSpec, expectedRevision: Long, onStale: (Shift?) -> Unit,
         onSuccess: () -> Unit) { viewModel.applySort(spec, expectedRevision, onStale, onSuccess) }
     override fun bringLatestData() { viewModel.bringLatestData() }
+    override fun replaceAndFetch(allowOlder: Boolean) { viewModel.replaceAndFetch(allowOlder) }
+    override fun reviewPublishAndFetch() { viewModel.reviewPublishAndFetch() }
+    override fun confirmPublishAndFetch() { viewModel.confirmPublishAndFetch() }
+    override fun dismissFetchReview() { viewModel.dismissFetchReview() }
     override fun bringPreviousData() { viewModel.bringPreviousData() }
     override fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit) { viewModel.deletePatient(patient, onSuccess) }
     override fun dismissRollover() { viewModel.dismissRollover() }
@@ -64,6 +76,9 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun offerPreviousShift() { viewModel.offerPreviousShift() }
     override fun restorePatient(patient: Patient) { viewModel.restorePatient(patient) }
     override fun retryLastAction() { viewModel.retryLastAction() }
+    override fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) { viewModel.loadEditDraft(id, done) }
+    override fun discardEditDraft(id: String) { viewModel.discardEditDraft(id) }
+    override fun saveEditDraft(id: String, draft: PatientDraft) { viewModel.saveEditDraft(id, draft) }
     override fun saveDraft(draft: PatientDraft) { viewModel.saveDraft(draft) }
     override fun selectDownloadedSnapshot(shiftId: String) { viewModel.selectDownloadedSnapshot(shiftId) }
     override fun setCompactCards(compact: Boolean) { viewModel.setCompactCards(compact) }
@@ -73,5 +88,6 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun setPriority(patient: Patient, priority: Boolean) { viewModel.setPriority(patient, priority) }
     override fun setSaveAndNext(enabled: Boolean) { viewModel.setSaveAndNext(enabled) }
     override fun setTwoColumn(enabled: Boolean) { viewModel.setTwoColumn(enabled) }
+    override fun movePatientToTop(patient: Patient) { viewModel.movePatientToTop(patient) }
     override fun updatePatient(patient: Patient, onStale: (Patient?) -> Unit, onSuccess: () -> Unit) { viewModel.updatePatient(patient, onStale, onSuccess) }
 }

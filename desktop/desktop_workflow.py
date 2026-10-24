@@ -71,7 +71,7 @@ def task_board(owner):
         for child in area.winfo_children():child.destroy()
         now=int(time.time()*1000)
         rows=pending_tasks(current,supervisor(),resident(),now)
-        ctk.CTkLabel(area,text='{} مهمة معلقة · الأقدم موعداً أولاً؛ الإتمام من ملف المريض بعد المراجعة والحفظ.'.format(len(rows)),wraplength=680,justify='right').pack(fill='x',padx=8,pady=5)
+        ctk.CTkLabel(area,text='{} مهمة معلقة · الإتمام من ملف المريض بعد المراجعة والحفظ.'.format(len(rows)),wraplength=680,justify='right').pack(fill='x',padx=8,pady=5)
         for patient,task in rows:
             label=patient['name']+'\n'+task_text(task,owner.client.doctors,owner.client.zone,now)
             def open_patient(key=patient['externalId']):
@@ -86,13 +86,4 @@ def task_board(owner):
             ctk.CTkLabel(frame,text=label,wraplength=650,justify='right',anchor='e').pack(fill='x',padx=8,pady=5)
             button(frame,'فتح ملف المريض',guarded(open_patient))
     button(controls,'تطبيق التصفية / تحديث',guarded(show));button(controls,'إغلاق',window.destroy)
-    timer=[None]
-    def tick():
-        if not window.winfo_exists():return
-        if not owner.locked and not owner.io_depth:guarded(show)()
-        timer[0]=window.after(60_000,tick)
-    def destroyed(event):
-        if event.widget is window and timer[0] is not None:window.after_cancel(timer[0])
-    window.bind('<Destroy>',destroyed,add='+')
-    timer[0]=window.after(60_000,tick)
     show();owner.root.wait_window(window)

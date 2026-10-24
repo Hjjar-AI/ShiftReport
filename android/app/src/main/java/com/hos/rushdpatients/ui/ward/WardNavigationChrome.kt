@@ -61,6 +61,15 @@ internal fun WardHeader(
             onClick = onSearch)
         })
     }
+    com.hos.rushdpatients.ui.components.AppFilterChip(selected = state.synchronization.pending || state.synchronization.pendingCount?.let { it > 0 } == true, onClick = onWorkflow, label = {
+        val published = state.synchronization.publishedAt?.let {
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(
+                java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()))
+        } ?: uiText(R.string.ui_unknown)
+        Text(uiText(if (state.synchronization.selectedSnapshot == com.hos.rushdpatients.sync.KnownShiftState.UNKNOWN)
+            R.string.sync_unknown_chip else R.string.sync_pending_chip, uiNumber(state.synchronization.pendingCount ?: 0), published),
+            style = MaterialTheme.typography.labelMedium)
+    })
     if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) WardDeliveryNotice(state, onNext = onWorkflow)
     }
 }

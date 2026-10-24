@@ -37,10 +37,7 @@ class PatientRepository @Inject constructor(
     }
 
     suspend fun countActiveReferencesToDoctor(doctorId: String): Int = withContext(dispatchers.io) {
-        dao.countActiveReferencesToDoctor(doctorId) + dao.getAll().count { entity ->
-            entity.deletedAtEpochMillis == null &&
-                PatientMapper.fromEntity(entity).tasks.any { !it.done && it.ownerDoctorId == doctorId }
-        }
+        dao.countActiveReferencesToDoctor(doctorId)
     }
 
     suspend fun countForShift(shiftId: String): Int = withContext(dispatchers.io) {
@@ -51,9 +48,9 @@ class PatientRepository @Inject constructor(
         dao.upsert(PatientMapper.toEntity(patient.copy(updatedAt = Instant.now()), shiftId))
     }
 
-    suspend fun upsertAll(patients: List<Patient>, shiftId: String) = withContext(dispatchers.io) {
+    suspend fun upsertAll(patients: List<Patient>, shiftId: String, preserveUpdatedAt: Boolean = false) = withContext(dispatchers.io) {
         val now = Instant.now()
-        dao.upsertAll(patients.map { PatientMapper.toEntity(it.copy(updatedAt = now), shiftId) })
+        dao.upsertAll(patients.map { PatientMapper.toEntity(if (preserveUpdatedAt) it else it.copy(updatedAt = now), shiftId) })
     }
 
     suspend fun insertRolloverIfShiftEmpty(patients: List<Patient>, shiftId: String) =
@@ -65,7 +62,7 @@ class PatientRepository @Inject constructor(
                 if (patients.isNotEmpty()) {
                     val now = Instant.now()
                     dao.upsertAll(
-                        patients.map { PatientMapper.toEntity(it.copy(updatedAt = now), shiftId) }
+                        patients.map { PatientMapper.toEntity(if (preserveUpdatedAt) it else it.copy(updatedAt = now), shiftId) }
                     )
                 }
             }

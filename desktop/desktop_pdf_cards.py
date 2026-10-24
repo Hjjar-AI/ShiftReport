@@ -307,7 +307,7 @@ class _Cards:
             for task in group:
                 details = metadata(task, doctors, self.client.zone, include_unassigned=False, include_routine_priority=False)
                 task_lines.append('• ' + ' — '.join(filter(None, [task['description'], details])))
-        urgent = any(overdue(task, self.now_ms) or not task.get('done') and task.get('priority') == 'HIGH' for task in tasks)
+        urgent = False
         sections.append(('المهام ({})'.format(len(tasks)), '\n'.join(task_lines), urgent, True, False))
         sections.append(('التحاليل', row.get('labs', ''), False, False, False))
         return personal, admit, team, sections

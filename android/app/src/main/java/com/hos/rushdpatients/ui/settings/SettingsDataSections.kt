@@ -77,7 +77,7 @@ internal fun SettingsSyncContent(
         onClick = onFetchRequested, modifier = Modifier.fillMaxWidth()
     )
     LoadingButton(
-        text = uiText(R.string.ui_settings_data_sections_004), outlined = true,
+        text = uiText(R.string.sync_publish_all), outlined = true,
         loading = state.syncing, enabled = idle && state.online,
         onClick = viewModel::uploadCurrent, modifier = Modifier.fillMaxWidth()
     )
@@ -172,6 +172,7 @@ internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () ->
 @Composable
 internal fun SettingsStorageContent(state: SettingsUiState) {
     val uiText = rememberUiStrings()
+    Text(uiText(R.string.diagnostics_screenshots_private))
     Text(uiText(R.string.ui_settings_data_sections_017, state.databaseSize))
     Text(uiText(R.string.ui_settings_data_sections_018, CsvSchema.CURRENT_VERSION))
     Text(uiText(R.string.ui_settings_data_sections_019, state.storedShifts))

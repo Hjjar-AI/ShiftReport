@@ -85,9 +85,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun WardScreen(isAdmin: Boolean, currentDoctorId: String, navigation: WardNavigation,
-    viewModel: WardViewModel = hiltViewModel()) {
+    viewModel: WardViewModel = hiltViewModel(), patientFilterIds: Set<String>? = null,
+    reviewShiftId: String? = null, onBackToPreview: (() -> Unit)? = null) {
     val controller = remember(viewModel) { LiveWardController(viewModel) }
-    WardWorkspace(isAdmin, currentDoctorId, navigation, controller)
+    LaunchedEffect(reviewShiftId) { reviewShiftId?.let(viewModel::selectReviewShift) }
+    WardWorkspace(isAdmin, currentDoctorId, navigation, controller,
+        patientFilterIds = patientFilterIds, onBackToPreview = onBackToPreview)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -96,11 +99,12 @@ internal fun WardWorkspace(
     isAdmin: Boolean, currentDoctorId: String, navigation: WardNavigation, viewModel: WardController,
     initialView: WardViewMode? = null,
     onViewChanged: (WardViewMode) -> Unit = {},
-    drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)? = null
+    drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)? = null,
+    patientFilterIds: Set<String>? = null, onBackToPreview: (() -> Unit)? = null
 ) {
     val now by viewModel.taskNow.collectAsStateWithLifecycle()
     androidx.compose.runtime.CompositionLocalProvider(LocalWardTaskNow provides now) {
-        WardWorkspaceContent(isAdmin, currentDoctorId, navigation, viewModel, initialView, onViewChanged, drawerContent)
+        WardWorkspaceContent(isAdmin, currentDoctorId, navigation, viewModel, initialView, onViewChanged, drawerContent, patientFilterIds, onBackToPreview)
     }
 }
 
@@ -109,7 +113,8 @@ internal fun WardWorkspace(
 private fun WardWorkspaceContent(
     isAdmin: Boolean, currentDoctorId: String, navigation: WardNavigation, viewModel: WardController,
     initialView: WardViewMode?, onViewChanged: (WardViewMode) -> Unit,
-    drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)?
+    drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)?,
+    patientFilterIds: Set<String>?, onBackToPreview: (() -> Unit)?
 ) {
     val onOpenReport = navigation.onOpenReport
     val onOpenAdmin = navigation.onOpenAdmin
@@ -197,25 +202,23 @@ private fun WardWorkspaceContent(
 
     val filters = filtersState.options()
     val searchIndex = remember(state.patients) { wardSearchIndex(state.patients) }
-    val pinnedIds = remember(pinnedPatientIds) { pinnedPatientIds.toSet() }
+    val pinnedIds = remember(pinnedPatientIds, viewModel.liveProject) { if (viewModel.liveProject) emptySet<String>() else pinnedPatientIds.toSet() }
     val expandedIds = remember(expandedPatientIds) { expandedPatientIds.toSet() }
     val collapsedIds = remember(collapsedPatientIds) { collapsedPatientIds.toSet() }
-    val anyCardsExpanded = state.patients.any { patient ->
-        if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds
+    val anyCardsExpanded = remember(state.patients, state.patientDetailsExpanded, expandedIds, collapsedIds) {
+        state.patients.any { patient -> if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds }
     }
     fun toggleAllCards() = setAllPatientsExpanded(!anyCardsExpanded)
     val filterDate = if (newAdmissionsOnly) java.time.LocalDate.now() else null
-    // Only deadline-sensitive filtering depends on the minute clock.
-    val filterNow = if (taskFilter == WardTaskFilter.OVERDUE) taskNowEpochMillis else 0L
-    val visiblePatients = remember(state.patients, filters, currentDoctorId, filterNow, filterDate, pinnedIds, searchIndex) {
+    val filterNow = 0L
+    val visiblePatients = remember(state.patients, filters, currentDoctorId, filterNow, filterDate, pinnedIds, searchIndex, patientFilterIds) {
         filterWardPatients(state.patients, filters, currentDoctorId, filterNow, pinnedIds, searchIndex)
+            .filter { patientFilterIds == null || it.id in patientFilterIds }
     }
     val presetCounts = remember(state.patients, currentDoctorId, taskNowEpochMillis) {
         val summary = com.hos.rushdpatients.domain.patient.WardSummary.from(state.patients, currentDoctorId, taskNowEpochMillis)
         mapOf(DashboardFilter.ALL to state.patients.size, DashboardFilter.MINE to summary.mine,
-            DashboardFilter.URGENT to summary.urgent, DashboardFilter.TASK_OVERDUE to state.patients.count {
-                patient -> patient.tasks.any { com.hos.rushdpatients.domain.task.PatientTasks.overdue(it, taskNowEpochMillis) }
-            })
+            DashboardFilter.URGENT to summary.urgent, DashboardFilter.TASK_PENDING to summary.tasks.pending)
     }
     val visibleIds = remember(visiblePatients) { visiblePatients.mapTo(mutableSetOf()) { it.id } }
 
@@ -280,6 +283,7 @@ private fun WardWorkspaceContent(
         onComplete = { entry ->
             viewModel.setTaskDone(entry.patient, entry.task.id, true) { saved ->
                 scope.launch {
+                    snackbarHost.currentSnackbarData?.dismiss()
                     val result = snackbarHost.showSnackbar(uiText(R.string.ui_task_completed),
                         actionLabel = uiText(R.string.ui_task_undo))
                     if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
@@ -326,7 +330,10 @@ private fun WardWorkspaceContent(
             if (isAdmin) viewModel.loadRecentActivity() else viewMode = WardViewMode.ALL
         }
     }
-    LaunchedEffect(detailsTargetId != null, state.patients.map { it.id to it.revision }) { viewModel.loadLocalActivity() }
+    val activityRevisions = remember(detailsTargetId, state.patients) {
+        if (detailsTargetId == null) emptyList() else state.patients.map { it.id to it.revision }
+    }
+    LaunchedEffect(detailsTargetId, activityRevisions) { if (detailsTargetId != null) viewModel.loadLocalActivity() }
     LaunchedEffect(state.loading, state.shift?.id, state.patients.map { it.id }) {
         if (!state.loading && selectedPatient == null) detailsTargetId = null
     }
@@ -454,6 +461,7 @@ private fun WardWorkspaceContent(
                             WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
                         }
                     })
+                onBackToPreview?.let { back -> AppTextButton(onClick = back) { Text(uiText(R.string.report_readiness_return)) } }
                 if (viewModel.liveProject && patientDestination) WardTransferBar(
                     fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
                         editor.dialog == null && detailsTargetId == null && !confirmLatest,
@@ -574,6 +582,15 @@ private fun WardWorkspaceContent(
                         } else if (viewMode == WardViewMode.DASHBOARD) {
                             HandoverDashboard(
                                 isAdmin = isAdmin,
+                                onReportStatus = { state.shift?.id?.let(onOpenReport) },
+                                reportStatus = if (!viewModel.liveProject) null else when {
+                                    state.deliveryLogUnavailable -> uiText(R.string.dashboard_report_unknown)
+                                    state.unresolvedDeliveries > 0 -> uiText(R.string.dashboard_report_uncertain)
+                                    state.synchronization.lastReportAt != null -> uiText(R.string.dashboard_report_sent,
+                                        java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochMilli(
+                                            requireNotNull(state.synchronization.lastReportAt)).atZone(java.time.ZoneId.systemDefault())))
+                                    else -> uiText(R.string.dashboard_report_not_sent)
+                                },
                                 patients = state.patients,
                                 currentDoctorId = currentDoctorId,
                                 syncStatus = state.syncStatus,
@@ -654,11 +671,12 @@ private fun WardWorkspaceContent(
             onCopy = { editor.copyTarget = patient },
             onPriorityChange = { viewModel.setPriority(patient, it) },
             onPinToggle = {
-                                                                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                                        pinnedPatientIds = if (patient.id in pinnedPatientIds) {
-                                                                                            pinnedPatientIds - patient.id
-                                                                                        } else pinnedPatientIds + patient.id
-                                                                                    },
+                if (!state.isReadOnly && !state.saving && !state.syncing && editor.dialog == null) {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (viewModel.liveProject) viewModel.movePatientToTop(patient)
+                    else pinnedPatientIds = if (patient.id in pinnedPatientIds) pinnedPatientIds - patient.id else pinnedPatientIds + patient.id
+                }
+            },
             onExpandToggle = { toggleCard(patient.id) }
         )
         }
@@ -728,6 +746,8 @@ private fun WardWorkspaceContent(
         }
     }
     WardPatientDialogs(state, editor.editTarget, editor.copyTarget, editor.deleteTarget, roundsPatients.map { it.id },
+        onLoadEditDraft = viewModel::loadEditDraft, onEditDraftChanged = viewModel::saveEditDraft,
+        onDiscardEditDraft = viewModel::discardEditDraft,
         editSession = editor.editSession, copyInitial = editor.copyInitial, copyForm = editor.copyForm,
         onSaveEdited = ::saveEdited, onSaveAndNextChanged = viewModel::setSaveAndNext,
         onDismissEdit = { editor.editTarget = null },

@@ -80,6 +80,12 @@ enum class SettingsWorkspace(@StringRes private val titleRes: Int, @StringRes pr
     RESET(R.string.ui_ward_drawer_025, R.string.ui_settings_screen_047),
     DIAGNOSTICS(R.string.ui_ward_drawer_027, R.string.ui_settings_screen_048);
 
+    fun canonical(): SettingsWorkspace = when (this) {
+        WORKFLOW -> APPEARANCE
+        FILES, BACKUP, RESET -> DATA
+        INVITATIONS, DESTINATIONS -> PROJECT
+        else -> this
+    }
     fun title(uiText: UiStrings): String = uiText(titleRes)
     fun description(uiText: UiStrings): String = uiText(descriptionRes)
 }
@@ -108,17 +114,10 @@ fun SettingsScreen(
     val searchableSections = remember(canManageProject, state.isPermanentAdmin) {
         availableSettingsSections(canManageProject, state.isPermanentAdmin)
     }
-    val sections = remember(searchableSections, workspace) {
+    val selectedWorkspace = workspace.canonical()
+    val sections = remember(searchableSections, selectedWorkspace) {
         searchableSections.filter {
-            it.workspace == workspace || (workspace == SettingsWorkspace.DATA &&
-                it in listOf(SettingsSectionId.FILES, SettingsSectionId.BACKUP))
-        }
-    }
-    var expandedSyncSection by rememberSaveable(workspace) { mutableStateOf(SettingsSectionId.SYNC.name) }
-    LaunchedEffect(state.syncIssue, state.syncRecovery) {
-        if (state.syncIssue != null) expandedSyncSection = when (state.syncRecovery) {
-            SettingsSyncRecovery.DOCTORS -> SettingsSectionId.DOCTORS.name
-            else -> SettingsSectionId.SYNC.name
+            it.workspace == selectedWorkspace
         }
     }
     androidx.activity.compose.BackHandler(enabled = searchVisible) { searchVisible = false }
@@ -147,12 +146,28 @@ fun SettingsScreen(
             else -> Unit
         }
     }
-    if (confirmFetch) com.hos.rushdpatients.ui.components.ConfirmDialog(
-        title = uiText(R.string.ui_ward_data_review_dialogs_001),
-        message = uiText(R.string.ui_ward_data_review_dialogs_002),
+    val pendingForFetch = state.fetchChoiceRequired || state.patientsPending == true || state.doctorsPending == true
+    if (confirmFetch && !pendingForFetch) com.hos.rushdpatients.ui.components.ConfirmDialog(
+        title = uiText(R.string.ui_ward_data_review_dialogs_001), message = uiText(R.string.ui_ward_data_review_dialogs_002),
         confirmText = uiText(R.string.ui_ward_data_review_dialogs_003),
-        onConfirm = { confirmFetch = false; viewModel.bringLatest() },
-        onDismiss = { confirmFetch = false })
+        onConfirm = { confirmFetch = false; viewModel.bringLatest() }, onDismiss = { confirmFetch = false })
+    if ((confirmFetch || state.fetchChoiceRequired) && pendingForFetch) com.hos.rushdpatients.ui.components.AppAlertDialog(
+        onDismissRequest = { confirmFetch = false; viewModel.dismissFetchChoice() },
+        title = { Text(uiText(R.string.ui_ward_data_review_dialogs_001)) },
+        text = { Text(uiText(R.string.sync_fetch_review_body)) },
+        confirmButton = { Column {
+            AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.publishAndFetch() }) { Text(uiText(R.string.sync_publish_fetch)) }
+            AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.replaceAndFetch() }) { Text(uiText(R.string.sync_replace_fetch)) }
+        } },
+        dismissButton = { AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice() }) { Text(uiText(R.string.ui_cancel)) } })
+    if (state.olderRemoteConfirmation) com.hos.rushdpatients.ui.components.ConfirmDialog(
+        title = uiText(R.string.sync_older_admin_title), message = state.syncIssue.orEmpty(), confirmText = uiText(R.string.sync_older_admin_confirm),
+        onConfirm = { viewModel.dismissOlderRemote(); viewModel.replaceAndFetch(allowOlder = true) },
+        onDismiss = viewModel::dismissOlderRemote)
+    state.rollbackReviewText?.let { text ->
+        com.hos.rushdpatients.ui.components.ConfirmDialog(title = uiText(R.string.sync_rollback_title), message = text,
+            confirmText = uiText(R.string.sync_rollback_confirm), onConfirm = viewModel::confirmRollback, onDismiss = viewModel::dismissRollback)
+    }
     var confirmUndoDownload by remember { mutableStateOf(false) }
     if (confirmUndoDownload) com.hos.rushdpatients.ui.components.ConfirmDialog(
         title = uiText(R.string.ui_settings_screen_007),
@@ -248,7 +263,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = workspace.title(uiText), onBack = { if (searchVisible) searchVisible = false else onBack() },
+            AppTopBar(title = selectedWorkspace.title(uiText), onBack = { if (searchVisible) searchVisible = false else onBack() },
                 actions = {
                     com.hos.rushdpatients.ui.components.AppIconButton(
                         label = if (searchVisible) uiText(R.string.ui_close) else uiText(R.string.ui_settings_search),
@@ -260,7 +275,7 @@ fun SettingsScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
         Column(Modifier.fillMaxSize()) {
-            if (sections.size > 1 && workspace != SettingsWorkspace.DATA) {
+            if (sections.size > 1 && selectedWorkspace != SettingsWorkspace.DATA) {
                 val activeSection = activeAppSection(sectionTitles, sectionOffsets, settingsScroll)
                 AppSectionIndex(sections = sectionTitles, selected = activeSection, label = { it },
                     onSelect = { title ->
@@ -279,7 +294,7 @@ fun SettingsScreen(
                     .verticalScroll(settingsScroll),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
             ) {
-                if (workspace == SettingsWorkspace.PREFERENCES) AppCard(
+                if (selectedWorkspace == SettingsWorkspace.PREFERENCES) AppCard(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -304,25 +319,26 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    workspace.description(uiText),
+                    selectedWorkspace.description(uiText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = UiSpacing.tiny)
                 )
 
-                if (workspace == SettingsWorkspace.DATA) SettingsSyncOverview(
+                if (selectedWorkspace == SettingsWorkspace.DATA) SettingsSyncOverview(
                     state, viewModel, canManageProject, onOpenDoctors, retryTransfer)
 
+                if (selectedWorkspace == SettingsWorkspace.DATA && canManageProject) AppTextButton(
+                    onClick = viewModel::prepareRollback, enabled = !state.syncing && state.online) {
+                    Text(uiText(R.string.sync_rollback_action))
+                }
                 sections.forEach { section ->
-                    val collapsible = workspace == SettingsWorkspace.DATA
                     SettingsSection(
                         title = section.title(uiText),
                         showHeader = sections.size > 1,
                         summary = section.summary(uiText, state),
-                        expanded = !collapsible || expandedSyncSection == section.name,
-                        onToggle = if (collapsible) ({
-                            expandedSyncSection = if (expandedSyncSection == section.name) "" else section.name
-                        }) else null,
+                        expanded = true,
+                        onToggle = null,
                         onPositioned = { sectionOffsets[section.title(uiText)] = it }
                     ) {
                         when (section) {
@@ -352,8 +368,8 @@ fun SettingsScreen(
                     }
                 }
 
-                if (workspace == SettingsWorkspace.PREFERENCES) {
-                    listOf(SettingsWorkspace.DATA, SettingsWorkspace.APPEARANCE, SettingsWorkspace.WORKFLOW,
+                if (selectedWorkspace == SettingsWorkspace.PREFERENCES) {
+                    listOf(SettingsWorkspace.DATA, SettingsWorkspace.APPEARANCE,
                         SettingsWorkspace.REPORTS, SettingsWorkspace.SECURITY).forEach { destination ->
                         AppDestinationRow(title = destination.title(uiText), summary = destination.description(uiText),
                             icon = when (destination) {
@@ -365,7 +381,7 @@ fun SettingsScreen(
                             }, onClick = { onOpenWorkspace(destination) })
                     }
                 }
-                if (sections.isEmpty() && workspace != SettingsWorkspace.PREFERENCES) {
+                if (sections.isEmpty() && selectedWorkspace != SettingsWorkspace.PREFERENCES) {
                     AppNotice(uiText(R.string.ui_settings_screen_013))
                 }
                 Spacer(Modifier.height(UiSpacing.small))

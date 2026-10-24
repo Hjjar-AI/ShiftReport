@@ -295,8 +295,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     Section(PdfStrings.HEADER_TREATMENT, patient.treatmentPlan, allowColumns = true),
                     Section("المتابعة", patient.followUp),
                     Section("المهام (${tasks.size})", taskText,
-                        urgent = tasks.any { PatientTasks.overdue(it, options.generatedAtEpochMillis) ||
-                            (!it.done && it.priority == TaskPriority.HIGH) }, keepTogether = true),
+                        keepTogether = true),
                     Section("التحاليل", patient.labs)
                 )
                 sections.filter { section -> section.alwaysShow || section.text.isNotBlank() }.forEach { section ->

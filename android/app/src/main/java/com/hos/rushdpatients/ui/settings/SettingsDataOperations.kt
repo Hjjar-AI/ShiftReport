@@ -26,6 +26,8 @@ internal class SettingsDataOperations(
     private val shiftRepository: ShiftRepository, private val csvExporter: PatientCsvExporter,
     private val format: (Long) -> String
 ) {
+    private var rollbackReview: com.hos.rushdpatients.sync.CsvRollbackReview? = null
+    private var fetchAfterPublish = false
     private var publicationReview: CsvPublicationReview? = null
 
     fun invalidateReview() { publicationReview = null }
@@ -37,11 +39,11 @@ internal class SettingsDataOperations(
             is com.hos.rushdpatients.sync.LocalPatientChangesPendingException -> SettingsSyncRecovery.PATIENTS
             else -> null
         }
-        _state.update { it.copy(syncIssue = error?.message ?: uiText(fallback),
+        _state.update { it.copy(fetchChoiceRequired = error is com.hos.rushdpatients.sync.LocalPatientChangesPendingException, olderRemoteConfirmation = error is com.hos.rushdpatients.sync.OlderRemoteSnapshotException, syncIssue = error?.message ?: uiText(fallback),
             syncRecovery = recovery, syncRetryAction = retry, retryAction = retry) }
     }
 
-    fun bringLatest() {
+    fun bringLatest(replaceLocal: Boolean = false, allowOlder: Boolean = false) {
         if (_state.value.syncing || _state.value.backupBusy || _state.value.exportingCsv) return
         if (!NetworkStatus.isOnline(context)) {
             _state.update {
@@ -60,9 +62,9 @@ internal class SettingsDataOperations(
             var fallback = R.string.ui_ward_shift_operations_019
             try {
                 // Explicit fetch accepts the authoritative registry through its existing guards.
-                syncService.refreshDoctorsFromRemote().getOrThrow()
+                syncService.refreshDoctorsForPatientFetch().getOrThrow()
                 fallback = R.string.ui_ward_shift_operations_024
-                val result = syncService.fetchLatestCsv().getOrThrow()
+                val result = syncService.fetchLatestCsv(replaceLocal, allowOlder).getOrThrow()
                 _state.update { it.copy(
                     snackbar = uiText(R.string.ui_settings_data_operations_002, result.inserted, result.updated),
                     lastOperation = uiText(R.string.ui_settings_data_operations_003),
@@ -98,9 +100,41 @@ internal class SettingsDataOperations(
         }
     }
 
+    fun dismissFetchChoice() = _state.update { it.copy(fetchChoiceRequired = false) }
+    fun dismissOlderRemote() = _state.update { it.copy(olderRemoteConfirmation = false) }
+    fun prepareRollback() {
+        if (_state.value.syncing) return
+        _state.update { it.copy(syncing = true) }
+        viewModelScope.launch {
+            try {
+                val review = syncService.prepareRollback()
+                rollbackReview = review
+                _state.update { it.copy(rollbackReviewText = review.text) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(snackbar = e.message) } }
+            finally { _state.update { it.copy(syncing = false) } }
+        }
+    }
+    fun dismissRollback() { rollbackReview = null; _state.update { it.copy(rollbackReviewText = null) } }
+    fun confirmRollback() {
+        val review = rollbackReview ?: return
+        if (_state.value.syncing) return
+        dismissRollback()
+        _state.update { it.copy(syncing = true) }
+        viewModelScope.launch {
+            try {
+                syncService.publishRollback(review).getOrThrow()
+                _state.update { it.copy(snackbar = uiText(R.string.sync_rollback_done)) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(snackbar = e.message) } }
+            finally { _state.update { it.copy(syncing = false) } }
+        }
+    }
+
     /** Prepare only: no publication occurs until the reviewed snapshot is confirmed. */
 
-    fun uploadCurrent() {
+    fun uploadCurrent(thenFetch: Boolean = false) {
+        fetchAfterPublish = thenFetch
         if (_state.value.syncing || _state.value.backupBusy || _state.value.exportingCsv) return
         publicationReview = null
         _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null,
@@ -135,9 +169,11 @@ internal class SettingsDataOperations(
         publicationReview = null
         _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
         viewModelScope.launch {
+            var published = false
             try {
                 check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_007) }
                 val result = syncService.uploadReviewedCsv(review, forceLocal = true).getOrThrow()
+                published = true
                 _state.update { it.copy(snackbar = uiText(R.string.ui_settings_data_operations_008, result.patientCount),
                     syncIssue = null, syncRecovery = null, syncRetryAction = null,
                     lastOperation = uiText(R.string.ui_settings_data_operations_009)) }
@@ -149,6 +185,10 @@ internal class SettingsDataOperations(
                     retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
                 _state.update { it.copy(syncing = false) }
+            }
+            if (published && fetchAfterPublish) {
+                fetchAfterPublish = false
+                bringLatest()
             }
         }
     }

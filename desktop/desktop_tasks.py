@@ -27,8 +27,7 @@ def read_tasks(patient):
 
 
 def overdue(task, now):
-    due = task.get('dueAtEpochMillis')
-    return not task.get('done') and due is not None and due <= now
+    return False  # Legacy deadline fields are compatible storage only.
 
 
 def pending(tasks):
@@ -38,15 +37,11 @@ def pending(tasks):
 def counts(tasks, now=None):
     now = int(time.time()*1000) if now is None else now
     entries = pending(tasks)
-    return TaskCounts(len(entries), sum(overdue(task, now) for task in entries),
-                      sum(not task.get('ownerDoctorId') for task in entries))
+    return TaskCounts(len(entries), 0, 0)
 
 
 def display_key(task, now):
-    done = bool(task.get('done'))
-    return (0 if overdue(task, now) else 2 if done else 1,
-            float('inf') if done else task.get('dueAtEpochMillis') or float('inf'),
-            0 if done else -{'LOW': 0, 'NORMAL': 1, 'HIGH': 2}.get(task.get('priority', 'NORMAL'), 1))
+    return bool(task.get('done'))
 
 
 def ordered_for_display(tasks, now=None):
@@ -55,30 +50,17 @@ def ordered_for_display(tasks, now=None):
 
 
 def status_label(task, now):
-    return 'مكتملة' if task.get('done') else 'متأخرة' if overdue(task, now) else 'معلقة'
+    return 'مكتملة' if task.get('done') else 'معلقة'
 
 
 def metadata(task, doctors, zone, include_unassigned=True, include_routine_priority=True):
     """Shared presentation rules matching Android PatientTasks.metadata.
 
-    Compact PDFs omit routine priorities and unassigned labels, retaining every
-    deadline and completion detail. Formatting never supplies completion evidence.
+    Legacy owner/deadline/priority fields do not affect checklist presentation.
+    Formatting preserves completion details without supplying completion evidence.
     """
     from desktop_protocol import ZoneInfo
     parts = []
-    priority = task.get('priority', 'NORMAL')
-    if include_routine_priority or priority == 'HIGH':
-        parts.append('أولوية ' + TASK_PRIORITY[priority])
-    owner = task.get('ownerDoctorId')
-    if owner:
-        parts.append(doctors.get(owner, {}).get('name') or task.get('ownerName') or 'طبيب محفوظ')
-    elif include_unassigned:
-        parts.append('غير معيّنة')
-    if task.get('dueAtEpochMillis'):
-        parts.append('الموعد ' + datetime.fromtimestamp(task['dueAtEpochMillis']/1000,
-                                                       ZoneInfo(zone)).strftime('%Y-%m-%d %H:%M'))
-    if task.get('dueShiftDate'):
-        parts.append('نهاية مناوبة ' + task['dueShiftDate'])
     if task.get('done'):
         parts.append('أتمها ' + task['completedByName'] if task.get('completedByName') else 'إتمام بانتظار الحفظ')
         if task.get('completedAtEpochMillis'):
@@ -110,18 +92,8 @@ def validate(tasks, require_completion=True):
                 'حالة مهمة غير صالحة')
         for key in ('ownerDoctorId', 'ownerName', 'dueShiftDate', 'completedByDoctorId', 'completedByName'):
             require(task.get(key) is None or isinstance(task[key], str), 'هوية أو نص مهمة غير صالح')
-        require(task.get('ownerDoctorId') is None or task['ownerDoctorId'].strip(), 'مسؤول مهمة غير صالح')
-        due = task.get('dueAtEpochMillis')
-        require(due is None or type(due) is int and due > 0, 'موعد مهمة غير صالح')
-        if task.get('dueShiftDate') is not None:
-            value = task['dueShiftDate']
-            require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}', value) is not None,
-                    'مناوبة استحقاق المهمة يجب أن تكون YYYY-MM-DD')
-            try:
-                date.fromisoformat(value)
-            except ValueError:
-                require(False, 'مناوبة استحقاق غير صالحة')
-            require(due is not None, 'موعد المهمة مطلوب مع مناوبة الاستحقاق')
+        require(task.get('dueAtEpochMillis') is None or type(task['dueAtEpochMillis']) is int,
+                'صيغة موعد قديم غير صالحة')
         if require_completion:
             completion = [task.get(key) for key in COMPLETION]
             if task.get('done'):
@@ -133,9 +105,5 @@ def validate(tasks, require_completion=True):
 
 
 def resolve_owner(task, doctors, previous):
-    """Retain historical owners only for already completed/unchanged assignments."""
-    from desktop_protocol import require
-    owner = task.get('ownerDoctorId')
-    require(not owner or owner in doctors or task.get('done') and owner == previous.get('ownerDoctorId'),
-            'مسؤول المهمة غير نشط')
-    task['ownerName'] = doctors[owner]['name'] if owner in doctors else previous.get('ownerName') if owner else None
+    """Legacy ownership is preserved on import, without clinical authority checks."""
+    return

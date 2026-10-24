@@ -120,7 +120,7 @@ class WireAndTaskTests(unittest.TestCase):
                         value = task(done, str(len(matrix))); value.update(ownerDoctorId=owner, dueAtEpochMillis=due,
                             dueShiftDate=None, priority=priority); matrix.append(value)
         tasks.validate(matrix)
-        self.assertEqual((24, 12, 12), tasks.counts(matrix, 100))
+        self.assertEqual((24, 0, 0), tasks.counts(matrix, 100))
         ordered = tasks.ordered_for_display(matrix, 100)
         self.assertEqual(ordered, tasks.ordered_for_display(ordered, 100))
         self.assertEqual({t['id'] for t in matrix}, {t['id'] for t in ordered})
@@ -139,11 +139,14 @@ class WireAndTaskTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(BridgeError): tasks.validate([value])
         with self.assertRaises(BridgeError): tasks.validate([task(), task()])
 
-    def test_invalid_task_types_deadlines_and_unicode_identity_rejected(self):
-        for change in [dict(dueAtEpochMillis=True), dict(dueAtEpochMillis=-1), dict(done='false'),
-                       dict(priority='UNKNOWN'), dict(id=' '), dict(description=' '), dict(dueShiftDate='2025-02-29')]:
+    def test_invalid_task_types_and_identity_rejected_legacy_dates_ignored(self):
+        for change in [dict(dueAtEpochMillis=True), dict(done='false'),
+                       dict(priority='UNKNOWN'), dict(id=' '), dict(description=' ')]:
             value = task(); value.update(change)
             with self.subTest(change=change), self.assertRaises(BridgeError): tasks.validate([value])
+        legacy = task(); legacy.update(dueAtEpochMillis=-1, dueShiftDate='2025-02-29')
+        tasks.validate([legacy])
+        self.assertEqual((1, 0, 0), tasks.counts([legacy], 100))
 
 
 class WorkspaceTests(unittest.TestCase):

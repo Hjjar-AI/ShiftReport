@@ -39,26 +39,13 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
     val uiText = rememberUiStrings()
     var supervisor by rememberSaveable { mutableStateOf<String?>(null) }
     var resident by rememberSaveable { mutableStateOf<String?>(null) }
-    var mine by rememberSaveable { mutableStateOf(false) }
     val names = remember(doctors) { doctors.associate { it.id to it.fullName } }
     val supervisors = remember(doctors) { doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.SUPERVISOR } }
     val residents = remember(doctors) { doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.RESIDENT } }
-    val rows = remember(patients, supervisor, resident, now, mine, currentDoctorId) {
+    val rows = remember(patients, supervisor, resident) {
         PatientTasks.wardPending(patients, supervisor, resident, now)
-            .filter { !mine || it.task.ownerDoctorId == currentDoctorId }
     }
-    val zone = ZoneId.systemDefault()
-    val groups = remember(rows, now, zone) {
-        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        rows.groupBy { entry ->
-            when {
-                PatientTasks.overdue(entry.task, now) -> 0
-                entry.task.dueAtEpochMillis == null -> 3
-                Instant.ofEpochMilli(checkNotNull(entry.task.dueAtEpochMillis)).atZone(zone).toLocalDate() == today -> 1
-                else -> 2
-            }
-        }.toSortedMap()
-    }
+    val groups = mapOf(0 to rows)
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Scaffold(Modifier.safeDrawingPadding(), snackbarHost = { AppSnackbarHost(snackbarHost) }) { insets ->
@@ -73,7 +60,6 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                             TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
                             TaskDoctorFilter(uiText(R.string.ui_ward_task_board_004), residents, resident) { resident = it }
-                            if (currentDoctorId != null) AppFilterChip(selected = mine, onClick = { mine = !mine }, label = { Text(uiText(R.string.ui_ward_task_board_005)) })
                         }
                     }
                     LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
@@ -84,7 +70,7 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
                             stickyHeader(key = "task-group-$group") {
                                 Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface,
                                     shadowElevation = com.hos.rushdpatients.ui.theme.UiElevation.low) {
-                                    Text(listOf(uiText(R.string.ui_ward_task_board_007), uiText(R.string.ui_ward_task_board_008), uiText(R.string.ui_ward_task_board_009), uiText(R.string.ui_ward_task_board_010))[group] + " · " + uiNumber(entries.size),
+                                    Text(uiText(R.string.ui_ward_screen_011) + " · " + uiNumber(entries.size),
                                         Modifier.padding(vertical = UiSpacing.screen), style = MaterialTheme.typography.titleMedium)
                                 }
                             }
@@ -121,11 +107,10 @@ internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
     names: Map<String, String>, now: Long, onPatient: (String) -> Unit,
     editable: Boolean = false, onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit = {}) {
     val uiText = rememberUiStrings()
-    val overdue = PatientTasks.overdue(entry.task, now)
     val clinical = LocalClinicalColors.current
     AppCard(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
-        containerColor = if (overdue) clinical.urgentContainer else clinical.pendingContainer,
-        contentColor = if (overdue) clinical.onUrgentContainer else clinical.onPendingContainer)) {
+        containerColor = clinical.pendingContainer,
+        contentColor = clinical.onPendingContainer)) {
         Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             Text(entry.patient.displayName, style = MaterialTheme.typography.titleSmall)
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -133,11 +118,6 @@ internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
                     modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
                         .semantics { contentDescription = uiText(R.string.ui_patient_task_editor_009) + entry.task.description })
                 Text(entry.task.description, Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (overdue) Icon(AppIcons.Warning, contentDescription = null)
-                Text(PatientTasks.statusLabel(entry.task, now) + " · " + uiNumber(PatientTasks.metadata(entry.task, names)),
-                    style = MaterialTheme.typography.bodySmall)
             }
             AppTextButton(onClick = { onPatient(entry.patient.id) }) { Text(uiText(R.string.ui_ward_task_board_012)) }
         }

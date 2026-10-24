@@ -205,17 +205,31 @@ class WardMutationRepository @Inject constructor(
         )
     }
 
+    suspend fun movePatientToTop(patient: Patient, shiftId: String, expectedShiftRevision: Long, actor: Session?) = mutate(shiftId) {
+        val shift = requireNotNull(shifts.getById(shiftId))
+        require(shift.revision == expectedShiftRevision) { "تغير ترتيب المناوبة؛ أعد المحاولة" }
+        val rows = PatientComparators.ordered(patients.getForShift(shiftId), SortSpecCodec.decode(shift.sortSpecJson),
+            doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
+        val saved = rows.firstOrNull { it.id == patient.id } ?: throw StalePatientEditException()
+        if (saved.revision != patient.revision) throw StalePatientEditException()
+        val rest = rows.filterNot { it.id == saved.id }
+        // Keep the established priority section first; move to the start of the patient's section.
+        val ordered = if (saved.isPriority) listOf(saved) + rest
+            else rest.filter { it.isPriority } + saved + rest.filterNot { it.isPriority }
+        shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY), shift.revision)
+        ordered.forEachIndexed { index, row ->
+            if (row.sortOrder != index + 1) patients.updateOptimistically(row.copy(sortOrder = index + 1), shiftId, row.revision)
+        }
+        audit.record(actor?.doctorId, actor?.doctorName, "patient_moved_to_top", patientId = saved.id)
+    }
+
     private suspend fun prepareTasks(patient: Patient, before: Patient?, actor: Session?): Patient {
         PatientDoctorAssignments.requireValid(patient, doctors.getAll().associateBy { it.id })
         PatientTasks.requireValid(patient.tasks, requireCompletion = false)
         val previous = before?.tasks.orEmpty().associateBy { it.id }
         val tasks = patient.tasks.map { draft ->
             val old = previous[draft.id]
-            val owner = draft.ownerDoctorId?.let { doctors.getById(it) }
-            if (draft.ownerDoctorId != null && (!draft.done || old?.ownerDoctorId != draft.ownerDoctorId)) {
-                require(owner != null && !owner.isDeleted) { "مسؤول المهمة غير موجود أو غير فعال" }
-            }
-            val task = draft.copy(ownerName = if (draft.ownerDoctorId == null) null else owner?.fullName ?: old?.ownerName)
+            val task = draft
             when {
                 !task.done -> task.copy(description = task.description.trim(), completedByDoctorId = null,
                     completedByName = null, completedAtEpochMillis = null)

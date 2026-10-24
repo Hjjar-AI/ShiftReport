@@ -69,15 +69,15 @@ def handover_dashboard(owner):
     attention = ctk.CTkFrame(area, fg_color='transparent')
     attention.pack(fill='x')
     attention.grid_columnconfigure(0, weight=1)
-    clear_label = ctk.CTkLabel(attention, text='لا توجد حالات عاجلة أو مهام متأخرة', anchor='e')
+    clear_label = ctk.CTkLabel(attention, text='لا توجد حالات عاجلة', anchor='e')
     clear_label.grid(row=0, column=0, sticky='ew', padx=10, pady=4)
     tiles = {}
-    for index, key in enumerate(('urgent', 'overdue')):
+    for index, key in enumerate(('urgent',)):
         tile = ctk.CTkButton(attention, text='', height=48, command=guarded(lambda k=key: select(k)))
         tile.grid(row=index+1, column=0, sticky='ew', padx=10, pady=4)
         tiles[key] = tile
     section_heading(area, 'ملخص المناوبة')
-    for key in ('all', 'mine', 'pending', 'badges', 'unassigned', 'task_unassigned', 'new'):
+    for key in ('all', 'mine', 'pending', 'badges', 'unassigned', 'new'):
         tiles[key] = button(area, '', guarded(lambda k=key: select(k)))
     section_heading(area, 'جاهزية التقرير')
     readiness = ctk.CTkLabel(area, text='', anchor='e', justify='right', wraplength=600)
@@ -101,10 +101,10 @@ def handover_dashboard(owner):
         update(shift_label, 'مناوبة {} · الملخص يشمل جميع المرضى قبل التصفية'.format(shift['meta']['shiftDate']))
         for key, tile in tiles.items():
             update(tile, '{}: {}'.format(FILTERS[key][0], values[key]))
-            if key in {'urgent', 'overdue'}:
+            if key in {'urgent'}:
                 if values[key]:tile.grid()
                 else:tile.grid_remove()
-        if not values['urgent'] and not values['overdue']:clear_label.grid()
+        if not values['urgent']:clear_label.grid()
         else:clear_label.grid_remove()
         update(readiness, 'أعداد المهام تحسب المهام نفسها؛ الضغط يعرض المرضى المعنيين.\n' + readiness_notes(shift['patients']))
         status, _ = workflow_status(owner.client, owner.store, owner.demo)
@@ -112,16 +112,5 @@ def handover_dashboard(owner):
         update(workflow, status.split("\n", 1)[0])
     button(controls, 'تحديث الملخص', guarded(show))
     button(controls, 'إغلاق', window.destroy)
-    timer = [None]
-    def tick():
-        if not window.winfo_exists(): return
-        if not owner.locked and not owner.io_depth:
-            guarded(show)()
-        timer[0] = window.after(60_000, tick)
-    def destroyed(event):
-        if event.widget is window and timer[0] is not None:
-            window.after_cancel(timer[0])
-    window.bind('<Destroy>', destroyed, add='+')
     show()
-    timer[0] = window.after(60_000, tick)
     owner.root.wait_window(window)

@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -51,9 +53,35 @@ fun WardNavHost(
         composable(
             route = Routes.REPORT_PREVIEW,
             arguments = listOf(navArgument("shiftId") { type = NavType.StringType })
-        ) {
+        ) { entry ->
+            val refresh by entry.savedStateHandle.getStateFlow("reloadReadiness", false).collectAsStateWithLifecycle()
             ReportPreviewScreen(onBack = { navController.popBackStack() },
-                onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) })
+                onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
+                refreshRequest = refresh, onRefreshConsumed = { entry.savedStateHandle["reloadReadiness"] = false },
+                onReviewPatients = { shiftId, ids ->
+                    navController.navigate("patientReview/$shiftId?ids=${android.net.Uri.encode(ids.joinToString(","))}")
+                })
+        }
+        composable("patientReview/{shiftId}?ids={ids}", arguments = listOf(
+            navArgument("shiftId") { type = NavType.StringType }, navArgument("ids") { type = NavType.StringType }
+        )) { entry ->
+            fun back() {
+                navController.previousBackStackEntry?.savedStateHandle?.set("reloadReadiness", true)
+                navController.popBackStack()
+            }
+            androidx.activity.compose.BackHandler { back() }
+            WardScreen(isAdmin = session.isAdmin, currentDoctorId = session.doctorId,
+                patientFilterIds = entry.arguments?.getString("ids").orEmpty().split(',').filter(String::isNotBlank).toSet(),
+                reviewShiftId = entry.arguments?.getString("shiftId"), onBackToPreview = ::back,
+                navigation = WardNavigation(onOpenReport = { back() },
+                    onOpenAdmin = { navController.navigate(Routes.ADMIN) },
+                    onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
+                    onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                    onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
+                    onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) },
+                    onOpenAnnouncement = { navController.navigate(Routes.ANNOUNCEMENT) }))
         }
 
         composable(Routes.ADMIN) {

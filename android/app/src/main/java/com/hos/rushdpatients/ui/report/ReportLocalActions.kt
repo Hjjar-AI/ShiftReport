@@ -31,7 +31,8 @@ internal class ReportLocalActions(
     private val shiftId: String, private val context: Context,
     private val reportBuilder: ReportBuilder, private val settingsRepository: SettingsRepository,
     private val assignmentPdfExporter: PdfAssignmentExporter, private val mediaStoreSaver: MediaStoreSaver,
-    private val adminAuthorizer: AdminAuthorizer, private val pdfWorkspace: ReportPdfWorkspace
+    private val adminAuthorizer: AdminAuthorizer, private val pdfWorkspace: ReportPdfWorkspace,
+    private val reviewedSnapshot: () -> com.hos.rushdpatients.domain.report.BuiltReport?
 ) {
 
     fun previewPdf() = previewPdfFor(null)
@@ -48,7 +49,7 @@ internal class ReportLocalActions(
         viewModelScope.launch {
             var temporary: File? = null
             try {
-                val built = reportBuilder.build(shiftId)
+                val built = requireNotNull(reviewedSnapshot()) { "افتح معاينة التقرير أولاً" }
                 val prepared = withContext(Dispatchers.IO) {
                     val selected = if (supervisorId == null) built else pdfWorkspace.supervisorPdfReport(built, supervisorId)
                     val options = pdfWorkspace.loadPdfOptions()

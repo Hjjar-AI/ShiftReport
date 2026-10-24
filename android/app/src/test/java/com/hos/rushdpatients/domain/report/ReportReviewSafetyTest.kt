@@ -96,12 +96,15 @@ class ReportReviewSafetyTest {
         }
     }
 
-    @Test fun `task owner outside shift roster participates in review`() {
+    @Test fun `legacy task owner registry changes do not affect checklist review`() {
         val original = report()
         assertFalse(owner.id in original.shift.doctorIds)
-        assertInvalidated(original, original.copy(registryDoctors = listOf(actor, supervisor,
-            owner.copy(fullName = "بلوط جديد"))))
-        assertInvalidated(original, original.copy(registryDoctors = listOf(actor, supervisor)))
+        val changed = original.copy(registryDoctors = listOf(actor, supervisor, owner.copy(fullName = "بلوط جديد")))
+        val removed = original.copy(registryDoctors = listOf(actor, supervisor))
+        ReportReview.requireMatches(original, changed)
+        ReportReview.requireMatches(original, removed)
+        assertEquals(ReportReview.fingerprint(original), ReportReview.fingerprint(changed))
+        assertEquals(ReportReview.fingerprint(original), ReportReview.fingerprint(removed))
     }
 
     @Test fun `registry order and unrelated doctor edits do not invalidate review`() {

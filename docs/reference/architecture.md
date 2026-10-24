@@ -4,7 +4,7 @@
 
 ## Accepted synchronization scope
 
-Manually retrieved/published complete Telegram snapshots and reviewed reports; last successful pinned write wins. No automatic sync/remote merge/atomic multi-writer guarantee/required backend. Local revisions/review/authority protect local work, not competing remote writes. Timestamps record known events, not freshness. Patient publication retains clinical/registry/delivery guards without publishing unrelated doctor edits.
+Manually retrieved/published complete Telegram snapshots and reviewed reports; last successful pinned write wins. No automatic sync/remote merge/atomic multi-writer guarantee/required backend. Local revisions/review/authority protect local work, not competing remote writes. Timestamps record known events, not freshness. Patient publication retains clinical/registry/delivery guards. A single explicit review may include pending doctor bytes and patients; admin publishes doctors first. Unreviewed later edits remain pending.
 
 ## Ownership and local commits
 
@@ -20,13 +20,13 @@ Android pin override binds reviewed pin/config/live first-admin authority and re
 
 ## Clinical and presentation boundaries
 
-Explicit optional-owner tasks; overdue ⊂ pending; completion stamped at Save, never publication. Reviewed rollover into empty target rechecks source/target and assignments. Teams independent of patient cover; CSV retains omitted active doctors. Backup/restore never publishes; transactional live role/task-owner checks protect Save/recycle/rollover/replacement. Restore advances revisions; rejection rolls back clinical/pending state.
+Plain checklist tasks; legacy owner/deadline/priority fields remain compatible wire/storage only. Completion stamped at Save, never publication. Reviewed rollover into empty target rechecks source/target and assignments. Teams independent of patient cover; CSV retains omitted active doctors. Backup/restore never publishes; transactional live responsible-doctor role checks protect Save/recycle/rollover/replacement. Restore advances revisions; rejection rolls back clinical/pending state.
 
 Shared fields/tokens standardize presentation; callers own drafts/validation/busy/selection/review. RTL/growing48dp/adaptive layouts, clinical-first edit/demographic-first create, labs and fixed keyboard-safe actions. Appearance/accent/severity/PDF independent; saved text unchanged. Brief individual/immediate bulk or reduced motion. Stable visible IDs define rounds; buttons supplement gestures. [UI guide](../guides/android-ui.md).
 
 ## Reviewed PDF and delivery identity
 
-Review binds actor/date/revisions/destination/exact opened artifact/options/SHA-256; missing/changed file requires preview. Publish before delivery, including subsets. UNKNOWN before network blocks shift/destination retry until authorized resolution; extra confirmed copy needs permission. Local receipts cannot prove non-delivery or cross-device exactly-once.
+Android review captures CSV/text content and exact opened PDF/options/SHA-256; subsequent local edits remain pending, rather than invalidating approved content. Live actor/authority/assignment/destination checks remain; missing/changed PDF file requires preview. Publish before delivery, including subsets. UNKNOWN before report network writes blocks shift/destination retry until authorized resolution or a one-use permit for the same exact artifact. The uncertain receipt remains evidence after extra-copy permission. Local receipts cannot prove non-delivery or cross-device exactly-once.
 
 Android/desktop A5 cards share canvas/fonts/sections and full-page links preserving headers. Full clinical pagination remains; admin A4 names-only labels historical current-roster limits. Export/open is separate from sending authority.
 

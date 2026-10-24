@@ -98,6 +98,9 @@ internal fun PatientFormDialog(
     val today = LocalDate.now()
     val currentYear = today.year
     var validationMessages by remember(initial) { mutableStateOf(emptyList<PatientFormError>()) }
+    fun clearFieldError(vararg fields: PatientFormField) {
+        validationMessages = validationMessages.filterNot { it.field in fields }
+    }
     val fieldRequests = remember(initial) {
         PatientFormField.entries.associateWith { BringIntoViewRequester() }
     }
@@ -145,11 +148,11 @@ internal fun PatientFormDialog(
         PatientDemographicFields(admittanceNumber, admittanceDate, admissionDays, name,
             ageText, birthYearText, currentYear, gender, hasCompanion, saving,
             autoStyle, validationMessages, fieldRequests,
-            onAdmissionNumberChanged = { admittanceNumber = it; validationMessages = emptyList() },
-            onAdmissionDateChanged = { admittanceDate = it; validationMessages = emptyList() },
-            onNameChanged = { name = it; validationMessages = emptyList() },
+            onAdmissionNumberChanged = { admittanceNumber = it; clearFieldError(PatientFormField.ADMISSION_NUMBER) },
+            onAdmissionDateChanged = { admittanceDate = it; clearFieldError(PatientFormField.ADMISSION_DATE) },
+            onNameChanged = { name = it; clearFieldError(PatientFormField.NAME) },
             onAgeAndYearChanged = { nextAge, nextYear ->
-                ageText = nextAge; birthYearText = nextYear; validationMessages = emptyList()
+                ageText = nextAge; birthYearText = nextYear; clearFieldError(PatientFormField.AGE, PatientFormField.BIRTH_YEAR)
             }, onGenderChanged = { gender = it }, onCompanionChanged = { hasCompanion = it })
     }
 
@@ -170,7 +173,7 @@ internal fun PatientFormDialog(
                         undefinedLabel = uiText(R.string.ui_patient_form_dialog_016),
                         selectedId = residentId,
                         doctors = residentDoctors, registry = doctors,
-                        onSelected = { residentId = it; validationMessages = emptyList() },
+                        onSelected = { residentId = it; clearFieldError(PatientFormField.TEAM) },
                         modifier = fieldModifier
                     )
                 },
@@ -178,11 +181,11 @@ internal fun PatientFormDialog(
                     DoctorDropdown(
                         label = uiText(R.string.ui_patient_form_dialog_017),
                         isError = validationMessages.any { it.field == PatientFormField.TEAM },
-                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
+                        errorMessage = null,
                         undefinedLabel = uiText(R.string.ui_patient_form_dialog_018),
                         selectedId = specialistId,
                         doctors = specialistDoctors, registry = doctors,
-                        onSelected = { specialistId = it; validationMessages = emptyList() },
+                        onSelected = { specialistId = it; clearFieldError(PatientFormField.TEAM) },
                         modifier = fieldModifier
                     )
                 }
@@ -209,7 +212,7 @@ internal fun PatientFormDialog(
         followUpItems, followUpDraft, labItems, labDraft, residentId, specialistId,
         badges, badgeDraftText, badgeDraftPriority, isPriority, tasks
     ) {
-        if (initial == null) {
+        run {
             onDraftChanged(
                 PatientDraft(
                     admittanceNumber = admittanceNumber,
@@ -305,7 +308,7 @@ internal fun PatientFormDialog(
                         }
                         MultilineField(
                             initialDiagnosis,
-                            { initialDiagnosis = it; validationMessages = emptyList() },
+                            { initialDiagnosis = it },
                             uiText(R.string.ui_patient_form_dialog_006),
                             autoStyle,
                             isError = validationMessages.any { it.field == PatientFormField.DIAGNOSIS },
@@ -324,11 +327,10 @@ internal fun PatientFormDialog(
                             label = uiText(R.string.ui_patient_form_dialog_011),
                             items = treatmentItems,
                             draft = treatmentDraft,
-                            onDraftChange = { treatmentDraft = it; validationMessages = emptyList() },
-                            onReplaceAll = { treatmentItems = parseFieldItems(it); treatmentDraft = ""; validationMessages = emptyList() },
+                            onDraftChange = { treatmentDraft = it },
+                            onReplaceAll = { treatmentItems = parseFieldItems(it); treatmentDraft = "" },
                             onEditItem = { index, value ->
                                 treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
-                                validationMessages = emptyList()
                             },
                             onMove = { from, to ->
                                 treatmentItems = reorder(treatmentItems, from, to)
@@ -356,11 +358,10 @@ internal fun PatientFormDialog(
                             label = uiText(R.string.ui_patient_form_dialog_012),
                             items = followUpItems,
                             draft = followUpDraft,
-                            onDraftChange = { followUpDraft = it; validationMessages = emptyList() },
-                            onReplaceAll = { followUpItems = parseFieldItems(it); followUpDraft = ""; validationMessages = emptyList() },
+                            onDraftChange = { followUpDraft = it },
+                            onReplaceAll = { followUpItems = parseFieldItems(it); followUpDraft = "" },
                             onEditItem = { index, value ->
                                 followUpItems = followUpItems.toMutableList().also { it[index] = value }
-                                validationMessages = emptyList()
                             },
                             onMove = { from, to ->
                                 followUpItems = reorder(followUpItems, from, to)
@@ -387,11 +388,10 @@ internal fun PatientFormDialog(
                             label = uiText(R.string.ui_labs),
                             items = labItems,
                             draft = labDraft,
-                            onDraftChange = { labDraft = it; validationMessages = emptyList() },
-                            onReplaceAll = { labItems = parseFieldItems(it); labDraft = ""; validationMessages = emptyList() },
+                            onDraftChange = { labDraft = it },
+                            onReplaceAll = { labItems = parseFieldItems(it); labDraft = "" },
                             onEditItem = { index, value ->
                                 labItems = labItems.toMutableList().also { it[index] = value }
-                                validationMessages = emptyList()
                             },
                             onMove = { from, to ->
                                 labItems = reorder(labItems, from, to)

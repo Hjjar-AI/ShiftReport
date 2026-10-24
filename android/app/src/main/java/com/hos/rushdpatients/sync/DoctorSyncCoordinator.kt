@@ -161,6 +161,21 @@ class DoctorSyncCoordinator @Inject constructor(
         }
     }
 
+    /** Review captures portable registry bytes; later local edits stay pending. */
+    suspend fun preparePendingPublication(source: SyncState, reviewedDoctors: List<Doctor>? = null): String? = withContext(dispatchers.io) {
+        val doctors = reviewedDoctors ?: doctorRepository.getAll()
+        val published = doctorRepository.normalizeRemoteRegistry(DoctorsRegistryCodec.decode(downloadDoctorsData(source)).doctors)
+        if (registryData(doctors.filterNot { it.isDeleted }) == registryData(published.filterNot { it.isDeleted })) return@withContext null
+        requirePublishedAdmin(source)
+        validateDoctorRegistry(doctors)
+        registryData(doctors.filterNot { it.isDeleted })
+    }
+
+    suspend fun uploadReviewedDoctors(csv: String): Result<Unit> = doctorSyncMutex.withLock {
+        validateDoctorRegistry(DoctorsRegistryCodec.decode(csv).doctors)
+        uploadDoctorsInternal(csv)
+    }
+
     suspend fun uploadCurrentDoctors(): Result<Unit> = doctorSyncMutex.withLock {
         uploadCurrentDoctorsInternal()
     }
@@ -179,6 +194,12 @@ class DoctorSyncCoordinator @Inject constructor(
 
     /** Compatibility entry point: fetching never publishes local registry changes. */
     suspend fun synchronizeDoctors(): Result<Unit> = refreshDoctorsFromRemote()
+
+    /** Preserve pending registry edits during patient-only replacement. Missing references still fail validation. */
+    suspend fun refreshDoctorsForPatientFetch(): Result<Unit> = doctorSyncMutex.withLock {
+        if (doctorRepository.hasPendingSharedChanges()) Result.success(Unit)
+        else fetchAndApplyLatestDoctorsInternal().map { Unit }
+    }
 
     suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSyncMutex.withLock {
         fetchAndApplyLatestDoctorsInternal().map { Unit }
@@ -258,8 +279,7 @@ class DoctorSyncCoordinator @Inject constructor(
         val invalidRoster = shift.doctorIds.any { it !in published }
         val invalidPatient = patients.firstOrNull { patient ->
             patient.responsibleResidentId?.let { published[it]?.clinicalRole?.canBeResident() != true } == true ||
-                patient.responsibleSpecialistId?.let { published[it]?.clinicalRole?.canBeSupervisor() != true } == true ||
-                patient.tasks.any { !it.done && it.ownerDoctorId != null && it.ownerDoctorId !in published }
+                patient.responsibleSpecialistId?.let { published[it]?.clinicalRole?.canBeSupervisor() != true } == true
         }
         if (invalidRoster || invalidPatient != null) {
             val subject = invalidPatient?.let { "المريض ${it.name}" } ?: "أطباء المناوبة"

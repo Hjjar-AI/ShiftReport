@@ -9,13 +9,8 @@ sealed interface PatientValidationResult {
 }
 
 enum class PatientValidationError {
-    NAME_EMPTY,
-    ADMITTANCE_NUMBER_EMPTY,
     ADMITTANCE_DATE_INVALID,
     BIRTH_DATE_INVALID,
-    INITIAL_DIAGNOSIS_EMPTY,
-    TREATMENT_PLAN_EMPTY,
-    FOLLOW_UP_EMPTY,
     RESIDENT_EQUALS_SUPERVISOR,
     TASKS_INVALID
 }

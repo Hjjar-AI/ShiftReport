@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_publish_fetch">نشر الكل ثم الجلب</string>
+    <string name="sync_replace_fetch">استبدال نسختي بالنسخة المنشورة</string>
+    <string name="sync_publish_fetch_confirm">نشر ثم جلب</string>
+    <string name="sync_older_admin_title">تأكيد المدير: جلب نسخة أقدم</string>
+    <string name="sync_older_admin_confirm">استبدال مع الاحتفاظ بالتراجع</string>
+    <string name="sync_fetch_choice_body">اختر ما تريد فعله بالتعديلات المحلية. الاستبدال قابل للتراجع من «تراجع عن آخر جلب».</string>
+    <string name="sync_fetch_review_body">الاستبدال يحتفظ بنسختك في التراجع عن آخر جلب. نشر الكل يراجع الأطباء والمرضى معاً.</string>
+    <string name="sync_rollback_title">إعادة نشر النسخة السابقة</string>
+    <string name="sync_rollback_confirm">تأكيد إعادة النشر للجميع</string>
+    <string name="sync_rollback_action">إعادة نشر النسخة السابقة…</string>
+    <string name="sync_publish_all">مراجعة ونشر الكل</string>
+    <string name="patient_refresh_warning">تم تحديث هذا المريض بالجلب؛ الحفظ سيستبدل النسخة المحفوظة</string>
+    <string name="patient_refresh_unavailable">لم تعد نسخة المريض متاحة للحفظ</string>
+    <string name="patient_refresh_differences">عرض الفروق</string>
+    <string name="delivery_inline_question">هل وصل التقرير؟</string>
+    <string name="delivery_inline_no">لا — السماح بإعادة الإرسال</string>
+    <string name="delivery_inline_extra">غير متأكد — السماح بنسخة إضافية</string>
+    <string name="report_readiness_ready">جاهز للإرسال بعد مراجعة المحتوى والوجهات</string>
+    <string name="report_readiness_return">العودة إلى معاينة التقرير</string>
+    <string name="report_open_required_step">فتح الخطوة المطلوبة</string>
+    <string name="diagnostics_screenshots_private">تُمنع لقطات الشاشة لحماية خصوصية بيانات المرضى.</string>
+    <string name="patient_edit_draft_unavailable">تعذر استعادة مسودة التعديل</string>
+    <string name="sync_rollback_done">أعيد نشر النسخة السابقة؛ اجلبها لتطبيقها على الجهاز</string>
+    <string name="sync_pending_chip">%1$s تعديلات لم تُنشر · آخر نشر %2$s</string>
+    <string name="drawer_start_shift">بدء المناوبة من السابقة</string>
+    <string name="drawer_recycle_bin">سلة المحذوفات</string>
+    <string name="dashboard_report_unknown">حالة التقرير غير متاحة على هذا الجهاز</string>
+    <string name="dashboard_report_uncertain">التقرير: تسليم غير مؤكد</string>
+    <string name="dashboard_report_sent">آخر تسليم مؤكد على هذا الجهاز: %1$s</string>
+    <string name="dashboard_report_not_sent">لم يُسجّل تسليم التقرير على هذا الجهاز</string>
+    <string name="delivery_uncertain_copy_allowed">نتيجة النسخة الأصلية غير مؤكدة؛ سُمح بنسخة إضافية</string>
+    <string name="sync_doctors_stay_pending">تعديلات سجل الأطباء ستبقى معلقة؛ نشرها يتطلب مديراً. ستُنشر نسخة المرضى المراجعة فقط.</string>
+    <string name="patient_edit_draft_restored">استُعيدت مسودة التعديل؛ الحفظ سيستبدل النسخة الحالية</string>
+    <string name="patient_edit_draft_discard_failed">تعذر حذف مسودة التعديل المحفوظة</string>
+    <string name="sync_unknown_chip">حالة نشر %1$s سجلات غير معروفة · آخر نشر %2$s</string>
+</resources>

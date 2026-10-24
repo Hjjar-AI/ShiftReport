@@ -8,9 +8,9 @@ import java.time.Instant
 import java.time.LocalDate
 
 class PatientPredicatesTest {
-    @Test fun `mine includes pending task ownership but excludes completed ownership`() {
+    @Test fun `mine uses responsible doctors and ignores legacy task ownership`() {
         val patient = Fixtures.patient().copy(tasks = listOf(Fixtures.task().copy(ownerDoctorId = "doc")))
-        assertTrue(PatientPredicates.mine(patient, "doc"))
+        assertFalse(PatientPredicates.mine(patient, "doc"))
         assertFalse(PatientPredicates.mine(patient.copy(tasks = listOf(
             Fixtures.task(done = true).copy(ownerDoctorId = "doc"))), "doc"))
         assertTrue(PatientPredicates.mine(Fixtures.patient(responsibleSpecialistId = "doc"), "doc"))
@@ -25,6 +25,6 @@ class PatientPredicatesTest {
         assertEquals(1, summary.warnings)
         assertEquals(2, summary.unassigned)
         assertEquals(1, summary.newAdmissions)
-        assertEquals(com.hos.rushdpatients.domain.task.TaskCounts(1, 1, 1), summary.tasks)
+        assertEquals(com.hos.rushdpatients.domain.task.TaskCounts(1, 0, 0), summary.tasks)
     }
 }

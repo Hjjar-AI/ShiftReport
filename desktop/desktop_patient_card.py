@@ -20,7 +20,7 @@ def patient_card(owner, parent, row, index, total, movement_allowed, preview_sty
     muted=style.get('muted',('gray35','gray75'))
     frame=ctk.CTkFrame(parent,**({'fg_color':style['background'],'border_color':style['accent'],'border_width':1} if style else {}))
     levels = {level for _, level in badges_decode(row.get('warningDetails', ''))}
-    edge = (CLINICAL_URGENT if overdue or row.get('isPriority') == 'Y' or 'high' in levels
+    edge = (CLINICAL_URGENT if row.get('isPriority') == 'Y' or 'high' in levels
             else CLINICAL_WARNING if 'medium' in levels else CLINICAL_PENDING if pending else None)
     if edge:
         stripe = ctk.CTkFrame(frame, width=STATUS_EDGE, corner_radius=0, fg_color=edge)
@@ -47,7 +47,6 @@ def patient_card(owner, parent, row, index, total, movement_allowed, preview_sty
             anchor='e',justify='right',wraplength=width,font=('Arial',round(14*scale)),text_color=foreground).pack(fill='x',padx=inset,pady=gap)
     if pending:
         tasks='مهام معلقة {}'.format(pending)
-        if overdue:tasks+=' · متأخرة {}'.format(overdue)
         ctk.CTkLabel(frame,text=tasks,anchor='e',justify='right',wraplength=width,
             font=('Arial',round(13*scale),'bold'),text_color=foreground).pack(fill='x',padx=inset,pady=1)
     if preview_style is not None:return frame

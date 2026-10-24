@@ -55,6 +55,10 @@ internal class PatientFormStateStore {
         }
         return checkNotNull(values)
     }
+    fun restore(initial: Patient, draft: PatientDraft) {
+        seed = initial
+        values = PatientFormState(null, draft).also { it.extrasExpanded = true }
+    }
     fun clear() { seed = null; values = null }
 }
 
@@ -64,5 +68,7 @@ internal class EditPatientState(patient: Patient) {
     var rejected by mutableStateOf<Patient?>(null)
     var latest by mutableStateOf<Patient?>(null)
     var reviewing by mutableStateOf(false)
+    var draftLoaded by mutableStateOf(false)
+    var restoredEditDraft by mutableStateOf(false)
     val form = PatientFormStateStore()
 }

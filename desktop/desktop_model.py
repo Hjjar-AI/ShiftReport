@@ -75,8 +75,6 @@ def validate_patient(row, doctors, zone):
         require(not value or value in doctors and doctors[value]['clinicalRole'] == role, 'اختر طبيبا نشطا بالدور الصحيح')
     tasks = read_tasks(row)
     validate_tasks(tasks, require_completion=False)
-    for task in tasks:
-        require(not task.get('ownerDoctorId') or task['ownerDoctorId'] in doctors or task.get('done'), 'مسؤول المهمة غير نشط')
 
 
 def carry_forward(source, zone, keep):

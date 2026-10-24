@@ -8,8 +8,8 @@ from desktop_protocol import ZoneInfo
 from desktop_tasks import read_tasks, pending as pending_tasks, counts
 
 CLINICAL_FILTERS = ['الكل', 'أولوية', 'شارات', 'غير مسند', 'عاجل', 'دخول اليوم']
-TASK_FILTERS = ['كل المهام', 'مهام معلقة', 'مهام متأخرة', 'مهام غير مسندة']
-OWNER_FILTERS = ['كل المرضى', 'مرضاي ومهامي']
+TASK_FILTERS = ['كل المهام', 'مهام معلقة']
+OWNER_FILTERS = ['كل المرضى', 'مرضاي']
 
 
 def normalize_search(value):
@@ -24,8 +24,7 @@ def matches_patient(row, query='', clinical='الكل', tasks='كل المهام
     entries = read_tasks(row)
     pending = pending_tasks(entries)
     totals = counts(entries,now)
-    if mine and (not actor or not (actor in (row.get('responsibleResidentId'), row.get('responsibleSupervisorId')) or
-                                  any(task.get('ownerDoctorId') == actor for task in pending))):return False
+    if mine and (not actor or not (actor in (row.get('responsibleResidentId'), row.get('responsibleSupervisorId')))):return False
     badges = badges_decode(row.get('warningDetails', ''))
     if clinical == 'أولوية' and row.get('isPriority') != 'Y':return False
     if clinical == 'شارات' and not badges:return False
@@ -37,8 +36,6 @@ def matches_patient(row, query='', clinical='الكل', tasks='كل المهام
             if date.fromisoformat(row.get('admitDate', '')) != today:return False
         except ValueError:return False
     if tasks == 'مهام معلقة' and not pending:return False
-    if tasks == 'مهام متأخرة' and not totals.overdue:return False
-    if tasks == 'مهام غير مسندة' and not totals.unassigned:return False
     needle = normalize_search(query)
     values = [row.get(key, '') for key in ('name','admitNum','initialDiagnosis','treatmentPlan','followUp','labs')]
     values.append(' '.join(t['description'] for t in entries))

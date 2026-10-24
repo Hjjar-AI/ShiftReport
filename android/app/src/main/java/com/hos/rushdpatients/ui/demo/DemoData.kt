@@ -43,11 +43,7 @@ internal object DemoData {
                         else -> emptyList()
                     },
                     tasks = listOf(
-                        PatientTask(id = "demo-task-$index-a", description = "مراجعة نتائج تجريبية",
-                            priority = if (index % 2 == 0) TaskPriority.HIGH else TaskPriority.NORMAL,
-                            dueAtEpochMillis = now + if (index % 2 == 0) -3_600_000L else 7_200_000L,
-                            ownerDoctorId = if (index % 2 == 0) doctors[0].id else null,
-                            ownerName = if (index % 2 == 0) doctors[0].fullName else null),
+                        PatientTask(id = "demo-task-$index-a", description = "مراجعة نتائج تجريبية"),
                         PatientTask(id = "demo-task-$index-b", description = "تحديث ملاحظة التسليم",
                             done = index % 3 == 0,
                             completedByDoctorId = if (index % 3 == 0) doctors[0].id else null,

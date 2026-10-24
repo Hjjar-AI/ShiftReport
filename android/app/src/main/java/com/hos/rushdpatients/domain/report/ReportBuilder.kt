@@ -23,7 +23,8 @@ data class BuiltReport(
     val doctorNames: Map<String, String>,
     val summary: ReportSummary,
     val textChunks: List<String>,
-    val registryDoctors: List<Doctor> = doctors
+    val registryDoctors: List<Doctor> = doctors,
+    val registryChangeSummary: String? = null
 )
 
 @Singleton
@@ -85,7 +86,8 @@ class ReportBuilder @Inject constructor(
                 doctorNames = residentNames,
                 summary = summary,
                 textChunks = chunks,
-                registryDoctors = allDoctors
+                registryDoctors = allDoctors,
+                registryChangeSummary = doctorRepository.pendingSharedChangesSummary()
             )
         }
     }

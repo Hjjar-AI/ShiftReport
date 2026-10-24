@@ -120,7 +120,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
         if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
     }
     val statusEdge = when {
-        com.hos.rushdpatients.domain.patient.PatientPredicates.urgent(patient) || taskCounts.overdue > 0 -> clinicalColors.urgent
+        com.hos.rushdpatients.domain.patient.PatientPredicates.urgent(patient) -> clinicalColors.urgent
         patient.badges.any { it.priority == PatientBadgePriority.MEDIUM } -> clinicalColors.warning
         taskCounts.pending > 0 -> clinicalColors.pending
         else -> null
@@ -155,7 +155,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     if (patient.badges.isNotEmpty()) {
                         append(uiText(R.string.ui_patient_card_002)).append(badgesLabel)
                     }
-                    if (patient.tasks.isNotEmpty()) append(uiText(R.string.ui_patient_card_004, uiNumber(taskCounts.pending), uiNumber(taskCounts.overdue)))
+                    if (patient.tasks.isNotEmpty()) append(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending))
                     if (pinned) append(uiText(R.string.ui_patient_card_005))
                     append(uiText(R.string.ui_patient_card_002)).append(relativeFreshness(uiText, patient.updatedAt))
                 }
@@ -235,8 +235,6 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 DiagnosisChip(patient.diagnosisType)
                 if (taskCounts.pending > 0) {
                     AppChip(uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending), com.hos.rushdpatients.ui.theme.toneColors(com.hos.rushdpatients.ui.theme.Tone.PENDING))
-                    if (taskCounts.overdue > 0) AppChip(uiPlural(R.plurals.patient_tasks_overdue, taskCounts.overdue),
-                        ContainerColors(clinicalColors.urgentContainer, clinicalColors.onUrgentContainer))
                 }
                 if (expanded && patient.hasCompanion) {
                     AppChip(text = uiText(R.string.ui_patient_card_021), colors = ContainerColors(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface))
@@ -420,7 +418,7 @@ private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
         AppMenu(expanded = menu, onDismissRequest = { menu = false }) {
             AppMenuItem(text = { Text(if (pinned) uiText(R.string.ui_patient_card_031) else uiText(R.string.ui_patient_card_032)) },
                 leadingIcon = { Icon(if (pinned) AppIcons.Bookmark else AppIcons.BookmarkBorder, contentDescription = null) },
-                onClick = { menu = false; onPinToggle() })
+                onClick = { menu = false; onPinToggle() }, enabled = !readOnly)
             if (!readOnly) {
                 AppMenuItem(text = { Text(if (priority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) },
                     onClick = { menu = false; onPriorityChange(!priority) })

@@ -128,7 +128,7 @@ def publish(owner, plan, before_upload):
     owner.authorize(current['doctors'])
     at = int(uploaded['date']) * 1000
     previous = copy.deepcopy(state)
-    rotate = not state.get('csvFileId') or not state.get('csvUpdatedAt') or at - state['csvUpdatedAt'] >= 10 * 3600000
+    rotate = True  # Keep the immediate previous publication for confirmed rollback.
     if rotate:
         for old, new in [('csvFileId','previousCsvFileId'),('csvMessageId','previousCsvMessageId'),('csvDate','previousCsvDate'),('csvUpdatedAt','previousCsvUpdatedAt')]:
             state[new] = previous.get(old, 0 if old == 'csvUpdatedAt' else None)

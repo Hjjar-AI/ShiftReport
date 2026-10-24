@@ -135,11 +135,11 @@ class DemoWardViewModelTest {
         assertEquals(snapshot, vm.state.value)
     }
 
-    @Test fun `owner display name comes from current registry rather than submitted name`() {
+    @Test fun `legacy task owner text is preserved without resolving active ownership`() {
         val owner = vm.state.value.doctors.last()
         val row = patient().copy(tasks = listOf(Fixtures.task().copy(ownerDoctorId = owner.id, ownerName = "قديم")))
         vm.save(row)
-        assertEquals(owner.fullName, saved(row.id).tasks.single().ownerName)
+        assertEquals("قديم", saved(row.id).tasks.single().ownerName)
     }
 
     @Test fun `invalid task rejects save without changing state`() {

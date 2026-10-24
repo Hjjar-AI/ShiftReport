@@ -7,6 +7,9 @@ class CsvPublicationReview internal constructor(
     internal val source: SyncState,
     internal val actorId: String,
     internal val telegramId: Long?,
+    internal val shift: com.hos.rushdpatients.data.model.Shift,
+    internal val patients: List<com.hos.rushdpatients.data.model.Patient>,
+    internal val doctorsCsv: String?,
     val text: String
 )
 

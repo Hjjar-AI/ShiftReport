@@ -39,17 +39,14 @@ class WardMutationSafetyTest : DatabaseFixture() {
     private suspend fun clearPending() = settings().putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)
     private suspend fun assertPendingClear() = assertFalse(settings().getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true))
 
-    @Test fun invalidTaskOwnerRollsBackPatientAuditAndPending() = runBlocking<Unit> {
+    @Test fun legacyTaskOwnerDoesNotBlockPatientSave() = runBlocking<Unit> {
         seedCurrent()
         clearPending()
-        try {
-            mutations().addPatient(Patient(id = "a", name = "شاي", tasks = listOf(
-                PatientTask("task", "فحص", ownerDoctorId = "missing"))), "today", actor)
-            fail("Unknown task owner accepted")
-        } catch (_: IllegalArgumentException) { }
-        assertNull(patients().getById("a"))
-        assertTrue(db.auditDao().getForPatient("a").isEmpty())
-        assertPendingClear()
+        mutations().addPatient(Patient(id = "a", name = "شاي", tasks = listOf(
+            PatientTask("task", "فحص", ownerDoctorId = "missing"))), "today", actor)
+        assertEquals("missing", patients().getById("a")?.tasks?.single()?.ownerDoctorId)
+        assertFalse(db.auditDao().getForPatient("a").isEmpty())
+        assertTrue(settings().getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
     }
     @Test fun anonymousCompletionCannotWriteOrMarkPending() = runBlocking<Unit> {
         seedCurrent()
