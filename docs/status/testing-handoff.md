@@ -7,6 +7,42 @@ unrelated working-tree changes; do not stage/commit or inspect migration files.
 
 ## Current execution
 
+Subsequent additions total **33 JVM and 30 device cases**, bringing
+source totals to **658 JVM/84 classes and 283 device/54 classes**. They cover
+report assembly/review, bounded long messages, rate limiting, concurrent snapshot
+reads, revoked authority, process-death recovery, PDF/task pages, accessibility
+semantics and actual-window/provider paths. The chunker and rate-limiter clock
+seam also changed. The owner authorized offline compilation and focused JVM tests:
+production/JVM/device-test Kotlin compilation passed, and **98 report/Telegram JVM
+cases in 12 classes passed with zero failures/errors/skips**, including all 33 new
+JVM cases. No corrections were needed for the JVM run. Logs and copied XML are
+in ignored `local/verification/coverage-2026-10-24/`. The full JVM suite was not rerun.
+
+The owner then connected the PPA-LX2/Android 10 and approved focused device
+packaging/installation/execution. The main run passed **49 cases with zero
+failures/errors and one expected opt-in skip**, 50 cases/9 classes in XML.
+`device-01.log` and `device-01-results/` are archived under the same verification
+directory. Actual native selection exposed lost ActivityResult registration state
+when background privacy removed NavHost. A session-owned saveable-state holder
+now retains it alongside the controller/ViewModels while clinical content remains
+hidden and sign-out discards both owners. The **22-case affected UI rerun passed
+with no failures/skips**, including the new background-result regression.
+`device-root-fix-01.log` and `device-root-fix-01-results/` record it. The actual
+picker/grant/preview/isolated commit then passed separately with assisted native
+selection: `real-provider-06.log`, `OK (1 test)`. Earlier selection/result timeouts
+remain separately archived. The opt-in test accepts manual native selection and
+an optional 30–120-second selection window, preserving all fixture assertions.
+
+**51 distinct focused device cases passed**, including all 30 new cases; do not
+sum repeated cases or claim a full 283-case run. All 11 new task-heavy PDF pages
+and selected native report images were visually reviewed. Artifacts are copied
+under `device-artifacts/`. The two CSV copies and temporary empty folder created
+for this run were removed; existing files/settings were preserved. Debug APKs
+remain installed. No build/test remains running. Full TalkBack, physical two-phone/
+fold/split-screen and other OS/vendor checks remain outside this evidence.
+[Focused commands and hardware/provider preparation](../guides/device-coverage.md).
+The full-run results below describe the preceding snapshot, not these additions.
+
 The final complete run **succeeded**: **625 JVM tests/81 classes passed, no
 failures/errors/skips**; **253 device cases/50 classes: 251 passed, zero failures/
 errors, two expected skips**. XML is authoritative: the Gradle console counts

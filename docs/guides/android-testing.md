@@ -2,8 +2,8 @@
 
 [Docs](../README.md) · [Build/cache setup](android-build.md) · [Current verification](../status/current-state.md)
 
-The source suite contains **625 JVM methods in 81 classes** and **253 device
-methods in 50 classes**. Source counts do not measure line/branch coverage or
+The source suite contains **658 JVM methods in 84 classes** and **283 device
+methods in 54 classes**. Source counts do not measure line/branch coverage or
 establish that a run passed. See [current results and limits](../status/current-state.md#verification-and-limits)
 for the exact verified snapshot. The tests exercise production entry points with
 isolated clinical storage. [Deep scenarios and desktop/live commands](deep-testing.md)
@@ -15,7 +15,54 @@ saves/exports. No versions, dependencies or database/interchange schemas changed
 
 ## Latest expansion — October 2026
 
-The source expansions add **249 JVM cases and 78 device cases** at the owner's
+### Additional failure/device boundaries — focused JVM verification
+
+After the 22 report cases below, a further **23 JVM and 18 device cases** cover:
+
+| Suite | Added cases | Boundary |
+|---|---:|---|
+| `ReportChunkingBoundaryTest` | 12 JVM | Exact limits, oversized clinical/title/summary blocks, Arabic/emoji/escape preservation, balanced formatting, whole links, patient order and explicit indivisible-link failure |
+| `TelegramRateLimiterTest` | 11 JVM | Virtual-clock cooldown, same/different chats, queued contention, cancellation, failure recovery and scoped reset |
+| `ReportSnapshotConsistencyTest` | 3 device | Barrier-held real Room report/assignments reads versus a queued roster/clinical writer; cancellation releases the transaction |
+| `DoctorPickerContractTest`, `ProductionNavigationJourneyTest` | 5 device | Admin revoked/deleted after import preview, export picker result after revocation, report confirmation after deactivation and picker registration after background privacy |
+| `ProcessDeathWorkflowTest` | 3 device | Dedicated worker killed after encrypted staging, verified output before staging discard, and synthetic accepted delivery before confirmation |
+| `PdfRenderingTest` | 2 device | Small-page classic and dark A5 continuations with 40 tasks; every page rasterized and retained |
+| `ProductionAdaptiveScreensTest` | 2 device | 200% text and labelled 48dp footer targets; focused unsaved draft during constrained-window resizing |
+| `NativeDeviceLayoutTest` | 2 device | Production report/editor recreation using actual window/density/font configuration; native report artifacts |
+| `RealDocumentProviderImportTest` | 1 opt-in device | Actual system picker/grant, synthetic CSV preview and isolated commit; no controlled result registry |
+
+The chunker now bounds oversized blocks without cutting escaped characters,
+surrogate pairs, formatting or links. An indivisible oversized link fails explicitly.
+The rate limiter has an injectable clock and keeps its no-argument Hilt constructor.
+All default Telegram HTTP remains intercepted. Native/provider tests and page
+rasterization do not prove two-phone, physical hinge, TalkBack or every-glyph behavior.
+[Focused commands and physical/provider/PDF procedures](device-coverage.md).
+Production, JVM and device-test Kotlin compilation passed offline. The focused
+report/Telegram run passed **98 JVM cases/12 classes**, zero failures/errors/skips,
+including all 33 new JVM cases across this and the following section. The main
+device run passed 49 cases with one opt-in skip. After a native-picker lifecycle
+fix, all 22 affected UI cases passed, including the new background-registration
+regression; the real-provider case then passed separately with native selection
+assistance. **51 distinct device cases are verified**, including all 30 additions.
+The complete 658-case JVM/283-case device suites were not rerun. Logs and XML are in ignored
+`local/verification/coverage-2026-10-24/`.
+
+### Report assembly and review safety — JVM and device cases passed
+
+`ReportReviewSafetyTest` adds 10 JVM cases covering clinical/demographic fields,
+assignments/task metadata, shift settings, patient/task/message order, supervisor
+destinations, task owners outside the roster and fingerprint scope. Registry order,
+unrelated doctors and device-only metadata must not invalidate a review.
+
+`ReportBuilderTest` adds 12 device cases using the existing isolated Room/repository
+fixture and real text builder: missing shift/roster, assignments-only export,
+empty/mixed wards, deleted/other-shift patient exclusion, 40-doctor roster order,
+historical names, configured/manual sorting, full clinical/task text and generation
+without persistence mutations. No real Telegram or installed clinical DB is used.
+Both suites compiled; the 10 review-safety JVM and 12 report-builder device cases
+passed in focused runs. The full-run totals below predate these additions.
+
+The earlier source expansions added **249 JVM cases and 78 device cases** at the owner's
 request, including the selected journey/provider/client/failure cases below and
 follow-up rollover/animation regressions. On 24 October the owner authorized full
 Android execution on the connected device. [Results, fixes and remaining limits](../status/current-state.md#verification-and-limits)

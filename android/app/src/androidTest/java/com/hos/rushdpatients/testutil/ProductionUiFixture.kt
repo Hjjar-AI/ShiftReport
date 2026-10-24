@@ -68,6 +68,7 @@ abstract class ProductionUiFixture {
     protected var fontScale by mutableStateOf(1f)
     protected var widthDp by mutableStateOf(360)
     protected var heightDp by mutableStateOf(900)
+    protected var nativeWindow = false
     private lateinit var text: UiStrings
     private lateinit var ledger: ReportDeliveryLedger
     private lateinit var sender: ReportSender
@@ -119,11 +120,15 @@ abstract class ProductionUiFixture {
         }
         IsolatedWorkflowActivity.content = { activity ->
             val density = LocalDensity.current
-            val configuration = Configuration(LocalConfiguration.current).apply { screenWidthDp = widthDp }
+            val configuration = Configuration(LocalConfiguration.current).apply {
+                if (!nativeWindow) screenWidthDp = widthDp
+            }
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl,
-                LocalDensity provides Density(density.density, fontScale), LocalConfiguration provides configuration,
+                LocalDensity provides (if (nativeWindow) density else Density(density.density, fontScale)), LocalConfiguration provides configuration,
                 LocalActivityResultRegistryOwner provides (pickerOwner ?: activity)) {
-                MaterialTheme { Box(Modifier.widthIn(max = widthDp.dp).heightIn(max = heightDp.dp).fillMaxSize()) {
+                val bounds = if (nativeWindow) Modifier.fillMaxSize()
+                    else Modifier.widthIn(max = widthDp.dp).heightIn(max = heightDp.dp).fillMaxSize()
+                MaterialTheme { Box(bounds) {
                     WardAppRoot(activity, root) {
                         val controller = rememberNavController()
                         nav = controller

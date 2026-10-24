@@ -2,6 +2,7 @@ package com.hos.rushdpatients.ui.ward
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.testutil.ProductionUiFixture
@@ -16,8 +17,8 @@ import org.junit.runner.RunWith
 class ProductionAdaptiveScreensTest : ProductionUiFixture() {
     @get:Rule val compose = createEmptyComposeRule()
     private fun label(id: Int, vararg args: Any) = client.context.getString(id, *args)
-    private fun startNarrow() {
-        widthDp = 320; heightDp = 600; fontScale = 1.6f; launch()
+    private fun startNarrow(scale: Float = 1.6f) {
+        widthDp = 320; heightDp = 600; fontScale = scale; launch()
         compose.waitUntil(10000) { route == Routes.WARD && !ward.state.value.loading }
     }
     @Test fun narrowLargeFontDrawerStillNavigatesToRealSettings() {
@@ -62,6 +63,43 @@ class ProductionAdaptiveScreensTest : ProductionUiFixture() {
         compose.onNodeWithText(label(R.string.ui_report_preview_screen_017, label(R.string.ui_report_flow_step_003)))
             .assertIsDisplayed().assertIsEnabled()
         compose.onNodeWithText(label(R.string.ui_cancel)).assertIsDisplayed().assertIsEnabled()
+        assertTrue(server.deliveredTexts.isEmpty())
+    }
+
+    private fun minimumTarget(node: SemanticsNodeInteraction) {
+        node.assertIsDisplayed().assertIsEnabled().assertHasClickAction()
+        val bounds = node.fetchSemanticsNode().boundsInRoot
+        val minimum = 48 * client.context.resources.displayMetrics.density
+        assertTrue("Target width ${bounds.width} < 48dp", bounds.width >= minimum - 1)
+        assertTrue("Target height ${bounds.height} < 48dp", bounds.height >= minimum - 1)
+    }
+
+    @Test fun twoHundredPercentReportFontKeepsLabelledFooterTargetsReachable() {
+        startNarrow(scale = 2f)
+        onMain { nav.navigate(Routes.reportPreview("today")) }
+        compose.waitUntil(10000) { route == Routes.REPORT_PREVIEW && !report.state.value.loading }
+        compose.onNodeWithText(label(R.string.ui_shift_doctor_picker_001)).assertExists()
+        minimumTarget(compose.onNodeWithText(label(R.string.ui_report_preview_screen_017,
+            label(R.string.ui_report_flow_step_003))))
+        minimumTarget(compose.onNodeWithText(label(R.string.ui_cancel)))
+        assertTrue(server.deliveredTexts.isEmpty())
+    }
+
+    @Test fun focusedEditorDraftSurvivesWindowResizeWithLargeFontAndFixedSaveCancel() = runBlocking<Unit> {
+        startNarrow(scale = 2f)
+        val card = SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions) and
+            hasAnyDescendant(hasText("شاي", substring = true))
+        val actions = compose.onNode(card, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        compose.runOnIdle { assertTrue(actions.first { it.label == label(R.string.ui_edit_patient_dialog_001) }.action()) }
+        val field = hasSetTextAction() and hasText(label(R.string.ui_labs), substring = true)
+        compose.onNode(field).performScrollTo().performClick().performTextInput("مسودة نافذة ضيقة")
+        compose.onNode(field).assertIsFocused()
+        onMain { widthDp = 480; heightDp = 420 }
+        compose.onNode(field).performScrollTo().assertTextContains("مسودة نافذة ضيقة", substring = true)
+        minimumTarget(compose.onNodeWithText(label(R.string.ui_save)))
+        minimumTarget(compose.onNodeWithText(label(R.string.ui_cancel)))
+        compose.onNodeWithText(label(R.string.ui_cancel)).performClick()
+        assertFalse(requireNotNull(client.patients.getById("tea")).labs.contains("مسودة نافذة ضيقة"))
         assertTrue(server.deliveredTexts.isEmpty())
     }
 }

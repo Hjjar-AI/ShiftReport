@@ -2,6 +2,12 @@
 
 [Android suite](android-testing.md) · [Current results](../status/current-state.md#verification-and-limits)
 
+Latest additions passed compilation, 98 focused JVM cases and 51 distinct device
+cases across focused runs, including the assisted real-provider path after its
+privacy-lifecycle fix. Task-heavy PDF samples were visually reviewed. Remaining
+TalkBack, physical-window and two-phone procedures:
+[Additional coverage execution](device-coverage.md).
+
 Use synthetic records and isolated storage. Automated success describes the
 specific scenarios exercised; it does not establish complete branch coverage or
 distributed transactions over Telegram. Hardware results apply to the observed device.

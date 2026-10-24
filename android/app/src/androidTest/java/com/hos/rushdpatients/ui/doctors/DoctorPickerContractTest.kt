@@ -2,6 +2,7 @@ package com.hos.rushdpatients.ui.doctors
 
 import android.content.Intent
 import android.net.Uri
+import androidx.lifecycle.Lifecycle
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -16,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.UUID
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class DoctorPickerContractTest : ProductionUiFixture() {
@@ -44,6 +46,19 @@ class DoctorPickerContractTest : ProductionUiFixture() {
     }
     private fun awaitPreview() = compose.waitUntil(10000) {
         !doctorVm.state.value.importing && (doctorVm.state.value.importPreview != null || doctorVm.state.value.importError != null) }
+    private suspend fun ordinaryAdmin() {
+        val actor = requireNotNull(client.doctors.getById(client.actor.id)).copy(isPermanentAdmin = false)
+        client.doctors.upsert(actor)
+        client.sessions.start(requireNotNull(client.sessions.current()).copy(role = actor.role))
+    }
+    private suspend fun revokeAdmin(deleted: Boolean = false) {
+        val actor = requireNotNull(client.doctors.getById(client.actor.id))
+        if (deleted) client.doctors.softDelete(actor.id)
+        else client.doctors.upsert(actor.copy(rank = 0))
+    }
+    private fun assertNoRemoteMutation() {
+        assertTrue(server.calls.none { it.second in setOf("sendDocument", "editMessageText", "sendMessage") })
+    }
     @org.junit.After fun deleteSyntheticSources() {
         sources.forEach { client.context.contentResolver.delete(it, null, null) }
     }
@@ -80,5 +95,56 @@ class DoctorPickerContractTest : ProductionUiFixture() {
         assertNull(doctorVm.state.value.importError)
         assertNotNull(doctorVm.state.value.importPreview)
         assertNull(client.doctors.getById("oak"))
+    }
+
+    @Test fun pickerResultAfterBackgroundPrivacyRestoresRegistrationAndOpenTools() = runBlocking<Unit> {
+        val uri = source(); val picker = openPicker()
+        scenario!!.moveToState(Lifecycle.State.CREATED)
+        scenario!!.moveToState(Lifecycle.State.RESUMED)
+        compose.onNodeWithText(label(R.string.ui_doctors_screen_015)).assertIsDisplayed()
+        onMain { picker.deliver(uri) }; awaitPreview()
+        assertNull(doctorVm.state.value.importError)
+        assertNotNull(doctorVm.state.value.importPreview)
+        assertNull(client.doctors.getById("oak"))
+    }
+
+    private fun rejectedImportAfterAuthorityChange(deleted: Boolean) = runBlocking<Unit> {
+        ordinaryAdmin()
+        val uri = source(); val picker = openPicker()
+        onMain { picker.deliver(uri) }; awaitPreview()
+        assertNotNull(doctorVm.state.value.importPreview)
+        revokeAdmin(deleted)
+        val before = client.doctors.getAllIncludingDeleted()
+        val audit = client.audit.getRecent()
+        compose.onNodeWithText(label(R.string.ui_doctors_screen_043)).performClick()
+        compose.waitUntil(10000) { !doctorVm.state.value.importing && doctorVm.state.value.snackbar != null }
+        assertEquals(before, client.doctors.getAllIncludingDeleted())
+        assertEquals(audit, client.audit.getRecent())
+        assertNull(client.doctors.getById("oak"))
+        assertNoRemoteMutation()
+    }
+
+    @Test fun adminRevokedAfterImportPreviewCannotCommitFromOpenConfirmation() = rejectedImportAfterAuthorityChange(false)
+    @Test fun actorDeletedAfterImportPreviewCannotCommitFromOpenConfirmation() = rejectedImportAfterAuthorityChange(true)
+
+    @Test fun exportPickerResultAfterAdminRevocationCannotWriteStagedRegistry() = runBlocking<Unit> {
+        ordinaryAdmin()
+        val picker = openPicker()
+        onMain { picker.deliver(null) }
+        compose.onNodeWithText(label(R.string.ui_doctors_screen_016)).performScrollTo().performClick()
+        compose.waitUntil(10000) { picker.launchedIntent?.action == Intent.ACTION_CREATE_DOCUMENT }
+        val staging = File(client.context.noBackupFilesDir, "pending_document_exports")
+        assertTrue(staging.listFiles().orEmpty().isNotEmpty())
+        revokeAdmin()
+        val audit = client.audit.getRecent()
+        val uri = Uri.parse("content://com.hos.rushdpatients.debug.faultdocuments/document/${UUID.randomUUID()}")
+            .also(sources::add)
+        onMain { picker.deliver(uri) }
+        compose.waitUntil(10000) { !doctorVm.state.value.exporting && doctorVm.state.value.snackbar != null }
+        assertTrue(staging.listFiles().orEmpty().isEmpty())
+        assertEquals(audit, client.audit.getRecent())
+        val bytes = runCatching { client.context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+        assertTrue(bytes == null || bytes.isEmpty())
+        assertNoRemoteMutation()
     }
 }

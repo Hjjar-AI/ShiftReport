@@ -22,6 +22,13 @@ retain public imports; defer optional high-level imports to avoid module cycles.
 Blocking database/file/crypto/network work stays off the main thread; cancellation
 is separate from ordinary failures.
 
+Temporary Android privacy/PIN screens remove clinical content from composition,
+while the signed-in navigation controller, ViewModels and a saveable-state holder
+retain screen state. The holder is needed for stable ActivityResult registration
+keys while a real document picker is in front; retaining the controller alone
+does not preserve those keys when NavHost is removed. Signing out discards both
+owners. Credentials remain excluded from saveable state.
+
 ## Access and project boundaries
 
 Protected join files configure devices; creation owns manual group/topics. Same-project

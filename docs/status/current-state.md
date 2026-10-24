@@ -79,7 +79,10 @@ previews do not. API 23–25 retains a dark navigation background.
 Patients/Dashboard use dock/rail; Activity remains admin-only. Drawer duplicates were
 removed and «إرسال تقرير» remains prominent with the roster selector first.
 Temporary privacy/PIN screens retain the signed-in navigation controller and editor
-ViewModels while removing clinical screens from composition; sign-out discards them. Settings
+ViewModels and NavHost saveable state while removing clinical screens from
+composition; sign-out discards them. A session-owned `SaveableStateHolder` keeps
+document-picker registration keys stable across the temporary privacy screen.
+Settings
 search uses the screen's admin/permanent-admin visibility, searches names/descriptions
 only, opens existing workspaces and keeps underlying forms mounted. Fold-safe panes,
 first-layout RTL and labelled 48dp targets remain. Details/rounds follow displayed
@@ -124,6 +127,11 @@ Classic tables, linked portrait A5 cards, advanced PDF options and local exports
 retain full clinical/tasks and shared order. PDFs omit routine/unassigned task labels
 and patient last-edit metadata. Admin-only names-only team PDFs use A4 portrait
 supervisor tables/global numbering; historical output labels current-roster limits.
+Oversized text-report blocks now continue within the configured message limit,
+preserving escaped text, Unicode code points, bold/underline and whole doctor links.
+An indivisible oversized link is rejected explicitly before sending. The chunking
+boundaries passed focused JVM verification; live Telegram/device rendering remains
+outside that evidence.
 
 ## Isolated demo
 
@@ -186,8 +194,58 @@ duplicate skip notifications. Earlier failures/focused reruns remain archived.
 [Handoff](testing-handoff.md) · [Coverage map/commands](../guides/android-testing.md) ·
 [External boundaries](../guides/deep-testing.md).
 
-Source contains **625 JVM methods/81 classes, 253 device methods/50 classes and
+Source contains **658 JVM methods/84 classes, 283 device methods/54 classes and
 60 desktop methods**. Counts do not establish complete line/branch coverage.
+The latest expansion adds **33 JVM and 30 device methods** after the full run
+above (22 report cases, then 41 additional cases). It covers review/fingerprint
+scope and real report assembly, long-report limits/Markdown, deterministic rate
+limiting, transaction-consistent snapshots, revoked authority through open UI
+workflows, export/uncertain-delivery process death, task-heavy PDF continuations,
+200% font/48dp controls and actual-window recreation. A real system-picker test is
+opt-in with the committed synthetic CSV. The debug crash worker's export files
+and preferences are isolated by its validated test namespace.
+
+The owner authorized offline compilation and focused JVM execution. Production,
+JVM and device-test Kotlin compilation **passed** with the pinned cached toolchain.
+The report/Telegram JVM run **passed 98 cases/12 classes**, zero failures/errors/
+skips, including all **33 new JVM cases**. The focused JVM run needed no source
+corrections. Logs, summary and copied JUnit XML are in ignored
+`local/verification/coverage-2026-10-24/`: `compile.log`, `jvm.log`, `jvm-summary.txt`
+and `jvm-results/`. Full 658-case JVM execution was not requested or rerun.
+
+After the owner connected the PPA-LX2/Android 10 and approved debug packaging,
+installation and focused execution, the main device run **passed 49 cases with
+zero failures/errors and one expected opt-in skip** (50 cases/9 classes in XML).
+Actual native selection exposed a distinct lost-callback boundary: hiding NavHost
+for background privacy discarded its saveable ActivityResult registration keys,
+despite retaining its controller/ViewModels. A session-owned saveable-state holder
+now retains these keys while clinical content remains out of composition when
+locked; sign-out still discards it. All **22 affected UI cases passed** after the
+fix, including the added background-result regression. The real system-picker
+case then **passed separately** with assisted native selection of the exact
+synthetic CSV, real URI/grant delivery, preview and isolated commit.
+
+Across the focused runs, **51 distinct device cases passed**, including all 30
+new device cases. The main run's skip is superseded for that same real-provider
+case by its separate pass; these are not 51 cases in a single Gradle run. Full
+283-case device execution was not rerun. Earlier native selection/result timeouts
+remain in `real-provider-01.log` through `real-provider-05.log` and the available
+failed XML; successful evidence is `device-root-fix-01.log`,
+`device-root-fix-01-results/` and `real-provider-06.log` (`OK (1 test)`). The 11 new
+task-heavy PDF pages and native report screenshots were visually reviewed; this
+sample does not establish every glyph/options combination. Artifacts are copied
+to `device-artifacts/`. Both temporary CSV copies and the new empty fixture folder
+were removed, preserving pre-existing device files. No device setting changed.
+The installed debug APKs are retained; no release artifact was produced. Earlier
+full-run results describe their prior snapshot, not a full run of this expansion.
+[Suite map](../guides/android-testing.md#additional-failuredevice-boundaries--focused-jvm-verification)
+and [focused commands/external procedures](../guides/device-coverage.md) distinguish
+automated/sampled evidence from the original private-file failure, two physical
+phones, other OS/vendors, full TalkBack/IME and physical fold/split-window checks
+that remain unperformed. The original unknown exception is not established as
+the same issue as the now-verified callback loss. No versions/dependencies or
+schema definitions changed; no migration files were inspected.
+
 The first full JVM run confirmed rollover's nested busy-guard conflict and a false
 initial pin receipt being treated as success. After correction and two extra
 rollover cases, **625 JVM tests passed with zero failures/errors/skips**.

@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -203,6 +204,10 @@ fun WardAppRoot(
     val clinicalNavigation = if (projectConfig.initialized && !projectConfig.demoMode && current != null) {
         navController()
     } else null
+    // NavHost's screen state includes the saved ActivityResult registration keys.
+    // Keep it while privacy hides the host, so a real picker result returns to
+    // the same registration. Signing out removes both this holder and controller.
+    val clinicalScreenState = if (clinicalNavigation != null) rememberSaveableStateHolder() else null
     when {
         !projectConfig.initialized -> ProjectSetupScreen()
         projectConfig.demoMode -> DemoWardScreen(onExit = viewModel::exitDemo)
@@ -232,13 +237,15 @@ fun WardAppRoot(
                 needsUnlock = false
             }
         )
-        else -> WardNavHost(
-            session = current,
-            navController = checkNotNull(clinicalNavigation),
-            onSignOut = {
-                viewModel.signOut()
-                needsUnlock = false
-            }
-        )
+        else -> checkNotNull(clinicalScreenState).SaveableStateProvider("clinical-navigation") {
+            WardNavHost(
+                session = current,
+                navController = checkNotNull(clinicalNavigation),
+                onSignOut = {
+                    viewModel.signOut()
+                    needsUnlock = false
+                }
+            )
+        }
     }
 }

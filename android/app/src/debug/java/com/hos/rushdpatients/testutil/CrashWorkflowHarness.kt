@@ -11,10 +11,12 @@ import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.domain.backup.EncryptedBackupManager
 import com.hos.rushdpatients.domain.report.ReportDeliveryLedger
+import com.hos.rushdpatients.domain.export.PendingExportStore
 import com.hos.rushdpatients.sync.LocalDownloadUndo
 import com.hos.rushdpatients.util.DefaultDispatcherProvider
 import kotlinx.serialization.json.Json
 import java.time.Instant
+import java.io.File
 
 /** Debug-only dependencies for actual production operations against a uniquely named test DB. */
 internal class CrashWorkflowHarness(val context: Context, val db: AppDatabase) {
@@ -57,6 +59,25 @@ internal class CrashWorkflowHarness(val context: Context, val db: AppDatabase) {
         check(!beforeCommit) { "Precommit kill boundary was not reached" }
         die()
     }
+
+    suspend fun exportAndDie(writeDestination: Boolean, die: () -> Nothing) {
+        val exports = PendingExportStore(context, dispatchers)
+        val id = exports.stage("شاي — تصدير تجريبي 💊".toByteArray(Charsets.UTF_8))
+        settings.put("crash-export-id", id)
+        if (writeDestination) exports.write(Uri.fromFile(File(context.cacheDir, "synthetic-export.txt")), id)
+        // Destination verification and staging deletion are separate operations.
+        die()
+    }
+
+    suspend fun unconfirmedDeliveryAndDie(die: () -> Nothing) {
+        signIn()
+        ledger.deliver("crash-shift", -100, "synthetic-content", "pdf", "synthetic crash", "crash-doctor") {
+            // A deterministic stand-in for a remote accepting a send before its
+            // receipt is confirmed locally. No HTTP request leaves this process.
+            settings.put("synthetic-delivery-accepted", "42")
+            die()
+        }
+    }
 }
 
 /** Child-process session preferences never share the installed project's namespace. */
@@ -64,4 +85,8 @@ internal class CrashPreferencesContext(context: Context, private val prefix: Str
     override fun getApplicationContext(): Context = this
     override fun getSharedPreferences(name: String, mode: Int): SharedPreferences =
         super.getSharedPreferences("${prefix}_$name", mode)
+    private fun directory(name: String) = File(super.getCacheDir(), "instrumentation_worker/$prefix/$name")
+        .apply { check(isDirectory || mkdirs()) }
+    override fun getCacheDir(): File = directory("cache")
+    override fun getNoBackupFilesDir(): File = directory("no_backup")
 }

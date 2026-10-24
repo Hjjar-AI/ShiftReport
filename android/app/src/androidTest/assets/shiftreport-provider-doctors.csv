@@ -1,0 +1,2 @@
+﻿schema_version,id,first_name,last_name,full_name,gender,clinical_role,supervisor_group_chat_id,telegram_id,telegram_username,custom_title,rank,is_permanent_admin,extra_options,updated_at,deleted_at
+1,provider-oak,بلوط,شجرة,د. بلوط شجرة,M,RESIDENT,,456,,,0,false,,2026-01-01T00:00:00Z,

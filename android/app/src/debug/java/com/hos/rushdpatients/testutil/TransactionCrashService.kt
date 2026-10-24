@@ -40,6 +40,8 @@ class TransactionCrashService : Service() {
                     3, 4 -> { workflow!!.receiptAndDie(mode == 4, die); return@runBlocking }
                     5, 6 -> { workflow!!.restoreAndDie(android.net.Uri.parse(requireNotNull(backupUri)), mode == 5, die); return@runBlocking }
                     7, 8 -> { workflow!!.undoAndDie(mode == 7, die); return@runBlocking }
+                    9, 10 -> { workflow!!.exportAndDie(mode == 10, die); return@runBlocking }
+                    11 -> { workflow!!.unconfirmedDeliveryAndDie(die); return@runBlocking }
                 }
                 require(mode == 1 || mode == 2)
                 db.withTransaction {

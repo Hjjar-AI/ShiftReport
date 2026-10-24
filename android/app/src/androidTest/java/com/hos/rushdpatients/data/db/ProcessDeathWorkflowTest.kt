@@ -10,6 +10,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.*
 import com.hos.rushdpatients.domain.report.ReportDeliveryBlockedException
+import com.hos.rushdpatients.domain.export.PendingExportStore
 import com.hos.rushdpatients.sync.ShiftCsvSnapshot
 import com.hos.rushdpatients.testutil.*
 import com.hos.rushdpatients.util.ShiftDate
@@ -32,6 +33,7 @@ class ProcessDeathWorkflowTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val preferences = IsolatedStorageContext()
         val name = "instrumentation-crash-${UUID.randomUUID()}"
+        val workflowContext = if (mode >= 9) CrashPreferencesContext(context, name) else preferences
         val connected = CountDownLatch(1); val died = CountDownLatch(1); val boundaryReached = CountDownLatch(1)
         val reply = Messenger(Handler(Looper.getMainLooper()) { message ->
             if (message.what == 101 && message.arg1 == mode) boundaryReached.countDown()
@@ -45,7 +47,7 @@ class ProcessDeathWorkflowTest {
         var bound = false
         try {
             val backupUri = Room.databaseBuilder(context, AppDatabase::class.java, name).build().let { db ->
-                try { prepare(CrashWorkflowHarness(preferences, db)) } finally { db.close() }
+                try { prepare(CrashWorkflowHarness(workflowContext, db)) } finally { db.close() }
             }
             bound = context.bindService(Intent(context, TransactionCrashService::class.java), connection, Context.BIND_AUTO_CREATE)
             assertTrue(bound)
@@ -58,7 +60,7 @@ class ProcessDeathWorkflowTest {
             assertTrue("Workflow crash worker did not die", died.await(20, TimeUnit.SECONDS))
             assertTrue("Worker failed before reaching the intended production kill boundary", boundaryReached.await(5, TimeUnit.SECONDS))
             Room.databaseBuilder(context, AppDatabase::class.java, name).build().let { db ->
-                try { verify(CrashWorkflowHarness(preferences, db)) } finally { db.close() }
+                try { verify(CrashWorkflowHarness(workflowContext, db)) } finally { db.close() }
             }
         } finally {
             if (bound) context.unbindService(connection)
@@ -67,6 +69,7 @@ class ProcessDeathWorkflowTest {
             File(context.applicationInfo.dataDir, "shared_prefs").listFiles()
                 ?.filter { it.name.startsWith("${name}_") }?.forEach { it.delete() }
             preferences.cleanUp()
+            File(context.cacheDir, "instrumentation_worker/$name").deleteRecursively()
         }
     }
 
@@ -81,6 +84,38 @@ class ProcessDeathWorkflowTest {
         try {
             core.ledger.check("crash-shift", -100, content, "pdf")
             fail("Persisted delivery evidence allowed an accidental repeat")
+        } catch (_: ReportDeliveryBlockedException) { }
+    }
+
+    @Test fun deathAfterExportStagingAllowsExplicitRecoveryFromEncryptedBytes() = exportRecovery(false)
+    @Test fun deathAfterVerifiedExportBeforeDiscardRetainsExactDestinationAndRecoverableStaging() = exportRecovery(true)
+    private fun exportRecovery(written: Boolean) = execute(if (written) 10 else 9) { core ->
+        val id = requireNotNull(core.settings.get("crash-export-id"))
+        val expected = "شاي — تصدير تجريبي 💊".toByteArray(Charsets.UTF_8)
+        val staged = File(core.context.noBackupFilesDir, "pending_document_exports/$id")
+        assertTrue(staged.isFile)
+        assertFalse(staged.readBytes().toString(Charsets.UTF_8).contains("شاي"))
+        val original = File(core.context.cacheDir, "synthetic-export.txt")
+        assertEquals(written, original.isFile)
+        if (written) assertArrayEquals(expected, original.readBytes())
+        val recovery = File(core.context.cacheDir, "explicit-recovery.txt")
+        val exports = PendingExportStore(core.context, core.dispatchers)
+        exports.write(Uri.fromFile(recovery), id)
+        assertArrayEquals(expected, recovery.readBytes())
+        exports.discard(id)
+        assertFalse(staged.exists())
+        assertArrayEquals(expected, recovery.readBytes())
+    }
+
+    @Test fun deathAfterSyntheticAcceptanceBeforeConfirmationKeepsUnknownAndBlocksRepeat() = execute(11) { core ->
+        assertEquals("42", core.settings.get("synthetic-delivery-accepted"))
+        val record = core.ledger.observe().first().single()
+        assertEquals("UNKNOWN", record.status)
+        assertTrue(record.messageIds.isEmpty())
+        core.signIn()
+        try {
+            core.ledger.check("crash-shift", -100, "synthetic-content", "pdf")
+            fail("Unconfirmed accepted delivery allowed an automatic duplicate")
         } catch (_: ReportDeliveryBlockedException) { }
     }
 

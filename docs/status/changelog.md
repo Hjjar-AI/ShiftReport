@@ -33,7 +33,32 @@ have separate homes. Source completion is not runtime verification.
 
 ## Regression coverage and hardening
 
-The 23–24 October expansion adds **249 JVM and 78 device cases**; source totals are
+Added 33 JVM and 30 device cases: report-review scope and Room report assembly,
+long-message boundaries, virtual-clock rate limiting, concurrent snapshots,
+revoked authority in open import/export/report workflows, export/uncertain-delivery
+process death, task-heavy PDF pages, 200% font/48dp controls, native-window journeys
+and an opt-in actual document picker. Fixed oversized report chunks to preserve
+escaped Unicode/formatting and whole links within message limits; indivisible
+oversized links fail explicitly. The rate limiter retains its Hilt constructor
+with a clock seam for deterministic tests. Debug crash export files are isolated.
+Added [focused execution and external-device procedures](../guides/device-coverage.md).
+Offline production/JVM/device-source compilation passed, followed by **98 focused
+JVM cases/12 classes**, zero failures/errors/skips, including all 33 new JVM cases.
+The main focused device run passed **49 cases**, zero failures/errors and one
+expected opt-in skip, on PPA-LX2/Android 10. Native selection exposed a lost-result
+boundary when privacy removed NavHost: retaining its controller did not retain
+the screen's saveable picker registration keys. A session-owned saveable-state
+holder now retains these while clinical content stays hidden; sign-out discards
+both owners. All **22 affected UI cases passed** after the fix, and the real native
+picker/preview/isolated commit passed separately with assisted selection. This
+verifies **51 distinct device cases**, including all 30 additions; earlier native
+timeouts remain archived. Visually reviewed the 11 new task-heavy PDF pages and
+native report samples; physical two-phone/fold/TalkBack limits remain.
+Logs/XML: ignored `local/verification/coverage-2026-10-24/`. The full-run
+evidence below applies to the preceding snapshot. Dependencies, versions and
+schemas are unchanged.
+
+The earlier 23–24 October expansion added **249 JVM and 78 device cases**; its verified totals were
 **625 JVM methods/81 classes and 253 device methods/50 classes**. Coverage includes
 controlled picker results, independent clients, response-loss/storage/clock
 boundaries, actual root/navigation journeys and constrained/fold-model UI.

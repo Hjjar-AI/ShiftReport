@@ -123,4 +123,24 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         compose.onNodeWithText(client.actor.fullName).assertExists()
         assertTrue(server.deliveredTexts.isEmpty())
     }
+
+    @Test fun actorDeactivatedWhileSendConfirmationIsOpenCannotPublishOrDeliver() = runBlocking<Unit> {
+        assumeTrue("Production send gate requires validated device connectivity; HTTP stays intercepted",
+            NetworkStatus.isOnline(client.context))
+        // A removable ordinary admin, rather than the fixture's permanent admin.
+        val actor = requireNotNull(client.doctors.getById(client.actor.id)).copy(isPermanentAdmin = false)
+        client.doctors.upsert(actor)
+        client.sessions.start(requireNotNull(client.sessions.current()).copy(role = actor.role))
+        launch(); awaitWard(); openReportThroughDrawer(); reviewAndOpenConfirmation()
+        client.doctors.softDelete(actor.id)
+        val beforeShift = client.shifts.getById("today")
+        val beforePatients = client.patients.getForShift("today")
+        compose.onNodeWithText(label(R.string.ui_report_send_confirmation_008)).performClick()
+        compose.waitUntil(10000) { !report.state.value.sending && !report.state.value.loading &&
+            (report.state.value.error != null || report.state.value.summary == null) }
+        assertEquals(beforeShift, client.shifts.getById("today"))
+        assertEquals(beforePatients, client.patients.getForShift("today"))
+        assertTrue(server.deliveredTexts.isEmpty())
+        assertTrue(server.calls.none { it.second in setOf("sendDocument", "editMessageText", "sendMessage") })
+    }
 }

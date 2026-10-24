@@ -24,13 +24,12 @@ class PdfRenderingTest {
         initialDiagnosis = "تشخيص تجريبي", treatmentPlan = "خطة تجريبية", labs = "نتائج تجريبية",
         followUp = (1..12).joinToString("\n") { "متابعة عربية تجريبية للقراءة دون بيانات حقيقية" },
         tasks = listOf(PatientTask("t-$n", "فحص تجريبي"))) }
-    private suspend fun export(cards: Boolean, options: PdfExportOptions): File {
-        val rows = patients()
+    private suspend fun export(cards: Boolean, options: PdfExportOptions, rows: List<Patient> = patients()): File {
         return PdfReportExporter(context).export(rows, emptyList(), ReportSummary(rows.size, rows.size, 0,
             LocalDate.of(2026, 1, 1), emptyList()), emptyMap(), emptyMap(), options, cards,
             File(context.cacheDir, "synthetic.pdf"), documentLabel = "DEMO — بيانات تجريبية")
     }
-    private fun renderAll(file: File, landscape: Boolean): Int {
+    private fun renderAll(file: File, landscape: Boolean, artifactName: String = if (landscape) "classic" else "a5"): Int {
         PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)).use { renderer ->
             assertTrue(renderer.pageCount > 1)
             repeat(renderer.pageCount) { index -> renderer.openPage(index).use { page ->
@@ -42,7 +41,7 @@ class PdfRenderingTest {
                 bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
                 assertTrue("Blank PDF page $index", pixels.count { Color.alpha(it) > 0 && (Color.red(it) < 220 || Color.green(it) < 220 || Color.blue(it) < 220) } > 100)
                 val artifacts = File(context.getExternalFilesDir(null), "verification-artifacts/pdf").apply { mkdirs() }
-                val style = if (landscape) "classic" else "a5"
+                val style = artifactName
                 File(artifacts, "$style-page-${index + 1}.png").outputStream().use {
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
                 }
@@ -57,5 +56,33 @@ class PdfRenderingTest {
     }
     @Test fun a5CardsIncludeIndexAndRenderEveryPatientPage() = runBlocking<Unit> {
         assertTrue(renderAll(export(true, PdfExportOptions(paperSize = PdfPaperSize.A5)), false) >= 9)
+    }
+
+    private fun taskHeavyPatient() = Patient(id = "task-tea", name = "شاي تجريبي", sortOrder = 1,
+        initialDiagnosis = "تشخيص تجريبي", labs = "Na=140 — نتيجة تجريبية 💊",
+        treatmentPlan = "بداية الخطة\n" + "ملاحظة علاجية عربية للقراءة ".repeat(30) + "\nنهاية الخطة",
+        tasks = (1..40).map { n -> PatientTask("task-$n", "فحص تجريبي $n — مراجعة نتيجة 12.5 mg 💊",
+            done = n % 2 == 0, priority = if (n == 40) TaskPriority.HIGH else TaskPriority.NORMAL,
+            completedByDoctorId = if (n % 2 == 0) "cedar" else null,
+            completedByName = if (n % 2 == 0) "أرز" else null,
+            completedAtEpochMillis = if (n % 2 == 0) 1000 else null) })
+
+    @Test fun smallPaperClassicWithLongClinicalTextAndFortyTasksRendersEveryContinuation() = runBlocking<Unit> {
+        val row = taskHeavyPatient()
+        val options = PdfExportOptions(paperSize = PdfPaperSize.A5, orientation = PdfOrientation.PORTRAIT,
+            rowShading = PdfRowShading.NONE, ruleContrast = PdfRuleContrast.STRONG)
+        val file = export(false, options, listOf(row))
+        assertTrue(renderAll(file, false, "classic-a5-task-heavy") > 1)
+    }
+
+    @Test fun darkA5TaskCardsRenderIndexAndLongClinicalContinuationPages() = runBlocking<Unit> {
+        val row = taskHeavyPatient()
+        val options = PdfExportOptions(paperSize = PdfPaperSize.A5, darkMode = true,
+            ruleWeight = PdfRuleWeight.THICK, ruleContrast = PdfRuleContrast.STRONG)
+        val file = export(true, options, listOf(row))
+        assertTrue(renderAll(file, false, "cards-dark-task-heavy") > 2)
+        val notes = PdfPatientContent.buildNotesCell(row, mapOf("cedar" to "أرز"))
+        row.tasks.forEach { assertTrue(notes.contains(it.description)) }
+        assertTrue(notes.contains("أرز"))
     }
 }
