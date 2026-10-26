@@ -408,8 +408,8 @@ internal fun ReportWorkspace(
                             if (!state.isAdmin) Text(uiText(R.string.sync_doctors_stay_pending))
                         }
                     }
-                    if (state.readinessWarnings.isEmpty()) AppNotice(uiText(R.string.report_readiness_ready), kind = NoticeKind.SUCCESS)
-                    if (state.readinessWarnings.isNotEmpty()) {
+                    if (state.incompletePatientIds.isEmpty()) AppNotice(uiText(R.string.report_readiness_ready), kind = NoticeKind.SUCCESS)
+                    if (state.incompletePatientIds.isNotEmpty()) {
                         AppSection(
                             title = uiText(R.string.ui_report_preview_screen_046),
                             titleColor = noticeColors(NoticeKind.WARNING).content,
@@ -417,10 +417,8 @@ internal fun ReportWorkspace(
                                 containerColor = noticeColors(NoticeKind.WARNING).container
                             )
                         ) {
-                            state.readinessIssues.forEach { issue ->
-                                AppTextButton(onClick = { state.shift?.id?.let { onReviewPatients(it, issue.patientIds) } }, enabled = !busy) {
-                                    Text(uiText(R.string.readiness_incomplete_patients, uiNumber(issue.patientIds.size)), color = noticeColors(NoticeKind.WARNING).content)
-                                }
+                            AppTextButton(onClick = { state.shift?.id?.let { onReviewPatients(it, state.incompletePatientIds) } }, enabled = !busy) {
+                                Text(uiText(R.string.readiness_incomplete_patients, uiNumber(state.incompletePatientIds.size)), color = noticeColors(NoticeKind.WARNING).content)
                             }
                             Text(
                                 uiText(R.string.ui_report_preview_screen_047),
@@ -559,7 +557,7 @@ internal fun ReportWorkspace(
             review.includeGeneral || it.responsibleSpecialistId in confirmedSupervisorIds
         }.mapTo(linkedSetOf()) { it.id }
         ReportSendConfirmation(destinations = destinations, format = format, exportPdf = review.exportPdf,
-            warningCount = state.readinessIssues.flatMap { it.patientIds }.toSet().intersect(reportPatientIds).size,
+            warningCount = state.incompletePatientIds.intersect(reportPatientIds).size,
             patientCount = reportPatientIds.size,
             enabled = sendDisabledReason == null && targetsUnchanged && destinations.isNotEmpty(),
             unavailableReason = if (targetsUnchanged) sendDisabledReason else uiText(R.string.ui_report_preview_screen_096),

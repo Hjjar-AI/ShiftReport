@@ -71,8 +71,6 @@ class PatientRepository @Inject constructor(
                 patient, PatientMapper.fromEntity(current), ShiftDate.current()
             ).withoutTrackingMetadata().copy(
                 revision = current.revision + 1,
-                updatedAt = Instant.EPOCH,
-                lastEditedByDoctorId = null, lastEditedByName = null,
                 deletedAt = null
             )
             dao.upsert(PatientMapper.toEntity(updated, shiftId))
@@ -94,8 +92,6 @@ class PatientRepository @Inject constructor(
             val now = Instant.now()
             val deleted = PatientMapper.fromEntity(current).withoutTrackingMetadata().copy(
                 revision = current.revision + 1,
-                updatedAt = Instant.EPOCH,
-                lastEditedByDoctorId = null, lastEditedByName = null,
                 deletedAt = now
             )
             dao.upsert(PatientMapper.toEntity(deleted, shiftId))
@@ -116,17 +112,11 @@ class PatientRepository @Inject constructor(
             }
             val restored = PatientMapper.fromEntity(current).withoutTrackingMetadata().copy(
                 revision = current.revision + 1,
-                updatedAt = Instant.EPOCH,
-                lastEditedByDoctorId = null, lastEditedByName = null,
                 deletedAt = null
             )
             dao.upsert(PatientMapper.toEntity(restored, shiftId))
             restored
         }
-    }
-
-    suspend fun softDelete(id: String) = withContext(dispatchers.io) {
-        dao.softDelete(id, Instant.now().toEpochMilli())
     }
 
     suspend fun softDeleteMissingFromShift(shiftId: String, retainedIds: List<String>) =
@@ -137,16 +127,6 @@ class PatientRepository @Inject constructor(
                 dao.softDeleteMissingFromShift(shiftId, retainedIds, Instant.now().toEpochMilli())
             }
         }
-
-    suspend fun restore(id: String) = withContext(dispatchers.io) {
-        val existing = dao.getById(id) ?: return@withContext
-        dao.upsert(
-            existing.copy(
-                deletedAtEpochMillis = null,
-                updatedAtEpochMillis = 0, lastEditedByDoctorId = null, lastEditedByName = null
-            )
-        )
-    }
 
     suspend fun getSoftDeleted(): List<Patient> = withContext(dispatchers.io) {
         dao.getSoftDeleted().map(PatientMapper::fromEntity)

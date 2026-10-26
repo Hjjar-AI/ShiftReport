@@ -37,8 +37,8 @@ object PatientBadgeCodec {
         val legacyItems = encoded.split(';', '|').mapNotNull { item ->
             val separator = item.indexOf(':')
             if (separator <= 0) return@mapNotNull null
+            val legacyFlag = PatientWarningFlag.fromCode(item.substring(0, separator)) ?: return@mapNotNull null
             val text = decodeText(item.substring(separator + 1)) ?: return@mapNotNull null
-            val legacyFlag = PatientWarningFlag.fromCode(item.substring(0, separator))
             PatientBadge(text, legacyFlag?.toBadgePriority())
         }
         if (legacyItems.isNotEmpty()) return legacyItems

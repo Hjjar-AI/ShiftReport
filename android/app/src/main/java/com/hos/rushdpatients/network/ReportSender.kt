@@ -95,74 +95,48 @@ class ReportSender @Inject constructor(
         } finally { file?.delete() }
     }
 
-    suspend fun sendPdfReport(
-        shift: Shift,
-        pdfFile: File,
-        caption: String?,
-        actor: Doctor?,
-        contentKey: String,
-        legacyContentKey: String? = null,
-        fileName: String? = null
-    ): SendResult = withContext(Dispatchers.IO) {
-        require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
-        deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "PDF", context.getString(R.string.report_general_route_label), actor?.id, legacyContentKey = legacyContentKey) { receipt ->
-            val titleParts = com.hos.rushdpatients.domain.report.ReportChunking.captionParts(caption.orEmpty())
-            val msg = uncertainDelivery { telegram.sendDocument(
-                chatId = topics.chatId,
-                file = pdfFile,
-                fileName = fileName,
-                caption = titleParts.firstOrNull(),
-                parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
-                replyToMessageId = null,
-                disableNotification = true,
-                messageThreadId = topics.threadId(Topic.REPORTS)
-            ) }
-
-            val ids = completePdfTitle(topics.chatId, msg.messageId, titleParts.drop(1), topics.threadId(Topic.REPORTS))
-            confirmBestEffort(receipt, ids)
-            val sentAt = Instant.now()
-            recordDeliveryBestEffort(
-                shift = shift,
-                sentAt = sentAt,
-                reportMessageId = null,
-                pdfMessageId = msg.messageId,
-                actor = actor,
-                detail = "pdf; size=${pdfFile.length()} bytes"
-            )
-
-            SendResult(ids, msg.messageId, sentAt)
-        }
+    private sealed interface PdfDestination {
+        object General : PdfDestination
+        data class Supervisor(val doctor: Doctor, val chatId: Long) : PdfDestination
     }
 
+    suspend fun sendPdfReport(
+        shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, contentKey: String,
+        legacyContentKey: String? = null, fileName: String? = null
+    ): SendResult = sendPdf(shift, pdfFile, caption, actor, contentKey, legacyContentKey, fileName, PdfDestination.General)
+
     suspend fun sendSupervisorPdfReport(
-        shift: Shift,
-        pdfFile: File,
-        caption: String?,
-        actor: Doctor?,
-        supervisor: Doctor,
-        chatId: Long,
-        contentKey: String,
-        legacyContentKey: String? = null,
-        fileName: String? = null
+        shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, supervisor: Doctor,
+        chatId: Long, contentKey: String, legacyContentKey: String? = null, fileName: String? = null
+    ): SendResult = sendPdf(shift, pdfFile, caption, actor, contentKey, legacyContentKey, fileName,
+        PdfDestination.Supervisor(supervisor, chatId))
+
+    private suspend fun sendPdf(
+        shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, contentKey: String,
+        legacyContentKey: String?, fileName: String?, destination: PdfDestination
     ): SendResult = withContext(Dispatchers.IO) {
-        require(chatId < 0L) { context.getString(R.string.report_supervisor_chat_invalid) }
+        val supervisor = destination as? PdfDestination.Supervisor
+        val chatId = supervisor?.chatId ?: topics.chatId
+        if (supervisor != null) require(chatId < 0L) { context.getString(R.string.report_supervisor_chat_invalid) }
         require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
-        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", supervisor.fullName, actor?.id, legacyContentKey = legacyContentKey) { receipt ->
+        val label = supervisor?.doctor?.fullName ?: context.getString(R.string.report_general_route_label)
+        val topicId = if (destination == PdfDestination.General) topics.threadId(Topic.REPORTS) else null
+        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", label, actor?.id, legacyContentKey = legacyContentKey) { receipt ->
             val titleParts = com.hos.rushdpatients.domain.report.ReportChunking.captionParts(caption.orEmpty())
             val msg = uncertainDelivery { telegram.sendDocument(
-                chatId = chatId,
-                file = pdfFile,
-                fileName = fileName,
-                caption = titleParts.firstOrNull(),
+                chatId = chatId, file = pdfFile, fileName = fileName, caption = titleParts.firstOrNull(),
                 parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
-                replyToMessageId = null,
-                disableNotification = true,
-                messageThreadId = null
+                replyToMessageId = null, disableNotification = true, messageThreadId = topicId
             ) }
-            val ids = completePdfTitle(chatId, msg.messageId, titleParts.drop(1), null)
+            val ids = completePdfTitle(chatId, msg.messageId, titleParts.drop(1), topicId)
             confirmBestEffort(receipt, ids)
             val sentAt = Instant.now()
-            recordAuditBestEffort(actor, "supervisor-pdf; supervisor=${supervisor.id}; shift=${shift.id}; size=${pdfFile.length()} bytes")
+            if (supervisor == null) {
+                recordDeliveryBestEffort(shift, sentAt, null, msg.messageId, actor, "pdf; size=${pdfFile.length()} bytes")
+            } else {
+                // General-chat pointers must never receive supervisor-chat message IDs.
+                recordAuditBestEffort(actor, "supervisor-pdf; supervisor=${supervisor.doctor.id}; shift=${shift.id}; size=${pdfFile.length()} bytes")
+            }
             SendResult(ids, msg.messageId, sentAt)
         }
     }

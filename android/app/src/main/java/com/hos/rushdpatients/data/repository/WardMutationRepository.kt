@@ -69,13 +69,14 @@ class WardMutationRepository @Inject constructor(
                 lastEditedByName = null
             )
             patients.upsert(added, shiftId)
-            if (position != null) {
-                current.toMutableList().apply { add(position - 1, added) }.forEachIndexed { index, row ->
-                    if (row.id != added.id && storedOrders[row.id] != index + 1)
-                        patients.save(row.copy(sortOrder = index + 1), shiftId)
-                }
-            }
-            added
+            val ordered = if (position != null) {
+                current.toMutableList().apply { add(position - 1, added) }
+                    .mapIndexed { index, row -> row.copy(sortOrder = index + 1) }
+            } else PatientComparators.ordered(stored + added,
+                SortSpecCodec.decode(shifts.getById(shiftId)?.sortSpecJson),
+                doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
+            persistOrder(ordered, storedOrders + (added.id to added.sortOrder), shiftId)
+            ordered.first { it.id == added.id }
         }
 
     suspend fun updatePatient(patient: Patient, shiftId: String): Patient =
@@ -132,9 +133,7 @@ class WardMutationRepository @Inject constructor(
             doctors.getAllIncludingDeleted().associate { it.id to it.fullName }
         )
         val previousOrders = current.associate { it.id to it.sortOrder }
-        ordered.filter { previousOrders[it.id] != it.sortOrder }.forEach { patient ->
-            patients.save(patient, shiftId)
-        }
+        persistOrder(ordered, previousOrders, shiftId)
         audit.record(
             actor?.doctorId, actor?.doctorName, "shift_sort_edited", shiftId,
             beforeValue = before.sortSpecJson,
@@ -144,7 +143,8 @@ class WardMutationRepository @Inject constructor(
 
     suspend fun movePatientToTop(patient: Patient, shiftId: String, actor: Session?) = mutate(shiftId) {
         val shift = requireNotNull(shifts.getById(shiftId))
-        val rows = PatientComparators.ordered(patients.getForShift(shiftId), SortSpecCodec.decode(shift.sortSpecJson),
+        val stored = patients.getForShift(shiftId)
+        val rows = PatientComparators.ordered(stored, SortSpecCodec.decode(shift.sortSpecJson),
             doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
         val saved = rows.firstOrNull { it.id == patient.id } ?: throw StalePatientEditException()
         val rest = rows.filterNot { it.id == saved.id }
@@ -153,10 +153,13 @@ class WardMutationRepository @Inject constructor(
             else rest.filter { it.isPriority } + saved + rest.filterNot { it.isPriority }
         // Moving a row explicitly selects manual order; all renumbering commits atomically.
         shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY))
-        ordered.forEachIndexed { index, row ->
-            if (row.sortOrder != index + 1) patients.save(row.copy(sortOrder = index + 1), shiftId)
-        }
+        persistOrder(ordered.mapIndexed { index, row -> row.copy(sortOrder = index + 1) },
+            stored.associate { it.id to it.sortOrder }, shiftId)
         audit.record(actor?.doctorId, actor?.doctorName, "patient_moved_to_top", patientId = saved.id)
+    }
+
+    private suspend fun persistOrder(ordered: List<Patient>, previousOrders: Map<String, Int>, shiftId: String) {
+        ordered.filter { previousOrders[it.id] != it.sortOrder }.forEach { patients.save(it, shiftId) }
     }
 
     private suspend fun prepareTasks(patient: Patient): Patient {

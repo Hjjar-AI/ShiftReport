@@ -30,16 +30,17 @@ class LocalDownloadUndo @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val json: Json
 ) {
-    private val key = "local_patient_download_undo"
+    private val key = AppConstants.SETTING_PATIENT_DOWNLOAD_UNDO
     val available = settings.observe(key).map { it != null }
 
     // Called in the same transaction as the download application.
-    suspend fun record(before: List<ShiftCsvSnapshot?>, appliedShiftIds: List<String>) {
+    suspend fun record(before: List<ShiftCsvSnapshot?>, appliedShiftIds: List<String>, previousCurrentShiftId: String? = null) {
         val entries = appliedShiftIds.mapIndexed { index, id ->
             val shift = requireNotNull(shifts.getById(id))
             val after = CsvCodec.encode(shift, patients.getForShift(id))
             buildJsonObject {
                 put("id", id)
+                previousCurrentShiftId?.let { put("previousCurrentId", it) }
                 put("after", after)
                 put("before", before[index]?.let { JsonPrimitive(CsvCodec.encode(it.shift, it.patients)) } ?: JsonNull)
             }
@@ -55,7 +56,7 @@ class LocalDownloadUndo @Inject constructor(
             entries.forEach { element ->
                 val entry = element.jsonObject
                 val id = entry.getValue("id").jsonPrimitive.content
-                val shift = requireNotNull(shifts.getById(id)) { "تغيرت المناوبة منذ التنزيل" }
+                val shift = requireNotNull(shifts.getById(id)) { "تغير القسم منذ التنزيل" }
                 require(CsvCodec.encode(shift, patients.getForShift(id)) == entry.getValue("after").jsonPrimitive.content) {
                     "تغيرت البيانات منذ التنزيل؛ لن يستبدل التراجع تعديلات أو نشراً لاحقاً"
                 }
@@ -84,7 +85,12 @@ class LocalDownloadUndo @Inject constructor(
             settings.delete(key)
             val actor = sessions.current()
             audit.record(actor?.doctorId, actor?.doctorName, "download_undone", "shifts=${entries.size}")
-            entries.first().jsonObject.getValue("id").jsonPrimitive.content
+            val first = entries.first().jsonObject
+            val previousId = first["previousCurrentId"]?.jsonPrimitive?.content
+            val restoredId = previousId?.takeIf { shifts.getById(it) != null }
+                ?: first.getValue("id").jsonPrimitive.content
+            shifts.selectCurrent(restoredId)
+            restoredId
         }
     }
 }

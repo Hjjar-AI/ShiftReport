@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.data.db.dao
 
+import com.hos.rushdpatients.config.AppConstants
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
@@ -9,16 +10,21 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ShiftDao {
 
+    @Query("INSERT OR REPLACE INTO settings (`key`, value) VALUES ('${AppConstants.SETTING_CURRENT_SHIFT_ID}', :id)")
+    suspend fun selectCurrent(id: String)
+
     @Query("""
         SELECT * FROM shifts
-        ORDER BY dateEpochDay DESC
+        ORDER BY CASE WHEN id = (SELECT value FROM settings WHERE `key` = '${AppConstants.SETTING_CURRENT_SHIFT_ID}')
+            THEN 0 ELSE 1 END, dateEpochDay DESC
         LIMIT 1
     """)
     suspend fun getLatest(): ShiftEntity?
 
     @Query("""
         SELECT * FROM shifts
-        ORDER BY dateEpochDay DESC
+        ORDER BY CASE WHEN id = (SELECT value FROM settings WHERE `key` = '${AppConstants.SETTING_CURRENT_SHIFT_ID}')
+            THEN 0 ELSE 1 END, dateEpochDay DESC
         LIMIT 1
     """)
     fun observeLatest(): Flow<ShiftEntity?>
@@ -51,8 +57,8 @@ interface ShiftDao {
     @Query("""
         UPDATE shifts
         SET sentAtEpochMillis = :sentAtMillis,
-            reportMessageId = :reportMessageId,
-            pdfMessageId = :pdfMessageId,
+            reportMessageId = COALESCE(:reportMessageId, reportMessageId),
+            pdfMessageId = COALESCE(:pdfMessageId, pdfMessageId),
             updatedAtEpochMillis = :sentAtMillis
         WHERE id = :shiftId
     """)

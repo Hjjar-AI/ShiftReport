@@ -2,6 +2,8 @@ package com.hos.rushdpatients.domain.sort
 
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.util.ShiftDate
+import java.time.LocalDate
 
 object PatientComparators {
 
@@ -13,10 +15,12 @@ object PatientComparators {
         if (spec.isEmpty) {
             return compareBy<Patient> { it.sortOrder }
                 .thenBy { it.name.lowercase() }
+                .thenBy { it.id }
         }
+        val today = ShiftDate.current()
         return Comparator { a, b ->
             for (level in spec.levels) {
-                val cmp = compareLevel(a, b, level, doctorNames, customOrder)
+                val cmp = compareLevel(a, b, level, doctorNames, customOrder, today)
                 if (cmp != 0) return@Comparator cmp
             }
             a.name.lowercase().compareTo(b.name.lowercase())
@@ -34,13 +38,14 @@ object PatientComparators {
         b: Patient,
         level: SortLevel,
         doctorNames: Map<String, String>,
-        customOrder: CustomOrder
+        customOrder: CustomOrder,
+        today: LocalDate
     ): Int {
         val base = when (level.field) {
             SortField.NAME -> compareName(a, b)
             SortField.GENDER -> compareGender(a, b)
             SortField.DIAGNOSIS -> compareDiagnosis(a, b, customOrder)
-            SortField.DAYS_OF_ADMITTANCE -> compareDays(a, b)
+            SortField.DAYS_OF_ADMITTANCE -> compareDays(a, b, today)
             SortField.SUPERVISOR -> compareSupervisor(a, b, doctorNames)
         }
         return if (level.direction == SortDirection.DESC) -base else base
@@ -68,9 +73,9 @@ object PatientComparators {
         return a.initialDiagnosis.lowercase().compareTo(b.initialDiagnosis.lowercase())
     }
 
-    private fun compareDays(a: Patient, b: Patient): Int {
-        val da = a.admittanceDays ?: 0
-        val db = b.admittanceDays ?: 0
+    private fun compareDays(a: Patient, b: Patient, today: LocalDate): Int {
+        val da = a.admittanceDaysOn(today) ?: 0
+        val db = b.admittanceDaysOn(today) ?: 0
         return da.compareTo(db)
     }
 

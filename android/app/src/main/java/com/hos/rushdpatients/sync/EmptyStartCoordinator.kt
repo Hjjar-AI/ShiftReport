@@ -124,14 +124,13 @@ class EmptyStartCoordinator @Inject constructor(
                     requireLocal(review)
                     database.shiftDao().deleteAll() // Patient foreign key cascades include the recycle bin.
                     val clinicalKeys = settings.getAll().keys.filter {
-                        it == AppConstants.SETTING_PATIENT_DRAFT || it == "local_patient_download_undo" ||
-                            it.startsWith(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX) ||
-                            it.startsWith(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX) ||
-                            it.startsWith(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX) ||
-                            it.startsWith(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX)
+                        it == AppConstants.SETTING_PATIENT_DRAFT || it == AppConstants.SETTING_PATIENT_DOWNLOAD_UNDO ||
+                            it.startsWith(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX) ||
+                            AppConstants.SHIFT_SYNC_CACHE_PREFIXES.any { prefix -> it.startsWith(prefix) }
                     }
                     clinicalKeys.forEach { settings.delete(it) }
                     shifts.upsert(review.shift)
+                    shifts.selectCurrent(review.shift.id)
                     shifts.updatePublicationMetadata(review.shift, message.messageId)
                     settings.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + review.shift.id, at.toString())
 

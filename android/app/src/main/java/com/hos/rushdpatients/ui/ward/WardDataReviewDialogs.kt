@@ -14,7 +14,7 @@ internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController
     confirmLatest: Boolean,
     onDismissLatest: () -> Unit) {
     val uiText = rememberUiStrings()
-    val dismissLatest = { onDismissLatest(); viewModel.dismissFetchReview() }
+    val dismissLatest = { onDismissLatest(); viewModel.dismissPublicationReview() }
     val pending = state.fetchChoiceRequired || state.synchronization.pending ||
         state.synchronization.selectedSnapshot == com.hos.rushdpatients.sync.KnownShiftState.CHANGED
     if (confirmLatest && !pending) ConfirmDialog(
@@ -41,23 +41,23 @@ internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController
             } }
         )
     }
-    state.fetchReviewText?.let { text ->
+    state.publicationReviewText?.let { text ->
         com.hos.rushdpatients.ui.components.AppAlertDialog(
-            onDismissRequest = viewModel::dismissFetchReview,
+            onDismissRequest = viewModel::dismissPublicationReview,
             title = { androidx.compose.material3.Text(uiText(R.string.sync_review_publish)) },
             text = { androidx.compose.material3.Text(text, androidx.compose.ui.Modifier.appDialogBody().verticalScroll(rememberScrollState())) },
             confirmButton = { com.hos.rushdpatients.ui.components.AppButton(onClick = viewModel::confirmPendingPublication) {
                 androidx.compose.material3.Text(uiText(R.string.sync_publish_confirm))
             } },
-            dismissButton = { com.hos.rushdpatients.ui.components.AppTextButton(onClick = viewModel::dismissFetchReview) {
+            dismissButton = { com.hos.rushdpatients.ui.components.AppTextButton(onClick = viewModel::dismissPublicationReview) {
                 androidx.compose.material3.Text(uiText(R.string.ui_cancel))
             } })
     }
     if (state.olderRemoteConfirmation) {
         ConfirmDialog(title = uiText(R.string.sync_older_admin_title), message = state.syncIssue.orEmpty(),
             confirmText = uiText(R.string.sync_older_admin_confirm), onConfirm = {
-                viewModel.dismissFetchReview(); viewModel.replaceAndFetch(allowOlder = true)
-            }, onDismiss = viewModel::dismissFetchReview)
+                viewModel.dismissPublicationReview(); viewModel.replaceAndFetch(allowOlder = true)
+            }, onDismiss = viewModel::dismissPublicationReview)
     }
 
 }

@@ -4,7 +4,7 @@ package com.hos.rushdpatients.data.model
 class DoctorOptions private constructor(private val stored: Set<String>) {
     val pinHash: String? get() = stored.firstOrNull { it.startsWith(PIN) }?.removePrefix(PIN)
     val syncAliases: Set<String> get() = stored.filter { it.startsWith(ALIAS) }.mapTo(linkedSetOf()) { it.removePrefix(ALIAS) }
-    val teamSupervisorIds: List<String> get() = stored.filter { it.startsWith(TEAM) }.map { it.removePrefix(TEAM) }
+    val teamSupervisorIds: List<String> get() = stored.filter { it.startsWith(TEAM) }.map { it.removePrefix(TEAM) }.sorted()
     val teamSupervisorId: String? get() = teamSupervisorIds.firstOrNull()
     val portable: Set<String> get() = stored.filterNot { it.startsWith(PIN) || it.startsWith(ALIAS) }.toSet()
     fun localIdentity(includePin: Boolean): Set<String> = stored.filter {

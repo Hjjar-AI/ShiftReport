@@ -30,6 +30,20 @@ interface SettingDao {
     @Query("DELETE FROM settings WHERE `key` = :key")
     suspend fun delete(key: String)
 
+    @Query("""
+        DELETE FROM settings
+        WHERE substr(`key`, 1, length(:prefix)) = :prefix
+          AND NOT EXISTS (SELECT 1 FROM patients WHERE id = substr(settings.`key`, length(:prefix) + 1))
+    """)
+    suspend fun deleteOrphanedPatientDrafts(prefix: String)
+
+    @Query("""
+        DELETE FROM settings
+        WHERE substr(`key`, 1, length(:prefix)) = :prefix
+          AND substr(`key`, length(:prefix) + 1) NOT IN (:keepShiftIds)
+    """)
+    suspend fun pruneShiftCache(prefix: String, keepShiftIds: List<String>)
+
     @Query("DELETE FROM settings")
     suspend fun deleteAll()
 }

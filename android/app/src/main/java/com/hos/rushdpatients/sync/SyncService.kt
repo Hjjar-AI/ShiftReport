@@ -68,7 +68,8 @@ class SyncService @Inject constructor(
 
     suspend fun prepareCsvPublication(shiftId: String, reviewed: com.hos.rushdpatients.domain.report.BuiltReport? = null): CsvPublicationReview = publication.prepareCsvPublication(shiftId, reviewed)
 
-    suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> = publication.uploadCsv(shiftId)
+    suspend fun validatePublishedReport(report: com.hos.rushdpatients.domain.report.BuiltReport, actorId: String, telegramId: Long?) =
+        publication.validatePublishedReport(report, actorId, telegramId)
 
     suspend fun uploadReviewedCsv(review: CsvPublicationReview): Result<CsvUploadResult> = publication.uploadReviewedCsv(review)
 

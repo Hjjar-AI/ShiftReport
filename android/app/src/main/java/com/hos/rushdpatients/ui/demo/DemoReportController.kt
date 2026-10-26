@@ -9,7 +9,6 @@ import com.hos.rushdpatients.network.telegram.Markdown
 import com.hos.rushdpatients.pdf.*
 import com.hos.rushdpatients.sync.KnownShiftSnapshot
 import com.hos.rushdpatients.ui.components.UiStrings
-import com.hos.rushdpatients.ui.components.readinessWarnings
 import com.hos.rushdpatients.ui.report.*
 import com.hos.rushdpatients.util.ShiftDate
 import kotlinx.coroutines.*
@@ -68,8 +67,7 @@ internal class DemoReportController(
             supervisorTargets = snapshot.doctors.filter { doctor -> doctor.clinicalRole.canBeSupervisor() }
                 .mapNotNull { doctor -> snapshot.patients.count { it.responsibleSpecialistId == doctor.id }
                     .takeIf { it > 0 }?.let { SupervisorReportTarget(doctor.id, doctor.fullName, -1L, it) } },
-            readinessWarnings = readinessWarnings(uiText, snapshot.patients),
-            readinessIssues = ReportReadiness.issues(snapshot.patients), changeBriefing = briefing,
+            incompletePatientIds = ReportReadiness.incompletePatientIds(snapshot.patients), changeBriefing = briefing,
             publicationOutcome = null, deliveryOutcome = null, error = null, reviewNotice = reviewNotice,
             exportUploadConfirmed = exportPublished?.let(::matches) == true,
             deliveryRecords = repository.receipts.value, retryAction = null) }

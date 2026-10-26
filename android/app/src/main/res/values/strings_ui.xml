@@ -167,11 +167,11 @@
     <string name="ui_ward_patient_list_controls_008" formatted="false">"مهام متأخرة"</string>
     <string name="ui_ward_screen_001">"تم حفظ %1$s محلياً؛ لا يطابق التصفية الحالية"</string>
     <string name="ui_ward_screen_002" formatted="false">"التنقل الرئيسي"</string>
-    <string name="ui_ward_screen_003" formatted="false">"لوحة المناوبة"</string>
+    <string name="ui_ward_screen_003" formatted="false">"لوحة القسم"</string>
     <string name="ui_ward_screen_004" formatted="false">"جاهزية التقرير"</string>
     <string name="ui_ward_screen_005" formatted="false">"ملف المريض"</string>
-    <string name="ui_ward_screen_006" formatted="false">"جار تحميل بيانات المناوبة…"</string>
-    <string name="ui_ward_screen_007">"تعذر تحميل بيانات المناوبة\n%1$s"</string>
+    <string name="ui_ward_screen_006" formatted="false">"جار تحميل بيانات القسم…"</string>
+    <string name="ui_ward_screen_007">"تعذر تحميل بيانات القسم\n%1$s"</string>
     <string name="ui_ward_screen_008">"بحث: %1$s"</string>
     <string name="ui_ward_screen_009" formatted="false">"مع شارة"</string>
     <string name="ui_ward_screen_010" formatted="false">"غير معيّن"</string>
@@ -183,7 +183,7 @@
     <string name="ui_ward_view_options_dialog_001" formatted="false">"البحث والتصفية والتجميع للعرض فقط؛ الترتيب يُحفظ ويستخدم في التقارير وCSV. مرضى الأولوية أولاً."</string>
     <string name="ui_search" formatted="false">"بحث"</string>
     <string name="ui_ward_view_options_dialog_003" formatted="false">"تصفية · للعرض فقط"</string>
-    <string name="ui_ward_view_options_dialog_004" formatted="false">"مهام الجناح"</string>
+    <string name="ui_ward_view_options_dialog_004" formatted="false">"مهام القسم"</string>
     <string name="ui_ward_view_options_dialog_005" formatted="false">"مرضاي"</string>
     <string name="ui_ward_view_options_dialog_006" formatted="false">"أولوية فقط"</string>
     <string name="ui_ward_view_options_dialog_007" formatted="false">"تجميع · للعرض فقط"</string>
@@ -191,7 +191,7 @@
     <string name="ui_ward_view_options_dialog_009" formatted="false">"عرض التفاصيل"</string>
     <string name="ui_ward_view_options_dialog_010" formatted="false">"بطاقة بعمودين عند توفر المساحة"</string>
     <string name="ui_ward_view_options_dialog_011" formatted="false">"بطاقات مضغوطة"</string>
-    <string name="ui_ward_view_options_dialog_012" formatted="false">"ترتيب · يُحفظ مع المناوبة"</string>
+    <string name="ui_ward_view_options_dialog_012" formatted="false">"ترتيب · يُحفظ مع القسم"</string>
     <string name="ui_ward_view_options_dialog_013" formatted="false">"طي خيارات الترتيب"</string>
     <string name="ui_ward_view_options_dialog_014" formatted="false">"تعديل ترتيب المرضى"</string>
     <string name="ui_done" formatted="false">"تم"</string>
@@ -203,7 +203,7 @@
     <string name="ui_edit_patient_dialog_004" formatted="false">"مراجعة المسودة المرفوضة والنسخة المحفوظة"</string>
     <string name="ui_ward_patient_search_field_001" formatted="false">"بحث بالاسم أو رقم القبول الحالي أو المحتوى الطبي"</string>
     <string name="ui_ward_review_dialogs_009" formatted="false">"سلة المحذوفات"</string>
-    <string name="ui_ward_review_dialogs_010" formatted="false">"لا يوجد مرضى محذوفون في هذه المناوبة"</string>
+    <string name="ui_ward_review_dialogs_010" formatted="false">"لا يوجد مرضى محذوفون في هذا القسم"</string>
     <string name="ui_close" formatted="false">"إغلاق"</string>
     <string name="ui_patient_card_001" formatted="false">"، رقم القبول الحالي "</string>
     <string name="ui_patient_card_002" formatted="false">"، "</string>
@@ -262,7 +262,7 @@
     <string name="ui_shift_doctor_picker_007" formatted="false">"مسح البحث"</string>
     <string name="ui_shift_doctor_picker_008" formatted="false">"لم يُحفظ اختيار أطباء المناوبة."</string>
     <string name="ui_shift_doctor_picker_009" formatted="false">"متابعة الاختيار"</string>
-    <string name="ui_ward_adaptive_panes_001" formatted="false">"محتوى المناوبة"</string>
+    <string name="ui_ward_adaptive_panes_001" formatted="false">"محتوى القسم"</string>
     <string name="ui_ward_adaptive_panes_002" formatted="false">"ملف المريض وجاهزية التقرير"</string>
     <string name="ui_ward_adaptive_panes_003" formatted="false">"تغيير عرض قائمة المرضى"</string>
     <string name="ui_ward_adaptive_panes_004">"عرض القائمة %1$s بالمئة"</string>
@@ -298,7 +298,7 @@
     <string name="ui_ward_drawer_005" formatted="false">"عضو الفريق"</string>
     <string name="ui_ward_drawer_006" formatted="false">"مستخدم غير محدد"</string>
     <string name="ui_ward_drawer_007" formatted="false">"غير متصل · تُعرض البيانات المحلية"</string>
-    <string name="ui_ward_drawer_008" formatted="false">"المناوبة الحالية"</string>
+    <string name="ui_ward_drawer_008" formatted="false">"القسم الحالي"</string>
     <string name="ui_ward_drawer_009" formatted="false">"جميع المرضى"</string>
     <string name="ui_ward_drawer_010" formatted="false">"لوحة تسليم المناوبة"</string>
     <string name="ui_ward_drawer_011" formatted="false">"خيارات العرض والتصفية"</string>
@@ -1233,7 +1233,7 @@
     <string name="ui_label_pdf_presentation_preset_001" formatted="false">"متوازن"</string>
     <string name="ui_label_pdf_presentation_preset_002" formatted="false">"فواصل واضحة"</string>
     <string name="ui_label_pdf_presentation_preset_003" formatted="false">"للطباعة"</string>
-    <string name="ui_settings_preferences_001" formatted="false">"حُفظ اسم الجناح للتقارير"</string>
+    <string name="ui_settings_preferences_001" formatted="false">"حُفظ اسم القسم للتقارير"</string>
     <string name="ui_back" formatted="false">"رجوع"</string>
     <string name="ui_demo_local_only">هذا العرض محلي ومؤقت؛ لا يتصل بالمشروع. تغيّرت البيانات؟ أعد فتح الإجراء وراجعه.</string>
     <string name="ui_report_preview_each_selected">افتح معاينة كل تقرير مختار قبل الإرسال.</string>

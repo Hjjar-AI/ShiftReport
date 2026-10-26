@@ -1,5 +1,34 @@
 # Completed work
 
+## Android findings build and install — 26 October 2026
+
+Owner-approved offline `installDebug` retry passed in7m14s (44tasks:11executed/33up-to-date) and installed on one PPA-LX2/Android10 device. Kotlin/javac/Room-Hilt/resources/DEX/package/install passed; one non-blocking unnecessary-safe-call warning. Original attempt failed in3m53s on the debug-app helper’s two-argument `ShiftRepository` construction; restored the production constructor by moving current-section persistence into `ShiftDao`, without helper/test-suite changes. The initial retry was rejected by automatic approval review; owner explicitly approved the successful rerun.
+
+Host-wide activity/memory checked before each invocation; idle VS Code Gradle service only at retry preflight,3.5GiB available RAM/3.9GiB free swap. Java21/pinned cached Gradle8.7/SDK34/build-tools/shared debug signer; offline/one worker/in-process Kotlin/2GB/Kotlin-KSP incremental disabled/autoVersion=false. No tests, app launch/runtime/live verification, migration work or version changes. Failed/resolving logs and receipt: `local/verification/android-findings-install-2026-10-26/`.
+
+## Android source findings and section selection — 26 October 2026
+
+- Pinned-state serialization now trims oldest journal entries to the existing3500-character safe budget while preserving current/previous CSV pointers and legacy fields. Oversized non-journal state fails explicitly. Journal storage fields/version unchanged.
+- Current section selection persists in existing settings and drives repository/DAO current reads/flows, pending checks, exports and backup. Fetch matches stored identity before date and selects the result; Undo restores the prior selection, backup restore/Empty Start select their result. Stored IDs/dates/historical rows remain; visible section terms use «القسم». Multiple sections were designed, not enabled: [proposal](../decisions/multiple-sections.md).
+- Publication Retry returns to review instead of fetching. Delivery retries reuse exact confirmed export approval for the same actor/project while rechecking live identity/assignments/current section. Removed the unused prepare-and-upload API without review. Post-upload authority checks and doctor-first publication remain deliberate; separate Telegram writes can still leave unattached uploads/partial registry publication.
+- Clinical change counts compare relative order among shared IDs; insert/remove no longer marks every following patient changed. Escaped Markdown symbols/links survive plain previews. Sort comparisons capture one day and use deterministic ID ties; Add and Move to top persist actual display numbering through one helper. Missing-admission/default/corrupt-sort semantics unchanged.
+- Export approval is one value; readiness is one set of incomplete patient IDs, with empty-roster state cleared. Shared PDF preparation/transport preserves destination-specific receipts and General-only sent pointers; sending one format no longer clears the other’s legacy pointer. Oversized report fragments pack with neighbouring short blocks. Ledger transitions documented without changing UNKNOWN/permit storage.
+- Centralized draft/Undo/cache keys; SQL cache pruning avoids loading snapshot blobs. Empty Start clears patient edit drafts; the daily permanent-purge transaction prunes orphan drafts. Fetch retains unfinished drafts. Repository existence/count/roster/assignment checks remain authoritative; duplicate UI reads/cached-role rejection removed. A separate current-section observer handles restore/reset selection without self-cancelling the patient collector. Removed unused unguarded single-ID delete/restore APIs, Markdown helpers/private delegates, redundant name maps/stamp copies and retired announcement arbitration.
+
+Finding disposition (numbers refer to the supplied review):
+
+| Findings | Decision |
+|---|---|
+|1–4,6–7,12–13,17,20,22–24,26|Confirmed local problems addressed as above; legacy wire/storage preserved.|
+|5,27|Retain live checks after network gaps and transactional local-content checks. Avoid exchanging authority/data-loss protection for fewer reads; Telegram publication remains non-atomic.|
+|8–10|Fix evidenced numbering/clock/duplicate-check/approval issues. Keep compatible default/manual/custom-sort representation and legacy receipt readers; changing historical identity could bypass duplicate safeguards.|
+|11|Document the existing durable transition model; no demonstrated ledger-state defect.|
+|14–16|Simplify single-result fetch/redundant stripping; retain legacy multi-list readers, per-ID cache keys, revision/lineage/task fields and report/rollback bookkeeping. Their removal conflicts with compatibility or has no current benefit.|
+|18–19,21|Remove unused unreviewed publication/unguarded APIs; name workflow values, consolidate readiness/approval/PDF paths, clear stale state. Existing helper ownership, exact review routes, independent busy states and used database-name alias remain; no evidence justifies a whole ViewModel rewrite.|
+|25|Centralize the duplicated Undo/draft keys. A project-wide error-localization overhaul is unrelated to the confirmed faults and was not undertaken.|
+
+Validation: production values XML parsing, changed Kotlin delimiter/default-string-reference checks, production call-site review and Git whitespace only; no Kotlin type/Room/Hilt compilation, app/device/live execution, suite work, migration inspection or version changes. Source receipt: `local/verification/android-findings-2026-10-26/`. Remaining runtime/build checks live only in [handoff](testing-handoff.md).
+
 ## Splash before encrypted-storage loading — 25 October 2026
 
 - Show the intro immediately instead of the encrypted-storage progress message while the existing IO gate initializes storage. Repository-backed content still requires success; storage failure/retry and data preservation remain intact. A movable intro preserves animation state when storage becomes ready and saved appearance is applied.

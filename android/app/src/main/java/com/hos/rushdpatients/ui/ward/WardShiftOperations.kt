@@ -25,11 +25,11 @@ internal class WardShiftOperations(
     private val observeShift: (String) -> Unit
 ) {
 
-    private var fetchPublication: com.hos.rushdpatients.sync.CsvPublicationReview? = null
+    private var pendingPublication: com.hos.rushdpatients.sync.CsvPublicationReview? = null
     fun replaceAndFetch(allowOlder: Boolean = false) = fetchRemoteData(replaceLocal = true, allowOlder = allowOlder)
-    fun dismissFetchReview() {
-        fetchPublication = null
-        _state.update { it.copy(fetchReviewText = null, olderRemoteConfirmation = false, fetchChoiceRequired = false) }
+    fun dismissPublicationReview() {
+        pendingPublication = null
+        _state.update { it.copy(publicationReviewText = null, olderRemoteConfirmation = false, fetchChoiceRequired = false) }
     }
     fun reviewPendingPublication() {
         val shift = _state.value.shift ?: return
@@ -38,25 +38,25 @@ internal class WardShiftOperations(
         viewModelScope.launch {
             try {
                 val review = syncService.prepareCsvPublication(shift.id)
-                fetchPublication = review
-                _state.update { it.copy(fetchReviewText = review.text) }
+                pendingPublication = review
+                _state.update { it.copy(publicationReviewText = review.text) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { showDownloadIssue(e, WardRetryAction.FETCH_LATEST) }
+            catch (e: Exception) { showDownloadIssue(e, WardRetryAction.PUBLISH) }
             finally { _state.update { it.copy(syncing = false) } }
         }
     }
     fun confirmPendingPublication() {
-        val review = fetchPublication ?: return
+        val review = pendingPublication ?: return
         if (_state.value.syncing || _state.value.saving) return
-        dismissFetchReview()
+        dismissPublicationReview()
         _state.update { it.copy(syncing = true, syncProgressRes = R.string.ui_progress_publish_patients) }
         viewModelScope.launch {
             try {
                 syncService.uploadReviewedCsv(review).fold(
                     onSuccess = { uploaded -> _state.update { it.copy(snackbar = uiText(if (uploaded.localBookkeepingFailed) R.string.sync_publication_bookkeeping_warning else R.string.sync_publication_complete), syncIssue = null, syncRecovery = null, retryAction = null) } },
-                    onFailure = { showDownloadIssue(it, WardRetryAction.FETCH_LATEST) })
+                    onFailure = { showDownloadIssue(it, WardRetryAction.PUBLISH) })
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { showDownloadIssue(e, WardRetryAction.FETCH_LATEST) }
+            catch (e: Exception) { showDownloadIssue(e, WardRetryAction.PUBLISH) }
             finally { _state.update { it.copy(syncing = false) } }
         }
     }

@@ -39,7 +39,21 @@ class ExactReportCopyRequiredException : ReportDeliveryBlockedException(
 
 enum class DeliveryResolution { RECEIVED, NOT_RECEIVED, ALLOW_COPY }
 
-/** Local metadata only. Persist UNKNOWN before requests; never infer absence from a timeout. */
+/**
+ * Local metadata only; persist UNKNOWN before requests, including explicit extra copies.
+ *
+ * Event | Durable result
+ * Begin | New UNKNOWN; consumes an exact-content permit; copy origins return to UNKNOWN.
+ * Confirm | Attempt becomes SENT; copy origins become UNKNOWN_COPY_ALLOWED without a permit.
+ * Definite rejection | Attempt becomes NOT_SENT; original copy uncertainty remains UNKNOWN.
+ * Interruption/timeout | Attempt and copy origins remain UNKNOWN, blocking their route.
+ * Resolve received/not received | Original becomes SENT/NOT_SENT; removes its permit.
+ * Approve copy | UNKNOWN becomes UNKNOWN_COPY_ALLOWED, or SENT stays SENT; adds its key permit.
+ *
+ * UNKNOWN_COPY_ALLOWED with a permit authorizes one exact copy; without a permit it retains
+ * unresolved historical evidence after a confirmed copy, so Resolve remains meaningful.
+ * Permits bind content/route/format; active IDs only prevent resolving in-flight attempts.
+ */
 @Singleton
 class ReportDeliveryLedger @Inject constructor(
     private val settings: SettingsRepository,

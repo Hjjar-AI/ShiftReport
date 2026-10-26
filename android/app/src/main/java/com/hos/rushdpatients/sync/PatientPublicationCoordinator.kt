@@ -59,11 +59,13 @@ internal class PatientPublicationCoordinator(
         withContext(dispatchers.io) {
             val source = requireNotNull(remoteState.readState()) { context.getString(R.string.sync_index_unavailable_fetch) }
             val actor = doctorSync.requirePublishedClinician(source)
+            require(shiftRepository.getLatest()?.id == shiftId) { context.getString(R.string.patients_current_section_required) }
             val built = reviewed ?: reportBuilder.build(shiftId)
+            require(built.shift.id == shiftId) { context.getString(R.string.patients_current_section_required) }
             val doctorsCsv = if (actor.isAdmin && built.registryChangeSummary != null) doctorSync.preparePendingPublication(source, built.registryDoctors) else null
             if (doctorsCsv == null) doctorSync.requirePublishedAssignments(source, built.shift, built.patients)
             val remoteBundle = source.currentCsvSnapshot()?.let { downloadSnapshot(it) }.orEmpty()
-            val remote = remoteBundle.firstOrNull { it.shiftDate == built.shift.date }
+            val remote = remoteBundle.firstOrNull()
             val before = remote?.patients.orEmpty().associateBy(Patient::id)
             val after = built.patients.associateBy(Patient::id)
             fun names(ids: Set<String>, rows: Map<String, Patient>) =
@@ -95,15 +97,23 @@ internal class PatientPublicationCoordinator(
         }
     }
 
-    suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> = try {
-        uploadReviewedCsv(prepareCsvPublication(shiftId))
-    } catch (e: CancellationException) { throw e }
-    catch (e: Exception) { Result.failure(e) }
+    /** Reusing a confirmed publication still requires live identity and assignment checks. */
+    suspend fun validatePublishedReport(report: BuiltReport, actorId: String, telegramId: Long?) =
+        patientSyncMutex.withLock {
+            withContext(dispatchers.io) {
+                require(shiftRepository.getLatest()?.id == report.shift.id) { context.getString(R.string.patients_current_section_required) }
+                val source = requireNotNull(remoteState.readState()) { context.getString(R.string.sync_index_unavailable) }
+                val actor = doctorSync.requirePublishedClinician(source)
+                require(actor.id == actorId && actor.telegramId == telegramId) { context.getString(R.string.patients_reviewer_changed) }
+                doctorSync.requirePublishedAssignments(source, report.shift, report.patients)
+            }
+        }
 
     suspend fun uploadReviewedCsv(review: CsvPublicationReview): Result<CsvUploadResult> =
         patientSyncMutex.withLock { uploadCsvInternal(review.shiftId, review) }
 
     private suspend fun requirePublicationReview(review: CsvPublicationReview, state: SyncState?) {
+        require(shiftRepository.getLatest()?.id == review.shiftId) { context.getString(R.string.patients_current_section_required) }
         val actor = doctorSync.requirePublishedClinician(requireNotNull(state))
         require(actor.id == review.actorId && actor.telegramId == review.telegramId) { context.getString(R.string.patients_reviewer_changed) }
         doctorSync.requirePublishedAssignments(state, review.shift, review.patients)
@@ -114,6 +124,7 @@ internal class PatientPublicationCoordinator(
         review: CsvPublicationReview
     ): Result<CsvUploadResult> = withContext(dispatchers.io) {
         try {
+            require(shiftRepository.getLatest()?.id == shiftId) { context.getString(R.string.patients_current_section_required) }
             val initialSource = requireNotNull(remoteState.readState()) { context.getString(R.string.sync_index_unavailable) }
             val actor = doctorSync.requirePublishedClinician(initialSource)
             require(actor.id == review.actorId && actor.telegramId == review.telegramId) { context.getString(R.string.patients_actor_changed) }

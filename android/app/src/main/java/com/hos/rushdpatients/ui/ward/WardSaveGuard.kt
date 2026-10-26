@@ -5,11 +5,9 @@ import com.hos.rushdpatients.ui.components.UiStrings
 import com.hos.rushdpatients.R
 
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.domain.patient.PatientValidationError
 import com.hos.rushdpatients.domain.patient.PatientValidationResult
 import com.hos.rushdpatients.domain.patient.PatientValidator
-import com.hos.rushdpatients.util.ShiftDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -17,8 +15,7 @@ import kotlinx.coroutines.flow.update
 /** Shared save/revision/error handling; callers retain their existing coroutine ownership. */
 internal class WardSaveGuard(
     private val uiText: UiStrings,
-    private val _state: MutableStateFlow<WardUiState>,
-    private val shiftRepository: ShiftRepository
+    private val _state: MutableStateFlow<WardUiState>
 ) {
 
     fun editableShiftId(): String? {
@@ -30,32 +27,10 @@ internal class WardSaveGuard(
         return shift.id
     }
 
-    suspend fun requireEditableShift(shiftId: String) {
-        val shift = shiftRepository.getById(shiftId)
-        require(shift != null) {
-            uiText(R.string.ui_ward_save_guard_001)
-        }
-    }
-
-    suspend fun validateForSave(patient: Patient): Boolean {
+    fun validateForSave(patient: Patient): Boolean {
         val result = PatientValidator.validate(patient)
         if (result is PatientValidationResult.Invalid) {
             showError(validationMessage(result))
-            return false
-        }
-        val doctorsById = _state.value.doctors.associateBy { it.id }
-        val resident = patient.responsibleResidentId?.let(doctorsById::get)
-        val specialist = patient.responsibleSpecialistId?.let(doctorsById::get)
-        if (!patient.responsibleResidentId.isNullOrBlank() &&
-            (resident == null || !resident.clinicalRole.canBeResident())
-        ) {
-            showError(uiText(R.string.ui_ward_save_guard_002))
-            return false
-        }
-        if (!patient.responsibleSpecialistId.isNullOrBlank() &&
-            (specialist == null || !specialist.clinicalRole.canBeSupervisor())
-        ) {
-            showError(uiText(R.string.ui_ward_save_guard_003))
             return false
         }
         return true

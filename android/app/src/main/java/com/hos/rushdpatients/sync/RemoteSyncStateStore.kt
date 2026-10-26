@@ -3,6 +3,7 @@ package com.hos.rushdpatients.sync
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.hos.rushdpatients.R
+import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.config.Topics
 import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.network.telegram.TelegramException
@@ -70,10 +71,6 @@ class RemoteSyncStateStore @Inject constructor(
                 compareBy<SyncState> { it.doctorsMessageId ?: Long.MIN_VALUE }
                     .thenBy { it.doctorsUpdatedAt }
             ) ?: state
-            val announcementState = listOf(state, existingState).maxWithOrNull(
-                compareBy<SyncState> { it.announcementUpdatedAt }
-                    .thenBy { it.announcementMessageId ?: Long.MIN_VALUE }
-            ) ?: state
             state.withCsvHistory(if (replaceCsvHistory) listOfNotNull(state.currentCsvSnapshot()) else snapshots).copy(
                 publicationJournal = (state.publicationJournal + if (replaceCsvHistory) emptyList() else existingState.publicationJournal)
                     .distinctBy { it.messageId }
@@ -82,12 +79,20 @@ class RemoteSyncStateStore @Inject constructor(
                 doctorsData = doctorsState.doctorsData,
                 doctorsFileId = doctorsState.doctorsFileId,
                 doctorsMessageId = doctorsState.doctorsMessageId,
-                doctorsUpdatedAt = doctorsState.doctorsUpdatedAt,
-                announcementMessageId = announcementState.announcementMessageId,
-                announcementUpdatedAt = announcementState.announcementUpdatedAt
+                doctorsUpdatedAt = doctorsState.doctorsUpdatedAt
             )
         }
-        val encoded = json.encodeToString(SyncState.serializer(), stateToWrite)
+        // Bound the actual wire text, including pointers and JSON escaping. Retain
+        // newest history first; current/previous rollback pointers are never trimmed.
+        var bounded = stateToWrite
+        var encoded = json.encodeToString(SyncState.serializer(), bounded)
+        while (encoded.length > AppConstants.TELEGRAM_SAFE_CHARS && bounded.publicationJournal.isNotEmpty()) {
+            bounded = bounded.copy(publicationJournal = bounded.publicationJournal.dropLast(1))
+            encoded = json.encodeToString(SyncState.serializer(), bounded)
+        }
+        require(encoded.length <= AppConstants.TELEGRAM_SAFE_CHARS) {
+            context.getString(R.string.sync_index_too_large)
+        }
         if (existing == null) {
             val msg = telegram.sendMessage(
                 chatId = topics.chatId,

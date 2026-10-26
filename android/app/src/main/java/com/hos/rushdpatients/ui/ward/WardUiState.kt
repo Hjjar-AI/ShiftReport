@@ -29,7 +29,7 @@ enum class PatientSyncStatus(@StringRes private val arabicLabelRes: Int) {
 
 enum class WardSyncRecovery { PUBLISH_DOCTORS, FETCH_DOCTORS, PUBLISH_PATIENTS }
 
-enum class WardRetryAction { FETCH_LATEST, EXPORT_CSV }
+enum class WardRetryAction { FETCH_LATEST, PUBLISH, EXPORT_CSV }
 
 data class PatientDraftIssue(val patientId: String?, val message: String)
 
@@ -61,7 +61,7 @@ data class WardUiState(
     val error: String? = null,
     val snackbar: String? = null,
     val syncIssue: String? = null,
-    val fetchReviewText: String? = null,
+    val publicationReviewText: String? = null,
     val olderRemoteConfirmation: Boolean = false,
     val fetchChoiceRequired: Boolean = false,
     val syncRecovery: WardSyncRecovery? = null

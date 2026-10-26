@@ -53,4 +53,6 @@
     <string name="delivery_not_received_explicit">لم يتم الاستلام</string>
     <string name="delivery_allow_copy_explicit">السماح بنسخة إضافية واحدة</string>
     <string name="back_online_fetch">عاد الاتصال. جلب البيانات الآن؟</string>
+    <string name="sync_index_too_large">فهرس المشروع أكبر من حد الرسالة؛ لم يُكتب الفهرس. راجع إعدادات المشروع.</string>
+    <string name="patients_current_section_required">يمكن نشر القسم الحالي فقط؛ أعد فتحه وراجع التقرير.</string>
 </resources>

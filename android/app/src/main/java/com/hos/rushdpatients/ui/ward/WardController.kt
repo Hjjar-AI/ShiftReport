@@ -20,7 +20,7 @@ internal interface WardController {
     fun replaceAndFetch(allowOlder: Boolean = false) {}
     fun reviewPendingPublication() {}
     fun confirmPendingPublication() {}
-    fun dismissFetchReview() {}
+    fun dismissPublicationReview() {}
     fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {})
     fun dismissSnackbar()
     fun loadRecycleBin()
@@ -57,7 +57,7 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun replaceAndFetch(allowOlder: Boolean) { viewModel.replaceAndFetch(allowOlder) }
     override fun reviewPendingPublication() { viewModel.reviewPendingPublication() }
     override fun confirmPendingPublication() { viewModel.confirmPendingPublication() }
-    override fun dismissFetchReview() { viewModel.dismissFetchReview() }
+    override fun dismissPublicationReview() { viewModel.dismissPublicationReview() }
     override fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit) { viewModel.deletePatient(patient, onSuccess) }
     override fun dismissSnackbar() { viewModel.dismissSnackbar() }
     override fun loadRecycleBin() { viewModel.loadRecycleBin() }

@@ -17,11 +17,24 @@ object ReportChunking {
         // blocks need continuation messages; each continuation is valid Markdown.
         if (listOf(titleBlock, summaryBlock).any { it.length > maxChars } ||
             patientBlocks.any { it.length > maxChars }) {
-            return buildList {
-                addAll(splitOversized(titleBlock, maxChars))
-                patientBlocks.forEach { addAll(splitOversized(it, maxChars)) }
-                addAll(splitOversized(summaryBlock, maxChars))
+            val chunks = mutableListOf<String>()
+            val current = StringBuilder()
+            fun appendBlock(block: String, separator: String) {
+                splitOversized(block, maxChars).forEach { part ->
+                    val gap = if (current.isEmpty()) "" else separator
+                    if (current.length + gap.length + part.length > maxChars) {
+                        chunks += current.toString()
+                        current.clear()
+                    }
+                    if (current.isNotEmpty()) current.append(separator)
+                    current.append(part)
+                }
             }
+            appendBlock(titleBlock, "\n")
+            patientBlocks.forEach { appendBlock(it, "\n") }
+            appendBlock(summaryBlock, "\n\n")
+            if (current.isNotEmpty()) chunks += current.toString()
+            return chunks
         }
 
         // If everything fits in one message, do it.
@@ -89,10 +102,10 @@ object ReportChunking {
         append(summary)
     }
 
-    /** Supports the escaped text, bold/underline and links emitted by TextReportBuilder. */
     /** Captions use a smaller budget; continuation chunks retain valid Markdown and every name. */
     fun captionParts(caption: String): List<String> = splitOversized(caption, 1024)
 
+    /** Supports the escaped text, bold/underline and links emitted by TextReportBuilder. */
     private fun splitOversized(block: String, limit: Int): List<String> {
         if (block.isEmpty()) return emptyList()
         if (block.length <= limit) return listOf(block)

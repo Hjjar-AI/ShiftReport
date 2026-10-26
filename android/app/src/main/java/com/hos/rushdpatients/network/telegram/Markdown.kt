@@ -33,47 +33,43 @@ object Markdown {
 
     fun bold(text: String?): String = "*${escape(text)}*"
 
-    fun italic(text: String?): String = "_${escape(text)}_"
-
     fun underline(text: String?): String = "__${escape(text)}__"
-
-    fun strikethrough(text: String?): String = "~${escape(text)}~"
 
     /**
      * Build a clickable link. Label is escaped; URL is passed through.
      */
     fun link(label: String?, url: String): String = "[${escape(label)}]($url)"
 
-    /**
-     * Mention a Telegram user by numeric id (works for users the bot can see).
-     */
-    fun userLink(label: String?, userId: Long): String = link(label, "tg://user?id=$userId")
-
-    /**
-     * Escape a whole message body that contains no markup.
-     */
-    fun escapeBody(text: String?): String = escape(text)
-
     /** Convert the subset emitted by report builders into readable preview text. */
     fun toPlainText(markdown: String): String {
-        val withoutLinks = markdown.replace(
-            Regex("""\[([^]]+)]\([^)]*\)"""),
-            "\$1"
-        )
-        val withoutMarkers = withoutLinks
-            .replace("__", "")
-            .replace("*", "")
-            .replace("~", "")
-        return buildString(withoutMarkers.length) {
+        return buildString(markdown.length) {
             var index = 0
-            while (index < withoutMarkers.length) {
-                val char = withoutMarkers[index]
-                if (char == '\\' && index + 1 < withoutMarkers.length) {
-                    append(withoutMarkers[index + 1])
-                    index += 2
-                } else {
-                    append(char)
-                    index++
+            while (index < markdown.length) {
+                val char = markdown[index]
+                when {
+                    char == '\\' && index + 1 < markdown.length -> {
+                        append(markdown[index + 1])
+                        index += 2
+                    }
+                    char == '[' -> {
+                        var end = index + 1
+                        while (end < markdown.length && markdown[end] != ']') {
+                            end += if (markdown[end] == '\\' && end + 1 < markdown.length) 2 else 1
+                        }
+                        val urlEnd = if (markdown.startsWith("](", end)) markdown.indexOf(')', end + 2) else -1
+                        if (urlEnd >= 0) {
+                            append(toPlainText(markdown.substring(index + 1, end)))
+                            index = urlEnd + 1
+                        } else {
+                            append(char)
+                            index++
+                        }
+                    }
+                    char == '*' || char == '~' || char == '_' -> index++
+                    else -> {
+                        append(char)
+                        index++
+                    }
                 }
             }
         }

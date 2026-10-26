@@ -8,8 +8,7 @@ package com.hos.rushdpatients.domain.sort
  */
 data class CustomOrder(
     val diagnosisOrder: List<String> = listOf("نفسي", "إدمان", "مزدوج"),
-    val unknownDiagnosisRank: Int = Int.MAX_VALUE,
-    val nameAlphabetical: Boolean = true
+    val unknownDiagnosisRank: Int = Int.MAX_VALUE
 ) {
     fun diagnosisRank(diagnosis: String): Int {
         val idx = diagnosisOrder.indexOfFirst { it == diagnosis }

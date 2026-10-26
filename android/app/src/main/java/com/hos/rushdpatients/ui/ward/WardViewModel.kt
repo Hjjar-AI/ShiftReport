@@ -48,6 +48,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private data class WardDeliveryStatus(
+    val unresolved: Int = 0,
+    val unavailable: Boolean = false,
+    val lastConfirmedAt: Long? = null
+)
+
 @HiltViewModel
 class WardViewModel @Inject constructor(
     private val uiText: UiStrings,
@@ -79,10 +85,10 @@ class WardViewModel @Inject constructor(
         viewModelScope, SharingStarted.WhileSubscribed(0), NetworkStatus.isOnline(context)
     )
     private var observationJob: Job? = null
+    private var currentSectionJob: Job? = null
     private var requestedReviewShiftId: String? = null
 
-    private val saveGuard = WardSaveGuard(uiText,
-        _state, shiftRepository)
+    private val saveGuard = WardSaveGuard(uiText, _state)
 
     private val preferences = WardPreferences(uiText,
         _state, viewModelScope, settingsRepository)
@@ -105,6 +111,20 @@ class WardViewModel @Inject constructor(
 
     }
 
+    private fun observeCurrentSection() {
+        currentSectionJob?.cancel()
+        currentSectionJob = viewModelScope.launch {
+            shiftRepository.observeLatest().map { it?.id }.distinctUntilChanged().catch { error ->
+                if (error is CancellationException) throw error
+                _state.update { it.copy(loading = false, error = error.message ?: uiText(R.string.ui_ward_view_model_001)) }
+            }.collect { id ->
+                if (requestedReviewShiftId == null && id != null && _state.value.shift?.id != id) {
+                    observeShift(id)
+                }
+            }
+        }
+    }
+
     private fun observeWorkflowStatus() {
         viewModelScope.launch {
             _state.map { it.shift?.id }.distinctUntilChanged().collectLatest { id ->
@@ -120,9 +140,9 @@ class WardViewModel @Inject constructor(
                 // An unreadable delivery ledger must not hide publication/download metadata.
                 val deliveries = deliveryLedger.observe().map { records ->
                     val rows = records.filter { it.shiftId == id }
-                    Triple(rows.count { it.status == DeliveryStatus.UNKNOWN }, false,
+                    WardDeliveryStatus(rows.count { it.status == DeliveryStatus.UNKNOWN }, false,
                         rows.filter { it.status == DeliveryStatus.SENT }.maxOfOrNull { it.at })
-                }.catch { emit(Triple(0, true, null)) }
+                }.catch { emit(WardDeliveryStatus(unavailable = true)) }
                 combine(
                     publication,
                     settingsRepository.observe(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + id),
@@ -132,7 +152,7 @@ class WardViewModel @Inject constructor(
                 ) { published, at, message, delivery, selected ->
                     WardSynchronization(pending = selected.pending, selectedSnapshot = selected.selected?.state ?: com.hos.rushdpatients.sync.KnownShiftState.UNKNOWN, pendingCount = selected.selected?.count ?: 0, lastSynchronizedAt = published.first, publishedAt = published.second,
                         downloadedAt = at?.toLongOrNull(), downloadedMessage = message?.toLongOrNull(),
-                        unresolvedDeliveries = delivery.first, deliveryLogUnavailable = delivery.second, lastReportAt = delivery.third)
+                        unresolvedDeliveries = delivery.unresolved, deliveryLogUnavailable = delivery.unavailable, lastReportAt = delivery.lastConfirmedAt)
                 }.collect { synchronization ->
                     _state.update { current ->
                         if (current.shift?.id == id) current.copy(synchronization = synchronization) else current
@@ -176,16 +196,21 @@ class WardViewModel @Inject constructor(
         _dayLabel.value = ShiftDate.current()
         if (reviewShiftId != null) {
             if (requestedReviewShiftId != reviewShiftId) selectReviewShift(reviewShiftId)
+        } else if (requestedReviewShiftId != null) {
+            requestedReviewShiftId = null
+            load()
         } else if (_state.value.shift == null && !_state.value.loading) load()
     }
 
     /** Dates label the work; returning tomorrow keeps the same ward and patient identities. */
     fun load() {
+        observeCurrentSection()
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
             try {
                 val target = shiftRepository.getLatest()
                     ?: shiftRepository.getOrCreateForDate(ShiftDate.current())
+                shiftRepository.selectCurrent(target.id)
                 observeShift(requestedReviewShiftId ?: target.id)
             } catch (e: CancellationException) {
                 _state.update { it.copy(loading = false) }
@@ -196,6 +221,11 @@ class WardViewModel @Inject constructor(
 
     private fun observeShift(shiftId: String) {
         observationJob?.cancel()
+        if (_state.value.shift?.id != shiftId) {
+            patientActions.stopRecycleBinObservation()
+            _state.update { it.copy(loading = true, patients = emptyList(), groupedPatients = emptyList()) }
+            loadDraft()
+        }
         observationJob = viewModelScope.launch {
             try {
                 combine(
@@ -205,12 +235,7 @@ class WardViewModel @Inject constructor(
                 ) { shift, patients, doctors -> Triple(shift, patients, doctors) }
                     .collect { (shift, patients, doctors) ->
                         if (shift == null) {
-                            val replacement = shiftRepository.getLatest()
-                            if (requestedReviewShiftId == null && replacement != null && replacement.id != shiftId) {
-                                _state.update { it.copy(patientDraft = null, deletedPatients = emptyList(),
-                                    patients = emptyList(), groupedPatients = emptyList()) }
-                                observeShift(replacement.id)
-                            } else _state.update { it.copy(loading = false, shift = null, patients = emptyList(),
+                            _state.update { it.copy(loading = false, shift = null, patients = emptyList(),
                                 groupedPatients = emptyList(), error = uiText(R.string.ui_ward_shift_operations_005)) }
                             return@collect
                         }
@@ -240,24 +265,13 @@ class WardViewModel @Inject constructor(
     fun replaceAndFetch(allowOlder: Boolean) = shiftOperations.replaceAndFetch(allowOlder)
     fun reviewPendingPublication() = shiftOperations.reviewPendingPublication()
     fun confirmPendingPublication() = shiftOperations.confirmPendingPublication()
-    fun dismissFetchReview() = shiftOperations.dismissFetchReview()
+    fun dismissPublicationReview() = shiftOperations.dismissPublicationReview()
 
     fun bringLatestData() = shiftOperations.bringLatestData()
-
-
-
-
-
-
-
-
-
-
 
     fun togglePatientDetails() = preferences.togglePatientDetails()
 
     fun setPatientDetailsExpanded(expanded: Boolean) = preferences.setPatientDetailsExpanded(expanded)
-
 
     fun setTwoColumn(enabled: Boolean) = preferences.setTwoColumn(enabled)
 
@@ -291,10 +305,10 @@ class WardViewModel @Inject constructor(
 
     fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit = {}) = patientActions.setPriority(patient, priority, onSuccess)
 
-
     fun retryLastAction() {
         when (_state.value.retryAction) {
             WardRetryAction.FETCH_LATEST -> bringLatestData()
+            WardRetryAction.PUBLISH -> reviewPendingPublication()
             WardRetryAction.EXPORT_CSV -> exportCsv()
             null -> Unit
         }
@@ -311,9 +325,5 @@ class WardViewModel @Inject constructor(
     ) = patientActions.applySort(spec, onSuccess)
 
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
-
-    private fun editableShiftId(): String? = saveGuard.editableShiftId()
-
-    private fun showError(message: String) = saveGuard.showError(message)
 
 }

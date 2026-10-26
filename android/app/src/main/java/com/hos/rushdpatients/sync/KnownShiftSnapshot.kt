@@ -57,8 +57,9 @@ object KnownShiftSnapshot {
         val before = baseline.filterNot { it.isDeleted }.sortedWith(compareBy<Patient> { it.sortOrder }.thenBy { it.id })
         val previous = before.associateBy { it.id }
         val next = after.associateBy { it.id }
-        val previousOrder = before.mapIndexed { index, row -> row.id to index }.toMap()
-        val nextOrder = after.mapIndexed { index, row -> row.id to index }.toMap()
+        // Insertions/removals do not reorder patients shared by both snapshots.
+        val previousOrder = before.filter { it.id in next }.mapIndexed { index, row -> row.id to index }.toMap()
+        val nextOrder = after.filter { it.id in previous }.mapIndexed { index, row -> row.id to index }.toMap()
         val changed = after.filter { row -> previous[row.id]?.let { old ->
             patientContent(old) != patientContent(row) || previousOrder[row.id] != nextOrder[row.id]
         } == true }

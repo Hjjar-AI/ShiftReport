@@ -19,15 +19,18 @@ class ShiftRepository @Inject constructor(
     private val dispatchers: DispatcherProvider
 ) {
 
+    /** Persist selection independently of the section's immutable stored date. */
+    suspend fun selectCurrent(id: String) = withContext(dispatchers.io) {
+        requireNotNull(dao.getById(id)) { "القسم لم يعد متاحاً" }
+        dao.selectCurrent(id)
+    }
+
     suspend fun getLatest(): Shift? = withContext(dispatchers.io) {
         dao.getLatest()?.let(ShiftMapper::fromEntity)
     }
 
     fun observeLatest(): Flow<Shift?> =
         dao.observeLatest().map { it?.let(ShiftMapper::fromEntity) }
-
-    fun observeAll(): Flow<List<Shift>> =
-        dao.observeAll().map { list -> list.map(ShiftMapper::fromEntity) }
 
     suspend fun getById(id: String): Shift? = withContext(dispatchers.io) {
         dao.getById(id)?.let(ShiftMapper::fromEntity)
@@ -48,14 +51,11 @@ class ShiftRepository @Inject constructor(
         date: LocalDate,
         preferredId: String? = null
     ): Shift = withContext(dispatchers.io) {
-        val existing = dao.getByDate(date.toEpochDay())
+        // Remote IDs identify a section; its date is only a retained label.
+        val requestedId = preferredId?.takeIf { it.isNotBlank() }
+        val existing = requestedId?.let { dao.getById(it) } ?: dao.getByDate(date.toEpochDay())
         if (existing != null) {
             return@withContext ShiftMapper.fromEntity(existing)
-        }
-        val requestedId = preferredId?.takeIf { it.isNotBlank() }
-        val idCollision = requestedId?.let { dao.getById(it) }
-        require(idCollision == null) {
-            "معرّف الوردية مستخدم لتاريخ مختلف"
         }
         val created = Shift(
             id = requestedId ?: UUID.randomUUID().toString(),

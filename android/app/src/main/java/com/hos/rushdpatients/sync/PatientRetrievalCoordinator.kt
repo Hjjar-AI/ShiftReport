@@ -104,9 +104,9 @@ internal class PatientRetrievalCoordinator(
                     ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.sync_file_path_unavailable)))
 
                 val local = File.createTempFile("remote_shift_", ".csv", context.cacheDir)
-                val parsedShifts = try {
+                val parsed = try {
                     telegram.downloadFile(path, local)
-                    CsvBundleCodec.decode(local.readText(Charsets.UTF_8)).take(1)
+                    CsvBundleCodec.decode(local.readText(Charsets.UTF_8)).first()
                 } finally {
                     local.delete()
                 }
@@ -120,9 +120,7 @@ internal class PatientRetrievalCoordinator(
                             .forEach { alias -> put(alias, doctor) }
                     }
                 }
-                val prepared = parsedShifts.map { parsed ->
-                    prepareShift(parsed, activeDoctors, doctorsById)
-                }
+                val prepared = prepareShift(parsed, activeDoctors, doctorsById)
                 val overrideActor = if (allowOlder) doctorSync.requirePublishedAdmin(requireNotNull(remoteState.readState())) else null
                 val applied = database.withTransaction {
                     val currentShift = shiftRepository.getLatest()
@@ -137,32 +135,29 @@ internal class PatientRetrievalCoordinator(
                         context.getString(R.string.patients_local_changed_download)
                     }
 
-                    val beforeDownload = prepared.map { item ->
-                        shiftRepository.getByDate(item.parsed.shiftDate)?.let { shift ->
-                            ShiftCsvSnapshot(shift, patientRepository.getForShift(shift.id))
-                        }
+                    val beforeDownload = (prepared.parsed.shiftId?.let { shiftRepository.getById(it) }
+                        ?: shiftRepository.getByDate(prepared.parsed.shiftDate))?.let { shift ->
+                        ShiftCsvSnapshot(shift, patientRepository.getForShift(shift.id))
                     }
-                    val downloaded = prepared.map { preparedShift ->
-                        applyPreparedShift(preparedShift).also { appliedShift ->
-                            settingsRepository.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + appliedShift.shift.id,
-                                CsvCodec.encode(appliedShift.shift, appliedShift.patients))
-                            settingsRepository.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + appliedShift.shift.id,
-                                snapshot.updatedAt.toString())
+                    val downloaded = applyPreparedShift(prepared).also { appliedShift ->
+                        settingsRepository.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + appliedShift.shift.id,
+                            CsvCodec.encode(appliedShift.shift, appliedShift.patients))
+                        settingsRepository.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + appliedShift.shift.id,
+                            snapshot.updatedAt.toString())
 
-                            shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
-                            settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
-                                java.time.Instant.now().toEpochMilli().toString())
-                            settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + appliedShift.shift.id,
-                                snapshot.messageId.toString())
-                        }
+                        shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
+                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
+                            java.time.Instant.now().toEpochMilli().toString())
+                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + appliedShift.shift.id,
+                            snapshot.messageId.toString())
                     }
-                    downloadUndo.record(beforeDownload, downloaded.map { it.shift.id })
+                    shiftRepository.selectCurrent(downloaded.shift.id)
+                    downloadUndo.record(listOf(beforeDownload), listOf(downloaded.shift.id), currentShift?.id)
                     downloaded
                 }
-                settingsRepository.pruneShiftSyncCache(shiftRepository.getRecent(12).map { it.id }.toSet() + applied.map { it.shift.id })
-                val latest = applied.first()
-                val inserted = applied.sumOf { it.inserted }
-                val updated = applied.sumOf { it.updated }
+                settingsRepository.pruneShiftSyncCache(shiftRepository.getRecent(12).map { it.id }.toSet() + applied.shift.id)
+                val inserted = applied.inserted
+                val updated = applied.updated
 
                 syncStateRepository.update(
                     channel = SyncChannel.CSV,
@@ -175,11 +170,11 @@ internal class PatientRetrievalCoordinator(
                     actorDoctorId = overrideActor?.id,
                     actorName = overrideActor?.fullName,
                     action = AppConstants.AUDIT_CSV_DOWNLOADED,
-                    detail = "shifts=${applied.size} latest=${latest.shift.date} " +
+                    detail = "shifts=1 latest=${applied.shift.date} " +
                         "source=latest forcedOlder=$allowOlder inserted=$inserted updated=$updated"
                 )
 
-                Result.success(CsvFetchResult(latest.shift.id, inserted, updated))
+                Result.success(CsvFetchResult(applied.shift.id, inserted, updated))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -234,7 +229,8 @@ internal class PatientRetrievalCoordinator(
 
     private suspend fun applyPreparedShift(prepared: PreparedShift): AppliedShift {
         val parsed = prepared.parsed
-        val existingShift = shiftRepository.getByDate(parsed.shiftDate)
+        val existingShift = parsed.shiftId?.let { shiftRepository.getById(it) }
+            ?: shiftRepository.getByDate(parsed.shiftDate)
         val existing = existingShift
             ?.let { patientRepository.getForShift(it.id).associateBy(Patient::id) }
             ?: emptyMap()

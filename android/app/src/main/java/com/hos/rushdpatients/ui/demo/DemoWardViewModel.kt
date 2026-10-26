@@ -46,7 +46,7 @@ internal data class DemoWardState(
     val revision: Long = 0,
     val expanded: Boolean = false, val twoColumn: Boolean = false, val compact: Boolean = false,
     val groupBy: GroupByMode = GroupByMode.NONE, val draft: PatientDraft? = null,
-    val fetchChoiceRequired: Boolean = false, val fetchReviewText: String? = null
+    val fetchChoiceRequired: Boolean = false, val publicationReviewText: String? = null
 ) {
     val shift: Shift get() = Shift(id = shiftId, date = date, doctorIds = shiftDoctorIds,
         createdAt = createdAt, updatedAt = createdAt, revision = revision, sortSpecJson = SortSpecCodec.encode(sort))
@@ -97,7 +97,7 @@ class DemoWardViewModel @Inject constructor(
         loading = false, hospitalName = uiText(R.string.ui_demo_navigation_001),
         shift = snapshot.shift,
         recycleBinLoading = false,
-        fetchChoiceRequired = snapshot.fetchChoiceRequired, fetchReviewText = snapshot.fetchReviewText,
+        fetchChoiceRequired = snapshot.fetchChoiceRequired, publicationReviewText = snapshot.publicationReviewText,
         synchronization = repository.changes(snapshot).let { changes -> WardSynchronization(
             pending = changes.pending, pendingCount = changes.count, selectedSnapshot = changes.state,
             publishedAt = repository.publishedAt, downloadedAt = repository.downloadedAt,
@@ -189,20 +189,20 @@ class DemoWardViewModel @Inject constructor(
         }
         override fun reviewPendingPublication() {
             pendingPublication = _state.value
-            _state.update { it.copy(fetchChoiceRequired = false, fetchReviewText = uiText(R.string.demo_publish_review)) }
+            _state.update { it.copy(fetchChoiceRequired = false, publicationReviewText = uiText(R.string.demo_publish_review)) }
         }
         override fun confirmPendingPublication() {
             val snapshot = pendingPublication ?: return
             if (repository.changes(snapshot) != repository.changes()) {
-                dismissFetchReview(); message(uiText(R.string.demo_review_changed)); return
+                dismissPublicationReview(); message(uiText(R.string.demo_review_changed)); return
             }
             repository.publish(snapshot)
-            dismissFetchReview()
+            dismissPublicationReview()
             message(uiText(R.string.demo_publish_complete))
         }
-        override fun dismissFetchReview() {
+        override fun dismissPublicationReview() {
             pendingPublication = null
-            _state.update { it.copy(fetchChoiceRequired = false, fetchReviewText = null) }
+            _state.update { it.copy(fetchChoiceRequired = false, publicationReviewText = null) }
         }
         override fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) { done(editDrafts[id]) }
         override fun saveEditDraft(id: String, draft: PatientDraft) { editDrafts[id] = draft }

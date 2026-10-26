@@ -7,6 +7,7 @@
 | Start/use/build | [Project README](../README.md), [Desktop guide](../desktop/README.md) |
 | Current behavior, concerns and verification | [Current state](status/current-state.md) |
 | Rationale / remaining / completed / choices | [Architecture](reference/architecture.md), [Roadmap](status/roadmap.md), [Changelog](status/changelog.md), [UI decisions](decisions/android-ui-options.md) |
+| Multiple sections design | [Owner-review proposal](decisions/multiple-sections.md) |
 | Android UI maintenance | [Work guide](guides/android-ui.md), [Style/components](reference/design-catalog.md), [Demo](guides/android-demo.md) |
 | Telegram setup | [دليل الإعداد](guides/telegram-setup.md) |
 | Build/cache/sign/package | [Shared workstation/signing](guides/android-build.md), [Windows EXE](guides/windows-exe-packaging.md) |

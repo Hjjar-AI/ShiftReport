@@ -42,7 +42,7 @@ class EncryptedBackupManager @Inject constructor(
         try {
             require(password.size >= 8) { "كلمة مرور النسخة الاحتياطية يجب ألا تقل عن 8 محارف" }
             val shift = shiftRepository.getLatest()
-                ?: error("لا توجد وردية لإنشاء نسخة احتياطية")
+                ?: error("لا يوجد قسم لإنشاء نسخة احتياطية")
             val patients = patientRepository.getForShift(shift.id)
             val plain = CsvCodec.encode(shift, patients).toByteArray(Charsets.UTF_8)
             try {
@@ -77,7 +77,7 @@ class EncryptedBackupManager @Inject constructor(
                 val shift = shiftRepository.getOrCreateForDate(parsed.shiftDate, parsed.shiftId)
                 require(parsed.patients.none { patient ->
                     patientRepository.getShiftId(patient.id)?.let { it != shift.id } == true
-                }) { "معرّف مريض مستخدم في وردية أخرى" }
+                }) { "معرّف مريض مستخدم في قسم آخر" }
                 val restored = parsed.patients.map { patient ->
                     patient.copy(revision = nextRevision(patient.revision, patientRepository.getById(patient.id)?.revision ?: 0L))
                 }
@@ -85,6 +85,7 @@ class EncryptedBackupManager @Inject constructor(
                 patientRepository.upsertAll(restored, shift.id)
                 shiftRepository.upsert(shift.copy(doctorIds = parsed.doctorIds.distinct(),
                     sortSpecJson = parsed.sortSpecJson, revision = nextRevision(shift.revision, parsed.shiftRevision)))
+                shiftRepository.selectCurrent(shift.id)
 
             }
             parsed.patients.size

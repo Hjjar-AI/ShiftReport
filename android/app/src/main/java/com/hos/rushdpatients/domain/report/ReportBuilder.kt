@@ -60,12 +60,11 @@ class ReportBuilder @Inject constructor(
             val shiftDoctors = shift.doctorIds.mapNotNull { doctorsById[it] }
             if (requireRoster) require(shiftDoctors.isNotEmpty()) { "حدد أطباء المناوبة قبل إنشاء التقرير" }
 
-            val residentNames = allDoctors.associate { it.id to it.fullName }
-            val supervisorNames = residentNames
+            val doctorNames = allDoctors.associate { it.id to it.fullName }
             val sortSpec = SortSpecCodec.decode(shift.sortSpecJson)
             val unsortedPatients = patientRepository.getForShift(shiftId)
                 .filterNot { it.isDeleted }
-            val patients = PatientComparators.ordered(unsortedPatients, sortSpec, residentNames)
+            val patients = PatientComparators.ordered(unsortedPatients, sortSpec, doctorNames)
 
             val summary = ReportSummary(
                 patientCount = patients.size,
@@ -80,15 +79,15 @@ class ReportBuilder @Inject constructor(
                 patients = patients,
                 doctors = shiftDoctors,
                 summary = summary,
-                residentNames = residentNames,
-                supervisorNames = supervisorNames
+                residentNames = doctorNames,
+                supervisorNames = doctorNames
             )
 
             BuiltReport(
                 shift = shift,
                 patients = patients,
                 doctors = shiftDoctors,
-                doctorNames = residentNames,
+                doctorNames = doctorNames,
                 summary = summary,
                 textChunks = chunks,
                 registryDoctors = allDoctors,

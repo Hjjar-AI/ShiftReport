@@ -45,7 +45,6 @@ object ReportReview {
     })
 
     /** Read existing receipt keys during the transition; new receipts use the explicit field list. */
-    /** Stable clinical identity; independent of publication revisions and PDF generation time. */
     fun legacyFingerprint(report: BuiltReport): String {
         val fields = listOf(report.shift.id, report.shift.date.toString(), report.shift.doctorIds.toString(),
             report.shift.multiDoctorMode.toString(), report.shift.sortSpecJson.orEmpty(),
@@ -112,12 +111,7 @@ object ReportReview {
         "deletedAt=${patient.deletedAt}"
     ).joinToString(prefix = "Patient(", postfix = ")")
 
-    private fun clinicalPatient(patient: Patient): Patient = patient.withoutTrackingMetadata().copy(
-        revision = 0,
-        updatedAt = Instant.EPOCH,
-        lastEditedByDoctorId = null,
-        lastEditedByName = null
-    )
+    private fun clinicalPatient(patient: Patient): Patient = patient.withoutTrackingMetadata().copy(revision = 0)
 
     private fun relevantDoctors(report: BuiltReport): List<Doctor> {
         val ids = report.shift.doctorIds.toSet() + report.patients.flatMap {

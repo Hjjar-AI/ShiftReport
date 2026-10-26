@@ -39,12 +39,8 @@ class SettingsRepository @Inject constructor(
 
     /** Bound snapshot/contact cache only; clinical shifts, Undo, audit and receipts are untouched. */
     suspend fun pruneShiftSyncCache(keepShiftIds: Set<String>) = withContext(dispatchers.io) {
-        val prefixes = listOf(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX,
-            AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX, AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX,
-            AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX)
-        dao.getAll().forEach { setting ->
-            val prefix = prefixes.firstOrNull { setting.key.startsWith(it) }
-            if (prefix != null && setting.key.removePrefix(prefix) !in keepShiftIds) dao.delete(setting.key)
+        AppConstants.SHIFT_SYNC_CACHE_PREFIXES.forEach { prefix ->
+            dao.pruneShiftCache(prefix, keepShiftIds.toList())
         }
     }
 

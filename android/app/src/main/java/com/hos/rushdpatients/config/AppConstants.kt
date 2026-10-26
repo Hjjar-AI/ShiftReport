@@ -67,10 +67,16 @@ object AppConstants {
     const val SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX = "patient_download_message:"
     const val SETTING_CSV_MESSAGE_HIGH_WATER = "csv_known_message_high_water"
     const val SETTING_PATIENTS_SYNC_PENDING = "patients_sync_pending"
+    const val SETTING_CURRENT_SHIFT_ID = "current_shift_id"
     const val SETTING_PATIENT_DRAFT = "patient_draft"
+    const val SETTING_PATIENT_EDIT_DRAFT_PREFIX = "patient_edit_draft:"
+    const val SETTING_PATIENT_DOWNLOAD_UNDO = "local_patient_download_undo"
     const val SETTING_LAST_ENCRYPTED_BACKUP_AT = "last_encrypted_backup_at"
     const val SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX = "known_shift_snapshot:"
     const val SETTING_DEVICE_ID = "device_id"
+    val SHIFT_SYNC_CACHE_PREFIXES = listOf(SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX,
+        SETTING_PATIENT_PUBLISHED_AT_PREFIX, SETTING_PATIENT_DOWNLOAD_AT_PREFIX,
+        SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX)
 
     // Audit actions
     const val AUDIT_LOGIN = "login"

@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.data.maintenance
 
 import android.content.Context
+import androidx.room.withTransaction
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -24,7 +25,11 @@ class RecycleBinCleanupWorker(context: Context, parameters: WorkerParameters) :
                 return@withContext Result.success()
             }
             val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
-            AppDatabase.getInstance(applicationContext).patientDao().purgeSoftDeletedBefore(cutoff)
+            val database = AppDatabase.getInstance(applicationContext)
+            database.withTransaction {
+                database.patientDao().purgeSoftDeletedBefore(cutoff)
+                database.settingDao().deleteOrphanedPatientDrafts(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX)
+            }
             Result.success()
         } catch (cancelled: CancellationException) {
             throw cancelled

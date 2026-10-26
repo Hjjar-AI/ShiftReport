@@ -36,47 +36,9 @@ Shared-root writability does not imply access to another account’s daemon regi
 
 ### Optional read-only dependency snapshot
 
-Optional multi-account setup, not launcher default: private writable homes plus read-only snapshot. `GRADLE_RO_DEP_CACHE` points above `modules-2`; no `gradle.readOnlyCache` alias. Copy quiescent compatible artifacts **and metadata** (`metadata-2.106` for8.7), excluding locks/GC. Trusted group/outside private homes, fresh destination; coordinate without stopping others. [Cache guidance](https://docs.gradle.org/current/userguide/dependency_caching.html).
+For publishing a quiescent snapshot, ACLs, account checks and recovery, use the workstation notes' [shared-cache procedure](/home/mhmmd/Desktop/%D8%AA%D9%82%D9%86%D9%8A%D8%A9/Programming/Android/Gradle%20Caches%20Across%20Linux%20Accounts.md). Keep writable state account-local; never repair another user's home/cache permissions or copy live metadata.
 
-```bash
-# Parent must already be writable by the publisher and traversable by android-dev.
-python3 - <<'PY'
-from pathlib import Path
-import grp, os, shutil, subprocess, tempfile
-source = Path('/path/to/quiescent/cache/modules-2')
-parent = Path('/opt/android-shared/dependency-seeds')
-target = parent / 'shiftreport-v1'
-assert (source / 'files-2.1').is_dir(), 'Select a populated cache'
-assert (source / 'metadata-2.106').is_dir(), 'Select Gradle 8.7-compatible metadata'
-assert not target.exists(), 'Choose a fresh snapshot name'
-gid = grp.getgrnam('android-dev').gr_gid
-staging = Path(tempfile.mkdtemp(prefix='.preparing-', dir=parent))
-shutil.copytree(source, staging / 'modules-2',
-                ignore=shutil.ignore_patterns('*.lock', 'gc.properties'))
-# Strip inherited/copied ACLs only on the new staging tree; requires setfacl.
-subprocess.run(['setfacl', '-Rb', str(staging)], check=True)
-subprocess.run(['setfacl', '-Rk', str(staging)], check=True)
-for item in [*staging.rglob('*'), staging]:
-    os.chown(item, -1, gid)
-    os.chmod(item, 0o550 if item.is_dir() else 0o440)
-staging.rename(target)
-PY
-```
-
-Publish after successful copy/access setup; retain failed staging. ACLs: trusted readers, no consumer writes. In each account's fresh login before Studio:
-
-```bash
-export GRADLE_USER_HOME="$HOME/.gradle-shiftreport"
-export GRADLE_RO_DEP_CACHE=/opt/android-shared/dependency-seeds/shiftreport-v1
-namei -l "$GRADLE_RO_DEP_CACHE/modules-2/files-2.1"
-getfacl -cp "$GRADLE_RO_DEP_CACHE" "$GRADLE_RO_DEP_CACHE/modules-2/files-2.1"
-test -r "$GRADLE_RO_DEP_CACHE/modules-2/files-2.1"
-```
-
-Confirm metadata/artifact readability too; group changes need a fresh login. Do not
-select a live writable cache as the snapshot. Missing dependencies need an approved
-online fill into a durable writable cache, then a fresh snapshot; switch between
-builds and retain the old one until unused. Private dependencies require trusted access.
+ShiftReport selects standard `GRADLE_RO_DEP_CACHE` at the parent of `modules-2`; it has no `gradle.readOnlyCache` alias. Gradle 8.7 needs compatible artifacts and metadata (`metadata-2.106`). Example shared seed: `/opt/android-shared/dependency-seeds/shiftreport-v1`, with private `GRADLE_USER_HOME="$HOME/.gradle-shiftreport"`. A new user home still needs its pinned wrapper distribution. Switch only between builds; missing artifacts need an approved persistent cache fill. This is optional, not the launcher's conditional shared-home default above.
 
 ## Find the APK
 
@@ -129,7 +91,7 @@ Studio/direct Gradle/Windows `gradlew.bat` bypass POSIX defaults/reservation and
 
 ## Reuse these preferences in future Android projects and PCs
 
-Carry [launcher](../../android/gradlew), [root output mapping](../../android/build.gradle.kts), [signing/export](../../android/app/build.gradle.kts), counter/helper and [wrapper pin](../../android/gradle/wrapper/gradle-wrapper.properties) together; retain custom blocks after wrapper regeneration. Adapt slug/property/path/APK prefixes and isolate checkouts while preserving destination identity/version/toolchain/signing. Preflight Python/Java/SDK/distribution/group/Desktop; shared root optional. Transfer matching key/counter separately, never private caches/secrets. Packaging/install/distribution need appropriate authorization.
+Adaptation details now live in the workstation notes: [cross-project tooling map](/home/mhmmd/Desktop/%D8%AA%D9%82%D9%86%D9%8A%D8%A9/%D9%85%D8%B4%D8%A7%D8%B1%D9%8A%D8%B9/Shared%20Android%20Tooling.md), [shared-cache procedure](/home/mhmmd/Desktop/%D8%AA%D9%82%D9%86%D9%8A%D8%A9/Programming/Android/Gradle%20Caches%20Across%20Linux%20Accounts.md) and [shared debug-signing procedure](/home/mhmmd/Desktop/%D8%AA%D9%82%D9%86%D9%8A%D8%A9/Programming/Android/Shared%20Debug%20Signing%20Across%20Accounts.md). Keep this project's launcher/output/signing/export/counter blocks together when adapting; do not regenerate a customized wrapper as routine repair.
 
 ## Problems and fixes
 
