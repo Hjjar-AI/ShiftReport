@@ -1,0 +1,21 @@
+# Isolated desktop runtime for CPython 3.8.10 / Windows 7 SP1.
+# Keep Android and newer Python environments separate.
+customtkinter==5.2.2
+darkdetect==0.8.0
+packaging==24.2
+Pillow==9.5.0
+reportlab==4.0.9
+chardet==5.2.0
+arabic-reshaper==3.0.0
+python-bidi==0.4.2
+six==1.17.0
+cryptography==42.0.7
+cffi==1.16.0
+pycparser==2.22
+requests==2.32.4
+urllib3==2.2.3
+charset-normalizer==3.4.2
+idna==3.10
+certifi==2025.1.31
+backports.zoneinfo==0.2.1; python_version < '3.9'
+tzdata==2025.2

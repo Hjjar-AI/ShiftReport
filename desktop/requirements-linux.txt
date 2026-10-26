@@ -1,0 +1,11 @@
+# Linux runtime: let pip resolve compatible releases for the selected Python.
+# The Windows 7 compatibility dependencies remain separate.
+customtkinter
+Pillow
+reportlab
+cryptography
+requests
+arabic-reshaper
+python-bidi
+tzdata
+backports.zoneinfo; python_version < '3.9'

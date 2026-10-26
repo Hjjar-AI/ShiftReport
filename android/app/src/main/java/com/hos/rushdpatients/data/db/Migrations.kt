@@ -1,0 +1,42 @@
+package com.hos.rushdpatients.data.db
+
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+/**
+ * Room migrations.
+ *
+ * Version 1 was the initial schema.
+ * Version 2 relaxes `admittanceNumber` from a unique per-shift identifier to a
+ * per-patient admission count that may repeat inside the same shift.
+ */
+object Migrations {
+
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Drop the old unique composite index and recreate it non-unique.
+            db.execSQL(
+                "DROP INDEX IF EXISTS `index_patients_shiftId_admittanceNumber`"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_patients_shiftId_admittanceNumber` " +
+                        "ON `patients` (`shiftId`, `admittanceNumber`)"
+            )
+        }
+    }
+
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `patients` ADD COLUMN `tasksJson` TEXT NOT NULL DEFAULT '[]'")
+        }
+    }
+
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Existing patients remain unknown; no inferred assignment history.
+            db.execSQL("ALTER TABLE `patients` ADD COLUMN `assignmentChangedOnEpochDay` INTEGER")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_4_5, MIGRATION_5_6)
+}

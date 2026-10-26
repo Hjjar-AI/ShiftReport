@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_index_unrecognized" formatted="false">"فهرس المشروع غير معروف أو يتطلب إصداراً أحدث؛ لن يُستبدل التثبيت"</string>
+    <string name="sync_index_unavailable_fetch" formatted="false">"فهرس المشروع غير متاح؛ أعد الجلب"</string>
+    <string name="sync_index_confirmation_failed" formatted="false">"تعذر تأكيد فهرس المشروع"</string>
+    <string name="doctors_local_changed_before_publish" formatted="false">"تغيّر سجل الأطباء المحلي قبل المزامنة؛ أعد المحاولة بأحدث نسخة"</string>
+    <string name="doctors_published_admin_unavailable" formatted="false">"صلاحية المدير لم تعد متاحة في السجل المنشور"</string>
+    <string name="doctors_permanent_admin_removal_blocked" formatted="false">"لا يمكن إزالة مدير دائم عبر استبدال السجل"</string>
+    <string name="doctors_higher_rank_change_blocked" formatted="false">"لا يمكنك تغيير صلاحية مدير أعلى رتبة عبر استبدال السجل"</string>
+    <string name="doctors_registry_caption" formatted="false">"سجل الأطباء"</string>
+    <string name="doctors_upload_file_id_missing" formatted="false">"لم يعُد تليجرام بمعرّف ملف سجل الأطباء"</string>
+    <string name="doctors_admin_changed_upload" formatted="false">"تغيّر المدير أثناء الرفع"</string>
+    <string name="doctors_registry_changed_upload" formatted="false">"وصل سجل أطباء أحدث أثناء الرفع؛ اجلبه قبل إعادة تطبيق تعديلاتك"</string>
+    <string name="doctors_publication_superseded" formatted="false">"وصل نشر أحدث لسجل الأطباء بالتزامن؛ اجلبه قبل إعادة تطبيق تعديلاتك"</string>
+    <string name="doctors_registry_absent" formatted="false">"لا يوجد سجل أطباء بعد"</string>
+    <string name="doctors_registry_changed_download" formatted="false">"تغيّر سجل الأطباء أثناء التنزيل؛ أعد جلب النسخة الكاملة"</string>
+    <string name="doctors_local_changed_download" formatted="false">"تغيّر سجل الأطباء المحلي أثناء التنزيل؛ لم تُستبدل تعديلاتك"</string>
+    <string name="doctors_registry_fetch_required" formatted="false">"سجل الأطباء المنشور مختلف عن النسخة على الجهاز. افتح سجل الأطباء واختر «جلب سجل الأطباء»، ثم راجع التقرير."</string>
+    <string name="report_roster_label" formatted="false">"أطباء المناوبة"</string>
+    <string name="doctors_permanent_admin_required" formatted="false">"هذه العملية متاحة للمدير الدائم فقط"</string>
+    <string name="doctors_admin_identity_changed" formatted="false">"تغير حساب المدير المرتبط؛ سجّل الدخول مجدداً"</string>
+    <string name="doctors_publish_login_required" formatted="false">"سجّل الدخول قبل نشر البيانات"</string>
+    <string name="doctors_actor_inactive" formatted="false">"الطبيب الحالي لم يعد نشطاً؛ سجّل الدخول مجدداً"</string>
+    <string name="doctors_actor_identity_changed" formatted="false">"تغير حساب الطبيب المرتبط؛ سجّل الدخول مجدداً"</string>
+    <string name="doctors_actor_unpublished" formatted="false">"الطبيب الحالي غير متاح في السجل المنشور"</string>
+    <string name="doctors_registry_invalid_count" formatted="false">"عدد سجلات الأطباء غير صالح"</string>
+    <string name="doctors_active_admin_required" formatted="false">"يجب إبقاء مدير نشط في سجل الأطباء"</string>
+    <string name="doctors_registry_duplicate_identity" formatted="false">"سجل الأطباء يحتوي معرّفات أو أسماء مكررة؛ راجع السجلات المتعارضة"</string>
+    <string name="doctors_registry_invalid_telegram_identity" formatted="false">"سجل الأطباء يحتوي هويات تليجرام مكررة أو غير صالحة"</string>
+    <string name="doctors_registry_invalid_rank" formatted="false">"رتبة المدير أو الصلاحية الدائمة غير صالحة"</string>
+    <string name="doctors_registry_duplicate_rank" formatted="false">"رتب المديرين مكررة؛ راجع تعارض إسناد الرتبة"</string>
+    <string name="doctors_registry_path_unavailable" formatted="false">"تعذر الحصول على سجل الأطباء"</string>
+    <string name="patients_publication_absent" formatted="false">"لا يوجد ملف منشور بعد"</string>
+    <string name="sync_file_path_unavailable" formatted="false">"تعذر الحصول على مسار الملف"</string>
+    <string name="patients_local_changed_download" formatted="false">"تغيرت البيانات المحلية أثناء التنزيل؛ أعد المزامنة لنشر التعديلات بأمان"</string>
+    <string name="sync_list_separator" formatted="false">"، "</string>
+    <string name="sync_nothing" formatted="false">"لا يوجد"</string>
+    <string name="patients_doctors_remain_pending" formatted="false">"تعديلات سجل الأطباء ستبقى معلقة؛ نشرها يتطلب مديراً. ستُنشر نسخة المرضى المراجعة فقط.\n"</string>
+    <string name="patients_review_publish_all" formatted="false">"نشر الكل — سجل الأطباء أولاً ثم المرضى\n"</string>
+    <string name="patients_review_snapshot_notice" formatted="false">"ستُنشر النسخة المحلية الكاملة للمناوبة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.\n"</string>
+    <string name="patients_review_additions" formatted="false">"إضافات: "</string>
+    <string name="patients_review_changes" formatted="false">"تعديلات: "</string>
+    <string name="patients_review_removals" formatted="false">"حذف من النسخة المنشورة: "</string>
+    <string name="patients_reviewer_changed" formatted="false">"تغير المستخدم؛ سجّل الدخول بحساب المراجع"</string>
+    <string name="sync_index_unavailable" formatted="false">"فهرس المشروع غير متاح"</string>
+    <string name="patients_actor_changed" formatted="false">"تغير المستخدم"</string>
+    <string name="patients_roster_required" formatted="false">"حدد أطباء المناوبة قبل الرفع"</string>
+    <string name="patients_invalid_content" formatted="false">"بيانات مرضى غير صالحة"</string>
+    <string name="patients_upload_file_id_missing" formatted="false">"لم يعُد تليجرام بمعرّف ملف CSV"</string>
+    <string name="patients_publication_superseded" formatted="false">"وصل نشر أحدث بالتزامن؛ راجع النسخة الحالية قبل نشر نسختك الكاملة"</string>
+    <string name="patients_previous_publication_absent" formatted="false">"لا توجد نسخة منشورة سابقة"</string>
+    <string name="patients_rollback_review_notice" formatted="false">"ستصبح هذه النسخة السابقة هي المنشورة للجميع. البيانات المحلية ستبقى كما هي؛ اجلبها لتطبيقها محلياً.\n"</string>
+    <string name="doctors_admin_changed" formatted="false">"تغير المدير"</string>
+    <string name="patients_rollback_caption" formatted="false">"استعادة النسخة المنشورة السابقة"</string>
+    <string name="patients_admin_changed_upload" formatted="false">"تغير المدير أثناء الرفع"</string>
+    <string name="report_general_route_label" formatted="false">"تقرير المناوبة العام"</string>
+    <string name="report_preview_file_missing" formatted="false">"ملف المعاينة غير موجود؛ أعد المعاينة"</string>
+    <string name="report_supervisor_chat_invalid" formatted="false">"معرف مجموعة المشرف غير صالح"</string>
+    <string name="sync_patient_subject">"المريض %1$s"</string>
+    <string name="doctors_assignment_publication_required">"%1$s: يوجد طبيب غير منشور أو بتصنيف مختلف. انشر سجل الأطباء أو صحح الإسناد أولاً حتى تستطيع الأجهزة الأخرى قراءة بيانات المرضى. بقية تعديلات سجل الأطباء لا تمنع النشر بعد التأكيد."</string>
+    <string name="patient_resident_missing">"المقيم المسؤول غير موجود للمريض %1$s"</string>
+    <string name="patient_specialist_missing">"الاختصاصي المسؤول غير موجود للمريض %1$s"</string>
+    <string name="patient_resident_role_invalid">"تصنيف المقيم غير صالح للمريض %1$s"</string>
+    <string name="patient_specialist_role_invalid">"تصنيف الاختصاصي غير صالح للمريض %1$s"</string>
+    <string name="patient_download_content_invalid">"بيانات المريض %1$s غير صالحة: %2$s"</string>
+    <string name="patients_download_count_invalid">"عدد المرضى يتجاوز الحد الأقصى في مناوبة %1$s"</string>
+    <string name="patients_download_roster_unknown">"قائمة أطباء مناوبة %1$s تحتوي معرّفات غير معروفة"</string>
+    <string name="patients_download_roster_count_invalid">"عدد أطباء مناوبة %1$s غير صالح"</string>
+    <string name="patients_download_identity_collision">"معرّف المريض %1$s مستخدم في وردية أخرى"</string>
+    <string name="patients_snapshot_caption">"%1$s • قائمة المرضى الحالية"</string>
+    <string name="patients_snapshot_inventory">"%1$s: %2$s مريض"</string>
+</resources>

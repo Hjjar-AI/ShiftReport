@@ -1,0 +1,52 @@
+{
+  "dataset": "synthetic-patients-50.csv",
+  "patients": 50,
+  "uniqueNames": 50,
+  "nameCategories": {
+    "iceCream": 4,
+    "hotDrinks": 14,
+    "syrianFood": 32
+  },
+  "enrichedPatients": 30,
+  "tasks": 112,
+  "completedTasks": 13,
+  "badgedPatients": 28,
+  "priorityPatients": 10,
+  "pdfPages": 56,
+  "firstIndexPageLinks": 50,
+  "internalFitLinks": 268,
+  "validFitLinks": 268,
+  "indexOrder": "top-to-bottom within each column, right-to-left",
+  "visualInspection": [
+    "Refreshed patient page visually inspected: plain clinical text, doses/labs and DEMO footer; index retains 50 column-first links"
+  ],
+  "limits": [
+    "No app import or Telegram operation",
+    "No Android compilation or rendering",
+    "No test-suite execution"
+  ],
+  "sha256": {
+    "synthetic-patients-50.csv": "16482bdea28ba63428c89a94ae7e565d94d2ef4c28f16630990050767df8f862",
+    "synthetic-patients-50-A5.pdf": "e7096155c80f26cb1d92446b6f004fc1640673053add7b91712c827bf19b6f3b"
+  },
+  "indexCellHeightPt": 28,
+  "indexDefaultFontPt": 14,
+  "groupedTaskDescriptions": 112,
+  "sideMarginMm": 4,
+  "topMarginMm": 12,
+  "bottomMarginMm": 8,
+  "bodyPaddingPt": 5,
+  "sectionGapPt": 4,
+  "titlePaddingPt": 2,
+  "navigationPaddingPt": 2,
+  "navigationBottomInsetPt": 2,
+  "badgePillCount": 35,
+  "badgeHorizontalGapPt": 4,
+  "badgeHorizontalPaddingPt": 4,
+  "badgeVerticalPaddingPt": 2,
+  "treatmentColumns": "Two RTL columns for 4+ nonempty source lines when wrapping saves height; 8pt gap; original-line boundaries preferred",
+  "treatmentPreview": "Both supplied lists visually inspected in a separate 3-page DEMO preview; long treatment continuation also inspected; Android uncompiled",
+  "nameFamilyLimit": 2,
+  "randomization": "Fresh seed by default; optional --seed reproduces names, shuffled profiles and independent clinical combinations",
+  "seed": 5799975733277176095
+}

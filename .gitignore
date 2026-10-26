@@ -1,0 +1,112 @@
+# Repository-wide ignore rules. Paths beginning with / are rooted here.
+
+# --- Shared caches, diagnostics and OS files ---
+**/build/
+**/__pycache__/
+**/.instance.lock
+/local-debug/
+*.log
+*.hprof
+.DS_Store
+Thumbs.db
+
+# --- Local configuration and secrets ---
+.env
+.env.*
+!.env.example
+*.local.properties
+/local.properties
+/android/local.properties
+/legacy-hardcoded-credentials.local.properties
+/doctors-import.local.csv
+/android/doctors-import.local.csv
+/android/test credits.json
+
+# Signing keys and certificates
+/keys/
+/android/keys/
+/android/.signing/
+/keystore.properties
+/android/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# --- Android ---
+# Gradle, Kotlin and native build state
+.gradle/
+.kotlin/
+.externalNativeBuild/
+.cxx/
+/android/app/build
+/captures/
+
+# Release artifacts
+/app/release/
+/android/app/release/
+*.apk
+*.aab
+*.apks
+
+# Android Studio / IntelliJ state (repository and Android project roots)
+*.iml
+/.idea/caches/
+/android/.idea/caches/
+/.idea/libraries/
+/android/.idea/libraries/
+/.idea/modules.xml
+/android/.idea/modules.xml
+/.idea/workspace.xml
+/android/.idea/workspace.xml
+/.idea/navEditor.xml
+/android/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/android/.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/android/.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
+/android/.idea/deviceManager.xml
+/.idea/shelf/
+/android/.idea/shelf/
+/.idea/httpRequests/
+/android/.idea/httpRequests/
+
+# --- Desktop ---
+/desktop/.venv/
+
+# --- Excel: private originals and generated output ---
+/excel/private/
+/excel/output/
+/excel/**/*.local.md
+/excel/**/*.local.json
+/excel/**/*.xls
+/excel/**/*.xlsm
+/excel/**/*.xlsx
+/excel/**/*.pdf
+/Xslx Things/
+
+# --- Private workspace documents ---
+/docs/local/
+/local/
+
+# --- Clinical data, exports, backups and drafts ---
+/exports/
+/reports/
+/backups/
+*.sqlite3
+*.sqlite3-journal
+*.linux-key
+*.rushdbackup
+*.rushdbak
+*.rpb
+*.srjoin
+*.srjoin.json
+*.srdraft
+
+# --- Tracked exceptions: keep after the corresponding ignore rules ---
+# Synthetic cross-client fixtures
+!/android/app/src/androidTest/assets/interop/desktop.rpb
+!/android/app/src/androidTest/assets/interop/desktop.srjoin.json

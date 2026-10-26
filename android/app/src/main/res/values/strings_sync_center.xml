@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_sync_center_online">متصل بالإنترنت. اختر الجلب لاستلام النسخة المنشورة، أو المراجعة لمشاركة تعديلات هذا الجهاز.</string>
+    <string name="ui_sync_center_offline">لا يوجد اتصال بالإنترنت. يمكنك تصدير الملفات والنسخ الاحتياطية محلياً؛ أعد الاتصال للجلب أو النشر.</string>
+    <string name="ui_sync_center_patients">بيانات المرضى</string>
+    <string name="ui_sync_center_current_shift">النشر للمناوبة الحالية: %1$s. الجلب يستلم أحدث نسخة منشورة في المشروع.</string>
+    <string name="ui_sync_center_patients_pending">توجد تعديلات مرضى محفوظة على هذا الجهاز ولم تُنشر. راجع المناوبة المطلوبة قبل النشر.</string>
+    <string name="ui_sync_center_no_pending">لا توجد تعديلات محلية معلّمة للنشر. الجلب يتحقق من النسخة المنشورة.</string>
+    <string name="ui_sync_center_loading">جارٍ قراءة حالة التعديلات المحلية…</string>
+    <string name="ui_sync_center_doctors">سجل الأطباء</string>
+    <string name="ui_sync_center_doctors_pending">توجد تعديلات أطباء محفوظة على هذا الجهاز ولم تُنشر.</string>
+    <string name="ui_sync_center_doctors_last">آخر اتصال بسجل الأطباء: %1$s</string>
+    <string name="ui_sync_center_doctors_help">جلب أحدث البيانات يتحقق من سجل الأطباء أولاً. المدير يراجع سجل الأطباء وينشر تعديلاته من شاشة السجل.</string>
+    <string name="ui_sync_center_retry">أعد محاولة النقل بعد المعالجة</string>
+    <string name="ui_sync_center_pending_short">تعديلات لم تُنشر</string>
+    <string name="ui_sync_center_local_short">لا تعديلات محلية معلّمة للنشر</string>
+    <string name="ui_sync_center_last_short">آخر اتصال: %1$s</string>
+</resources>
