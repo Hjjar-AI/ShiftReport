@@ -10,15 +10,10 @@ DEFAULTS = dict(DEFAULT_OPTIONS, format='pdf')
 
 
 def readiness_warnings(patients):
-    """Non-blocking notes matching Android domain/report/ReportReadiness.kt."""
-    warnings = []
-    for field, label in (('responsibleSupervisorId', 'اختصاصي'),
-                         ('responsibleResidentId', 'مقيم'),
-                         ('initialDiagnosis', 'تشخيص أولي'),
-                         ('treatmentPlan', 'خطة علاجية')):
-        count = sum(not (patient.get(field) or '').strip() for patient in patients)
-        if count: warnings.append('{} مريض دون {}'.format(count, label))
-    return warnings
+    """One note counting each incomplete patient once, including follow-up."""
+    fields=('responsibleSupervisorId','responsibleResidentId','initialDiagnosis','treatmentPlan','followUp')
+    count=sum(any(not (patient.get(field) or '').strip() for field in fields) for patient in patients)
+    return ['{} مريض بحاجة إلى استكمال البيانات؛ راجع الفريق والتشخيص والعلاج والمتابعة.'.format(count)] if count else []
 
 
 def readiness_notes(patients):
@@ -30,6 +25,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     import desktop_widgets as ctk
     from desktop_forms import button, combo, modal, guarded, dialog_actions
     from desktop_pdf_content import normalize_options
+    from desktop_layout import Disclosure
     if settings_only:export_only=True
     previous = normalize_options(dict(DEFAULTS, **owner.io(owner.store.report_preferences)))
     window = modal(owner, 'مراجعة التقرير وإرساله' if review_send else 'إعدادات PDF' if settings_only else 'توزيع المرضى بالأسماء فقط' if assignments else 'خيارات التقرير', '740x680')
@@ -65,7 +61,12 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     if not assignments and not settings_only and not force_pdf:
         scopes={None:'التقرير العام'}
         scopes.update({key:doctor_label(owner.client.doctors,key) for key in owner.destinations[1:]})
-        scope_get=combo(area,'نطاق التقرير والوجهة',scopes,owner.selected_supervisor(),
+        scope_parent=area
+        if export_only:
+            scope_panel=Disclosure(area,'تغيير التقرير — اختياري',expanded=False)
+            scope_panel.pack(fill='x',padx=8,pady=4)
+            scope_parent=scope_panel.content
+        scope_get=combo(scope_parent,'نطاق التقرير والوجهة',scopes,None if export_only else owner.selected_supervisor(),
                         on_change=lambda:refresh_options())
     if review_send and force_pdf:
         import tkinter as tk
@@ -82,7 +83,6 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
             ctk.CTkCheckBox(area,text=doctor_label(owner.client.doctors,key)+' — '+str(count)+' مريض'+('' if available else ' · لا توجد وجهة'),
                 variable=variable,state='normal' if available else 'disabled',height=48).pack(fill='x',padx=10,pady=3)
             if available:batch_targets[key]=variable
-    from desktop_layout import Disclosure
     formats = {'pdf':'PDF', 'text':'نص'}
     format_get = (lambda:'pdf') if assignments or force_pdf or settings_only or getattr(owner,'demo',False) else combo(
         area, 'صيغة التقرير', formats, previous['format'], on_change=lambda:refresh_options())
@@ -201,32 +201,42 @@ def report_content(shift):
                           for row in shift['patients']])
 
 
+def publication_patient_content(row):
+    from desktop_model import patient_edit_content
+    value=patient_edit_content(row)
+    value['tasks']=[dict(id=task['id'],description=task['description'],done=bool(task.get('done')))
+                    for task in value['tasks']]
+    return dict(id=row['externalId'],content=value,assignment=row.get('assignmentChangedOn') or '')
+
+
 def publication_content(shift):
-    """Assignment highlighting travels with snapshots, independently of report delivery keys."""
-    result = report_content(shift)
-    result['assignmentChanges'] = [row.get('assignmentChangedOn') or '' for row in shift['patients']]
-    return result
+    """Clinical/order comparison; legacy bookkeeping cannot create pending work.
+
+    Delivery receipt identity remains owned by report_content.
+    """
+    return dict(meta={key:shift['meta'].get(key,'') for key in ('shiftId','shiftDate','doctors','sortSpec')},
+                patients=[publication_patient_content(row) for row in shift['patients']])
 
 
 def prepare_delivery(client, local):
     from desktop_protocol import fingerprint
     plan=client.prepare(client.plan(local))
-    remote=next((shift for shift in plan.bundle if shift['meta']['shiftId']==plan.shift['meta']['shiftId']),None)
+    remote=max(plan.bundle,key=lambda shift:shift['meta']['shiftDate'],default=None)
     needs_publish=remote is None or fingerprint(publication_content(remote))!=fingerprint(publication_content(plan.shift))
     return plan,plan.shift if needs_publish else remote,needs_publish
 
 
 def publication_review(plan, zone):
-    from desktop_model import patient_text
-    before=next((s for s in plan.bundle if s['meta']['shiftDate']==plan.shift['meta']['shiftDate']),{'patients':[]})
+    from desktop_model import patient_text, patient_name
+    before=max(plan.bundle,key=lambda s:s['meta']['shiftDate'],default={'patients':[]})
     old={p['externalId']:p for p in before['patients']};new={p['externalId']:p for p in plan.shift['patients']}
     lines=['ستستبدل هذه النسخة الكاملة بيانات المناوبة المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.',
            readiness_notes(plan.shift['patients'])]
     if plan.force_required:
-        lines.insert(0,'معرّف مناوبة اليوم المنشورة مختلف أو أزيلت نسخة الأساس. تأكيد هذه المراجعة يستبدلها بالنسخة المحلية المعروضة.')
+        lines.insert(0,'القسم المنشور مختلف أو أزيلت نسخة الأساس. تأكيد هذه المراجعة يستبدله بالنسخة المحلية المعروضة.')
     for key in dict.fromkeys(list(old)+list(new)):
-        if old.get(key)==new.get(key):continue
-        lines+=['\nالمريض: '+new.get(key,old.get(key,{})).get('name',''),
+        if key in old and key in new and publication_patient_content(old[key])==publication_patient_content(new[key]):continue
+        lines+=['\nالمريض: '+patient_name(new.get(key,old.get(key,{}))),
                 '\nقبل:\n'+patient_text(old.get(key),plan.remote['doctors'],zone),
                 '\nبعد:\n'+patient_text(new.get(key),plan.remote['doctors'],zone)]
     lines+=['\nالنسخة الكاملة التي ستنشر:\n'+shift_text(plan.shift,plan.remote['doctors'],zone)]

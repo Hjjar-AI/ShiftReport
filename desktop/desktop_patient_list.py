@@ -15,6 +15,10 @@ from desktop_patient_filters import CLINICAL_FILTERS, TASK_FILTERS, OWNER_FILTER
 
 def render(owner):
     if not hasattr(owner,'patients') or owner.locked:return
+    if owner.client:
+        identity=local_identity(owner.store,owner.client)
+        owner.header_app.configure(text=owner.client.config.get('hospitalName','')+'\nتقرير المناوبة')
+        owner.header_identity.configure(text=((identity or {}).get('name') or 'الحساب وتسجيل الدخول')+'\n'+current_date(owner.client.zone))
     if owner.creation_button is not None:
         if owner.settings.get('CONNECTION_MODE')=='raw':owner.creation_button.pack(fill='x',padx=8,pady=4)
         else:owner.creation_button.pack_forget()
@@ -41,7 +45,7 @@ def render(owner):
         owner.team_window.withdraw()
         owner.join_export_button.pack_forget()
         owner.admin_button.pack_forget()
-        owner.assignments_button.pack_forget()
+        if not owner.demo:owner.assignments_button.pack_forget()
     from desktop_doctors import permanent
     if actor and permanent(actor) and time.time()<owner.client._expires and not owner.demo:
         owner.empty_start_button.pack(fill='x',padx=8,pady=4)
@@ -54,10 +58,10 @@ def render(owner):
     owner.view_summary.configure(text=view_summary)
     owner.reset_view_button.configure(state='normal' if active and not owner.busy else 'disabled')
     summary,action=workflow_status(owner.client,owner.store,owner.demo)
-    owner.workflow.configure(text=summary.split('\n',1)[0])
+    owner.workflow.configure(text=summary.split('\n',1)[0].split(' · ',1)[-1])
     owner.workflow_details.configure(text=summary)
     if owner.show_workflow_details:owner.workflow_details.grid(row=2,column=0,columnspan=3,sticky='ew',padx=8,pady=4)
-    else:owner.workflow_details.grid_remove()
+    else:owner.workflow_details.grid_forget()
     if action is WorkflowAction.DELIVERY_HISTORY and not owner.demo:
         owner.operation_notice_text.configure(text='توجد عملية غير محسومة. افحص تليجرام وسجل العمليات قبل إعادة النشر أو الإرسال.')
         if not owner.operation_notice.winfo_manager():owner.operation_notice.pack(fill='x',padx=5,pady=4,before=owner.ward_toolbar)
@@ -71,7 +75,7 @@ def render(owner):
             next_label='تسجيل الدخول'
             owner.workflow.configure(text='اختر اسمك من قائمة الطبيب الحالي، ثم سجّل الدخول. بيانات الجهاز تبقى محفوظة.')
     owner.workflow_action.configure(text=next_label, state='disabled' if owner.busy or owner.demo else 'normal')
-    if action is WorkflowAction.DELIVERY_HISTORY and not owner.demo:owner.workflow_action.grid_remove()
+    if owner.demo or authenticated:owner.workflow_action.grid_forget()
     else:owner.workflow_action.grid(row=0,column=0,sticky='n',padx=8,pady=3)
     if owner.store is None or owner.store.state['draft'] is None:
         owner.update_patient_list([],False,None)
@@ -83,7 +87,9 @@ def render(owner):
     display=owner.patient_display(draft)
     roster_names=[owner.client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in draft['meta'].get('doctors','').split(',') if key]
     roster=' / '.join(roster_names[:2])+(' · +'+str(len(roster_names)-2) if len(roster_names)>2 else '')
-    owner.metrics.configure(text='{} · {} من {} مريض · مهام الجناح المعلقة {}\nأطباء المناوبة: {}'.format(current_date(owner.client.zone),len(display),len(rows),pending,roster or 'لم تحدد'))
+    metrics='{} من {} مريض · {} مهمة معلقة · أطباء المناوبة: {}'.format(len(display),len(rows),pending,len(roster_names))
+    if owner.show_workflow_details:metrics+='\n'+(roster or 'لم يحدد أطباء المناوبة')
+    owner.metrics.configure(text=metrics)
     movement_allowed=owner.manual_movement_allowed()
     owner.update_patient_list(display,movement_allowed,draft)
 
@@ -109,9 +115,9 @@ def update_patient_list(owner,display,movement_allowed,draft):
             entries.append((('group',current_group),current_group,None))
             last_group=current_group
         key=row['externalId']
-        # A minute refresh keeps deadline/task summaries current.
+        # Day-dependent presentation changes only at the shared 08:30 boundary.
         signature=(row,index,len(draft['patients']),key in owner.cards.expanded,
-                   key in owner.cards.pinned,owner.client.doctors,owner.client.zone,owner.card_density.get(),int(time.time()//60))
+                   key in owner.cards.pinned,owner.client.doctors,owner.client.zone,owner.card_density.get(),current_date(owner.client.zone))
         entries.append((('patient',key),signature,(row,index)))
     if not entries:
         text=('لا توجد نتائج مطابقة. امسح التصفية أو غيّر البحث.' if draft and draft['patients']
@@ -133,7 +139,7 @@ def update_patient_list(owner,display,movement_allowed,draft):
             widget=patient_card(owner,owner.patients,row,index,len(draft['patients']),movement_allowed)
         else:
             widget=ctk.CTkLabel(owner.patients,text=signature,anchor='e',justify='right',
-                wraplength=max(240,owner.content.winfo_width()-40),font=('Arial',18,'bold') if key[0]=='group' else ('Arial',14))
+                wraplength=ctk.logical_width(owner.content,padding=40,minimum=180),font=('Arial',18,'bold') if key[0]=='group' else ('Arial',14))
         owner.patient_widgets[key]=(copy.deepcopy(signature),widget)
         changed=True
     if changed:
@@ -182,4 +188,3 @@ def expand_cards(owner,expand):
 def manual_movement_allowed(owner):
     return (not owner.cards.pinned and owner.owner_filter.get()==OWNER_FILTERS[0] and owner.task_filter.get()==TASK_FILTERS[0] and
             manual_move_allowed(owner.grouping.get(),owner.filter.get(),owner.search.get()))
-

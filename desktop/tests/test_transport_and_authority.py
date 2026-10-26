@@ -1,4 +1,5 @@
 import copy
+import json
 import time
 import unittest
 from unittest.mock import Mock, MagicMock
@@ -67,6 +68,34 @@ class TransportTests(unittest.TestCase):
         self.http.get.return_value = MagicMock()
         self.http.get.return_value.__enter__.return_value = response
         with self.assertRaises(BridgeError): self.transport.download('synthetic')
+
+    def test_pin_budget_trims_journal_but_preserves_current_previous_and_doctor_pointers(self):
+        import hashlib
+        from desktop_crypto import Cipher
+        for encrypted in (False,True):
+            with self.subTest(encrypted=encrypted):
+                self.transport.cipher=Cipher(client().config if encrypted else {})
+                state=dict(kind='shift-report-sync-state',v=4,csvFileId='current-'+'x'*200,csvMessageId=1,
+                           previousCsvFileId='previous-'+'y'*200,previousCsvMessageId=2,
+                           doctorsFileId='doctors-'+'z'*200,doctorsMessageId=3,doctorsUpdatedAt=4,
+                           publicationJournal=[dict(fileId=''.join(hashlib.sha256(('dummy-'+str(i)+'-'+str(j)).encode()).hexdigest()
+                                                                  for j in range(10)),messageId=i) for i in range(12)])
+                original=copy.deepcopy(state);written={}
+                def call(method,params):
+                    written.update(text=params['text'],state=json.loads(self.transport.cipher.decode_text(params['text'])))
+                self.transport.call=Mock(side_effect=call)
+                self.transport.state=Mock(side_effect=lambda:(5,copy.deepcopy(written['state'])))
+                result=self.transport.write_state(5,state)
+                self.assertLessEqual(len(written['text'].encode('utf-16-le'))//2,3500)
+                self.assertLess(len(result['publicationJournal']),12)
+                for field in ('csvFileId','csvMessageId','previousCsvFileId','previousCsvMessageId','doctorsFileId','doctorsMessageId'):
+                    self.assertEqual(original[field],result[field])
+                self.assertEqual(original,state)
+
+    def test_pin_cannot_write_oversized_pointers_even_when_all_journal_entries_removed(self):
+        self.transport.call=Mock()
+        with self.assertRaises(BridgeError):self.transport.write_state(1,dict(csvFileId='x'*4000,publicationJournal=[dict(fileId='old')]))
+        self.transport.call.assert_not_called()
 
 
 class AuthorityTests(unittest.TestCase):

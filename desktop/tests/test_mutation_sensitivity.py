@@ -11,7 +11,7 @@ class MutationSensitivityTests(unittest.TestCase):
     def test_selected_safety_assertions_detect_broken_production_guards(self):
         desktop = Path(__file__).resolve().parents[1]
         mutants = [
-            ('desktop_tasks.py', 'due <= now', 'due < now',
+            ('desktop_tasks.py', "return [task for task in tasks if not task.get('done')]", "return list(tasks)",
              'tests.test_safety.WireAndTaskTests.test_task_counts_partition_across_deterministic_matrix'),
             ('desktop_store.py', "require(not self.locked, 'الجلسة مقفلة')", "require(True, 'الجلسة مقفلة')",
              'tests.test_safety.WorkspaceTests.test_read_returns_independent_copy_and_lock_blocks_access'),

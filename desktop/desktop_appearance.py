@@ -116,12 +116,11 @@ def appearance_dialog(owner):
         dark=selected_mode=='Dark' or selected_mode=='System' and native.get_appearance_mode()=='Dark'
         style=dict(background='#202832' if dark else '#F5F8FC',foreground='#F1F5FA' if dark else '#18212C',
             muted='#BCCBDD' if dark else '#42556B',accent=PALETTES[accent()][1],
-            scale=scale()/current['scale'],density=density())
+            scale=scale()/current['scale'],density=current['density'])
         patient_card(preview_owner,sample_area,sample,0,1,False,preview_style=style).pack(fill='x',padx=4,pady=4)
     mode=combo(settings,'المظهر',{'System':'حسب النظام','Light':'فاتح','Dark':'داكن'},current['mode'],render_preview)
     accent=combo(settings,'اللون الأساسي',{key:item[0] for key,item in PALETTES.items()},current['accent'],render_preview)
     scale=combo(settings,'حجم الخط وعناصر الواجهة',SIZES,current['scale'],render_preview)
-    density=combo(settings,'مسافات البطاقات',{'عادية':'عادية','مضغوطة':'مضغوطة'},current['density'],render_preview)
     ctk.CTkLabel(settings,text='إعدادات محلية لهذا المشروع؛ لا تغيّر ألوان الشارات أو مظهر PDF. تعاين الاختيارات هنا قبل تطبيقها.',
         wraplength=360,justify='right').pack(fill='x',padx=10,pady=8)
     wide=[None];preview_after=[None]
@@ -142,7 +141,7 @@ def appearance_dialog(owner):
     window.bind('<Configure>',layout,add='+')
     layout()
     def save():
-        value=dict(mode=mode(),accent=accent(),scale=scale(),density=density());validate(value)
+        value=dict(mode=mode(),accent=accent(),scale=scale(),density=current['density']);validate(value)
         require(not owner.store.locked,'الجلسة مقفلة')
         owner.io(lambda:owner.store.commit(appearance=value))
         if not window.winfo_exists():return

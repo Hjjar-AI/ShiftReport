@@ -95,10 +95,12 @@ class WireAndTaskTests(unittest.TestCase):
         source = shift()
         with self.assertRaises(BridgeError): parse_bundle(encode_bundle([source, source]))
 
-    def test_incomplete_completion_rejects_entire_bundle(self):
+    def test_plain_completion_and_legacy_metadata_round_trip_without_required_attribution(self):
         source = shift(); invalid = task(True); invalid['completedByDoctorId'] = None
         source['patients'][0]['tasksJson'] = json.dumps([invalid])
-        with self.assertRaises(BridgeError): parse_bundle(encode_bundle([source]))
+        source['patients'][0]['tasksJson'] = json.dumps([invalid,dict(id='plain',description='مراجعة',done=True)])
+        actual=json.loads(parse_bundle(encode_bundle([source]))[0]['patients'][0]['tasksJson'])
+        self.assertEqual([invalid,dict(id='plain',description='مراجعة',done=True)],actual)
 
     def test_generated_text_preserves_quotes_unicode_and_newlines(self):
         for value in ['عربي', '☕', '"', ',', '\n', '\r\n', '\u200fنص', 'نتيجة,' * 1000]:
@@ -120,23 +122,25 @@ class WireAndTaskTests(unittest.TestCase):
                         value = task(done, str(len(matrix))); value.update(ownerDoctorId=owner, dueAtEpochMillis=due,
                             dueShiftDate=None, priority=priority); matrix.append(value)
         tasks.validate(matrix)
-        self.assertEqual((24, 0, 0), tasks.counts(matrix, 100))
-        ordered = tasks.ordered_for_display(matrix, 100)
-        self.assertEqual(ordered, tasks.ordered_for_display(ordered, 100))
+        self.assertEqual(24, tasks.pending_count(matrix))
+        ordered = tasks.ordered_for_display(matrix)
+        self.assertEqual(ordered, tasks.ordered_for_display(ordered))
+        self.assertTrue(all(not value['done'] for value in ordered[:24]))
+        self.assertTrue(all(value['done'] for value in ordered[24:]))
         self.assertEqual({t['id'] for t in matrix}, {t['id'] for t in ordered})
 
-    def test_rollover_drops_completed_and_clears_owners_without_mutating_source(self):
+    def test_task_presentation_preserves_completed_and_legacy_fields_without_mutating_source(self):
         value = task(); value.update(ownerDoctorId='cedar', ownerName='أرز')
-        before = copy.deepcopy(value)
-        carried = tasks.carry_forward([value, task(True, 'done')], True)
-        self.assertEqual(1, len(carried)); self.assertIsNone(carried[0]['ownerDoctorId'])
-        self.assertIsNone(carried[0]['ownerName']); self.assertEqual(before, value)
-        self.assertEqual(carried, tasks.carry_forward(carried, True))
+        records=[task(True,'done'),value];before=copy.deepcopy(records)
+        shown=tasks.ordered_for_display(records)
+        self.assertEqual(['task-1','done'],[item['id'] for item in shown])
+        self.assertEqual('cedar',shown[0]['ownerDoctorId'])
+        self.assertEqual(before,records)
 
-    def test_missing_attribution_components_and_duplicate_tasks_rejected(self):
+    def test_optional_completion_attribution_and_duplicate_tasks_rejected(self):
         for field in tasks.COMPLETION:
             value = task(True); value[field] = None
-            with self.subTest(field=field), self.assertRaises(BridgeError): tasks.validate([value])
+            with self.subTest(field=field):tasks.validate([value])
         with self.assertRaises(BridgeError): tasks.validate([task(), task()])
 
     def test_invalid_task_types_and_identity_rejected_legacy_dates_ignored(self):
@@ -146,7 +150,7 @@ class WireAndTaskTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(BridgeError): tasks.validate([value])
         legacy = task(); legacy.update(dueAtEpochMillis=-1, dueShiftDate='2025-02-29')
         tasks.validate([legacy])
-        self.assertEqual((1, 0, 0), tasks.counts([legacy], 100))
+        self.assertEqual(1, tasks.pending_count([legacy]))
 
 
 class WorkspaceTests(unittest.TestCase):
@@ -180,6 +184,16 @@ class WorkspaceTests(unittest.TestCase):
             with self.assertRaises(sqlite3.OperationalError): self.store.commit(patientForm={'note': 'unsaved'})
         self.assertEqual(before, self.store.state)
         self.assertEqual(before, Workspace(self.directory.name, client()).state)
+
+    def test_workspace_open_and_commit_close_their_sql_connections(self):
+        original=sqlite3.connect;connections=[]
+        def connect(*args,**kwargs):
+            db=original(*args,**kwargs);connections.append(db);return db
+        with patch('desktop_store.sqlite3.connect',side_effect=connect):
+            reopened=Workspace(self.directory.name,client());reopened.commit(patientForm={'note':'dummy'})
+        self.assertEqual(2,len(connections))
+        for db in connections:
+            with self.assertRaises(sqlite3.ProgrammingError):db.execute('SELECT 1')
 
     def test_read_returns_independent_copy_and_lock_blocks_access(self):
         value = self.store.read(); value['patients'].clear()

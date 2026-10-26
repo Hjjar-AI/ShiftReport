@@ -27,6 +27,12 @@ def configure_rendering(mode='auto'):
     _VISUAL = mode == 'shaped' or mode == 'auto' and sys.platform.startswith('linux')
 
 
+def logical_width(widget, physical_width=None, padding=0, minimum=40):
+    """Convert measured Tk pixels before passing widths to scaling-aware CTk controls."""
+    scale=getattr(widget,'_get_widget_scaling',lambda:1)()
+    return max(minimum,int((widget.winfo_width() if physical_width is None else physical_width)/scale-padding))
+
+
 def visual_text(text):
     text = str(text)
     if not _VISUAL:
@@ -109,11 +115,38 @@ class CTkLabel(native.CTkLabel):
 
 class CTkButton(native.CTkButton):
     def __init__(self, master, text='', **kwargs):
+        self.logical_text=str(text)
+        self._minimum_height=max(48,kwargs.get('height',48))
+        self._button_wrap_key=None
         super().__init__(master, text=visual_text(text), **_font(kwargs))
+        self.bind('<Configure>',lambda event:self._refresh_text(),add='+')
+        self._refresh_text()
 
     def configure(self, require_redraw=False, **kwargs):
-        if 'text' in kwargs: kwargs['text'] = visual_text(kwargs['text'])
+        if 'text' in kwargs:
+            self.logical_text=str(kwargs['text']);kwargs['text']=visual_text(self.logical_text)
+        if 'height' in kwargs:self._minimum_height=max(48,kwargs['height'])
+        self._button_wrap_key=None
         super().configure(require_redraw=require_redraw, **kwargs)
+        self._refresh_text()
+
+    def _refresh_text(self):
+        label=getattr(self,'_text_label',None)
+        if label is None:return
+        scale=self._get_widget_scaling()
+        width=max(40,self._current_width*scale-24*scale)
+        font=tkfont.Font(root=self,font=label.cget('font'))
+        key=(width,self.logical_text,str(label.cget('font')),self._minimum_height)
+        if key==self._button_wrap_key:return
+        self._button_wrap_key=key
+        rendered=wrapped_text(self.logical_text,font.measure,width)
+        if not _VISUAL:
+            # Native Tk handles its own bidi; use its word wrapping there.
+            label.configure(wraplength=width,justify='center')
+            label.update_idletasks()
+            text_height=label.winfo_reqheight()/scale
+        else:text_height=len(rendered.split('\n'))*font.metrics('linespace')/scale
+        super().configure(text=rendered,height=max(self._minimum_height,text_height+16))
 
 
 class CTkCheckBox(native.CTkCheckBox):

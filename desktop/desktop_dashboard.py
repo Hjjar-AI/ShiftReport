@@ -45,6 +45,7 @@ def handover_dashboard(owner):
     from desktop_forms import button, guarded, modal, section_heading
     from desktop_reports import readiness_notes
     from desktop_workflow import workflow_status
+    from desktop_layout import Disclosure
     owner.ready(False)
     source = owner.store.read()
     project, shift_id = owner.client.project_id, source['meta']['shiftId']
@@ -83,8 +84,15 @@ def handover_dashboard(owner):
     section_heading(area, 'حفظ البيانات ونشرها')
     workflow = ctk.CTkLabel(area, text='', anchor='e', justify='right', wraplength=600)
     workflow.pack(fill='x', padx=10, pady=6)
-    status_text = ['']
-    button(area, 'تفاصيل حفظ البيانات ونشرها', lambda: owner.text_dialog('تفاصيل البيانات', status_text[0]))
+    sync_details=Disclosure(area,'تفاصيل حفظ البيانات ونشرها',expanded=False)
+    sync_details.pack(fill='x',padx=8,pady=4)
+    details=ctk.CTkLabel(sync_details.content,text='',anchor='e',justify='right',wraplength=600)
+    details.pack(fill='x',padx=8,pady=4)
+    def open_data():
+        current()
+        window.destroy()
+        owner.data_window.deiconify();owner.data_window.lift();owner.data_window.focus_set()
+    button(sync_details.content,'إدارة البيانات',guarded(open_data))
     previous = {}
 
     def update(widget, text):
@@ -106,7 +114,7 @@ def handover_dashboard(owner):
         else:clear_label.grid_remove()
         update(readiness, 'أعداد المهام تحسب المهام نفسها؛ الضغط يعرض المرضى المعنيين.\n' + readiness_notes(shift['patients']))
         status, _ = workflow_status(owner.client, owner.store, owner.demo)
-        status_text[0] = status
+        update(details,status)
         update(workflow, status.split("\n", 1)[0])
     button(controls, 'تحديث الملخص', guarded(show))
     button(controls, 'إغلاق', window.destroy)

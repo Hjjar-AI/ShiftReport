@@ -84,7 +84,6 @@ def sort_patients(owner,key):
 
 def roster(owner):
     draft=owner.editable(); doctors=owner.client.doctors
-    expected=fingerprint(draft)
     window=modal(owner,'أطباء المناوبة','700x560')
     controls=ctk.CTkFrame(window); controls.pack(side='bottom',fill='x')
     from desktop_input import ArabicEntry
@@ -115,7 +114,9 @@ def roster(owner):
         values=[key for key,variable in variables.items() if variable.get()]
         if not values or any(key not in owner.client.doctors for key in values):
             messagebox.showerror('المناوبة','حدد أطباء نشطين للمناوبة');return
-        draft['meta']['doctors']=','.join(values); owner.save_draft(draft,expected);window.destroy()
+        current=owner.editable()
+        require(current['meta']['shiftId']==draft['meta']['shiftId'],'تغيرت المناوبة؛ أعد اختيار أطبائها')
+        current['meta']['doctors']=','.join(values)
+        owner.save_draft(current,fingerprint(current));window.destroy()
     dialog_actions(controls,primary=('حفظ أطباء المناوبة',guarded(save)),cancel=('إلغاء',cancel))
     owner.root.wait_window(window)
-

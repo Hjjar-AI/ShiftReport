@@ -231,14 +231,14 @@ def render_assignments(client,shift,font_path=None,options=None,report_day=None)
     margin=(width-3*table_width-2*column_gap)/2
     number_width=7*72/25.4
     gap,top=12,20
-    def text(value,size=9,color=None,align='right',bold=False):return RTLText(value,size,color=HexColor(color or colors['text']),align=align,bold=bold)
+    def text(value,size=10,color=None,align='right',bold=False):return RTLText(value,size,color=HexColor(color or colors['text']),align=align,bold=bold)
     from desktop_protocol import current_date
     report_day=report_day or current_date(client.zone)
-    context_title=text('توزيع المرضى حسب المشرف',18,align='center',bold=True)
+    context_title=text('توزيع المرضى حسب المشرف',20,align='center',bold=True)
     context_title.wrap(3*table_width+2*column_gap,100000)
     timestamp=text(created_at(datetime.now(ZoneInfo(client.zone))),8.5)
     timestamp.wrap(3*table_width+2*column_gap,100000)
-    legend=text('المظلّل: مريض جديد أو تغيّر المشرف المسؤول',8)
+    legend=text('المظلّل: مريض جديد أو تغيّر المشرف المسؤول',9)
     legend.wrap(3*table_width+2*column_gap,100000)
     table_top=height-top-context_title.height-legend.height-gap
     available=table_top-24-timestamp.height-END_TIMESTAMP_GAP
@@ -247,7 +247,7 @@ def render_assignments(client,shift,font_path=None,options=None,report_day=None)
     # Pre-number by team, then use equal row heights across each three-column band.
     def team_table(group,rows,row_heights=None):
         data=[[text(group['supervisor'],11,'#FFFFFF',align='center',bold=True),''],
-              [text('، '.join(group['residents']) or 'لم يُحدد مقيم',9,align='center'),'']]
+              [text('، '.join(group['residents']) or 'لم يُحدد مقيم',9.5,align='center'),'']]
         data += [[text(name,bold=highlighted),text(str(number),align='center') if number else ''] for number,name,highlighted in rows]
         backgrounds=[colors['title'], subheader]
         backgrounds += [colors['page'] if options['row_shading']=='none' or i%2==0 else colors['zebra'] for i in range(len(rows))]
@@ -285,30 +285,41 @@ def render_assignments(client,shift,font_path=None,options=None,report_day=None)
             require(end>offset,'اسم المريض أو أسماء الفريق أطول من مساحة جدول A4؛ راجع الأسماء قبل التصدير')
             bands.append([(team_table(group,rows[offset:end],header+heights[offset+2:end+2]),used) for group,rows in padded])
             offset=end
+    # Pack measured bands first so each page can center its complete content block.
+    pages=[];page_rows=[];used=0
+    for row in bands:
+        row_height=max(h for _,h in row)
+        required=row_height+(gap if page_rows else 0)
+        if page_rows and used+required>available:
+            pages.append(page_rows);page_rows=[];used=0;required=row_height
+        page_rows.append(row);used+=required
+    if page_rows:pages.append(page_rows)
     path=temporary_pdf(report_filename(report_day,assignments=True,draft=options['local_draft'],demo=bool(getattr(client,'demo',False))))
     canvas=pdfcanvas.Canvas(str(path),pagesize=(width,height))
     canvas.setTitle('ShiftReport — توزيع المرضى بالأسماء فقط')
-    page=0
-    def new_page():
-        nonlocal page
-        if page:canvas.showPage()
-        page+=1
+    for page,page_rows in enumerate(pages,1):
+        if page>1:canvas.showPage()
         canvas.setFillColor(HexColor(colors['page']));canvas.rect(0,0,width,height,fill=1,stroke=0)
-        context_title.drawOn(canvas,margin,height-top-context_title.height)
-        legend.drawOn(canvas,margin,height-top-context_title.height-legend.height)
+        final=page==len(pages)
+        tables_height=sum(max(h for _,h in row) for row in page_rows)+gap*(len(page_rows)-1)
+        block_height=context_title.height+legend.height+gap+tables_height
+        if final:block_height+=END_TIMESTAMP_GAP+timestamp.height
+        printable_bottom=24
+        y=printable_bottom+(height-top-printable_bottom+block_height)/2
+        y-=context_title.height;context_title.drawOn(canvas,margin,y)
+        y-=legend.height;legend.drawOn(canvas,margin,y)
+        y-=gap
+        for row in page_rows:
+            row_height=max(h for _,h in row)
+            band_width=len(row)*table_width+(len(row)-1)*column_gap
+            band_left=(width-band_width)/2
+            for column,(table,table_height) in enumerate(row):
+                table.drawOn(canvas,band_left+band_width-table_width-column*(table_width+column_gap),y-table_height)
+            y-=row_height+gap
+        if final:timestamp.drawOn(canvas,margin,y+gap-END_TIMESTAMP_GAP-timestamp.height)
         canvas.setFont('Arabic',8);canvas.setFillColor(HexColor(colors['text']))
         canvas.drawCentredString(width/2,10,visual(('DEMO — ' if getattr(client,'demo',False) else '')+
             ('مسودة محلية · لم يُعتمد نشرها · ' if options['local_draft'] else '')+str(page)))
-    new_page();y=table_top
-    for row in bands:
-        row_height=max(h for _,h in row)
-        if y-row_height<24+timestamp.height+END_TIMESTAMP_GAP:new_page();y=table_top
-        band_width=len(row)*table_width+(len(row)-1)*column_gap
-        band_left=(width-band_width)/2
-        for column,(table,table_height) in enumerate(row):
-            table.drawOn(canvas,band_left+band_width-table_width-column*(table_width+column_gap),y-table_height)
-        y-=row_height+gap
-    timestamp.drawOn(canvas,margin,y+gap-END_TIMESTAMP_GAP-timestamp.height)
     require(client.require_local_admin()['uid']==actor_id,'تغيّر المستخدم؛ أعد تصدير توزيع المرضى')
     canvas.showPage();canvas.save()
     return path

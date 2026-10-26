@@ -11,14 +11,13 @@ from desktop_ui_events import debounce
 
 class Disclosure(ctk.CTkFrame):
     def __init__(self, parent, title, expanded=False, scroll_height=None, toggle_parent=None):
-        super().__init__(parent)
+        super().__init__(parent,height=1)
         self.expanded = expanded
         self.title = title
         self.toggle_button = ctk.CTkButton(toggle_parent if toggle_parent is not None else self, text='', height=48,
             width=120, anchor='e', command=self.toggle,fg_color='transparent',
             text_color=('gray25','gray85'),hover_color=('gray88','gray22'))
         if toggle_parent is None:self.toggle_button.pack(fill='x', padx=4, pady=2)
-        else:self.toggle_button.pack(side='left',padx=3,pady=2)
         self.content = (ctk.CTkScrollableFrame(self, height=scroll_height, fg_color='transparent')
                         if scroll_height else ctk.CTkFrame(self, fg_color='transparent'))
         self.refresh()
@@ -27,7 +26,9 @@ class Disclosure(ctk.CTkFrame):
         if title is not None:self.title = title
         self.toggle_button.configure(text=('▾ ' if self.expanded else '▸ ') + self.title)
         if self.expanded:self.content.pack(fill='x', padx=4, pady=2)
-        else:self.content.pack_forget()
+        else:
+            self.content.pack_forget()
+            self.configure(height=1)
 
     def toggle(self):
         self.expanded = not self.expanded
@@ -60,7 +61,7 @@ def build_ward_controls(window):
     window.workflow_action.grid(row=0, column=0, sticky='n', padx=8, pady=3)
     status.grid_columnconfigure(1, weight=1)
     window.metrics = ctk.CTkLabel(status, text='', anchor='e', justify='right', wraplength=650)
-    window.metrics.grid(row=1, column=0, columnspan=2, sticky='ew', padx=8, pady=3)
+    window.metrics.grid(row=1, column=0, columnspan=3, sticky='ew', padx=8, pady=3)
 
     window.show_workflow_details=False
     window.workflow_details=ctk.CTkLabel(status,text='',anchor='e',justify='right',wraplength=650)
@@ -74,14 +75,17 @@ def build_ward_controls(window):
     toolbar = ctk.CTkFrame(parent)
     window.ward_toolbar=toolbar
     toolbar.pack(fill='x', padx=5, pady=3, before=status)
-    ctk.CTkButton(toolbar,text='إضافة مريض',height=48,width=110,
-        command=lambda:window.run(window.add_patient)).pack(side='right',padx=3,pady=3)
+    window.add_patient_button=ctk.CTkButton(toolbar,text='إضافة مريض',height=48,width=110,
+        command=lambda:window.run(window.add_patient))
     window.search = tk.StringVar()
     window.view_controls = Disclosure(parent, 'خيارات العرض', scroll_height=220, toggle_parent=toolbar)
     window.view_controls.pack(fill='x', padx=5, pady=0)
-    window.search_entry = ArabicEntry(toolbar, textvariable=window.search, justify='right', height=48,
+    window.search_box=ctk.CTkFrame(toolbar,fg_color='transparent')
+    ctk.CTkLabel(window.search_box,text='بحث',width=60,height=48,anchor='e').pack(side='right',padx=4)
+    window.search_entry = ArabicEntry(window.search_box, textvariable=window.search, justify='right', height=48,
         placeholder_text='بحث عن مريض')
-    window.search_entry.pack(side='right', fill='x', expand=True, padx=4)
+    window.search_entry.pack(side='left',fill='x',expand=True)
+    layout_ward_toolbar(window,window.content.winfo_width())
     options = window.view_controls.content
     from desktop_sections import SectionPages
     window.options_tabs=SectionPages(options)
@@ -131,10 +135,22 @@ def build_ward_controls(window):
     window.view_help.pack(fill='x', padx=8, pady=4)
     window.view_summary = ctk.CTkLabel(parent, text='', anchor='e', justify='right', wraplength=650, height=1)
     window.view_summary.pack(fill='x', padx=12)
-    window.sort_status = ctk.CTkLabel(parent, text='', anchor='e', justify='right', wraplength=650)
-    window.sort_status.pack(fill='x', padx=12, pady=2)
+    window.sort_status=ctk.CTkLabel(sections['الترتيب'],text='',anchor='e',justify='right',wraplength=420)
+    window.sort_status.pack(fill='x',padx=8,pady=2)
     refresh_search = debounce(window.root, 150, lambda *args: window.render())
     window.search.trace_add('write', refresh_search)
+
+
+def layout_ward_toolbar(window,width):
+    scale=getattr(window.add_patient_button,'_get_widget_scaling',lambda:1)()
+    narrow=width<620*scale
+    if getattr(window,'toolbar_narrow',None)==narrow:return
+    window.toolbar_narrow=narrow
+    for widget in (window.search_box,window.add_patient_button,window.view_controls.toggle_button):widget.grid_forget()
+    window.ward_toolbar.grid_columnconfigure(1,weight=1)
+    window.search_box.grid(row=0,column=0 if narrow else 1,columnspan=3 if narrow else 1,sticky='ew',padx=4,pady=3)
+    window.add_patient_button.grid(row=int(narrow),column=2,sticky='e',padx=3,pady=3)
+    window.view_controls.toggle_button.grid(row=int(narrow),column=0,columnspan=2 if narrow else 1,sticky='w',padx=3,pady=3)
 
 
 def filter_summary(window):

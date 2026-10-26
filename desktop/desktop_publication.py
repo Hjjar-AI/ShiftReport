@@ -27,16 +27,13 @@ def plan(owner, shift, choices=None):
     remote = owner.fetch()
     owner.authorize(remote['doctors'])
     selected_id = shift['meta']['shiftId']
-    other_ids = {p['externalId'] for s in remote['bundle'] if s['meta']['shiftDate'] != shift['meta']['shiftDate'] for p in s['patients']}
-    require(not any(p['externalId'] in other_ids for p in shift['patients']), 'معرف مريض مستخدم في مناوبة أخرى')
     base_shift = next((s for s in (owner.baseline or {}).get('bundle', []) if s['meta']['shiftId'] == selected_id), None)
-    latest = next((s for s in remote['bundle'] if s['meta']['shiftDate'] == shift['meta']['shiftDate']), None)
-    same_date = [s for s in remote['bundle'] if s['meta']['shiftDate'] == shift['meta']['shiftDate']]
+    latest = max(remote['bundle'],key=lambda s:s['meta']['shiftDate'],default=None)
     # The reviewed local shift is the entire replacement, including deletions,
     # roster and stored order. Remote fields/additions are never silently merged.
     output = copy.deepcopy(shift)
     plan = Review(pointer(remote['state']), doctor_pointer(remote['state']), output, remote['bundle'], remote, [])
-    plan.force_required = any(s['meta']['shiftId'] != selected_id for s in same_date) or (base_shift is not None and latest is None)
+    plan.force_required = (latest is not None and latest['meta']['shiftId'] != selected_id) or (base_shift is not None and latest is None)
     return plan
 
 
@@ -47,7 +44,7 @@ def prepare(owner, plan):
     shift = copy.deepcopy(plan.shift)
     from desktop_sort import ordered
     ordered(shift, doctors, owner.zone)
-    latest = next((s for s in plan.bundle if s['meta']['shiftDate'] == shift['meta']['shiftDate']), None)
+    latest = max(plan.bundle,key=lambda s:s['meta']['shiftDate'],default=None)
     previous = {row['externalId']: row for row in latest['patients']} if latest else {}
     require(len(shift['patients']) <= 200, 'الحد الأقصى للمناوبة 200 مريض')
     roster = shift['meta'].get('doctors', '').split(',')
@@ -83,7 +80,7 @@ def approve(owner, plan):
 def publish(owner, plan, before_upload):
     require(plan.actor_id == owner._actor, 'تغير الطبيب بعد المراجعة؛ أعدها')
     require(plan._approval == fingerprint(dict(shift=plan.shift, force_local=plan.force_local)), 'تغيرت البيانات بعد المراجعة؛ راجعها مجددا')
-    require(not plan.force_required or plan.force_local, 'راجع النسخة المحلية وأكد نشرها لاستبدال مناوبة اليوم المنشورة')
+    require(not plan.force_required or plan.force_local, 'راجع النسخة المحلية وأكد نشرها لاستبدال القسم المنشور')
     current = owner.fetch()
     owner.authorize(current['doctors'])
     require((plan.force_local or pointer(current['state']) == plan.baseline_pointer) and doctor_pointer(current['state']) == plan.registry_pointer,
@@ -111,4 +108,3 @@ def publish(owner, plan, before_upload):
     owner.baseline = {'index_id': index_id, 'state': committed, 'doctors': current['doctors'], 'bundle': bundle}
     owner.doctors = current['doctors']
     return uploaded
-

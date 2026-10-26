@@ -45,18 +45,41 @@ def pending_tasks(shift, supervisor=None, resident=None):
     return rows
 
 
+def set_task_done(owner,project,shift_id,patient_id,task_id,done,expected):
+    """Resolve the current record; completion never saves an old patient snapshot."""
+    from desktop_protocol import fingerprint, packed
+    shift=owner.editable()
+    require(owner.client.project_id==project and shift['meta']['shiftId']==shift_id,
+            'تغير المشروع أو المناوبة؛ أعد فتح المهام')
+    patient=next((row for row in shift['patients'] if row['externalId']==patient_id),None)
+    require(patient is not None,'المريض لم يعد في القائمة')
+    tasks=read_tasks(patient)
+    task=next((row for row in tasks if row['id']==task_id),None)
+    require(task is not None and bool(task.get('done'))==expected,'تغيرت المهمة؛ حدّث القائمة قبل تعديلها')
+    before=fingerprint(shift)
+    task.update(done=done,completedByDoctorId=None,completedByName=None,completedAtEpochMillis=None)
+    patient['tasksJson']=packed(tasks)
+    owner.save_draft(shift,before)
+
+
 def task_board(owner):
     import desktop_widgets as ctk
     from desktop_forms import button, combo, modal, guarded
-    from desktop_model import doctor_label
+    from desktop_model import doctor_label, patient_name
     owner.ready(False)
     source=owner.store.read();doctors=copy.deepcopy(owner.client.doctors)
     project,shift_id=owner.client.project_id,source['meta']['shiftId']
-    window=modal(owner,'مهام الجناح — المهام المعلقة','820x720')
+    window=modal(owner,'مهام الجناح','820x720')
     controls=ctk.CTkFrame(window);controls.pack(fill='x')
     supervisor=combo(controls,'مشرف المريض',dict({'':'جميع المشرفين'},**{key:doctor_label(doctors,key) for key,d in doctors.items() if d['clinicalRole']=='SUPERVISOR'}),'')
     resident=combo(controls,'مقيم المريض',dict({'':'جميع المقيمين'},**{key:doctor_label(doctors,key) for key,d in doctors.items() if d['clinicalRole']=='RESIDENT'}),'')
     area=ctk.CTkScrollableFrame(window);area.pack(fill='both',expand=True)
+    settle_timers=[]
+    def cancel_timers(event=None):
+        if event is not None and event.widget is not window:return
+        for key in settle_timers:window.after_cancel(key)
+        settle_timers.clear()
+    window.bind('<Destroy>',cancel_timers,add='+')
     def current_shift():
         owner.ready(False)
         shift=owner.store.read()
@@ -65,11 +88,12 @@ def task_board(owner):
         return shift
     def show():
         current=current_shift()
+        cancel_timers()
         for child in area.winfo_children():child.destroy()
         rows=pending_tasks(current,supervisor(),resident())
-        ctk.CTkLabel(area,text='{} مهمة معلقة · الإتمام من ملف المريض بعد المراجعة والحفظ.'.format(len(rows)),wraplength=680,justify='right').pack(fill='x',padx=8,pady=5)
+        ctk.CTkLabel(area,text='{} مهمة معلقة'.format(len(rows)),wraplength=680,justify='right').pack(fill='x',padx=8,pady=5)
+        groups={}
         for patient,task in rows:
-            label=patient['name']+'\n'+task_text(task)
             def open_patient(key=patient['externalId']):
                 # Resolve current identity rather than opening an old copied patient snapshot.
                 current=current_shift()
@@ -77,8 +101,23 @@ def task_board(owner):
                 if row is None:show();return
                 window.destroy()
                 owner.edit(row)
-            frame=ctk.CTkFrame(area);frame.pack(fill='x',padx=6,pady=4)
-            ctk.CTkLabel(frame,text=label,wraplength=650,justify='right',anchor='e').pack(fill='x',padx=8,pady=5)
-            button(frame,'فتح ملف المريض',guarded(open_patient))
+            key=patient['externalId']
+            if key not in groups:
+                groups[key]=ctk.CTkFrame(area);groups[key].pack(fill='x',padx=6,pady=4)
+                ctk.CTkLabel(groups[key],text=patient_name(patient),wraplength=650,justify='right',anchor='e',font=('Arial',16,'bold')).pack(fill='x',padx=8,pady=5)
+                button(groups[key],'تحرير المريض',guarded(open_patient))
+            frame=ctk.CTkFrame(groups[key],fg_color='transparent');frame.pack(fill='x',padx=4,pady=3)
+            ctk.CTkLabel(frame,text=task['description'],wraplength=650,justify='right',anchor='e').pack(fill='x',padx=8,pady=3)
+            action=[None]
+            def complete(patient_id=key,task_id=task['id'],control=action):
+                set_task_done(owner,project,shift_id,patient_id,task_id,True,False)
+                def undo():
+                    set_task_done(owner,project,shift_id,patient_id,task_id,False,True)
+                    if window.winfo_exists():show()
+                control[0].configure(text='تراجع عن الإتمام',command=guarded(undo))
+                def settle():
+                    if window.winfo_exists() and not owner.locked:show()
+                settle_timers.append(window.after(2000,guarded(settle)))
+            action[0]=button(frame,'إتمام المهمة',guarded(complete))
     button(controls,'تطبيق التصفية / تحديث',guarded(show));button(controls,'إغلاق',window.destroy)
     show();owner.root.wait_window(window)

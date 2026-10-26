@@ -149,7 +149,9 @@ class Window:
             if not self.closed:self.root.after(1000,self.check_lock)
 
     def resize_content(self,event):
-        width=max(240,event.width-40)
+        width=ctk.logical_width(self.content,event.width,padding=40,minimum=180)
+        from desktop_layout import layout_ward_toolbar
+        layout_ward_toolbar(self,event.width-40)
         if getattr(self, "_last_content_wrap_width", None) == width:return
         self._last_content_wrap_width = width
         self.operation_notice_text.configure(wraplength=width)
@@ -159,7 +161,9 @@ class Window:
         self.sort_status.configure(wraplength=width)
         self.view_summary.configure(wraplength=width)
         self.view_help.configure(wraplength=max(200,width-36))
-        self.status_label.configure(wraplength=max(300,self.root.winfo_width()-40))
+        self.status_label.configure(wraplength=ctk.logical_width(self.content,self.root.winfo_width(),padding=40,minimum=180))
+        self.header_app.configure(wraplength=ctk.logical_width(self.content,self.root.winfo_width()/2,padding=40,minimum=140))
+        self.header_identity.configure(wraplength=ctk.logical_width(self.content,self.root.winfo_width()/2,padding=110,minimum=120))
         for frame in self.patients.winfo_children():
             for child in frame.winfo_children():
                 if isinstance(child,ctk.CTkLabel):child.configure(wraplength=width)

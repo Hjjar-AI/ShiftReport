@@ -28,6 +28,10 @@ class DemoClient:
         require(False,'الوضع التجريبي محلي في الذاكرة؛ الاتصال والنشر والإدارة غير متاحة')
     fetch=begin_login=check_login=authorize=require_admin=require_local_identity=plan=prepare=approve=publish=send_pdf=send_text=blocked
 
+    def require_local_admin(self):
+        # Dummy-only local PDF authority; never enroll or contact a real account.
+        return next(doctor for doctor in self.doctors.values() if doctor['clinicalRole']=='SUPERVISOR')
+
 
 class DemoWorkspace(Workspace):
     def __init__(self, client):

@@ -8,7 +8,7 @@ from desktop_model import patient_name, DIAGNOSIS, patient_text, pending_task_co
 
 def patient_card(owner, parent, row, index, total, movement_allowed, preview_style=None):
     row=copy.deepcopy(row)
-    width=max(240,owner.content.winfo_width()-40)
+    width=ctk.logical_width(owner.content,padding=40,minimum=180)
     key=row['externalId']
     pending=pending_task_count([row])
     style=preview_style or {}
@@ -52,16 +52,16 @@ def patient_card(owner, parent, row, index, total, movement_allowed, preview_sty
     if preview_style is not None:return frame
     primary=ctk.CTkFrame(frame,fg_color='transparent')
     primary.pack(fill='x')
-    for column in range(4):primary.grid_columnconfigure(column,weight=1 if column==3 else 0)
+    for column in range(3):primary.grid_columnconfigure(column,weight=1,uniform='patient-actions')
     for column,(label,action) in enumerate([
         ('تحرير',lambda:owner.edit(copy.deepcopy(row))),
-        ('الملف الكامل',lambda:owner.details(copy.deepcopy(row))),
         ('طي' if expanded else 'توسيع',lambda:owner.toggle_card(key,False))
     ]):
         kwargs={} if column==0 else button_options(ButtonStyle.OUTLINED)
         ctk.CTkButton(primary,text=label,width=105 if column==1 else 75,height=48,command=lambda f=action:owner.run(f),**kwargs
-            ).grid(row=0,column=3-column,sticky='ew',padx=3,pady=3)
+            ).grid(row=0,column=2-column,sticky='ew',padx=3,pady=3)
     actions={
+        'الملف الكامل':lambda:owner.details(copy.deepcopy(row)),
         'إلغاء التثبيت' if key in owner.cards.pinned else 'تثبيت للعرض':lambda:owner.toggle_card(key,True),
         'حذف المريض':lambda:owner.delete_patient(key)
     }

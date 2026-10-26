@@ -1,6 +1,7 @@
 """Encrypted local workspace. Manual receipt resolution requires live client authorization."""
 from __future__ import annotations
 import copy
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -38,7 +39,7 @@ class Workspace:
                 os.close(descriptor)
             except FileExistsError:
                 pass
-        with sqlite3.connect(str(self.path)) as db:
+        with closing(sqlite3.connect(str(self.path))) as db, db:
             db.execute('CREATE TABLE IF NOT EXISTS workspace (id INTEGER PRIMARY KEY CHECK(id=1), body BLOB NOT NULL)')
             row = db.execute('SELECT body FROM workspace WHERE id=1').fetchone()
         if row:
@@ -70,7 +71,7 @@ class Workspace:
         updated = copy.deepcopy(self.state)
         updated.update(changes)
         raw = self.encode(updated)
-        with sqlite3.connect(str(self.path)) as db:
+        with closing(sqlite3.connect(str(self.path))) as db, db:
             db.execute('PRAGMA synchronous=FULL')
             db.execute('INSERT OR REPLACE INTO workspace(id,body) VALUES(1,?)', (raw,))
         self.state = updated
@@ -80,9 +81,13 @@ class Workspace:
         require(self.state['draft'] is not None, 'اجلب مناوبة أولا')
         return copy.deepcopy(self.state['draft'])
 
-    def write(self, client, shift, backup=True, downloaded=False):
+    def write(self, client, shift, backup=True, downloaded=False, expected_replacement=None):
         require(not self.locked, 'الجلسة مقفلة')
-        if downloaded:self.require_downloadable()
+        if downloaded:
+            if expected_replacement is None:self.require_downloadable()
+            else:
+                from desktop_protocol import fingerprint
+                require(fingerprint(self.read())==expected_replacement,'تغيرت البيانات بعد اختيار الاستبدال؛ أعد مراجعة الجلب')
         if backup and self.state['draft'] is not None:
             # One encrypted recovery copy before replacing a draft. Never contains credentials.
             self.export(self.path.with_suffix('.previous.srdraft'), replace=True)
@@ -118,8 +123,7 @@ class Workspace:
         draft=self.read()
         known=next((shift for shift in (self.state.get('baseline') or {}).get('bundle',[])
                     if shift['meta']['shiftId']==draft['meta']['shiftId']),None)
-        empty=(not draft['patients'] and not draft['meta'].get('doctors') and
-               json.loads(draft['meta'].get('sortSpec') or '{"levels":[]}')=={'levels':[]})
+        empty=not draft['patients'] and not draft['meta'].get('doctors')
         return not ((known is not None and fingerprint(publication_content(known))==fingerprint(publication_content(draft))) or
                     (known is None and empty))
 

@@ -7,9 +7,10 @@ KEY = bytes(range(32))
 
 
 def client(project='a' * 64, key=KEY):
-    actor = dict(uid='cedar', name='أرز', telegram_id=123, **{'#': '10', 'options': 'A10'})
+    actor = dict(uid='cedar', name='أرز', telegram_id=123, gender='M',clinicalRole='SUPERVISOR',
+                 destination=-200,teamSupervisorId='', **{'#': '10', 'options': 'A10'})
     return SimpleNamespace(project_id=project, zone='Asia/Damascus', baseline=None,
-                           config={'telegramDataKey': base64.b64encode(key).decode()},
+                           config={'telegramDataKey': base64.b64encode(key).decode(),'hospitalName':'Dummy ward','chatId':-100,'reportsTopicId':3},
                            doctors={'cedar': actor}, baseline_key=lambda: key,
                            require_local_identity=lambda: copy.deepcopy(actor), demo=False)
 

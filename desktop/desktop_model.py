@@ -22,7 +22,11 @@ LABELS = {'name': 'الاسم', 'admitNum': 'رقم القبول', 'admitDate': 
 
 
 def doctor_label(doctors, key):
-    return doctors.get(key, {}).get('name', 'طبيب محفوظ') + ' [' + key + ']' if key else 'بدون'
+    if not key:return 'بدون'
+    name=(doctors.get(key,{}).get('name') or '').strip()
+    # Ordinary names stay readable; distinguish duplicates and unnamed records.
+    if name and sum((doctor.get('name') or '').strip()==name for doctor in doctors.values())==1:return name
+    return (name or 'طبيب بلا اسم')+' ['+key+']'
 
 
 def pending_task_count(patients):

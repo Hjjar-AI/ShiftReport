@@ -1,5 +1,5 @@
 """Read-only patient rounds over a captured view sequence; no clinical mutations."""
-from desktop_protocol import require
+from desktop_protocol import require, current_date
 from desktop_model import patient_name
 
 
@@ -61,10 +61,10 @@ def patient_details(owner,row):
         if patient is None:
             set_readonly_text(content,'المريض لم يعد في المناوبة؛ أغلق التفاصيل وأعد اختيار مريض.')
             title.configure(text='المريض غير متاح')
-            for widget in (previous,next_button,edit,activity):widget.grid_remove()
+            for widget in (previous,next_button,edit):widget.grid_remove()
             return
         index=ids.index(rounds.selected)
-        title.configure(text='{} — {} / {} · مناوبة {}\nللقراءة؛ ترتيب الجولة مأخوذ من العرض عند فتحها.'.format(patient_name(patient),index+1,len(ids),current['meta']['shiftDate']))
+        title.configure(text='{} — {} / {} · مناوبة {}\nللقراءة؛ ترتيب الجولة مأخوذ من العرض عند فتحها.'.format(patient_name(patient),index+1,len(ids),current_date(owner.client.zone)))
         set_readonly_text(content,patient_text(patient,owner.client.doctors,owner.client.zone))
         def scroll():
             if content.winfo_exists():content.yview_moveto(scroll_positions.get(rounds.selected,0))

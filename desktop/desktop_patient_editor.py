@@ -139,7 +139,8 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
         if not window.winfo_exists():return
         if not saving[0] and not owner.locked:
             try:retain_form()
-            except Exception:owner.status.set('تعذر حفظ مسودة الإدخال تلقائياً؛ أبق النافذة مفتوحة وأعد الحفظ.')
+            except Exception:
+                save_status.configure(text='تعذر حفظ مسودة هذا المريض تلقائياً؛ أبق النافذة مفتوحة وأعد الحفظ.')
         draft_timer[0] = window.after(500,autosave)
     def finish():
         if draft_timer[0] is not None:window.after_cancel(draft_timer[0])
@@ -194,4 +195,3 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     window.protocol('WM_DELETE_WINDOW',close)
     owner.root.wait_window(window)
     return advance[0]
-

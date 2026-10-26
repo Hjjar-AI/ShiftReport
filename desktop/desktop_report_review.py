@@ -12,8 +12,8 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
     from desktop_pdf import render_report
     from desktop_platform import open_pdf
     from desktop_model import doctor_label
+    option_widgets=[]
     review_area=ctk.CTkFrame(area)
-    review_area.pack(fill='x',padx=6,pady=4)
     ctk.CTkLabel(review_area,text='مراجعة البيانات والتقرير',anchor='e').pack(fill='x',padx=8,pady=4)
     text=ctk.CTkTextbox(review_area,height=260,wrap='word',font=('Arial',15))
     text.pack(fill='x',padx=8,pady=4)
@@ -22,6 +22,10 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         wraplength=640,justify='right').pack(fill='x',padx=8,pady=3)
     files_area=ctk.CTkFrame(review_area,fg_color='transparent');files_area.pack(fill='x')
     prepared={};working=[False];buttons={}
+    progress=ctk.CTkLabel(review_area,text='',anchor='e',justify='right',wraplength=640)
+    progress.pack(fill='x',padx=8,pady=3)
+    changed=ctk.CTkLabel(review_area,text='',anchor='e',justify='right',wraplength=640)
+    changed.pack(fill='x',padx=8,pady=3)
     from tkinter import BooleanVar
     export_pdf=BooleanVar(value=True)
     export_choice=ctk.CTkCheckBox(review_area,text='حفظ ملف PDF على الجهاز بعد إرساله إلى تليجرام (اختياري)',
@@ -40,7 +44,23 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         path=prepared['files'][target]
         require(owner.io(path.read_bytes)==prepared['payloads'][target], 'تغير PDF؛ اضغط معاينة مجدداً')
         owner.io(lambda:open_pdf(path))
-        if window.winfo_exists():prepared['viewed'].add(target)
+        if window.winfo_exists():
+            prepared['viewed'].add(target)
+            refresh_actions()
+
+    def refresh_actions():
+        ready=bool(prepared)
+        remaining=[target for target in prepared.get('files',{}) if target not in prepared.get('viewed',set())]
+        buttons['primary'].configure(text=('معاينة PDF التالي' if remaining else 'رفع للشبكة وإرسال تقرير') if ready else 'التالي — معاينة التقرير')
+        buttons['previous'].configure(state='normal' if ready else 'disabled')
+        if ready:
+            progress.configure(text='تم فتح {} من {} ملفات PDF'.format(len(prepared['viewed']),len(prepared['files'])) if prepared['files'] else 'راجع النص قبل تأكيد الإرسال.')
+
+    def previous():
+        prepared.clear()
+        review_area.pack_forget()
+        for widget,options in option_widgets:widget.pack(**options)
+        refresh_actions()
 
     def preview():
         options=read_options();targets=read_targets()
@@ -69,6 +89,12 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         save_options(options)
         prepared.update(delivery=delivery,signature=before,options=options,targets=tuple(targets),
                         payloads=payloads,files=files,viewed=set())
+        option_widgets[:]=[(widget,widget.pack_info()) for widget in area.winfo_children()
+                          if widget is not review_area and widget.winfo_manager()=='pack']
+        for widget,_ in option_widgets:widget.pack_forget()
+        review_area.pack(fill='x',padx=6,pady=4)
+        if files:export_choice.pack(fill='x',padx=8,pady=4)
+        else:export_choice.pack_forget()
         review=publication_review(delivery.plan,owner.client.zone) if delivery.needs_publish else 'بيانات المرضى مطابقة للنسخة المنشورة التي جرى فحصها؛ لا يلزم نشر جديد.'
         content=review+'\n\n'+'\n\n'.join(notes)
         if options['format']=='text':content+='\n\nمعاينة النص الذي سيُرسل:\n'+ '\n\n'.join(payloads[t] for t in targets)
@@ -78,6 +104,7 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
             ctk.CTkButton(files_area,text='معاينة PDF — '+name(target),height=48,
                 command=lambda t=target:invoke(lambda:view_file(t))).pack(fill='x',padx=8,pady=3)
         if files:view_file(targets[0])
+        refresh_actions()
 
     def send():
         require(prepared and signature()==prepared['signature'],'اضغط معاينة بعد آخر تغيير للبيانات أو الوجهة أو الخيارات')
@@ -108,14 +135,28 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         for control in buttons.values():control.configure(state='disabled')
         export_choice.configure(state='disabled')
         try:action()
-        except BridgeError as error:messagebox.showerror('مراجعة التقرير',str(error))
+        except BridgeError as error:
+            changed.configure(text=str(error))
+            messagebox.showerror('مراجعة التقرير',str(error))
         except Exception:messagebox.showerror('مراجعة التقرير','تعذر إعداد التقرير؛ تحقق من الملفات والاتصال ثم أعد المعاينة. لم يبدأ إرسال جديد من هذه النافذة.')
         finally:
             working[0]=False
             if window.winfo_exists():
                 for control in buttons.values():control.configure(state='normal')
                 export_choice.configure(state='normal')
+                refresh_actions()
 
-    buttons.update(dialog_actions(actions,primary=('رفع للشبكة وإرسال تقرير',lambda:invoke(send)),
-        cancel=('إلغاء',cancel),secondary=[('معاينة التقرير',lambda:invoke(preview))]))
+    def advance():
+        if not prepared:return preview()
+        remaining=[target for target in prepared['files'] if target not in prepared['viewed']]
+        if remaining:return view_file(remaining[0])
+        return send()
+
+    controls=dialog_actions(actions,primary=('التالي — معاينة التقرير',lambda:invoke(advance)),
+        cancel=('إلغاء',cancel),secondary=[('السابق',lambda:invoke(previous))])
+    buttons.update(primary=controls['التالي — معاينة التقرير'],previous=controls['السابق'],cancel=controls['إلغاء'])
+    buttons['primary'].grid(row=0,column=0,columnspan=2,sticky='ew',padx=8,pady=4)
+    buttons['previous'].grid(row=1,column=1,columnspan=1,sticky='ew',padx=8,pady=4)
+    buttons['cancel'].grid(row=1,column=0,columnspan=1,sticky='ew',padx=8,pady=4)
+    refresh_actions()
     window.protocol('WM_DELETE_WINDOW',cancel)

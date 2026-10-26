@@ -86,10 +86,10 @@ class Telegram:
     def write_state(self, message_id, state):
         state=copy.deepcopy(state)
         text = self.cipher.encode_text(packed(state))
-        while len(text.encode('utf-16-le'))//2>4096 and len(state.get('publicationJournal',[]))>1:
+        while len(text.encode('utf-16-le'))//2>3500 and state.get('publicationJournal'):
             state['publicationJournal'].pop()
             text=self.cipher.encode_text(packed(state))
-        require(len(text.encode('utf-16-le')) // 2 <= 4096, 'فهرس المشروع أطول من حد الرسالة')
+        require(len(text.encode('utf-16-le')) // 2 <= 3500, 'فهرس المشروع أطول من الحد الآمن للرسالة')
         try:
             self.call('editMessageText', {'chat_id': self.config['chatId'], 'message_id': message_id, 'text': text})
         except BridgeError:
@@ -101,4 +101,3 @@ class Telegram:
         require(actual_id == message_id and pointer(actual) == pointer(state) and doctor_pointer(actual) == doctor_pointer(state),
                 'وصل نشر متزامن؛ لم يتم تأكيد نسختك كنسخة حالية. اجلب وراجع التعارضات')
         return actual
-

@@ -15,16 +15,28 @@ from desktop_backup import restore_dialog
 
 def download(owner):
     owner.ready()
-    owner.store.require_downloadable()
+    expected_replacement=None
+    if owner.store.has_pending_changes():
+        choice=owner.choose('توجد تعديلات محلية لم تُنشر',[
+            'مراجعة ونشر النسخة المحلية أولاً',
+            'استبدالها بالنسخة المنشورة مع الاحتفاظ بتراجع محلي',
+            'إلغاء'],notice='الجلب يستبدل كامل قائمة المرضى. يمكنك مراجعة ونشر تعديلاتك أو اختيار الاستبدال صراحةً.')
+        if choice==0:
+            owner.plan=None
+            owner.publish()
+            return
+        if choice!=1:return
+        expected_replacement=fingerprint(owner.store.read())
+    else:owner.store.require_downloadable()
     snapshot=owner.io(owner.client.fetch); owner.io(lambda:owner.client.authorize(snapshot['doctors']))
     shifts=sorted(snapshot['bundle'],key=lambda s:s['meta']['shiftDate'],reverse=True)
     require(shifts,'لا توجد بيانات مرضى منشورة')
-    if owner.store.state['draft'] is not None and not messagebox.askyesno('جلب نسخة كاملة','هل تستبدل العرض المحلي بالنسخة المنشورة الكاملة؟ تحفظ نسخة استرداد مشفرة. التعديلات المحلية المحفوظة يجب نشرها أولاً.',default='no'):return
+    if owner.store.state['draft'] is not None and not messagebox.askyesno('جلب نسخة كاملة','هل تستبدل العرض المحلي بالنسخة المنشورة الكاملة؟ تحفظ نسخة استرداد مشفرة ويمكن التراجع عن هذا الجلب قبل إجراء تعديلات لاحقة.',default='no'):return
     selected=copy.deepcopy(shifts[0])
     previous=owner.client.baseline
     owner.client.baseline=snapshot
     try:
-        owner.io(lambda:owner.store.write(owner.client,selected,downloaded=True))
+        owner.io(lambda:owner.store.write(owner.client,selected,downloaded=True,expected_replacement=expected_replacement))
     except Exception:
         owner.client.baseline=previous; raise
     owner.client.doctors=snapshot['doctors']; owner.set_doctors(); owner.plan=None
@@ -142,4 +154,3 @@ def resolve(owner):
     confirmation=messagebox.askyesnocancel('تحقق يدوي','الحسم للمرسل أو لمدير نشط ويتطلب التحقق من الهوية عبر تليجرام.\nافحص العملية المختارة على تليجرام أولا. في النشر تحقق من الفهرس والمرضى، وليس مجرد وجود ملف في موضوع CSV. غيابها عن السجل الحالي ليس إثبات عدم وصولها.\nنعم: تؤكد أنها لم تصل وتسمح بمحاولتها.\nلا: وصلت أو لا تريد تكرارها.\nإلغاء: إبقاء الحظر.',default='cancel')
     if confirmation is None:return
     owner.io(lambda:owner.store.resolve_unknown(index,confirmation,owner.client))
-
