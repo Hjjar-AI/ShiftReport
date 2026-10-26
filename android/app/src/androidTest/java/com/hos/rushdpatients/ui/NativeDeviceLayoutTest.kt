@@ -47,7 +47,7 @@ class NativeDeviceLayoutTest : ProductionUiFixture() {
         start()
         onMain { nav.navigate(Routes.reportPreview("today")) }
         compose.waitUntil(10000) { route == Routes.REPORT_PREVIEW && !report.state.value.loading }
-        val next = label(R.string.ui_report_preview_screen_017, label(R.string.ui_report_flow_step_003))
+        val next = label(R.string.ui_report_preview_screen_017, label(R.string.ui_report_review_send_step))
         compose.onNodeWithText(label(R.string.ui_shift_doctor_picker_001)).assertExists()
         compose.onNodeWithText(next).assertIsDisplayed().assertIsEnabled().assertHasClickAction()
         compose.onNodeWithText(label(R.string.ui_cancel)).assertIsDisplayed().assertHasClickAction()
@@ -78,4 +78,27 @@ class NativeDeviceLayoutTest : ProductionUiFixture() {
         assertEquals(before, client.patients.getById("tea"))
         assertTrue(server.deliveredTexts.isEmpty())
     }
+    @Test fun unfinishedInlineTaskAndMultilineDraftSurviveBackgroundAndRecreationThenSaveOnce() = runBlocking<Unit> {
+        start()
+        val before = requireNotNull(client.patients.getById("tea"))
+        val card = SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions) and hasAnyDescendant(hasText("شاي", substring = true))
+        val actions = compose.onNode(card, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        compose.runOnIdle { assertTrue(actions.first { it.label == label(R.string.ui_edit_patient_dialog_001) }.action()) }
+        val labs = hasSetTextAction() and hasText(label(R.string.ui_labs), substring = true)
+        compose.onNode(labs).performScrollTo().performClick().performTextInput("Na=140\nK=4")
+        val task = hasSetTextAction() and hasText(label(R.string.ui_patient_task_editor_014))
+        compose.onNode(task).performScrollTo().performClick().performTextInput("مهمة لم أضغط إضافتها")
+        scenario!!.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+        scenario!!.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        recreateActivity()
+        compose.onNode(labs).performScrollTo().assertTextContains("Na=140\nK=4", substring = true)
+        compose.onNode(hasSetTextAction() and hasText("مهمة لم أضغط إضافتها", substring = true)).performScrollTo().assertExists()
+        assertEquals(before, client.patients.getById("tea"))
+        compose.onNodeWithText(label(R.string.ui_save)).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.waitUntil(10000) { !ward.state.value.saving && ward.state.value.patients.any { it.labs.contains("K=4") } }
+        val after = requireNotNull(client.patients.getById("tea"))
+        assertEquals(before.revision + 1, after.revision)
+        assertEquals(1, after.tasks.count { it.description == "مهمة لم أضغط إضافتها" })
+    }
+
 }

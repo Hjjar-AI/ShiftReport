@@ -28,7 +28,7 @@ class PhysicalBiometricTest {
             var cancelled = false
             while (!cancelled && SystemClock.elapsedRealtime() < deadline) {
                 val root = instrumentation.uiAutomation.rootInActiveWindow
-                val nodes = root?.findAccessibilityNodeInfosByText("إلغاء").orEmpty()
+                val nodes = root?.findAccessibilityNodeInfosByText("استخدام الرقم السري").orEmpty()
                 try {
                     cancelled = nodes.firstOrNull { it.isClickable }
                         ?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK) == true

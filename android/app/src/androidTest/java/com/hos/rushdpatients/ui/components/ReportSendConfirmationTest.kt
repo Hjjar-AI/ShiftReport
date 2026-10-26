@@ -21,7 +21,7 @@ import org.junit.Rule
 class ReportSendConfirmationTest {
     @get:Rule val compose = createComposeRule()
     private fun label(id: Int) = ApplicationProvider.getApplicationContext<Context>().getString(id)
-    private fun show(enabled: Boolean, onConfirm: (Boolean) -> Unit, onDismiss: () -> Unit) {
+    private fun show(enabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
         compose.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 MaterialTheme { ReportSendConfirmation(listOf("وجهة تجريبية"), "PDF", 1, enabled,
@@ -31,17 +31,17 @@ class ReportSendConfirmationTest {
     }
     @Test fun publicationNeedsExplicitEnabledConfirmation() {
         var confirmed = false
-        show(true, { confirmed = it }, {})
-        compose.onNodeWithText("• وجهة تجريبية").assertExists()
+        show(true, { confirmed = true }, {})
+        compose.onNodeWithText("وجهة تجريبية", substring = true).assertExists()
         compose.runOnIdle { assertFalse(confirmed) }
-        compose.onNodeWithText(label(R.string.ui_report_send_confirmation_008)).performClick()
+        compose.onNode(hasText(label(R.string.ui_report_send_confirmation_008)) and hasClickAction()).performClick()
         compose.runOnIdle { assertTrue(confirmed) }
     }
     @Test fun unavailableSendCannotInvokeConfirmationAndCancelRemainsAvailable() {
         var confirmations = 0
         var dismissed = false
         show(false, { confirmations++ }, { dismissed = true })
-        compose.onNodeWithText(label(R.string.ui_report_send_confirmation_008)).assertIsNotEnabled()
+        compose.onNode(hasText(label(R.string.ui_report_send_confirmation_008)) and hasClickAction()).assertIsNotEnabled()
         compose.onNodeWithText(label(R.string.ui_cancel)).performClick()
         compose.runOnIdle { assertEquals(0, confirmations); assertTrue(dismissed) }
     }

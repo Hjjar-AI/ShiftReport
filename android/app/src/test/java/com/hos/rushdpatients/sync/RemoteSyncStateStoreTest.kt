@@ -25,7 +25,7 @@ class RemoteSyncStateStoreTest {
     private val telegram = mockk<TelegramClient>()
     private val topics = mockk<Topics> { every { chatId } returns -100 }
     private val json = Json { ignoreUnknownKeys = true }
-    private val store = RemoteSyncStateStore(telegram, topics, json)
+    private val store = RemoteSyncStateStore(mockk<android.content.Context>(relaxed = true), telegram, topics, json)
     private var pinned: TgMessage? = null
     private fun chat(message: TgMessage? = pinned) = TgChat(-100, "supergroup", pinnedMessage = message)
     private fun message(state: SyncState) = TgMessage(1, text = json.encodeToString(state))
@@ -40,11 +40,15 @@ class RemoteSyncStateStoreTest {
         }
         coEvery { telegram.pinMessage(-100, 2, true) } returns true
     }
-    @Test fun `read ignores absent nontext malformed and unsupported pinned state`() = runBlocking<Unit> {
-        for (value in listOf(null, TgMessage(1), TgMessage(1, text = "not json"),
+    @Test fun `readDistinguishesAbsentFromUnrecognizedOrNewerPinnedState`() = runBlocking<Unit> {
+        pinned = null
+        assertEquals(RemoteSyncStateStore.PinnedState.Absent, store.readPinnedState())
+        assertNull(store.readState())
+        for (value in listOf(TgMessage(1), TgMessage(1, text = "not json"),
             message(SyncState(kind = "other")), message(SyncState(v = SyncState.CURRENT_VERSION + 1)))) {
             pinned = value
-            assertNull(store.readState())
+            assertEquals(RemoteSyncStateStore.PinnedState.Unrecognized, store.readPinnedState())
+            assertThrows(IllegalStateException::class.java) { runBlocking { store.readState() } }
         }
     }
     @Test fun `existing update edits recognized pin and upgrades protocol`() = runBlocking<Unit> {
@@ -60,10 +64,11 @@ class RemoteSyncStateStoreTest {
         coVerify(exactly = 0) { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { telegram.pinMessage(any(), any(), any()) }
     }
-    @Test fun `index disappearing between read and write blocks publication`() = runBlocking<Unit> {
+    @Test fun `index disappearing at confirmation fails without creating replacement`() = runBlocking<Unit> {
         coEvery { telegram.getChat(-100) } returnsMany listOf(chat(), chat(null))
         assertThrows(IllegalArgumentException::class.java) { runBlocking { store.updateExistingState { it } } }
-        coVerify(exactly = 0) { telegram.editMessageText(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { telegram.editMessageText(-100, 1, any(), null) }
+        coVerify(exactly = 0) { telegram.pinMessage(any(), any(), any()) }
         coVerify(exactly = 0) { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) }
     }
     @Test fun `ordinary initialization sends and pins a recognized index`() = runBlocking<Unit> {
@@ -84,7 +89,8 @@ class RemoteSyncStateStoreTest {
         assertEquals(30L, result.csvMessageId)
         assertEquals(20L, result.previousCsvMessageId)
         assertEquals("doctors-new", result.doctorsFileId)
-        assertEquals(99L, result.announcementMessageId)
+        // Retired announcement fields are carried through, with no publication merge semantics.
+        assertEquals(100L, result.announcementMessageId)
     }
     @Test fun `explicit history replacement drops recovery and old journal`() = runBlocking<Unit> {
         pinned = message(SyncState(csvFileId = "old", csvMessageId = 30,
@@ -115,7 +121,7 @@ class RemoteSyncStateStoreTest {
         assertThrows(CancellationException::class.java) { runBlocking { store.readState() } }
     }
     @Test fun `missing confirmation after write is an explicit failure`() = runBlocking<Unit> {
-        coEvery { telegram.getChat(-100) } returnsMany listOf(chat(), chat(), chat(null))
+        coEvery { telegram.getChat(-100) } returnsMany listOf(chat(), chat(null))
         assertThrows(IllegalArgumentException::class.java) { runBlocking {
             store.updateExistingState { it.copy(announcementMessageId = 9, announcementUpdatedAt = 1) }
         } }

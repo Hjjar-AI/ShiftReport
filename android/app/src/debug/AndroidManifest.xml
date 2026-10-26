@@ -6,7 +6,7 @@
         <activity android:name="com.hos.rushdpatients.testutil.SplashProbeActivity" android:exported="false" />
         <provider
             android:name="com.hos.rushdpatients.testutil.FaultDocumentProvider"
-            android:authorities="com.hos.rushdpatients.debug.faultdocuments"
+            android:authorities="${applicationId}.debug.faultdocuments"
             android:exported="false" />
         <service
             android:name="com.hos.rushdpatients.testutil.TransactionCrashService"

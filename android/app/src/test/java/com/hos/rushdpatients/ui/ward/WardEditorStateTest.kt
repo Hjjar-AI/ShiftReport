@@ -10,38 +10,34 @@ class WardEditorStateTest {
     @Test fun `add captures insertion snapshot independently of caller list`() {
         val rows = mutableListOf(patient)
         val state = WardEditorState()
-        state.openAdd(rows, 12)
+        state.openAdd(rows)
         rows.clear()
         assertEquals(listOf(patient), state.insertionPatients)
-        assertEquals(12L, state.insertionRevision)
     }
 
     @Test fun `reopening add preserves original revision position and unsaved draft`() {
         val state = WardEditorState()
-        state.openAdd(listOf(patient), 12)
+        state.openAdd(listOf(patient))
         val form = state.addForm.obtain(null, null)
-        form.labDraft = "نتيجة لم تحفظ"
+        form.labText = "نتيجة لم تحفظ"
         state.insertionPosition = "2"
-        state.openAdd(emptyList(), 99)
+        state.openAdd(emptyList())
         assertSame(form, state.addForm.obtain(null, null))
-        assertEquals("نتيجة لم تحفظ", form.labDraft)
+        assertEquals("نتيجة لم تحفظ", form.labText)
         assertEquals("2", state.insertionPosition)
         assertEquals(listOf(patient), state.insertionPatients)
-        assertEquals(12L, state.insertionRevision)
     }
 
-    @Test fun `reopening equal edit keeps conflict review and unsaved fields`() {
+    @Test fun `reopening equal edit preserves loaded draft and unsaved fields`() {
         val state = WardEditorState()
         state.editTarget = patient
         val session = requireNotNull(state.editSession)
-        session.form.obtain(patient, null).labDraft = "مسودة"
-        session.latest = patient.copy(revision = 8)
-        session.reviewing = true
+        session.form.obtain(patient, null).labText = "مسودة"
+        session.draftLoaded = true
         state.editTarget = patient.copy()
         assertSame(session, state.editSession)
-        assertTrue(requireNotNull(state.editSession).reviewing)
-        assertEquals(8L, requireNotNull(state.editSession).latest?.revision)
-        assertEquals("مسودة", session.form.obtain(patient, null).labDraft)
+        assertTrue(requireNotNull(state.editSession).draftLoaded)
+        assertEquals("مسودة", session.form.obtain(patient, null).labText)
     }
 
     @Test fun `explicitly opening changed revision creates a fresh edit session`() {
@@ -51,14 +47,13 @@ class WardEditorStateTest {
         val fresh = patient.copy(revision = 8, labs = "نتيجة جديدة")
         state.editTarget = fresh
         assertNotSame(old, state.editSession)
-        assertEquals(fresh, state.editSession?.baseline)
         assertEquals(fresh, state.editSession?.initial)
-        assertFalse(requireNotNull(state.editSession).reviewing)
+        assertFalse(requireNotNull(state.editSession).draftLoaded)
     }
 
     @Test fun `switching dialog types leaves exactly one clinical session`() {
         val state = WardEditorState()
-        state.openAdd(listOf(patient), 1)
+        state.openAdd(listOf(patient))
         state.editTarget = patient
         assertFalse(state.showAdd)
         state.copyTarget = patient
@@ -68,7 +63,7 @@ class WardEditorStateTest {
         assertNull(state.copyTarget)
         assertNull(state.copyForm)
         assertEquals(patient, state.deleteTarget)
-        state.openAdd(listOf(patient), 2)
+        state.openAdd(listOf(patient))
         assertNull(state.deleteTarget)
         assertTrue(state.showAdd)
     }
@@ -131,15 +126,14 @@ class WardEditorStateTest {
 
     @Test fun `clear discards draft position and snapshot before next add`() {
         val state = WardEditorState()
-        state.openAdd(listOf(patient), 12)
+        state.openAdd(listOf(patient))
         state.insertionPosition = "3"
         val form = state.addForm.obtain(null, null)
         form.name = "مسودة"
         state.clear()
         assertNull(state.dialog)
-        state.openAdd(emptyList(), null)
+        state.openAdd(emptyList())
         assertEquals("", state.insertionPosition)
-        assertNull(state.insertionRevision)
         assertTrue(state.insertionPatients.isEmpty())
         assertNotSame(form, state.addForm.obtain(null, null))
         assertEquals("", state.addForm.obtain(null, null).name)

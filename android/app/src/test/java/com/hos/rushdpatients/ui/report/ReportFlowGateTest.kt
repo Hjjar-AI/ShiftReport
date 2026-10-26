@@ -11,7 +11,7 @@ class ReportFlowGateTest {
     private val shift = Fixtures.shift()
     private val ready = ReportUiState(loading = false, shift = shift, doctors = listOf(Fixtures.doctor()),
         summary = com.hos.rushdpatients.domain.report.ReportSummary(0, 0, 0, shift.date, listOf(Fixtures.doctor())),
-        previewMarkdown = "reviewed")
+        previewMarkdown = "reviewed", reportAsPdf = false)
     private fun gate(state: ReportUiState = ready, text: String? = "reviewed", opened: Set<String> = emptySet(),
         supervisor: Boolean = false, targets: List<SupervisorReportTarget> = emptyList()) =
         reportFlowGate(state, ReportFlowStep.PREVIEW, supervisor, targets, text, opened)
@@ -19,7 +19,7 @@ class ReportFlowGateTest {
         assertNull(gate().sendDisabledReason)
         assertNotNull(gate(text = "stale").sendDisabledReason)
         assertNotNull(gate(text = null).sendDisabledReason)
-        assertNotNull(gate(ready.copy(isReadOnly = true)).sendDisabledReason)
+        assertNotNull(gate(ready.copy(summary = null)).sendDisabledReason)
     }
     @Test fun `PDF must be opened for the current artifact uri`() {
         val pdf = ready.copy(reportAsPdf = true, pdfReviewUris = mapOf("general" to "current"))

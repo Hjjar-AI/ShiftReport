@@ -25,7 +25,7 @@ class DoctorPickerContractTest : ProductionUiFixture() {
     private val sources = mutableListOf<Uri>()
     private fun label(id: Int) = client.context.getString(id)
     private fun source(fault: String? = null): Uri {
-        val uri = Uri.parse("content://com.hos.rushdpatients.debug.faultdocuments/document/${UUID.randomUUID()}")
+        val uri = Uri.parse("content://${androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.packageName}.debug.faultdocuments/document/${UUID.randomUUID()}")
         sources += uri
         val doctor = client.actor.copy(id = "oak", fullName = "د. بلوط شجرة", firstName = "بلوط", rank = 0,
             telegramId = 456, isPermanentAdmin = false, extraOptions = emptySet())
@@ -131,13 +131,14 @@ class DoctorPickerContractTest : ProductionUiFixture() {
         ordinaryAdmin()
         val picker = openPicker()
         onMain { picker.deliver(null) }
+        compose.onNodeWithText(label(R.string.ui_doctors_secondary_tools)).performScrollTo().performClick()
         compose.onNodeWithText(label(R.string.ui_doctors_screen_016)).performScrollTo().performClick()
         compose.waitUntil(10000) { picker.launchedIntent?.action == Intent.ACTION_CREATE_DOCUMENT }
         val staging = File(client.context.noBackupFilesDir, "pending_document_exports")
         assertTrue(staging.listFiles().orEmpty().isNotEmpty())
         revokeAdmin()
         val audit = client.audit.getRecent()
-        val uri = Uri.parse("content://com.hos.rushdpatients.debug.faultdocuments/document/${UUID.randomUUID()}")
+        val uri = Uri.parse("content://${androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.packageName}.debug.faultdocuments/document/${UUID.randomUUID()}")
             .also(sources::add)
         onMain { picker.deliver(uri) }
         compose.waitUntil(10000) { !doctorVm.state.value.exporting && doctorVm.state.value.snackbar != null }

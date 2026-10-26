@@ -33,34 +33,42 @@ class ProductionAdaptiveScreensTest : ProductionUiFixture() {
     @Test fun largeFontSettingsTogglePersistsAcrossNavigationAndWidthChange() = runBlocking<Unit> {
         startNarrow(); onMain { nav.navigate(Routes.SETTINGS) }
         compose.waitUntil(10000) { route == Routes.SETTINGS && settingsVm.state.value.doctorName.isNotEmpty() }
-        compose.onNodeWithText(label(R.string.ui_settings_section_layout_029)).performScrollTo().performClick()
+        compose.onNodeWithText(label(R.string.ui_settings_screen_035)).performScrollTo().performClick()
         compose.waitUntil(10000) { route == Routes.SETTINGS_DETAIL }
-        val label = label(R.string.ui_edit_patient_dialog_002)
+        val label = label(R.string.ui_reduced_motion)
         compose.onNode(hasText(label) and isToggleable()).performScrollTo().performClick()
-        compose.waitUntil(10000) { settingsVm.state.value.saveAndNext }
+        compose.waitUntil(10000) { settingsVm.state.value.uiPreferences.reducedMotion }
         onMain { widthDp = 480; heightDp = 420 }
         compose.onNode(hasText(label) and isToggleable()).performScrollTo().assertIsOn()
         onMain { nav.popBackStack() }
-        compose.onNodeWithText(label(R.string.ui_settings_section_layout_029)).performScrollTo().performClick()
-        compose.waitUntil(10000) { route == Routes.SETTINGS_DETAIL && settingsVm.state.value.saveAndNext }
+        compose.onNodeWithText(label(R.string.ui_settings_screen_035)).performScrollTo().performClick()
+        compose.waitUntil(10000) { route == Routes.SETTINGS_DETAIL && settingsVm.state.value.uiPreferences.reducedMotion }
         compose.onNode(hasText(label) and isToggleable()).performScrollTo().assertIsOn()
-        assertTrue(client.settings.getBoolean(com.hos.rushdpatients.config.AppConstants.SETTING_SAVE_AND_NEXT, false))
+        assertTrue(com.hos.rushdpatients.ui.theme.UiPreferences.decode(client.settings.get(com.hos.rushdpatients.config.AppConstants.SETTING_UI_PREFERENCES)).reducedMotion)
     }
     @Test fun largeFontDoctorFormKeepsSaveReachableWhileTypingWithIme() = runBlocking<Unit> {
         startNarrow(); onMain { nav.navigate(Routes.DOCTORS) }
         compose.waitUntil(10000) { route == Routes.DOCTORS && !doctorVm.state.value.loading }
-        compose.onNodeWithContentDescription(label(R.string.ui_doctors_screen_050, client.actor.fullName)).performScrollTo().performClick()
+        compose.onNodeWithContentDescription(label(R.string.ui_doctors_screen_050, client.actor.fullName))
+            .performScrollTo()
+        // Move the target clear of the floating Add action before a real pointer tap.
+        compose.onNode(hasScrollToIndexAction()).performTouchInput {
+            swipeUp(startY = height * .8f, endY = height * .4f, durationMillis = 250)
+        }
+        compose.onNodeWithContentDescription(label(R.string.ui_doctors_screen_050, client.actor.fullName))
+            .assertIsDisplayed().performClick()
         compose.onNode(hasSetTextAction() and hasText(label(R.string.ui_add_edit_doctor_dialog_003)))
-            .performScrollTo().performClick().performTextReplacement("صنوبر")
+            .performScrollTo().assertTextContains("أرز", substring = true).performClick().performTextReplacement("صنوبر")
         compose.onNodeWithText(label(R.string.ui_save)).assertIsDisplayed().assertIsEnabled().performClick()
-        compose.waitUntil(10000) { !doctorVm.state.value.saving && doctorVm.state.value.doctors.any { it.firstName == "صنوبر" } }
+        compose.waitUntil(10000) { !doctorVm.state.value.saving }
+        assertNull(doctorVm.state.value.operationIssue)
         assertEquals("صنوبر", client.doctors.getById(client.actor.id)?.firstName)
     }
     @Test fun shortLargeFontReportKeepsDoctorSelectorAndFooterActionReachable() {
         startNarrow(); onMain { heightDp = 400; nav.navigate(Routes.reportPreview("today")) }
         compose.waitUntil(10000) { route == Routes.REPORT_PREVIEW && !report.state.value.loading }
         compose.onNodeWithText(label(R.string.ui_shift_doctor_picker_001)).assertExists()
-        compose.onNodeWithText(label(R.string.ui_report_preview_screen_017, label(R.string.ui_report_flow_step_003)))
+        compose.onNodeWithText(label(R.string.ui_report_preview_screen_017, label(R.string.ui_report_review_send_step)))
             .assertIsDisplayed().assertIsEnabled()
         compose.onNodeWithText(label(R.string.ui_cancel)).assertIsDisplayed().assertIsEnabled()
         assertTrue(server.deliveredTexts.isEmpty())
@@ -80,7 +88,7 @@ class ProductionAdaptiveScreensTest : ProductionUiFixture() {
         compose.waitUntil(10000) { route == Routes.REPORT_PREVIEW && !report.state.value.loading }
         compose.onNodeWithText(label(R.string.ui_shift_doctor_picker_001)).assertExists()
         minimumTarget(compose.onNodeWithText(label(R.string.ui_report_preview_screen_017,
-            label(R.string.ui_report_flow_step_003))))
+            label(R.string.ui_report_review_send_step))))
         minimumTarget(compose.onNodeWithText(label(R.string.ui_cancel)))
         assertTrue(server.deliveredTexts.isEmpty())
     }

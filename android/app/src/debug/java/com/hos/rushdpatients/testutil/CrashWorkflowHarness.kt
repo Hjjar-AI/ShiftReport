@@ -69,6 +69,16 @@ internal class CrashWorkflowHarness(val context: Context, val db: AppDatabase) {
         die()
     }
 
+    suspend fun draftAndDie(die: () -> Nothing) {
+        val draft = com.hos.rushdpatients.ui.ward.PatientDraft(
+            initialDiagnosis = "تشخيص\nسطر ثان", treatmentDraft = "خطة\n12.5 mg",
+            followUpDraft = "متابعة غير محفوظة", labDraft = "Na=140\nK=4",
+            tasks = listOf(PatientTask("unfinished-inline", "مهمة قيد الكتابة")))
+        settings.put(com.hos.rushdpatients.config.AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + "crash-patient",
+            Json.encodeToString(com.hos.rushdpatients.ui.ward.PatientDraft.serializer(), draft))
+        die()
+    }
+
     suspend fun unconfirmedDeliveryAndDie(die: () -> Nothing) {
         signIn()
         ledger.deliver("crash-shift", -100, "synthetic-content", "pdf", "synthetic crash", "crash-doctor") {

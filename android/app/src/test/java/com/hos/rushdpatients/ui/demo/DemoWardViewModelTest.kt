@@ -29,35 +29,33 @@ class DemoWardViewModelTest {
 
     @Before fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        vm = DemoWardViewModel(text, context, repository, pdf)
+        vm = DemoWardViewModel(text, context, repository, pdf, mockk(), mockk(), com.hos.rushdpatients.domain.report.TextReportBuilder())
         store.put("demo", vm)
     }
     @After fun cleanup() { store.clear(); Dispatchers.resetMain() }
     private fun patient() = vm.state.value.patients.first()
     private fun saved(id: String) = vm.state.value.patients.single { it.id == id }
 
-    @Test fun `save stamps actor and advances patient and shift revisions`() {
+    @Test fun `save advances bookkeeping without creating actor stamps`() {
         val before = patient()
         val revision = vm.state.value.revision
-        val actor = vm.state.value.actor
         assertTrue(vm.save(before.copy(labs = "نتيجة معدلة")))
         val after = saved(before.id)
         assertEquals("نتيجة معدلة", after.labs)
         assertEquals(before.revision + 1, after.revision)
         assertEquals(revision + 1, vm.state.value.revision)
-        assertEquals(actor.id, after.lastEditedByDoctorId)
-        assertEquals(actor.fullName, after.lastEditedByName)
+        assertNull(after.lastEditedByDoctorId)
+        assertNull(after.lastEditedByName)
         assertEquals(before.sortOrder, after.sortOrder)
     }
 
-    @Test fun `stale edit returns live record and leaves entire state unchanged`() {
+    @Test fun `last clinical save wins without revision conflict`() {
         val old = patient()
         vm.save(old.copy(labs = "محفوظ"))
-        val snapshot = vm.state.value
-        var stale: com.hos.rushdpatients.data.model.Patient? = null
-        assertFalse(vm.save(old.copy(labs = "قديم")) { stale = it })
-        assertEquals(saved(old.id), stale)
-        assertEquals(snapshot, vm.state.value)
+        val revision = saved(old.id).revision
+        assertTrue(vm.save(old.copy(labs = "آخر حفظ")) { fail("Revision conflict callback") })
+        assertEquals("آخر حفظ", saved(old.id).labs)
+        assertEquals(revision + 1, saved(old.id).revision)
     }
 
     @Test fun `editing recycled patient cannot silently resurrect it`() {
@@ -78,14 +76,14 @@ class DemoWardViewModelTest {
         assertEquals(size + 1, saved(fresh.id).sortOrder)
     }
 
-    @Test fun `task completion ignores submitted attribution and uses current actor`() {
+    @Test fun `task completion clears submitted attribution without creating stamps`() {
         val row = patient().copy(tasks = listOf(Fixtures.task("new-task").copy(done = true,
             completedByDoctorId = "forged", completedByName = "forged", completedAtEpochMillis = 1)))
         assertTrue(vm.save(row))
         val task = saved(row.id).tasks.single()
-        assertEquals(vm.state.value.actor.id, task.completedByDoctorId)
-        assertEquals(vm.state.value.actor.fullName, task.completedByName)
-        assertTrue(requireNotNull(task.completedAtEpochMillis) > 1)
+        assertNull(task.completedByDoctorId)
+        assertNull(task.completedByName)
+        assertNull(task.completedAtEpochMillis)
     }
 
     @Test fun `editing completed task under another actor preserves original completion`() {
@@ -121,7 +119,7 @@ class DemoWardViewModelTest {
             called = true
             assertEquals(saved(row.id), after)
             assertEquals(before.revision + 1, after.revision)
-            assertEquals(vm.state.value.actorId, after.tasks.single().completedByDoctorId)
+            assertNull(after.tasks.single().completedByDoctorId)
         }
         assertTrue(called)
     }
@@ -152,25 +150,26 @@ class DemoWardViewModelTest {
 
     @Test fun `duplicate add never overwrites saved clinical content`() {
         val row = patient()
-        vm.controller.addPatient(row.copy(labs = "overwrite"), null, null, null) { fail("Unexpected success") }
+        vm.controller.addPatient(row.copy(labs = "overwrite"), null) { fail("Unexpected success") }
         assertEquals(row, saved(row.id))
     }
 
-    @Test fun `add rejects stale shift revision and patient snapshot`() {
+    @Test fun `add uses current section content without revision gating`() {
         val snapshot = vm.state.value
         val fresh = Fixtures.patient(id = "new-demo")
-        vm.controller.addPatient(fresh, null, snapshot.patients, snapshot.revision + 1) { fail("Unexpected success") }
-        vm.controller.addPatient(fresh, null, emptyList(), snapshot.revision) { fail("Unexpected success") }
-        assertEquals(snapshot.patients, vm.state.value.patients)
-        assertEquals(snapshot.revision, vm.state.value.revision)
+        var called = false
+        vm.controller.addPatient(fresh) { called = true }
+        assertTrue(called)
+        assertEquals(snapshot.patients.size + 1, vm.state.value.patients.size)
+        assertEquals(snapshot.revision + 1, vm.state.value.revision)
+        assertEquals(fresh.name, saved(fresh.id).name)
     }
 
     @Test fun `positioned add stores consecutive positions and clears saved draft`() {
         vm.controller.saveDraft(PatientDraft(name = "مسودة"))
-        val before = vm.state.value
         val fresh = Fixtures.patient(id = "new-demo")
         var called = false
-        vm.controller.addPatient(fresh, 2, before.patients, before.revision) { called = true }
+        vm.controller.addPatient(fresh, 2) { called = true }
         assertTrue(called)
         assertEquals(fresh.id, vm.state.value.ordered[1].id)
         assertEquals((1..vm.state.value.patients.size).toList(), vm.state.value.ordered.map { it.sortOrder })
@@ -178,13 +177,17 @@ class DemoWardViewModelTest {
         assertNull(vm.state.value.draft)
     }
 
-    @Test fun `stale delete preserves live row and never invokes success`() {
+    @Test fun `delete does not require revision match and rejects repeated deletion`() {
         val old = patient()
         vm.save(old.copy(labs = "جديد"))
-        val before = saved(old.id)
-        vm.controller.deletePatient(old) { fail("Unexpected success") }
-        assertEquals(before, saved(old.id))
-        assertTrue(vm.state.value.deleted.isEmpty())
+        val before = vm.state.value.revision
+        var called = false
+        vm.controller.deletePatient(old) { called = true }
+        assertTrue(called)
+        assertTrue(vm.state.value.patients.none { it.id == old.id })
+        assertEquals(before + 1, vm.state.value.revision)
+        vm.controller.deletePatient(old) { fail("Repeated deletion succeeded") }
+        assertEquals(before + 1, vm.state.value.revision)
     }
 
     @Test fun `delete restore cycle retains clinical content without duplicate restoration`() {
@@ -200,20 +203,20 @@ class DemoWardViewModelTest {
         assertEquals(restored, vm.state.value)
     }
 
-    @Test fun `sort rejects stale revision before changing stored order`() {
+    @Test fun `sort applies to current rows without revision conflict`() {
         val before = vm.state.value
-        var stale = false
-        vm.controller.applySort(SortSpec.DEFAULT, before.revision + 1, {
-            stale = true; assertEquals(before.revision, it?.revision)
-        }) { fail("Unexpected success") }
-        assertTrue(stale)
-        assertEquals(before, vm.state.value)
+        var called = false
+        vm.controller.applySort(SortSpec.EMPTY) { called = true }
+        assertTrue(called)
+        assertEquals(SortSpec.EMPTY, vm.state.value.sort)
+        assertEquals(before.revision + 1, vm.state.value.revision)
+        assertEquals(before.patients.map { it.id }.toSet(), vm.state.value.patients.map { it.id }.toSet())
     }
 
     @Test fun `accepted sort persists displayed order and advances shift revision`() {
         val before = vm.state.value
         var called = false
-        vm.controller.applySort(SortSpec.DEFAULT, before.revision, { fail("Unexpected stale") }) { called = true }
+        vm.controller.applySort(SortSpec.DEFAULT) { called = true }
         assertTrue(called)
         assertEquals(before.revision + 1, vm.state.value.revision)
         assertEquals(vm.state.value.ordered.map { it.id }, vm.state.value.patients.map { it.id })
@@ -247,14 +250,12 @@ class DemoWardViewModelTest {
         val originalShift = vm.state.value.shiftId
         vm.controller.deletePatient(patient()) { }
         vm.controller.saveDraft(PatientDraft(name = "مسودة"))
-        vm.editor.openAdd(emptyList(), 0)
-        vm.setSaveAndNext(true)
+        vm.editor.openAdd(emptyList())
         vm.reset()
         assertNotEquals(originalShift, vm.state.value.shiftId)
         assertTrue(vm.state.value.deleted.isEmpty())
         assertNull(vm.state.value.draft)
         assertNull(vm.editor.dialog)
-        assertFalse(vm.state.value.saveAndNext)
         assertEquals(0L, vm.state.value.revision)
         assertEquals(independent, other.state.value)
     }
@@ -268,14 +269,11 @@ class DemoWardViewModelTest {
         verify { context wasNot Called; pdf wasNot Called }
     }
 
-    @Test fun `remote actions remain local notices without changing clinical snapshot`() {
+    @Test fun `simulated fetch remains isolated from real transport and clinical storage`() {
         val before = vm.state.value
         vm.controller.bringLatestData()
-        vm.controller.bringPreviousData()
-        vm.controller.applyRollover(true)
         vm.controller.retryLastAction()
         assertEquals(before.patients, vm.state.value.patients)
-        assertEquals(before.revision, vm.state.value.revision)
         assertFalse(vm.controller.liveProject)
         assertFalse(vm.controller.online.value)
         assertNotNull(vm.state.value.message)

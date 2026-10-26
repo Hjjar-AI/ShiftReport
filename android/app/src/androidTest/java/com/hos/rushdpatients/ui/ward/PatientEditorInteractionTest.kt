@@ -34,7 +34,7 @@ class PatientEditorInteractionTest {
             MaterialTheme { PatientFormDialog("تعديل تجريبي", patient, stateStore = store, doctors = emptyList(),
                 saving = false, onConfirm = { saved = it }, onDismiss = {}) }
         } }
-        compose.runOnIdle { store.obtain(patient, null).labDraft = "نتيجة غير محفوظة" }
+        compose.runOnIdle { store.obtain(patient, null).labText = "نتيجة غير محفوظة" }
         compose.onNodeWithText(label(R.string.ui_save)).assertIsDisplayed().performClick()
         compose.runOnIdle {
             assertTrue(requireNotNull(saved).labs.contains("نتيجة غير محفوظة"))
@@ -55,7 +55,7 @@ class PatientEditorInteractionTest {
     @Test fun taskCheckboxChangesOnlyDraftCompletionAndNeverCreatesActorMetadata() {
         var tasks by mutableStateOf(listOf(PatientTask("t", "فحص تجريبي")))
         val form = PatientFormState(null, null)
-        compose.setContent { MaterialTheme { PatientTaskEditor(tasks, emptyList(), true, formState = form, onChange = { tasks = it }) } }
+        compose.setContent { MaterialTheme { PatientTaskEditor(tasks, true, formState = form, onChange = { tasks = it }) } }
         compose.onNode(isToggleable()).performClick()
         compose.runOnIdle {
             assertTrue(tasks.single().done)

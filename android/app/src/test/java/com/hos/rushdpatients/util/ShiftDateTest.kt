@@ -16,11 +16,11 @@ class ShiftDateTest {
         assertEquals(LocalDate.of(2026, 1, 1), ShiftDate.current(LocalDateTime.of(2026, 1, 1, 8, 30)))
         assertEquals(LocalDate.of(2026, 1, 1), ShiftDate.current(LocalDateTime.of(2026, 1, 1, 23, 59)))
     }
-    @Test fun `task shift deadline is next calendar day at local rollover`() {
+    @Test fun `display day boundary is next calendar day at 0830`() {
         val date = LocalDate.of(2024, 2, 29)
         assertEquals(LocalDateTime.of(2024, 3, 1, 8, 30), ShiftDate.endOf(date).atZone(ZoneId.systemDefault()).toLocalDateTime())
     }
-    @Test fun `deadline uses local calendar rollover across spring and autumn offset changes`() {
+    @Test fun `display day boundary uses local calendar rollover across spring and autumn offset changes`() {
         val original = java.util.TimeZone.getDefault()
         try {
             java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Europe/Berlin"))
@@ -32,7 +32,7 @@ class ShiftDateTest {
             }
         } finally { java.util.TimeZone.setDefault(original) }
     }
-    @Test fun `timezone switch recomputes deadline without rewriting its clinical shift date`() {
+    @Test fun `timezone switch recomputes display day boundary without rewriting its clinical shift date`() {
         val original = java.util.TimeZone.getDefault()
         val date = LocalDate.of(2026, 1, 1)
         try {

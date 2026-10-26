@@ -13,16 +13,15 @@ class PatientValidatorTest {
         assertEquals(PatientValidationResult.Valid,
             PatientValidator.validate(Fixtures.patient().copy(tasks = listOf(Fixtures.task()))))
     }
-    @Test fun `blank required clinical and identity fields are all reported`() {
-        assertEquals(setOf(PatientValidationError.NAME_EMPTY, PatientValidationError.ADMITTANCE_NUMBER_EMPTY,
-            PatientValidationError.INITIAL_DIAGNOSIS_EMPTY, PatientValidationError.TREATMENT_PLAN_EMPTY,
-            PatientValidationError.FOLLOW_UP_EMPTY), errors(Fixtures.patient(name = " ", admittanceNumber = "",
-            initialDiagnosis = "", treatmentPlan = "", followUp = "")).toSet())
+    @Test fun `blank profile and clinical text remain optional`() {
+        assertEquals(PatientValidationResult.Valid, PatientValidator.validate(Fixtures.patient(name = " ",
+            admittanceNumber = "", initialDiagnosis = "", treatmentPlan = "", followUp = "")))
     }
-    @Test fun `missing future and overage birth dates fail`() {
-        listOf(null, LocalDate.now().plusDays(1), LocalDate.now().minusYears(121)).forEach {
+    @Test fun `optional birth date is accepted but future and overage dates fail`() {
+        listOf(LocalDate.now().plusDays(1), LocalDate.now().minusYears(121)).forEach {
             assertTrue(errors(Fixtures.patient().copy(birthDate = it)).contains(PatientValidationError.BIRTH_DATE_INVALID))
         }
+        assertEquals(PatientValidationResult.Valid, PatientValidator.validate(Fixtures.patient().copy(birthDate = null)))
         assertEquals(PatientValidationResult.Valid, PatientValidator.validate(Fixtures.patient().copy(birthDate = LocalDate.now())))
     }
     @Test fun `future admission equal team and malformed tasks fail`() {

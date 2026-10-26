@@ -29,8 +29,8 @@ class ReportPdfWorkspaceTest {
         ReportSummary(1, 1, 0, shift.date, listOf(actor)), listOf("synthetic"))
     private suspend fun reviewed(): File {
         val file = File(directory, "reviewed.pdf").apply { writeText("synthetic reviewed artifact") }
-        workspace.replaceReview("general", ReviewedPdf(file, workspace.pdfDigest(file), ReportReview.fingerprint(built),
-            workspace.loadPdfOptions(), PdfStyle.CLASSIC, built))
+        workspace.replaceReview("general", ReviewedPdf(file, workspace.pdfDigest(file), ReportReview.exportFingerprint(built),
+            workspace.loadPdfOptions(), PdfStyle.CARDS, built))
         return file
     }
     @After fun cleanup() { directory.deleteRecursively() }
@@ -48,9 +48,9 @@ class ReportPdfWorkspaceTest {
     }
     @Test fun `appearance or clinical changes invalidate the reviewed artifact`() = runBlocking<Unit> {
         reviewed()
-        coEvery { settings.get(AppConstants.SETTING_PDF_ORIENTATION) } returns PdfOrientation.LANDSCAPE.name
+        coEvery { settings.get(AppConstants.SETTING_PDF_PAPER_SIZE) } returns PdfPaperSize.A4.name
         assertThrows(PdfReviewRequiredException::class.java) { runBlocking { workspace.checkedPdf(built) } }
-        coEvery { settings.get(AppConstants.SETTING_PDF_ORIENTATION) } returns null
+        coEvery { settings.get(AppConstants.SETTING_PDF_PAPER_SIZE) } returns null
         assertThrows(ReportChangedSinceReviewException::class.java) { runBlocking {
             workspace.checkedPdf(built.copy(patients = listOf(built.patients.single().copy(labs = "new result"))))
         } }

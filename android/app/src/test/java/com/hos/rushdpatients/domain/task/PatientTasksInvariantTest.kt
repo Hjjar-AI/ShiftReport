@@ -7,7 +7,7 @@ import com.hos.rushdpatients.testutil.Fixtures
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Deterministic combinations exercise shared rules across board, rollover and wire storage. */
+/** Deterministic combinations exercise shared rules across board and wire storage. */
 class PatientTasksInvariantTest {
     private val now = 10_000L
     private fun combinations(): List<PatientTask> = buildList {
@@ -21,56 +21,44 @@ class PatientTasksInvariantTest {
 
     @Test fun `count partition holds across all completion owner deadline priority combinations`() {
         val tasks = combinations()
-        for (time in listOf(now - 2, now, now + 2)) {
-            val counts = PatientTasks.counts(tasks, time)
-            assertEquals(tasks.size / 2, counts.pending)
-            assertEquals(0, counts.unassigned)
-            assertEquals(0, counts.overdue)
-            assertTrue(counts.overdue in 0..counts.pending)
-        }
+        val counts = PatientTasks.counts(tasks)
+        assertEquals(tasks.size / 2, counts.pending)
+        assertEquals(TaskCounts(0), PatientTasks.counts(tasks.filter { it.done }))
     }
 
     @Test fun `legacy deadlines never change checklist status`() {
         combinations().forEach { task ->
-            val values = listOf(now - 2, now, now + 2).map { PatientTasks.overdue(task, it) }
-            assertFalse(values.zipWithNext().any { (before, after) -> before && !after })
-            assertTrue(values.none { it })
+            val plain = task.copy(ownerDoctorId = null, ownerName = null, dueAtEpochMillis = null, dueShiftDate = null, priority = TaskPriority.NORMAL)
+            assertEquals(PatientTasks.statusLabel(plain), PatientTasks.statusLabel(task))
         }
     }
 
     @Test fun `display sort preserves every record is idempotent and leaves source intact`() {
         val tasks = combinations().reversed()
         val snapshot = tasks.toList()
-        val sorted = PatientTasks.orderedForDisplay(tasks, now)
+        val sorted = PatientTasks.orderedForDisplay(tasks)
         assertEquals(snapshot, tasks)
         assertEquals(tasks.associateBy { it.id }, sorted.associateBy { it.id })
-        assertEquals(sorted, PatientTasks.orderedForDisplay(sorted, now))
+        assertEquals(sorted, PatientTasks.orderedForDisplay(sorted))
         assertTrue(sorted.dropWhile { !it.done }.all { it.done })
-        val overdueCount = PatientTasks.counts(tasks, now).overdue
-        assertTrue(sorted.take(overdueCount).all { PatientTasks.overdue(it, now) })
-        assertTrue(sorted.drop(overdueCount).none { PatientTasks.overdue(it, now) })
     }
 
     @Test fun `equal display keys retain patient and task input ordering`() {
         val tasks = (1..20).map { Fixtures.task("task-$it") }
-        assertEquals(tasks, PatientTasks.orderedForDisplay(tasks, now))
+        assertEquals(tasks, PatientTasks.orderedForDisplay(tasks))
         val patients = (1..5).map { Fixtures.patient(id = "p-$it").copy(tasks = tasks.take(2)) }
-        val entries = PatientTasks.wardPending(patients, null, null, now)
+        val entries = PatientTasks.wardPending(patients, null, null)
         assertEquals(patients.flatMap { listOf(it.id, it.id) }, entries.map { it.patient.id })
         assertEquals(patients.flatMap { it.tasks }, entries.map { it.task })
     }
 
-    @Test fun `rollover is idempotent preserves clinical deadlines and yields valid wire data`() {
+    @Test fun `display and wire round trip preserve legacy task fields`() {
         val tasks = combinations()
-        for (clear in listOf(false, true)) {
-            val carried = PatientTasks.carryForward(tasks, clear)
-            assertEquals(carried, PatientTasks.carryForward(carried, clear))
-            assertEquals(tasks.filterNot { it.done }.map { it.id }, carried.map { it.id })
-            assertEquals(tasks.filterNot { it.done }.map { it.dueAtEpochMillis }, carried.map { it.dueAtEpochMillis })
-            if (clear) assertTrue(carried.all { it.ownerDoctorId == null && it.ownerName == null })
-            PatientTasks.requireValid(carried)
-            assertEquals(carried, PatientTaskCodec.decode(PatientTaskCodec.encode(carried)))
-        }
+        val ordered = PatientTasks.orderedForDisplay(tasks)
+        assertEquals(ordered, PatientTasks.orderedForDisplay(ordered))
+        assertEquals(tasks.associateBy { it.id }, ordered.associateBy { it.id })
+        PatientTasks.requireValid(ordered)
+        assertEquals(ordered, PatientTaskCodec.decode(PatientTaskCodec.encode(ordered)))
     }
 
     @Test fun `full task combination survives codec without dropping completion attribution`() {
@@ -79,25 +67,23 @@ class PatientTasksInvariantTest {
         assertEquals(tasks, PatientTaskCodec.decode(PatientTaskCodec.encode(tasks)))
     }
 
-    @Test fun `every missing completed attribution component rejects the record`() {
+    @Test fun `legacy completed attribution is optional and remains round trip compatible`() {
         val done = Fixtures.task(done = true)
         listOf(done.copy(completedByDoctorId = null), done.copy(completedByDoctorId = " "),
             done.copy(completedByName = null), done.copy(completedByName = " "),
             done.copy(completedAtEpochMillis = null), done.copy(completedAtEpochMillis = 0),
-            done.copy(completedAtEpochMillis = -1)).forEach { invalid ->
-            assertThrows(invalid.toString(), IllegalArgumentException::class.java) {
-                PatientTasks.requireValid(listOf(invalid))
-            }
+            done.copy(completedAtEpochMillis = -1)).forEach { legacy ->
+            PatientTasks.requireValid(listOf(legacy))
+            assertEquals(listOf(legacy), PatientTaskCodec.decode(PatientTaskCodec.encode(listOf(legacy))))
         }
     }
 
-    @Test fun `draft completion relaxation never permits stale attribution on pending tasks`() {
+    @Test fun `legacy pending attribution does not alter checklist status`() {
         val pending = Fixtures.task()
         listOf(pending.copy(completedByDoctorId = "doc-1"), pending.copy(completedByName = "أرز"),
-            pending.copy(completedAtEpochMillis = now)).forEach { invalid ->
-            assertThrows(IllegalArgumentException::class.java) {
-                PatientTasks.requireValid(listOf(invalid), requireCompletion = false)
-            }
+            pending.copy(completedAtEpochMillis = now)).forEach { legacy ->
+            PatientTasks.requireValid(listOf(legacy))
+            assertEquals(PatientTasks.statusLabel(pending), PatientTasks.statusLabel(legacy))
         }
     }
 
@@ -119,27 +105,25 @@ class PatientTasksInvariantTest {
         for (resident in listOf(null, "r1", "absent")) for (supervisor in listOf(null, "s2", "absent")) {
             val expected = patients.filter { (resident == null || it.responsibleResidentId == resident) &&
                 (supervisor == null || it.responsibleSpecialistId == supervisor) }.map { it.id }
-            val actual = PatientTasks.wardPending(patients, supervisor, resident, now)
+            val actual = PatientTasks.wardPending(patients, supervisor, resident)
             assertEquals(expected, actual.map { it.patient.id })
             assertTrue(actual.none { it.task.done })
         }
     }
 
-    @Test fun `empty collections stay empty in counts summary board and rollover`() {
-        assertEquals(TaskCounts(0, 0, 0), PatientTasks.counts(emptyList(), now))
-        assertEquals("", PatientTasks.summary(emptyList(), nowEpochMillis = now))
-        assertTrue(PatientTasks.wardPending(emptyList(), null, null, now).isEmpty())
-        assertTrue(PatientTasks.carryForward(emptyList(), true).isEmpty())
+    @Test fun `empty collections stay empty in counts summary and board`() {
+        assertEquals(TaskCounts(0), PatientTasks.counts(emptyList()))
+        assertEquals("", PatientTasks.summary(emptyList()))
+        assertTrue(PatientTasks.wardPending(emptyList(), null, null).isEmpty())
     }
 
-    @Test fun `checklist summary preserves multiline descriptions and completion names`() {
+    @Test fun `checklist summary preserves multiline descriptions and omits legacy completion names`() {
         val tasks = listOf(Fixtures.task().copy(description = "قياس\nثم مراجعة", priority = TaskPriority.HIGH),
             Fixtures.task("done", true))
-        val text = PatientTasks.summary(tasks, includeUnassigned = false, includeRoutinePriority = false,
-            nowEpochMillis = now)
+        val text = PatientTasks.summary(tasks)
         assertTrue(text.contains("قياس\nثم مراجعة"))
         assertFalse(text.contains("عالية"))
-        assertTrue(text.contains("أتمها أرز"))
+        assertFalse(text.contains("أتمها أرز"))
         assertFalse(text.contains("غير معيّنة"))
         assertFalse(text.contains("عادية"))
     }

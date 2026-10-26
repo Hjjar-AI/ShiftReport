@@ -73,8 +73,8 @@ class MarkdownTest {
     }
 
     @Test
-    fun `user link builds tg url`() {
+    fun `generic link preserves tg URL`() {
         assertEquals("[د\\. أحمد](tg://user?id=123)",
-            Markdown.userLink("د. أحمد", 123L))
+            Markdown.link("د. أحمد", "tg://user?id=123"))
     }
 }

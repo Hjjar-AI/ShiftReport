@@ -2,13 +2,13 @@
 
 [Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md) · [Device procedures](device-coverage.md) · [Desktop/live](deep-testing.md)
 
-Historical inventory/results: [Current state](../status/current-state.md#verification-and-limits). Suite descriptions below predate retired features; they are not a current source audit.
+Inventory/results and exact limits: [Current state](../status/current-state.md#verification-and-limits). Existing suites have been adapted to the simplified app and rerun with focused failure resolution. Latest completed unique results:647 JVM passes/0 failures/0 skips; PPA-LX2/API29 device288 passes/0 failures/0 skips, including owner-requested live-seeder/private-CSV/native-provider/fingerprint opt-in passes. Runs overlap; these are not repeated full-suite passes. See the linked exact results and remaining manual checks.
 
 ## Coverage map
 
 | Area | Existing coverage |
 |---|---|
-| Clinical/tasks | Validation/search/filter/counts, clinical/task persistence, rollback, sorting and report/export; retired ownership/stamp/rollover expectations need authorized review |
+| Clinical/tasks | Optional profiles, validation/search/filter/counts, last-save-wins clinical writes with existence/deletion/section/assignment guards, plain checklists, rollback, sorting and report/export; legacy metadata round trips remain covered |
 | Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, same-project reconnect, key/topic protection, cancellation and secret cleanup |
 | Sync/delivery | Reviewed uploads/download Undo, pointer/history/mutex races, independent clients, UNKNOWN receipts, duplicate permission, write failure and actor revocation |
 | Reports/Telegram | Readiness/fingerprints, exact PDF review, Room snapshot consistency, long Markdown/Unicode chunks, retry/rate-limit/cancellation and intercepted transport |
@@ -24,7 +24,8 @@ From `android/`, define this helper in the current shell; it preserves offline, 
 ```sh
 srgradle() {
   ./gradlew --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false \
-    -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false "$@"
+    -Pkotlin.compiler.execution.strategy=in-process -Pshiftreport.autoVersion=false \
+    -Pshiftreport.isolatedTests=true "$@"
 }
 srgradle :app:compileDebugKotlin :app:compileDebugUnitTestKotlin \
   > /tmp/shiftreport-test-compile.log 2>&1
@@ -34,6 +35,8 @@ srgradle :app:testDebugUnitTest > /tmp/shiftreport-jvm.log 2>&1
 For a focused JVM run, add one or more `--tests 'fully.qualified.ClassName'` filters. The delivery-fixture scope is `domain.report.ReportDeliveryLedgerTest`, `domain.report.ReportDeliveryLedgerSafetyTest` and `network.ReportSenderTest`, all under `com.hos.rushdpatients`.
 
 Device checks build/install debug app/test APKs. Compile first, then run on the owner-selected connected device; exclude the automatic Desktop export task:
+
+The helper's `shiftreport.isolatedTests=true` gives debug builds the separate application ID `com.hos.rushdpatients.verification` and package-relative document-provider authorities. This keeps test application startup, database/preferences/keystore storage and WorkManager jobs separate from the installed clinical app, in addition to the per-case fixtures below. Normal debug/release IDs and version values are unchanged. Keep this property consistent through compilation and device execution; use the verification package when pulling artifacts or inspecting its test-owned storage.
 
 ```sh
 srgradle :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin \

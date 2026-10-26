@@ -25,8 +25,8 @@ class UiPreferencesCompositionTest {
             val actual = requireNotNull(observed)
             assertEquals(listOf(0, 0, 0, 0, 0), listOf(actual.expandMillis, actual.collapseMillis,
                 actual.highlightMillis, actual.indicatorMillis, actual.placementMillis))
-            assertEquals(UiStyleCatalog.relaxed.normalDensity, actual.normalDensity)
-            assertEquals(UiStyleCatalog.relaxed.listGap, actual.listGap)
+            assertEquals(UiStyleCatalog.current.normalDensity, actual.normalDensity)
+            assertEquals(UiStyleCatalog.current.listGap, actual.listGap)
         }
     }
     @Test fun turningReducedMotionOffRestoresSelectedProfileDurations() {
@@ -37,7 +37,7 @@ class UiPreferencesCompositionTest {
             SideEffect { observed = current }
         } }
         compose.runOnIdle { preferences = preferences.copy(reducedMotion = false) }
-        compose.runOnIdle { assertEquals(UiStyleCatalog.quiet, observed) }
+        compose.runOnIdle { assertEquals(UiStyleCatalog.current, observed) }
     }
     @Test fun unknownProfileUsesCurrentStyleWhileKeepingBehaviorPreferences() {
         var observedStyle: UiStyleProfile? = null
@@ -49,7 +49,7 @@ class UiPreferencesCompositionTest {
         } }
         compose.runOnIdle {
             assertEquals(UiStyleCatalog.current, observedStyle)
-            assertEquals(selected, observedPreferences)
+            assertEquals(selected.simplified(), observedPreferences)
         }
     }
     @Test fun localControlOverridesKeepBehaviorAndDoNotLeakToSibling() {
@@ -64,8 +64,8 @@ class UiPreferencesCompositionTest {
             SideEffect { outside = current }
         } }
         compose.runOnIdle {
-            assertEquals(selected.copy(density = UiDensity.COMPACT, controlSize = UiControlSize.COMFORTABLE), inside)
-            assertEquals(selected, outside)
+            assertEquals(selected.simplified().copy(density = UiDensity.COMPACT, controlSize = UiControlSize.COMFORTABLE), inside)
+            assertEquals(selected.simplified(), outside)
         }
     }
     @Test fun layoutThresholdNeverShrinksForSmallerFonts() {

@@ -30,7 +30,8 @@ class DoctorImportWorkflowTest : SyncFixture() {
     private fun viewModel(): DoctorsViewModel {
         val reports = ReportBuilder(patients, doctors, shifts, TextReportBuilder(), db, dispatchers)
         val sync = SyncService(preferences, wire.client, wire.topics, shifts, patients, doctors, cursors,
-            settings, db, audit, dispatchers, remote, doctorSync, reports, undo)
+            settings, db, audit, dispatchers, remote, doctorSync, reports, undo,
+            com.hos.rushdpatients.sync.PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers))
         lateinit var vm: DoctorsViewModel
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             vm = DoctorsViewModel(UiStrings(preferences), preferences, doctors, settings, mutations, audit,
@@ -39,7 +40,7 @@ class DoctorImportWorkflowTest : SyncFixture() {
         }
         return vm
     }
-    private fun source(text: String) = Uri.parse("content://com.hos.rushdpatients.debug.faultdocuments/${UUID.randomUUID()}").also { uri ->
+    private fun source(text: String) = Uri.parse("content://${androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.packageName}.debug.faultdocuments/${UUID.randomUUID()}").also { uri ->
         uris += uri
         preferences.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(text.toByteArray()) }
     }
@@ -64,7 +65,7 @@ class DoctorImportWorkflowTest : SyncFixture() {
     }
     @Test fun revokedProviderPermissionShowsImportErrorAndPreservesRegistry() = runBlocking<Unit> {
         val before = doctors.getAll(); val vm = viewModel()
-        val uri = Uri.parse("content://com.hos.rushdpatients.debug.faultdocuments/${UUID.randomUUID()}?fault=denied").also(uris::add)
+        val uri = Uri.parse("content://${androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.packageName}.debug.faultdocuments/${UUID.randomUUID()}?fault=denied").also(uris::add)
         val state = preview(vm, uri)
         assertNotNull(state.importError); assertNull(state.importPreview)
         assertFalse(state.importing); assertEquals(before, doctors.getAll())

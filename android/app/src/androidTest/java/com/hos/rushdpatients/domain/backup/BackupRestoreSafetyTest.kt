@@ -27,18 +27,20 @@ class BackupRestoreSafetyTest : ClinicalRepositoryFixture() {
     private suspend fun export(): Uri = File(preferences.cacheDir, "backup.bin").also {
         it.writeBytes(manager().prepareExport(password).bytes)
     }.let(Uri::fromFile)
-    @Test fun restoreInvalidatesOpenPatientAndShiftDrafts() = runBlocking<Unit> {
+    @Test fun restorePreservesContentAndLaterClinicalSaveRemainsLastSaveWins() = runBlocking<Unit> {
         val draft = seed()
         val shift = requireNotNull(shifts.getById("today"))
         val uri = export()
-        patients.updateOptimistically(draft.copy(labs = "newer"), "today", draft.revision)
+        patients.save(draft.copy(labs = "newer"), "today")
         manager().restore(uri, password)
         val restored = requireNotNull(patients.getById("p"))
         assertTrue(restored.revision > draft.revision + 1)
         assertTrue(requireNotNull(shifts.getById("today")).revision > shift.revision)
-        assertTrue(rejected { patients.updateOptimistically(draft.copy(labs = "stale"), "today", draft.revision) } is StalePatientEditException)
-        assertEquals("", patients.getById("p")?.labs)
-        assertTrue(settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertEquals("", restored.labs)
+        val saved = patients.save(draft.copy(labs = "last save"), "today")
+        assertEquals("last save", patients.getById("p")?.labs)
+        assertTrue(saved.revision > restored.revision)
+        assertTrue(com.hos.rushdpatients.sync.PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers).hasPending())
     }
     @Test fun changedResponsibleRoleRejectsRestoreWithoutAnyWrites() = runBlocking<Unit> {
         val patient = seed()

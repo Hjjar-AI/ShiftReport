@@ -27,14 +27,14 @@ class PinUnlockInteractionTest {
         compose.onNode(hasSetTextAction()).assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
         compose.onNodeWithText(label(R.string.ui_pin_unlock_screen_002)).assertIsNotEnabled()
     }
-    @Test fun biometricAndSignOutRequireExplicitActions() {
-        var biometric = false
+    @Test fun biometricPromptsOnceOnResumeAndAllowsExplicitRetryAndSignOut() {
+        var biometric = 0
         var signedOut = false
         compose.setContent { MaterialTheme { PinUnlockScreen("أرز", "خطأ تجريبي", false, {},
-            { biometric = true }, { signedOut = true }) } }
-        compose.runOnIdle { assertFalse(biometric); assertFalse(signedOut) }
+            { biometric++ }, { signedOut = true }) } }
+        compose.runOnIdle { assertEquals(1, biometric); assertFalse(signedOut) }
         compose.onNodeWithText(label(R.string.ui_pin_unlock_screen_003)).performClick()
         compose.onNodeWithText(label(R.string.ui_settings_preference_sections_019)).performClick()
-        compose.runOnIdle { assertTrue(biometric); assertTrue(signedOut) }
+        compose.runOnIdle { assertEquals(2, biometric); assertTrue(signedOut) }
     }
 }

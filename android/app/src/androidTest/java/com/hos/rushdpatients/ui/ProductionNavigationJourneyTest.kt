@@ -2,6 +2,7 @@ package com.hos.rushdpatients.ui
 
 import android.net.Uri
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.Lifecycle
@@ -57,18 +58,23 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
     }
     private fun openReportThroughDrawer() {
         compose.onNodeWithContentDescription(label(R.string.ui_ward_navigation_chrome_004)).performClick()
-        compose.onNode(hasText(label(R.string.ui_send_report)) and hasClickAction()).performScrollTo().performClick()
+        compose.onNode(hasText(label(R.string.ui_send_report)) and hasClickAction() and
+            hasAnyAncestor(SemanticsMatcher.keyIsDefined(SemanticsProperties.PaneTitle))).performScrollTo().performClick()
         compose.waitUntil(15000) { route == Routes.REPORT_PREVIEW && !report.state.value.loading }
     }
     private fun next(stepLabel: Int) = compose.onNodeWithText(label(R.string.ui_report_preview_screen_017, label(stepLabel)))
         .assertIsEnabled().performClick()
     private fun reviewAndOpenConfirmation() {
-        next(R.string.ui_report_flow_step_003); next(R.string.ui_report_flow_step_004)
-        compose.onNodeWithText(label(R.string.ui_report_preview_screen_060)).performScrollTo().performClick()
+        compose.onNode(hasText(label(R.string.ui_report_preview_screen_031)) and isToggleable())
+            .performScrollTo().performClick()
+        compose.waitUntil(10000) { !report.state.value.reportAsPdf && !report.state.value.isBusy }
+        next(R.string.ui_report_review_send_step)
+        compose.onNode(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
+            hasClickAction() and hasAnyAncestor(hasScrollAction()).not()).assertIsDisplayed().performClick()
         compose.onNodeWithText(label(R.string.ui_close)).performClick()
-        next(R.string.ui_report_flow_step_005)
         compose.onNodeWithText(label(R.string.ui_send_report)).assertIsEnabled().performClick()
-        compose.onNodeWithText(label(R.string.ui_report_send_confirmation_001)).assertExists()
+        compose.onNode(hasText(label(R.string.ui_report_send_confirmation_001)) and
+            hasAnyAncestor(isDialog()) and hasClickAction().not()).assertExists()
         assertTrue(server.deliveredTexts.isEmpty())
     }
     @Test fun protectedJoinLoginEditReviewAndExplicitPublishUseProductionRootAndGraph() = runBlocking<Unit> {
@@ -84,7 +90,7 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         compose.waitUntil(15000) { client.projects.current().initialized }
         loginThroughUi(); editLabs("نتيجة رحلة تجريبية", recreate = true)
         openReportThroughDrawer(); reviewAndOpenConfirmation()
-        compose.onNodeWithText(label(R.string.ui_report_send_confirmation_008)).performClick()
+        compose.onNode(hasText(label(R.string.ui_report_send_confirmation_008)) and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
         compose.waitUntil(20000) { !report.state.value.sending && report.state.value.deliveryOutcome == ReportStepOutcome.CONFIRMED }
         assertTrue(server.deliveredTexts.joinToString().contains("نتيجة رحلة تجريبية"))
         val fileId = requireNotNull(server.state.csvFileId)
@@ -95,8 +101,11 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         launch(); awaitWard(); openReportThroughDrawer(); reviewAndOpenConfirmation()
         recreateActivity()
         compose.waitUntil(10000) { route == Routes.REPORT_PREVIEW && !report.state.value.loading }
-        compose.onNodeWithText(label(R.string.ui_report_send_confirmation_001)).assertDoesNotExist()
-        compose.onNodeWithText(label(R.string.ui_send_report)).assertIsNotEnabled()
+        compose.onNode(hasText(label(R.string.ui_report_send_confirmation_001)) and
+            hasAnyAncestor(isDialog()) and hasClickAction().not()).assertDoesNotExist()
+        compose.onNode(hasText(label(R.string.ui_send_report)) and hasClickAction()).assertDoesNotExist()
+        compose.onNode(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
+            hasClickAction() and hasAnyAncestor(hasScrollAction()).not()).assertIsEnabled()
         assertTrue(server.deliveredTexts.isEmpty())
     }
     @Test fun backgroundAndResumeWhileEditingRetainsDraftWithoutSavingOrSending() = runBlocking<Unit> {
@@ -135,7 +144,7 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         client.doctors.softDelete(actor.id)
         val beforeShift = client.shifts.getById("today")
         val beforePatients = client.patients.getForShift("today")
-        compose.onNodeWithText(label(R.string.ui_report_send_confirmation_008)).performClick()
+        compose.onNode(hasText(label(R.string.ui_report_send_confirmation_008)) and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
         compose.waitUntil(10000) { !report.state.value.sending && !report.state.value.loading &&
             (report.state.value.error != null || report.state.value.summary == null) }
         assertEquals(beforeShift, client.shifts.getById("today"))

@@ -43,8 +43,7 @@ class ReportReviewSafetyTest {
             patient.copy(initialDiagnosis = "تشخيص آخر"), patient.copy(treatmentPlan = "خطة أخرى"),
             patient.copy(followUp = "متابعة أخرى"), patient.copy(labs = "Na=140"),
             patient.copy(badges = listOf(PatientBadge("تنبيه تجريبي"))),
-            patient.copy(isPriority = true), patient.copy(sortOrder = 2),
-            patient.copy(deletedAt = Instant.EPOCH)
+            patient.copy(isPriority = true), patient.copy(sortOrder = 2)
         )
         changes.forEach { assertInvalidated(original, original.copy(patients = listOf(it))) }
     }
@@ -56,13 +55,13 @@ class ReportReviewSafetyTest {
             assertInvalidated(original, original.copy(patients = listOf(it)))
         }
         listOf(task.copy(id = "new-task"), task.copy(description = "فحص آخر"),
-            task.copy(ownerDoctorId = null), task.copy(ownerName = "صنوبر"),
-            task.copy(priority = TaskPriority.HIGH), task.copy(dueAtEpochMillis = 1000),
-            task.copy(dueShiftDate = shift.date.toString()),
             task.copy(done = true, completedByDoctorId = actor.id,
                 completedByName = actor.fullName, completedAtEpochMillis = 1000)).forEach {
             assertInvalidated(original, original.copy(patients = listOf(patient.copy(tasks = listOf(it)))))
         }
+        val legacyOnly = task.copy(ownerDoctorId = null, ownerName = "صنوبر", priority = TaskPriority.HIGH,
+            dueAtEpochMillis = 1000, dueShiftDate = shift.date.toString())
+        ReportReview.requireMatches(original, original.copy(patients = listOf(patient.copy(tasks = listOf(legacyOnly)))))
     }
 
     @Test fun `shift identity date mode and configured sort invalidate review`() {

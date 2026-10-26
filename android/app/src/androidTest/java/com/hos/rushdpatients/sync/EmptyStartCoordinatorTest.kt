@@ -53,8 +53,8 @@ class EmptyStartCoordinatorTest : SyncFixture() {
         assertEquals("synthetic-receipt", settings.get("report_delivery_ledger"))
         assertEquals("dark", settings.get("appearance"))
         assertEquals(admin.id, sessions.current()?.doctorId)
-        assertFalse(settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true))
-        assertEquals("empty_start", db.auditDao().getRecent(1).single().action)
+        assertFalse(PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers).hasPending())
+        assertTrue(db.auditDao().getRecent(20).isEmpty())
         assertEquals(100L, wire.state.csvMessageId)
         assertNull(wire.state.previousCsvFileId)
         assertFalse(wire.methods.any { it in listOf("deleteMessage", "sendMessage", "pinChatMessage") })
@@ -156,13 +156,15 @@ class EmptyStartCoordinatorTest : SyncFixture() {
         assertEquals("racing pin edit", patients.getById(row.id)?.labs)
         assertEquals(2, db.shiftDao().getRecent(20).size)
     }
-    @Test fun auditFailureRollsBackDeletionSettingsAndSyncCursor() = runBlocking<Unit> {
+    @Test fun baselineWriteFailureRollsBackDeletionSettingsAndSyncCursor() = runBlocking<Unit> {
         val operation = coordinator(); val review = operation.prepare()
         val previousSettings = settings.getAll()
-        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_reset_audit BEFORE INSERT ON audit_log BEGIN SELECT RAISE(ABORT, 'synthetic audit failure'); END")
+        val previousCursor = cursors.getAll()
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_reset_baseline BEFORE INSERT ON settings WHEN NEW.key = '${AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX}${review.shift.id}' BEGIN SELECT RAISE(ABORT, 'synthetic baseline failure'); END")
         rejected { operation.confirm(review) }
         assertClinicalIntact()
         assertEquals(previousSettings, settings.getAll())
+        assertEquals(previousCursor, cursors.getAll())
         assertEquals(100L, wire.state.csvMessageId) // Remote success is independent of local rollback.
     }
     @Test fun usedReviewCannotRunAgain() = runBlocking<Unit> {
@@ -170,7 +172,7 @@ class EmptyStartCoordinatorTest : SyncFixture() {
         operation.confirm(review)
         rejected { operation.confirm(review) }
         assertEquals(1, wire.methods.count { it == "sendDocument" })
-        assertEquals(1, db.auditDao().getRecent(20).size)
+        assertTrue(db.auditDao().getRecent(20).isEmpty())
     }
     private fun assertNoTemporaryPlaintext() {
         assertTrue(preferences.cacheDir.listFiles().orEmpty().none { it.name.startsWith("empty_start_") })

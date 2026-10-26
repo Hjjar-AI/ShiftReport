@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.ui.report
 
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
+import com.hos.rushdpatients.ui.components.appContentEntrance
+import com.hos.rushdpatients.ui.components.ContentEntrance
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -268,6 +270,7 @@ internal fun ReportWorkspace(
                     .fillMaxSize()
                     .padding(padding)
                     .padding(UiSpacing.screen)
+                    .appContentEntrance(step, ContentEntrance.REPORT_STEP, step.ordinal)
                     .verticalScroll(contentScroll),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {

@@ -47,7 +47,7 @@ class PatientCsvExporterTest {
     }
     private fun assertNoTemporaryFiles() = assertTrue(temporary.root.listFiles()!!.isEmpty())
     @Test fun missingCurrentShiftDoesNotCreateFile() = runBlocking<Unit> {
-        coEvery { shifts.getByDate(any()) } returns null
+        coEvery { shifts.getLatest() } returns null
         assertTrue(exporter().exportCurrentShift() is PatientCsvExporter.Result.Failure)
         coVerify(exactly = 0) { saver.saveCsv(any(), any(), any()) }
         assertNoTemporaryFiles()
@@ -109,7 +109,7 @@ class PatientCsvExporterTest {
         assertNoTemporaryFiles()
     }
     @Test fun currentShiftExportUsesResolvedShiftIdentity() = runBlocking<Unit> {
-        coEvery { shifts.getByDate(any()) } returns shift
+        coEvery { shifts.getLatest() } returns shift
         assertTrue(exporter().exportCurrentShift() is PatientCsvExporter.Result.Success)
         coVerify(exactly = 1) { shifts.getById(shift.id) }
         coVerify(exactly = 1) { patients.getForShift(shift.id) }

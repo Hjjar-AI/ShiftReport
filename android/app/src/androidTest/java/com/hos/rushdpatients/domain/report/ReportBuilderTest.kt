@@ -51,8 +51,9 @@ class ReportBuilderTest : ClinicalRepositoryFixture() {
 
     @Test fun emptyWardWithRosterHasZeroTotalsAndOneSummary() = runBlocking<Unit> {
         roster()
-        val report = builder().build("shift-1")
-        assertEquals(ReportSummary(0, 0, 0, report.shift.date, listOf(admin)), report.summary)
+        val reportDay = java.time.LocalDate.of(2026, 10, 26)
+        val report = builder().build("shift-1", reportDay)
+        assertEquals(ReportSummary(0, 0, 0, reportDay, listOf(admin)), report.summary)
         assertTrue(report.patients.isEmpty())
         assertEquals(1, Regex("عدد المرضى:").findAll(report.textChunks.joinToString("\n")).count())
     }
@@ -65,7 +66,7 @@ class ReportBuilderTest : ClinicalRepositoryFixture() {
             Patient(id = "cocoa", name = "كاكاو", diagnosisType = DiagnosisType.DUAL, hasCompanion = true),
             Patient(id = "deleted", name = "سحلب", hasCompanion = true)
         ), "shift-1")
-        patients.softDelete("deleted")
+        patients.softDelete("deleted", "shift-1")
         patients.upsert(Patient(id = "other", name = "متة", hasCompanion = true), "shift-2")
         val report = builder().build("shift-1")
         assertEquals(setOf("tea", "coffee", "cocoa"), report.patients.map { it.id }.toSet())
@@ -144,7 +145,8 @@ class ReportBuilderTest : ClinicalRepositoryFixture() {
             tasks = listOf(PatientTask("pending", "فحص معلق"),
                 PatientTask("done", "فحص مكتمل", done = true, completedByDoctorId = admin.id,
                     completedByName = admin.fullName, completedAtEpochMillis = 1000)))
-        patients.upsert(row, "shift-1")
+        // Seed a stored legacy row directly; new clinical writes omit completion attribution.
+        db.patientDao().upsert(com.hos.rushdpatients.data.mapper.PatientMapper.toEntity(row, "shift-1"))
         val report = builder().build("shift-1")
         assertEquals(row.tasks, report.patients.single().tasks)
         val text = report.textChunks.joinToString("\n")

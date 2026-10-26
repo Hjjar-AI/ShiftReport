@@ -1,9 +1,12 @@
 package com.hos.rushdpatients.ui.theme
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,9 +31,14 @@ object UiPatientCard {
     }
 
     @Composable
-    fun border(selected: Boolean = false): BorderStroke =
-        if (selected) UiBorder.stroke(selected = true)
-        else UiBorder.cardStroke()
+    fun border(selected: Boolean = false): BorderStroke {
+        val target = if (selected) UiBorder.stroke(selected = true) else UiBorder.cardStroke()
+        val targetColor = if (selected) MaterialTheme.colorScheme.primary else
+            lerp(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.outlineVariant, 0.65f)
+        val color by animateColorAsState(targetColor,
+            tween(LocalUiStyle.current.indicatorMillis), label = "patientSelectionBorder")
+        return BorderStroke(target.width, color)
+    }
 }
 
 /** Neutral surfaces and interactive emphasis; clinical severity has its own palette. */
@@ -70,6 +78,8 @@ object UiOpacity {
 }
 
 object UiMotion {
+    const val contentFadeMillis = 150
+    const val reportStepMillis = 180
     const val placementMillis = 200
     const val fastMillis = 90
     const val indicatorMillis = 160

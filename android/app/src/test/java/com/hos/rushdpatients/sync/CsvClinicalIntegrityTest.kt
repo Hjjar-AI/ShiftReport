@@ -38,7 +38,7 @@ class CsvClinicalIntegrityTest {
 
     @Test fun `one invalid task rejects entire otherwise valid multirecord snapshot`() {
         val good = Fixtures.patient(id = "good")
-        val bad = Fixtures.patient(id = "bad").copy(tasks = listOf(Fixtures.task().copy(done = true)))
+        val bad = Fixtures.patient(id = "bad").copy(tasks = listOf(Fixtures.task().copy(description = " ")))
         val csv = CsvCodec.encode(shift, listOf(good, bad, good.copy(id = "good-2")))
         assertThrows(IllegalArgumentException::class.java) { CsvCodec.decode(csv) }
     }
@@ -49,9 +49,9 @@ class CsvClinicalIntegrityTest {
         assertThrows(IllegalArgumentException::class.java) { decode(patient) }
     }
 
-    @Test fun `pending task with completion metadata rejects import`() {
+    @Test fun `legacy completion metadata remains compatible on pending tasks`() {
         val patient = Fixtures.patient().copy(tasks = listOf(Fixtures.task().copy(completedByName = "أرز")))
-        assertThrows(IllegalArgumentException::class.java) { decode(patient) }
+        assertEquals(patient, decode(patient))
     }
 
     @Test fun `missing current task column is rejected even with no clinical rows`() {

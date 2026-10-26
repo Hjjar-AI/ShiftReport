@@ -19,12 +19,12 @@ class PatientPredicatesTest {
         val patient = Fixtures.patient(responsibleResidentId = "doc", admittanceDate = LocalDate.now())
             .copy(isPriority = true, badges = listOf(PatientBadge("تنبيه", PatientBadgePriority.HIGH)),
                 tasks = listOf(Fixtures.task().copy(dueAtEpochMillis = 100)))
-        val summary = WardSummary.from(listOf(patient, Fixtures.patient(id = "other")), "doc", 100)
+        val summary = WardSummary.from(listOf(patient, Fixtures.patient(id = "other")), "doc", LocalDate.now())
         assertEquals(1, summary.mine)
         assertEquals(1, summary.urgent)
         assertEquals(1, summary.warnings)
         assertEquals(2, summary.unassigned)
         assertEquals(1, summary.newAdmissions)
-        assertEquals(com.hos.rushdpatients.domain.task.TaskCounts(1, 0, 0), summary.tasks)
+        assertEquals(com.hos.rushdpatients.domain.task.TaskCounts(1), summary.tasks)
     }
 }

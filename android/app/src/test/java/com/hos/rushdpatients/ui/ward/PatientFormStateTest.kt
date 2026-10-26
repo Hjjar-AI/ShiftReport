@@ -12,12 +12,12 @@ class PatientFormStateTest {
         val store = PatientFormStateStore()
         val form = store.obtain(null, PatientDraft(name = "شاي"))
         form.name = "قهوة"
-        form.labDraft = "نتيجة لم تحفظ"
+        form.labText = "نتيجة لم تحفظ"
         form.tasks = listOf(Fixtures.task())
         val next = store.obtain(null, PatientDraft(name = "شاي", labDraft = "old"))
         assertSame(form, next)
         assertEquals("قهوة", next.name)
-        assertEquals("نتيجة لم تحفظ", next.labDraft)
+        assertEquals("نتيجة لم تحفظ", next.labText)
         assertEquals(form.tasks, next.tasks)
     }
     @Test fun `reviewing a new revision explicitly resets the editor seed`() {
@@ -47,10 +47,9 @@ class PatientFormStateTest {
         assertEquals(draft, Json.decodeFromString<PatientDraft>(Json.encodeToString(draft)))
         val state = PatientFormState(null, draft)
         assertEquals(draft.tasks, state.tasks)
-        assertEquals(draft.labItems, state.labItems)
-        assertEquals(draft.labDraft, state.labDraft)
-        assertEquals(draft.treatmentDraft, state.treatmentDraft)
-        assertEquals(draft.followUpDraft, state.followUpDraft)
+        assertEquals("نتيجة\nمسودة تحاليل", state.labText)
+        assertEquals("خطة\nمسودة", state.treatmentText)
+        assertEquals("متابعة\nمسودة متابعة", state.followUpText)
         assertEquals(draft.badgeDraftText, state.badgeDraftText)
         assertTrue(state.isPriority)
     }

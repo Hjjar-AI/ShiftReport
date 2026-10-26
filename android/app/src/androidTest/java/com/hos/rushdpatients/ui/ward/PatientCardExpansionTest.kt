@@ -25,8 +25,7 @@ class PatientCardExpansionTest {
         compose.setContent {
             RushdPatientsTheme(uiPreferences = UiPreferences()) {
                 CompositionLocalProvider(LocalUiStyle provides LocalUiStyle.current.copy(expandMillis = 400, collapseMillis = 400)) {
-                    PatientCard(PatientCardState(patient, expanded = expanded, animateExpansion = individual,
-                        taskNowEpochMillis = 100), PatientCardActions.None, Modifier.testTag("card"))
+                    PatientCard(PatientCardState(patient, expanded = expanded, animateExpansion = individual), PatientCardActions.None, Modifier.testTag("card"))
                 }
             }
         }

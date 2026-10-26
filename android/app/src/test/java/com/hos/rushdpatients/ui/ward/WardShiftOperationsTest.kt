@@ -34,81 +34,54 @@ class WardShiftOperationsTest {
     private val sessions = mockk<SessionManager> { every { current() } returns null }
     private val context = mockk<Context>()
     private val observed = mutableListOf<String>()
-    private fun operations(scope: CoroutineScope) = WardShiftOperations(text, state, scope, context, shifts,
-        patients, mutations, sync, settings, exporter, sessions, WardSaveGuard(text, state, shifts), { observed.add(it) })
+    private fun operations(scope: CoroutineScope) = WardShiftOperations(text, state, scope, context, sync, exporter, WardSaveGuard(text, state), { observed.add(it) })
     @Before fun setup() {
         mockkObject(NetworkStatus); every { NetworkStatus.isOnline(context) } returns true
         coEvery { shifts.getById(shift.id) } returns shift
     }
     @After fun releaseNetworkMock() { unmockkObject(NetworkStatus) }
-    @Test fun offlineLatestAndPreviousFetchOfferTheCorrectRetry() = runTest {
+    @Test fun offlineFetchAndExplicitReplacementOfferLatestRetry() = runTest {
         every { NetworkStatus.isOnline(context) } returns false
         val operations = operations(this); operations.bringLatestData()
         assertEquals(WardRetryAction.FETCH_LATEST, state.value.retryAction)
-        operations.bringPreviousData(); assertEquals(WardRetryAction.FETCH_PREVIOUS, state.value.retryAction)
-        coVerify(exactly = 0) { sync.refreshDoctorsFromRemote() }
+        operations.replaceAndFetch(); assertEquals(WardRetryAction.FETCH_LATEST, state.value.retryAction)
+        coVerify(exactly = 0) { sync.refreshDoctorsForPatientFetch() }
         assertTrue(observed.isEmpty())
     }
     @Test fun failedDoctorRefreshBlocksClinicalDownload() = runTest {
-        coEvery { sync.refreshDoctorsFromRemote() } returns Result.failure(IllegalStateException("synthetic registry failure"))
+        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.failure(IllegalStateException("synthetic registry failure"))
         operations(this).bringLatestData(); runCurrent()
-        assertFalse(state.value.syncing); assertEquals("synthetic registry failure", state.value.snackbar)
-        coVerify(exactly = 0) { sync.fetchLatestCsv() }
+        assertFalse(state.value.syncing); assertEquals("synthetic registry failure", state.value.syncIssue)
+        coVerify(exactly = 0) { sync.fetchLatestCsv(false, false) }
     }
     @Test fun latestFetchLoadsDoctorsThenPatientsAndSelectsReturnedShift() = runTest {
-        coEvery { sync.refreshDoctorsFromRemote() } returns Result.success(Unit)
-        coEvery { sync.fetchLatestCsv() } returns Result.success(CsvFetchResult("downloaded", 1, 2))
+        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
+        coEvery { sync.fetchLatestCsv(false, false) } returns Result.success(CsvFetchResult("downloaded", 1, 2))
         operations(this).bringLatestData(); runCurrent()
-        coVerifyOrder { sync.refreshDoctorsFromRemote(); sync.fetchLatestCsv() }
+        coVerifyOrder { sync.refreshDoctorsForPatientFetch(); sync.fetchLatestCsv(false, false) }
         assertEquals(listOf("downloaded"), observed); assertFalse(state.value.syncing)
         assertNull(state.value.retryAction)
     }
-    @Test fun previousFetchUsesPreviousTransportAndReturnedShift() = runTest {
-        coEvery { sync.refreshDoctorsFromRemote() } returns Result.success(Unit)
-        coEvery { sync.fetchPreviousCsv() } returns Result.success(CsvFetchResult("previous", 1, 0))
-        operations(this).bringPreviousData(); runCurrent()
+    @Test fun replacementFetchUsesExplicitReplaceFlagAndReturnedSection() = runTest {
+        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
+        coEvery { sync.fetchLatestCsv(true, false) } returns Result.success(CsvFetchResult("previous", 1, 0))
+        operations(this).replaceAndFetch(); runCurrent()
         assertEquals(listOf("previous"), observed)
-        coVerify(exactly = 0) { sync.fetchLatestCsv() }
+        coVerify(exactly = 1) { sync.fetchLatestCsv(true, false) }
+        coVerify(exactly = 0) { sync.fetchLatestCsv(false, false) }
     }
     @Test fun failedPatientFetchLeavesDisplayedShiftAndOffersRetry() = runTest {
-        coEvery { sync.refreshDoctorsFromRemote() } returns Result.success(Unit)
-        coEvery { sync.fetchPreviousCsv() } returns Result.failure(IllegalStateException("synthetic bad snapshot"))
-        operations(this).bringPreviousData(); runCurrent()
+        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
+        coEvery { sync.fetchLatestCsv(true, false) } returns Result.failure(IllegalStateException("synthetic bad snapshot"))
+        operations(this).replaceAndFetch(); runCurrent()
         assertEquals(shift, state.value.shift); assertTrue(observed.isEmpty())
-        assertEquals(WardRetryAction.FETCH_PREVIOUS, state.value.retryAction); assertFalse(state.value.syncing)
+        assertEquals(WardRetryAction.FETCH_LATEST, state.value.retryAction); assertFalse(state.value.syncing)
     }
     @Test fun duplicateFetchCannotDownloadTwoSnapshots() = runTest {
-        coEvery { sync.refreshDoctorsFromRemote() } coAnswers { awaitCancellation() }
+        coEvery { sync.refreshDoctorsForPatientFetch() } coAnswers { awaitCancellation() }
         val operations = operations(backgroundScope); operations.bringLatestData(); runCurrent()
-        operations.bringPreviousData(); runCurrent()
-        coVerify(exactly = 1) { sync.refreshDoctorsFromRemote() }
-    }
-    @Test fun snapshotPickerOffersOnlyNewestBundleSortedByDate() = runTest {
-        val recent = listOf(shift.copy(id = "older-bundle", csvMessageId = 10),
-            shift.copy(id = "first", csvMessageId = 20, date = shift.date.minusDays(1)),
-            shift.copy(id = "latest", csvMessageId = 20), shift.copy(id = "local", csvMessageId = null))
-        coEvery { shifts.getRecent(12) } returns recent
-        coEvery { patients.countForShift(any()) } returns 2
-        operations(this).showDownloadedSnapshots(); runCurrent()
-        assertEquals(listOf("latest", "first").take(AppConstants.CSV_BUNDLE_SHIFT_COUNT), state.value.snapshotChoices.map { it.shiftId })
-        assertTrue(state.value.snapshotChoices.all { it.patientCount == 2 }); assertTrue(state.value.showSnapshotPicker)
-        coVerify(exactly = 0) { patients.countForShift("older-bundle") }
-    }
-    @Test fun absentDownloadedSnapshotsDoNotOpenPicker() = runTest {
-        coEvery { shifts.getRecent(12) } returns listOf(shift)
-        operations(this).showDownloadedSnapshots(); runCurrent()
-        assertFalse(state.value.showSnapshotPicker); assertTrue(state.value.snapshotChoices.isEmpty())
-        assertNotNull(state.value.snackbar)
-    }
-    @Test fun arbitrarySnapshotIdCannotSwitchDisplayedShift() = runTest {
-        state.value = state.value.copy(snapshotChoices = listOf(ShiftSnapshotOption("allowed", shift.date, 2)), showSnapshotPicker = true)
-        operations(this).selectDownloadedSnapshot("unreviewed")
-        assertTrue(observed.isEmpty()); assertTrue(state.value.showSnapshotPicker)
-    }
-    @Test fun choosingReviewedSnapshotSelectsItAndClosesPicker() = runTest {
-        state.value = state.value.copy(snapshotChoices = listOf(ShiftSnapshotOption("allowed", shift.date, 2)), showSnapshotPicker = true)
-        operations(this).selectDownloadedSnapshot("allowed")
-        assertEquals(listOf("allowed"), observed); assertFalse(state.value.showSnapshotPicker)
+        operations.replaceAndFetch(); runCurrent()
+        coVerify(exactly = 1) { sync.refreshDoctorsForPatientFetch() }
     }
     @Test fun undoSelectsRestoredShiftOnlyAfterSuccess() = runTest {
         coEvery { sync.undoLastDownload() } returns Result.success("restored")
@@ -139,59 +112,5 @@ class WardShiftOperationsTest {
         operations(this).exportCsv(); runCurrent()
         coVerify(exactly = 0) { exporter.exportShift(any()) }
         assertFalse(state.value.exportingCsv)
-    }
-    @Test fun rolloverOfferRejectsNonemptyTargetBeforeReadingPreviousShift() = runTest {
-        coEvery { patients.countForShift(shift.id) } returns 1
-        operations(this).offerPreviousShift(); runCurrent()
-        assertTrue(state.value.rolloverPatients.isEmpty())
-        coVerify(exactly = 0) { shifts.getRecent(any()) }
-    }
-    @Test fun rolloverDismissalClearsPreviewWithoutChangingClinicalRecords() = runTest {
-        val source = Fixtures.patient()
-        state.value = state.value.copy(patients = listOf(source), rolloverPatients = listOf(source), rolloverTarget = shift, rolloverSourceLabel = "preview")
-        operations(this).dismissRollover()
-        assertTrue(state.value.rolloverPatients.isEmpty()); assertNull(state.value.rolloverTarget)
-        assertEquals("", state.value.rolloverSourceLabel); assertEquals(listOf(source), state.value.patients)
-    }
-    @Test fun confirmedRolloverReachesRepositoryWithFreshIdsPendingTasksAndExpectedRevision() = runTest {
-        val pending = Fixtures.task().copy(ownerDoctorId = "tree", ownerName = "أرز")
-        val source = Fixtures.patient(responsibleResidentId = "tree", labs = "نتيجة").copy(
-            tasks = listOf(pending, Fixtures.task("done", true)), revision = 5)
-        state.value = state.value.copy(rolloverPatients = listOf(source), rolloverTarget = shift)
-        coEvery { mutations.rollover(any(), shift.id, shift.revision, any(), null) } returns Unit
-        operations(this).applyRollover(keepAssignments = false); runCurrent()
-        val inserted = slot<List<Patient>>()
-        coVerify(exactly = 1) { mutations.rollover(capture(inserted), shift.id, 7,
-            listOf(source to "reassign"), null) }
-        val saved = inserted.captured.single()
-        assertNotEquals(source.id, saved.id); assertEquals(source.labs, saved.labs)
-        assertEquals(1L, saved.revision); assertEquals(1, saved.sortOrder)
-        assertNull(saved.responsibleResidentId)
-        assertEquals(listOf(pending.copy(ownerDoctorId = null, ownerName = null)), saved.tasks)
-        assertFalse(state.value.saving); assertNull(state.value.rolloverTarget)
-    }
-    @Test fun suspendedRolloverBlocksDuplicateConfirmationAndKeepsAssignments() = runTest {
-        val source = Fixtures.patient(responsibleResidentId = "tree").copy(tasks = listOf(Fixtures.task().copy(ownerDoctorId = "tree")))
-        state.value = state.value.copy(rolloverPatients = listOf(source), rolloverTarget = shift)
-        val release = CompletableDeferred<Unit>()
-        coEvery { mutations.rollover(any(), shift.id, shift.revision, any(), null) } coAnswers { release.await() }
-        val operations = operations(this)
-        operations.applyRollover(keepAssignments = true)
-        assertTrue(state.value.saving)
-        operations.applyRollover(keepAssignments = true)
-        coVerify(exactly = 1) { mutations.rollover(match { it.single().responsibleResidentId == "tree" && it.single().tasks == source.tasks },
-            shift.id, shift.revision, listOf(source to "continue"), null) }
-        release.complete(Unit); runCurrent()
-        assertFalse(state.value.saving)
-    }
-    @Test fun rejectedRolloverReleasesBusyStateAndRetainsReview() = runTest {
-        val source = Fixtures.patient()
-        state.value = state.value.copy(rolloverPatients = listOf(source), rolloverTarget = shift)
-        coEvery { mutations.rollover(any(), any(), any(), any(), any()) } throws IllegalStateException("synthetic stale revision")
-        operations(this).applyRollover(keepAssignments = false); runCurrent()
-        assertFalse(state.value.saving)
-        assertEquals("synthetic stale revision", state.value.snackbar)
-        assertEquals(listOf(source), state.value.rolloverPatients)
-        assertEquals(shift, state.value.rolloverTarget)
     }
 }

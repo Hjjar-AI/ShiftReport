@@ -15,10 +15,10 @@ class PatientTaskCodecTest {
         assertEquals(tasks, PatientTaskCodec.decode(PatientTaskCodec.encode(tasks)))
         assertEquals(emptyList<PatientTask>(), PatientTaskCodec.decode(" "))
     }
-    @Test fun `decode rejects corrupt JSON and incomplete completion records`() {
+    @Test fun `decode rejects corrupt JSON and malformed checklist records`() {
         assertThrows(Exception::class.java) { PatientTaskCodec.decode("broken") }
         assertThrows(IllegalArgumentException::class.java) {
-            PatientTaskCodec.decode(PatientTaskCodec.encode(listOf(Fixtures.task().copy(done = true))))
+            PatientTaskCodec.decode(PatientTaskCodec.encode(listOf(Fixtures.task().copy(description = " "))))
         }
     }
 }

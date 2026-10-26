@@ -12,16 +12,15 @@ class PatientTasksTest {
         val tasks = listOf(Fixtures.task("due").copy(dueAtEpochMillis = 100),
             Fixtures.task("future").copy(dueAtEpochMillis = 101, ownerDoctorId = "doc"),
             Fixtures.task("done", done = true).copy(dueAtEpochMillis = 1))
-        assertEquals(TaskCounts(2, 0, 0), PatientTasks.counts(tasks, 100))
-        assertFalse(PatientTasks.overdue(tasks.last(), 100))
+        assertEquals(TaskCounts(2), PatientTasks.counts(tasks))
     }
-    @Test fun `rollover drops completed tasks and optionally clears both owner fields`() {
+    @Test fun `display ordering preserves legacy ownership without changing records`() {
         val pending = Fixtures.task().copy(ownerDoctorId = "doc", ownerName = "أرز")
-        val input = listOf(pending, Fixtures.task("done", true))
-        assertEquals(listOf(pending), PatientTasks.carryForward(input, false))
-        assertEquals(listOf(pending.copy(ownerDoctorId = null, ownerName = null)),
-            PatientTasks.carryForward(input, true))
-        assertEquals("doc", input.first().ownerDoctorId)
+        val done = Fixtures.task("done", true)
+        val input = listOf(done, pending)
+        assertEquals(listOf(pending, done), PatientTasks.orderedForDisplay(input))
+        assertEquals("doc", input.last().ownerDoctorId)
+        assertEquals(listOf(done, pending), input)
     }
     @Test fun `display keeps checklist order with completed last without mutation`() {
         val input = listOf(Fixtures.task("done", true), Fixtures.task("undated"),
@@ -29,38 +28,32 @@ class PatientTasksTest {
             Fixtures.task("high").copy(priority = TaskPriority.HIGH, dueAtEpochMillis = 100),
             Fixtures.task("earlier").copy(dueAtEpochMillis = 50))
         assertEquals(listOf("undated", "low", "high", "earlier", "done"),
-            PatientTasks.orderedForDisplay(input, 100).map { it.id })
+            PatientTasks.orderedForDisplay(input).map { it.id })
         assertEquals("done", input.first().id)
     }
     @Test fun `ward filters require both team selections and exclude completed tasks`() {
         val patient = Fixtures.patient(responsibleResidentId = "r", responsibleSpecialistId = "s")
             .copy(tasks = listOf(Fixtures.task(), Fixtures.task("done", true)))
-        assertEquals(1, PatientTasks.wardPending(listOf(patient), "s", "r", 100).size)
-        assertTrue(PatientTasks.wardPending(listOf(patient), "other", "r", 100).isEmpty())
-        assertEquals(1, PatientTasks.wardPending(listOf(patient), null, null, 100).size)
+        assertEquals(1, PatientTasks.wardPending(listOf(patient), "s", "r").size)
+        assertTrue(PatientTasks.wardPending(listOf(patient), "other", "r").isEmpty())
+        assertEquals(1, PatientTasks.wardPending(listOf(patient), null, null).size)
     }
-    @Test fun `validation rejects malformed identities and completion records`() {
+    @Test fun `validation rejects blank identities descriptions and duplicates while retaining legacy compatibility`() {
         val task = Fixtures.task()
-        val invalid = listOf(task.copy(id = " "), task.copy(description = " "),
-            task.copy(done = true), task.copy(completedByDoctorId = "doc"))
-        invalid.forEach { value ->
-            assertThrows(value.toString(), IllegalArgumentException::class.java) {
-                PatientTasks.requireValid(listOf(value))
-            }
+        for (invalid in listOf(task.copy(id = " "), task.copy(description = " "))) {
+            assertThrows(IllegalArgumentException::class.java) { PatientTasks.requireValid(listOf(invalid)) }
         }
         assertThrows(IllegalArgumentException::class.java) { PatientTasks.requireValid(listOf(task, task)) }
-        PatientTasks.requireValid(listOf(task, Fixtures.task("done", true)))
-        PatientTasks.requireValid(listOf(task.copy(done = true)), requireCompletion = false)
+        PatientTasks.requireValid(listOf(task.copy(done = true)))
+        PatientTasks.requireValid(listOf(task.copy(completedByDoctorId = "legacy")))
     }
     @Test fun `compact report omits routine and unassigned labels while retaining clinical task`() {
-        val task = Fixtures.task().copy(description = "قياس تجريبي")
-        val summary = PatientTasks.summary(listOf(task), includeUnassigned = false,
-            includeRoutinePriority = false, nowEpochMillis = 100)
+        val task = Fixtures.task().copy(description = "قياس تجريبي", ownerDoctorId = "doc", ownerName = "اسم محفوظ", priority = TaskPriority.HIGH)
+        val summary = PatientTasks.summary(listOf(task))
         assertTrue(summary.contains(task.description))
+        assertTrue(summary.contains("☐"))
         assertFalse(summary.contains("غير معيّنة"))
         assertFalse(summary.contains("أولوية"))
-        val owned = task.copy(ownerDoctorId = "doc", ownerName = "اسم محفوظ", priority = TaskPriority.HIGH)
-        assertEquals("", PatientTasks.metadata(owned, mapOf("doc" to "أرز")))
-        assertEquals("", PatientTasks.metadata(owned))
+        assertFalse(summary.contains("اسم محفوظ"))
     }
 }

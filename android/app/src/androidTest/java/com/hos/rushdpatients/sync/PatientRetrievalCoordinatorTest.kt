@@ -18,6 +18,7 @@ class PatientRetrievalCoordinatorTest : SyncFixture() {
         val shift = requireNotNull(shifts.getById("today")).copy(doctorIds = listOf(admin.id), revision = 2)
         val patient = Patient(id = "p", name = "شاي", admittanceNumber = "1", admittanceDate = ShiftDate.current(),
             birthDate = LocalDate.of(1990, 1, 1), initialDiagnosis = "تجريبي", treatmentPlan = "خطة", followUp = "متابعة", revision = 2)
+        shifts.selectCurrent("today")
         wire.files["csv"] = CsvCodec.encode(shift, listOf(patient))
         wire.state = wire.state.copy(csvFileId = "csv", csvMessageId = 10, csvUpdatedAt = 100,
             previousCsvFileId = "csv", previousCsvMessageId = 9)
@@ -29,14 +30,14 @@ class PatientRetrievalCoordinatorTest : SyncFixture() {
         assertEquals("شاي", patients.getById("p")?.name)
         assertEquals(10L, cursors.lastMessageId(SyncChannel.CSV))
         assertEquals(10L, shifts.getById("today")?.csvMessageId)
-        assertFalse(settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true))
+        assertFalse(PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers).hasPending())
         assertNotNull(settings.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + "today"))
         undo.undo()
         assertTrue(patients.getForShift("today").isEmpty())
     }
     @Test fun pendingLocalDataPreventsAnyDownload() = runBlocking<Unit> {
         publication()
-        settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
+        patients.upsert(Patient(id = "local", name = "قهوة"), "today")
         assertTrue(retrieval.fetchLatestCsv().isFailure)
         assertTrue(wire.methods.isEmpty())
         assertNull(patients.getById("p"))
@@ -67,13 +68,14 @@ class PatientRetrievalCoordinatorTest : SyncFixture() {
         assertFalse("getFile" in wire.methods)
         assertEquals(20L, cursors.lastMessageId(SyncChannel.CSV))
     }
-    @Test fun explicitRecoveryDoesNotRewindCurrentCursorOrBaseline() = runBlocking<Unit> {
+    @Test fun olderRemoteRequiresExplicitAdminApprovalWithoutChangingLocalBaseline() = runBlocking<Unit> {
         publication()
         cursors.update(SyncChannel.CSV, 200, 20, "newer")
         settings.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + "today", "preserved-baseline")
-        retrieval.fetchPreviousCsv().getOrThrow()
+        val failure = retrieval.fetchLatestCsv().exceptionOrNull()
+        assertTrue(failure is OlderRemoteSnapshotException)
         assertEquals(20L, cursors.lastMessageId(SyncChannel.CSV))
         assertEquals("preserved-baseline", settings.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + "today"))
-        assertTrue(settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertNull(patients.getById("p"))
     }
 }

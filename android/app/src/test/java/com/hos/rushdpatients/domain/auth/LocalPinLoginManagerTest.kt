@@ -32,7 +32,7 @@ class LocalPinLoginManagerTest {
     }
     @Test fun `invalid pin formats never read identity or consume attempts`() = runBlocking<Unit> {
         listOf("", "123", "123456789", "12a4", " 2468").forEach {
-            assertThrows(IllegalArgumentException::class.java) { runBlocking { manager.verify(doctor.id, it) } }
+            assertThrows(LocalPinException::class.java) { runBlocking { manager.verify(doctor.id, it) } }
         }
         coVerify(exactly = 0) { doctors.getActiveById(any()) }
         coVerify(exactly = 0) { settings.put(any(), any()) }
@@ -51,7 +51,7 @@ class LocalPinLoginManagerTest {
         coEvery { doctors.getActiveById(doctor.id) } returnsMany listOf(doctor, live)
         assertEquals(live, manager.verify(doctor.id, pin))
         coVerifyOrder {
-            settings.put(key, "1:0")
+            settings.put(key, "1:0:0")
             hasher.verify(pin, "synthetic-hash")
             doctors.getActiveById(doctor.id)
             settings.delete(key)
@@ -60,32 +60,33 @@ class LocalPinLoginManagerTest {
     @Test fun `failed login retains incremented counter`() = runBlocking<Unit> {
         coEvery { settings.get(key) } returns "2:0"
         every { hasher.verify(pin, any()) } returns false
-        assertThrows(IllegalArgumentException::class.java) { runBlocking { manager.verify(doctor.id, pin) } }
-        coVerify { settings.put(key, "3:0") }
+        assertThrows(LocalPinException::class.java) { runBlocking { manager.verify(doctor.id, pin) } }
+        coVerify { settings.put(key, "3:0:0") }
         coVerify(exactly = 0) { settings.delete(key) }
     }
     @Test fun `threshold failure persists a future lockout`() = runBlocking<Unit> {
         coEvery { settings.get(key) } returns "${AppConstants.LOGIN_MAX_ATTEMPTS - 1}:0"
         every { hasher.verify(pin, any()) } returns false
         val before = System.currentTimeMillis()
-        assertThrows(IllegalArgumentException::class.java) { runBlocking { manager.verify(doctor.id, pin) } }
+        assertThrows(LocalPinException::class.java) { runBlocking { manager.verify(doctor.id, pin) } }
         coVerify { settings.put(key, match {
             val parts = it.split(':')
-            parts[0].toInt() == AppConstants.LOGIN_MAX_ATTEMPTS &&
+            parts.size == 3 && parts[2] == "1" &&
+                parts[0].toInt() == AppConstants.LOGIN_MAX_ATTEMPTS &&
                 parts[1].toLong() in (before + 300_000)..(System.currentTimeMillis() + 300_000)
         }) }
         coVerify(exactly = 0) { settings.delete(key) }
     }
     @Test fun `active lockout prevents hashing and further counter changes`() = runBlocking<Unit> {
         coEvery { settings.get(key) } returns "5:${Long.MAX_VALUE}"
-        assertThrows(IllegalArgumentException::class.java) { runBlocking { manager.verify(doctor.id, pin) } }
+        assertThrows(LocalPinException::class.java) { runBlocking { manager.verify(doctor.id, pin) } }
         verify(exactly = 0) { hasher.verify(any(), any()) }
         coVerify(exactly = 0) { settings.put(any(), any()) }
     }
     @Test fun `expired lockout restarts attempts at one`() = runBlocking<Unit> {
         coEvery { settings.get(key) } returns "5:1"
         manager.verify(doctor.id, pin)
-        coVerify { settings.put(key, "1:0") }
+        coVerify { settings.put(key, "1:0:0") }
     }
     @Test fun `changed account pin or removed doctor after hashing cannot start login`() = runBlocking<Unit> {
         for (changed in listOf(null, doctor.copy(telegramId = 456), doctor.copy(extraOptions = setOf("pin:changed")))) {
@@ -99,7 +100,7 @@ class LocalPinLoginManagerTest {
         every { hasher.verify(pin, any()) } throws cancellation
         val caught = assertThrows(CancellationException::class.java) { runBlocking { manager.verify(doctor.id, pin) } }
         assertSame(cancellation, caught)
-        coVerify { settings.put(key, "1:0") }
+        coVerify { settings.put(key, "1:0:0") }
         coVerify(exactly = 0) { settings.delete(key) }
     }
     @Test fun `malformed attempt state fails closed before hashing`() = runBlocking<Unit> {

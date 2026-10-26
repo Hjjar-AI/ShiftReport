@@ -42,6 +42,7 @@ class TransactionCrashService : Service() {
                     7, 8 -> { workflow!!.undoAndDie(mode == 7, die); return@runBlocking }
                     9, 10 -> { workflow!!.exportAndDie(mode == 10, die); return@runBlocking }
                     11 -> { workflow!!.unconfirmedDeliveryAndDie(die); return@runBlocking }
+                    12 -> { workflow!!.draftAndDie(die); return@runBlocking }
                 }
                 require(mode == 1 || mode == 2)
                 db.withTransaction {

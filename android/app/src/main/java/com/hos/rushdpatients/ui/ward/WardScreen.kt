@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.appContentEntrance
 
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.AppSheet
@@ -544,7 +545,8 @@ private fun WardWorkspaceContent(
                     primaryTitle = if (patientDestination) uiText(R.string.ui_handover_dashboard_004) else if (viewMode == WardViewMode.ACTIVITY) uiText(R.string.ui_ward_activity_screen_003) else uiText(R.string.ui_ward_screen_003),
                     supportingTitle = if (selectedPatient == null) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_screen_005),
                     supporting = {
-                        Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
+                        Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)
+                            .appContentEntrance(selectedPatient?.id to (editor.editTarget == null && editor.copyTarget == null))) {
                             if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) detailContent(true)
                             else WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
                                 showSynchronization = viewModel.synchronizationAvailable, onOpenSyncCenter = onOpenDataManagement,
@@ -553,7 +555,7 @@ private fun WardWorkspaceContent(
                     },
                     compactOverlay = { if (patientDestination) detailContent(false) },
                     primary = { dualPane ->
-                    Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize().appContentEntrance(viewMode)) {
                         if (state.loading && state.shift == null) {
                             com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_ward_screen_006), Modifier.align(Alignment.Center))
                         } else if (state.error != null && state.shift == null) {

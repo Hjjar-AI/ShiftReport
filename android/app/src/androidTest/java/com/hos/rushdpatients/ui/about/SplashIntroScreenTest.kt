@@ -16,29 +16,26 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SplashIntroScreenTest {
     @get:Rule val compose = createComposeRule()
-    @Test fun quickTapSkipsAndReleasesReadingHold() {
+    @Test fun quickTapSkipsIntro() {
         var skips = 0
-        val holds = mutableListOf<Boolean>()
-        compose.setContent { MaterialTheme { SplashIntroScreen({ skips++ }, 5, false, { holds += it }) } }
-        compose.onRoot().performTouchInput { click(center) }
-        compose.runOnIdle { assertEquals(1, skips); assertEquals(listOf(true, false), holds) }
+        compose.setContent { MaterialTheme { SplashIntroScreen { skips++ } } }
+        compose.onNode(hasClickAction()).performTouchInput { click(center) }
+        compose.runOnIdle { assertEquals(1, skips) }
     }
-    @Test fun longPressKeepsReadingUntilReleaseWithoutQuickSkip() {
+    @Test fun holdingDoesNotExposeRetiredPauseControls() {
         var skips = 0
-        val holds = mutableListOf<Boolean>()
-        compose.setContent { MaterialTheme { SplashIntroScreen({ skips++ }, 0, true, { holds += it }) } }
-        compose.onRoot().performTouchInput { down(center); advanceEventTime(700); up() }
-        compose.runOnIdle { assertEquals(0, skips); assertEquals(listOf(true, false), holds) }
+        compose.setContent { MaterialTheme { SplashIntroScreen { skips++ } } }
+        compose.onNode(hasClickAction()).performTouchInput { down(center); advanceEventTime(700); up() }
+        compose.runOnIdle { assertEquals(1, skips) }
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)).assertCountEquals(0)
     }
-    @Test fun accessibilityActionCanHoldAndReleaseExpiredSplash() {
-        var held by mutableStateOf(false)
+    @Test fun accessibilityClickSkipsWithoutHoldActions() {
+        var skips = 0
         compose.setContent { CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            MaterialTheme { SplashIntroScreen({}, 0, held, { held = it }) }
+            MaterialTheme { SplashIntroScreen { skips++ } }
         } }
-        val node = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
-        val hold = node.fetchSemanticsNode().config[SemanticsActions.CustomActions].single()
-        compose.runOnIdle { assertTrue(hold.action()); assertTrue(held) }
-        val release = node.fetchSemanticsNode().config[SemanticsActions.CustomActions].single()
-        compose.runOnIdle { assertTrue(release.action()); assertFalse(held) }
+        compose.onNode(hasClickAction()).performClick()
+        compose.runOnIdle { assertEquals(1, skips) }
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)).assertCountEquals(0)
     }
 }

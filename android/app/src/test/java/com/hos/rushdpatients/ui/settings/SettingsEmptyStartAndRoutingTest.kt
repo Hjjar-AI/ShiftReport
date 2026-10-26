@@ -30,7 +30,7 @@ class SettingsEmptyStartAndRoutingTest : SettingsProjectFixture() {
     }
     @Test fun confirmedResetConsumesReviewInvalidatesPublicationAndReloadsOnce() = runTest {
         coEvery { emptyStart.prepare() } returns review
-        coEvery { emptyStart.confirm(review) } returns 1L
+        coEvery { emptyStart.confirm(review) } returns Unit
         val operations = operations(this); operations.prepareEmptyStart(); runCurrent()
         operations.confirmEmptyStart(); operations.confirmEmptyStart(); runCurrent()
         coVerify(exactly = 1) { emptyStart.confirm(review) }
@@ -86,13 +86,13 @@ class SettingsEmptyStartAndRoutingTest : SettingsProjectFixture() {
         coVerify(exactly = 0) { mutations.setSupervisorGroup(any(), any()) }
     }
     @Test fun negativeDestinationUsesExactExpectedDoctorAndTrimmedId() = runTest {
-        coEvery { mutations.setSupervisorGroup(actor, -100) } returns 1L
+        coEvery { mutations.setSupervisorGroup(actor, -100) } returns Unit
         operations(this).setSupervisorGroupChatId(actor, "  -100  "); runCurrent()
         coVerify(exactly = 1) { mutations.setSupervisorGroup(actor, -100) }
         assertNull(state.value.savingSupervisorGroupId)
     }
     @Test fun blankDestinationExplicitlyClearsSupervisorRouting() = runTest {
-        coEvery { mutations.setSupervisorGroup(actor, null) } returns 1L
+        coEvery { mutations.setSupervisorGroup(actor, null) } returns Unit
         operations(this).setSupervisorGroupChatId(actor, "  "); runCurrent()
         coVerify(exactly = 1) { mutations.setSupervisorGroup(actor, null) }
     }
@@ -101,7 +101,7 @@ class SettingsEmptyStartAndRoutingTest : SettingsProjectFixture() {
         val operations = operations(this); operations.setSupervisorGroupChatId(actor, "-100"); runCurrent()
         assertEquals("synthetic stale doctor", state.value.snackbar)
         assertNull(state.value.savingSupervisorGroupId)
-        coEvery { mutations.setSupervisorGroup(actor, -100) } returns 1L
+        coEvery { mutations.setSupervisorGroup(actor, -100) } returns Unit
         operations.setSupervisorGroupChatId(actor, "-100"); runCurrent()
         coVerify(exactly = 2) { mutations.setSupervisorGroup(actor, -100) }
     }

@@ -28,7 +28,7 @@ class HandoverDashboardInteractionTest {
             tasks = listOf(PatientTask("task", "فحص تجريبي", dueAtEpochMillis = 1000)))
         compose.setContent { CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             MaterialTheme { HandoverDashboard(admin, listOf(patient), "tree", PatientSyncStatus.LOCAL,
-                online = false, freshnessLabel = "تجريبي", nowEpochMillis = 1000,
+                online = false, freshnessLabel = "تجريبي",
                 onFilter = { selected = it }, onSync = { fetches++ }, onActivity = { activity++ },
                 showSynchronization = synchronization) }
         } }
@@ -38,14 +38,14 @@ class HandoverDashboardInteractionTest {
         compose.onNodeWithText(label(R.string.ui_ward_activity_screen_003)).assertDoesNotExist()
         compose.runOnIdle { assertEquals(0, activity) }
     }
-    @Test fun adminCanOpenActivityCenterWithoutPublishingOrFetching() {
+    @Test fun retiredClinicalActivityIsAbsentForAdminToo() {
         show(admin = true)
-        compose.onNodeWithText(label(R.string.ui_ward_activity_screen_003)).performClick()
-        compose.runOnIdle { assertEquals(1, activity); assertEquals(0, fetches); assertNull(selected) }
+        compose.onNodeWithText(label(R.string.ui_ward_activity_screen_003)).assertDoesNotExist()
+        compose.runOnIdle { assertEquals(0, activity); assertEquals(0, fetches); assertNull(selected) }
     }
     @Test fun localPresentationCanHideSynchronizationAction() {
         show(synchronization = false)
-        compose.onNodeWithText(label(R.string.ui_handover_dashboard_003)).assertDoesNotExist()
+        compose.onNodeWithText(label(R.string.ui_ward_drawer_013)).assertDoesNotExist()
         compose.runOnIdle { assertEquals(0, fetches) }
     }
     @Test fun urgentMetricOpensUrgentFilter() {
@@ -53,10 +53,10 @@ class HandoverDashboardInteractionTest {
         compose.onNodeWithText(label(R.string.ui_handover_dashboard_006)).performScrollTo().performClick()
         compose.runOnIdle { assertEquals(DashboardFilter.URGENT, selected); assertEquals(0, fetches) }
     }
-    @Test fun overdueMetricOpensOverdueSubset() {
+    @Test fun retiredOverdueMetricIsAbsent() {
         show()
-        compose.onNodeWithText(label(R.string.ui_handover_dashboard_007)).performScrollTo().performClick()
-        compose.runOnIdle { assertEquals(DashboardFilter.TASK_OVERDUE, selected) }
+        compose.onNodeWithText(label(R.string.ui_handover_dashboard_007)).assertDoesNotExist()
+        compose.runOnIdle { assertNull(selected); assertEquals(0, fetches) }
     }
     @Test fun pendingTaskMetricOpensPendingTasksRatherThanPublishing() {
         show()

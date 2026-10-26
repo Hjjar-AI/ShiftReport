@@ -7,7 +7,7 @@ import org.junit.Test
 class WardPatientFilteringTest {
     private fun filter(patients: List<com.hos.rushdpatients.data.model.Patient>,
         options: WardFilterOptions = WardFilterOptions(), pins: Set<String> = emptySet()) =
-        filterWardPatients(patients, options, "doctor", 100, pins, wardSearchIndex(patients)).map { it.id }
+        filterWardPatients(patients, options, "doctor", java.time.LocalDate.of(2026, 10, 26), pins, wardSearchIndex(patients)).map { it.id }
     @Test fun `search covers all saved clinical text and task descriptions`() {
         val patients = listOf(Fixtures.patient().copy(tasks = listOf(Fixtures.task().copy(description = "تصوير تجريبي")), labs = "بوتاسيوم"))
         listOf("شاي", "تشخيص", "خطة", "متابعة", "بوتاسيوم", "تصوير", "1").forEach {
@@ -27,8 +27,8 @@ class WardPatientFilteringTest {
             Fixtures.patient(id = "future").copy(tasks = listOf(Fixtures.task().copy(ownerDoctorId = "doctor", dueAtEpochMillis = 101))),
             Fixtures.patient(id = "done").copy(tasks = listOf(Fixtures.task(done = true))), Fixtures.patient(id = "none"))
         assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.PENDING)))
-        assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.OVERDUE)))
-        assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.UNASSIGNED)))
+        assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.fromSaved("OVERDUE"))))
+        assertEquals(listOf("due", "future"), filter(patients, WardFilterOptions(taskFilter = WardTaskFilter.fromSaved("UNASSIGNED"))))
     }
     @Test fun `mine and priority filters intersect rather than expand results`() {
         val patients = listOf(Fixtures.patient(id = "mine", responsibleResidentId = "doctor").copy(isPriority = true),

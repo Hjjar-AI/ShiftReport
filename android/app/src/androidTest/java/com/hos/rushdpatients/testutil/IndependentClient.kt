@@ -31,15 +31,15 @@ class IndependentClient(val label: String, val server: SharedTelegramServer) : A
     }
     val topics = Topics(projects)
     val telegram = server.client(label, projects, dispatchers)
-    val cursors = SyncStateRepository(db.syncStateDao(), dispatchers)
-    val remote = RemoteSyncStateStore(telegram, topics, server.json)
+    val cursors = SyncStateRepository(db.syncStateDao(), settings, dispatchers)
+    val remote = RemoteSyncStateStore(context, telegram, topics, server.json)
     val undo = LocalDownloadUndo(db, shifts, patients, settings, audit, sessions, dispatchers, server.json)
     val doctorSync = DoctorSyncCoordinator(context, telegram, topics, doctors, cursors, settings, db, audit,
         authorizer, sessions, dispatchers, remote)
     val reports = ReportBuilder(patients, doctors, shifts, TextReportBuilder(), db, dispatchers)
     val sync = SyncService(context, telegram, topics, shifts, patients, doctors, cursors, settings, db,
-        audit, dispatchers, remote, doctorSync, reports, undo)
-    val wardMutations = WardMutationRepository(db, patients, doctors, shifts, settings, audit, dispatchers)
+        audit, dispatchers, remote, doctorSync, reports, undo, PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers))
+    val wardMutations = WardMutationRepository(db, patients, doctors, shifts, audit, dispatchers)
     val doctorMutations = DoctorMutationRepository(db, doctors, patients, authorizer, PasswordHasher(), audit, dispatchers)
     val actor = Doctor(id = "cedar", fullName = "د. أرز شجرة", firstName = "أرز", lastName = "شجرة",
         gender = Gender.MALE, telegramId = 123, rank = 1, isPermanentAdmin = true, updatedAt = Instant.EPOCH)
@@ -60,7 +60,7 @@ class IndependentClient(val label: String, val server: SharedTelegramServer) : A
         settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
         return patient
     }
-    suspend fun publish() = sync.uploadReviewedCsv(sync.prepareCsvPublication("today", forceLocal = true), forceLocal = true).getOrThrow()
+    suspend fun publish() = sync.uploadReviewedCsv(sync.prepareCsvPublication("today")).getOrThrow()
     override fun close() {
         try { db.close() } finally { context.cleanUp() }
     }

@@ -47,9 +47,9 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
             val job = launch(Dispatchers.Default) { attempt { entered.complete(it); awaitCancellation() } }
             val row = entered.await()
             job.cancelAndJoin()
-            assertEquals("UNKNOWN", record().status)
-            ledger.requireResolvable(row.id, "UNKNOWN")
-            ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED)
+            assertEquals(DeliveryStatus.UNKNOWN, record().status)
+            ledger.requireResolvable(row.id, DeliveryStatus.UNKNOWN)
+            ledger.resolve(row.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED)
             ledger.check("shift", -100, "content", "TEXT")
         }
     }
@@ -71,9 +71,9 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
             }
             fail("Expected receipt write failure")
         } catch (e: IllegalStateException) { assertEquals("receipt storage failure", e.message) }
-        assertEquals("UNKNOWN", record().status)
+        assertEquals(DeliveryStatus.UNKNOWN, record().status)
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt() } }
-        ledger.requireResolvable(record().id, "UNKNOWN")
+        ledger.requireResolvable(record().id, DeliveryStatus.UNKNOWN)
     }
 
     @Test fun `corrupt ledger fails closed instead of starting new history`() = runBlocking<Unit> {
@@ -106,20 +106,20 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
 
     @Test fun `copy permission survives recreation but failed repeat consumes it`() = runBlocking<Unit> {
         attempt { ledger.confirm(it.id, listOf(1)) }
-        ledger.resolve(record().id, "SENT", DeliveryResolution.ALLOW_COPY)
+        ledger.resolve(record().id, DeliveryStatus.SENT, DeliveryResolution.ALLOW_COPY)
         ledger = recreated()
         try { attempt { throw IllegalStateException("ambiguous transport") }; fail("Expected failure") }
         catch (_: IllegalStateException) { }
-        val unknown = ledger.observe().first().single { it.status == "UNKNOWN" }
-        ledger.resolve(unknown.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED)
+        val unknown = ledger.observe().first().single { it.status == DeliveryStatus.UNKNOWN }
+        ledger.resolve(unknown.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED)
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt() } }
     }
 
     @Test fun `manual received resolution blocks identical resend after recreation`() = runBlocking<Unit> {
         attempt()
-        ledger.resolve(record().id, "UNKNOWN", DeliveryResolution.RECEIVED)
+        ledger.resolve(record().id, DeliveryStatus.UNKNOWN, DeliveryResolution.RECEIVED)
         ledger = recreated()
-        assertEquals("SENT", record().status)
+        assertEquals(DeliveryStatus.SENT, record().status)
         assertTrue(record().messageIds.isEmpty())
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt() } }
     }
@@ -127,10 +127,10 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
     @Test fun `manual not-received resolution permits fresh attempt without deleting history`() = runBlocking<Unit> {
         attempt()
         val first = record()
-        ledger.resolve(first.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED)
+        ledger.resolve(first.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED)
         attempt { ledger.confirm(it.id, listOf(2)) }
         val rows = ledger.observe().first()
-        assertEquals(listOf("NOT_SENT", "SENT"), rows.map { it.status })
+        assertEquals(listOf(DeliveryStatus.NOT_SENT, DeliveryStatus.SENT), rows.map { it.status })
         assertEquals(first.id, rows.first().id)
         assertNotEquals(rows.first().id, rows.last().id)
     }
@@ -167,18 +167,19 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
         val row = record()
         coEvery { doctors.getActiveById(actor.id) } returns null
         assertThrows(IllegalStateException::class.java) {
-            runBlocking { ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED) }
+            runBlocking { ledger.resolve(row.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED) }
         }
-        assertEquals("UNKNOWN", record().status)
+        assertEquals(DeliveryStatus.UNKNOWN, record().status)
     }
 
-    @Test fun `copy permission cannot resolve uncertain record or alter status`() = runBlocking<Unit> {
+    @Test fun `explicit copy permission preserves uncertain delivery after recreation`() = runBlocking<Unit> {
         attempt()
-        val before = raw.value
-        assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { ledger.resolve(record().id, "UNKNOWN", DeliveryResolution.ALLOW_COPY) }
-        }
-        assertEquals(before, raw.value)
+        assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { ledger.check("shift", -100, "content", "TEXT") } }
+        ledger.resolve(record().id, DeliveryStatus.UNKNOWN, DeliveryResolution.ALLOW_COPY)
+        ledger = recreated()
+        assertEquals(DeliveryStatus.UNKNOWN_COPY_ALLOWED, record().status)
+        assertTrue(record().messageIds.isEmpty())
+        ledger.check("shift", -100, "content", "TEXT")
     }
 
     @Test fun `publication metadata and transport result survive ledger wrapper`() = runBlocking<Unit> {
@@ -198,16 +199,16 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
         val before = raw.value
         coEvery { settings.put("report_delivery_ledger", any()) } throws IllegalStateException("resolution storage failure")
         val failure = assertThrows(IllegalStateException::class.java) {
-            runBlocking { ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED) }
+            runBlocking { ledger.resolve(row.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED) }
         }
         assertEquals("resolution storage failure", failure.message)
         assertEquals(before, raw.value)
         ledger = recreated()
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
         acceptLedgerWrites()
-        ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED)
+        ledger.resolve(row.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED)
         attempt { ledger.confirm(it.id, listOf(21)) }
-        assertEquals(listOf("NOT_SENT", "SENT"), ledger.observe().first().map { it.status })
+        assertEquals(listOf(DeliveryStatus.NOT_SENT, DeliveryStatus.SENT), ledger.observe().first().map { it.status })
     }
 
     @Test fun `failed copy permission write cannot authorize another delivery`() = runBlocking<Unit> {
@@ -216,7 +217,7 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
         val before = raw.value
         coEvery { settings.put("report_delivery_ledger", any()) } throws IllegalStateException("permission storage failure")
         val failure = assertThrows(IllegalStateException::class.java) {
-            runBlocking { ledger.resolve(row.id, "SENT", DeliveryResolution.ALLOW_COPY) }
+            runBlocking { ledger.resolve(row.id, DeliveryStatus.SENT, DeliveryResolution.ALLOW_COPY) }
         }
         assertEquals("permission storage failure", failure.message)
         assertEquals(before, raw.value)
@@ -228,7 +229,7 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
 
     @Test fun `failed repeat registration retains its durable one-use permission`() = runBlocking<Unit> {
         attempt { ledger.confirm(it.id, listOf(1)) }
-        ledger.resolve(record().id, "SENT", DeliveryResolution.ALLOW_COPY)
+        ledger.resolve(record().id, DeliveryStatus.SENT, DeliveryResolution.ALLOW_COPY)
         val before = raw.value
         coEvery { settings.put("report_delivery_ledger", any()) } throws IllegalStateException("registration storage failure")
         val failure = assertThrows(IllegalStateException::class.java) {
@@ -256,7 +257,7 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
                     ledger.confirm(it.id, listOf(22))
                 }
                 val rows = ledger.observe().first()
-                assertEquals("UNKNOWN", rows.single { it.id == firstRow.id }.status)
+                assertEquals(DeliveryStatus.UNKNOWN, rows.single { it.id == firstRow.id }.status)
                 assertEquals(listOf(22L), rows.single { it.id != firstRow.id }.messageIds)
                 assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
             } finally { release.complete(Unit); first.await() }
@@ -269,14 +270,14 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
         val admin = Fixtures.doctor(id = "other-admin", fullName = "بلوط", rank = 1)
         every { sessions.current() } returns Session(admin.id, admin.fullName, null, admin.role, Fixtures.timestamp)
         coEvery { doctors.getActiveById(admin.id) } returns admin
-        ledger.requireResolvable(row.id, "UNKNOWN")
+        ledger.requireResolvable(row.id, DeliveryStatus.UNKNOWN)
         val before = raw.value
         coEvery { doctors.getActiveById(admin.id) } returns admin.copy(rank = 0)
         assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.RECEIVED) }
+            runBlocking { ledger.resolve(row.id, DeliveryStatus.UNKNOWN, DeliveryResolution.RECEIVED) }
         }
         assertEquals(before, raw.value)
-        assertEquals("UNKNOWN", recreated().observe().first().single().status)
+        assertEquals(DeliveryStatus.UNKNOWN, recreated().observe().first().single().status)
     }
 
     @Test fun `non-admin sender can resolve their own delivery after ledger recreation`() = runBlocking<Unit> {
@@ -284,9 +285,9 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
         attempt()
         val row = record()
         ledger = recreated()
-        ledger.requireResolvable(row.id, "UNKNOWN")
-        ledger.resolve(row.id, "UNKNOWN", DeliveryResolution.RECEIVED)
-        assertEquals("SENT", record().status)
+        ledger.requireResolvable(row.id, DeliveryStatus.UNKNOWN)
+        ledger.resolve(row.id, DeliveryStatus.UNKNOWN, DeliveryResolution.RECEIVED)
+        assertEquals(DeliveryStatus.SENT, record().status)
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
     }
 }

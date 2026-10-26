@@ -19,7 +19,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import com.hos.rushdpatients.ui.theme.LocalUiStyle
+import com.hos.rushdpatients.ui.theme.LocalUiPreferences
 import com.hos.rushdpatients.ui.components.AppIcons
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
@@ -29,7 +31,15 @@ import com.hos.rushdpatients.ui.components.AppTextButton
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import kotlin.math.roundToInt
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.ui.components.EmptyState
@@ -56,6 +66,21 @@ internal fun WardPatientGrid(
         state.groupedPatients.map { group ->
             group to group.patients.filter { it.id in visibleIds }.sortedByDescending { it.id in pinnedIds }
         }.filter { it.second.isNotEmpty() }
+    }
+    val reducedMotion = LocalUiPreferences.current.reducedMotion
+    val expandMillis = LocalUiStyle.current.expandMillis
+    val collapseMillis = LocalUiStyle.current.collapseMillis
+    // Animate only group visibility. Patient-card bulk expansion keeps its own instant path.
+    // Keep lazy patient keys while closing; remove the rows once their height reaches zero.
+    val groupHeights = visibleGroups.associate { (group, _) ->
+        val groupId = group.key ?: "none"
+        groupId to key(state.groupByMode, groupId) {
+            val target = if (groupId in collapsedGroupIds) 0f else 1f
+            val millis = if (reducedMotion) 0 else if (target == 0f) collapseMillis else expandMillis
+            val height by animateFloatAsState(target, tween(millis),
+                label = "patientGroupHeight")
+            if (reducedMotion) target else height
+        }
     }
     val scope = rememberCoroutineScope()
     val showBackToTop by remember(patientGridState) {
@@ -95,6 +120,9 @@ internal fun WardPatientGrid(
                 state.groupedPatients.isNotEmpty()
             ) {
                 visibleGroups.forEach { (group, groupPatients) ->
+                    val groupId = group.key ?: "none"
+                    val collapsed = groupId in collapsedGroupIds
+                    val groupHeight = groupHeights.getValue(groupId)
                     item(
                         key = "grp-${group.key ?: "none"}", contentType = "group",
                         span = { GridItemSpan(maxLineSpan) }
@@ -108,8 +136,11 @@ internal fun WardPatientGrid(
                             }
                         )
                     }
-                    if ((group.key ?: "none") !in collapsedGroupIds) gridItems(groupPatients, key = { it.id }, contentType = { "patient" }) { patient ->
-                        patientCard(patient, if (animatePlacement) Modifier.animateItemPlacement(placementSpec) else Modifier)
+                    if (!collapsed || groupHeight > 0f) gridItems(groupPatients, key = { it.id }, contentType = { "patient" }) { patient ->
+                        // Retain ordinary reordering, without a competing animator during group resizing.
+                        val placement = if (animatePlacement && !collapsed && groupHeight == 1f)
+                            Modifier.animateItemPlacement(placementSpec) else Modifier
+                        patientCard(patient, placement.groupRevealHeight(groupHeight, collapsed))
                     }
                 }
             } else {
@@ -120,3 +151,21 @@ internal fun WardPatientGrid(
         }
     }
 }
+
+/** Clip the existing card rather than scaling its text or recreating its local state. */
+private fun Modifier.groupRevealHeight(fraction: Float, collapsed: Boolean): Modifier =
+    clipToBounds()
+        .layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints)
+            layout(placeable.width, (placeable.height * fraction).roundToInt()) {
+                placeable.placeRelative(0, 0)
+            }
+        }
+        .then(if (collapsed) Modifier.clearAndSetSemantics {}.onPreviewKeyEvent { true }.pointerInput(Unit) {
+            // A closing card must not accept a last-moment clinical action.
+            awaitPointerEventScope {
+                while (true) {
+                    awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+                }
+            }
+        } else Modifier)

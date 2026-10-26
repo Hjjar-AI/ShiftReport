@@ -18,39 +18,39 @@ class CsvSnapshotsTest {
         assertNull(SyncState(previousCsvFileId = "f").previousCsvSnapshot())
         assertNull(SyncState(previousCsvMessageId = 1).previousCsvSnapshot())
     }
-    @Test fun `editing window advances current and keeps recovery fixed`() {
-        val result = state.withPublishedCsv(uploaded, false)
+    @Test fun `every publication keeps the immediately preceding snapshot`() {
+        val result = state.withPublishedCsv(uploaded)
         assertEquals(uploaded, result.currentCsvSnapshot())
-        assertEquals(old, result.previousCsvSnapshot())
+        assertEquals(current, result.previousCsvSnapshot())
         assertEquals("registry", result.doctorsFileId)
         assertEquals(7L, result.announcementMessageId)
         assertEquals(current, state.currentCsvSnapshot())
     }
     @Test fun `rotation uses message order rather than timestamps`() {
-        val result = state.withPublishedCsv(uploaded, true)
+        val result = state.withPublishedCsv(uploaded)
         assertEquals(uploaded, result.currentCsvSnapshot())
         assertEquals(current, result.previousCsvSnapshot())
     }
     @Test fun `late older upload cannot displace newest snapshot during rotation`() {
-        val result = state.withPublishedCsv(old.copy(messageId = 15), true)
+        val result = state.withPublishedCsv(old.copy(messageId = 15))
         assertEquals(current, result.currentCsvSnapshot())
         assertEquals(15L, result.previousCsvSnapshot()?.messageId)
     }
     @Test fun `repeated publication does not duplicate recovery pointer`() {
-        val result = state.withPublishedCsv(current, true)
+        val result = state.withPublishedCsv(current)
         assertEquals(current, result.currentCsvSnapshot())
         assertEquals(old, result.previousCsvSnapshot())
     }
     @Test fun `first publication has no recovery`() {
         for (rotate in listOf(false, true)) {
-            val result = SyncState().withPublishedCsv(uploaded, rotate)
+            val result = SyncState().withPublishedCsv(uploaded)
             assertEquals(uploaded, result.currentCsvSnapshot())
             assertNull(result.previousCsvSnapshot())
             assertEquals(0L, result.previousCsvUpdatedAt)
         }
     }
     @Test fun `missing current still retains a complete recovery pointer`() {
-        val result = state.copy(csvFileId = null).withPublishedCsv(uploaded, false)
+        val result = state.copy(csvFileId = null).withPublishedCsv(uploaded)
         assertEquals(uploaded, result.currentCsvSnapshot())
         assertEquals(old, result.previousCsvSnapshot())
     }

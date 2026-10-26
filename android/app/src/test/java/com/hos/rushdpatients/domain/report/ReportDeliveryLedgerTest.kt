@@ -17,7 +17,7 @@ class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor()) {
         ledger.deliver("shift", -100, "content", "TEXT", "synthetic", "doc-1", block = block)
     @Test fun `UNKNOWN persists before transport and blocks all content on same route`() = runBlocking<Unit> {
         begin { record ->
-            assertEquals("UNKNOWN", ledger.observe().first().single().status)
+            assertEquals(DeliveryStatus.UNKNOWN, ledger.observe().first().single().status)
             assertTrue(raw.value.orEmpty().contains(record.id))
         }
         assertThrows(ReportDeliveryBlockedException::class.java) {
@@ -29,28 +29,28 @@ class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor()) {
         try { begin { throw IllegalStateException("synthetic network failure") }; fail("Expected failure") }
         catch (_: IllegalStateException) { }
         val record = ledger.observe().first().single()
-        assertEquals("UNKNOWN", record.status)
-        ledger.resolve(record.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED)
+        assertEquals(DeliveryStatus.UNKNOWN, record.status)
+        ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED)
         ledger.check("shift", -100, "content", "TEXT")
     }
     @Test fun `confirmed content requires explicit one-use repeat permission`() = runBlocking<Unit> {
         begin { ledger.confirm(it.id, listOf(1)) }
         val sent = ledger.observe().first().single()
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { begin() } }
-        ledger.resolve(sent.id, "SENT", DeliveryResolution.ALLOW_COPY)
+        ledger.resolve(sent.id, DeliveryStatus.SENT, DeliveryResolution.ALLOW_COPY)
         begin { ledger.confirm(it.id, listOf(2)) }
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { begin() } }
-        assertEquals(listOf("SENT", "SENT"), ledger.observe().first().map { it.status })
+        assertEquals(listOf(DeliveryStatus.SENT, DeliveryStatus.SENT), ledger.observe().first().map { it.status })
     }
     @Test fun `active request cannot be resolved and invalid receipt cannot confirm`() = runBlocking<Unit> {
         begin { record ->
             assertThrows(IllegalArgumentException::class.java) {
-                runBlocking { ledger.resolve(record.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED) }
+                runBlocking { ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED) }
             }
             assertThrows(IllegalArgumentException::class.java) { runBlocking { ledger.confirm(record.id, emptyList()) } }
         }
         val record = ledger.observe().first().single()
-        ledger.requireResolvable(record.id, "UNKNOWN")
+        ledger.requireResolvable(record.id, DeliveryStatus.UNKNOWN)
     }
     @Test fun `resolution requires sender or live admin and current expected status`() = runBlocking<Unit> {
         begin()
@@ -58,12 +58,12 @@ class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor()) {
         every { sessions.current() } returns Session("other", "بلوط", null, Role.ADMIN, Instant.EPOCH)
         coEvery { doctors.getActiveById("other") } returns Fixtures.doctor(id = "other", rank = 0)
         assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { ledger.resolve(record.id, "UNKNOWN", DeliveryResolution.RECEIVED) }
+            runBlocking { ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.RECEIVED) }
         }
         coEvery { doctors.getActiveById("other") } returns Fixtures.doctor(id = "other", rank = 1)
-        ledger.resolve(record.id, "UNKNOWN", DeliveryResolution.RECEIVED)
+        ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.RECEIVED)
         assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { ledger.resolve(record.id, "UNKNOWN", DeliveryResolution.NOT_RECEIVED) }
+            runBlocking { ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED) }
         }
     }
     @Test fun `changed actor cannot start delivery`() = runBlocking<Unit> {

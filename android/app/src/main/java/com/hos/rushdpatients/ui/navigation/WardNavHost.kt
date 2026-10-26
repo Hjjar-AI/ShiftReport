@@ -1,6 +1,11 @@
 package com.hos.rushdpatients.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import com.hos.rushdpatients.ui.theme.LocalUiPreferences
+import com.hos.rushdpatients.ui.theme.UiMotion
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
@@ -28,9 +33,14 @@ fun WardNavHost(
     onSignOut: () -> Unit,
     navController: NavHostController = rememberNavController()
 ) {
+    val fadeMillis = if (LocalUiPreferences.current.reducedMotion) 0 else UiMotion.contentFadeMillis
     NavHost(
         navController = navController,
-        startDestination = Routes.WARD
+        startDestination = Routes.WARD,
+        enterTransition = { fadeIn(tween(fadeMillis)) },
+        exitTransition = { fadeOut(tween(fadeMillis)) },
+        popEnterTransition = { fadeIn(tween(fadeMillis)) },
+        popExitTransition = { fadeOut(tween(fadeMillis)) }
     ) {
         composable(Routes.WARD) {
             WardScreen(

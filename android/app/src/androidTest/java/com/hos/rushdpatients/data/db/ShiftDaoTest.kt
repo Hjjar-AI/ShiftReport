@@ -11,20 +11,23 @@ import com.hos.rushdpatients.testutil.DatabaseFixture
 @RunWith(AndroidJUnit4::class)
 class ShiftDaoTest : DatabaseFixture() {
     private val dao get() = db.shiftDao()
-    @Test fun revisionCheckedRosterRejectsStaleUpdateWithoutOverwriting() = runBlocking<Unit> {
-        assertEquals(1, dao.updateDoctorIds("shift-1", "a,b,c", 0, 1000))
-        assertEquals(0, dao.updateDoctorIds("shift-1", "stale", 0, 2000))
+    @Test fun rosterUsesLastSaveWinsAndRejectsMissingSection() = runBlocking<Unit> {
+        assertEquals(1, dao.updateDoctorIds("shift-1", "a,b,c", 1000))
+        assertEquals(1, dao.updateDoctorIds("shift-1", "last", 2000))
+        assertEquals(0, dao.updateDoctorIds("missing", "rejected", 3000))
         val saved = requireNotNull(dao.getById("shift-1"))
-        assertEquals("a,b,c", saved.doctorIdsCsv)
-        assertEquals(1L, saved.revision)
-        assertEquals(1000L, saved.updatedAtEpochMillis)
+        assertEquals("last", saved.doctorIdsCsv)
+        assertEquals(2L, saved.revision)
+        assertEquals(2000L, saved.updatedAtEpochMillis)
     }
-    @Test fun sortAndRosterShareRevisionGuard() = runBlocking<Unit> {
-        assertEquals(1, dao.updateDoctorIds("shift-1", "a", 0, 1000))
-        assertEquals(0, dao.updateSortSpec("shift-1", "stale", 0, 2000))
-        assertEquals(1, dao.updateSortSpec("shift-1", "reviewed", 1, 3000))
-        assertEquals(2L, dao.getById("shift-1")?.revision)
-        assertEquals("reviewed", dao.getById("shift-1")?.sortSpecJson)
+    @Test fun sortAndRosterWritesPreserveEachOtherWithoutRevisionGating() = runBlocking<Unit> {
+        assertEquals(1, dao.updateDoctorIds("shift-1", "a", 1000))
+        assertEquals(1, dao.updateSortSpec("shift-1", "first", 2000))
+        assertEquals(1, dao.updateSortSpec("shift-1", "last", 3000))
+        assertEquals(0, dao.updateSortSpec("missing", "rejected", 4000))
+        assertEquals(3L, dao.getById("shift-1")?.revision)
+        assertEquals("last", dao.getById("shift-1")?.sortSpecJson)
+        assertEquals("a", dao.getById("shift-1")?.doctorIdsCsv)
     }
     @Test fun publicationLineageAndDeliveryReceiptsRemainIndependent() = runBlocking<Unit> {
         dao.updatePublicationMetadata("shift-1", 7, 8, "snapshot", "base", "device", 1000)

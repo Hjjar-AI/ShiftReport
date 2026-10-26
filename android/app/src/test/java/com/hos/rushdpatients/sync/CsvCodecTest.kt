@@ -112,9 +112,10 @@ class CsvCodecTest {
     }
 
     @Test
-    fun `missing admittance date is rejected`() {
-        val csv = CsvCodec.encode(Fixtures.shift(), listOf(Fixtures.patient(admittanceDate = null)))
-        assertThrows(IllegalArgumentException::class.java) { CsvCodec.decode(csv) }
+    fun `optional admittance date round trips as null`() {
+        val patient = Fixtures.patient(admittanceDate = null)
+        val csv = CsvCodec.encode(Fixtures.shift(), listOf(patient))
+        assertEquals(patient, CsvCodec.decode(csv).patients.single())
     }
 
     @Test

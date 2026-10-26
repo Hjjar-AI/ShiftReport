@@ -8,7 +8,8 @@ import java.time.Instant
 import java.time.LocalDate
 
 class KnownShiftSnapshotTest {
-    private val shift = Fixtures.shift()
+    private val shift = Fixtures.shift().copy(sortSpecJson =
+        com.hos.rushdpatients.domain.sort.SortSpecCodec.encode(com.hos.rushdpatients.domain.sort.SortSpec.EMPTY))
     private val patient = Fixtures.patient()
     private val csv = CsvCodec.encode(shift, listOf(patient))
     @Test fun `absent corrupt and other shift snapshots are unknown`() {

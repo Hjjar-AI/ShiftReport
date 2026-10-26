@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.data.db
 
+import com.hos.rushdpatients.domain.report.DeliveryStatus
 import android.content.*
 import android.net.Uri
 import android.os.*
@@ -77,7 +78,7 @@ class ProcessDeathWorkflowTest {
     @Test fun deathAfterSentReceiptCommitBlocksAccidentalDuplicateAfterRestart() = receipt(true)
     private fun receipt(sent: Boolean) = execute(if (sent) 4 else 3) { core ->
         val record = core.ledger.observe().first().single()
-        assertEquals(if (sent) "SENT" else "UNKNOWN", record.status)
+        assertEquals(if (sent) DeliveryStatus.SENT else DeliveryStatus.UNKNOWN, record.status)
         assertEquals(if (sent) listOf(42L) else emptyList<Long>(), record.messageIds)
         core.signIn()
         val content = if (sent) "synthetic-content" else "changed-content"
@@ -110,13 +111,27 @@ class ProcessDeathWorkflowTest {
     @Test fun deathAfterSyntheticAcceptanceBeforeConfirmationKeepsUnknownAndBlocksRepeat() = execute(11) { core ->
         assertEquals("42", core.settings.get("synthetic-delivery-accepted"))
         val record = core.ledger.observe().first().single()
-        assertEquals("UNKNOWN", record.status)
+        assertEquals(DeliveryStatus.UNKNOWN, record.status)
         assertTrue(record.messageIds.isEmpty())
         core.signIn()
         try {
             core.ledger.check("crash-shift", -100, "synthetic-content", "pdf")
             fail("Unconfirmed accepted delivery allowed an automatic duplicate")
         } catch (_: ReportDeliveryBlockedException) { }
+    }
+
+    @Test fun deathAfterDraftCommitRetainsMultilineAndUnfinishedTaskWithoutClinicalSave() = execute(12,
+        prepare = { core -> seed(core); null }) { core ->
+        val encoded = requireNotNull(core.settings.get(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + "crash-patient"))
+        val draft = kotlinx.serialization.json.Json.decodeFromString(com.hos.rushdpatients.ui.ward.PatientDraft.serializer(), encoded)
+        val form = com.hos.rushdpatients.ui.ward.PatientFormState(null, draft)
+        assertEquals("تشخيص\nسطر ثان", form.initialDiagnosis)
+        assertEquals("خطة\n12.5 mg", form.treatmentText)
+        assertEquals("Na=140\nK=4", form.labText)
+        assertEquals("unfinished-inline", form.tasks.single().id)
+        assertEquals("مهمة قيد الكتابة", form.tasks.single().description)
+        assertEquals("before", core.patients.getById("crash-patient")?.labs)
+        assertEquals(7L, core.patients.getById("crash-patient")?.revision)
     }
 
     private suspend fun seed(core: CrashWorkflowHarness): Patient {
@@ -144,11 +159,13 @@ class ProcessDeathWorkflowTest {
         assertEquals(if (committed) "before" else "current", patient.labs)
         assertEquals(if (committed) 10L else 9L, patient.revision)
         assertEquals(if (committed) 10L else 9L, core.shifts.getById("crash-shift")?.revision)
-        assertEquals(committed, core.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertFalse(core.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true))
+        assertTrue(com.hos.rushdpatients.sync.PatientPublicationStatus(core.shifts, core.patients, core.doctors,
+            core.settings, core.dispatchers).hasPending())
     }
 
     @Test fun deathDuringActualDownloadUndoRetainsDownloadedRowsAndUndoTicket() = undo(false)
-    @Test fun deathAfterActualDownloadUndoRetainsRestoredRowsAuditAndPendingWithoutTicket() = undo(true)
+    @Test fun deathAfterActualDownloadUndoRetainsRestoredRowsAndDerivedPendingWithoutTicket() = undo(true)
     private fun undo(committed: Boolean) = execute(if (committed) 8 else 7, prepare = { core ->
         val patient = seed(core)
         val shift = requireNotNull(core.shifts.getById("crash-shift"))
@@ -163,7 +180,9 @@ class ProcessDeathWorkflowTest {
         assertEquals(if (committed) "before" else "downloaded", patient.labs)
         assertEquals(if (committed) 10L else 9L, patient.revision)
         assertEquals(!committed, core.undo.available.first())
-        assertEquals(committed, core.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
-        assertEquals(if (committed) listOf("download_undone") else emptyList<String>(), core.audit.getRecent().map { it.action })
+        assertFalse(core.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true))
+        assertTrue(com.hos.rushdpatients.sync.PatientPublicationStatus(core.shifts, core.patients, core.doctors,
+            core.settings, core.dispatchers).hasPending())
+        assertTrue(core.audit.getRecent().isEmpty())
     }
 }

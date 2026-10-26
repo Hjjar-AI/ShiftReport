@@ -8,21 +8,25 @@ import java.time.Instant
 import java.time.LocalDate
 
 class PatientSyncComparisonTest {
+    private fun sameClinicalContent(left: com.hos.rushdpatients.data.model.Patient?, right: com.hos.rushdpatients.data.model.Patient?) =
+        left?.let(KnownShiftSnapshot::patientContent) == right?.let(KnownShiftSnapshot::patientContent)
+
     @Test fun `snapshot comparison ignores list order timestamps and local revisions`() {
         val a = Fixtures.patient(id = "a")
         val b = Fixtures.patient(id = "b")
         assertTrue(samePublishedPatients(listOf(a, b), listOf(b.copy(revision = 99), a.copy(updatedAt = Instant.EPOCH))))
-        assertFalse(samePublishedPatients(listOf(a), listOf(a.copy(sortOrder = 2))))
+        assertFalse(samePublishedPatients(listOf(a.copy(sortOrder = 1), b.copy(sortOrder = 2)),
+            listOf(a.copy(sortOrder = 2), b.copy(sortOrder = 1))))
         assertFalse(samePublishedPatients(listOf(a), emptyList()))
     }
     @Test fun `clinical comparison ignores position but preserves tasks badges and deletion`() {
         val a = Fixtures.patient()
-        assertTrue(samePatientContent(a, a.copy(sortOrder = 99, revision = 99, updatedAt = Instant.EPOCH)))
-        assertTrue(samePatientContent(null, null))
-        assertFalse(samePatientContent(a, null))
+        assertTrue(sameClinicalContent(a, a.copy(sortOrder = 99, revision = 99, updatedAt = Instant.EPOCH)))
+        assertTrue(sameClinicalContent(null, null))
+        assertFalse(sameClinicalContent(a, null))
         listOf(a.copy(tasks = listOf(Fixtures.task())), a.copy(badges = listOf(PatientBadge("تنبيه"))),
             a.copy(deletedAt = Instant.EPOCH), a.copy(labs = "changed")).forEach {
-            assertFalse(samePatientContent(a, it))
+            assertFalse(sameClinicalContent(a, it))
         }
     }
 }

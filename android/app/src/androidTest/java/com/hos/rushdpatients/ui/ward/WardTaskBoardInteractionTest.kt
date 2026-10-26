@@ -29,11 +29,11 @@ class WardTaskBoardInteractionTest {
     private var opened: String? = null
     private var dismissed = 0
     private fun label(id: Int) = ApplicationProvider.getApplicationContext<Context>().getString(id)
-    private fun show(patients: List<Patient> = listOf(patient), editable: Boolean = false, currentDoctorId: String? = null) {
+    private fun show(patients: List<Patient> = listOf(patient), editable: Boolean = false) {
         compose.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                MaterialTheme { WardTaskBoard(patients, emptyList(), 1000,
-                    onDismiss = { dismissed++ }, onPatient = { opened = it }, currentDoctorId = currentDoctorId,
+                MaterialTheme { WardTaskBoard(patients, emptyList(),
+                    onDismiss = { dismissed++ }, onPatient = { opened = it },
                     editable = editable, snackbarHost = remember { SnackbarHostState() }, onComplete = { completed = it }) }
             }
         }
@@ -55,7 +55,7 @@ class WardTaskBoardInteractionTest {
     }
     @Test fun openingPatientUsesTaskPatientIdentityWithoutCompletingIt() {
         show()
-        compose.onNodeWithText(label(R.string.ui_ward_task_board_012)).performClick()
+        compose.onNode(hasText(patient.displayName) and hasClickAction()).performClick()
         compose.runOnIdle { assertEquals(patient.id, opened); assertNull(completed) }
     }
     @Test fun completedTasksAreExcludedFromPendingBoard() {
@@ -67,7 +67,7 @@ class WardTaskBoardInteractionTest {
     }
     @Test fun legacyTaskOwnersDoNotFilterChecklist() {
         val other = pending.copy(id = "other", description = "فحص القهوة", ownerDoctorId = null)
-        show(listOf(patient.copy(tasks = listOf(pending, other))), currentDoctorId = "cedar")
+        show(listOf(patient.copy(tasks = listOf(pending, other))))
         compose.onNodeWithText(label(R.string.ui_ward_task_board_005)).assertDoesNotExist()
         compose.onNodeWithText(pending.description).assertExists()
         compose.onNodeWithText(other.description).assertExists()

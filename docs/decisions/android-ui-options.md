@@ -4,11 +4,9 @@ Unselected only; choose IDs/subsets. [Completed](../status/changelog.md) · [Cur
 
 | ID | Optional choice |
 |---|---|
-| O1 | Fades/slides between panes, routes, details and report steps. |
-| O2 | Additional haptics or selection-border interpolation; chevron/tab motion is complete. |
+| O2 | Additional haptics; selection-border interpolation and chevron/tab motion are implemented. |
 | O3 | Skeleton cards instead of the labelled spinner; static under reduced motion. |
-| O4 | Animate divider keyboard/reset changes; keep dragging direct. |
-| O5 | Animate list removal/group collapse with current-toolchain/reduced-motion support. |
+| O5 | Animate list removal; group collapse/expansion height animation is implemented. |
 | O7 | Desktop attention hero/task progress; Android attention actions applied25 October. |
 | O8 | Collapse Add presentation with scrolling; retain a labelled 48dp target. |
 | O9 | Cap dashboard/settings reading width on wide screens. |

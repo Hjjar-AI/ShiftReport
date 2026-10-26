@@ -29,18 +29,13 @@ class ShiftDoctorPickerInteractionTest {
     private val cedar = doctor("cedar", "أرز")
     private val oak = doctor("oak", "بلوط")
     private var confirmed: List<String>? = null
-    private var confirmedRevision: Long? = null
     private var dismissed = 0
-    private var conflict: Shift? = null
     private fun show(doctors: List<Doctor> = listOf(cedar, oak), selected: List<String> = emptyList(), saving: Boolean = false) {
         compose.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 MaterialTheme {
-                    ShiftDoctorPicker(doctors, selected, initialRevision = 17, saving = saving,
-                        onConfirm = { ids, revision, onConflict ->
-                            confirmed = ids; confirmedRevision = revision
-                            conflict?.let { onConflict(it) }
-                        },
+                    ShiftDoctorPicker(doctors, selected, saving = saving,
+                        onConfirm = { ids -> confirmed = ids },
                         onDismiss = { dismissed++ })
                 }
             }
@@ -51,13 +46,12 @@ class ShiftDoctorPickerInteractionTest {
         compose.onNodeWithText(label(R.string.ui_save)).assertIsNotEnabled()
         compose.runOnIdle { assertNull(confirmed); assertEquals(0, dismissed) }
     }
-    @Test fun checkingDoctorEnablesSaveAndPreservesReviewedRevision() {
+    @Test fun checkingDoctorEnablesSaveAndConfirmsExplicitSelection() {
         show()
         compose.onNodeWithText(cedar.fullName).performClick().assertIsOn()
         compose.onNodeWithText(label(R.string.ui_save)).assertIsEnabled().performClick()
         compose.runOnIdle {
             assertEquals(listOf(cedar.id), confirmed)
-            assertEquals(17L, confirmedRevision)
         }
     }
     @Test fun clearingLastDoctorDisablesSave() {
@@ -106,33 +100,18 @@ class ShiftDoctorPickerInteractionTest {
         compose.onNodeWithText(label(R.string.ui_cancel)).assertIsNotEnabled()
         compose.runOnIdle { assertNull(confirmed); assertEquals(0, dismissed) }
     }
-    @Test fun keepingRejectedRosterUsesLatestRevisionForExplicitRetry() {
-        conflict = Shift(id = "synthetic", date = LocalDate.of(2026, 1, 1),
-            doctorIds = listOf(oak.id), revision = 23)
+    @Test fun savingChangedRosterDoesNotOpenRevisionConflictDialog() {
         show(selected = listOf(cedar.id))
+        compose.onNodeWithText(oak.fullName).performClick()
         compose.onNodeWithText(label(R.string.ui_save)).performClick()
-        compose.onNodeWithText(label(R.string.ui_stale_edit_review_dialog_001)).assertExists()
-        compose.onNodeWithText(label(R.string.ui_stale_edit_review_dialog_008)).performClick()
-        compose.runOnIdle { conflict = null; confirmed = null }
-        compose.onNodeWithText(label(R.string.ui_save)).performClick()
-        compose.runOnIdle {
-            assertEquals(listOf(cedar.id), confirmed)
-            assertEquals(23L, confirmedRevision)
-        }
+        compose.onNodeWithText(label(R.string.ui_stale_edit_review_dialog_001)).assertDoesNotExist()
+        compose.runOnIdle { assertEquals(listOf(cedar.id, oak.id), confirmed) }
     }
-    @Test fun acceptingSavedRosterReplacesDraftAndRevisionTogether() {
-        conflict = Shift(id = "synthetic", date = LocalDate.of(2026, 1, 1),
-            doctorIds = listOf(oak.id), revision = 23)
+    @Test fun explicitRosterReplacementConfirmsOnlySelectedDoctors() {
         show(selected = listOf(cedar.id))
+        compose.onNodeWithText(cedar.fullName).performClick()
+        compose.onNodeWithText(oak.fullName).performClick()
         compose.onNodeWithText(label(R.string.ui_save)).performClick()
-        compose.onNodeWithText(label(R.string.ui_stale_edit_review_dialog_009)).performClick()
-        compose.onNodeWithText(cedar.fullName).assertIsOff()
-        compose.onNodeWithText(oak.fullName).assertIsOn()
-        compose.runOnIdle { conflict = null; confirmed = null }
-        compose.onNodeWithText(label(R.string.ui_save)).performClick()
-        compose.runOnIdle {
-            assertEquals(listOf(oak.id), confirmed)
-            assertEquals(23L, confirmedRevision)
-        }
+        compose.runOnIdle { assertEquals(listOf(oak.id), confirmed) }
     }
 }

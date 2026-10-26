@@ -32,7 +32,8 @@ class PatientDaoTest : DatabaseFixture() {
         assertEquals(listOf("b"), dao.observeForShift("shift-1").first().map { it.id })
         assertEquals(1, dao.countForShift("shift-1"))
         assertEquals(listOf("a"), dao.getSoftDeletedForShift("shift-1").map { it.id })
-        assertEquals(5000L, dao.getById("a")?.updatedAtEpochMillis)
+        assertEquals(5000L, dao.getById("a")?.deletedAtEpochMillis)
+        assertEquals(0L, dao.getById("a")?.updatedAtEpochMillis)
         assertEquals(2, dao.getAll().size)
     }
     @Test fun replaceSnapshotOnlyDeletesMissingPatientsInSelectedShift() = runBlocking<Unit> {

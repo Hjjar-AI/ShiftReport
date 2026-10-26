@@ -87,6 +87,9 @@ android {
 
     buildTypes {
         debug {
+            if (providers.gradleProperty("shiftreport.isolatedTests").orNull == "true") {
+                applicationIdSuffix = ".verification"
+            }
             versionNameSuffix = "-debug"
         }
         release {

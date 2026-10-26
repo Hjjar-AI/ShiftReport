@@ -31,23 +31,24 @@ class ReportChunkingBoundaryTest {
         val patient = "متابعة 💊 ونتيجة ☕ ".repeat(800)
         val chunks = ReportChunking.chunk("عنوان", listOf(patient), "ملخص", 100)
         assertSafe(chunks, 100)
-        assertEquals(patient, chunks.drop(1).dropLast(1).joinToString(""))
-        assertEquals("عنوان", chunks.first())
-        assertEquals("ملخص", chunks.last())
+        assertEquals(patient, chunks.joinToString("").removePrefix("عنوان").removePrefix("\n")
+            .removeSuffix("ملخص").removeSuffix("\n\n"))
+        assertTrue(chunks.first().startsWith("عنوان"))
+        assertTrue(chunks.last().endsWith("ملخص"))
     }
 
     @Test fun `escaped special characters and literal backslashes survive continuation`() {
         val escaped = Markdown.escape("نتيجة [x] * ! \\ 1.2 mg ".repeat(100))
         val chunks = ReportChunking.chunk("T", listOf(escaped), "S", 37)
         assertSafe(chunks, 37)
-        assertEquals(escaped, chunks.drop(1).dropLast(1).joinToString(""))
+        assertEquals(escaped, chunks.joinToString("").removePrefix("T").removePrefix("\n").removeSuffix("S").removeSuffix("\n\n"))
     }
 
     @Test fun `long bold patient name has balanced formatting in every continuation`() {
         val name = "شاي💊".repeat(100)
         val chunks = ReportChunking.chunk("T", listOf(Markdown.bold(name)), "S", 40)
         assertSafe(chunks, 40)
-        val continued = chunks.drop(1).dropLast(1)
+        val continued = chunks.drop(1).map { it.removeSuffix("S").removeSuffix("\n\n") }.filter { it.isNotEmpty() }
         continued.forEach { assertTrue(it.startsWith("*") && it.endsWith("*")) }
         assertEquals(name, continued.joinToString("") { it.removePrefix("*").removeSuffix("*") })
     }
@@ -56,13 +57,13 @@ class ReportChunkingBoundaryTest {
         val text = "تحاليل".repeat(100)
         val chunks = ReportChunking.chunk("T", listOf(Markdown.underline(text)), "S", 30)
         assertSafe(chunks, 30)
-        val continued = chunks.drop(1).dropLast(1)
+        val continued = chunks.drop(1).map { it.removeSuffix("S").removeSuffix("\n\n") }.filter { it.isNotEmpty() }
         continued.forEach { assertTrue(it.startsWith("__") && it.endsWith("__")) }
         assertEquals(text, continued.joinToString("") { it.removePrefix("__").removeSuffix("__") })
     }
 
     @Test fun `links remain whole when long formatted title is split`() {
-        val links = (1..30).map { Markdown.userLink("أرز $it", it.toLong()) }
+        val links = (1..30).map { Markdown.link("أرز $it", "tg://user?id=$it") }
         val chunks = ReportChunking.chunk("*" + links.joinToString(" ") + "*", emptyList(), "S", 100)
         assertSafe(chunks, 100)
         links.forEach { link -> assertEquals(1, chunks.count { link in it }) }
@@ -70,7 +71,7 @@ class ReportChunkingBoundaryTest {
     }
 
     @Test fun `indivisible oversized link fails explicitly instead of returning an invalid message`() {
-        val link = Markdown.userLink("أرز".repeat(100), 123)
+        val link = Markdown.link("أرز".repeat(100), "tg://user?id=123")
         assertThrows(IllegalArgumentException::class.java) { ReportChunking.chunk("*$link*", emptyList(), "S", 40) }
     }
 
@@ -78,7 +79,7 @@ class ReportChunkingBoundaryTest {
         val summary = "ملخص ".repeat(100)
         val chunks = ReportChunking.chunk("T", listOf("patient"), summary, 50)
         assertSafe(chunks, 50)
-        assertEquals(summary, chunks.drop(2).joinToString(""))
+        assertEquals(summary, chunks.joinToString("").removePrefix("T\npatient").removePrefix("\n\n"))
     }
 
     @Test fun `invalid limits and blank titles fail explicitly`() {
@@ -92,7 +93,7 @@ class ReportChunkingBoundaryTest {
         val blocks = listOf("شاي💊".repeat(40), "قهوة☕".repeat(40), "كاكاو".repeat(40))
         val chunks = ReportChunking.chunk("T", blocks, "S", 31)
         assertSafe(chunks, 31)
-        assertEquals(blocks.joinToString(""), chunks.drop(1).dropLast(1).joinToString(""))
+        assertEquals(blocks.joinToString(""), chunks.joinToString("").removePrefix("T").removePrefix("\n").removeSuffix("S").removeSuffix("\n\n"))
     }
 
     @Test fun `empty optional blocks never create empty continuation messages`() {

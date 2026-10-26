@@ -33,12 +33,12 @@ class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
         assertEquals("old", restored.labs)
         assertTrue(restored.revision > downloaded.revision)
         assertFalse(undo().available.first())
-        assertTrue(settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
-        assertEquals("download_undone", db.auditDao().getRecent(1).single().action)
+        assertTrue(PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers).hasPending())
+        assertTrue(db.auditDao().getRecent(20).isEmpty())
     }
     @Test fun patientEditAfterDownloadBlocksUndoWithoutLosingToken() = runBlocking<Unit> {
         val downloaded = record()
-        patients.updateOptimistically(downloaded.copy(labs = "local edit"), "shift-1", downloaded.revision)
+        patients.save(downloaded.copy(labs = "local edit"), "shift-1")
         val live = patients.getById("p")
         settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)
         rejected { undo().undo() }
@@ -50,7 +50,7 @@ class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
     @Test fun shiftEditAfterDownloadBlocksUndo() = runBlocking<Unit> {
         record()
         val shift = requireNotNull(shifts.getById("shift-1"))
-        shifts.updateDoctorIds(shift.id, listOf(admin.id), shift.revision)
+        shifts.updateDoctorIds(shift.id, listOf(admin.id))
         rejected { undo().undo() }
         assertEquals("downloaded", patients.getById("p")?.labs)
         assertTrue(undo().available.first())

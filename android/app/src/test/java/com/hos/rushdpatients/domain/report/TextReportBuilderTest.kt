@@ -40,7 +40,9 @@ class TextReportBuilderTest {
         val block = builder.buildPatientBlock(patient, emptyMap(), emptyMap())
         assertTrue(block.contains("معلقة تجريبية"))
         assertTrue(block.contains("مكتملة تجريبية"))
-        assertTrue(block.contains("أتمها أرز"))
+        assertTrue(block.contains("☐"))
+        assertTrue(block.contains("✓"))
+        assertFalse(block.contains("أتمها"))
     }
     @Test fun `title escapes doctor labels and links only linked doctors`() {
         val title = builder.buildTitle(shift, listOf(Fixtures.doctor(fullName = "أرز [شجرة]", telegramId = 123),

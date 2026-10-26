@@ -23,19 +23,19 @@ class UiPreferencesTest {
         assertEquals(UiPreferences(reducedMotion = true), UiPreferences.decode("{\"futureOption\":17,\"reducedMotion\":true}"))
     }
     @Test fun olderPartialPreferenceObjectsKeepDefaultsForMissingFields() {
-        assertEquals(UiPreferences(density = UiDensity.COMPACT), UiPreferences.decode("{\"density\":\"COMPACT\"}"))
+        assertEquals(UiPreferences(), UiPreferences.decode("{\"density\":\"COMPACT\"}"))
     }
     @Test fun allDensityControlAndBehaviorCombinationsRoundTrip() {
         for (density in UiDensity.entries) for (size in UiControlSize.entries) for (mask in 0..15) {
             val preferences = UiPreferences(profile = "quiet", density = density, controlSize = size,
                 reducedMotion = mask and 1 != 0, autoHideNavigation = mask and 2 != 0,
                 compactAddAction = mask and 4 != 0, expandPatientHeader = mask and 8 != 0)
-            assertEquals(preferences, UiPreferences.decode(preferences.encode()))
+            assertEquals(preferences.simplified(), UiPreferences.decode(preferences.encode()))
         }
     }
     @Test fun knownAppearanceAccentAndFontIdsRestoreIndependently() {
         for (value in AppAppearance.entries) assertEquals(value, AppAppearance.fromSetting(value.name))
-        for (value in AppThemePreset.entries) assertEquals(value, AppThemePreset.fromSetting(value.name))
+        for (value in AppThemePreset.entries) assertEquals(value.simplified(), AppThemePreset.fromSetting(value.name))
         for (value in AppFontScale.entries) assertEquals(value, AppFontScale.fromSetting(value.name))
     }
     @Test fun unsupportedAppearanceAccentAndFontValuesUseDocumentedDefaults() {

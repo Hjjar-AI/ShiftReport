@@ -50,7 +50,7 @@ class PatientGridScrollTest {
                             patients, false, grid, 48.dp, emptyList(), emptyList(), {}, {},
                             controlsContent = { Text("بيانات تجريبية — 200 مريض") }, headerContent = {},
                             patientCard = { patient, modifier -> PatientCard(PatientCardState(patient,
-                                expanded = expanded, taskNowEpochMillis = 100), PatientCardActions.None, modifier) })
+                                expanded = expanded), PatientCardActions.None, modifier) })
                     }
                 }
             }
@@ -61,7 +61,9 @@ class PatientGridScrollTest {
         show(false)
         repeat(6) { compose.onNodeWithTag("patient-grid").performTouchInput { swipeUp(durationMillis = 180) } }
         compose.runOnIdle { assertTrue("List did not advance", index > 0) }
-        repeat(8) { compose.onNodeWithTag("patient-grid").performTouchInput { swipeDown(durationMillis = 180) } }
+        compose.onNodeWithText(compose.activity.getString(com.hos.rushdpatients.R.string.ui_back_to_top))
+            .assertIsDisplayed().performClick()
+        compose.waitUntil(10000) { index == 0 }
         compose.runOnIdle { assertEquals(0, index) }
     }
     @Test fun expandedCardsRemainScrollableAtLargeFontAndProduceReviewArtifact() {

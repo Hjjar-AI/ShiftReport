@@ -19,14 +19,14 @@ class WardPatientActionsTest {
     private val text = mockk<UiStrings> { every { this@mockk.invoke(any(), *anyVararg()) } returns "رسالة تجريبية" }
     private val shift = Fixtures.shift(date = ShiftDate.current())
     private val row = Fixtures.patient().copy(revision = 7)
-    private val state = MutableStateFlow(WardUiState(shift = shift, patients = listOf(row)))
+    private val state = MutableStateFlow(WardUiState(loading = false, shift = shift, patients = listOf(row)))
     private val shifts = mockk<ShiftRepository> { coEvery { getById(shift.id) } returns shift }
     private val patients = mockk<PatientRepository>()
     private val mutations = mockk<WardMutationRepository>()
     private val settings = mockk<SettingsRepository>(relaxed = true)
     private val sessions = mockk<SessionManager> { every { current() } returns null }
     private fun actions(scope: CoroutineScope) = WardPatientActions(text, state, scope, shifts, patients,
-        mutations, settings, sessions, Json, WardSaveGuard(text, state, shifts))
+        mutations, settings, sessions, Json, WardSaveGuard(text, state))
 
     @Test fun `draft debounce persists only latest clinical draft`() = runTest {
         val actions = actions(this)
@@ -45,43 +45,46 @@ class WardPatientActionsTest {
     @Test fun `failed save keeps draft and never calls success`() = runTest {
         val draft = PatientDraft(name = "شاي", labDraft = "مسودة")
         state.value = state.value.copy(patientDraft = draft)
-        coEvery { mutations.updatePatient(any(), shift.id, any()) } throws IllegalStateException("synthetic failure")
+        coEvery { mutations.updatePatient(any(), shift.id) } throws IllegalStateException("synthetic failure")
         actions(this).updatePatient(row, onSuccess = { fail("Unexpected success") }); runCurrent()
         assertEquals(draft, state.value.patientDraft)
         assertFalse(state.value.saving); assertEquals("synthetic failure", state.value.snackbar)
     }
     @Test fun `duplicate save during suspended mutation enters repository once`() = runTest {
-        coEvery { mutations.updatePatient(any(), shift.id, any()) } coAnswers { awaitCancellation() }
+        coEvery { mutations.updatePatient(any(), shift.id) } coAnswers { awaitCancellation() }
         val actions = actions(backgroundScope)
         actions.updatePatient(row); runCurrent()
         actions.updatePatient(row); runCurrent()
-        coVerify(exactly = 1) { mutations.updatePatient(any(), shift.id, any()) }
+        coVerify(exactly = 1) { mutations.updatePatient(any(), shift.id) }
     }
-    @Test fun `shift becoming archived before mutation prevents write`() = runTest {
-        coEvery { shifts.getById(shift.id) } returns shift.copy(date = ShiftDate.current().minusDays(1))
+    @Test fun `local reload failure prevents mutation and retains loaded patient`() = runTest {
+        state.value = state.value.copy(error = "synthetic reload failure")
         actions(this).updatePatient(row, onSuccess = { fail("Unexpected success") }); runCurrent()
-        coVerify(exactly = 0) { mutations.updatePatient(any(), any(), any()) }
+        coVerify(exactly = 0) { mutations.updatePatient(any(), any()) }
+        assertEquals(row, state.value.patients.single())
         assertFalse(state.value.saving); assertNotNull(state.value.snackbar)
     }
     @Test fun `task board callback receives repository stamped record`() = runTest {
         val patient = row.copy(tasks = listOf(Fixtures.task()))
         val saved = patient.copy(revision = 8, tasks = listOf(Fixtures.task(done = true)))
-        coEvery { mutations.updatePatient(any(), shift.id, any()) } returns saved
+        coEvery { patients.getById(patient.id) } returns patient
+        coEvery { mutations.updatePatient(any(), shift.id) } returns saved
         var result: com.hos.rushdpatients.data.model.Patient? = null
         actions(this).setTaskDone(patient, "task-1", true) { result = it }; runCurrent()
         assertEquals(saved, result)
-        coVerify { mutations.updatePatient(match { it.tasks.single().done && it.tasks.single().completedByDoctorId == null }, shift.id, any()) }
+        coVerify { mutations.updatePatient(match { it.tasks.single().done && it.tasks.single().completedByDoctorId == null }, shift.id) }
     }
-    @Test fun `no-op task action does not mutate or invoke success`() = runTest {
-        val actions = actions(this)
-        actions.setTaskDone(row, "missing", true) { fail("Unexpected success") }
-        actions.setTaskDone(row.copy(tasks = listOf(Fixtures.task())), "task-1", false) { fail("Unexpected success") }
+    @Test fun `missing patient task action cannot mutate or claim success`() = runTest {
+        coEvery { patients.getById(row.id) } returns null
+        actions(this).setTaskDone(row, "missing", true) { fail("Unexpected success") }
         runCurrent()
-        coVerify(exactly = 0) { mutations.updatePatient(any(), any(), any()) }
+        coVerify(exactly = 0) { mutations.updatePatient(any(), any()) }
+        assertFalse(state.value.saving)
+        assertNotNull(state.value.snackbar)
     }
     @Test fun `successful delete callback uses saved repository revision`() = runTest {
         val deleted = row.copy(revision = 8, deletedAt = Fixtures.timestamp)
-        coEvery { mutations.deletePatient(row, shift.id, any()) } returns deleted
+        coEvery { mutations.deletePatient(row, shift.id) } returns deleted
         var result: com.hos.rushdpatients.data.model.Patient? = null
         actions(this).deletePatient(row) { result = it }; runCurrent()
         assertEquals(deleted, result); assertFalse(state.value.saving)

@@ -26,7 +26,7 @@ class SettingsPreferencesTest {
     }
     @Test fun uiPreferenceWritesAreSerializedAndKeepLatestChoice() = runTest {
         val first = UiPreferences(reducedMotion = true)
-        val second = first.copy(density = UiDensity.COMPACT)
+        val second = first.copy(reducedMotion = false)
         val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
         coEvery { settings.put(AppConstants.SETTING_UI_PREFERENCES, first.encode()) } coAnswers {
             entered.complete(Unit); release.await()
@@ -46,7 +46,7 @@ class SettingsPreferencesTest {
     }
     @Test fun olderFailedWriteCannotRollBackNewerChoice() = runTest {
         val first = UiPreferences(reducedMotion = true)
-        val second = UiPreferences(density = UiDensity.RELAXED)
+        val second = UiPreferences(reducedMotion = false)
         val release = CompletableDeferred<Unit>()
         coEvery { settings.put(AppConstants.SETTING_UI_PREFERENCES, first.encode()) } coAnswers {
             release.await(); throw IllegalStateException("synthetic old write failure")
@@ -60,29 +60,26 @@ class SettingsPreferencesTest {
     }
     @Test fun cancellationOfPreferenceWriteDoesNotShowStorageError() = runTest {
         coEvery { settings.put(AppConstants.SETTING_UI_PREFERENCES, any()) } throws CancellationException("synthetic cancel")
-        val selected = UiPreferences(autoHideNavigation = true)
+        val selected = UiPreferences(reducedMotion = true)
         preferences(this).setUiPreferences(selected); runCurrent()
         assertNull(state.value.snackbar)
     }
-    @Test fun printPresetPersistsItsRelatedValuesTogetherAndForcesLightPdf() = runTest {
-        state.value = state.value.copy(pdfDarkMode = true)
-        preferences(this).setPdfPresentationPreset(PdfPresentationPreset.PRINT); runCurrent()
-        val preset = PdfPresentationPreset.PRINT
-        coVerify(exactly = 1) { settings.putAll(mapOf(
-            AppConstants.SETTING_PDF_RULE_WEIGHT to preset.weight.name,
-            AppConstants.SETTING_PDF_RULE_CONTRAST to preset.contrast.name,
-            AppConstants.SETTING_PDF_ROW_SHADING to preset.shading.name,
-            AppConstants.SETTING_PDF_DARK_MODE to "false")) }
-        assertFalse(state.value.pdfDarkMode)
-        assertEquals(preset.weight, state.value.pdfRuleWeight)
-        assertEquals(preset.contrast, state.value.pdfRuleContrast)
-        assertEquals(preset.shading, state.value.pdfRowShading)
+    @Test fun paperChoicePersistsWithoutChangingAppearanceOrShading() = runTest {
+        val before = state.value
+        preferences(this).setPdfPaperSize(com.hos.rushdpatients.pdf.PdfPaperSize.A4); runCurrent()
+        coVerify(exactly = 1) { settings.put(AppConstants.SETTING_PDF_PAPER_SIZE, "A4") }
+        assertEquals(com.hos.rushdpatients.pdf.PdfPaperSize.A4, state.value.pdfPaperSize)
+        assertEquals(before.appearance, state.value.appearance)
+        assertEquals(before.pdfRowShading, state.value.pdfRowShading)
     }
-    @Test fun balancedPresetPreservesExistingDarkPdfChoice() = runTest {
-        state.value = state.value.copy(pdfDarkMode = true)
-        preferences(this).setPdfPresentationPreset(PdfPresentationPreset.BALANCED); runCurrent()
-        assertTrue(state.value.pdfDarkMode)
-        coVerify { settings.putAll(match { !it.containsKey(AppConstants.SETTING_PDF_DARK_MODE) }) }
+    @Test fun shadingChoicePreservesPaperAndAppAppearance() = runTest {
+        val before = state.value
+        val shading = com.hos.rushdpatients.pdf.PdfRowShading.entries.first { it != before.pdfRowShading }
+        preferences(this).setPdfRowShading(shading); runCurrent()
+        coVerify(exactly = 1) { settings.put(AppConstants.SETTING_PDF_ROW_SHADING, shading.name) }
+        assertEquals(shading, state.value.pdfRowShading)
+        assertEquals(before.pdfPaperSize, state.value.pdfPaperSize)
+        assertEquals(before.appearance, state.value.appearance)
     }
     @Test fun appearanceAndAccentPersistIndependently() = runTest {
         val preferences = preferences(this)

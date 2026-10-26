@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.appContentEntrance
+import com.hos.rushdpatients.ui.components.ContentEntrance
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppClinicalCard
 import com.hos.rushdpatients.ui.components.AppIconButton
@@ -148,6 +150,7 @@ internal fun PatientDetailsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .appContentEntrance(patient.id to section, ContentEntrance.DETAILS)
                     .patientRoundsSwipe(patient.id, roundsNavigation, navigationEnabled, onNavigateToPatient)
                     .verticalScroll(detailScroll)
                     .padding(UiSpacing.screen),

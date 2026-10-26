@@ -24,9 +24,8 @@ class DoctorValidatorTest {
             }
         }
     }
-    @Test fun `blank names and excessive title collect separate errors`() {
+    @Test fun `blank names are optional while excessive legacy title is rejected`() {
         val result = DoctorValidator.validate(" ", "", "س".repeat(AppConstants.CUSTOM_TITLE_MAX_LENGTH + 1)) as DoctorValidationResult.Invalid
-        assertEquals(setOf(DoctorValidationError.FIRST_NAME_EMPTY, DoctorValidationError.LAST_NAME_EMPTY,
-            DoctorValidationError.CUSTOM_TITLE_TOO_LONG), result.errors.toSet())
+        assertEquals(setOf(DoctorValidationError.CUSTOM_TITLE_TOO_LONG), result.errors.toSet())
     }
 }

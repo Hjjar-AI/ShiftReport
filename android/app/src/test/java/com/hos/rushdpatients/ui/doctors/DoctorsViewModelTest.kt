@@ -46,13 +46,13 @@ class DoctorsViewModelTest : ViewModelFixture() {
     @Test fun registryAndPendingSummaryAreObservedWithoutAutomaticPublication() {
         val vm = vm()
         assertEquals(listOf(doctor), vm.state.value.doctors); assertFalse(vm.state.value.loading)
-        coEvery { doctors.pendingSharedChangesSummary() } returns "synthetic pending change"
+        coEvery { doctors.pendingSharedChangesSummary() } returns com.hos.rushdpatients.domain.doctor.RegistryChangeSummary("synthetic pending change")
         pending.value = "true"
-        assertEquals("synthetic pending change", vm.state.value.pendingRegistrySummary)
+        assertEquals(com.hos.rushdpatients.domain.doctor.RegistryChangeSummary("synthetic pending change").message, vm.state.value.pendingRegistrySummary)
         coVerify(exactly = 0) { sync.uploadCurrentDoctors() }
     }
     @Test fun successfulAddWaitsForRepositoryThenCallsSuccessWithoutPublishing() {
-        coEvery { mutations.add(input) } returns 1L
+        coEvery { mutations.add(input) } returns Unit
         val vm = vm(); var successes = 0; vm.addDoctor(input) { successes++ }
         assertEquals(1, successes); assertFalse(vm.state.value.saving)
         coVerify(exactly = 1) { mutations.add(input) }
@@ -62,7 +62,7 @@ class DoctorsViewModelTest : ViewModelFixture() {
         coEvery { mutations.add(input) } throws IllegalArgumentException("synthetic duplicate identity")
         val vm = vm(); var successes = 0; vm.addDoctor(input) { successes++ }
         assertEquals(0, successes); assertEquals(listOf(doctor), vm.state.value.doctors)
-        assertFalse(vm.state.value.saving); assertEquals("synthetic duplicate identity", vm.state.value.snackbar)
+        assertFalse(vm.state.value.saving); assertEquals("synthetic duplicate identity", vm.state.value.operationIssue)
     }
     @Test fun duplicateAddAndOtherMutationsAreBlockedDuringSave() {
         coEvery { mutations.add(input) } coAnswers { awaitCancellation() }
@@ -79,7 +79,7 @@ class DoctorsViewModelTest : ViewModelFixture() {
         assertFalse(vm.state.value.saving); assertEquals(0, successes); assertNull(vm.state.value.snackbar)
     }
     @Test fun successfulEditUsesExactExpectedSnapshotAndInput() {
-        coEvery { mutations.edit(doctor, input) } returns 1L
+        coEvery { mutations.edit(doctor, input) } returns Unit
         val vm = vm(); var successes = 0; var conflicts = 0
         vm.editDoctor(doctor, input, { conflicts++ }, { successes++ })
         coVerify(exactly = 1) { mutations.edit(doctor, input) }
@@ -107,17 +107,17 @@ class DoctorsViewModelTest : ViewModelFixture() {
         val vm = vm(); var callbacks = 0
         vm.editDoctor(doctor, input, { callbacks++ }, { callbacks++ })
         assertEquals(0, callbacks); assertFalse(vm.state.value.saving)
-        assertEquals("synthetic reload failure", vm.state.value.snackbar)
+        assertEquals("synthetic reload failure", vm.state.value.operationIssue)
     }
     @Test fun ordinaryEditFailureDoesNotTriggerStaleReload() {
         coEvery { mutations.edit(doctor, input) } throws IllegalArgumentException("synthetic invalid edit")
         val vm = vm(); vm.editDoctor(doctor, input, { fail("Unexpected stale callback") })
         coVerify(exactly = 0) { doctors.getById(any()) }
-        assertEquals("synthetic invalid edit", vm.state.value.snackbar)
+        assertEquals("synthetic invalid edit", vm.state.value.operationIssue)
     }
     @Test fun teamSavePassesReviewedRegistryAndAssignmentsTogether() {
         val assignments = mapOf(doctor.id to "supervisor")
-        coEvery { mutations.updateTeams(listOf(doctor), assignments) } returns 1L
+        coEvery { mutations.updateTeams(listOf(doctor), assignments) } returns Unit
         val vm = vm(); var successes = 0; vm.saveTeams(listOf(doctor), assignments) { successes++ }
         assertEquals(1, successes); assertFalse(vm.state.value.saving)
         coVerify { mutations.updateTeams(listOf(doctor), assignments) }
@@ -130,7 +130,7 @@ class DoctorsViewModelTest : ViewModelFixture() {
         assertFalse(vm.state.value.saving)
     }
     @Test fun successfulDeleteUsesExpectedSnapshotAndCallsSuccessOnce() {
-        coEvery { mutations.delete(doctor) } returns 1L
+        coEvery { mutations.delete(doctor) } returns Unit
         val vm = vm(); var successes = 0; vm.deleteDoctor(doctor) { successes++ }
         coVerify(exactly = 1) { mutations.delete(doctor) }
         assertEquals(1, successes); assertFalse(vm.state.value.saving)
@@ -139,12 +139,12 @@ class DoctorsViewModelTest : ViewModelFixture() {
         coEvery { admin.requireAdmin() } throws IllegalStateException("synthetic denied")
         val vm = vm(); vm.fetchDoctors()
         coVerify(exactly = 0) { sync.refreshDoctorsFromRemote() }
-        assertFalse(vm.state.value.saving); assertEquals("synthetic denied", vm.state.value.snackbar)
+        assertFalse(vm.state.value.saving); assertEquals("synthetic denied", vm.state.value.operationIssue)
     }
     @Test fun fetchFailureDoesNotPublishLocalRegistry() {
         coEvery { sync.refreshDoctorsFromRemote() } returns Result.failure(IllegalStateException("synthetic remote conflict"))
         val vm = vm(); vm.fetchDoctors()
-        assertFalse(vm.state.value.saving); assertEquals("synthetic remote conflict", vm.state.value.snackbar)
+        assertFalse(vm.state.value.saving); assertEquals("synthetic remote conflict", vm.state.value.operationIssue)
         coVerify(exactly = 0) { sync.uploadCurrentDoctors() }
     }
     @Test fun duplicateFetchCannotStartAnotherNetworkOperation() {

@@ -11,7 +11,7 @@ class PdfPatientContentTest {
     @Test fun `notes preserve followup labs and tasks but omit routine labels and last editor`() {
         val patient = Fixtures.patient(followUp = "متابعة كاملة", labs = "CBC synthetic").copy(
             tasks = listOf(Fixtures.task().copy(description = "مهمة كاملة")), lastEditedByName = "اسم المحرر")
-        val notes = PdfPatientContent.buildNotesCell(patient, emptyMap(), 100)
+        val notes = PdfPatientContent.buildNotesCell(patient)
         listOf(patient.followUp, patient.labs, "مهمة كاملة").forEach { assertTrue(notes.contains(it)) }
         listOf("غير معيّنة", "أولوية عادية", "اسم المحرر").forEach { assertFalse(notes.contains(it)) }
     }

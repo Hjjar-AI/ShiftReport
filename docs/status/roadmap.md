@@ -12,6 +12,10 @@ Field-by-field diagnosis/treatment/follow-up → guided sections → optional wh
 
 Candidates: explicit on-device [SpeechRecognizer](https://developer.android.com/reference/android/speech/SpeechRecognizer), multilingual Whisper/[whisper.cpp](https://github.com/ggml-org/whisper.cpp), Arabic-capable [Sherpa-ONNX](https://k2-fsa.github.io/sherpa/onnx/index.html). [Google cloud recognition](https://docs.cloud.google.com/speech-to-text/docs/speech-to-text-supported-languages) requires deliberate external audio processing,connectivity,credentials/cost. Whole-handoff mapping may use Arabic section labels/language model; always reviewed.
 
+## Far far future — multiple sections per project
+
+Entire feature deferred by owner; no implementation now. Named sections, app-level permissions (all access by default), optional destination overrides and complete-project CSV preservation. Revocation applies on successful online permission refresh and removes affected unsaved drafts. Patient transfers remain an option when scope is revisited. Existing project encryption stays; Android/desktop storage and snapshot compatibility require future design and explicit authorization. [Retained decisions/design](../decisions/multiple-sections.md).
+
 ## Far far future — optional specialty templates
 
 Presentation presets: psychiatry(mental state/sleep/behavior/response/observation), medicine(problems/investigations/response), surgery(procedure/wound/drains/diet/mobility), pediatrics(weight/feeding/hydration). Admin preview of field order/emphasis/prompts/outlines/badges/headings. Fixed diagnosis/treatment/follow-up/labs storage/report mappings; no automatic findings,prescribing,deletion or hidden saved content. New searchable measurements/clinical fields need separate model/persistence/sync/report authorization.

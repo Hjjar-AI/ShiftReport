@@ -18,7 +18,7 @@ class DocumentProviderFailureTest {
     private val store = PendingExportStore(context, DefaultDispatcherProvider())
     private val destinations = mutableListOf<Uri>()
     private fun destination(fault: String = "none") = Uri.parse(
-        "content://com.hos.rushdpatients.debug.faultdocuments/${UUID.randomUUID()}?fault=$fault"
+        "content://${androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.packageName}.debug.faultdocuments/${UUID.randomUUID()}?fault=$fault"
     ).also(destinations::add)
     private val bytes = "synthetic encrypted export payload — شاي ☕".toByteArray()
     @After fun cleanup() {

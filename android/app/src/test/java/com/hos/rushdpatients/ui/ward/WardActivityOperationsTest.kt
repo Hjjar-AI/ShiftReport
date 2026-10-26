@@ -1,98 +1,119 @@
 package com.hos.rushdpatients.ui.ward
 
-import com.hos.rushdpatients.data.db.entity.AuditEntryEntity
-import com.hos.rushdpatients.data.repository.AuditRepository
+import android.content.Context
+import androidx.lifecycle.SavedStateHandle
+import com.hos.rushdpatients.config.ProjectConfig
+import com.hos.rushdpatients.config.ProjectConfigStore
+import com.hos.rushdpatients.data.repository.DoctorRepository
+import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
+import com.hos.rushdpatients.domain.auth.SessionManager
+import com.hos.rushdpatients.sync.PatientPublicationStatus
+import com.hos.rushdpatients.sync.PublicationJournalEntry
 import com.hos.rushdpatients.sync.SyncService
 import com.hos.rushdpatients.testutil.Fixtures
-import com.hos.rushdpatients.ui.components.UiStrings
+import com.hos.rushdpatients.testutil.ViewModelFixture
+import com.hos.rushdpatients.ui.settings.SettingsViewModel
+import com.hos.rushdpatients.util.NetworkStatus
 import io.mockk.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.*
+import kotlinx.coroutines.flow.*
+import org.junit.After
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
-class WardActivityOperationsTest {
-    private val text = mockk<UiStrings> { every { this@mockk.invoke(any(), *anyVararg()) } returns "رسالة تجريبية" }
-    private val state = MutableStateFlow(WardUiState())
-    private val audit = mockk<AuditRepository>()
+/** Existing history cases follow admin publication history into Settings; clinical audit UI is retired. */
+class WardActivityOperationsTest : ViewModelFixture() {
+    private val context = mockk<Context>(relaxed = true)
     private val admin = mockk<AdminAuthorizer>()
     private val sync = mockk<SyncService>()
-    private val entry = AuditEntryEntity(1, "actor", "أرز", "synthetic", "p", null, null, "detail", 1)
-    private fun operations(scope: CoroutineScope) = WardActivityOperations(text, state, scope, sync, audit, admin)
-    private fun authorized() {
+    private val settings = mockk<SettingsRepository>(relaxed = true)
+    private val doctors = mockk<DoctorRepository>(relaxed = true)
+    private val sessions = mockk<SessionManager>()
+    private val publication = mockk<PatientPublicationStatus>()
+    private val projects = mockk<ProjectConfigStore>()
+    private val entry = PublicationJournalEntry("snapshot", fileId = "synthetic-file", messageId = 1, at = 1, deviceId = "synthetic-device")
+    @Before fun configureHistory() {
+        mockkObject(NetworkStatus)
+        every { NetworkStatus.observe(context) } returns flowOf(false)
+        every { sync.observeDownloadUndo() } returns flowOf(false)
+        every { publication.observePending() } returns flowOf(false)
+        every { sessions.current() } returns null
+        every { sessions.sessionFlow } returns MutableStateFlow(null)
+        every { doctors.observeAll() } returns flowOf(emptyList())
+        every { settings.observe(any()) } returns flowOf(null)
+        every { projects.current() } returns ProjectConfig()
+        coEvery { settings.get(any()) } returns null
         coEvery { admin.requireAdmin() } returns Fixtures.doctor(rank = 1)
-        coEvery { audit.getRecent(any()) } returns listOf(entry)
-        coEvery { sync.getPublicationJournal() } returns emptyList()
+        coEvery { sync.getPublicationJournal() } returns listOf(entry)
     }
-    @Test fun deniedActivityClearsPreviouslyDisplayedPrivilegedData() = runTest {
-        state.value = state.value.copy(recentActivity = listOf(entry), activityLoading = true)
+    @After fun releaseHistoryNetwork() { unmockkObject(NetworkStatus) }
+    private fun model() = keep(SettingsViewModel(text, context, settings, doctors, mockk(), mockk(relaxed = true),
+        mockk(relaxed = true), mockk(relaxed = true), sessions, sync, publication, mockk(), mockk(),
+        mockk(relaxed = true), mockk(), projects, mockk(), admin, mockk(), SavedStateHandle()))
+    private suspend fun settled(vm: SettingsViewModel) = withTimeout(5_000) {
+        vm.state.first { !it.publicationHistoryLoading }
+    }
+    @Test fun revokedAuthorityPreventsFurtherJournalReads() = runBlocking<Unit> {
+        val vm = model(); vm.loadPublicationHistory(); settled(vm)
         coEvery { admin.requireAdmin() } throws IllegalStateException("synthetic denied")
-        operations(this).loadRecentActivity(); runCurrent()
-        assertTrue(state.value.recentActivity.isEmpty())
-        assertTrue(state.value.publications.isEmpty())
-        assertFalse(state.value.activityLoading)
-        assertEquals("synthetic denied", state.value.activityError)
-        coVerify(exactly = 0) { audit.getRecent(any()) }
-        coVerify(exactly = 0) { sync.getPublicationJournal() }
-    }
-    @Test fun authorizedActivityChecksAuthorityBeforeReadingAuditAndJournal() = runTest {
-        authorized(); operations(this).loadRecentActivity(); runCurrent()
-        assertEquals(listOf(entry), state.value.recentActivity)
-        assertFalse(state.value.activityLoading)
-        assertNull(state.value.activityError)
-        coVerifyOrder { admin.requireAdmin(); audit.getRecent(any()); sync.getPublicationJournal() }
-    }
-    @Test fun duplicateActivityRequestSharesOneActiveLoad() = runTest {
-        authorized()
-        coEvery { audit.getRecent(any()) } coAnswers { awaitCancellation() }
-        val operations = operations(backgroundScope)
-        operations.loadRecentActivity(); runCurrent(); operations.loadRecentActivity(); runCurrent()
-        assertTrue(state.value.activityLoading)
-        coVerify(exactly = 1) { admin.requireAdmin() }
-        coVerify(exactly = 1) { audit.getRecent(any()) }
-    }
-    @Test fun auditFailureStopsJournalLoadAndExposesRetryableError() = runTest {
-        authorized(); coEvery { audit.getRecent(any()) } throws IllegalStateException("synthetic storage failure")
-        operations(this).loadRecentActivity(); runCurrent()
-        assertFalse(state.value.activityLoading)
-        assertEquals("synthetic storage failure", state.value.activityError)
-        coVerify(exactly = 0) { sync.getPublicationJournal() }
-    }
-    @Test fun journalFailurePreservesLoadedLocalAudit() = runTest {
-        authorized(); coEvery { sync.getPublicationJournal() } throws IllegalStateException("synthetic journal failure")
-        operations(this).loadRecentActivity(); runCurrent()
-        assertEquals(listOf(entry), state.value.recentActivity)
-        assertEquals("synthetic journal failure", state.value.activityError)
-        assertFalse(state.value.activityLoading)
-    }
-    @Test fun completedFailureAllowsExplicitRetryAndClearsOldError() = runTest {
-        authorized(); coEvery { audit.getRecent(any()) } throws IllegalStateException("synthetic storage failure")
-        val operations = operations(this); operations.loadRecentActivity(); runCurrent()
-        coEvery { audit.getRecent(any()) } returns listOf(entry)
-        operations.loadRecentActivity(); runCurrent()
-        assertEquals(listOf(entry), state.value.recentActivity)
-        assertNull(state.value.activityError)
+        vm.loadPublicationHistory()
+        assertEquals("synthetic denied", settled(vm).publicationHistoryError)
+        coVerify(exactly = 1) { sync.getPublicationJournal() }
         coVerify(exactly = 2) { admin.requireAdmin() }
     }
-    @Test fun cancellationClearsLoadingWithoutOrdinaryError() = runTest {
-        authorized(); coEvery { audit.getRecent(any()) } coAnswers { awaitCancellation() }
-        val job = SupervisorJob(); val scope = CoroutineScope(coroutineContext + job)
-        try {
-            operations(scope).loadRecentActivity(); runCurrent()
-            assertTrue(state.value.activityLoading)
-            job.cancel(); runCurrent()
-            assertFalse(state.value.activityLoading)
-            assertNull(state.value.activityError)
-            coVerify(exactly = 0) { sync.getPublicationJournal() }
-        } finally { job.cancel() }
+    @Test fun authorityIsCheckedBeforeReadingPublicationHistory() = runBlocking<Unit> {
+        val vm = model(); vm.loadPublicationHistory()
+        assertEquals(listOf(entry), settled(vm).publicationHistory)
+        coVerifyOrder { admin.requireAdmin(); sync.getPublicationJournal() }
     }
-    @Test fun localActivityRefreshDoesNotFetchRemoteJournal() = runTest {
-        coEvery { audit.getRecent(any()) } returns listOf(entry)
-        operations(this).loadLocalActivity(); runCurrent()
-        assertEquals(listOf(entry), state.value.recentActivity)
+    @Test fun duplicateHistoryRequestSharesOneActiveLoad() = runBlocking<Unit> {
+        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        coEvery { sync.getPublicationJournal() } coAnswers { entered.complete(Unit); release.await(); listOf(entry) }
+        val vm = model(); vm.loadPublicationHistory()
+        withTimeout(5_000) { entered.await() }
+        vm.loadPublicationHistory()
+        coVerify(exactly = 1) { admin.requireAdmin() }
+        coVerify(exactly = 1) { sync.getPublicationJournal() }
+        release.complete(Unit)
+        assertEquals(listOf(entry), settled(vm).publicationHistory)
+    }
+    @Test fun deniedHistoryCannotReadJournalAndExposesError() = runBlocking<Unit> {
+        coEvery { admin.requireAdmin() } throws IllegalStateException("synthetic denied")
+        val vm = model(); vm.loadPublicationHistory()
+        assertEquals("synthetic denied", settled(vm).publicationHistoryError)
+        assertTrue(vm.state.value.publicationHistory.isEmpty())
+        coVerify(exactly = 0) { sync.getPublicationJournal() }
+    }
+    @Test fun journalFailurePreservesPreviouslyLoadedHistoryAndExposesError() = runBlocking<Unit> {
+        val vm = model(); vm.loadPublicationHistory(); settled(vm)
+        coEvery { sync.getPublicationJournal() } throws IllegalStateException("synthetic journal failure")
+        vm.loadPublicationHistory()
+        assertEquals("synthetic journal failure", settled(vm).publicationHistoryError)
+        assertEquals(listOf(entry), vm.state.value.publicationHistory)
+    }
+    @Test fun completedFailureAllowsExplicitRetryAndClearsOldError() = runBlocking<Unit> {
+        coEvery { sync.getPublicationJournal() } throws IllegalStateException("synthetic journal failure")
+        val vm = model(); vm.loadPublicationHistory(); settled(vm)
+        coEvery { sync.getPublicationJournal() } returns listOf(entry)
+        vm.loadPublicationHistory()
+        assertEquals(listOf(entry), settled(vm).publicationHistory)
+        assertNull(vm.state.value.publicationHistoryError)
+        coVerify(exactly = 2) { admin.requireAdmin() }
+    }
+    @Test fun cancellationClearsLoadingWithoutOrdinaryError() = runBlocking<Unit> {
+        val entered = CompletableDeferred<Unit>()
+        coEvery { sync.getPublicationJournal() } coAnswers { entered.complete(Unit); awaitCancellation() }
+        val vm = model(); vm.loadPublicationHistory()
+        withTimeout(5_000) { entered.await() }
+        clearViewModels()
+        settled(vm)
+        assertNull(vm.state.value.publicationHistoryError)
+    }
+    @Test fun openingSettingsDoesNotAutomaticallyReadRemoteHistory() {
+        model()
+        coVerify(exactly = 0) { admin.requireAdmin() }
         coVerify(exactly = 0) { sync.getPublicationJournal() }
     }
 }

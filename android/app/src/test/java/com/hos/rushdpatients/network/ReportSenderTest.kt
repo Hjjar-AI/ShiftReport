@@ -21,7 +21,11 @@ import java.nio.file.Files
 
 class ReportSenderTest : DeliveryFixture() {
     private val directory = Files.createTempDirectory("sender_test_").toFile()
-    private val context = mockk<Context> { every { cacheDir } returns directory }
+    private val context = mockk<Context> {
+        every { cacheDir } returns directory
+        every { getString(any()) } returns "synthetic route"
+        every { getString(any(), *anyVararg()) } returns "synthetic route"
+    }
     private val cipher = mockk<ProjectDataCipher> { every { enabled } returns false }
     private val telegram = mockk<TelegramClient>()
     private val topics = mockk<Topics> { every { chatId } returns -100; every { threadId(Topic.REPORTS) } returns 1 }
@@ -37,7 +41,7 @@ class ReportSenderTest : DeliveryFixture() {
     @After fun cleanup() { directory.deleteRecursively() }
     @Test fun `successful text send persists receipt and blocks duplicate after sender recreation`() = runBlocking<Unit> {
         assertEquals(10L, sender().sendTextReport(shift, listOf("synthetic"), actor, "review-key").firstMessageId)
-        assertEquals("SENT", ledger().observe().first().single().status)
+        assertEquals(DeliveryStatus.SENT, ledger().observe().first().single().status)
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking {
             sender().sendTextReport(shift, listOf("synthetic"), actor, "review-key")
         } }
@@ -49,14 +53,14 @@ class ReportSenderTest : DeliveryFixture() {
             sender().sendTextReport(shift, listOf("first", "second"), actor, "review-key")
         } }
         coVerify { telegram.deleteMessage(-100, 10) }
-        assertEquals("UNKNOWN", ledger().observe().first().single().status)
+        assertEquals(DeliveryStatus.UNKNOWN, ledger().observe().first().single().status)
         assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking { sender().checkGeneralDelivery(shift, "changed-key", false) } }
         coVerify(exactly = 0) { shifts.markSent(any(), any(), any(), any()) }
     }
     @Test fun `cancelled send preserves durable UNKNOWN`() = runBlocking<Unit> {
         coEvery { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) } throws CancellationException("cancelled")
         assertThrows(CancellationException::class.java) { runBlocking { sender().sendTextReport(shift, listOf("synthetic"), actor, "review-key") } }
-        assertEquals("UNKNOWN", ledger().observe().first().single().status)
+        assertEquals(DeliveryStatus.UNKNOWN, ledger().observe().first().single().status)
     }
     @Test fun `encrypted text uses a document and removes temporary plaintext`() = runBlocking<Unit> {
         every { cipher.enabled } returns true

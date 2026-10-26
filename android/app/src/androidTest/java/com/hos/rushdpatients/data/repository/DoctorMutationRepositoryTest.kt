@@ -20,14 +20,13 @@ class DoctorMutationRepositoryTest : ClinicalRepositoryFixture() {
         settings.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
         return requireNotNull(doctors.getById("target"))
     }
-    @Test fun realAddHashesPinMarksPendingAndAuditsWithoutPin() = runBlocking<Unit> {
+    @Test fun realAddHashesPinMarksPendingWithoutCreatingAudit() = runBlocking<Unit> {
         mutations.add(input(pin = "2468")) // Synthetic test PIN only.
         val added = doctors.getAll().single { it.id != admin.id }
         assertTrue(PasswordHasher().verify("2468", added.extraOptions.single().removePrefix("pin:")))
         assertTrue(settings.getBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false))
-        val row = db.auditDao().getRecent(1).single()
-        assertEquals(AppConstants.AUDIT_DOCTOR_ADDED, row.action)
-        assertFalse(row.toString().contains("2468"))
+        assertFalse(added.extraOptions.any { it == "pin:2468" })
+        assertTrue(db.auditDao().getRecent(100).isEmpty())
     }
     @Test fun liveDemotionBlocksMutationDespiteAdminSession() = runBlocking<Unit> {
         val before = target()

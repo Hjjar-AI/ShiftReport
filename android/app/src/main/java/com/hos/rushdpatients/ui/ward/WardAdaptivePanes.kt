@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.appContentEntrance
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -165,7 +166,9 @@ internal fun WardAdaptivePanes(
         }
         PaneRegionBox(primaryRegion, primaryTitle, 0f) { primary(split) }
         if (split) {
-            PaneRegionBox(supportingRegion, supportingTitle, 1f) { supporting() }
+            PaneRegionBox(supportingRegion, supportingTitle, 1f) {
+                Box(Modifier.appContentEntrance(supportingTitle)) { supporting() }
+            }
             if (regularSplit) {
                 val dividerX = if (rtl) supportingRegion.width else listWidth
                 val direction = if (rtl) -1f else 1f

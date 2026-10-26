@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.domain.report.DeliveryStatus
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.config.*
@@ -36,7 +37,7 @@ class IndependentClientsWorkflowTest {
     }
     private suspend fun edit(client: IndependentClient, labs: String) {
         val patient = requireNotNull(client.patients.getById("tea"))
-        client.wardMutations.updatePatient(patient.copy(labs = labs), "today", client.sessions.current())
+        client.wardMutations.updatePatient(patient.copy(labs = labs), "today")
     }
     @Test fun secondClientRetrievesActualUploadedBytesIntoIndependentDatabase() = runBlocking<Unit> {
         publishAndRetrieve()
@@ -45,7 +46,7 @@ class IndependentClientsWorkflowTest {
         assertEquals(server.state.csvMessageId, second.cursors.lastMessageId(SyncChannel.CSV))
         edit(second, "نتيجة محلية ثانية")
         assertEquals("", first.patients.getById("tea")?.labs)
-        assertTrue(second.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertTrue(PatientPublicationStatus(second.shifts, second.patients, second.doctors, second.settings, second.dispatchers).hasPending())
     }
     @Test fun secondPublicationThenFirstRetrievalPreservesExactEditedClinicalContent() = runBlocking<Unit> {
         publishAndRetrieve(); edit(second, "نتيجة الجهاز الثاني"); second.publish()
@@ -69,13 +70,15 @@ class IndependentClientsWorkflowTest {
         first.sync.fetchLatestCsv().getOrThrow()
         assertEquals("نشر ثان", first.patients.getById("tea")?.labs)
     }
-    @Test fun nonForcedReviewIsRejectedWhenPeerPublishesAfterReview() = runBlocking<Unit> {
+    @Test fun reviewedSnapshotRemainsLastSuccessfulWriteWhenPeerPublishesAfterReview() = runBlocking<Unit> {
         publishAndRetrieve(); edit(second, "تعديل ثان")
         val review = second.sync.prepareCsvPublication("today")
         edit(first, "نشر أحدث"); first.publish()
         val uploads = server.calls.count { it.second == "sendDocument" }
-        assertTrue(second.sync.uploadReviewedCsv(review).isFailure)
-        assertEquals(uploads, server.calls.count { it.second == "sendDocument" })
+        assertTrue(second.sync.uploadReviewedCsv(review).isSuccess)
+        assertEquals(uploads + 1, server.calls.count { it.second == "sendDocument" })
+        first.sync.fetchLatestCsv().getOrThrow()
+        assertEquals("تعديل ثان", first.patients.getById("tea")?.labs)
         assertEquals("تعديل ثان", second.patients.getById("tea")?.labs)
     }
     @Test fun sameProjectReconnectOnOneClientPreservesBothClinicalWorkspaces() = runBlocking<Unit> {
@@ -87,7 +90,7 @@ class IndependentClientsWorkflowTest {
         manager.apply(manager.prepareToken(replacement))
         assertEquals(config.copy(botToken = replacement), second.projects.current())
         assertEquals(before, second.patients.getById("tea"))
-        assertTrue(second.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertTrue(PatientPublicationStatus(second.shifts, second.patients, second.doctors, second.settings, second.dispatchers).hasPending())
         assertNotEquals(replacement, first.projects.current().botToken)
     }
     @Test fun protectedFileForAnotherProjectCannotReplaceClientScope() = runBlocking<Unit> {
@@ -106,10 +109,10 @@ class IndependentClientsWorkflowTest {
         first.seedPatient()
         server.fault = { who, method, phase -> if (who == "first" && method == "sendDocument" && phase == "after")
             throw IOException("synthetic lost upload response") }
-        val result = first.sync.uploadCsv("today")
+        val result = first.sync.uploadReviewedCsv(first.sync.prepareCsvPublication("today"))
         assertTrue(result.isFailure); assertTrue(server.files.isNotEmpty())
         assertNull(server.state.csvFileId); assertNull(first.cursors.lastMessageId(SyncChannel.CSV))
-        assertTrue(first.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertTrue(PatientPublicationStatus(first.shifts, first.patients, first.doctors, first.settings, first.dispatchers).hasPending())
         assertEquals("شاي", first.patients.getById("tea")?.name)
     }
     @Test fun downloadResponseFailurePreservesRowsCursorAndUndoState() = runBlocking<Unit> {
@@ -131,7 +134,7 @@ class IndependentClientsWorkflowTest {
             throw IOException("synthetic lost delivery response") }
         try { sender.sendTextReport(shift, listOf("تقرير تجريبي"), first.actor, "reviewed"); fail("Ambiguous send reported success") }
         catch (_: Exception) { }
-        assertEquals("UNKNOWN", ledger.observe().first().single().status)
+        assertEquals(DeliveryStatus.UNKNOWN, ledger.observe().first().single().status)
         val sends = server.deliveredTexts.size
         try { sender.sendTextReport(shift, listOf("تقرير تجريبي"), first.actor, "reviewed"); fail("Automatic repeat accepted") }
         catch (_: Exception) { }
@@ -142,9 +145,9 @@ class IndependentClientsWorkflowTest {
         val old = server.state.csvFileId
         server.fault = { who, method, phase -> if (who == "first" && method == "editMessageText" && phase == "before")
             throw IOException("synthetic rejected index write") }
-        assertTrue(first.sync.uploadCsv("today").isFailure)
+        assertTrue(first.sync.uploadReviewedCsv(first.sync.prepareCsvPublication("today")).isFailure)
         assertEquals(old, server.state.csvFileId)
-        assertTrue(first.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertTrue(PatientPublicationStatus(first.shifts, first.patients, first.doctors, first.settings, first.dispatchers).hasPending())
         assertEquals("تعديل قبل فشل الفهرس", first.patients.getById("tea")?.labs)
     }
     @Test fun acceptedIndexWithLostResponseRemainsRetrievableByIndependentPeer() = runBlocking<Unit> {
@@ -152,7 +155,7 @@ class IndependentClientsWorkflowTest {
         val old = server.state.csvFileId
         server.fault = { who, method, phase -> if (who == "first" && method == "editMessageText" && phase == "after")
             throw IOException("synthetic lost accepted-index response") }
-        first.sync.uploadCsv("today") // Success depends on whether the real store can confirm by rereading.
+        first.sync.uploadReviewedCsv(first.sync.prepareCsvPublication("today")) // Success depends on whether the real store can confirm by rereading.
         assertNotEquals(old, server.state.csvFileId)
         server.fault = { _, _, _ -> }
         second.sync.fetchLatestCsv().getOrThrow()
@@ -186,6 +189,6 @@ class IndependentClientsWorkflowTest {
         assertTrue(second.sync.fetchLatestCsv().isFailure)
         assertTrue(changed)
         assertEquals("تعديل أثناء الجلب", second.patients.getById("tea")?.labs)
-        assertTrue(second.settings.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false))
+        assertTrue(PatientPublicationStatus(second.shifts, second.patients, second.doctors, second.settings, second.dispatchers).hasPending())
     }
 }

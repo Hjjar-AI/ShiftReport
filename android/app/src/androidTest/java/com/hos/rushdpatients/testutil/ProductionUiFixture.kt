@@ -34,8 +34,6 @@ import com.hos.rushdpatients.network.ReportSender
 import com.hos.rushdpatients.pdf.*
 import com.hos.rushdpatients.sync.*
 import com.hos.rushdpatients.ui.admin.AdminViewModel
-import com.hos.rushdpatients.ui.announcement.AnnouncementViewModel
-import com.hos.rushdpatients.domain.announcement.AnnouncementPublisher
 import com.hos.rushdpatients.domain.usecase.*
 import com.hos.rushdpatients.ui.components.UiStrings
 import com.hos.rushdpatients.ui.connection.ProjectConnectionViewModel
@@ -110,7 +108,7 @@ abstract class ProductionUiFixture {
                 ProjectProvisioningManager(client.context, client.dispatchers), client.telegram, client.authorizer, client.dispatchers),
                 client.context, client.dispatchers) }
             root = get(store) { RootViewModel(text, client.sessions, client.settings, BiometricHelper(client.context),
-                client.audit, client.doctors, PasswordHasher(), client.projects) }
+                client.audit, client.doctors, LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers), client.projects) }
             setup = get(store) { ProjectSetupViewModel(text, client.context, client.projects, client.telegram, bootstrap,
                 BootstrapSeeder(client.telegram, client.topics, client.projects), client.sessions, client.settings,
                 ProjectProvisioningManager(client.context, client.dispatchers)) }
@@ -138,7 +136,7 @@ abstract class ProductionUiFixture {
                                 val store = checkNotNull(navigation.currentBackStackEntry).viewModelStore
                                 when (destination.route) {
                                     Routes.WARD -> ward = get(store) { wardModel() }
-                                    Routes.REPORT_PREVIEW -> report = get(store) { reportModel(arguments?.getString("shiftId").orEmpty()) }
+                                    Routes.REPORT_PREVIEW, Routes.ASSIGNMENTS -> report = get(store) { reportModel(arguments?.getString("shiftId").orEmpty()) }
                                     Routes.DOCTORS -> doctorVm = get(store) { doctorsModel() }
                                     Routes.SETTINGS, Routes.SETTINGS_DETAIL, Routes.PROJECT_SETTINGS, Routes.DATA_MANAGEMENT, Routes.DIAGNOSTICS -> {
                                         settingsVm = get(store) { settingsModel() }
@@ -147,9 +145,6 @@ abstract class ProductionUiFixture {
                                     }
                                     Routes.ADMIN -> get(store) { AdminViewModel(text, client.doctors, client.sessions,
                                         PromoteAdminUseCase(client.doctorMutations), DemoteAdminUseCase(client.doctorMutations), client.sync) }
-                                    Routes.ANNOUNCEMENT -> get(store) { AnnouncementViewModel(text, AnnouncementPublisher(client.telegram,
-                                        client.topics, client.projects, ProjectDataCipher(client.projects, client.dispatchers), client.remote,
-                                        client.doctorSync, ledger, client.audit, client.dispatchers), ledger) }
                                     else -> error("No isolated models configured for this destination")
                                 }
                                 route = destination.route
@@ -164,12 +159,12 @@ abstract class ProductionUiFixture {
         scenario = ActivityScenario.launch(IsolatedWorkflowActivity::class.java)
     }
     private fun wardModel() = WardViewModel(text, client.context, client.shifts, client.patients, client.wardMutations,
-        client.doctors, client.sync, client.settings, csv, client.cursors, client.sessions, client.audit, client.authorizer,
-        server.json, ledger, client.projects)
+        client.doctors, client.sync, client.settings, csv, client.cursors, client.sessions,
+        server.json, ledger, PatientPublicationStatus(client.shifts, client.patients, client.doctors, client.settings, client.dispatchers), client.projects)
     private fun reportModel(id: String): ReportPreviewViewModel {
         val classic = PdfReportExporter(client.context)
         return ReportPreviewViewModel(text, SavedStateHandle(mapOf("shiftId" to id)), client.context, client.reports,
-            TextReportBuilder(), sender, classic, PdfCardsExporter(classic), PdfAssignmentExporter(client.authorizer, client.context),
+            TextReportBuilder(), sender, classic, PdfCardsExporter(classic), PdfAssignmentExporter(client.authorizer, PdfAssignmentRenderer(client.context)),
             MediaStoreSaver(), client.settings, client.doctors, client.shifts, client.wardMutations, client.sessions,
             client.authorizer, client.sync, client.projects, ledger)
     }
@@ -178,6 +173,7 @@ abstract class ProductionUiFixture {
         PendingExportStore(client.context, client.dispatchers), SavedStateHandle())
     private fun settingsModel() = SettingsViewModel(text, client.context, client.settings, client.doctors, client.doctorMutations,
         client.shifts, client.patients, client.cursors, client.sessions, client.sync,
+        PatientPublicationStatus(client.shifts, client.patients, client.doctors, client.settings, client.dispatchers),
         EmptyStartCoordinator(client.context, client.db, client.settings, client.shifts, client.cursors, client.audit,
             client.doctorSync, client.remote, client.telegram, client.topics, client.dispatchers), csv, BiometricHelper(client.context),
         EncryptedBackupManager(client.context, client.db, client.shifts, client.patients, client.doctors, client.settings, client.dispatchers),

@@ -30,16 +30,18 @@ class AuditAndSettingsRepositoryTest : DatabaseFixture() {
         assertEquals(listOf(30L, 20L), audit().getRecent(2).map { it.atEpochMillis })
         assertTrue(audit().getRecent(0).isEmpty())
     }
-    @Test fun auditRecordRetainsActorClinicalBeforeAfterAndDetail() = runBlocking<Unit> {
-        audit().record("tree", "أرز", "synthetic edit", "تفصيل", "tea", "قبل", "بعد")
+    @Test fun legacyAuditRetainsActorClinicalBeforeAfterAndDetailWithoutNewWrites() = runBlocking<Unit> {
+        db.auditDao().insert(entry("tea", 10).copy(action = "legacy edit"))
+        audit().record("tree", "أرز", "new edit", "new detail", "tea", "new before", "new after")
         val saved = audit().getForPatient("tea").single()
         assertEquals("tree", saved.actorDoctorId); assertEquals("أرز", saved.actorName)
-        assertEquals("synthetic edit", saved.action); assertEquals("تفصيل", saved.detail)
+        assertEquals("legacy edit", saved.action); assertEquals("تفصيل", saved.detail)
         assertEquals("قبل", saved.beforeValue); assertEquals("بعد", saved.afterValue)
         assertTrue(saved.atEpochMillis > 0)
     }
-    @Test fun anonymousProjectAuditIsRetainedWithoutPatientAttribution() = runBlocking<Unit> {
-        audit().record(null, null, "synthetic project event")
+    @Test fun legacyProjectAuditIsRetainedWithoutNewProjectEvents() = runBlocking<Unit> {
+        db.auditDao().insert(entry(null, 10).copy(actorDoctorId = null, actorName = null))
+        audit().record(null, null, "new project event")
         val saved = audit().getRecent().single()
         assertNull(saved.actorDoctorId); assertNull(saved.actorName); assertNull(saved.patientId)
         assertTrue(audit().getForPatient("tea").isEmpty())
@@ -63,7 +65,7 @@ class AuditAndSettingsRepositoryTest : DatabaseFixture() {
     }
     @Test fun lockTimeoutReadsAndWritesStayWithinOneToSixtyMinutes() = runBlocking<Unit> {
         val settings = settings()
-        assertEquals(20, settings.getAutoLockMinutes())
+        assertEquals(5, settings.getAutoLockMinutes())
         settings.setAutoLockMinutes(0); assertEquals(1, settings.getAutoLockMinutes())
         settings.setAutoLockMinutes(61); assertEquals(60, settings.getAutoLockMinutes())
         settings.putInt(AppConstants.SETTING_AUTO_LOCK_MINUTES, Int.MIN_VALUE)

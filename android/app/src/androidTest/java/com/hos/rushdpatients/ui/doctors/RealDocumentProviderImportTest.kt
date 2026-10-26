@@ -21,7 +21,7 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class RealDocumentProviderImportTest : ProductionUiFixture() {
     @get:Rule val compose = createEmptyComposeRule()
-    private val documentName = "shiftreport-provider-doctors.csv"
+    private var documentName = "shiftreport-provider-doctors.csv"
     private fun label(id: Int) = client.context.getString(id)
 
     @Suppress("DEPRECATION")
@@ -55,6 +55,17 @@ class RealDocumentProviderImportTest : ProductionUiFixture() {
     @Test fun realSystemPickerGrantReachesPreviewAndIsolatedCommit() = runBlocking<Unit> {
         assumeTrue("Opt-in: place the supplied synthetic CSV in the provider and make it visible in the picker",
             InstrumentationRegistry.getArguments().getString("realDocumentProvider") == "true")
+        importThroughNativePicker(privateCsv = false)
+    }
+
+    @Test fun originalPrivateCsvThroughNativePickerCommitsOnlyIntoIsolatedRegistry() = runBlocking<Unit> {
+        assumeTrue("Explicit owner-approved private CSV provider input required",
+            InstrumentationRegistry.getArguments().getString("ownerPrivateDocumentProvider") == "true")
+        documentName = "shiftreport-owner-import.csv"
+        importThroughNativePicker(privateCsv = true)
+    }
+
+    private suspend fun importThroughNativePicker(privateCsv: Boolean) {
         // No controlled ActivityResultRegistry: this launches the device's actual picker.
         launch()
         compose.waitUntil(10000) { route == Routes.WARD && !ward.state.value.loading }
@@ -75,17 +86,21 @@ class RealDocumentProviderImportTest : ProductionUiFixture() {
         }
         compose.waitUntil(15000) { !doctorVm.state.value.importing &&
             (doctorVm.state.value.importPreview != null || doctorVm.state.value.importError != null) }
-        val artifacts = File(client.context.getExternalFilesDir(null), "verification-artifacts/real-provider").apply { mkdirs() }
+        val artifacts = File(client.context.getExternalFilesDir(null), if (privateCsv) "verification-artifacts/private-real-provider" else "verification-artifacts/real-provider").apply { mkdirs() }
         File(artifacts, "result.txt").writeText(
             "API=${Build.VERSION.SDK_INT}\nmodel=${Build.MODEL}\npreview=${doctorVm.state.value.importPreview != null}\n" +
-                "error=${doctorVm.state.value.importError.orEmpty()}\n")
+                "importErrorPresent=${doctorVm.state.value.importError != null}\n")
         assertNull("Synthetic real-provider import failed; see private verification artifact", doctorVm.state.value.importError)
         assertEquals(before, client.doctors.getAllIncludingDeleted())
-        assertEquals(listOf("د. بلوط شجرة"), doctorVm.state.value.importPreview?.added)
+        val expectedCount = requireNotNull(doctorVm.state.value.importPreview).activeCount
+        if (!privateCsv) assertEquals(listOf("د. بلوط شجرة"), doctorVm.state.value.importPreview?.added)
         compose.onNodeWithText(label(R.string.ui_doctors_screen_043)).performClick()
         compose.waitUntil(15000) { !doctorVm.state.value.importing && doctorVm.state.value.importPreview == null }
-        assertNotNull(client.doctors.getById("provider-oak"))
-        assertEquals(before.size + 1, client.doctors.getAllIncludingDeleted().size)
+        if (privateCsv) assertEquals(expectedCount, client.doctors.getAll().size)
+        else {
+            assertNotNull(client.doctors.getById("provider-oak"))
+            assertEquals(before.size + 1, client.doctors.getAllIncludingDeleted().size)
+        }
         // Any publication goes only to the fixture's intercepted synthetic server.
         assertTrue(server.deliveredTexts.isEmpty())
     }

@@ -20,35 +20,33 @@ class WardPreferencesTest {
     private val expanded = MutableStateFlow<String?>(null)
     private val columns = MutableStateFlow<String?>(null)
     private val compact = MutableStateFlow<String?>(null)
-    private val saveNext = MutableStateFlow<String?>(null)
     private val group = MutableStateFlow<String?>(null)
     private fun preferences(scope: CoroutineScope) = WardPreferences(text, state, scope, settings)
     private fun observe(scope: CoroutineScope): WardPreferences {
         every { settings.observe(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED) } returns expanded
         every { settings.observe(AppConstants.SETTING_PATIENT_TWO_COLUMN) } returns columns
         every { settings.observe(AppConstants.SETTING_PATIENT_COMPACT_DENSITY) } returns compact
-        every { settings.observe(AppConstants.SETTING_SAVE_AND_NEXT) } returns saveNext
         every { settings.observe(AppConstants.SETTING_GROUP_BY_MODE) } returns group
         return preferences(scope).also { it.observePreferences() }
     }
     @Test fun missingPreferencesUseCompactSafeWardDefaults() = runTest {
         observe(backgroundScope); runCurrent()
         assertFalse(state.value.patientDetailsExpanded); assertFalse(state.value.twoColumn)
-        assertFalse(state.value.compactCards); assertFalse(state.value.saveAndNext)
+        assertFalse(state.value.compactCards)
         assertEquals(GroupByMode.SUPERVISOR, state.value.groupByMode)
     }
     @Test fun malformedBooleanPreferencesDoNotEnableActions() = runTest {
-        expanded.value = "TRUE"; columns.value = "1"; compact.value = "yes"; saveNext.value = "invalid"
+        expanded.value = "TRUE"; columns.value = "1"; compact.value = "yes"
         observe(backgroundScope); runCurrent()
         assertFalse(state.value.patientDetailsExpanded); assertFalse(state.value.twoColumn)
-        assertFalse(state.value.compactCards); assertFalse(state.value.saveAndNext)
+        assertFalse(state.value.compactCards)
     }
     @Test fun eachObservedPreferenceUpdatesIndependently() = runTest {
         observe(backgroundScope); runCurrent()
         columns.value = "true"; runCurrent()
         assertTrue(state.value.twoColumn); assertFalse(state.value.compactCards)
-        compact.value = "true"; expanded.value = "true"; saveNext.value = "true"; runCurrent()
-        assertTrue(state.value.compactCards); assertTrue(state.value.patientDetailsExpanded); assertTrue(state.value.saveAndNext)
+        compact.value = "true"; expanded.value = "true"; runCurrent()
+        assertTrue(state.value.compactCards); assertTrue(state.value.patientDetailsExpanded)
         columns.value = "false"; runCurrent()
         assertFalse(state.value.twoColumn); assertTrue(state.value.compactCards)
     }
@@ -81,11 +79,12 @@ class WardPreferencesTest {
         coVerify { settings.put(AppConstants.SETTING_GROUP_BY_MODE, "SUPERVISOR") }
         assertEquals("أرز", state.value.groupedPatients.single().name)
     }
-    @Test fun dismissingSyncHintPersistsOnlyPresentationAcknowledgement() = runTest {
+    @Test fun compactCardPreferenceDoesNotChangeClinicalContent() = runTest {
         val before = Fixtures.patient(labs = "نتيجة")
-        state.value = state.value.copy(showSyncHint = true, patients = listOf(before))
-        preferences(this).dismissSyncHint(); runCurrent()
-        assertFalse(state.value.showSyncHint); assertEquals(listOf(before), state.value.patients)
-        coVerify(exactly = 1) { settings.putBoolean(AppConstants.SETTING_SYNC_LONG_PRESS_HINT_SHOWN, true) }
+        state.value = state.value.copy(patients = listOf(before))
+        preferences(this).setCompactCards(true); runCurrent()
+        assertTrue(state.value.compactCards)
+        assertEquals(listOf(before), state.value.patients)
+        coVerify(exactly = 1) { settings.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, true) }
     }
 }

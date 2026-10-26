@@ -9,14 +9,14 @@ import java.time.LocalDate
 
 class ReportReadinessTest {
     @Test fun `empty ward has no warnings and optional task owner is never a readiness requirement`() {
-        assertTrue(ReportReadiness.warnings(emptyList()).isEmpty())
+        assertTrue(ReportReadiness.incompletePatientIds(emptyList()).isEmpty())
         val complete = Fixtures.patient(responsibleResidentId = "r", responsibleSpecialistId = "s")
             .copy(tasks = listOf(Fixtures.task()))
-        assertTrue(ReportReadiness.warnings(listOf(complete)).isEmpty())
+        assertTrue(ReportReadiness.incompletePatientIds(listOf(complete)).isEmpty())
     }
-    @Test fun `missing fields aggregate patient counts separately`() {
+    @Test fun `missing fields produce one actionable patient identity each`() {
         val missing = Fixtures.patient(initialDiagnosis = " ", treatmentPlan = "")
-        assertEquals(listOf("2 مريض دون اختصاصي", "2 مريض دون مقيم", "2 مريض دون تشخيص أولي", "2 مريض دون خطة علاجية"),
-            ReportReadiness.warnings(listOf(missing, missing.copy(id = "second"))))
+        assertEquals(setOf(missing.id, "second"),
+            ReportReadiness.incompletePatientIds(listOf(missing, missing.copy(id = "second"))))
     }
 }
