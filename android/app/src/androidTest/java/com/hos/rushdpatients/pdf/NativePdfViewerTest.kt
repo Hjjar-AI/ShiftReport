@@ -8,7 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.report.ReportSummary
-import com.hos.rushdpatients.testutil.IsolatedStorageContext
+import com.hos.rushdpatients.testutil.IsolatedPdfContext
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -20,12 +20,14 @@ import java.time.LocalDate
 @RunWith(AndroidJUnit4::class)
 class NativePdfViewerTest {
     @Test fun installedViewerReceivesActualReadGrantForDemoPdf() = runBlocking<Unit> {
-        val context = IsolatedStorageContext()
+        val context = IsolatedPdfContext()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        var previewFile: File? = null
         try {
             val row = Patient(id = "viewer-tea", name = "شاي تجريبي", initialDiagnosis = "تشخيص تجريبي",
                 treatmentPlan = "DEMO TREATMENT 12.5 mg", followUp = "متابعة تجريبية", labs = "Na=140")
-            val file = File(context.cacheDir, "DEMO-viewer.pdf")
+            val directory = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
+            val file = File.createTempFile("DEMO-viewer-", ".pdf", directory).also { previewFile = it }
             PdfReportExporter(context).export(listOf(row), emptyList(), ReportSummary(1, 1, 0, LocalDate.of(2026, 10, 26), emptyList()),
                 emptyMap(), emptyMap(), PdfExportOptions(paperSize = PdfPaperSize.A5), true, file, documentLabel = "DEMO")
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
@@ -49,6 +51,7 @@ class NativePdfViewerTest {
             File(artifacts, "result.txt").writeText("viewer=$viewer\nreadGrant=true\ndummyOnly=true\n")
         } finally {
             instrumentation.uiAutomation.executeShellCommand("input keyevent KEYCODE_BACK").close()
+            previewFile?.delete()
             context.cleanUp()
         }
     }

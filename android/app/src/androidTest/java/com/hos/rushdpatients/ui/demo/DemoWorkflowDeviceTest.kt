@@ -12,7 +12,7 @@ import com.hos.rushdpatients.data.model.*
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
 import com.hos.rushdpatients.domain.report.*
 import com.hos.rushdpatients.pdf.*
-import com.hos.rushdpatients.testutil.IsolatedStorageContext
+import com.hos.rushdpatients.testutil.IsolatedPdfContext
 import com.hos.rushdpatients.ui.components.UiStrings
 import com.hos.rushdpatients.ui.report.ReportStepOutcome
 import kotlinx.coroutines.*
@@ -24,13 +24,13 @@ import java.io.File
 /** Real demo adapters/renderers with isolated dummy data; no production repositories or transport. */
 @RunWith(AndroidJUnit4::class)
 class DemoWorkflowDeviceTest {
-    private lateinit var context: IsolatedStorageContext
+    private lateinit var context: IsolatedPdfContext
     private lateinit var vm: DemoWardViewModel
     private lateinit var repository: InMemoryDemoWardRepository
     private val store = ViewModelStore()
     private fun main(action: () -> Unit) = InstrumentationRegistry.getInstrumentation().runOnMainSync(action)
     @Before fun open() {
-        context = IsolatedStorageContext()
+        context = IsolatedPdfContext()
         main {
             repository = InMemoryDemoWardRepository()
             vm = DemoWardViewModel(UiStrings(context), context, repository,
@@ -87,6 +87,7 @@ class DemoWorkflowDeviceTest {
         main { vm.report.onPdfPreviewOpened(general); vm.report.shareExportPdf("general", true) }; idle()
         assertArrayEquals(reviewed, bytes(requireNotNull(vm.report.state.value.pdfShareUri)))
         main { vm.report.consumePdfShare() }
+        verifyExplicitLocalCopy(reviewed)
         val supervisor = vm.report.state.value.supervisorTargets.first().doctorId
         val route = "supervisor:$supervisor"
         val target = preview(route)
@@ -137,14 +138,59 @@ class DemoWorkflowDeviceTest {
             val file = File(artifacts, "DEMO-${style.name}-${paper.name}.pdf").apply { writeBytes(bytes(uri)) }
             renderEveryPage(file)
         }
-        main { repository.state.value = repository.state.value.copy(shiftDoctorIds = emptyList()); vm.report.load() }
+        main {
+            val patient = vm.state.value.patients.first()
+            val supervisor = vm.state.value.doctors.first { it.clinicalRole == ClinicalRole.SUPERVISOR && it.id != patient.responsibleSpecialistId }
+            vm.save(patient.copy(responsibleSpecialistId = supervisor.id))
+            assertEquals(com.hos.rushdpatients.util.ShiftDate.current(), vm.state.value.patients.single { it.id == patient.id }.assignmentChangedOn)
+            repository.state.value = repository.state.value.copy(shiftDoctorIds = emptyList())
+            vm.report.load()
+        }
         val uri = preview("assignments", false)
         val file = File(artifacts, "DEMO-assignments-empty-roster.pdf").apply { writeBytes(bytes(uri)) }
-        renderEveryPage(file)
+        renderEveryPage(file, expectHighlight = true)
         assertNull(vm.report.state.value.summary)
     }
 
-    private fun renderEveryPage(file: File) {
+    private suspend fun verifyExplicitLocalCopy(expected: ByteArray) {
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            val collection = android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            fun ownedDemoIds(): Set<Long> = context.contentResolver.query(collection,
+                arrayOf(android.provider.MediaStore.MediaColumns._ID),
+                "${android.provider.MediaStore.MediaColumns.DISPLAY_NAME} LIKE ? AND ${android.provider.MediaStore.MediaColumns.RELATIVE_PATH} = ?",
+                arrayOf("%DEMO%", "Download/RushdPatients/"), null)!!.use { cursor ->
+                buildSet { while (cursor.moveToNext()) add(cursor.getLong(0)) }
+            }
+            val before = ownedDemoIds()
+            var created = emptySet<Long>()
+            try {
+                main { vm.report.saveExportPdfs(setOf("general"), true) }; idle()
+                assertNull(vm.report.state.value.error)
+                created = ownedDemoIds() - before
+                assertEquals("Exactly one explicit demo copy", 1, created.size)
+                val uri = android.content.ContentUris.withAppendedId(collection, created.single())
+                assertArrayEquals(expected, bytes(uri))
+            } finally {
+                // Compare IDs again so even a failed assertion removes only this operation's new files.
+                (created + (ownedDemoIds() - before)).forEach { id ->
+                    context.contentResolver.delete(android.content.ContentUris.withAppendedId(collection, id), null, null)
+                }
+            }
+        } else {
+            val directory = File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS), "RushdPatients")
+            val before = directory.listFiles().orEmpty().toSet()
+            try {
+                main { vm.report.saveExportPdfs(setOf("general"), true) }; idle()
+                assertNull(vm.report.state.value.error)
+                val created = directory.listFiles().orEmpty().toSet() - before
+                assertEquals(1, created.size)
+                assertArrayEquals(expected, created.single().readBytes())
+            } finally { (directory.listFiles().orEmpty().toSet() - before).forEach { it.delete() } }
+        }
+    }
+
+    private fun renderEveryPage(file: File, expectHighlight: Boolean = false) {
+        var highlightedPixels = 0
         PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)).use { pdf ->
             assertTrue(pdf.pageCount > 0)
             repeat(pdf.pageCount) { index -> pdf.openPage(index).use { page ->
@@ -154,6 +200,7 @@ class DemoWorkflowDeviceTest {
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 val pixels = IntArray(bitmap.width * bitmap.height)
                 bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+                highlightedPixels += pixels.count { Color.red(it) > 240 && Color.green(it) in 220..250 && Color.blue(it) in 140..210 }
                 assertTrue("Blank demo page $index", pixels.count { Color.red(it) < 200 && Color.green(it) < 200 && Color.blue(it) < 200 } > 100)
                 if (index == 0 || index == pdf.pageCount - 1) {
                     File(file.parentFile, "${file.nameWithoutExtension}-page-${index + 1}.png").outputStream().use {
@@ -163,5 +210,6 @@ class DemoWorkflowDeviceTest {
                 bitmap.recycle()
             } }
         }
+        if (expectHighlight) assertTrue("Changed assignment must have a visible pale-yellow name cell", highlightedPixels > 10)
     }
 }

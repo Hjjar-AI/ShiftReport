@@ -147,10 +147,9 @@ class ReportPreviewViewModelTest {
         coEvery { reports.buildAssignments(any(), any()) } answers { built() }
         coEvery { doctors.getActiveById("oak") } answers { registry.single() }
         mockkStatic(FileProvider::class)
-        every { FileProvider.getUriForFile(any(), any(), any(), any()) } answers {
-            val value = "content://verification/" + thirdArg<File>().name
-            mockk<Uri> { every { toString() } returns value }
-        }
+        val generalUri = mockk<Uri>(name = "general-preview")
+        val supervisorUri = mockk<Uri>(name = "supervisor-preview")
+        every { FileProvider.getUriForFile(context, any(), any<File>(), any<String>()) } returnsMany listOf(generalUri, supervisorUri)
         coEvery { cards.export(any(), any(), any(), any(), any(), any(), any(), any()) } answers {
             arg<File>(6).apply { writeText("reviewed bytes: " + firstArg<List<com.hos.rushdpatients.data.model.Patient>>().joinToString { it.labs }) }
         }
@@ -233,4 +232,36 @@ class ReportPreviewViewModelTest {
         assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.deliveryOutcome)
         coVerify(exactly = 0) { saver.savePdf(any(), any(), any(), any()) }
     }
+    @Test fun `uncertain general delivery never copies PDFs or offers automatic send retry`() {
+        val vm = pdfRoutes()
+        coEvery { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) } throws
+            com.hos.rushdpatients.network.ReportDeliveryUncertainException(IOException("synthetic response lost"))
+        vm.sendSelectedReports(true, setOf("oak"), exportPdf = true); awaitIdle(vm)
+        assertEquals(ReportStepOutcome.UNCERTAIN, vm.state.value.deliveryOutcome)
+        assertNull(vm.state.value.retryAction)
+        coVerify(exactly = 0) { saver.savePdf(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test fun `mixed text and supervisor PDF saves only PDF after both confirm`() {
+        val vm = pdfRoutes()
+        coEvery { settings.setReportAsPdf(false) } just Runs
+        vm.setReportAsPdf(false); awaitIdle(vm)
+        var textSent = false
+        var supervisorSent = false
+        coEvery { sender.sendTextReport(any(), any(), any(), any(), any()) } answers {
+            textSent = true; SendResult(listOf(20), 20, Fixtures.timestamp)
+        }
+        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
+            supervisorSent = true; SendResult(listOf(21), 21, Fixtures.timestamp)
+        }
+        coEvery { saver.savePdf(any(), any(), any(), true) } answers {
+            assertTrue(textSent && supervisorSent); mockk<Uri>()
+        }
+        vm.sendSelectedReports(true, setOf("oak"), exportPdf = true); awaitIdle(vm)
+        assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.deliveryOutcome)
+        coVerify(exactly = 1) { saver.savePdf(any(), any(), any(), true) }
+        coVerify(exactly = 0) { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
 }

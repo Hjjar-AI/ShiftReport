@@ -91,7 +91,7 @@ class RealDocumentProviderImportTest : ProductionUiFixture() {
             "API=${Build.VERSION.SDK_INT}\nmodel=${Build.MODEL}\npreview=${doctorVm.state.value.importPreview != null}\n" +
                 "importErrorPresent=${doctorVm.state.value.importError != null}\n")
         assertNull("Synthetic real-provider import failed; see private verification artifact", doctorVm.state.value.importError)
-        assertEquals(before, client.doctors.getAllIncludingDeleted())
+        assertTrue("Preview must not mutate the isolated registry", before == client.doctors.getAllIncludingDeleted())
         val expectedCount = requireNotNull(doctorVm.state.value.importPreview).activeCount
         if (!privateCsv) assertEquals(listOf("د. بلوط شجرة"), doctorVm.state.value.importPreview?.added)
         compose.onNodeWithText(label(R.string.ui_doctors_screen_043)).performClick()

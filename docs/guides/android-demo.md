@@ -38,4 +38,4 @@ Implement presentation and user flows in controller-driven workspaces, then let 
 
 ## Evidence
 
-Source completion does not establish runtime isolation, device UI or every-page PDF acceptance. [Current evidence](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md).
+26 October PPA-LX2/API29 focused tests passed selected memory-only edit/fetch/Undo/reset, discarded credential inputs, shared report/assignments navigation/recreation, simulated receipts and exact reviewed-byte Save/Share with stale-data rejection. Five dummy PDFs/31pages passed rendering, every-page DEMO and continuation-content checks with92 valid Fit links; changed-assignment marking and sampled visuals checked. Xodo read-grant launch passed. These selected results do not establish physical printing, all viewer/glyph behavior or full UI-matrix acceptance. [Current evidence](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md).

@@ -20,14 +20,14 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class DemoWorkspaceInteractionTest {
     @get:Rule val compose = createEmptyComposeRule()
-    private lateinit var context: IsolatedStorageContext
+    private lateinit var context: IsolatedPdfContext
     private lateinit var vm: DemoWardViewModel
     private val repository = InMemoryDemoWardRepository()
     private var scenario: ActivityScenario<IsolatedWorkflowActivity>? = null
     private fun main(action: () -> Unit) = InstrumentationRegistry.getInstrumentation().runOnMainSync(action)
     private fun text(id: Int, vararg args: Any) = context.getString(id, *args)
     @Before fun launchDemo() {
-        context = IsolatedStorageContext()
+        context = IsolatedPdfContext()
         IsolatedWorkflowActivity.install = { activity ->
             val retained = activity.viewModelStore["demo"]
             vm = if (retained is DemoWardViewModel) retained else DemoWardViewModel(UiStrings(context), context,

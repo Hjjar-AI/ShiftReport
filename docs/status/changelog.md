@@ -1,5 +1,12 @@
 # Completed work
 
+## Android coverage areas1–6 and demo verification — 26 October 2026
+
+- Added19 scoped regression cases (8 JVM/11 device) and replaced the constrained doctor Edit semantics shortcut with a real pointer tap after scrolling clear of Add. Covered multi-route/mixed report delivery and local-copy recovery, unfinished multiline/task drafts through lifecycle/process death, original private CSV through the actual OEM picker, memory-only demo workflows/shared screens and exact-byte local files. Area7 live cross-client work excluded.
+- Focused report13/13 passed; latest focused device29/29 passed after resolving test-only URI/FileProvider fixtures. Initial phone27:24 passed/3 failed; affected rerun8/8, private/synthetic picker1/1 each, strengthened highlight1/1. Inventory655 JVM/299 device; combined earlier broad/focused results now all pass with no skips, not a fresh full-suite rerun.
+- Five dummy PDFs/31pages: every-page DEMO, long-section first/last markers and92 valid Fit links; assignment-date highlight asserted/visually sampled. Xodo read grant and sampled viewer/raster visuals inspected. Demo shares current production workspaces/renderers, while storage/authentication/transport are memory-only or simulated. No physical-print/every-glyph/parity claim.
+- Kept the isolated verification package/offline/one worker/2GB/in-process Kotlin/incremental disabled/autoVersion=false and preflight before every build. Removed only owned temporary private/synthetic phone inputs and dummy exports; originals/evidence retained. No production behavior, migrations, version changes or clinical install. Evidence `local/verification/android-coverage-areas-1-6-2026-10-26/`; Git whitespace passed. [Remaining manual limits](testing-handoff.md).
+
 ## Android existing-test refresh — 26 October 2026
 
 - Adapted existing JVM/device tests to optional profiles, plain multiline/checklists, last-save-wins clinical saves, continuous sections, current report review/delivery and appearance/splash contracts. Retained applicable authority, missing/deleted/wrong-section, transaction/cancellation, exact-artifact and durable-UNKNOWN checks. Retired36 obsolete JVM cases; moved eight existing history cases to Settings publication history. Inventory647 JVM/288 device, no new cases.
