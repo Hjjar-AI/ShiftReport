@@ -48,6 +48,7 @@ fun AdminScreen(
     val scope = rememberCoroutineScope()
 
     var showAssignAdmin by remember { mutableStateOf(false) }
+    var showTransfer by remember { mutableStateOf(false) }
     var showRemoveAdmin by remember { mutableStateOf(false) }
 
     fun notify(message: String) {
@@ -110,6 +111,13 @@ fun AdminScreen(
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(uiText(R.string.ui_admin_screen_012)) }
+                if (state.currentActor?.isPermanentAdmin == true) {
+                    AppOutlinedButton(
+                        onClick = { showTransfer = true },
+                        enabled = !state.saving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(uiText(R.string.admin_transfer_title)) }
+                }
                 AppOutlinedButton(
                     onClick = { showRemoveAdmin = true },
                     enabled = !state.saving,
@@ -117,6 +125,28 @@ fun AdminScreen(
                 ) { Text(uiText(R.string.ui_admin_screen_013)) }
             }
         }
+    }
+
+    if (showTransfer) {
+        TransferAdminDialog(
+            candidates = state.admins.filter {
+                !it.isDeleted && !it.isPermanentAdmin && it.telegramId != null &&
+                    it.id != state.currentActor?.id && it.telegramId != state.currentActor?.telegramId
+            },
+            saving = state.saving,
+            onConfirm = { doctor ->
+                viewModel.prepareTransfer(doctor.id) { error ->
+                    showTransfer = false
+                    error?.let { notify(it) }
+                }
+            },
+            onDismiss = { showTransfer = false }
+        )
+    }
+    state.transferReview?.let { review ->
+        TransferAdminReviewDialog(review, state.saving,
+            onConfirm = { viewModel.confirmTransfer { notify(it) } },
+            onDismiss = viewModel::dismissTransferReview)
     }
 
     if (showAssignAdmin) {

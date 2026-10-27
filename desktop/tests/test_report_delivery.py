@@ -117,5 +117,31 @@ class ReportDeliveryTests(unittest.TestCase):
         with self.assertRaises(BridgeError):delivery.send([('cedar','pdf',b'%PDF')],Mock())
         self.owner.publish.assert_not_called();self.client.send_pdf.assert_not_called()
 
+    def test_partial_batch_restart_blocks_all_transport_until_explicit_unknown_resolution(self):
+        payloads=[(None,'pdf',b'%PDF1'),('cedar','pdf',b'%PDF2')]
+        def partial(*args,**kwargs):
+            target=args[2];args[5](-100 if target is None else -200,3 if target is None else None)
+            if target:raise UncertainDelivery('synthetic response loss')
+            return dict(message_id=1)
+        self.client.send_pdf.side_effect=partial
+        with self.assertRaises(UncertainDelivery):self.delivery().send(payloads,Mock())
+        reopened=Workspace(self.directory.name,client())
+        self.owner.store=reopened;self.store=reopened
+        self.client.send_pdf.reset_mock()
+        with self.assertRaises(BridgeError):self.delivery().send(payloads,Mock())
+        self.client.send_pdf.assert_not_called()
+        self.assertEqual(['SENT','UNKNOWN'],[row[2] for _,row in reopened.receipts()])
+        reopened.resolve_unknown(1,True,self.client)
+        def send(*args,**kwargs):
+            self.assertEqual('cedar',args[2]);args[5](-200,None);return dict(message_id=2)
+        self.client.send_pdf.side_effect=send
+        decline=Mock(return_value=False);copy_pdf=Mock()
+        self.assertEqual(1,self.delivery().send(payloads,decline,after_delivery=copy_pdf))
+        decline.assert_called_once_with(None)
+        self.client.send_pdf.assert_called_once();copy_pdf.assert_not_called()
+        self.assertEqual('SENT',reopened.receipts()[0][1][2])
+        self.assertEqual('SENT',reopened.receipts()[-1][1][2])
+        self.owner.publish.assert_not_called()
+
 
 if __name__=='__main__':unittest.main()

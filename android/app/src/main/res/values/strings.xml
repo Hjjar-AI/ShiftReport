@@ -55,4 +55,18 @@
     <string name="back_online_fetch">عاد الاتصال. جلب البيانات الآن؟</string>
     <string name="sync_index_too_large">فهرس المشروع أكبر من حد الرسالة؛ لم يُكتب الفهرس. راجع إعدادات المشروع.</string>
     <string name="patients_current_section_required">يمكن نشر القسم الحالي فقط؛ أعد فتحه وراجع التقرير.</string>
+    <string name="admin_transfer_title">نقل الإدارة الدائمة</string>
+    <string name="admin_transfer_candidate">%1$s — حساب تليجرام: %2$s</string>
+    <string name="admin_transfer_description">نقل صلاحية الإدارة الدائمة داخل التطبيق. اختر مديراً عادياً مرتبطاً بحساب تليجرام. يلزم اتصال بالشبكة وسجل أطباء متزامن. ستحتفظ بصلاحية مدير عادي ورتبتك الحالية.</string>
+    <string name="admin_transfer_no_candidates">لا يوجد مدير مرتبط مؤهل. امنح الشخص صلاحية مدير واربط حسابه، ثم انشر سجل الأطباء أولاً.</string>
+    <string name="admin_transfer_review">جلب ومراجعة النقل</string>
+    <string name="admin_transfer_review_body">المدير الدائم الحالي: %1$s\nالمدير الدائم الجديد: %2$s\nحساب تليجرام للمستلم: %3$s\nسيبقى المدير السابق مديراً عادياً برتبته الحالية. يحتفظ الطرفان ببياناتهما السريرية وتعييناتهما. لا يمكن التراجع عن النقل إلا بواسطة مدير دائم.</string>
+    <string name="admin_transfer_client_notice">حدّث تطبيقات المشاركين قبل النقل؛ إصدارات أندرويد القديمة قد ترفض جلب تغيير المدير الدائم. تحقّق من هوية المستلم قبل التأكيد.</string>
+    <string name="admin_transfer_confirm">تأكيد النقل ونشر السجل</string>
+    <string name="admin_transfer_stale">تغير الحساب أو المشروع أو سجل الأطباء؛ اجلب السجل وأعد مراجعة النقل.</string>
+    <string name="admin_transfer_sync_first">انشر تغييرات الأطباء أو اجلب السجل أولاً، ثم أعد النقل.</string>
+    <string name="admin_transfer_dedicated_required">استخدم نقل الإدارة الدائمة لتغيير المدير الدائم.</string>
+    <string name="admin_transfer_prepare_failed">تعذرت مراجعة النقل. تحقّق من الاتصال وصلاحية المدير الدائم، وزامن سجل الأطباء، ثم أعد المراجعة.</string>
+    <string name="admin_transfer_uncertain">لم يتأكد النقل محلياً. قد يكون نُشر؛ اجلب سجل الأطباء من الشبكة وتحقق من المدير الدائم قبل أي محاولة جديدة.</string>
+    <string name="admin_transfer_success">تأكد نقل الإدارة الدائمة؛ احتفظ المدير السابق بصلاحية مدير عادي.</string>
 </resources>

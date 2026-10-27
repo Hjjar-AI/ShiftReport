@@ -5,7 +5,7 @@ import time
 import desktop_widgets as ctk
 from desktop_protocol import is_admin, current_date
 from desktop_model import pending_task_count
-from desktop_sort import GROUPS, groups, sort_description, manual_move_allowed
+from desktop_sort import GROUPS, groups, sort_description
 from desktop_workflow import WorkflowAction, workflow_status
 from desktop_layout import filter_summary
 from desktop_patient_card import patient_card
@@ -78,7 +78,7 @@ def render(owner):
     if owner.demo or authenticated:owner.workflow_action.grid_forget()
     else:owner.workflow_action.grid(row=0,column=0,sticky='n',padx=8,pady=3)
     if owner.store is None or owner.store.state['draft'] is None:
-        owner.update_patient_list([],False,None)
+        owner.update_patient_list([],None)
         owner.sort_status.configure(text='التجميع للعرض فقط؛ الترتيب المحفوظ يستخدم في التقارير وCSV.')
         owner.metrics.configure(text='اجلب بيانات الجناح المنشورة للبدء.');return
     draft=owner.store.read(); rows=draft['patients']; pending=pending_task_count(rows)
@@ -90,11 +90,10 @@ def render(owner):
     metrics='{} من {} مريض · {} مهمة معلقة · أطباء المناوبة: {}'.format(len(display),len(rows),pending,len(roster_names))
     if owner.show_workflow_details:metrics+='\n'+(roster or 'لم يحدد أطباء المناوبة')
     owner.metrics.configure(text=metrics)
-    movement_allowed=owner.manual_movement_allowed()
-    owner.update_patient_list(display,movement_allowed,draft)
+    owner.update_patient_list(display,draft)
 
 
-def update_patient_list(owner,display,movement_allowed,draft):
+def update_patient_list(owner,display,draft):
     """Reuse unchanged cards; list state never changes clinical ordering."""
     scope=(owner.client.project_id,draft['meta']['shiftId']) if draft else None
     if getattr(owner,'list_scope',None)!=scope:
@@ -116,8 +115,8 @@ def update_patient_list(owner,display,movement_allowed,draft):
             last_group=current_group
         key=row['externalId']
         # Day-dependent presentation changes only at the shared 08:30 boundary.
-        signature=(row,index,len(draft['patients']),key in owner.cards.expanded,
-                   key in owner.cards.pinned,owner.client.doctors,owner.client.zone,owner.card_density.get(),current_date(owner.client.zone))
+        signature=(row,index,len(draft['patients']),key in owner.cards.pinned,
+                   owner.client.doctors,owner.client.zone,owner.card_density.get(),current_date(owner.client.zone))
         entries.append((('patient',key),signature,(row,index)))
     if not entries:
         text=('لا توجد نتائج مطابقة. امسح التصفية أو غيّر البحث.' if draft and draft['patients']
@@ -131,12 +130,11 @@ def update_patient_list(owner,display,movement_allowed,draft):
     for key,signature,payload in entries:
         previous=owner.patient_widgets.get(key)
         if previous and previous[0]==signature and previous[1].winfo_exists():
-            if payload:previous[1].refresh_movement(movement_allowed)
             continue
         if previous:previous[1].destroy()
         if payload:
             row,index=payload
-            widget=patient_card(owner,owner.patients,row,index,len(draft['patients']),movement_allowed)
+            widget=patient_card(owner,owner.patients,row,index)
         else:
             widget=ctk.CTkLabel(owner.patients,text=signature,anchor='e',justify='right',
                 wraplength=ctk.logical_width(owner.content,padding=40,minimum=180),font=('Arial',18,'bold') if key[0]=='group' else ('Arial',14))
@@ -172,19 +170,7 @@ def patient_display(owner,draft):
     return display
 
 
-def toggle_card(owner,key,pin=False):
+def toggle_card(owner,key):
     owner.ready(False)
-    owner.cards.toggle(key,pin)
+    owner.cards.toggle(key)
     owner.render()
-
-
-def expand_cards(owner,expand):
-    owner.ready(False)
-    draft=owner.store.read()
-    owner.cards.expand_all([row['externalId'] for row in draft['patients']],expand)
-    owner.render()
-
-
-def manual_movement_allowed(owner):
-    return (not owner.cards.pinned and owner.owner_filter.get()==OWNER_FILTERS[0] and owner.task_filter.get()==TASK_FILTERS[0] and
-            manual_move_allowed(owner.grouping.get(),owner.filter.get(),owner.search.get()))

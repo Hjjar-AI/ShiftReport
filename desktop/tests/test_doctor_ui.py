@@ -32,16 +32,94 @@ class DoctorWorkspaceTests(unittest.TestCase):
         self.assertEqual('window',self.owner.security_window.winfo_manager())
         self.assertEqual(before,self.owner.store.read())
 
-    def test_collapsed_patient_cards_have_edit_expand_more_without_four_competing_buttons(self):
+    def test_about_is_available_in_demo_and_retains_original_credits(self):
+        before=self.owner.store.read()
+        from desktop_intro import SUPERVISOR,CONTRIBUTORS,ORIGINAL_AUTHOR
+        def inspect(window):
+            text='\n'.join(widget.cget('text') or '' for widget in descendants(window))
+            for credit in (SUPERVISOR,*CONTRIBUTORS,ORIGINAL_AUTHOR):self.assertIn(credit,text)
+            find(window,'إغلاق').invoke()
+        self.root.on_wait=inspect
+        with patch('desktop_intro.set_emblem'):find(self.root,'حول التطبيق').invoke()
+        self.assertEqual(before,self.owner.store.read())
+
+    def test_patient_cards_show_direct_actions_without_expansion_or_move_controls(self):
         frame=next(value[1] for key,value in self.owner.patient_widgets.items() if key[0]=='patient')
         primary=next(child for child in frame.children if any(grandchild.cget('text')=='تحرير' for grandchild in child.children))
-        self.assertEqual(['تحرير','توسيع','المزيد'],[child.cget('text') for child in primary.children if child.winfo_manager()=='grid'])
+        self.assertEqual(['تحرير','تثبيت للعرض','حذف'],[child.cget('text') for child in primary.children if child.winfo_manager()=='grid'])
+        self.assertFalse(any(widget.cget('text')=='الملف الكامل' for widget in descendants(frame)))
+        self.assertEqual({0,1,2},{child.layout['column'] for child in primary.children if child.winfo_manager()=='grid'})
+        self.assertFalse(any(widget.cget('text') in {'طي','توسيع','توسيع الكل','طي الكل','نقل لأعلى','نقل لأسفل','المزيد'} for widget in descendants(self.root)))
+        row=self.owner.store.read()['patients'][0]
+        with patch.object(self.owner,'edit') as edit:
+            find(frame,'تحرير').invoke()
+            edit.assert_called_once_with(row)
+        text='\n'.join(widget.cget('text') or '' for widget in descendants(frame))
+        for field in ('initialDiagnosis','treatmentPlan','followUp','labs'):self.assertIn(row[field],text)
+        for task in json.loads(row['tasksJson']):self.assertIn(task['description'],text)
 
-    def test_bulk_expansion_does_not_change_patient_data_or_task_counts(self):
-        before=self.owner.store.read();self.owner.expand_cards(True)
-        self.assertEqual({row['externalId'] for row in before['patients']},self.owner.cards.expanded)
+    def test_pinning_changes_only_presentation_and_keeps_full_content(self):
+        before=self.owner.store.read();key=before['patients'][-1]['externalId']
+        self.owner.toggle_card(key);self.assertIn(key,self.owner.cards.pinned)
         self.assertEqual(before,self.owner.store.read())
-        self.owner.expand_cards(False);self.assertEqual(set(),self.owner.cards.expanded)
+        self.owner.toggle_card(key);self.assertEqual(set(),self.owner.cards.pinned)
+
+    def test_direct_delete_cancel_keeps_patient_and_requires_named_confirmation(self):
+        before=self.owner.store.read();row=before['patients'][0]
+        frame=self.owner.patient_widgets[('patient',row['externalId'])][1]
+        with patch('desktop_patient_actions.messagebox.askyesno',return_value=False) as confirm,patch.object(self.owner.store,'delete_patient',wraps=self.owner.store.delete_patient) as remove:
+            find(frame,'حذف').invoke()
+            confirm.assert_called_once();remove.assert_not_called()
+            self.assertIn(row['name'],confirm.call_args.args[1])
+            self.assertEqual('no',confirm.call_args.kwargs['default'])
+            self.assertIs(self.root,confirm.call_args.kwargs['parent'])
+        self.assertEqual(before,self.owner.store.read())
+
+    def test_direct_delete_confirm_recycles_complete_record_and_allows_restore(self):
+        before=self.owner.store.read();row=before['patients'][0]
+        frame=self.owner.patient_widgets[('patient',row['externalId'])][1]
+        with patch('desktop_patient_actions.messagebox.askyesno',return_value=True) as confirm:
+            find(frame,'حذف').invoke();confirm.assert_called_once()
+        self.assertNotIn(row['externalId'],[item['externalId'] for item in self.owner.store.read()['patients']])
+        self.assertEqual(row,self.owner.store.state['recycle'][0]['patient'])
+        self.assertNotIn(('patient',row['externalId']),self.owner.patient_widgets)
+        self.owner.store.restore_patient(row['externalId'],None)
+        self.assertEqual(before,self.owner.store.read())
+
+    def test_pinning_stays_display_only_and_saved_sort_remains_available(self):
+        before=self.owner.store.read();key=before['patients'][-1]['externalId']
+        frame=self.owner.patient_widgets[('patient',key)][1]
+        find(frame,'تثبيت للعرض').invoke()
+        self.assertIn(key,self.owner.cards.pinned);self.assertEqual(before,self.owner.store.read())
+        self.assertFalse(hasattr(self.owner,'move'))
+        with patch('desktop_patient_actions.messagebox.askyesno',return_value=True):self.owner.sort_patients('name')
+        saved=self.owner.store.read()
+        expected=sorted(before['patients'],key=lambda row:(row['isPriority']!='Y',row['name'].lower(),row['externalId']))
+        self.assertEqual([row['externalId'] for row in expected],[row['externalId'] for row in saved['patients']])
+        self.assertEqual('NAME',json.loads(saved['meta']['sortSpec'])['levels'][0]['field'])
+        self.assertEqual(key,self.owner.patient_display(saved)[0][2]['externalId'])
+        find(self.owner.patient_widgets[('patient',key)][1],'إلغاء التثبيت').invoke()
+        self.assertEqual([row['externalId'] for row in expected],[row['externalId'] for _,_,row in self.owner.patient_display(self.owner.store.read())])
+
+    def test_search_debounce_waits_for_last_query_and_cancels_on_destroy(self):
+        from desktop_ui_events import debounce
+        from desktop_layout import build_ward_controls
+        from types import SimpleNamespace
+        with patch('desktop_layout.debounce',debounce),patch('desktop_ui_events.tk.Misc.bind') as binding:
+            build_ward_controls(self.owner)
+        self.owner.render=Mock()
+        previous=set(self.root.timers)
+        for query in ('ق','قه','قهوة'):self.owner.search.set(query)
+        pending=set(self.root.timers)-previous
+        self.assertEqual(1,len(pending));token=pending.pop()
+        self.assertEqual(300,self.root.delays[token]);self.owner.render.assert_not_called()
+        self.root.timers.pop(token)()
+        self.owner.render.assert_called_once()
+        self.assertEqual('قهوة',self.owner.search.get())
+        self.owner.search.set('شاي')
+        binding.call_args.args[2](SimpleNamespace(widget=self.root))
+        self.assertEqual(previous,set(self.root.timers))
+        self.owner.render.assert_called_once()
 
     def test_edit_opens_clinical_first_and_preserves_multiline_content_on_save(self):
         row=self.owner.store.read()['patients'][0]

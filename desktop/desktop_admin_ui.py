@@ -60,20 +60,27 @@ def administer(owner):
     owner.ready()
     service = Administration(owner.client, owner.store)
     snapshot = owner.io(service.fetch)
-    actions=['إدارة الفرق معاً','إضافة طبيب','تحرير طبيب / مجموعة تقاريره','حذف طبيب','منح صلاحية مدير','إزالة صلاحية مدير']
+    actions=['إدارة الفرق معاً','إضافة طبيب','تحرير طبيب / مجموعة تقاريره','حذف طبيب','منح صلاحية مدير','إزالة صلاحية مدير','نقل الإدارة الدائمة']
     category=owner.choose('إدارة الفريق والمشروع',['الأطباء والحسابات','عضوية الفرق','صلاحيات التطبيق'])
     if category is None:return
-    choices=[1,2,3] if category==0 else [0] if category==1 else [4,5]
+    actor = owner.client.authorize(snapshot['doctors'])
+    choices=[1,2,3] if category==0 else [0] if category==1 else ([4,5,6] if permanent(actor) else [4,5])
     choice=0 if category==1 else owner.choose('الأطباء والحسابات' if category==0 else 'صلاحيات التطبيق',[actions[index] for index in choices])
     if choice is None:return
     selected=choices[choice]
-    action=['teams','add','edit','delete','promote','demote'][selected]
+    action=['teams','add','edit','delete','promote','demote','transfer'][selected]
     key, values = None, None
     if action == 'teams':
         values=team_form(owner,snapshot['doctors'])
         if not values:return
     elif action != 'add':
         keys = list(snapshot['doctors'])
+        if action == 'transfer':
+            keys = [key for key in keys if rank(snapshot['doctors'][key]) > 0 and
+                    not permanent(snapshot['doctors'][key]) and snapshot['doctors'][key].get('telegram_id') and
+                    key != actor['uid'] and snapshot['doctors'][key]['telegram_id'] != actor.get('telegram_id')]
+            if not keys:
+                raise ValueError('لا يوجد مدير مرتبط مؤهل؛ امنحه صلاحية مدير واربط حسابه وانشر السجل أولاً')
         choice = owner.choose('اختر الطبيب', [doctor_label(snapshot['doctors'], key) for key in keys])
         if choice is None: return
         key = keys[choice]
@@ -81,7 +88,11 @@ def administer(owner):
         values = doctor_form(owner, snapshot['doctors'].get(key),snapshot['doctors'])
         if values is None: return
     plan = owner.io(lambda:service.review(snapshot, action, key, values))
-    text = 'التأكيد ينشر التغيير إلى المشروع بعد المراجعة.\nالعملية: '+actions[selected]+'\n\nقبل:\n'+registry_text(snapshot['doctors'],permissions=action in {'promote','demote'})+'\n\nبعد:\n'+registry_text(plan['doctors'],permissions=action in {'promote','demote'})
+    text = 'التأكيد ينشر التغيير إلى المشروع بعد المراجعة.\nالعملية: '+actions[selected]+'\n\nقبل:\n'+registry_text(snapshot['doctors'],permissions=action in {'promote','demote','transfer'})+'\n\nبعد:\n'+registry_text(plan['doctors'],permissions=action in {'promote','demote','transfer'})
+    if action == 'transfer':
+        text = ('نقل الإدارة الدائمة من '+actor['name']+' إلى '+snapshot['doctors'][key]['name']+
+                '\nسيحتفظ المدير السابق بصلاحية مدير عادي ورتبته الحالية. تحقّق من هوية المستلم.'+
+                '\nحدّث تطبيقات المشاركين قبل النقل؛ إصدارات أندرويد القديمة قد ترفض جلب هذا التغيير.\n\n'+text)
     if not owner.show_review(text): return
     service.approve(plan)
     owner.plan = None; owner.raw_draft = None

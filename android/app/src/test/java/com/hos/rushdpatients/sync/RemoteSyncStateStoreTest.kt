@@ -175,4 +175,34 @@ class RemoteSyncStateStoreTest {
         }
     }
 
+    @Test fun `repeated long file identifiers stay bounded without losing rollback pointers`() = runBlocking<Unit> {
+        var previous: String? = null
+        for (number in 10L..25L) {
+            val id = "synthetic-$number-" + "x".repeat(450)
+            val result = store.updateExistingState { current ->
+                current.copy(csvFileId = id, csvMessageId = number, csvUpdatedAt = number,
+                    publicationJournal = listOf(PublicationJournalEntry("snapshot-$number", fileId = id,
+                        messageId = number, at = number, deviceId = "synthetic")) + current.publicationJournal)
+            }
+            assertEquals(id, result.csvFileId)
+            if (previous != null) {
+                assertEquals(previous, result.previousCsvFileId)
+                assertEquals(number - 1, result.previousCsvMessageId)
+            }
+            val encoded = requireNotNull(pinned?.text)
+            assertTrue(encoded.length <= com.hos.rushdpatients.config.AppConstants.TELEGRAM_SAFE_CHARS)
+            assertTrue(result.publicationJournal.size <= 12)
+            previous = id
+        }
+    }
+    @Test fun `oversized mandatory pointers refuse transport instead of dropping rollback`() = runBlocking<Unit> {
+        val original = pinned
+        assertThrows(IllegalArgumentException::class.java) { runBlocking {
+            store.updateExistingState { it.copy(csvFileId = "x".repeat(5000), csvMessageId = 99) }
+        } }
+        assertEquals(original, pinned)
+        coVerify(exactly = 0) { telegram.editMessageText(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
 }

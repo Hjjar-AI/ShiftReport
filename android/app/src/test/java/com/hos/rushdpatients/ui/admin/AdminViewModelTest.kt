@@ -24,7 +24,10 @@ class AdminViewModelTest : ViewModelFixture() {
     private val sessions = mockk<SessionManager>()
     private val promote = mockk<PromoteAdminUseCase>()
     private val demote = mockk<DemoteAdminUseCase>()
-    private fun vm() = keep(AdminViewModel(text, doctors, sessions, promote, demote, mockk<SyncService>()))
+    private val sync = mockk<SyncService>()
+    private fun vm() = keep(AdminViewModel(text, doctors, sessions, promote, demote, sync))
+    private fun review() = com.hos.rushdpatients.sync.PermanentAdminTransferReview(
+        "أرز", "بلوط", 222, actor.id, target.id, com.hos.rushdpatients.sync.SyncState(), "before", "after", { true })
     @Before fun seedRegistry() {
         every { doctors.observeAll() } returns registry
         every { sessions.current() } returns Session(actor.id, actor.fullName, null, Role.ADMIN, Instant.EPOCH)
@@ -118,4 +121,59 @@ class AdminViewModelTest : ViewModelFixture() {
         assertFalse(vm.state.value.saving)
         assertTrue(messages.isEmpty())
     }
+    @Test fun transferPreparationPublishesNothingAndStoresExactReview() {
+        val review = review()
+        coEvery { sync.preparePermanentAdminTransfer(target.id) } returns Result.success(review)
+        val vm = vm(); val results = mutableListOf<String?>()
+        vm.prepareTransfer(target.id, results::add)
+        assertSame(review, vm.state.value.transferReview)
+        assertEquals(listOf<String?>(null), results)
+        assertFalse(vm.state.value.saving)
+        coVerify(exactly = 0) { sync.publishPermanentAdminTransfer(any()) }
+        vm.dismissTransferReview(); assertNull(vm.state.value.transferReview)
+    }
+    @Test fun confirmationConsumesReviewAndCannotBeRepeatedAfterUncertainFailure() {
+        val review = review()
+        coEvery { sync.preparePermanentAdminTransfer(target.id) } returns Result.success(review)
+        coEvery { sync.publishPermanentAdminTransfer(review) } returns Result.failure(IllegalStateException("synthetic uncertainty"))
+        val vm = vm(); val messages = mutableListOf<String>()
+        vm.prepareTransfer(target.id) { }; vm.confirmTransfer(messages::add); vm.confirmTransfer(messages::add)
+        assertEquals(1, messages.size)
+        assertNull(vm.state.value.transferReview); assertFalse(vm.state.value.saving)
+        coVerify(exactly = 1) { sync.publishPermanentAdminTransfer(review) }
+        assertEquals(listOf(actor), vm.state.value.admins)
+    }
+    @Test fun inFlightTransferBlocksRepeatedConfirmationAndOtherRoleActions() {
+        val review = review()
+        coEvery { sync.preparePermanentAdminTransfer(target.id) } returns Result.success(review)
+        coEvery { sync.publishPermanentAdminTransfer(review) } coAnswers { awaitCancellation() }
+        val vm = vm(); val messages = mutableListOf<String>()
+        vm.prepareTransfer(target.id) { }; vm.confirmTransfer(messages::add); vm.confirmTransfer(messages::add)
+        vm.assignAdmin(target, null) { }; vm.removeAdmin(actor) { }
+        assertTrue(vm.state.value.saving)
+        coVerify(exactly = 1) { sync.publishPermanentAdminTransfer(review) }
+        coVerify(exactly = 0) { promote.execute(any(), any(), any()) }
+        coVerify(exactly = 0) { demote.execute(any(), any()) }
+        clearViewModels(); assertFalse(vm.state.value.saving); assertTrue(messages.isEmpty())
+    }
+    @Test fun failedPreparationClearsOldReviewWithoutChangingRoles() {
+        coEvery { sync.preparePermanentAdminTransfer(target.id) } returnsMany listOf(
+            Result.success(review()), Result.failure(IllegalStateException("synthetic stale authority")))
+        val vm = vm(); val results = mutableListOf<String?>()
+        vm.prepareTransfer(target.id, results::add); vm.prepareTransfer(target.id, results::add)
+        assertNull(vm.state.value.transferReview); assertFalse(vm.state.value.saving)
+        assertNotNull(results.last()); assertEquals(listOf(actor), vm.state.value.admins)
+    }
+    @Test fun successfulTransferReliesOnRegistryObservationForRoleChanges() {
+        val review = review()
+        coEvery { sync.preparePermanentAdminTransfer(target.id) } returns Result.success(review)
+        coEvery { sync.publishPermanentAdminTransfer(review) } returns Result.success(Unit)
+        val vm = vm(); val messages = mutableListOf<String>()
+        vm.prepareTransfer(target.id) { }; vm.confirmTransfer(messages::add)
+        assertEquals(1, messages.size); assertNull(vm.state.value.transferReview)
+        assertEquals(actor, vm.state.value.currentActor)
+        registry.value = listOf(actor.copy(isPermanentAdmin = false), target.copy(rank = 2, isPermanentAdmin = true))
+        assertEquals(2, vm.state.value.admins.size)
+    }
+
 }

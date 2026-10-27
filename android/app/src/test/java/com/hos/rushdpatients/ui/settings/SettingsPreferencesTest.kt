@@ -106,4 +106,45 @@ class SettingsPreferencesTest {
         coVerify { settings.putBoolean(AppConstants.SETTING_BIOMETRIC_ENABLED, true) }
         coVerify { settings.setAutoLockMinutes(2) }
     }
+    @Test fun failedAppearanceThemeAndFontWritesKeepPriorSelectionAndCanRetry() = runTest {
+        val preferences = preferences(this)
+        val before = state.value
+        val font = AppFontScale.entries.first { it != before.fontScale }
+        coEvery { settings.put(any(), any()) } throws java.io.IOException("synthetic full disk")
+        preferences.setAppearance(AppAppearance.AMOLED)
+        preferences.setAppTheme(AppThemePreset.SAGE)
+        preferences.setFontScale(font)
+        advanceUntilIdle()
+        assertEquals(before.appearance, state.value.appearance)
+        assertEquals(before.appTheme, state.value.appTheme)
+        assertEquals(before.fontScale, state.value.fontScale)
+        assertNotNull(state.value.snackbar)
+        coEvery { settings.put(any(), any()) } returns Unit
+        preferences.setAppearance(AppAppearance.AMOLED)
+        preferences.setAppTheme(AppThemePreset.SAGE)
+        preferences.setFontScale(font)
+        advanceUntilIdle()
+        assertEquals(AppAppearance.AMOLED, state.value.appearance)
+        assertEquals(AppThemePreset.SAGE, state.value.appTheme)
+        assertEquals(font, state.value.fontScale)
+    }
+    @Test fun rapidAppearanceThemeAndFontWritesRemainOrderedBehindSuspendedWrite() = runTest {
+        val release = CompletableDeferred<Unit>()
+        coEvery { settings.put(AppConstants.SETTING_APP_APPEARANCE, "AMOLED") } coAnswers { release.await() }
+        val preferences = preferences(this)
+        val font = AppFontScale.entries.first { it != state.value.fontScale }
+        preferences.setAppearance(AppAppearance.AMOLED); runCurrent()
+        preferences.setAppTheme(AppThemePreset.SAGE)
+        preferences.setFontScale(font); runCurrent()
+        coVerify(exactly = 0) { settings.put(AppConstants.SETTING_APP_THEME, any()) }
+        coVerify(exactly = 0) { settings.put(AppConstants.SETTING_FONT_SCALE, any()) }
+        release.complete(Unit); advanceUntilIdle()
+        coVerifyOrder {
+            settings.put(AppConstants.SETTING_APP_APPEARANCE, "AMOLED")
+            settings.put(AppConstants.SETTING_APP_THEME, "SAGE")
+            settings.put(AppConstants.SETTING_FONT_SCALE, font.name)
+        }
+        assertEquals(font, state.value.fontScale)
+    }
+
 }

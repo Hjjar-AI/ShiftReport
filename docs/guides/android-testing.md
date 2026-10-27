@@ -2,7 +2,7 @@
 
 [Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md) · [Device procedures](device-coverage.md) · [Desktop/live](deep-testing.md)
 
-Inventory/results and exact limits: [Current state](../status/current-state.md#verification-and-limits). Existing suites have been adapted to the simplified app and rerun with focused failure resolution. Source inventory is now655 JVM/299 device methods after19 owner-selected new cases. Combined earlier refresh and resolving focused/method evidence gives655 JVM and299 PPA-LX2/API29 device passes, zero failures/skips; latest areas1–6 runs cover13 JVM/29 unique device cases, including original private native-picker and demo/PDF acceptance. Runs overlap; these are not repeated full-suite passes. See the linked exact results and remaining manual checks.
+Inventory, executed results and exact limits live in [Current state](../status/current-state.md#verification-and-limits). Source inventory, focused passes and device runtime are separate evidence. Keep opt-in/manual checks and owner skips explicit; overlapping full/focused/method runs are not additional unique coverage.
 
 ## Coverage map
 

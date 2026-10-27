@@ -1,5 +1,62 @@
 # Completed work
 
+## Latest regression device follow-up — 27 October 2026
+
+- Requested PPA-LX2/Android10 isolated verification build/install/instrumentation completed all18 new device cases:14 transfer-sync,2 import-protection,2 card actions. Final unique18 passes/0 failures/errors/skips:16 initial passes plus2 affected-only resolving passes. Initial run3m35s (76tasks:9executed/67up-to-date); rerun2m24s (76tasks:7executed/69up-to-date).
+- Corrected2 test assertions to compare the exact original stored baseline rather than imposing the reviewed CSV's sorted row order. No production change; confirmed the other16 passing method bodies unchanged. Both failure/resolving XML, original/corrected sources, host preflights, exact filters and APK package IDs/hashes retained under `local/verification/latest-implementation-tests-2026-10-27/`. Existing24 JVM/33 desktop results unchanged. No clinical-package installation/real records/live Telegram transfer; broader native/manual/live acceptance remains separate.
+
+## Latest implementation regressions — 27 October 2026
+
+- Added46 methods:12 JVM,18 Android device and16 desktop. Covers permanent-admin transfer and rank/PIN/clinical/draft preservation; stale project/identity/registry review, revocation, upload/index/readback failures, lost acknowledgement/Fetch recovery and transactional local rollback; import ownership protection; card action removal/Edit/expand/read-only behavior; rich multiline sample generation/determinism/overwrite protection. Updated desktop action expectations without weakening the existing owner-removal guard.
+- 24/24 focused JVM and33/33 desktop pass,0 failures/errors/skips; one changed-card rerun overlaps33. Approved offline production/JVM/device-test compilation passed in6m54s,41tasks (20executed/21up-to-date), one worker/in-process Kotlin/2GB/autoVersion=false after host/toolchain preflight. No production fixes or repeat Gradle run. New18 device methods compiled but unexecuted; prior18 PPA-LX2 results are separate. Current source inventory713 JVM/335 device/171 desktop.
+- XML/logs/commands/source hashes/host receipt under `local/verification/latest-implementation-tests-2026-10-27/`. No APK packaging/install, device/native/live transfer, full-suite rerun, migration/schema/version change or commits. Earlier source-only entries below now have this scoped compilation/regression evidence.
+
+## Remove redundant Full file card action — 27 October 2026
+
+- Removed the Full file button from Android expanded cards and desktop patient cards. Android retains Edit, card-tap details and expansion; read-only cards no longer compose an empty action row. Desktop retains Edit/Pin/Delete in three equal RTL columns with the destructive Delete styling preserved. Existing unrelated changes retained.
+- Desktop Python3.8 grammar and Git whitespace checks passed. No builds, test work or runtime verification for this change.
+
+## Expanded fictional patient samples — 27 October 2026
+
+- Generated a fresh50-patient CSV under `samples/synthetic-patients-50-expanded.csv`:7–30 treatment lines per patient and9–25 lab lines for45 patients, with five empty lab fields. Added varied multiline documentation/observation entries, independent medication-fragment lines, longer continuations and four lab-panel families. Existing paired CSV/PDF retained unchanged; no PDF for the expanded data.
+- CSV parsing,22 complete columns,50 unique names/IDs, blank doctor assignments and original artifact hashes checked; generator parses with Python3.8 grammar. Exact counts/seed/hash in `samples/expanded-artifact-notes.json`. No app import/build/test suite/live operation; dummy values are not prescribing examples.
+
+## Reviewed permanent-admin transfer — 27 October 2026
+
+- Added Android and desktop handover from the published permanent admin to an existing linked ordinary admin. The outgoing owner retains ordinary-admin access and rank; only permanent flags change. Reviewed publication checks actor/project/registry before writing and verifies the remote result before local role changes. Fetch accepts linked successors; ordinary imports/publications retain protection. Desktop reuses durable registry receipts. Existing schema/wire format preserved; participating Android clients need this update.
+- Source-only implementation: Python3.8 grammar, default Android string XML/reference checks and Git whitespace checks passed. Feature compilation/regressions/live transfer remain unverified; previous test results are not acceptance of these changes.
+
+## Coverage expansion and atomic form saves — 27 October 2026
+
+- Added82 test methods across21 owner-selected areas:46 JVM,18 device and18 desktop. Coverage includes recycle retention/rollback, draft storage and ordering, assignment dates/legacy formats, startup storage gating, publication budgets/retries, authority/session changes, receipt recovery, semantics/privacy, Unicode, encrypted project isolation and multipage PDF content/links. Existing assertions were reused; the follow-up owner request ran all18 new device methods. Owner-assisted physical/Windows/native/live acceptance remains unrun. Detailed mapping and receipts: `local/verification/coverage-expansion-2026-10-27/`.
+- Form Add/Edit now commit clinical data and saved-draft removal together. Cleanup failure rolls back the whole operation, preserving prior clinical rows/order and the draft. Save drains the latest autosave first so clinical failure retains complete input; Discard waits for cancelled writes before deletion. Real Room fault regressions call production operations. The worker shares its cleanup transaction with DB regressions; the storage gate accepts an internal suspended/failed IO checker without changing its production default.
+- 110 unique focused JVM passes,0 failures/errors/skips: initial109 plus affected-only5-worker/24-ward reruns, with overlapping cases counted once. Production/JVM/device compilation passed. Requested PPA-LX2/Android10(API29) follow-up built/installed the separate verification app/test APKs and passed18/18 new device methods,0 failures/errors/skips (4m14s,76 tasks:10 executed/66 up-to-date). XML identities match the exact18-method filter; source/APK hashes retained. Source inventory701 JVM/317 device. No new full Android suite, clinical-package installation, release/distribution, migrations or versions.
+- Desktop full155:147 passes/8 optional native Tk skips/0 failures/errors; focused49 passes overlap. All four retained actual Android-produced reverse fixtures executed. Corrected the backup assertion to preserve task IDs/text/done while current clinical restore/export clears retired completion stamps; legacy wire-field coverage remains. New PDF cases inspect160 unique continuation markers and A5 Fit-link page references/rectangles, without visual/glyph/renderer parity claims. Initial fixture/layout/context failures and resolving logs retained. Python3.8 grammar, string references and Git whitespace checked; unrelated edits preserved.
+
+## Desktop sort controls and direct Delete — 26 October 2026
+
+- Owner selected saved sorts instead of per-patient up/down: removed the controls, callbacks and movement helpers. Cards expose Edit/Full file/Pin/Delete directly; outlined Delete uses the existing destructive color. Pinning remains display-only and search keeps its300ms debounce.
+- Named confirmation defaults to No and is attached to the main window; Yes recycles the complete patient/tasks/badges for local restore and later publication review. Three retired movement cases replaced by cancel, confirmed recycle/exact restore and pin/saved-sort checks. Inventory137;30 focused checks passed without skips. Real Linux dummy checks passed for cancel/confirm/exact restore and four inset actions in light/dark/compact1.3x; all three visuals inspected, no callback errors. Python3.8 grammar/Git whitespace checked. Current evidence: `local/verification/desktop-delete-sort-2026-10-26/`; no full-suite/package/live-transport run.
+
+## Desktop pinning and search debounce — 26 October 2026
+
+Movement behavior below was superseded by the owner-selected removal of up/down; debounce remains current.
+
+- Pinning keeps other patients’ move actions available, including reused cards. Pinned cards stay at the top; explicit movement uses adjacent unpinned saved positions without moving a pinned record. Existing grouping/filter/search guards remain. Search now refreshes300ms after typing stops.
+- Four new regressions;17 focused methods pass across the initial/resolving runs. Real dummy Tk checks passed for retained native menus, two pins and one Arabic search refresh after0.303s. Source inventory137; prior broader evidence predates this change, four Android fixture methods still unrun. Python3.8 grammar/Git whitespace checked; evidence and initial test-only failures retained in `local/verification/desktop-pin-search-2026-10-26/`. No full-suite/package/live-transport run.
+
+## Desktop patient-editor scrolling — 26 October 2026
+
+- Shared form text fields no longer trap the wheel when their content fits. Long text scrolls internally and hands scrolling to the surrounding form at its top/bottom; Arabic single-line fields pass through immediately. Native Shift/horizontal handling stays available.
+- Added two real Tk regressions for shaped Arabic and native editors, short/long text, wheel event forms and demographics. Latest129 unique passes combine127 unaffected broad-run passes with two focused resolving passes; source inventory133, four Android fixture methods unrun. Earlier routing/test-container failures and a mixed-mode callback failure remain in local evidence; final cases use fresh Tk roots and drain closing callbacks. Python3.8 grammar and Git whitespace checked. Fresh desktop demo launched; Windows/macOS behavior remains unverified. Evidence: `local/verification/desktop-editor-scroll-2026-10-26/`.
+
+## Desktop full cards, softer light theme and branding — 26 October 2026
+
+- Desktop cards always show clinical sections, badges and all tasks. Removed individual/bulk collapse controls and their transient state; Edit/Full file/More sit before the content. Pinning, filtering, totals and saved clinical data remain independent. Android card controls remain as before. Follow-up: inset the action container so its background cannot cover either side border or the status stripe. Two existing card/action checks passed; dummy before/after visual evidence is under `local/verification/desktop-card-border-2026-10-26/`.
+- Light surfaces use darker warm whites, with lighter input fields, two-pixel borders and at least3:1 field/border contrast. Accent/severity remain separate and dark color channels are preserved; the original emblem deliberately keeps its white field.
+- New five-second skippable startup intro and Help→About share the original Android emblem and exact supervisor/technical/original-author credits. Hold never extends the monotonic deadline; quick tap/Return/Escape skips, completion opens the workspace once, closing cancels startup. Asset decoding runs on a worker; packaging recipes include assets, without running a package build.
+- Updated two card cases and added11 cases: inventory131. Full Python3.14 run127 passed,0 failures/errors; four Android fixture methods unrun as one skipped class. Final border-contrast9/9 focused checks passed with overlapping coverage. Six real Tk cases cover selected geometry, original emblem/skip and real editor borders/full card content. Python3.8 grammar/Git whitespace checked; dummy visuals/evidence: `local/verification/desktop-light-intro-2026-10-26/`. No migrations, version changes, Windows package or live Telegram work.
+
 ## Doctor-focused desktop UI and Python verification — 26 October 2026
 
 - Patient-first workspace with compact hospital/account header, direct roster/tasks/summary navigation, account/connection and data tools on separate screens; report destinations chosen during review. Cards expose Edit/Expand/More, and explicitly labelled search gets a full row in narrow windows. Sorting stays inside View Options. Grouped tasks support local completion and two-second Undo against current records, with no new attribution/time stamps.

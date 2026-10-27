@@ -76,4 +76,16 @@ class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
         assertEquals(123L, restored.reportMessageId)
         assertEquals(124L, restored.pdfMessageId)
     }
+    @Test fun undoPreservesCapturedAssignmentDateWithoutRestampingToday() = runBlocking<Unit> {
+        val day = java.time.LocalDate.of(2026, 1, 1)
+        val before = Patient(id = "marked", name = "شاي", assignmentChangedOn = day, revision = 1)
+        patients.upsert(before, "shift-1")
+        val snapshot = ShiftCsvSnapshot(requireNotNull(shifts.getById("shift-1")), listOf(before))
+        patients.upsert(before.copy(assignmentChangedOn = day.plusDays(1), revision = 2), "shift-1")
+        undo().record(listOf(snapshot), listOf("shift-1"))
+        undo().undo()
+        assertEquals(day, patients.getById("marked")?.assignmentChangedOn)
+        assertFalse(undo().available.first())
+    }
+
 }

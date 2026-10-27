@@ -146,6 +146,8 @@ def build_window(owner, root, settings, demo):
         command=lambda:owner.run(lambda:empty_start_dialog(owner)))
     owner.help_sidebar=Disclosure(sidebar,'المساعدة ومعلومات التطبيق',expanded=False)
     owner.help_sidebar.pack(fill='x',padx=3,pady=3)
+    from desktop_intro import about
+    button(owner.help_sidebar.content,'حول التطبيق',lambda:owner.run(lambda:about(owner)))
     button(owner.help_sidebar.content,'التشخيص ومعلومات الجهاز',owner.open_diagnostics)
     if not demo:button(owner.help_sidebar.content,'فتح عرض تجريبي مستقل',owner.open_demo)
     owner.diagnostics_text=ctk.CTkLabel(diagnostics_area,text='',anchor='e',justify='right',wraplength=500)

@@ -63,4 +63,36 @@ class PatientEditorInteractionTest {
             assertNull(tasks.single().completedAtEpochMillis)
         }
     }
+    @Test fun delayedDraftCallbackForPreviousPatientCannotReplaceCurrentEditor() {
+        var current by mutableStateOf(patient())
+        val callbacks = mutableMapOf<String, (PatientDraft?) -> Unit>()
+        var saved: Patient? = null
+        compose.setContent { MaterialTheme {
+            EditPatientDialog(current, emptyList(), onConfirm = { value, _ -> saved = value }, onDismiss = {},
+                onLoadDraft = { id, done -> callbacks[id] = done })
+        } }
+        compose.runOnIdle { assertTrue(callbacks.containsKey("synthetic")); current = patient().copy(id = "coffee", name = "قهوة") }
+        compose.runOnIdle { callbacks.getValue("coffee")(PatientDraft(name = "قهوة", labDraft = "current draft")) }
+        compose.runOnIdle { callbacks.getValue("synthetic")(PatientDraft(name = "شاي", labDraft = "obsolete result")) }
+        compose.onNodeWithText(label(R.string.ui_save)).performClick()
+        compose.runOnIdle {
+            assertEquals("coffee", saved?.id)
+            assertEquals("قهوة", saved?.name)
+            assertEquals("current draft", saved?.labs)
+        }
+    }
+    @Test fun taskAccessibilityNamesAndToggleStateFollowCompletionAndBusyState() {
+        var tasks by mutableStateOf(listOf(PatientTask("t", "فحص تجريبي")))
+        var enabled by mutableStateOf(true)
+        val form = PatientFormState(null, null)
+        compose.setContent { MaterialTheme { PatientTaskEditor(tasks, enabled, formState = form, onChange = { tasks = it }) } }
+        val pending = label(R.string.ui_patient_task_editor_009) + "فحص تجريبي"
+        val completed = label(R.string.ui_patient_task_editor_008) + "فحص تجريبي"
+        compose.onNodeWithContentDescription(pending).assertIsOff().assertIsEnabled().performClick()
+        compose.onNodeWithContentDescription(completed).assertIsOn()
+        compose.onNodeWithContentDescription(pending).assertDoesNotExist()
+        compose.runOnIdle { enabled = false }
+        compose.onNodeWithContentDescription(completed).assertIsNotEnabled()
+    }
+
 }

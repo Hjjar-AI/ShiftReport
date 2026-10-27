@@ -110,7 +110,11 @@ class Administration:
             return doctors
         if action == 'import':
             from desktop_csv import import_registry
-            return import_registry(self, snapshot, values or [], actor)
+            imported = import_registry(self, snapshot, values or [], actor)
+            require({uid for uid, doctor in imported.items() if permanent(doctor)} ==
+                    {uid for uid, doctor in snapshot['doctors'].items() if permanent(doctor)},
+                    'لا يمنح الاستيراد إدارة دائمة جديدة؛ استخدم نقل الإدارة الدائمة')
+            return imported
         if action in {'add', 'edit'}:
             candidate = profile(values or {}, old)
             if old and old['clinicalRole'] != candidate['clinicalRole']:
@@ -126,6 +130,14 @@ class Administration:
             require(not is_admin(old), 'الطبيب مدير بالفعل')
             number = max(rank(d) for d in doctors.values())+1
             old.update({'#':str(number), 'options':'a'+str(number), 'title':'المديرة' if old['gender']=='F' else 'المدير'})
+        elif action == 'transfer':
+            require(permanent(actor), 'نقل الإدارة الدائمة متاح للمدير الدائم الحالي فقط')
+            require(old['uid'] != actor['uid'] and is_admin(old) and not permanent(old) and
+                    old.get('telegram_id') and actor.get('telegram_id') and
+                    old['telegram_id'] != actor['telegram_id'],
+                    'اختر مديراً عادياً مرتبطاً بحساب تليجرام مختلف')
+            doctors[actor['uid']]['options'] = 'a'+str(rank(actor))
+            old['options'] = 'A'+str(rank(old))
         elif action == 'demote':
             require(is_admin(old) and not permanent(old), 'لا يمكن إزالة صلاحية المدير الدائم')
             require(permanent(actor) or rank(actor) > rank(old), 'لا يمكنك إزالة مدير أعلى رتبة أو مساوي الرتبة')
@@ -137,8 +149,11 @@ class Administration:
 
     def review(self, snapshot, action, key=None, values=None):
         doctors = self.propose(snapshot, action, key, values)
-        return dict(snapshot=copy.deepcopy(snapshot), action=action, key=key, values=copy.deepcopy(values),
+        plan = dict(snapshot=copy.deepcopy(snapshot), action=action, key=key, values=copy.deepcopy(values),
                     doctors=doctors, actor=self.client._actor, draft=fingerprint(self.workspace.state['draft']))
+        if action == 'transfer':
+            plan['project'] = self.client.project_id
+        return plan
 
     def approve(self, plan):
         plan['approval'] = fingerprint({k:v for k,v in plan.items() if k != 'approval'})
@@ -147,6 +162,8 @@ class Administration:
         require(plan.get('approval') == fingerprint({k:v for k,v in plan.items() if k != 'approval'}) and
                 plan['actor'] == self.client._actor, 'تغيرت مراجعة الأطباء أو هوية المنفذ؛ أعدها')
         require(plan['draft'] == fingerprint(self.workspace.state['draft']), 'تغيرت المسودة المحلية؛ أعد مراجعة الأطباء')
+        if plan['action'] == 'transfer':
+            require(plan.get('project') == self.client.project_id, 'تغير المشروع؛ أعد مراجعة نقل الإدارة الدائمة')
         current = self.fetch()
         expected = plan['snapshot']
         def unchanged(snapshot):
@@ -165,6 +182,8 @@ class Administration:
         uploaded = self.client.telegram.upload(raw, 'doctors_registry.csv', self.client.config.get('doctorsTopicId'), 'سجل الأطباء')
         latest = self.fetch()  # Recheck role, linkage and both pointers before changing the index.
         require(unchanged(latest), 'وصل نشر أثناء رفع الأطباء؛ لم يُحدّث الفهرس. اجلب وراجع قبل الإعادة')
+        if plan['action'] == 'transfer':
+            require(plan.get('project') == self.client.project_id, 'تغير المشروع؛ اجلب السجل وأعد المراجعة')
         state = copy.deepcopy(latest['state'])
         state.update(doctorsFileId=uploaded['document']['file_id'], doctorsMessageId=uploaded['message_id'],
                      doctorsUpdatedAt=int(uploaded['date'])*1000)

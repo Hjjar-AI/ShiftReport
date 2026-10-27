@@ -74,8 +74,8 @@ CASES = [
     ('DUAL', 'أعراض ذهانية مترافقة مع استخدام مواد'),
 ]
 
-# Common clinical terms and dose/lab fragments from the owner's private workbook.
-# Phrases are newly written. Dose/lab fragments are pooled independently; no source rows survive.
+# Curated clinical terms and dose fragments from the owner's private workbook.
+# Phrases are newly written; fragments are pooled independently; no source rows survive.
 CLINICAL_TERMS = {
     'symptoms': ['اضطراب النوم', 'تغير الشهية', 'أعراض قلق متقطعة',
                  'أفكار وسواسية متكررة', 'تفاوت التعاون أثناء المقابلة'],
@@ -87,31 +87,94 @@ CLINICAL_TERMS = {
         'clozapine': ['150 mg'], 'sertraline': ['25 mg', '50 mg'],
         'diazepam': ['10 mg', '20 mg'], 'lorazepam': ['3 mg', '6 mg'],
     },
-    'labs': {
-        'Hb': ['12.3', '12.7', '13.1', '13.6', '14.2', '14.6', '15.1', '15.4'],
-        'WBC': ['4100', '4500', '5000', '6600', '11600', '13100'],
-        'ALT': ['11', '33', '38', '52'], 'AST': ['18', '44', '67', '69'], 'Cr': ['1.1'],
-    },
     'observations': ['النوم متقطع', 'الشهية متبدلة',
                      'التعاون جزئي أثناء المقابلة', 'القلق أقل مقارنة بالتقييم السابق',
                      'استمرار الأفكار الوسواسية'],
 }
 
 
+TREATMENT_LINES = [
+    'مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.',
+    'تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.',
+    'وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.',
+    'مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.',
+    'تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.',
+    'مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.',
+    'توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.',
+    'تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.',
+    'مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.',
+    'تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.',
+    'تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.',
+    'تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.',
+    'وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.',
+    'تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.',
+    'مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.',
+    'توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.',
+    'تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.',
+    'إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.',
+    'تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.',
+    'مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.',
+]
+
+
+def treatment_example(number, rng):
+    lines = rng.sample(TREATMENT_LINES, rng.randint(6, 12))
+    if number % 10 == 0:
+        lines.extend('متابعة اليوم {}: {}'.format(i, rng.choice(TREATMENT_LINES))
+                     for i in range(1, rng.randint(15, 22)))
+    return '\n'.join(lines)
+
+
+def laboratory_example(rng):
+    """Independent fictional measurements for layout/data-entry examples, not interpretation."""
+    panels = [
+        ('تعداد الدم CBC', [
+            'Hb = {:.1f} g/dL'.format(rng.uniform(10.5, 16.8)),
+            'WBC = {} /µL'.format(rng.randrange(3900, 14100, 100)),
+            'Platelets = {} ×10^3/µL'.format(rng.randrange(140, 391)),
+            'MCV = {} fL'.format(rng.randrange(77, 100)),
+            'Hct = {} %'.format(rng.randrange(32, 49))]),
+        ('الشوارد ووظائف الكلية', [
+            'Na = {} mmol/L'.format(rng.randrange(132, 146)),
+            'K = {:.1f} mmol/L'.format(rng.uniform(3.2, 5.1)),
+            'Urea = {} mg/dL'.format(rng.randrange(16, 55)),
+            'Creatinine = {:.2f} mg/dL'.format(rng.uniform(0.6, 1.5)),
+            'Ca = {:.1f} mg/dL'.format(rng.uniform(8.1, 10.5)),
+            'Mg = {:.1f} mg/dL'.format(rng.uniform(1.6, 2.6))]),
+        ('وظائف الكبد', [
+            'ALT = {} U/L'.format(rng.randrange(12, 74)),
+            'AST = {} U/L'.format(rng.randrange(14, 80)),
+            'ALP = {} U/L'.format(rng.randrange(52, 151)),
+            'Total bilirubin = {:.1f} mg/dL'.format(rng.uniform(0.3, 1.6)),
+            'Albumin = {:.1f} g/dL'.format(rng.uniform(3.2, 4.9))]),
+        ('تحاليل إضافية', [
+            'Glucose = {} mg/dL'.format(rng.randrange(76, 161)),
+            'HbA1c = {:.1f} %'.format(rng.uniform(4.8, 7.1)),
+            'TSH = {:.2f} mIU/L'.format(rng.uniform(0.5, 5.5)),
+            'Vitamin B12 = {} pg/mL'.format(rng.randrange(180, 781)),
+            'CRP = {} mg/L'.format(rng.randrange(1, 25)),
+            'Triglycerides = {} mg/dL'.format(rng.randrange(75, 241))]),
+    ]
+    chosen = rng.sample(panels, rng.randint(2, 4))
+    lines = []
+    for title, measurements in chosen:
+        lines.append(title + ':')
+        lines.extend(rng.sample(measurements, rng.randint(3, len(measurements))))
+    if rng.randrange(4) == 0:
+        lines.append('نتيجة إضافية: قيد الانتظار — مثال توضيحي')
+    return '\n'.join(lines)
+
+
 def mix_clinical_fragments(row, rng):
     """Combine independent, reworded themes; retain no source-patient linkage."""
     symptoms = rng.sample(CLINICAL_TERMS['symptoms'], 2)
-    medications = rng.sample(list(CLINICAL_TERMS['medications']), 2)
+    medications = rng.sample(list(CLINICAL_TERMS['medications']), rng.randint(2, 4))
     dose_labels = [drug + ' ' + rng.choice(CLINICAL_TERMS['medications'][drug]) for drug in medications]
     observations = rng.sample(CLINICAL_TERMS['observations'], 3)
     row['initialDiagnosis'] += '؛ ' + ' مع '.join(symptoms) + '.'
-    row['treatmentPlan'] = (' + '.join(dose_labels)
-                            + '\n' + row['treatmentPlan'])
+    row['treatmentPlan'] = '\n'.join(dose_labels + [row['treatmentPlan']])
     if row['followUp']:
         row['followUp'] = '\n'.join(observations)
-    if row['labs']:
-        row['labs'] = ('تحاليل:\n'
-                       + '، '.join(key + '=' + rng.choice(values) for key, values in CLINICAL_TERMS['labs'].items()))
 
 
 def packed(value):
@@ -152,13 +215,7 @@ def generate(path, day, seed, mix_clinical=True):
             badges.append(('تواصل مع المرافق', 'medium'))
         if number % 7 == 0:
             badges.append(('متابعة انتظام النوم والشهية والتواصل مع المرافق', 'low'))
-        treatment = 'مراجعة التقييم والاستجابة وتسجيل الملاحظات اليومية.'
-        if number % 10 == 0:
-            treatment += '\n' + '\n'.join('اليوم {}: {}'.format(i, rng.choice([
-                'تقييم النوم والشهية والتعاون أثناء المقابلة، مع توثيق التغير مقارنة باليوم السابق.',
-                'متابعة الاستجابة للخطة العلاجية والتحمل، وتسجيل الملاحظات خلال الجولة.',
-                'مراجعة الأعراض الحالية ونتائج التحاليل، ومناقشة المتابعة مع الفريق.']))
-                                         for i in range(1, 19))
+        treatment = treatment_example(number, rng)
         row.update(externalId=identity('patient-{}'.format(number)), admitNum='SR-{:03d}'.format(position),
             admitDate=(day - timedelta(days=rng.randrange(0, 46))).isoformat(),
             gender='F' if number % 2 == 0 else 'M',
@@ -168,8 +225,7 @@ def generate(path, day, seed, mix_clinical=True):
             treatmentPlan=treatment,
             followUp='' if number % 6 == 0 else 'النوم {} ساعات، الشهية {}، والاستجابة {}.'.format(
                 rng.randrange(2, 10), rng.choice(['جيدة', 'متوسطة', 'ضعيفة']), rng.choice(['تحسن', 'ثبات', 'تحتاج إعادة تقييم'])),
-            labs='' if number % 4 == 0 else 'Hb={}، Na={}، K={}'.format(
-                rng.choice(['11.2', '13.5', '15.0']), rng.choice(['132', '139', '144']), rng.choice(['3.2', '4.1', '4.8'])),
+            labs='' if number % 10 == 7 else laboratory_example(rng),
             warningFlags='|'.join(level for text, level in badges),
             warningDetails='badges:' + ';'.join(level + ':' + base64.urlsafe_b64encode(text.encode()).decode().rstrip('=')
                 for text, level in badges) if badges else '',

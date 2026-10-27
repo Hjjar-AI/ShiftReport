@@ -10,8 +10,6 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import com.hos.rushdpatients.ui.components.AppChip
 import com.hos.rushdpatients.ui.theme.ContainerColors
-import com.hos.rushdpatients.ui.components.UiAction
-import com.hos.rushdpatients.ui.components.AppActionLabel
 import com.hos.rushdpatients.ui.components.ClinicalTextKind
 import com.hos.rushdpatients.ui.components.AppClinicalSection
 import com.hos.rushdpatients.ui.theme.UiLayout
@@ -267,9 +265,8 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
             }
             if (!showIdentity) Text(PatientIdentityText.details(uiText, patient, dayLabel),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (expanded && showViewControls) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (!readOnly) com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
-                com.hos.rushdpatients.ui.components.AppTextButton(onClick = onClick) { AppActionLabel(UiAction.FULL_RECORD) }
+            if (expanded && showViewControls && !readOnly) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
             }
 
         }

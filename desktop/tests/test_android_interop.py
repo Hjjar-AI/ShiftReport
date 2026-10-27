@@ -5,7 +5,7 @@ import unittest
 from desktop_crypto import Cipher, open_join
 from desktop_backup import decode
 from desktop_wire import parse_bundle
-from tests.support import client
+from tests.support import client, shift
 
 
 class AndroidInteropTests(unittest.TestCase):
@@ -26,11 +26,19 @@ class AndroidInteropTests(unittest.TestCase):
         self.assertEqual('شاي — نتيجة تجريبية ☕', Cipher(client().config).decode_text(
             (self.directory / 'android-text.txt').read_text()))
 
-    def test_android_backup_decodes_with_completion_attribution(self):
+    def test_android_backup_decodes_clinical_tasks_without_creating_completion_attribution(self):
         import json
         parsed = decode((self.directory / 'android.rpb').read_bytes(), 'synthetic-password')
         tasks = json.loads(parsed['patients'][0]['tasksJson'])
-        self.assertEqual('cedar', next(task for task in tasks if task['done'])['completedByDoctorId'])
+        # Current clinical restore/export deliberately strips retired completion stamps.
+        # Wire fixtures above still exercise reading legacy metadata unchanged.
+        self.assertEqual(['task-1', 'done'], [task['id'] for task in tasks])
+        self.assertEqual([False, True], [task['done'] for task in tasks])
+        expected = json.loads(shift()['patients'][0]['tasksJson'])
+        self.assertEqual([task['description'] for task in expected], [task['description'] for task in tasks])
+        for task in tasks:
+            for field in ('completedByDoctorId', 'completedByName', 'completedAtEpochMillis'):
+                self.assertIsNone(task.get(field))
         self.assertEqual('نتيجة ☕', parsed['patients'][0]['labs'])
 
     def test_android_protected_join_decodes_without_clinical_records(self):

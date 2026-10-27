@@ -55,4 +55,17 @@ class PatientRepositoryTest : DatabaseFixture() {
         catch (_: StalePatientEditException) { }
         assertTrue(requireNotNull(repo.getById("existing")).isDeleted)
     }
+    @Test fun staleClinicalSaveKeepsLatestStoredAssignmentMarking() = runBlocking<Unit> {
+        val repo = repository()
+        val yesterday = com.hos.rushdpatients.util.ShiftDate.current().minusDays(1)
+        val stale = com.hos.rushdpatients.data.model.Patient(id = "marked", name = "شاي", assignmentChangedOn = yesterday)
+        repo.upsert(stale, "shift-1")
+        val latest = stale.copy(assignmentChangedOn = yesterday.plusDays(1), revision = 2)
+        repo.upsert(latest, "shift-1")
+        val saved = repo.save(stale.copy(labs = "later clinical edit"), "shift-1")
+        assertEquals(latest.assignmentChangedOn, saved.assignmentChangedOn)
+        assertEquals(3L, saved.revision)
+        assertEquals("later clinical edit", repo.getById(stale.id)?.labs)
+    }
+
 }

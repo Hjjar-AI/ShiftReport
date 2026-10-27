@@ -114,10 +114,6 @@ def sorting_dialog(owner):
     owner.root.wait_window(window)
 
 
-def manual_move_allowed(grouping, filter_label, query):
-    return grouping==GROUPS['NONE'] and filter_label=='الكل' and not query.strip()
-
-
 def insert_patient(shift, patient, position):
     """One-based stored position; priority-first remains an explicit invariant."""
     require(type(position) is int and 1<=position<=len(shift['patients'])+1,'موضع المريض خارج القائمة')

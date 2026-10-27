@@ -14,6 +14,12 @@ LEGACY_ACCENTS={'SAGE':'VANILLA','SUNSET':'CREAM','FUCHSIA':'COASTAL','CHOCOLATE
 
 SIZES={1.0:'عادي',1.15:'كبير',1.3:'أكبر'}
 
+LIGHT_BACKGROUND='#DADFDB'
+LIGHT_SURFACE='#E4E8E3'
+LIGHT_CARD='#EBEEE8'
+LIGHT_FIELD='#F2F3ED'
+LIGHT_BORDER='#708278'
+
 
 def preferences(owner):
     value=dict(mode=owner.settings.get('APPEARANCE') or 'Light',accent='VANILLA',scale=1.0,density='عادية')
@@ -40,10 +46,17 @@ def set_palette_theme(accent='VANILLA'):
         for key,color in styles.items():
             if color==normal_before:styles[key]=[normal,normal]
             elif color==hover_before:styles[key]=[hover,hover]
-    for widget, prop, light in [('CTk','fg_color','#F8FAFC'), ('CTkFrame','fg_color','#FFFFFF'),
-                                ('CTkFrame','top_fg_color','#F2F5F8')]:
+    for widget, prop, light in [('CTk','fg_color',LIGHT_BACKGROUND), ('CTkFrame','fg_color',LIGHT_SURFACE),
+                                ('CTkFrame','top_fg_color','#D2DAD3')]:
         color=theme[widget][prop]
         theme[widget][prop]=[light,color[1]] if isinstance(color,list) else light
+    for name in ('CTkEntry','CTkTextbox','CTkComboBox'):
+        styles=theme[name]
+        for prop,light in [('fg_color',LIGHT_FIELD),('border_color',LIGHT_BORDER),('text_color','#24352B')]:
+            old=styles[prop];styles[prop]=[light,old[1]] if isinstance(old,list) else light
+        styles['border_width']=2
+    theme['CTkComboBox']['button_color']=[LIGHT_BORDER,theme['CTkComboBox']['button_color'][1]]
+    theme['CTkComboBox']['button_hover_color']=['#788D80',theme['CTkComboBox']['button_hover_color'][1]]
     native.ThemeManager.theme=theme
 
 
@@ -107,17 +120,17 @@ def appearance_dialog(owner):
         responsibleResidentId='١',responsibleSupervisorId='٢')
     doctors={'١':dict(name='سنديان',uid='١',clinicalRole='RESIDENT'),
              '٢':dict(name='صنوبر',uid='٢',clinicalRole='SUPERVISOR')}
-    preview_owner=SimpleNamespace(content=sample_area,cards=SimpleNamespace(expanded={sample['externalId']},pinned=set()),
+    preview_owner=SimpleNamespace(content=sample_area,cards=SimpleNamespace(pinned=set()),
         client=SimpleNamespace(doctors=doctors,zone=owner.client.zone))
     def render_preview():
         for child in sample_area.winfo_children():child.destroy()
         ctk.CTkLabel(sample_area,text='معاينة فقط · بيانات تجريبية',anchor='e').pack(fill='x',padx=8,pady=4)
         selected_mode=mode()
         dark=selected_mode=='Dark' or selected_mode=='System' and native.get_appearance_mode()=='Dark'
-        style=dict(background='#202832' if dark else '#F5F8FC',foreground='#F1F5FA' if dark else '#18212C',
+        style=dict(background='#202832' if dark else LIGHT_CARD,foreground='#F1F5FA' if dark else '#24352B',
             muted='#BCCBDD' if dark else '#42556B',accent=PALETTES[accent()][1],
             scale=scale()/current['scale'],density=current['density'])
-        patient_card(preview_owner,sample_area,sample,0,1,False,preview_style=style).pack(fill='x',padx=4,pady=4)
+        patient_card(preview_owner,sample_area,sample,0,preview_style=style).pack(fill='x',padx=4,pady=4)
     mode=combo(settings,'المظهر',{'System':'حسب النظام','Light':'فاتح','Dark':'داكن'},current['mode'],render_preview)
     accent=combo(settings,'اللون الأساسي',{key:item[0] for key,item in PALETTES.items()},current['accent'],render_preview)
     scale=combo(settings,'حجم الخط وعناصر الواجهة',SIZES,current['scale'],render_preview)

@@ -20,6 +20,7 @@ class SyntheticTelegram(context: Context, dispatchers: DispatcherProvider) {
     var state = SyncState()
     val files = mutableMapOf<String, String>()
     val methods = mutableListOf<String>()
+    val uploadedDocuments = mutableListOf<ByteArray>()
     var beforeResponse: (String) -> Unit = {}
     var uploadedDocumentId: String? = "synthetic-upload"
     var uploadedMessageId = 100L
@@ -35,11 +36,18 @@ class SyntheticTelegram(context: Context, dispatchers: DispatcherProvider) {
             method.endsWith(".txt") -> requireNotNull(files[method.removeSuffix(".txt")])
             method == "getChat" -> envelope(json.encodeToJsonElement(TgChat(-100, "supergroup", pinnedMessage = TgMessage(1, text = json.encodeToString(state)))))
             method == "getFile" -> envelope(buildJsonObject { val id = requireNotNull(field("file_id")); put("file_id", id); put("file_path", "$id.txt") })
-            method == "sendDocument" -> envelope(buildJsonObject {
+            method == "sendDocument" -> {
+                val multipart = requireNotNull(request.body as? MultipartBody)
+                val document = multipart.parts.single { it.headers?.get("Content-Disposition")?.contains("filename=") == true }
+                val buffer = okio.Buffer()
+                document.body.writeTo(buffer)
+                uploadedDocuments += buffer.readByteArray()
+                envelope(buildJsonObject {
                 put("message_id", uploadedMessageId)
                 put("date", 1_800_000_000L)
                 uploadedDocumentId?.let { id -> put("document", buildJsonObject { put("file_id", id) }) }
             })
+            }
             method == "editMessageText" -> {
                 val text = requireNotNull(field("text"))
                 state = json.decodeFromString<SyncState>(text)

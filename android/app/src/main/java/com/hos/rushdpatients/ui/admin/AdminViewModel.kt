@@ -105,4 +105,41 @@ class AdminViewModel @Inject constructor(
         }
     }
 
+    fun dismissTransferReview() {
+        if (!_state.value.saving) _state.update { it.copy(transferReview = null) }
+    }
+
+    fun prepareTransfer(recipientId: String, onDone: (String?) -> Unit) {
+        if (_state.value.saving) return
+        _state.update { it.copy(saving = true, transferReview = null) }
+        viewModelScope.launch {
+            try {
+                syncService.preparePermanentAdminTransfer(recipientId).fold(
+                    onSuccess = { review ->
+                        _state.update { it.copy(transferReview = review) }
+                        onDone(null)
+                    },
+                    onFailure = { onDone(uiText(R.string.admin_transfer_prepare_failed)) }
+                )
+            } finally {
+                _state.update { it.copy(saving = false) }
+            }
+        }
+    }
+
+    fun confirmTransfer(onDone: (String) -> Unit) {
+        if (_state.value.saving) return
+        val review = _state.value.transferReview ?: return
+        // Every attempt consumes its review. Retry starts with a fresh online authority check.
+        _state.update { it.copy(saving = true, transferReview = null) }
+        viewModelScope.launch {
+            try {
+                val result = syncService.publishPermanentAdminTransfer(review)
+                onDone(uiText(if (result.isSuccess) R.string.admin_transfer_success else R.string.admin_transfer_uncertain))
+            } finally {
+                _state.update { it.copy(saving = false) }
+            }
+        }
+    }
+
 }

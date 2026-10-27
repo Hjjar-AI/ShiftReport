@@ -119,4 +119,17 @@ class DoctorMutationRepositoryTest : ClinicalRepositoryFixture() {
         assertEquals(33, mutations.importRegistry(mutations.prepareImport(parsed.doctors)))
         assertEquals(34, doctors.count())
     }
+    @Test fun importCannotCreateOrPromoteAnotherPermanentOwner() = runBlocking<Unit> {
+        val target = target()
+        val before = doctors.getAllIncludingDeleted()
+        rejected { mutations.prepareImport(listOf(target.copy(rank = 20, isPermanentAdmin = true))) }
+        rejected { mutations.prepareImport(listOf(doctor("new-owner", "سرو", 20).copy(isPermanentAdmin = true))) }
+        assertEquals(before, doctors.getAllIncludingDeleted())
+    }
+    @Test fun importKeepsExistingPermanentOwnerDespiteIncomingDemotion() = runBlocking<Unit> {
+        mutations.importRegistry(mutations.prepareImport(listOf(admin.copy(rank = 0, isPermanentAdmin = false))))
+        assertTrue(requireNotNull(doctors.getById(admin.id)).isPermanentAdmin)
+        assertEquals(admin.rank, doctors.getById(admin.id)?.rank)
+    }
+
 }

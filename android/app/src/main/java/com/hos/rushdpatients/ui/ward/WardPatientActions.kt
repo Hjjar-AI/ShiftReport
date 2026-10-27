@@ -75,17 +75,13 @@ internal class WardPatientActions(
         }
     }
     fun discardEditDraft(id: String) {
-        editDraftJobs.remove(id)?.cancel()
+        val pendingSave = editDraftJobs.remove(id)
+        pendingSave?.cancel()
         viewModelScope.launch {
-            try { settingsRepository.delete(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + id) }
+            try { pendingSave?.join(); settingsRepository.delete(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + id) }
             catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) { saveGuard.showError(uiText(R.string.patient_edit_draft_discard_failed)) }
         }
-    }
-    private suspend fun clearEditDraft(id: String) {
-        editDraftJobs.remove(id)?.cancel()
-        settingsRepository.delete(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + id)
-        clearDraftSaveIssue(id)
     }
 
     fun loadDraft() {
@@ -121,12 +117,6 @@ internal class WardPatientActions(
         }
     }
 
-    private suspend fun clearDraft() {
-        draftSaveJob?.cancel()
-        settingsRepository.delete(AppConstants.SETTING_PATIENT_DRAFT)
-        _state.update { it.copy(patientDraft = null, draftSaveIssue = null) }
-    }
-
     fun addPatient(patient: Patient, position: Int? = null, onSuccess: () -> Unit = {}) {
         val shiftId = saveGuard.editableShiftId() ?: return
         viewModelScope.launch {
@@ -135,8 +125,11 @@ internal class WardPatientActions(
                 _state.update { it.copy(snackbar = uiText(R.string.ui_ward_patient_actions_002)) }
                 onSuccess()
             }) {
-                wardMutations.addPatient(patient, shiftId, position)
-                clearDraft()
+                // Drain the latest autosave before the atomic form commit. If the
+                // clinical transaction fails, its complete draft remains recoverable.
+                draftSaveJob?.join()
+                wardMutations.addPatientFromForm(patient, shiftId, position)
+                _state.update { it.copy(patientDraft = null, draftSaveIssue = null) }
             }
         }
     }
@@ -169,8 +162,9 @@ internal class WardPatientActions(
                     true
                 }
             }) {
-                wardMutations.updatePatient(patient, shiftId)
-                clearEditDraft(patient.id)
+                editDraftJobs.remove(patient.id)?.join()
+                wardMutations.updatePatientFromForm(patient, shiftId)
+                clearDraftSaveIssue(patient.id)
             }
         }
     }

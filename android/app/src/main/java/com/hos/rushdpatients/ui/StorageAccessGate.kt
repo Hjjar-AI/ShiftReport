@@ -30,6 +30,7 @@ internal interface StorageAccessEntryPoint {
 @Composable
 internal fun StorageAccessGate(
     loading: @Composable () -> Unit,
+    checkAccess: suspend (Context) -> Unit = ::checkStorageAccess,
     content: @Composable () -> Unit
 ) {
     val uiText = rememberUiStrings()
@@ -40,7 +41,7 @@ internal fun StorageAccessGate(
     LaunchedEffect(attempt) {
         failed = false
         try {
-            withContext(Dispatchers.IO) { checkStorageAccess(context) }
+            withContext(Dispatchers.IO) { checkAccess(context) }
             ready = true
         } catch (e: CancellationException) {
             throw e

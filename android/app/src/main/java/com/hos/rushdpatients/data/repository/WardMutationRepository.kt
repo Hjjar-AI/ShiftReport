@@ -90,6 +90,22 @@ class WardMutationRepository @Inject constructor(
             )
         }
 
+    // Form saves and draft removal share the commit: cleanup failure cannot leave a
+    // committed clinical write behind an error or an obsolete draft after restart.
+    suspend fun addPatientFromForm(patient: Patient, shiftId: String, position: Int? = null): Patient =
+        mutate(shiftId) {
+            addPatient(patient, shiftId, position).also {
+                database.settingDao().delete(AppConstants.SETTING_PATIENT_DRAFT)
+            }
+        }
+
+    suspend fun updatePatientFromForm(patient: Patient, shiftId: String): Patient =
+        mutate(shiftId) {
+            updatePatient(patient, shiftId).also {
+                database.settingDao().delete(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + patient.id)
+            }
+        }
+
     suspend fun deletePatient(patient: Patient, shiftId: String): Patient =
         mutate(shiftId) {
             patients.softDelete(patient.id, shiftId)

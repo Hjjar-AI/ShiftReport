@@ -72,5 +72,113 @@ class TkSimulationTests(unittest.TestCase):
         self.assertEqual(1,int(controls['إلغاء'].grid_info()['row']))
         window.destroy()
 
+    def test_splash_loads_original_emblem_on_white_field_and_skip_is_single_use(self):
+        from desktop_intro import LaunchIntro
+        from unittest.mock import Mock
+        window=self.ctk.CTkToplevel(self.root);ready=Mock()
+        intro=LaunchIntro(window,ready);self.settle()
+        try:
+            self.assertIsNotNone(intro.logo.cget('image'))
+            self.assertEqual('#FFFFFF',intro.logo.cget('fg_color'))
+            intro.finish();intro.finish();ready.assert_called_once()
+            self.assertFalse(intro.frame.winfo_exists())
+        finally:window.destroy()
+
+    def test_light_clinical_fields_have_visible_edges_and_all_card_sections_are_present(self):
+        from desktop_appearance import LIGHT_FIELD,LIGHT_BORDER
+        def all_children(widget):
+            for child in widget.winfo_children():
+                yield child
+                yield from all_children(child)
+        labels='\n'.join(getattr(widget,'logical_text','') for widget in all_children(self.owner.patients))
+        patient=self.owner.store.read()['patients'][0]
+        for field in ('initialDiagnosis','treatmentPlan','followUp','labs'):self.assertIn(patient[field],labels)
+        failures=[]
+        def inspect():
+            window=next(child for child in self.root.winfo_children() if isinstance(child,self.ctk.CTkToplevel) and child.title()=='تحرير المريض')
+            try:
+                import customtkinter as native
+                fields=[widget for widget in all_children(window) if isinstance(widget,native.CTkTextbox)]
+                self.assertTrue(fields)
+                for field in fields:
+                    self.assertEqual(LIGHT_FIELD,field.cget('fg_color')[0])
+                    self.assertEqual(LIGHT_BORDER,field.cget('border_color')[0])
+                    self.assertEqual(2,field.cget('border_width'))
+            except Exception as error:failures.append(error)
+            finally:
+                next(widget for widget in all_children(window) if isinstance(widget,self.ctk.CTkButton) and widget.logical_text=='حفظ المريض').invoke()
+        self.root.after(150,inspect);self.owner.edit(patient)
+        self.assertEqual([],failures)
+
+    def test_arabic_editor_wheel_scrolls_over_fields_and_hands_off_at_text_boundaries(self):
+        self.check_editor_wheel(shaped=True)
+
+    def test_native_editor_wheel_scrolls_over_fields_and_hands_off_at_text_boundaries(self):
+        self.check_editor_wheel(shaped=False)
+
+    def check_editor_wheel(self,shaped):
+        from unittest.mock import patch
+        import traceback
+        import customtkinter as native
+        def report(kind,error,tb):
+            traceback.print_exception(kind,error,tb)
+            self.errors.append(error)
+        self.root.report_callback_exception=report
+        patient=self.owner.store.read()['patients'][0]
+        failures=[]
+        def descendants(widget):
+            for child in widget.winfo_children():
+                yield child
+                yield from descendants(child)
+        def inspect():
+            window=next(child for child in self.root.winfo_children()
+                        if isinstance(child,self.ctk.CTkToplevel) and child.title()=='تحرير المريض')
+            try:
+                fields=[child for child in descendants(window) if isinstance(child,native.CTkTextbox)]
+                field=fields[0];text=field._textbox
+                area=field.master
+                while not hasattr(area,'_parent_canvas'):area=area.master
+                canvas=area._parent_canvas
+                original=field.get('1.0','end-1c')
+                field.delete('1.0','end');field.insert('1.0','short')
+                self.settle()
+                for sequence,options in (('<Button-5>',{}),('<MouseWheel>',{'delta':-120})):
+                    canvas.yview_moveto(0);self.settle()
+                    text.event_generate(sequence,**options);self.settle()
+                    self.assertGreater(canvas.yview()[0],0,'Short field trapped the wheel')
+                field.delete('1.0','end');field.insert('1.0','\n'.join('line '+str(i) for i in range(80)))
+                self.settle();canvas.yview_moveto(0);text.yview_moveto(0);self.settle()
+                text.event_generate('<Button-5>');self.settle()
+                self.assertGreater(text.yview()[0],0)
+                self.assertEqual(0,canvas.yview()[0],'Form scrolled while text could scroll')
+                text.yview_moveto(1);self.settle()
+                text.event_generate('<Button-5>');self.settle()
+                self.assertGreater(canvas.yview()[0],0,'Bottom of long text trapped the wheel')
+                text.yview_moveto(0);self.settle()
+                before=canvas.yview()[0]
+                text.event_generate('<Button-4>');self.settle()
+                self.assertLess(canvas.yview()[0],before,'Top of long text trapped the wheel')
+                field.delete('1.0','end');field.insert('1.0',original)
+                from desktop_sections import SectionPages
+                tabs=next(child for child in descendants(window) if isinstance(child,SectionPages))
+                tabs.set('البيانات الشخصية');self.settle()
+                demographic_area=next(child for child in descendants(tabs.tab('البيانات الشخصية'))
+                                      if hasattr(child,'_parent_canvas'))
+                name=next(child for child in demographic_area.winfo_children()
+                          if isinstance(child,(native.CTkTextbox,native.CTkEntry)))
+                target=getattr(name,'_textbox',None) or name._entry
+                demographic_area._parent_canvas.yview_moveto(0);self.settle()
+                target.event_generate('<Button-5>');self.settle()
+                self.assertGreater(demographic_area._parent_canvas.yview()[0],0,
+                                   'Single-line field trapped the wheel')
+            except Exception as error:failures.append(error)
+            finally:
+                next(child for child in descendants(window) if isinstance(child,self.ctk.CTkButton)
+                     and child.logical_text=='حفظ المريض').invoke()
+        with patch('desktop_widgets._VISUAL',shaped):
+            self.root.after(150,inspect);self.owner.edit(patient)
+            self.settle()
+            self.assertEqual([],failures)
+
 
 if __name__=='__main__':unittest.main()

@@ -70,7 +70,7 @@ class Widget:
     def register(self,callback):return callback
     def __getattr__(self,name):
         if name in {'title','geometry','minsize','transient','grab_set','lift','focus_set','update','update_idletasks',
-                    'grid_columnconfigure','place','add_command','tk_popup','grab_release','tag_config','tag_add','reset_undo'}:
+                    'grid_columnconfigure','place','add_command','tk_popup','grab_release','tag_config','tag_add','reset_undo','unbind'}:
             return lambda *args,**kwargs:None
         raise AttributeError(name)
 

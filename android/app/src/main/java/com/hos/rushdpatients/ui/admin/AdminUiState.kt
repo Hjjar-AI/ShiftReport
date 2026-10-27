@@ -8,5 +8,6 @@ data class AdminUiState(
     val admins: List<Doctor> = emptyList(),
     val nonAdmins: List<Doctor> = emptyList(),
     val currentActor: Doctor? = null,
+    val transferReview: com.hos.rushdpatients.sync.PermanentAdminTransferReview? = null,
     val snackbar: String? = null
 )

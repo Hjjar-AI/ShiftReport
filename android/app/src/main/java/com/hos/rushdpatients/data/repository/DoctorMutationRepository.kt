@@ -194,6 +194,9 @@ class DoctorMutationRepository @Inject constructor(
                     "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب ${local.fullName}"
                 }
             }
+            require(!result.isPermanentAdmin || local?.isPermanentAdmin == true && !local.isDeleted) {
+                "لا يمنح الاستيراد إدارة دائمة جديدة؛ استخدم نقل الإدارة الدائمة"
+            }
             val permissionChanged = local?.rank != result.rank ||
                 local.isPermanentAdmin != result.isPermanentAdmin
             if (permissionChanged && !actor.isPermanentAdmin) {

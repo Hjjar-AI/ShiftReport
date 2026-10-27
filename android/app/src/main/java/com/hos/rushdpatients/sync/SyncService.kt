@@ -55,6 +55,10 @@ class SyncService @Inject constructor(
     }
 
     suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSync.uploadDoctors(registryData)
+    suspend fun preparePermanentAdminTransfer(recipientId: String): Result<PermanentAdminTransferReview> =
+        doctorSync.preparePermanentAdminTransfer(recipientId)
+    suspend fun publishPermanentAdminTransfer(review: PermanentAdminTransferReview): Result<Unit> =
+        doctorSync.publishPermanentAdminTransfer(review)
     suspend fun uploadCurrentDoctors(): Result<Unit> = doctorSync.uploadCurrentDoctors()
     suspend fun synchronizeDoctors(): Result<Unit> = doctorSync.synchronizeDoctors()
     suspend fun refreshDoctorsForPatientFetch(): Result<Unit> = doctorSync.refreshDoctorsForPatientFetch()

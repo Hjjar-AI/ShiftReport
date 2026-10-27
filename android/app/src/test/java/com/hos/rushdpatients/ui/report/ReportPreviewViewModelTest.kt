@@ -264,4 +264,76 @@ class ReportPreviewViewModelTest {
         coVerify(exactly = 0) { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) }
     }
 
+    @Test fun `locked session after review blocks publication and preserves reviewed patients`() {
+        val vm = viewModel()
+        val patients = vm.state.value.patients
+        every { sessions.current() } returns null
+        vm.send(); awaitIdle(vm)
+        coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        assertEquals(patients, vm.state.value.patients)
+        assertNotNull(vm.state.value.error)
+    }
+    @Test fun `deactivated doctor after review cannot publish or send`() {
+        val vm = viewModel()
+        coEvery { doctors.getActiveById(actor.id) } returns null
+        vm.send(); awaitIdle(vm)
+        coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        assertNotNull(vm.state.value.error)
+    }
+    @Test fun `reconnected project invalidates reviewed publication before transport`() {
+        val vm = viewModel()
+        every { projects.current() } returns ProjectConfig(hospitalName = "another synthetic project")
+        vm.send(); awaitIdle(vm)
+        coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        assertNotNull(vm.state.value.error)
+    }
+    @Test fun `double send during publication enters transport once`() = runBlocking<Unit> {
+        val release = CompletableDeferred<Unit>()
+        coEvery { sync.uploadReviewedCsv(any()) } coAnswers { release.await(); Result.success(CsvUploadResult(10, 1)) }
+        val vm = viewModel()
+        vm.send(); vm.send()
+        assertTrue(vm.state.value.sending)
+        coVerify(exactly = 1) { sync.uploadReviewedCsv(any()) }
+        release.complete(Unit); awaitIdle(vm)
+        coVerify(exactly = 1) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        assertFalse(vm.state.value.sending)
+    }
+    @Test fun `explicit delivery retry revalidates and reuses already confirmed publication`() {
+        coEvery { sync.validatePublishedReport(any(), any(), any()) } just Runs
+        coEvery { sender.sendTextReport(any(), any(), any(), any(), any()) } throws IOException("synthetic definite failure")
+        val vm = viewModel()
+        vm.send(); awaitIdle(vm)
+        assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.publicationOutcome)
+        coEvery { sender.sendTextReport(any(), any(), any(), any(), any()) } returns SendResult(listOf(21), 21, Fixtures.timestamp)
+        vm.send(); awaitIdle(vm)
+        coVerify(exactly = 1) { sync.uploadReviewedCsv(any()) }
+        coVerify(exactly = 1) { sync.validatePublishedReport(any(), actor.id, actor.telegramId) }
+        assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.deliveryOutcome)
+    }
+    @Test fun `retry action opens review without publishing automatically`() {
+        val vm = viewModel()
+        every { NetworkStatus.isOnline(context) } returns false
+        vm.send()
+        var reviews = 0
+        every { NetworkStatus.isOnline(context) } returns true
+        vm.retryLastAction { reviews++ }
+        assertEquals(1, reviews)
+        coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+    }
+    @Test fun `second load cannot overtake pending report construction`() = runBlocking<Unit> {
+        val release = CompletableDeferred<Unit>()
+        coEvery { reports.build(shift.id) } coAnswers { release.await(); built() }
+        val vm = viewModel()
+        assertTrue(vm.state.value.loading)
+        vm.load()
+        coVerify(exactly = 1) { reports.build(shift.id) }
+        release.complete(Unit); awaitIdle(vm)
+        assertEquals(rows, vm.state.value.patients)
+        assertNull(vm.state.value.error)
+    }
+
 }

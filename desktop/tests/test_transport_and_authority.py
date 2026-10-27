@@ -6,7 +6,7 @@ from unittest.mock import Mock, MagicMock
 from desktop_protocol import Client
 from desktop_protocol_common import BridgeError, UncertainDelivery, LIMIT
 from desktop_telegram_transport import Telegram
-from tests.support import client
+from tests.support import client, shift
 
 
 class TransportTests(unittest.TestCase):
@@ -135,6 +135,53 @@ class AuthorityTests(unittest.TestCase):
         self.owner._actor = None
         self.owner.fetch = Mock(return_value={'doctors': {'cedar': self.actor}})
         with self.assertRaises(BridgeError): self.owner.require_local_identity()
+
+
+class ReportAuthorityBoundaryTests(unittest.TestCase):
+    def setUp(self):
+        from desktop_protocol_common import pointer, doctor_pointer
+        self.owner=Client(dict(botToken='synthetic:fixture',chatId=-100,reportsTopicId=3,hospitalName='Dummy ward'))
+        self.addCleanup(self.owner.telegram._http.close)
+        self.actor=copy.deepcopy(client().doctors['cedar'])
+        self.owner._actor='cedar';self.owner._verified_telegram=self.actor['telegram_id'];self.owner._expires=time.time()+60
+        self.snapshot=dict(state=dict(csvFileId='csv',csvMessageId=10,doctorsFileId='registry',doctorsMessageId=20),
+                           doctors=dict(cedar=self.actor))
+        self.owner.doctors=copy.deepcopy(self.snapshot['doctors'])
+        self.owner.fetch=Mock(side_effect=lambda:copy.deepcopy(self.snapshot))
+        self.owner.telegram.call=Mock(return_value=dict(status='member'))
+        self.owner.telegram.upload=Mock(return_value=dict(message_id=1))
+        self.local=shift();self.pointer=pointer(self.snapshot['state']);self.registry=doctor_pointer(self.snapshot['state'])
+
+    def test_revocation_or_pointer_change_after_preview_blocks_pdf_before_receipt_or_upload(self):
+        for change in ('doctor','session','registry','patient'):
+            with self.subTest(change=change):
+                snapshot=copy.deepcopy(self.snapshot);expiry=self.owner._expires
+                if change=='doctor':self.snapshot['doctors']={}
+                elif change=='session':self.owner._expires=0
+                elif change=='registry':self.snapshot['state']['doctorsMessageId']=21
+                else:self.snapshot['state']['csvMessageId']=11
+                before=Mock()
+                with self.assertRaises(BridgeError):
+                    self.owner.send_pdf(b'%PDF-reviewed',self.local,None,self.pointer,self.registry,before,report_day='2026-10-27')
+                before.assert_not_called();self.owner.telegram.upload.assert_not_called()
+                self.snapshot=snapshot;self.owner._expires=expiry
+
+    def test_mid_text_revocation_stops_remaining_parts_after_unknown_receipt_started(self):
+        from desktop_reports import report_text
+        self.local['patients'][0]['labs']='نتيجة 123 '.join(['synthetic']*1200)
+        text=report_text(self.owner,self.local,report_day='2026-10-27')
+        before=Mock();sent=[]
+        def call(method,params):
+            if method=='getChatMember':return dict(status='member')
+            self.assertEqual('sendMessage',method)
+            sent.append(params['text']);self.snapshot['doctors']={}
+            return dict(message_id=1)
+        self.owner.telegram.call.side_effect=call
+        with self.assertRaises(BridgeError):
+            self.owner.send_text(text,self.local,None,self.pointer,self.registry,before,report_day='2026-10-27')
+        before.assert_called_once_with(-100,3)
+        self.assertEqual(1,len(sent))
+        self.owner.telegram.upload.assert_not_called()
 
 
 if __name__ == '__main__': unittest.main()

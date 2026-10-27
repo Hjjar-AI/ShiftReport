@@ -1,0 +1,1364 @@
+﻿"# schemaVersion=7 shiftDate=2026-10-27 shiftId=79e93327-2937-54f3-a41b-ab75e9bd4a05 doctors= sortSpec={""levels"":[]} shiftRevision=0 snapshotId= baseSnapshotId= deviceId="
+externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,lastEditedBy,updatedAt,revision,tasksJson
+3eb78127-9fdb-596d-b237-290b0f02cc18,SR-001,2026-10-03,F,قهوة تركية,1971,Y,DUAL,أعراض ذهانية مترافقة مع استخدام مواد؛ اضطراب النوم مع أفكار وسواسية متكررة.,"lorazepam 6 mg
+haloperidol 10 mg
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.",,"تحاليل إضافية:
+Triglycerides = 133 mg/dL
+TSH = 4.82 mIU/L
+CRP = 9 mg/L
+HbA1c = 7.0 %
+Vitamin B12 = 490 pg/mL
+الشوارد ووظائف الكلية:
+Mg = 2.2 mg/dL
+Na = 134 mmol/L
+K = 3.7 mmol/L
+وظائف الكبد:
+AST = 76 U/L
+ALT = 43 U/L
+Total bilirubin = 0.4 mg/dL",,,high|medium,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ;medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,"[{""id"":""a26cd2fa-ed39-554b-921d-093cd6e2cda3"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+66677b42-b72b-5d10-a2e4-b4746bcc9922,SR-002,2026-10-27,F,كمون وليمون,1996,Y,DUAL,أعراض ذهانية مترافقة مع استخدام مواد؛ تغير الشهية مع أفكار وسواسية متكررة.,"quetiapine 600 mg
+lorazepam 3 mg
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.",,"تعداد الدم CBC:
+WBC = 8300 /µL
+Hb = 14.6 g/dL
+Platelets = 165 ×10^3/µL
+Hct = 35 %
+MCV = 92 fL
+وظائف الكبد:
+Total bilirubin = 1.1 mg/dL
+Albumin = 3.5 g/dL
+ALP = 52 U/L
+AST = 30 U/L
+ALT = 24 U/L
+تحاليل إضافية:
+TSH = 5.31 mIU/L
+CRP = 11 mg/L
+Glucose = 154 mg/dL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,high|medium,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ;medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,"[{""id"":""18608b95-e439-5f53-8c6e-4db026e74c4b"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""f60c7e20-d290-5c99-abc5-dea52d535657"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+ee18a9bb-7925-587a-bcff-7270bc9a3eb9,SR-003,2026-10-14,M,كنافة نابلسية,1998,N,PSYCHIATRIC,أعراض اكتئابية مع اضطراب النوم والشهية؛ اضطراب النوم مع أعراض قلق متقطعة.,"valproate 1000 mg
+sertraline 50 mg
+olanzapine 15 mg
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.","استمرار الأفكار الوسواسية
+الشهية متبدلة
+القلق أقل مقارنة بالتقييم السابق",,,,,,N,,,1793091600000,0,"[{""id"":""623b7ec4-1adf-5969-98f2-e6ca0c432379"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+f29b76f5-e5cc-5e4e-bece-8b728b67bf24,SR-004,2026-09-28,M,عش البلبل,1996,N,PSYCHIATRIC,أفكار وسواسية وسلوكيات متكررة؛ تفاوت التعاون أثناء المقابلة مع اضطراب النوم.,"sertraline 50 mg
+valproate 1000 mg
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.","التعاون جزئي أثناء المقابلة
+القلق أقل مقارنة بالتقييم السابق
+استمرار الأفكار الوسواسية",,,,,,N,,,1793091600000,0,"[{""id"":""4149a084-223c-53db-9454-69cd32f7f05c"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+970e36c4-df13-57b9-ad5c-537655211371,SR-005,2026-09-14,M,برازق,1998,N,DUAL,أعراض مزاجية مترافقة مع استخدام مواد,"مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.",النوم 6 ساعات، الشهية ضعيفة، والاستجابة تحسن.,"تعداد الدم CBC:
+MCV = 96 fL
+WBC = 9700 /µL
+Platelets = 183 ×10^3/µL
+Hb = 16.1 g/dL
+تحاليل إضافية:
+Triglycerides = 139 mg/dL
+Vitamin B12 = 618 pg/mL
+HbA1c = 6.5 %
+Glucose = 113 mg/dL
+TSH = 3.41 mIU/L
+وظائف الكبد:
+ALP = 80 U/L
+Albumin = 3.4 g/dL
+Total bilirubin = 0.4 mg/dL
+AST = 38 U/L",,,low,badges:low:2YXYqtin2KjYudipINin2YbYqti42KfZhSDYp9mE2YbZiNmFINmI2KfZhNi02YfZitipINmI2KfZhNiq2YjYp9i12YQg2YXYuSDYp9mE2YXYsdin2YHZgg,Y,,,1793091600000,0,"[{""id"":""615dc9ce-c649-5673-a7cf-e2b0389fc533"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""539ecf1d-f9e2-5162-9551-3b03a8916b2b"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""263e2da0-3dae-5f9b-8da2-ee8bff89885f"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""7cc20fa8-ab69-5fd7-b2da-f9b5e0998a92"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+9c265152-867f-5a9b-9fbc-b6b09c84187f,SR-006,2026-10-18,M,حليب بالزنجبيل,1971,N,PSYCHIATRIC,أفكار وسواسية وسلوكيات متكررة,"إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.",النوم 7 ساعات، الشهية ضعيفة، والاستجابة ثبات.,"الشوارد ووظائف الكلية:
+Urea = 36 mg/dL
+Mg = 1.7 mg/dL
+Na = 139 mmol/L
+Ca = 9.1 mg/dL
+تعداد الدم CBC:
+Hb = 13.9 g/dL
+WBC = 6000 /µL
+MCV = 81 fL
+Platelets = 348 ×10^3/µL
+وظائف الكبد:
+ALT = 69 U/L
+Total bilirubin = 1.6 mg/dL
+AST = 61 U/L
+Albumin = 4.5 g/dL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,,,N,,,1793091600000,0,"[{""id"":""37160ed6-6454-5a65-ac6b-57db5fe07e10"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""d505bf90-277c-5376-b9cf-116fcbf42cf0"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""3e57ce5c-c82c-5520-adce-4127d5de66d8"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+8f7dc2a0-02ef-5e54-9108-fa4704d2734c,SR-007,2026-10-23,F,كبة سفرجلية,1985,Y,PSYCHIATRIC,كوابيس واسترجاع أحداث وضغط نفسي,"مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+متابعة اليوم 1: مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+متابعة اليوم 2: تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+متابعة اليوم 3: توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+متابعة اليوم 4: مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+متابعة اليوم 5: مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+متابعة اليوم 6: مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+متابعة اليوم 7: توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+متابعة اليوم 8: تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+متابعة اليوم 9: تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+متابعة اليوم 10: تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+متابعة اليوم 11: تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+متابعة اليوم 12: مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+متابعة اليوم 13: وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+متابعة اليوم 14: توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+متابعة اليوم 15: تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.",,"وظائف الكبد:
+Albumin = 4.2 g/dL
+AST = 73 U/L
+ALT = 63 U/L
+ALP = 114 U/L
+Total bilirubin = 0.8 mg/dL
+الشوارد ووظائف الكلية:
+K = 3.6 mmol/L
+Mg = 1.8 mg/dL
+Na = 132 mmol/L
+Creatinine = 1.09 mg/dL
+Urea = 47 mg/dL
+Ca = 9.4 mg/dL
+تحاليل إضافية:
+Glucose = 121 mg/dL
+TSH = 4.01 mIU/L
+HbA1c = 5.3 %",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,Y,,,1793091600000,0,"[{""id"":""c3f72d4d-da64-5930-821f-3e8c399d9d7c"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""fd475578-82c3-514b-b58e-b15dbabd7dde"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""e2536f9e-f804-526f-932d-827e13ce5b3b"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""f30bf277-4ff3-58a0-9da6-244088e695a8"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000},{""id"":""e3f4f762-cd73-54fc-90bb-c69a7542fb45"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":null,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""42de4175-2ff0-5483-86aa-0c1e337987de"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""02a17eba-c0a0-5b6a-a618-d5f3b0f065cf"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""a77c9965-39e9-577b-97ad-a65625877171"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+6aad7b48-e1a1-5426-a0aa-e7d6a5233b36,SR-008,2026-09-14,M,فتة حمص,2000,N,PSYCHIATRIC,صعوبات معرفية لدى مسن مع حاجة لتقييم إضافي؛ أفكار وسواسية متكررة مع تغير الشهية.,"haloperidol 20 mg
+sertraline 50 mg
+quetiapine 50 mg
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.","استمرار الأفكار الوسواسية
+القلق أقل مقارنة بالتقييم السابق
+النوم متقطع","الشوارد ووظائف الكلية:
+Ca = 9.8 mg/dL
+Creatinine = 1.26 mg/dL
+K = 3.8 mmol/L
+Urea = 20 mg/dL
+وظائف الكبد:
+ALT = 61 U/L
+Total bilirubin = 0.3 mg/dL
+ALP = 115 U/L
+تحاليل إضافية:
+CRP = 4 mg/L
+Vitamin B12 = 573 pg/mL
+HbA1c = 6.7 %
+تعداد الدم CBC:
+WBC = 7800 /µL
+Hct = 38 %
+Platelets = 209 ×10^3/µL
+MCV = 83 fL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,,,N,,,1793091600000,0,[]
+d60d16cf-d39e-5682-a766-e9a2f5d85a64,SR-009,2026-09-28,F,حلاوة الجبن,1983,N,PSYCHIATRIC,قلق ونوبات هلع متقطعة؛ أعراض قلق متقطعة مع تغير الشهية.,"diazepam 10 mg
+haloperidol 10 mg
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.","استمرار الأفكار الوسواسية
+التعاون جزئي أثناء المقابلة
+النوم متقطع","الشوارد ووظائف الكلية:
+Mg = 2.0 mg/dL
+Urea = 54 mg/dL
+Creatinine = 0.97 mg/dL
+K = 4.8 mmol/L
+Na = 133 mmol/L
+تحاليل إضافية:
+TSH = 3.18 mIU/L
+CRP = 13 mg/L
+Vitamin B12 = 421 pg/mL
+Triglycerides = 128 mg/dL
+Glucose = 128 mg/dL
+HbA1c = 4.9 %
+وظائف الكبد:
+Total bilirubin = 0.9 mg/dL
+AST = 60 U/L
+ALT = 71 U/L
+ALP = 101 U/L
+Albumin = 4.2 g/dL
+تعداد الدم CBC:
+WBC = 6900 /µL
+Hb = 11.0 g/dL
+Hct = 38 %
+Platelets = 266 ×10^3/µL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,medium,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,[]
+a7f56ed9-89b2-55d4-8cd9-80a39cc3d51d,SR-010,2026-10-02,F,سحلب بالقرفة,1997,N,ADDICTION,استخدام منبهات مع اضطراب النوم,"إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+متابعة اليوم 1: وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+متابعة اليوم 2: مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+متابعة اليوم 3: تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+متابعة اليوم 4: مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+متابعة اليوم 5: مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+متابعة اليوم 6: وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+متابعة اليوم 7: مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+متابعة اليوم 8: تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+متابعة اليوم 9: توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+متابعة اليوم 10: تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+متابعة اليوم 11: تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+متابعة اليوم 12: مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+متابعة اليوم 13: مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+متابعة اليوم 14: تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.",النوم 6 ساعات، الشهية جيدة، والاستجابة ثبات.,"تعداد الدم CBC:
+Hb = 12.7 g/dL
+MCV = 97 fL
+Hct = 39 %
+Platelets = 375 ×10^3/µL
+الشوارد ووظائف الكلية:
+Creatinine = 1.26 mg/dL
+Mg = 2.2 mg/dL
+K = 4.5 mmol/L
+Na = 144 mmol/L
+Ca = 8.8 mg/dL
+وظائف الكبد:
+ALP = 149 U/L
+Albumin = 4.9 g/dL
+Total bilirubin = 1.5 mg/dL
+AST = 60 U/L
+ALT = 50 U/L
+تحاليل إضافية:
+HbA1c = 5.7 %
+Glucose = 98 mg/dL
+CRP = 22 mg/L",,,,,Y,,,1793091600000,0,"[{""id"":""250fa269-682e-52cb-889e-3700f6a74e82"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""84bc8b9c-4ef4-5e61-8b9c-d5d8905296bb"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""5dc9583c-d2ca-5af8-aad6-0c3cc39901da"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""d3f5ba15-8693-5edb-ba2d-877dbe546b2f"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000},{""id"":""5d2119d3-d1cb-5d58-ae02-c8aaf52d5467"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":null,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""40d9423b-d0c9-53a3-8150-9c804c6d683c"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""b6bde211-9703-5c14-87ab-f2dd481c4c7e"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""ee17ae6c-bc41-5f00-9983-8deb46a0b06b"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+5f7607bd-20cb-5bc2-a7de-10c371389229,SR-011,2026-10-20,F,ملوخية,2005,N,PSYCHIATRIC,نشاط زائد مع قلة النوم وسرعة الكلام؛ تغير الشهية مع أفكار وسواسية متكررة.,"haloperidol 10 mg
+lorazepam 3 mg
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.","القلق أقل مقارنة بالتقييم السابق
+النوم متقطع
+الشهية متبدلة","وظائف الكبد:
+AST = 31 U/L
+ALT = 70 U/L
+Albumin = 3.6 g/dL
+Total bilirubin = 0.4 mg/dL
+ALP = 69 U/L
+تعداد الدم CBC:
+Hct = 41 %
+WBC = 4200 /µL
+MCV = 96 fL",,,,,N,,,1793091600000,0,"[{""id"":""856c7edb-33b2-5e32-808d-c99e8b362886"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""5e4b1277-20ae-5cfb-9588-984552e1d5de"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+814ecfa6-a492-50e4-9d78-97c775de8d70,SR-012,2026-10-16,F,لاتيه,1981,N,ADDICTION,متابعة أعراض انسحاب الكحول؛ اضطراب النوم مع تغير الشهية.,"haloperidol 20 mg
+valproate 1000 mg
+lorazepam 6 mg
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.","التعاون جزئي أثناء المقابلة
+الشهية متبدلة
+القلق أقل مقارنة بالتقييم السابق","الشوارد ووظائف الكلية:
+K = 4.1 mmol/L
+Urea = 20 mg/dL
+Creatinine = 0.91 mg/dL
+Mg = 1.8 mg/dL
+Ca = 9.4 mg/dL
+Na = 137 mmol/L
+تحاليل إضافية:
+TSH = 5.17 mIU/L
+Triglycerides = 156 mg/dL
+Glucose = 147 mg/dL
+HbA1c = 7.0 %
+Vitamin B12 = 531 pg/mL
+تعداد الدم CBC:
+Hct = 41 %
+WBC = 5200 /µL
+Platelets = 246 ×10^3/µL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,medium,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,"[{""id"":""12a39a42-0de2-5e94-a8c6-903b6805dda1"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+f7fb90d2-27ac-594f-9407-519f58234605,SR-013,2026-10-20,F,فتوش,1981,N,PSYCHIATRIC,قلق ونوبات هلع متقطعة؛ تغير الشهية مع تفاوت التعاون أثناء المقابلة.,"clozapine 150 mg
+lorazepam 3 mg
+diazepam 10 mg
+olanzapine 15 mg
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.","النوم متقطع
+الشهية متبدلة
+استمرار الأفكار الوسواسية","وظائف الكبد:
+ALT = 46 U/L
+Albumin = 3.7 g/dL
+ALP = 142 U/L
+AST = 45 U/L
+Total bilirubin = 1.2 mg/dL
+الشوارد ووظائف الكلية:
+Urea = 29 mg/dL
+K = 4.2 mmol/L
+Na = 140 mmol/L
+Ca = 9.7 mg/dL
+تعداد الدم CBC:
+Hct = 37 %
+Platelets = 304 ×10^3/µL
+MCV = 81 fL",,,medium|low,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC;low:2YXYqtin2KjYudipINin2YbYqti42KfZhSDYp9mE2YbZiNmFINmI2KfZhNi02YfZitipINmI2KfZhNiq2YjYp9i12YQg2YXYuSDYp9mE2YXYsdin2YHZgg,N,,,1793091600000,0,"[{""id"":""d9a39779-9fad-55bf-b074-7b3b1a4d164b"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""d7472b36-9fad-5a86-b14a-50ab15a14997"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+ce800c5b-fc2a-54d1-99b3-d486f83dfa92,SR-014,2026-10-18,M,قطايف بالجوز,1944,Y,PSYCHIATRIC,أفكار غير واقعية مع تشتت الانتباه,"تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.",النوم 5 ساعات، الشهية جيدة، والاستجابة تحتاج إعادة تقييم.,"وظائف الكبد:
+AST = 78 U/L
+Total bilirubin = 1.2 mg/dL
+ALP = 75 U/L
+ALT = 12 U/L
+Albumin = 4.6 g/dL
+الشوارد ووظائف الكلية:
+Creatinine = 1.15 mg/dL
+Urea = 32 mg/dL
+K = 5.0 mmol/L",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,Y,,,1793091600000,0,"[{""id"":""0ebe36da-35d4-57e4-aaf1-7b6d1c7dcbe3"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""4c7a0b8e-f45f-5abb-99d4-72066fbbe719"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""eb984a77-246b-5dcc-a95f-6c57fe211142"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""e319329a-d67a-5990-8ebe-006cb66b0f62"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+0c9eb37c-bf6b-5809-b7ba-3434a9feea9a,SR-015,2026-09-19,M,بابونج,1946,N,PSYCHIATRIC,صعوبات معرفية لدى مسن مع حاجة لتقييم إضافي؛ اضطراب النوم مع أفكار وسواسية متكررة.,"sertraline 25 mg
+valproate 1000 mg
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.","استمرار الأفكار الوسواسية
+الشهية متبدلة
+القلق أقل مقارنة بالتقييم السابق",,,,low,badges:low:2YXYqtin2KjYudipINin2YbYqti42KfZhSDYp9mE2YbZiNmFINmI2KfZhNi02YfZitipINmI2KfZhNiq2YjYp9i12YQg2YXYuSDYp9mE2YXYsdin2YHZgg,N,,,1793091600000,0,"[{""id"":""4b1fa757-5cf9-5f33-8fc6-2e433fb283c3"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+ea9160dc-42af-5384-a0ca-524c9b7b6a42,SR-016,2026-09-17,M,برك بالسبانخ,1989,Y,PSYCHIATRIC,أفكار غير واقعية مع تشتت الانتباه؛ تغير الشهية مع أعراض قلق متقطعة.,"sertraline 50 mg
+olanzapine 15 mg
+valproate 1500 mg
+quetiapine 50 mg
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.","استمرار الأفكار الوسواسية
+الشهية متبدلة
+القلق أقل مقارنة بالتقييم السابق",,,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,N,,,1793091600000,0,"[{""id"":""b51914bb-b982-5f02-ae27-eab0fa25fa95"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+e85e3327-f456-5bd2-9aa3-81f9c302246a,SR-017,2026-10-21,M,شاي بالقرفة,2004,Y,ADDICTION,متابعة أعراض انسحاب الأفيونات؛ أفكار وسواسية متكررة مع أعراض قلق متقطعة.,"sertraline 25 mg
+valproate 500 mg
+clozapine 150 mg
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.","الشهية متبدلة
+التعاون جزئي أثناء المقابلة
+النوم متقطع","تعداد الدم CBC:
+MCV = 78 fL
+Platelets = 319 ×10^3/µL
+WBC = 6100 /µL
+Hb = 15.2 g/dL
+Hct = 35 %
+الشوارد ووظائف الكلية:
+Ca = 9.4 mg/dL
+Creatinine = 0.80 mg/dL
+Na = 135 mmol/L
+K = 3.7 mmol/L
+Urea = 46 mg/dL
+Mg = 2.1 mg/dL
+تحاليل إضافية:
+Triglycerides = 139 mg/dL
+TSH = 0.58 mIU/L
+Vitamin B12 = 398 pg/mL
+وظائف الكبد:
+ALT = 73 U/L
+Total bilirubin = 1.1 mg/dL
+Albumin = 4.7 g/dL
+AST = 53 U/L",,,high|low,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ;low:2YXYqtin2KjYudipINin2YbYqti42KfZhSDYp9mE2YbZiNmFINmI2KfZhNi02YfZitipINmI2KfZhNiq2YjYp9i12YQg2YXYuSDYp9mE2YXYsdin2YHZgg,N,,,1793091600000,0,[]
+35dcd94c-2971-55dd-920b-5be3d2a95af3,SR-018,2026-09-20,F,شيش برك,1944,N,PSYCHIATRIC,نشاط زائد مع قلة النوم وسرعة الكلام,"تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.",النوم 9 ساعات، الشهية متوسطة، والاستجابة ثبات.,"وظائف الكبد:
+ALP = 120 U/L
+AST = 34 U/L
+ALT = 22 U/L
+Albumin = 4.5 g/dL
+تعداد الدم CBC:
+Hct = 39 %
+Platelets = 279 ×10^3/µL
+Hb = 12.9 g/dL
+تحاليل إضافية:
+HbA1c = 5.9 %
+CRP = 10 mg/L
+TSH = 2.67 mIU/L
+Vitamin B12 = 274 pg/mL
+Glucose = 98 mg/dL",,,low,badges:low:2YXYqtin2KjYudipINin2YbYqti42KfZhSDYp9mE2YbZiNmFINmI2KfZhNi02YfZitipINmI2KfZhNiq2YjYp9i12YQg2YXYuSDYp9mE2YXYsdin2YHZgg,N,,,1793091600000,0,"[{""id"":""43641de6-72b8-5d0e-a9d8-431d93f0d511"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""06af0ff6-790c-5678-b106-c10e28d06cc0"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""691d25b6-b2d5-51f7-b46e-759343a37752"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+f2f81e90-2e8c-5112-9da0-c3a6ba0e3a00,SR-019,2026-10-10,M,بوظة عربية,1967,Y,PSYCHIATRIC,أفكار غير واقعية مع تشتت الانتباه,"تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.",النوم 4 ساعات، الشهية متوسطة، والاستجابة ثبات.,"تعداد الدم CBC:
+MCV = 78 fL
+Hb = 14.7 g/dL
+Hct = 48 %
+WBC = 11700 /µL
+تحاليل إضافية:
+Vitamin B12 = 581 pg/mL
+Glucose = 125 mg/dL
+CRP = 1 mg/L
+وظائف الكبد:
+Total bilirubin = 1.4 mg/dL
+ALP = 121 U/L
+Albumin = 4.5 g/dL
+AST = 42 U/L
+ALT = 54 U/L
+الشوارد ووظائف الكلية:
+Mg = 1.9 mg/dL
+Na = 136 mmol/L
+Creatinine = 1.14 mg/dL
+Ca = 10.0 mg/dL
+Urea = 33 mg/dL",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,N,,,1793091600000,0,"[{""id"":""8e725466-3aa5-5597-8552-6f48a82f1a3e"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""a11f5a7a-5d91-57ae-94ae-d789f44ac085"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""d66d28c6-a849-5ab7-9ef4-8ac8d59b0155"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+af3034ac-4aa5-5a0b-ab82-9c9208db820a,SR-020,2026-09-23,F,كباب حلبي,1984,N,PSYCHIATRIC,قلق ونوبات هلع متقطعة,"تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+متابعة اليوم 1: وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+متابعة اليوم 2: تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+متابعة اليوم 3: تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+متابعة اليوم 4: تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+متابعة اليوم 5: إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+متابعة اليوم 6: توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+متابعة اليوم 7: تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+متابعة اليوم 8: تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+متابعة اليوم 9: تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+متابعة اليوم 10: تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+متابعة اليوم 11: تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+متابعة اليوم 12: تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+متابعة اليوم 13: توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+متابعة اليوم 14: إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+متابعة اليوم 15: وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.",النوم 2 ساعات، الشهية متوسطة، والاستجابة تحتاج إعادة تقييم.,"تعداد الدم CBC:
+MCV = 96 fL
+Hb = 15.7 g/dL
+Platelets = 217 ×10^3/µL
+WBC = 4000 /µL
+Hct = 35 %
+الشوارد ووظائف الكلية:
+Ca = 9.3 mg/dL
+Urea = 40 mg/dL
+Na = 133 mmol/L
+Creatinine = 0.84 mg/dL
+وظائف الكبد:
+Total bilirubin = 1.0 mg/dL
+Albumin = 4.6 g/dL
+AST = 43 U/L
+ALP = 86 U/L",,,medium,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,Y,,,1793091600000,0,"[{""id"":""450233a5-3570-5aaf-bd9b-a429d93b78b2"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""a8d2ef1f-4bf2-561b-992b-592d280931fe"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""348883fb-fa83-51a0-96bd-71c8dfe9fb9f"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""f06f5341-c095-5ff4-8751-b8bb97e796a6"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+aa76e902-c33d-5c82-bc53-ace96d4f7e8f,SR-021,2026-10-24,F,فول مدمس,1960,Y,PSYCHIATRIC,كوابيس واسترجاع أحداث وضغط نفسي؛ تفاوت التعاون أثناء المقابلة مع أفكار وسواسية متكررة.,"lorazepam 3 mg
+sertraline 50 mg
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.",,"الشوارد ووظائف الكلية:
+Na = 145 mmol/L
+Creatinine = 1.38 mg/dL
+Ca = 10.0 mg/dL
+Urea = 16 mg/dL
+K = 4.6 mmol/L
+وظائف الكبد:
+ALP = 139 U/L
+AST = 14 U/L
+Albumin = 4.9 g/dL
+Total bilirubin = 1.4 mg/dL
+ALT = 33 U/L
+تحاليل إضافية:
+Glucose = 86 mg/dL
+TSH = 3.90 mIU/L
+CRP = 3 mg/L",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,N,,,1793091600000,0,[]
+ec4fe3ee-95a0-5949-a186-ed078567a1f0,SR-022,2026-09-14,F,معمول بالتمر,1983,N,ADDICTION,استخدام منبهات مع اضطراب النوم؛ تغير الشهية مع أفكار وسواسية متكررة.,"haloperidol 20 mg
+diazepam 10 mg
+valproate 1500 mg
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.","استمرار الأفكار الوسواسية
+النوم متقطع
+الشهية متبدلة","الشوارد ووظائف الكلية:
+Na = 140 mmol/L
+Ca = 10.2 mg/dL
+Urea = 23 mg/dL
+Creatinine = 1.39 mg/dL
+K = 3.6 mmol/L
+تعداد الدم CBC:
+WBC = 5800 /µL
+Hb = 12.7 g/dL
+Platelets = 252 ×10^3/µL
+MCV = 77 fL
+Hct = 32 %
+تحاليل إضافية:
+Triglycerides = 84 mg/dL
+HbA1c = 6.3 %
+Vitamin B12 = 368 pg/mL
+Glucose = 103 mg/dL
+TSH = 2.64 mIU/L
+CRP = 23 mg/L",,,,,N,,,1793091600000,0,"[{""id"":""d2a67646-933d-53a2-9d15-ec04c4219934"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+024434c7-c93a-50dc-b407-bca9fdeec415,SR-023,2026-10-07,M,شاي بالليمون,1952,Y,PSYCHIATRIC,أفكار غير واقعية مع تشتت الانتباه؛ أفكار وسواسية متكررة مع تغير الشهية.,"diazepam 20 mg
+lorazepam 3 mg
+sertraline 25 mg
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.","الشهية متبدلة
+التعاون جزئي أثناء المقابلة
+استمرار الأفكار الوسواسية","الشوارد ووظائف الكلية:
+K = 3.4 mmol/L
+Mg = 2.2 mg/dL
+Ca = 8.6 mg/dL
+Creatinine = 0.88 mg/dL
+Urea = 39 mg/dL
+تحاليل إضافية:
+CRP = 13 mg/L
+Triglycerides = 172 mg/dL
+Glucose = 85 mg/dL",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,N,,,1793091600000,0,"[{""id"":""72585779-fd3d-537e-9547-d1bfe24eec25"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""10158aaf-f8ef-54a8-8354-ad87e2b702e6"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+d9ccb068-4be9-5b5b-bab4-c9309ddeaaee,SR-024,2026-09-14,M,سحلب,2007,N,PSYCHIATRIC,صعوبات معرفية لدى مسن مع حاجة لتقييم إضافي,"مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.",النوم 8 ساعات، الشهية ضعيفة، والاستجابة تحتاج إعادة تقييم.,"الشوارد ووظائف الكلية:
+Ca = 10.4 mg/dL
+Na = 139 mmol/L
+Urea = 30 mg/dL
+Creatinine = 1.31 mg/dL
+Mg = 2.0 mg/dL
+تعداد الدم CBC:
+WBC = 9200 /µL
+Platelets = 213 ×10^3/µL
+Hct = 45 %",,,,,N,,,1793091600000,0,"[{""id"":""56ea6598-fc8f-57f8-9d40-2c91b06690eb"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""0b0ba90d-fa9f-5d57-9583-1198c079b3aa"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""b5f0a7f9-5552-5de6-85e1-45408ce854e7"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+b886c94c-d687-5ca2-b04b-a97326b40265,SR-025,2026-10-24,F,أرز بالحليب,2006,N,ADDICTION,متابعة أعراض انسحاب الكحول,"تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+متابعة اليوم 1: مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+متابعة اليوم 2: إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+متابعة اليوم 3: توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+متابعة اليوم 4: تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+متابعة اليوم 5: تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+متابعة اليوم 6: مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+متابعة اليوم 7: وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+متابعة اليوم 8: وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+متابعة اليوم 9: توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+متابعة اليوم 10: تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+متابعة اليوم 11: تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+متابعة اليوم 12: مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+متابعة اليوم 13: وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+متابعة اليوم 14: تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+متابعة اليوم 15: وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+متابعة اليوم 16: توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+متابعة اليوم 17: مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+متابعة اليوم 18: مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+متابعة اليوم 19: تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+متابعة اليوم 20: تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.",النوم 5 ساعات، الشهية متوسطة، والاستجابة تحتاج إعادة تقييم.,"تعداد الدم CBC:
+Hb = 15.7 g/dL
+WBC = 13400 /µL
+Hct = 32 %
+Platelets = 216 ×10^3/µL
+MCV = 89 fL
+الشوارد ووظائف الكلية:
+Na = 142 mmol/L
+Urea = 29 mg/dL
+Ca = 10.2 mg/dL
+K = 4.1 mmol/L
+Mg = 2.0 mg/dL
+Creatinine = 0.85 mg/dL
+وظائف الكبد:
+ALP = 75 U/L
+ALT = 33 U/L
+Total bilirubin = 1.0 mg/dL
+AST = 61 U/L
+Albumin = 4.6 g/dL",,,medium,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,Y,,,1793091600000,0,"[{""id"":""d82e40dc-72eb-5379-a29d-a96425660dc0"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""b40d960e-5ba4-53a5-abf3-898c9c3cd1ed"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""fe751ac3-af42-5ca4-b5d2-17b048014627"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""7d14c2ca-c694-57e6-8090-401a3aa729fa"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+85caba78-c384-5dbe-912d-17bfb610d885,SR-026,2026-10-04,M,محشي كوسا,1940,N,PSYCHIATRIC,أفكار وسواسية وسلوكيات متكررة؛ أفكار وسواسية متكررة مع تفاوت التعاون أثناء المقابلة.,"olanzapine 10 mg
+lorazepam 6 mg
+diazepam 20 mg
+clozapine 150 mg
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.","التعاون جزئي أثناء المقابلة
+الشهية متبدلة
+القلق أقل مقارنة بالتقييم السابق","وظائف الكبد:
+ALP = 130 U/L
+Albumin = 3.8 g/dL
+ALT = 19 U/L
+AST = 66 U/L
+تحاليل إضافية:
+Triglycerides = 182 mg/dL
+CRP = 22 mg/L
+HbA1c = 6.9 %
+Glucose = 98 mg/dL",,,,,N,,,1793091600000,0,[]
+1edcad7a-6e91-5d42-9e53-ef056afe1642,SR-027,2026-09-27,F,تبولة,2002,N,PSYCHIATRIC,قلق ونوبات هلع متقطعة,"مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.",النوم 5 ساعات، الشهية ضعيفة، والاستجابة تحتاج إعادة تقييم.,"تعداد الدم CBC:
+WBC = 4300 /µL
+Platelets = 181 ×10^3/µL
+Hct = 46 %
+Hb = 12.1 g/dL
+تحاليل إضافية:
+HbA1c = 5.7 %
+TSH = 2.38 mIU/L
+Triglycerides = 192 mg/dL",,,medium,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,"[{""id"":""aa81196e-e731-563f-9fa6-b18557553af4"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""999a5492-e5e1-586a-870f-59ded5c920da"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""1d7c42de-3aee-51d0-8c08-c5f1e2acefb4"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+c91d6f78-26d4-5a9b-ac31-2942e89f1ed7,SR-028,2026-10-25,F,متبل باذنجان,2002,N,ADDICTION,استخدام منبهات مع اضطراب النوم,"تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.",النوم 6 ساعات، الشهية متوسطة، والاستجابة تحتاج إعادة تقييم.,"وظائف الكبد:
+ALP = 74 U/L
+ALT = 60 U/L
+AST = 27 U/L
+Albumin = 3.3 g/dL
+Total bilirubin = 1.1 mg/dL
+تعداد الدم CBC:
+MCV = 86 fL
+Hb = 16.7 g/dL
+WBC = 12100 /µL
+Platelets = 231 ×10^3/µL",,,,,N,,,1793091600000,0,"[{""id"":""e04a8df8-d43a-5050-8196-db79dd083a5f"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""0c2bd678-01c3-52a9-b654-93c2d8bc1a88"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""e458fa9f-af51-5580-bf9e-610a5016c86b"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+5f868bc7-5f68-5a53-bfce-2116dbc28714,SR-029,2026-09-26,M,كبة لبنية,1988,N,DUAL,أعراض مزاجية مترافقة مع استخدام مواد؛ أفكار وسواسية متكررة مع تغير الشهية.,"clozapine 150 mg
+lorazepam 6 mg
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.","التعاون جزئي أثناء المقابلة
+استمرار الأفكار الوسواسية
+القلق أقل مقارنة بالتقييم السابق","تحاليل إضافية:
+HbA1c = 5.1 %
+CRP = 4 mg/L
+TSH = 4.36 mIU/L
+Vitamin B12 = 410 pg/mL
+Triglycerides = 229 mg/dL
+الشوارد ووظائف الكلية:
+Mg = 2.3 mg/dL
+Na = 140 mmol/L
+Ca = 8.9 mg/dL
+Urea = 51 mg/dL
+Creatinine = 0.62 mg/dL
+K = 4.6 mmol/L
+وظائف الكبد:
+Total bilirubin = 1.3 mg/dL
+AST = 62 U/L
+ALP = 100 U/L
+ALT = 64 U/L",,,,,N,,,1793091600000,0,[]
+76b9afac-841e-5a92-944b-1c8614c83e15,SR-030,2026-09-14,M,حراق إصبعه,2005,N,PSYCHIATRIC,أفكار وسواسية وسلوكيات متكررة,"مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.",النوم 4 ساعات، الشهية متوسطة، والاستجابة تحتاج إعادة تقييم.,"وظائف الكبد:
+AST = 54 U/L
+ALP = 115 U/L
+Total bilirubin = 0.5 mg/dL
+Albumin = 4.0 g/dL
+ALT = 56 U/L
+تحاليل إضافية:
+HbA1c = 6.8 %
+Glucose = 84 mg/dL
+CRP = 10 mg/L
+TSH = 1.37 mIU/L
+الشوارد ووظائف الكلية:
+Urea = 51 mg/dL
+K = 3.4 mmol/L
+Na = 137 mmol/L
+Creatinine = 1.23 mg/dL",,,,,Y,,,1793091600000,0,"[{""id"":""c2bc1a2c-5037-51d8-a662-ee47272c9b35"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""4db28ea3-32bd-5378-98c3-3ff3665f56af"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""bf1e20d8-b272-54fb-a232-397c55269754"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""c9f66459-65bb-56dc-a87d-5e721ea9637b"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+56f89daa-5007-5bec-9119-718887caf56c,SR-031,2026-10-27,M,مسبحة,1981,N,PSYCHIATRIC,أعراض اكتئابية مع اضطراب النوم والشهية,"تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.",النوم 8 ساعات، الشهية جيدة، والاستجابة تحتاج إعادة تقييم.,"تحاليل إضافية:
+Triglycerides = 157 mg/dL
+TSH = 3.00 mIU/L
+Glucose = 78 mg/dL
+الشوارد ووظائف الكلية:
+Urea = 52 mg/dL
+Na = 132 mmol/L
+Ca = 9.0 mg/dL
+Mg = 1.8 mg/dL
+Creatinine = 1.14 mg/dL
+K = 4.7 mmol/L
+وظائف الكبد:
+ALP = 150 U/L
+Total bilirubin = 1.3 mg/dL
+Albumin = 3.7 g/dL
+AST = 16 U/L
+تعداد الدم CBC:
+Platelets = 233 ×10^3/µL
+MCV = 96 fL
+Hct = 45 %
+WBC = 13500 /µL
+Hb = 12.7 g/dL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,low,badges:low:2YXYqtin2KjYudipINin2YbYqti42KfZhSDYp9mE2YbZiNmFINmI2KfZhNi02YfZitipINmI2KfZhNiq2YjYp9i12YQg2YXYuSDYp9mE2YXYsdin2YHZgg,N,,,1793091600000,0,"[{""id"":""629b072d-b572-5d87-9cbd-80d6303671be"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""83aaf444-203d-524e-af0f-d125afe5a9f4"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""babdbbe5-6660-5efb-a6c2-4df58c4bbd0e"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+aa60b825-bb7d-5fd4-ad19-7d99ee72cb50,SR-032,2026-09-15,M,مثلجات الفستق الحلبي,1974,N,PSYCHIATRIC,أعراض اكتئابية مع اضطراب النوم والشهية؛ تغير الشهية مع أفكار وسواسية متكررة.,"sertraline 50 mg
+olanzapine 15 mg
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.","القلق أقل مقارنة بالتقييم السابق
+استمرار الأفكار الوسواسية
+الشهية متبدلة","وظائف الكبد:
+AST = 48 U/L
+ALP = 77 U/L
+Total bilirubin = 0.9 mg/dL
+ALT = 71 U/L
+تعداد الدم CBC:
+WBC = 11700 /µL
+Hb = 13.3 g/dL
+Hct = 39 %
+MCV = 78 fL
+تحاليل إضافية:
+Glucose = 136 mg/dL
+HbA1c = 4.9 %
+Vitamin B12 = 182 pg/mL
+CRP = 1 mg/L
+الشوارد ووظائف الكلية:
+Creatinine = 1.18 mg/dL
+Ca = 9.3 mg/dL
+Mg = 2.0 mg/dL
+Na = 144 mmol/L
+K = 4.2 mmol/L
+Urea = 26 mg/dL",,,,,N,,,1793091600000,0,"[{""id"":""498facc3-8a19-530e-b84f-2b1a3b07cd55"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""22b971d4-9723-5ac8-800e-74e022e2efc3"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+ecb48708-93a4-599a-a7e6-779994ea1d24,SR-033,2026-10-02,F,مجدرة,2002,N,ADDICTION,استخدام منبهات مع اضطراب النوم؛ تغير الشهية مع أفكار وسواسية متكررة.,"haloperidol 20 mg
+olanzapine 15 mg
+clozapine 150 mg
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.","الشهية متبدلة
+استمرار الأفكار الوسواسية
+النوم متقطع","وظائف الكبد:
+ALP = 95 U/L
+Albumin = 4.2 g/dL
+Total bilirubin = 0.8 mg/dL
+AST = 51 U/L
+تحاليل إضافية:
+Vitamin B12 = 414 pg/mL
+CRP = 10 mg/L
+Glucose = 160 mg/dL
+HbA1c = 5.2 %",,,,,N,,,1793091600000,0,[]
+7c8cfd37-01d5-598e-b12d-e6ecdff41d1b,SR-034,2026-10-18,M,مناقيش زعتر,1963,N,DUAL,أعراض مزاجية مترافقة مع استخدام مواد؛ تفاوت التعاون أثناء المقابلة مع اضطراب النوم.,"sertraline 50 mg
+lorazepam 6 mg
+quetiapine 600 mg
+clozapine 150 mg
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.","الشهية متبدلة
+القلق أقل مقارنة بالتقييم السابق
+استمرار الأفكار الوسواسية","الشوارد ووظائف الكلية:
+Ca = 10.5 mg/dL
+Creatinine = 0.90 mg/dL
+Na = 141 mmol/L
+تعداد الدم CBC:
+WBC = 13900 /µL
+Platelets = 141 ×10^3/µL
+Hct = 47 %
+تحاليل إضافية:
+TSH = 5.33 mIU/L
+HbA1c = 5.7 %
+Glucose = 125 mg/dL
+Triglycerides = 188 mg/dL
+CRP = 5 mg/L
+Vitamin B12 = 731 pg/mL",,,,,N,,,1793091600000,0,"[{""id"":""1984b75f-ceb9-5d48-816d-985837ba8847"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""e9d96735-262a-5d40-aa66-f8679f07b6db"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+bc511254-adb8-5b3d-8cc6-581e5fc50bba,SR-035,2026-09-23,M,يانسون,1984,Y,ADDICTION,متابعة أعراض انسحاب الأفيونات,"مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.",النوم 3 ساعات، الشهية ضعيفة، والاستجابة تحتاج إعادة تقييم.,"تحاليل إضافية:
+Vitamin B12 = 275 pg/mL
+Glucose = 126 mg/dL
+TSH = 1.73 mIU/L
+Triglycerides = 152 mg/dL
+HbA1c = 6.8 %
+وظائف الكبد:
+AST = 77 U/L
+ALP = 118 U/L
+Albumin = 4.7 g/dL
+ALT = 17 U/L
+تعداد الدم CBC:
+Platelets = 160 ×10^3/µL
+MCV = 94 fL
+Hct = 40 %
+Hb = 16.2 g/dL",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,Y,,,1793091600000,0,"[{""id"":""79d327d4-86d7-50cc-bea2-5644228f388d"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""fe453407-afdb-58da-9dcd-6d027e0cc6b6"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""b43ce8f2-d39c-5d17-bb4a-6c4f4dae0d24"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""617a971e-e734-5e6b-b74c-2b90aea5eaa6"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+41388b9a-243d-5e07-9f2f-ce00035617e6,SR-036,2026-09-25,F,شاورما دجاج,1948,N,ADDICTION,متابعة أعراض انسحاب الكحول,"مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.",النوم 3 ساعات، الشهية ضعيفة، والاستجابة ثبات.,"تعداد الدم CBC:
+WBC = 7200 /µL
+Hct = 48 %
+MCV = 86 fL
+Hb = 14.4 g/dL
+وظائف الكبد:
+Total bilirubin = 0.7 mg/dL
+Albumin = 4.0 g/dL
+AST = 27 U/L
+الشوارد ووظائف الكلية:
+Mg = 2.4 mg/dL
+Ca = 8.2 mg/dL
+Urea = 39 mg/dL
+K = 3.4 mmol/L
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,medium,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,"[{""id"":""c0167768-7284-5298-8ad4-76d3fa9ea0c8"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""c913d22f-97ec-5350-af29-c82d4858a931"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""de2742ae-0622-51c1-bc48-7b2399b24851"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+657e2a15-e66f-5b47-a99a-52a73b49a48c,SR-037,2026-10-24,F,كاكاو ساخن,1981,Y,PSYCHIATRIC,كوابيس واسترجاع أحداث وضغط نفسي؛ تفاوت التعاون أثناء المقابلة مع تغير الشهية.,"quetiapine 50 mg
+lorazepam 3 mg
+haloperidol 10 mg
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.",,"تعداد الدم CBC:
+MCV = 96 fL
+WBC = 10700 /µL
+Platelets = 190 ×10^3/µL
+Hb = 12.5 g/dL
+Hct = 47 %
+وظائف الكبد:
+Albumin = 3.3 g/dL
+ALP = 94 U/L
+AST = 46 U/L
+الشوارد ووظائف الكلية:
+K = 4.6 mmol/L
+Creatinine = 1.30 mg/dL
+Ca = 8.3 mg/dL
+Urea = 35 mg/dL
+تحاليل إضافية:
+TSH = 3.85 mIU/L
+CRP = 13 mg/L
+Vitamin B12 = 509 pg/mL",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,N,,,1793091600000,0,"[{""id"":""1dff6a18-18ec-5472-83fd-599daa1a1c6d"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""48b71748-5eab-5da6-ad2b-cbb6e18c886d"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+17b9b727-692e-57ca-b7bd-70297cb5cc19,SR-038,2026-10-09,F,شاكرية,2001,N,PSYCHIATRIC,نشاط زائد مع قلة النوم وسرعة الكلام؛ أفكار وسواسية متكررة مع أعراض قلق متقطعة.,"haloperidol 20 mg
+clozapine 150 mg
+olanzapine 20 mg
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.","التعاون جزئي أثناء المقابلة
+استمرار الأفكار الوسواسية
+القلق أقل مقارنة بالتقييم السابق","تحاليل إضافية:
+CRP = 5 mg/L
+Vitamin B12 = 590 pg/mL
+TSH = 1.99 mIU/L
+Glucose = 146 mg/dL
+تعداد الدم CBC:
+WBC = 6100 /µL
+Platelets = 383 ×10^3/µL
+MCV = 92 fL
+Hb = 16.8 g/dL
+Hct = 36 %
+وظائف الكبد:
+Total bilirubin = 0.3 mg/dL
+ALT = 68 U/L
+AST = 44 U/L
+الشوارد ووظائف الكلية:
+Urea = 51 mg/dL
+Na = 145 mmol/L
+K = 4.2 mmol/L
+Creatinine = 0.91 mg/dL
+Ca = 8.6 mg/dL",,,,,N,,,1793091600000,0,[]
+4010a76e-df3c-5835-852d-47ae2d4dcb7f,SR-039,2026-10-25,F,سمبوسك بالجبنة,1944,N,ADDICTION,متابعة أعراض انسحاب الكحول؛ أفكار وسواسية متكررة مع اضطراب النوم.,"olanzapine 15 mg
+quetiapine 600 mg
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.","استمرار الأفكار الوسواسية
+النوم متقطع
+القلق أقل مقارنة بالتقييم السابق","الشوارد ووظائف الكلية:
+Ca = 8.4 mg/dL
+Na = 132 mmol/L
+K = 3.2 mmol/L
+Urea = 17 mg/dL
+Creatinine = 0.95 mg/dL
+Mg = 2.6 mg/dL
+تحاليل إضافية:
+HbA1c = 4.8 %
+CRP = 21 mg/L
+Triglycerides = 140 mg/dL
+وظائف الكبد:
+Total bilirubin = 1.5 mg/dL
+ALP = 103 U/L
+ALT = 26 U/L
+AST = 74 U/L
+تعداد الدم CBC:
+WBC = 9000 /µL
+Hct = 45 %
+Platelets = 171 ×10^3/µL
+MCV = 84 fL
+Hb = 10.9 g/dL",,,medium,badges:medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,"[{""id"":""d0664102-3e37-5707-b120-ee43538ff56d"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""77206158-dc36-5bad-989d-bf03cf3d7e24"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+d514ba6f-3ee5-54c5-8308-7a371e8967cf,SR-040,2026-10-01,M,زهورات شامية,1962,N,PSYCHIATRIC,صعوبات معرفية لدى مسن مع حاجة لتقييم إضافي؛ أفكار وسواسية متكررة مع تفاوت التعاون أثناء المقابلة.,"diazepam 20 mg
+valproate 1000 mg
+olanzapine 20 mg
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.","القلق أقل مقارنة بالتقييم السابق
+التعاون جزئي أثناء المقابلة
+النوم متقطع","الشوارد ووظائف الكلية:
+K = 4.1 mmol/L
+Urea = 19 mg/dL
+Mg = 2.0 mg/dL
+Na = 142 mmol/L
+Creatinine = 1.49 mg/dL
+Ca = 9.3 mg/dL
+وظائف الكبد:
+AST = 72 U/L
+Albumin = 3.6 g/dL
+Total bilirubin = 0.7 mg/dL
+تعداد الدم CBC:
+MCV = 79 fL
+WBC = 10100 /µL
+Hct = 34 %
+Platelets = 167 ×10^3/µL
+Hb = 15.4 g/dL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,,,N,,,1793091600000,0,"[{""id"":""94e17d06-ff0e-5bf5-ada0-12cb226c5aa4"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""682faea9-cbe8-57f8-9cb0-577072a14d40"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+e8449b0e-5dd3-555f-bac2-6adf267c666f,SR-041,2026-10-13,F,فريكة بالدجاج,1958,Y,PSYCHIATRIC,كوابيس واسترجاع أحداث وضغط نفسي؛ أفكار وسواسية متكررة مع أعراض قلق متقطعة.,"olanzapine 10 mg
+sertraline 25 mg
+clozapine 150 mg
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.",,"الشوارد ووظائف الكلية:
+Ca = 9.6 mg/dL
+Urea = 36 mg/dL
+K = 3.8 mmol/L
+Na = 139 mmol/L
+وظائف الكبد:
+ALT = 34 U/L
+Total bilirubin = 1.1 mg/dL
+AST = 54 U/L
+Albumin = 3.3 g/dL
+تعداد الدم CBC:
+Platelets = 382 ×10^3/µL
+Hct = 48 %
+MCV = 89 fL
+Hb = 10.9 g/dL
+WBC = 5400 /µL",,,high|low,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ;low:2YXYqtin2KjYudipINin2YbYqti42KfZhSDYp9mE2YbZiNmFINmI2KfZhNi02YfZitipINmI2KfZhNiq2YjYp9i12YQg2YXYuSDYp9mE2YXYsdin2YHZgg,N,,,1793091600000,0,"[{""id"":""9d74e526-a2a3-5c42-a346-dd32aeb0f5b1"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+773474b8-853b-5793-84bd-f74a917c93de,SR-042,2026-10-17,F,لحم بعجين,1958,N,PSYCHIATRIC,نشاط زائد مع قلة النوم وسرعة الكلام,"مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+متابعة اليوم 1: توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+متابعة اليوم 2: مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+متابعة اليوم 3: مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+متابعة اليوم 4: إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+متابعة اليوم 5: مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+متابعة اليوم 6: تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+متابعة اليوم 7: مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+متابعة اليوم 8: تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+متابعة اليوم 9: تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+متابعة اليوم 10: مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+متابعة اليوم 11: تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+متابعة اليوم 12: تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+متابعة اليوم 13: تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+متابعة اليوم 14: مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+متابعة اليوم 15: تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+متابعة اليوم 16: تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+متابعة اليوم 17: تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+متابعة اليوم 18: وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+متابعة اليوم 19: مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+متابعة اليوم 20: تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.",النوم 7 ساعات، الشهية جيدة، والاستجابة تحسن.,"تعداد الدم CBC:
+Hct = 34 %
+MCV = 86 fL
+WBC = 8400 /µL
+Hb = 15.9 g/dL
+Platelets = 368 ×10^3/µL
+وظائف الكبد:
+ALT = 27 U/L
+AST = 43 U/L
+Albumin = 4.4 g/dL
+Total bilirubin = 1.1 mg/dL
+الشوارد ووظائف الكلية:
+Urea = 49 mg/dL
+Ca = 9.9 mg/dL
+Creatinine = 1.50 mg/dL
+K = 5.0 mmol/L
+Na = 132 mmol/L
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,,,Y,,,1793091600000,0,"[{""id"":""e9a34e7b-06c5-5c57-b678-2cb5eafae967"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""547ac575-348b-570d-a90f-20fb1a1ae3c0"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""f848bec3-1af7-551e-b581-652428b53f09"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""d835459d-7c26-5db3-b3be-da76b024b022"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000},{""id"":""f6f9f740-316d-5a36-a3d7-000a6c4a92a2"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":null,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""9811c11f-eaf7-5737-aeb3-2e1cff7e1a92"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""22b5c8df-bd51-5fcd-bccb-33775347fd27"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""5606d5ee-d138-52d8-b9c3-21e8bec8665d"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+77a72352-5a0d-524b-b21f-7dd52e82fad5,SR-043,2026-09-24,M,حليب بالعسل,1940,N,PSYCHIATRIC,أعراض اكتئابية مع اضطراب النوم والشهية,"مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.",النوم 9 ساعات، الشهية ضعيفة، والاستجابة ثبات.,"الشوارد ووظائف الكلية:
+Na = 137 mmol/L
+Creatinine = 0.80 mg/dL
+K = 3.5 mmol/L
+Urea = 30 mg/dL
+Mg = 2.1 mg/dL
+تحاليل إضافية:
+HbA1c = 5.8 %
+TSH = 2.86 mIU/L
+Glucose = 147 mg/dL
+Triglycerides = 216 mg/dL
+Vitamin B12 = 439 pg/mL
+تعداد الدم CBC:
+Platelets = 224 ×10^3/µL
+WBC = 9800 /µL
+Hct = 34 %
+وظائف الكبد:
+Total bilirubin = 1.1 mg/dL
+ALP = 130 U/L
+Albumin = 4.4 g/dL
+AST = 27 U/L
+ALT = 16 U/L
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,,,Y,,,1793091600000,0,"[{""id"":""37808101-4c34-59ec-83c2-3da2b9a77d7d"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""a3d81c98-40de-50ba-af74-161864b71b79"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""0358e99f-18b3-552c-9cd0-0e118316ac9c"",""description"":""التواصل مع المرافق"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793070000000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""a97bfa6d-1a0b-564a-88f4-b07b29b4558d"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":true,""completedByDoctorId"":""61dfab2e-b4e9-5248-ac3d-e60193cb9fd1"",""completedByName"":""د. الأرز"",""completedAtEpochMillis"":1793088000000}]"
+567d4c20-562f-5acb-8738-1f60de2fea62,SR-044,2026-10-02,F,محمرة,1962,N,PSYCHIATRIC,نشاط زائد مع قلة النوم وسرعة الكلام؛ تغير الشهية مع أفكار وسواسية متكررة.,"clozapine 150 mg
+olanzapine 10 mg
+haloperidol 10 mg
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.","الشهية متبدلة
+القلق أقل مقارنة بالتقييم السابق
+التعاون جزئي أثناء المقابلة","تعداد الدم CBC:
+MCV = 94 fL
+Hb = 14.7 g/dL
+Hct = 35 %
+Platelets = 255 ×10^3/µL
+الشوارد ووظائف الكلية:
+Mg = 2.4 mg/dL
+Urea = 37 mg/dL
+Ca = 8.7 mg/dL
+Na = 144 mmol/L
+وظائف الكبد:
+ALT = 47 U/L
+Total bilirubin = 0.9 mg/dL
+Albumin = 4.0 g/dL
+AST = 43 U/L
+تحاليل إضافية:
+Glucose = 126 mg/dL
+TSH = 5.18 mIU/L
+Triglycerides = 208 mg/dL
+CRP = 2 mg/L
+HbA1c = 6.3 %
+Vitamin B12 = 227 pg/mL",,,,,N,,,1793091600000,0,"[{""id"":""59426e38-f275-5811-ad86-0bb2659cbf2a"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+0569424a-d6b0-5688-be31-d2b6b64f59f0,SR-045,2026-10-08,F,فتة باذنجان,1979,Y,DUAL,أعراض ذهانية مترافقة مع استخدام مواد,"تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.",,"تعداد الدم CBC:
+MCV = 96 fL
+Hb = 11.5 g/dL
+Hct = 32 %
+الشوارد ووظائف الكلية:
+Ca = 10.5 mg/dL
+Urea = 52 mg/dL
+Na = 135 mmol/L
+Creatinine = 1.20 mg/dL
+K = 4.1 mmol/L
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,high|medium,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ;medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,"[{""id"":""3a54ad06-6ada-523f-ae08-216b97e81bec"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""c1444515-5a83-5d7d-89e7-f12d8f688999"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""1f1c5beb-332a-5db2-a294-91b05251d5c6"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793098800000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+e86480d4-1916-5feb-ae9c-da91324bbbc0,SR-046,2026-10-25,F,أوزي,1998,Y,DUAL,أعراض ذهانية مترافقة مع استخدام مواد؛ أعراض قلق متقطعة مع اضطراب النوم.,"lorazepam 6 mg
+haloperidol 10 mg
+diazepam 20 mg
+quetiapine 600 mg
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.
+توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.",,"تحاليل إضافية:
+Triglycerides = 150 mg/dL
+Vitamin B12 = 253 pg/mL
+HbA1c = 6.0 %
+الشوارد ووظائف الكلية:
+Ca = 8.9 mg/dL
+Mg = 1.8 mg/dL
+K = 3.9 mmol/L
+تعداد الدم CBC:
+Hb = 13.7 g/dL
+WBC = 7900 /µL
+Hct = 39 %
+وظائف الكبد:
+Total bilirubin = 1.5 mg/dL
+ALP = 141 U/L
+Albumin = 4.7 g/dL
+ALT = 68 U/L
+AST = 74 U/L
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,high|medium,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ;medium:2KrZiNin2LXZhCDZhdi5INin2YTZhdix2KfZgdmC,N,,,1793091600000,0,[]
+cafb7a4d-9187-5a87-b315-64a7a2ac79b4,SR-047,2026-10-18,M,آيس كريم الفانيليا,1944,Y,ADDICTION,متابعة أعراض انسحاب الأفيونات؛ أعراض قلق متقطعة مع تغير الشهية.,"lorazepam 6 mg
+diazepam 20 mg
+valproate 500 mg
+quetiapine 50 mg
+مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.
+مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.","استمرار الأفكار الوسواسية
+القلق أقل مقارنة بالتقييم السابق
+التعاون جزئي أثناء المقابلة","وظائف الكبد:
+Total bilirubin = 0.6 mg/dL
+ALT = 63 U/L
+AST = 60 U/L
+ALP = 101 U/L
+Albumin = 4.2 g/dL
+الشوارد ووظائف الكلية:
+Mg = 1.7 mg/dL
+K = 3.6 mmol/L
+Ca = 10.3 mg/dL
+Na = 136 mmol/L
+Creatinine = 0.99 mg/dL
+Urea = 34 mg/dL",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,N,,,1793091600000,0,"[{""id"":""69f646d5-ce5d-5830-9158-0a88ef16690a"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""f15919bb-752b-5ffc-a051-3db26fee192f"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1792983600000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+9208fff0-3e52-58ff-a970-64c9da239bf9,SR-048,2026-10-21,M,مناقيش جبنة,1987,N,DUAL,أعراض مزاجية مترافقة مع استخدام مواد؛ أعراض قلق متقطعة مع أفكار وسواسية متكررة.,"lorazepam 6 mg
+diazepam 10 mg
+sertraline 25 mg
+clozapine 150 mg
+وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.
+مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.","القلق أقل مقارنة بالتقييم السابق
+الشهية متبدلة
+التعاون جزئي أثناء المقابلة",,,,,,N,,,1793091600000,0,"[{""id"":""25caa763-a47b-510d-b7b3-295e5f9258f1"",""description"":""توثيق ساعات النوم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""NORMAL"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"
+ac8d45c7-f086-5629-8284-99d4d8a94cb8,SR-049,2026-10-10,M,سوربيه الليمون,1970,N,PSYCHIATRIC,أعراض اكتئابية مع اضطراب النوم والشهية؛ أفكار وسواسية متكررة مع تفاوت التعاون أثناء المقابلة.,"quetiapine 50 mg
+sertraline 25 mg
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.
+مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.","الشهية متبدلة
+النوم متقطع
+استمرار الأفكار الوسواسية","تحاليل إضافية:
+Vitamin B12 = 638 pg/mL
+Triglycerides = 228 mg/dL
+TSH = 4.27 mIU/L
+CRP = 5 mg/L
+تعداد الدم CBC:
+MCV = 96 fL
+Hct = 32 %
+Platelets = 182 ×10^3/µL
+WBC = 6800 /µL
+Hb = 11.0 g/dL
+نتيجة إضافية: قيد الانتظار — مثال توضيحي",,,,,N,,,1793091600000,0,[]
+0a27d3ec-1662-517e-9417-d5da703324e3,SR-050,2026-09-24,M,قهوة بيضاء,1964,Y,ADDICTION,متابعة أعراض انسحاب الأفيونات,"مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.
+تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.
+تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.
+تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.
+مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.
+تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.
+تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.
+توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.
+تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.
+إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.",النوم 6 ساعات، الشهية جيدة، والاستجابة ثبات.,"الشوارد ووظائف الكلية:
+Creatinine = 1.38 mg/dL
+K = 4.2 mmol/L
+Mg = 1.7 mg/dL
+تحاليل إضافية:
+Vitamin B12 = 744 pg/mL
+CRP = 12 mg/L
+TSH = 5.47 mIU/L
+Triglycerides = 103 mg/dL
+تعداد الدم CBC:
+Platelets = 374 ×10^3/µL
+Hct = 43 %
+WBC = 11200 /µL
+Hb = 11.5 g/dL
+وظائف الكبد:
+Albumin = 4.6 g/dL
+AST = 32 U/L
+ALT = 56 U/L
+ALP = 114 U/L",,,high,badges:high:2YrYrdiq2KfYrCDZhdix2KfYrNi52Kkg2YXYqNmD2LHYqQ,N,,,1793091600000,0,"[{""id"":""217e3a59-3a45-576e-8667-c832400c7d94"",""description"":""مراجعة نتائج التقييم"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793127600000,""dueShiftDate"":""2026-10-27"",""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""e34abf21-5272-5142-a96a-3e7ec7fc6f84"",""description"":""تحضير ملخص المتابعة"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""LOW"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null},{""id"":""c3df8832-2974-521d-82b2-5f9d4f5c2cef"",""description"":""إعادة تقييم الشهية"",""ownerDoctorId"":null,""ownerName"":null,""priority"":""HIGH"",""dueAtEpochMillis"":1793192400000,""dueShiftDate"":null,""done"":false,""completedByDoctorId"":null,""completedByName"":null,""completedAtEpochMillis"":null}]"

@@ -110,4 +110,22 @@ class LocalPinLoginManagerTest {
         }
         verify(exactly = 0) { hasher.verify(any(), any()) }
     }
+    @Test fun `persisted escalation survives manager recreation at five fifteen and sixty minutes`() = runBlocking<Unit> {
+        every { hasher.verify(pin, any()) } returns false
+        for ((level, minutes) in listOf(0 to 5L, 1 to 15L, 2 to 60L, 3 to 60L)) {
+            coEvery { settings.get(key) } returns "${AppConstants.LOGIN_MAX_ATTEMPTS - 1}:0:$level"
+            val before = System.currentTimeMillis()
+            val recreated = LocalPinLoginManager(doctors, settings, hasher, dispatchers)
+            val error = assertThrows(LocalPinException::class.java) { runBlocking { recreated.verify(doctor.id, pin) } }
+            assertEquals(LocalPinFailure.BLOCKED, error.reason)
+            assertEquals(minutes, error.waitMinutes)
+            coVerify { settings.put(key, match {
+                val parts = it.split(':')
+                parts[2].toInt() == (level + 1).coerceAtMost(3) &&
+                    parts[1].toLong() in (before + minutes * 60_000)..(System.currentTimeMillis() + minutes * 60_000)
+            }) }
+        }
+        coVerify(exactly = 0) { settings.delete(key) }
+    }
+
 }

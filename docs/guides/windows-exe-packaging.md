@@ -15,7 +15,7 @@ py -3.8 -c "import sys, struct, tkinter; print(sys.version); print(str(struct.ca
 
 ## 2. Prepare the application source
 
-Copy the complete current `desktop/` source, including every `desktop_*.py` module and `fonts/` with OFL license. Use your actual path below. Exclude `.env`, join files, signing material and clinical data; never collect the entire source directory as resources.
+Copy the complete current `desktop/` source, including every `desktop_*.py` module and `fonts/` with OFL license plus `assets/` with the original emblem. Use your actual path below. Exclude `.env`, join files, signing material and clinical data; never collect the entire source directory as resources.
 
 ```text
 C:\ShiftReport\desktop\
@@ -23,6 +23,7 @@ C:\ShiftReport\desktop\
     desktop_*.py
     requirements-win7.txt
     fonts\
+    assets\
         Tajawal-Regular.ttf
         Tajawal-Bold.ttf
         OFL.txt
@@ -71,6 +72,7 @@ Paste the complete cmd block; `^` must end its line without trailing spaces. Pre
   --collect-all certifi ^
   --collect-all tzdata ^
   --add-data "fonts;fonts" ^
+  --add-data "assets;assets" ^
   desktop_gui.py
 ```
 
@@ -116,6 +118,7 @@ powershell -NoProfile -Command "Compress-Archive -Path ($env:SR_BUILD_ROOT + '\d
   --collect-all certifi ^
   --collect-all tzdata ^
   --add-data "fonts;fonts" ^
+  --add-data "assets;assets" ^
   desktop_gui.py
 ```
 

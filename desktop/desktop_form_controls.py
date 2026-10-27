@@ -1,6 +1,7 @@
 """Form controls; shared draft and callbacks remain caller-owned."""
 from __future__ import annotations
 import tkinter as tk
+import sys
 from desktop_widgets import messagebox
 from desktop_input import ArabicEntry, ArabicTextbox
 import desktop_widgets as ctk
@@ -82,6 +83,38 @@ def reveal_field(widget):
         container=getattr(container,'master',None)
 
 
+def scroll_field_or_form(widget):
+    """Let overflowing text scroll first, then pass the wheel to its form."""
+    text=getattr(widget,'_textbox',None)
+    if not isinstance(text,tk.Text):return
+    def wheel(event):
+        # Preserve native horizontal scrolling with Shift.
+        if event.state & 1:return
+        if event.num in (4,5):
+            units=-3 if event.num==4 else 3
+        else:
+            delta=event.delta
+            if not delta:return
+            mac=sys.platform=='darwin'
+            units=(-1 if delta>0 else 1)*max(1,int(abs(delta)/(1 if mac else 120)))
+            if not mac:units*=3
+        first,last=text.yview()
+        multiline=getattr(getattr(widget,'_editor',None),'multiline',True)
+        if multiline and (first>0.000001 if units<0 else last<0.999999):
+            text.yview_scroll(units,'units')
+            return 'break'
+        container=widget.master
+        while container is not None:
+            canvas=getattr(container,'_parent_canvas',None)
+            if canvas is not None:
+                # CTk's global handler deliberately excludes textbox descendants.
+                canvas.yview_scroll(units,'units')
+                return 'break'
+            container=getattr(container,'master',None)
+    for sequence in ('<MouseWheel>','<Button-4>','<Button-5>'):
+        text.bind(sequence,wheel,add='+')
+
+
 def entry(parent, label, value='', multiline=False):
     ctk.CTkLabel(parent, text=label, anchor='e').pack(fill='x', padx=10, pady=(6, 0))
     if multiline:
@@ -95,6 +128,7 @@ def entry(parent, label, value='', multiline=False):
     if hasattr(widget, 'reset_undo'):
         widget.reset_undo()
     widget.pack(fill='x', padx=10, pady=2)
+    scroll_field_or_form(widget)
     widget.bind('<FocusIn>',lambda event:widget.after_idle(lambda:reveal_field(widget)),add='+')
     return widget
 

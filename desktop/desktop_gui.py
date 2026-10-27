@@ -402,8 +402,8 @@ class Window:
         desktop_patient_list.render(self)
         self.rendered_day=(self.client.project_id,current_date(self.client.zone)) if self.client else None
 
-    def update_patient_list(self,display,movement_allowed,draft):
-        return desktop_patient_list.update_patient_list(self, display, movement_allowed, draft)
+    def update_patient_list(self,display,draft):
+        return desktop_patient_list.update_patient_list(self, display, draft)
 
     def reset_patient_filters(self):
         return desktop_patient_list.reset_patient_filters(self)
@@ -411,14 +411,8 @@ class Window:
     def patient_display(self,draft):
         return desktop_patient_list.patient_display(self, draft)
 
-    def toggle_card(self,key,pin=False):
-        return desktop_patient_list.toggle_card(self, key, pin)
-
-    def expand_cards(self,expand):
-        return desktop_patient_list.expand_cards(self, expand)
-
-    def manual_movement_allowed(self):
-        return desktop_patient_list.manual_movement_allowed(self)
+    def toggle_card(self,key):
+        return desktop_patient_list.toggle_card(self, key)
 
     def workflow_next(self):
         if self.client is None:return self.connect()
@@ -443,9 +437,6 @@ class Window:
 
     def recycle_bin(self):
         return desktop_patient_actions.recycle_bin(self)
-
-    def move(self,index,delta):
-        return desktop_patient_actions.move(self, index, delta)
 
     def sort_patients(self,key):
         return desktop_patient_actions.sort_patients(self, key)
@@ -509,7 +500,8 @@ def main():
         from desktop_appearance import set_palette_theme
         set_palette_theme()
         root=ctk.CTk()
-        Window(root,settings,demo=args.demo,connection_candidates=candidates,startup_notice=notice)
+        from desktop_intro import LaunchIntro
+        LaunchIntro(root,lambda:Window(root,settings,demo=args.demo,connection_candidates=candidates,startup_notice=notice))
         root.mainloop()
     except BridgeError as error:
         messagebox.showerror('ShiftReport',str(error));return 1

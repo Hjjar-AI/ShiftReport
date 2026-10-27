@@ -1,12 +1,11 @@
 """Patient-card presentation and action placement, with mutations owned by Window."""
 import copy
-import tkinter as tk
 from desktop_tokens import ButtonStyle, button_options, CLINICAL_URGENT, CLINICAL_WARNING, CLINICAL_PENDING, STATUS_EDGE
 import desktop_widgets as ctk
 from desktop_model import patient_name, DIAGNOSIS, patient_text, pending_task_count, badges_decode
 
 
-def patient_card(owner, parent, row, index, total, movement_allowed, preview_style=None):
+def patient_card(owner, parent, row, index, preview_style=None):
     row=copy.deepcopy(row)
     width=ctk.logical_width(owner.content,padding=40,minimum=180)
     key=row['externalId']
@@ -18,7 +17,9 @@ def patient_card(owner, parent, row, index, total, movement_allowed, preview_sty
     gap=2 if compact else 5
     foreground=style.get('foreground',('gray10','gray90'))
     muted=style.get('muted',('gray35','gray75'))
-    frame=ctk.CTkFrame(parent,**({'fg_color':style['background'],'border_color':style['accent'],'border_width':1} if style else {}))
+    from desktop_appearance import LIGHT_CARD, LIGHT_BORDER
+    frame=ctk.CTkFrame(parent,fg_color=style.get('background',(LIGHT_CARD,'#242E36')),
+        border_color=style.get('accent',(LIGHT_BORDER,'#566773')),border_width=1)
     levels = {level for _, level in badges_decode(row.get('warningDetails', ''))}
     edge = (CLINICAL_URGENT if row.get('isPriority') == 'Y' or 'high' in levels
             else CLINICAL_WARNING if 'medium' in levels else CLINICAL_PENDING if pending else None)
@@ -36,51 +37,24 @@ def patient_card(owner, parent, row, index, total, movement_allowed, preview_sty
     if key in owner.cards.pinned:metadata+=' · مثبت للعرض'
     ctk.CTkLabel(frame,text=metadata,font=('Arial',round(13*scale)),text_color=muted,
         anchor='e',justify='right',wraplength=width).pack(fill='x',padx=inset,pady=1)
-    expanded=key in owner.cards.expanded
-    if expanded:
-        # Render the existing full clinical formatter once; it includes all tasks and badges.
-        ctk.CTkLabel(frame,text=patient_text(row,owner.client.doctors,owner.client.zone,clinical_only=True),
-            anchor='e',justify='right',wraplength=width,font=('Arial',round(14*scale)),text_color=foreground).pack(fill='x',padx=inset,pady=gap)
-    elif row.get('initialDiagnosis'):
-        diagnosis=row['initialDiagnosis']
-        ctk.CTkLabel(frame,text='التشخيص: '+diagnosis[:180]+('…' if len(diagnosis)>180 else ''),
-            anchor='e',justify='right',wraplength=width,font=('Arial',round(14*scale)),text_color=foreground).pack(fill='x',padx=inset,pady=gap)
+    clinical=ctk.CTkLabel(frame,text=patient_text(row,owner.client.doctors,owner.client.zone,clinical_only=True),
+        anchor='e',justify='right',wraplength=width,font=('Arial',round(14*scale)),text_color=foreground)
+    clinical.pack(fill='x',padx=inset,pady=gap)
     if pending:
         tasks='مهام معلقة {}'.format(pending)
         ctk.CTkLabel(frame,text=tasks,anchor='e',justify='right',wraplength=width,
             font=('Arial',round(13*scale),'bold'),text_color=foreground).pack(fill='x',padx=inset,pady=1)
     if preview_style is not None:return frame
     primary=ctk.CTkFrame(frame,fg_color='transparent')
-    primary.pack(fill='x')
+    primary.pack(fill='x',padx=inset,before=clinical)
     for column in range(3):primary.grid_columnconfigure(column,weight=1,uniform='patient-actions')
     for column,(label,action) in enumerate([
         ('تحرير',lambda:owner.edit(copy.deepcopy(row))),
-        ('طي' if expanded else 'توسيع',lambda:owner.toggle_card(key,False))
+        ('إلغاء التثبيت' if key in owner.cards.pinned else 'تثبيت للعرض',lambda:owner.toggle_card(key)),
+        ('حذف',lambda:owner.delete_patient(key))
     ]):
         kwargs={} if column==0 else button_options(ButtonStyle.OUTLINED)
-        ctk.CTkButton(primary,text=label,width=105 if column==1 else 75,height=48,command=lambda f=action:owner.run(f),**kwargs
+        if column==2:kwargs.update(text_color=CLINICAL_URGENT,border_color=CLINICAL_URGENT)
+        ctk.CTkButton(primary,text=label,width=75,height=48,command=lambda f=action:owner.run(f),**kwargs
             ).grid(row=0,column=2-column,sticky='ew',padx=3,pady=3)
-    actions={
-        'الملف الكامل':lambda:owner.details(copy.deepcopy(row)),
-        'إلغاء التثبيت' if key in owner.cards.pinned else 'تثبيت للعرض':lambda:owner.toggle_card(key,True),
-        'حذف المريض':lambda:owner.delete_patient(key)
-    }
-    popup = tk.Menu(primary, tearoff=False)
-    def show_menu():
-        popup.delete(0, 'end')
-        for label, action in actions.items():
-            popup.add_command(label=ctk.visual_text(label), command=lambda f=action: owner.run(f))
-        try:
-            popup.tk_popup(menu.winfo_rootx(), menu.winfo_rooty()+menu.winfo_height())
-        finally:
-            popup.grab_release()
-    menu = ctk.CTkButton(primary, text='المزيد', width=105, height=48, command=show_menu,
-                         **button_options(ButtonStyle.OUTLINED))
-    menu.grid(row=0, column=0, padx=3, pady=3)
-    def refresh_movement(allowed):
-        actions.pop('نقل لأعلى',None);actions.pop('نقل لأسفل',None)
-        if allowed and index>0:actions['نقل لأعلى']=lambda:owner.move(index,-1)
-        if allowed and index<total-1:actions['نقل لأسفل']=lambda:owner.move(index,1)
-    frame.refresh_movement=refresh_movement
-    refresh_movement(movement_allowed)
     return frame

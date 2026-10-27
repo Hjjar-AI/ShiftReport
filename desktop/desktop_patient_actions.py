@@ -4,7 +4,7 @@ import tkinter as tk
 from desktop_widgets import messagebox
 import desktop_widgets as ctk
 from desktop_protocol import fingerprint, require
-from desktop_model import doctor_label, new_patient, patient_text
+from desktop_model import doctor_label, new_patient, patient_text, patient_name
 from desktop_forms import dialog_actions, edit_patient, modal, guarded, section_heading, discard_guard
 from desktop_sort import ordered
 from desktop_details import patient_details
@@ -44,7 +44,10 @@ def edit(owner,row):
 
 def delete_patient(owner,key):
     draft=owner.editable()
-    if messagebox.askyesno('حذف مريض','هل تنقل المريض ومهامه وشاراته إلى السلة المحلية؟ ستراجع الحذف قبل النشر.',default='no'):
+    row=next((row for row in draft['patients'] if row['externalId']==key),None)
+    require(row is not None,'المريض لم يعد في المسودة')
+    if messagebox.askyesno('حذف مريض','هل تنقل «{}» ومهامه وشاراته إلى سلة المحذوفات المحلية؟\nيمكن استعادته من السلة. ستراجع الحذف قبل النشر.'.format(patient_name(row)),
+                          default='no',parent=owner.root):
         owner.io(lambda:owner.store.delete_patient(key,fingerprint(draft)))
         owner.plan=None;owner.raw_draft=None
         owner.status.set('نُقل المريض إلى السلة المشفرة على هذا الجهاز؛ راجع الحذف قبل النشر.')
@@ -64,16 +67,6 @@ def recycle_bin(owner):
     owner.io(lambda:owner.store.restore_patient(row['externalId'],fingerprint(draft)))
     owner.plan=None;owner.raw_draft=None
     owner.status.set('استُعيد المريض وكامل مهامه وشاراته محليا؛ راجع المسؤوليات والمسودة قبل النشر.')
-
-
-def move(owner,index,delta):
-    require(owner.manual_movement_allowed(),
-            'لتحريك المرضى يدوياً اختر دون تجميع والكل وامسح البحث أولاً')
-    draft=owner.editable(); expected=fingerprint(draft); target=index+delta
-    if 0<=target<len(draft['patients']):
-        draft['patients'][index],draft['patients'][target]=draft['patients'][target],draft['patients'][index]
-        draft['meta']['sortSpec']='{"levels":[]}'
-        owner.save_draft(draft,expected)
 
 
 def sort_patients(owner,key):

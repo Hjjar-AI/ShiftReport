@@ -26,10 +26,7 @@ class RecycleBinCleanupWorker(context: Context, parameters: WorkerParameters) :
             }
             val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
             val database = AppDatabase.getInstance(applicationContext)
-            database.withTransaction {
-                database.patientDao().purgeSoftDeletedBefore(cutoff)
-                database.settingDao().deleteOrphanedPatientDrafts(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX)
-            }
+            purgeExpired(database, cutoff)
             Result.success()
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -39,6 +36,15 @@ class RecycleBinCleanupWorker(context: Context, parameters: WorkerParameters) :
     }
 
     companion object {
+        // Shared by worker and real-database regressions so transaction removal or
+        // partial cleanup failures are exercised through the production operation.
+        internal suspend fun purgeExpired(database: AppDatabase, cutoff: Long) {
+            database.withTransaction {
+                database.patientDao().purgeSoftDeletedBefore(cutoff)
+                database.settingDao().deleteOrphanedPatientDrafts(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX)
+            }
+        }
+
         fun schedule(context: Context) {
             // Android may defer this daily sweep; seven days is a minimum, not a deadline.
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(

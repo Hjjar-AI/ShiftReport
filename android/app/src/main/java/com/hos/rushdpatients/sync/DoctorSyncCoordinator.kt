@@ -2,6 +2,7 @@ package com.hos.rushdpatients.sync
 
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryAction
+import com.hos.rushdpatients.domain.doctor.PermanentAdminTransfer
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired
 
 import android.content.Context
@@ -69,11 +70,13 @@ class DoctorSyncCoordinator @Inject constructor(
             a?.doctorsUpdatedAt == b?.doctorsUpdatedAt && a?.doctorsData == b?.doctorsData
 
     private suspend fun uploadDoctorsInternal(
-        registryData: String
+        registryData: String,
+        transfer: PermanentAdminTransferReview? = null
     ) {
         try {
             val remoteStateBeforeUpload = remoteState.readState()
             val actor = adminAuthorizer.requireAdmin()
+            if (transfer != null) validateTransferReview(transfer, remoteStateBeforeUpload)
             if (remoteStateBeforeUpload != null &&
                 (remoteStateBeforeUpload.doctorsFileId != null || remoteStateBeforeUpload.doctorsData != null)) {
                 val remoteDoctors = loadPublishedRegistry(remoteStateBeforeUpload)
@@ -82,9 +85,13 @@ class DoctorSyncCoordinator @Inject constructor(
                     context.getString(R.string.doctors_published_admin_unavailable)
                 }
                 val proposed = DoctorsRegistryCodec.decode(registryData).doctors.associateBy { it.id }
+                if (transfer == null) require(
+                    proposed.values.filter { it.isPermanentAdmin }.map { it.id }.toSet() ==
+                        remoteDoctors.filter { it.isPermanentAdmin }.map { it.id }.toSet()
+                ) { context.getString(R.string.admin_transfer_dedicated_required) }
                 remoteDoctors.filter { it.isAdmin }.forEach { current ->
                     val next = proposed[current.id]
-                    if (current.isPermanentAdmin) require(next != null && next.isPermanentAdmin && next.rank > 0) {
+                    if (current.isPermanentAdmin && transfer == null) require(next != null && next.isPermanentAdmin && next.rank > 0) {
                         context.getString(R.string.doctors_permanent_admin_removal_blocked)
                     }
                     if (next == null || next.rank != current.rank || next.isPermanentAdmin != current.isPermanentAdmin) {
@@ -113,7 +120,14 @@ class DoctorSyncCoordinator @Inject constructor(
             }
 
             require(adminAuthorizer.requireAdmin().id == actor.id) { context.getString(R.string.doctors_admin_changed_upload) }
+            if (transfer != null) validateTransferReview(transfer, remoteState.readState())
             val newState = remoteState.updateState { current ->
+                if (transfer != null) {
+                    check(transfer.connectionUnchanged()) { context.getString(R.string.admin_transfer_stale) }
+                    check(sessions.current()?.doctorId == transfer.actorId) {
+                        context.getString(R.string.admin_transfer_stale)
+                    }
+                }
                 require(sameDoctorPointer(current, remoteStateBeforeUpload ?: SyncState())) {
                     context.getString(R.string.doctors_registry_changed_upload)
                 }
@@ -127,7 +141,20 @@ class DoctorSyncCoordinator @Inject constructor(
             check(newState.doctorsMessageId == message.messageId) {
                 context.getString(R.string.doctors_publication_superseded)
             }
+            if (transfer != null) {
+                check(transfer.connectionUnchanged() &&
+                    this@DoctorSyncCoordinator.registryData(loadPublishedRegistry(newState)) == transfer.after) {
+                    context.getString(R.string.admin_transfer_uncertain)
+                }
+            }
             database.withTransaction {
+                if (transfer != null) {
+                    check(transfer.connectionUnchanged() &&
+                        this@DoctorSyncCoordinator.registryData(doctorRepository.getAll()) == transfer.before) {
+                        context.getString(R.string.admin_transfer_uncertain)
+                    }
+                    doctorRepository.applyPublishedRegistry(DoctorsRegistryCodec.decode(transfer.after).doctors)
+                }
                 syncStateRepository.update(
                     channel = SyncChannel.DOCTORS,
                     offset = newState.doctorsUpdatedAt,
@@ -150,9 +177,46 @@ class DoctorSyncCoordinator @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            runCatchingCancellable { settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, true) }
+            if (transfer == null) runCatchingCancellable { settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, true) }
             throw e
         }
+    }
+
+    suspend fun preparePermanentAdminTransfer(recipientId: String): Result<PermanentAdminTransferReview> = doctorSyncMutex.withLock {
+        withContext(dispatchers.io) { runCatchingCancellable {
+            val connectionUnchanged = topics.connectionUnchangedCheck()
+            val source = requireNotNull(remoteState.readState()) { context.getString(R.string.doctors_registry_absent) }
+            val actor = requirePublishedAdmin(source, permanentOnly = true)
+            require(!doctorRepository.hasPendingSharedChanges()) { context.getString(R.string.admin_transfer_sync_first) }
+            requireRegistryMatchesPublished(source)
+            val before = registryData(doctorRepository.getAll())
+            val doctors = DoctorsRegistryCodec.decode(before).doctors
+            val after = PermanentAdminTransfer.propose(doctors, actor.id, recipientId)
+            validateDoctorRegistry(after)
+            check(connectionUnchanged() && sameDoctorPointer(remoteState.readState(), source)) {
+                context.getString(R.string.admin_transfer_stale)
+            }
+            PermanentAdminTransferReview(actor.fullName, after.single { it.id == recipientId }.fullName,
+                requireNotNull(after.single { it.id == recipientId }.telegramId), actor.id, recipientId, source, before, registryData(after), connectionUnchanged)
+        } }
+    }
+
+    private suspend fun validateTransferReview(review: PermanentAdminTransferReview, source: SyncState?) {
+        check(review.connectionUnchanged() && sameDoctorPointer(source, review.source)) {
+            context.getString(R.string.admin_transfer_stale)
+        }
+        val actor = requirePublishedAdmin(requireNotNull(source), permanentOnly = true)
+        check(actor.id == review.actorId && !doctorRepository.hasPendingSharedChanges() &&
+            registryData(doctorRepository.getAll()) == review.before &&
+            registryData(loadPublishedRegistry(source)) == review.before &&
+            registryData(PermanentAdminTransfer.propose(DoctorsRegistryCodec.decode(review.before).doctors,
+                review.actorId, review.recipientId)) == review.after) {
+            context.getString(R.string.admin_transfer_stale)
+        }
+    }
+
+    suspend fun publishPermanentAdminTransfer(review: PermanentAdminTransferReview): Result<Unit> = doctorSyncMutex.withLock {
+        withContext(dispatchers.io) { runCatchingCancellable { uploadDoctorsInternal(review.after, review) } }
     }
 
     /** Review captures portable registry bytes; later local edits stay pending. */
@@ -233,7 +297,7 @@ class DoctorSyncCoordinator @Inject constructor(
                 }
                 // Replace all portable fields while preserving device-only PINs/identity aliases
                 // and the existing permanent-admin/clinical-reference safety checks.
-                doctorRepository.applyMergedRegistry(remote)
+                doctorRepository.applyPublishedRegistry(remote)
                 settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData(remote))
                 settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
                 syncStateRepository.update(SyncChannel.DOCTORS, state.doctorsUpdatedAt,

@@ -119,9 +119,6 @@ def build_ward_controls(window):
     ctk.CTkComboBox(sections['البطاقات'],values=['عادية','مضغوطة'],variable=window.card_density,
         state='readonly',justify='right',height=48,
         command=lambda value:window.run(lambda:set_density(window,value))).pack(fill='x',padx=4,pady=2)
-    for label, expand in [('توسيع الكل', True),('طي الكل',False)]:
-        ctk.CTkButton(sections['البطاقات'], text=label, height=48,
-            command=lambda value=expand:window.run(lambda:window.expand_cards(value))).pack(fill='x',padx=4,pady=2)
     sort_area=ctk.CTkFrame(sections['الترتيب']);sort_area.pack(fill='x')
     sort_controls=ctk.CTkFrame(sections['الترتيب']);sort_controls.pack(fill='x')
     def edit_sort():
@@ -130,14 +127,14 @@ def build_ward_controls(window):
         anchor='e',justify='right',wraplength=420).pack(fill='x',padx=8)
     ctk.CTkButton(sort_controls,text='تحرير الترتيب الحالي',height=48,
         command=lambda:window.run(edit_sort)).pack(fill='x',padx=4,pady=2)
-    window.view_help = ctk.CTkLabel(options, text='التصفية والتجميع والتثبيت للعرض فقط. الترتيب يُحفظ في التقارير وCSV. تحريك المريض يمسح مستويات الترتيب ويحافظ على الأولوية أولاً.',
+    window.view_help = ctk.CTkLabel(options, text='التصفية والتجميع والتثبيت للعرض فقط. اختر الترتيب من قسم الترتيب؛ يُحفظ في التقارير وCSV مع الأولوية أولاً.',
         anchor='e', justify='right', wraplength=300)
     window.view_help.pack(fill='x', padx=8, pady=4)
     window.view_summary = ctk.CTkLabel(parent, text='', anchor='e', justify='right', wraplength=650, height=1)
     window.view_summary.pack(fill='x', padx=12)
     window.sort_status=ctk.CTkLabel(sections['الترتيب'],text='',anchor='e',justify='right',wraplength=420)
     window.sort_status.pack(fill='x',padx=8,pady=2)
-    refresh_search = debounce(window.root, 150, lambda *args: window.render())
+    refresh_search = debounce(window.root, 300, lambda *args: window.render())
     window.search.trace_add('write', refresh_search)
 
 

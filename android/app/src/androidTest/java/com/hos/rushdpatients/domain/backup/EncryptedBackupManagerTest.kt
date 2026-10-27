@@ -75,4 +75,19 @@ class EncryptedBackupManagerTest : DatabaseFixture() {
         assertEquals(saved.followUp, restored.followUp)
         assertEquals(saved.labs, restored.labs)
     }
+    @Test fun restorePreservesHistoricalAssignmentDateInsteadOfMarkingToday() = runBlocking<Unit> {
+        seedCurrent()
+        val day = java.time.LocalDate.of(2026, 1, 1)
+        val original = requireNotNull(patients().getById("a")).copy(assignmentChangedOn = day)
+        patients().upsert(original, "current")
+        val exported = manager().prepareExport("synthetic-password".toCharArray())
+        try {
+            patients().upsert(original.copy(assignmentChangedOn = day.plusDays(1), labs = "after export"), "current")
+            assertEquals(1, manager().restore(file(exported.bytes), "synthetic-password".toCharArray()))
+            val restored = requireNotNull(patients().getById("a"))
+            assertEquals(day, restored.assignmentChangedOn)
+            assertEquals(original.labs, restored.labs)
+        } finally { exported.bytes.fill(0) }
+    }
+
 }

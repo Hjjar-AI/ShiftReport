@@ -214,14 +214,22 @@ class DoctorRepository @Inject constructor(
     }
 
     /** Caller must run this together with base/cursor/pending bookkeeping in a Room transaction. */
-    suspend fun applyMergedRegistry(doctors: List<Doctor>) = withContext(dispatchers.io) {
+    suspend fun applyMergedRegistry(doctors: List<Doctor>) = applyRegistry(doctors, published = false)
+
+    /** For DoctorSyncCoordinator after live pointer/content verification only. */
+    internal suspend fun applyPublishedRegistry(doctors: List<Doctor>) = applyRegistry(doctors, published = true)
+
+    private suspend fun applyRegistry(doctors: List<Doctor>, published: Boolean) = withContext(dispatchers.io) {
         database.withTransaction {
             DoctorTeams.validate(doctors)
             val local = getAllIncludingDeleted()
             val byId = doctors.associateBy { it.id }
+            val transferred = if (published)
+                com.hos.rushdpatients.domain.doctor.PermanentAdminTransfer.transferredOwnerIds(local, doctors)
+            else emptySet()
             local.filterNot { it.isDeleted }.forEach { current ->
                 val next = byId[current.id]
-                require(!current.isPermanentAdmin || next != null && next.isPermanentAdmin && next.rank > 0) {
+                require(!current.isPermanentAdmin || current.id in transferred || next != null && next.isPermanentAdmin && next.rank > 0) {
                     "لا يمكن حذف المدير الدائم أو إزالة صلاحياته عبر دمج السجل"
                 }
                 if (next == null) requireNoClinicalReferences(current.id)

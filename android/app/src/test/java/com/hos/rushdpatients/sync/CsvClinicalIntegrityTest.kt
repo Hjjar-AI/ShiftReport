@@ -86,4 +86,28 @@ class CsvClinicalIntegrityTest {
         assertEquals(patient, parsed.patients.single())
         assertEquals(patient.tasks, PatientTaskCodec.decode(PatientTaskCodec.encode(parsed.patients.single().tasks)))
     }
+    @Test fun `assignment date survives CSV and model persistence round trip without restamping`() {
+        for (date in listOf(null, java.time.LocalDate.of(2026, 10, 27))) {
+            val patient = Fixtures.patient().copy(assignmentChangedOn = date)
+            val decoded = decode(patient)
+            assertEquals(date, decoded.assignmentChangedOn)
+            val stored = com.hos.rushdpatients.data.mapper.PatientMapper.toEntity(decoded, shift.id)
+            assertEquals(patient, com.hos.rushdpatients.data.mapper.PatientMapper.fromEntity(stored))
+        }
+    }
+    @Test fun `legacy missing assignment column stays unknown and malformed dates reject entire CSV`() {
+        val patient = Fixtures.patient().copy(assignmentChangedOn = java.time.LocalDate.of(2026, 10, 27))
+        val csv = CsvCodec.encode(shift, listOf(patient))
+        // This fixture has no embedded newlines. Remove the trailing optional column
+        // from the header and record, preserving all older required fields.
+        val lines = csv.trimEnd().lines()
+        assertEquals(3, lines.size)
+        val legacy = listOf(lines[0], lines[1].substringBeforeLast(','), lines[2].substringBeforeLast(',')).joinToString("\n")
+        assertNull(CsvCodec.decode(legacy).patients.single().assignmentChangedOn)
+        for (invalid in listOf("2026-02-30", "yesterday", "2026-13-01")) {
+            val malformed = csv.replace("2026-10-27", invalid)
+            assertThrows(IllegalArgumentException::class.java) { CsvCodec.decode(malformed) }
+        }
+    }
+
 }
