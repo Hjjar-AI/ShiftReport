@@ -20,7 +20,6 @@ import com.hos.rushdpatients.pdf.PdfRuleWeight
 import com.hos.rushdpatients.pdf.PdfRuleContrast
 import com.hos.rushdpatients.pdf.PdfRowShading
 import com.hos.rushdpatients.pdf.PdfExportOptions
-import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfReportExporter
 import com.hos.rushdpatients.pdf.PdfStyle
@@ -97,14 +96,12 @@ internal class ReportPdfWorkspace(
     suspend fun loadPdfOptions(): PdfExportOptions = PdfExportOptions(
         hospitalName = projectConfigStore.current().hospitalName,
         wardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
-        orientation = PdfOrientation.PORTRAIT,
         paperSize = PdfPaperSize.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_PAPER_SIZE)
         ),
         colorPreset = PdfColorPreset.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
         ),
-        darkMode = false,
         ruleWeight = PdfRuleWeight.MEDIUM,
         ruleContrast = PdfRuleContrast.MEDIUM,
         rowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),

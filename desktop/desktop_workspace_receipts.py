@@ -12,8 +12,8 @@ def check_report_delivery(owner, shift_id, chat, topic):
     for _, row in owner.receipts(status='UNKNOWN'):
         if row[0] != 'report' or row[4:6] != [str(chat), str(topic or '')]:
             continue
-        # Older unresolved rows lack a shift label: keep their destination blocked.
-        if len(row) <= 9 or not row[9] or row[9] == shift_id:
+        require(len(row) > 9 and row[9], "سجل تسليم التقرير غير صالح")
+        if row[9] == shift_id:
             raise BridgeError('نتيجة إرسال سابقة لهذه الوجهة غير مؤكدة؛ احسمها في سجل العمليات قبل أي إرسال جديد، حتى لو تغيرت الصيغة أو النسخة المنشورة')
 
 def receipt_start(owner, key, operation, chat, topic, actor, repeat=False, snapshot=None, report_shift=None):

@@ -77,7 +77,7 @@ class DoctorRepository @Inject constructor(
         database.withTransaction {
             val before = sharedRegistryData(getAll())
             val result = block()
-            // PINs, identity aliases and row timestamps are device-only, not registry edits.
+            // PINs and row timestamps are device-only, not registry edits.
             if (sharedRegistryData(getAll()) != before) markLocalChangesPending()
             result
         }
@@ -160,22 +160,6 @@ class DoctorRepository @Inject constructor(
 
     suspend fun softDelete(id: String) = mutate {
         dao.softDelete(id, Instant.now().toEpochMilli())
-    }
-
-    /** Map previously recorded wire aliases back to stable local IDs; never match by a changed name. */
-    suspend fun normalizeRemoteRegistry(doctors: List<Doctor>): List<Doctor> = withContext(dispatchers.io) {
-        val local = getAllIncludingDeleted()
-        val normalized = doctors.map { remote ->
-            val matches = local.filter {
-                it.id == remote.id || remote.id in it.options.syncAliases
-            }
-            require(matches.size <= 1) { "هوية الطبيب المنشورة ترتبط بأكثر من سجل محلي" }
-            remote.copy(id = matches.singleOrNull()?.id ?: remote.id)
-        }
-        require(normalized.map { it.id }.distinct().size == normalized.size) {
-            "معرّفات السجل المنشور تتطابق مع سجل محلي واحد؛ يلزم مراجعة الهوية"
-        }
-        DoctorTeams.remap(normalized, doctors.zip(normalized).associate { (source, target) -> source.id to target.id })
     }
 
     /** Called only inside the authorized doctor-deletion transaction; historical rosters stay intact. */
@@ -272,28 +256,22 @@ class DoctorRepository @Inject constructor(
             val local = dao.getAllIncludingDeleted().map(DoctorMapper::fromEntity)
             val merged = doctors.map { remote ->
                 val existing = local.firstOrNull { candidate ->
-                    candidate.id == remote.id ||
-                            (remote.telegramId != null && candidate.telegramId == remote.telegramId) ||
-                            candidate.fullName == remote.fullName
+                    candidate.id == remote.id
                 }
                 if (existing == null) remote else remote.copy(
-                    id = existing.id,
                     // PINs and other device-only secrets never travel through Telegram.
-                    extraOptions = DoctorTeams.sharedOptions(if (existing.telegramId == remote.telegramId) existing.extraOptions else existing.options.withPinHash(null), remote) + if (remote.id != existing.id) {
-                        DoctorOptions.from(emptySet()).withAlias(remote.id)
-                    } else emptySet(),
+                    extraOptions = DoctorTeams.sharedOptions(if (existing.telegramId == remote.telegramId) existing.extraOptions else existing.options.withPinHash(null), remote),
                     updatedAt = Instant.now()
                 )
             }
-            val remapped = DoctorTeams.remap(merged, doctors.zip(merged).associate { (source, target) -> source.id to target.id })
-            DoctorTeams.validate(remapped)
-            val entities = remapped.map(DoctorMapper::toEntity)
+            DoctorTeams.validate(merged)
+            val entities = merged.map(DoctorMapper::toEntity)
             dao.replaceActiveRegistry(
                 doctors = entities,
                 retainedIds = entities.map { it.id },
                 updatedAtMillis = Instant.now().toEpochMilli()
             )
-            settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(remapped))
+            settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(merged))
             settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
         }
     }

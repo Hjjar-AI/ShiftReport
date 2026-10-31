@@ -4,8 +4,8 @@ import re
 from desktop_protocol import require
 
 RAW_FIELDS = {'HOSPITAL_NAME', 'BOT_TOKEN', 'CHAT_ID', 'REPORTS_TOPIC_ID',
-              'ANNOUNCEMENTS_TOPIC_ID', 'CSV_TOPIC_ID', 'DOCTORS_TOPIC_ID',
-              'ENCRYPT_TELEGRAM', 'TELEGRAM_DATA_KEY'}
+              'CSV_TOPIC_ID', 'DOCTORS_TOPIC_ID',
+              'ENCRYPT_TELEGRAM', 'TELEGRAM_DATA_KEY', 'RESIDENTS_CHAT_ID', 'RESIDENTS_TOPIC_ID'}
 
 
 def read_settings(path):
@@ -43,14 +43,15 @@ def raw_config(settings):
     config = {'version': 1, 'hospitalName': settings['HOSPITAL_NAME'],
               'botToken': settings['BOT_TOKEN']}
     for field, target in [('CHAT_ID', 'chatId'), ('REPORTS_TOPIC_ID', 'reportsTopicId'),
-                          ('CSV_TOPIC_ID', 'csvTopicId'), ('DOCTORS_TOPIC_ID', 'doctorsTopicId'),
-                          ('ANNOUNCEMENTS_TOPIC_ID', 'announcementsTopicId')]:
-        value = settings.get(field, '0' if field == 'ANNOUNCEMENTS_TOPIC_ID' else '')
+                          ('CSV_TOPIC_ID', 'csvTopicId'), ('DOCTORS_TOPIC_ID', 'doctorsTopicId')]:
+        value = settings.get(field) or ('0' if field != 'CHAT_ID' else '')
         require(re.fullmatch(r'-?[0-9]{1,20}', value), field + ' مطلوب كعدد صحيح')
         number = int(value)
         require(-(2**63) <= number < 2**63 and (number < 0 if field == 'CHAT_ID' else number >= 0),
                 field + ' خارج النطاق المسموح')
         config[target] = number
+    from desktop_destinations import parse_destination
+    config['residentsChatId'], config['residentsTopicId'] = parse_destination(settings.get('RESIDENTS_CHAT_ID', ''), settings.get('RESIDENTS_TOPIC_ID', ''))
     encrypted = settings.get('ENCRYPT_TELEGRAM', '').lower()
     require(encrypted in {'true', 'false'}, 'حدد ENCRYPT_TELEGRAM=true أو false حسب المشروع')
     key = settings.get('TELEGRAM_DATA_KEY', '')

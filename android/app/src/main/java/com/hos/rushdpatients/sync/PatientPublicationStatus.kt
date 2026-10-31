@@ -20,7 +20,7 @@ import javax.inject.Singleton
 
 data class PatientWorkflowStatus(val pending: Boolean, val selected: ShiftChanges?)
 
-/** Derived local publication state. Legacy stored pending flags are not authority. */
+/** Derived local publication state. Stored pending flags are not authority. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class PatientPublicationStatus @Inject constructor(

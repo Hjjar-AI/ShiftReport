@@ -14,7 +14,9 @@ import javax.inject.Singleton
 internal data class ConnectionChange(
     val expected: ProjectConfig,
     val token: String,
-    val adminActorId: String? = null
+    val adminActorId: String? = null,
+    val residentsChatId: Long = expected.residentsChatId,
+    val residentsTopicId: Long = expected.residentsTopicId
 )
 
 @Singleton
@@ -42,12 +44,12 @@ class ProjectConnectionManager @Inject constructor(
             "مفتاح تشفير الملف مختلف؛ إعادة الاتصال لا تغيّر مفتاح بيانات المشروع"
         }
         require(imported.reportsTopicId == current.reportsTopicId &&
-            imported.announcementsTopicId == current.announcementsTopicId &&
             imported.csvTopicId == current.csvTopicId &&
             imported.doctorsTopicId == current.doctorsTopicId) {
             "أقسام الملف مختلفة عن المشروع المحلي؛ تم منع تغيير وجهات البيانات"
         }
-        return prepare(current, imported.botToken)
+        ResidentsDestination.validate(telegram, imported.residentsChatId, imported.residentsTopicId, imported.botToken)
+        return prepare(current, imported.botToken).copy(residentsChatId = imported.residentsChatId, residentsTopicId = imported.residentsTopicId)
     }
 
     internal suspend fun prepareToken(token: String): ConnectionChange {
@@ -61,12 +63,13 @@ class ProjectConnectionManager @Inject constructor(
             check(adminAuthorizer.requireAdmin().id == expectedActor) { "تغير المستخدم؛ أعد التحقق" }
         }
         validate(change.expected, change.token)
+        ResidentsDestination.validate(telegram, change.residentsChatId, change.residentsTopicId, change.token)
         withContext(dispatchers.io) {
             // Recheck after network suspension, including live authority for manual replacement.
             change.adminActorId?.let { expectedActor ->
                 check(adminAuthorizer.requireAdmin().id == expectedActor) { "تغير المستخدم؛ أعد التحقق" }
             }
-            projects.replaceBotToken(change.expected, change.token)
+            projects.replaceBotToken(change.expected, change.token, change.residentsChatId, change.residentsTopicId)
         }
     }
 

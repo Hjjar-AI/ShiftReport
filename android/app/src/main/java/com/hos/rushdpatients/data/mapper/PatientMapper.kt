@@ -59,7 +59,7 @@ object PatientMapper {
         tasks = PatientTaskCodec.decode(entity.tasksJson),
         responsibleResidentId = entity.responsibleResidentId,
         responsibleSpecialistId = entity.responsibleSpecialistId,
-        badges = PatientBadgeCodec.decode(entity.warningDetailsEncoded, entity.warningFlagsCsv),
+        badges = PatientBadgeCodec.decode(entity.warningDetailsEncoded),
         isPriority = entity.isPriority,
         lastEditedByDoctorId = entity.lastEditedByDoctorId,
         lastEditedByName = entity.lastEditedByName,

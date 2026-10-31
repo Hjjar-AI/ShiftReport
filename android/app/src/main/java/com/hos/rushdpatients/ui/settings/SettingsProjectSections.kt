@@ -64,6 +64,8 @@ internal fun SettingsInvitationsContent(state: SettingsUiState, onCreateInvitati
 @Composable
 internal fun SettingsDestinationsContent(state: SettingsUiState, viewModel: SettingsViewModel, onOpenDoctors: () -> Unit) {
     val uiText = rememberUiStrings()
+    ResidentsDestinationEditor(state, viewModel)
+    AppDivider()
     AppOutlinedButton(onClick = onOpenDoctors) { Text(uiText(R.string.ui_settings_project_sections_008)) }
     Text(uiText(R.string.ui_settings_project_sections_009), style = MaterialTheme.typography.labelMedium)
     Text(

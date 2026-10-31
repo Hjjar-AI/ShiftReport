@@ -285,7 +285,12 @@ class Window:
         live_doctors=candidate.doctors
         workspace=self.open_workspace(candidate)
         if workspace is None:return
-        if self.client:self.client.telegram._http.close()
+        if self.client:
+            from desktop_destinations import validate_destination
+            try:self.io(lambda:validate_destination(candidate))
+            except Exception:
+                candidate.telegram._http.close();raise
+            self.client.telegram._http.close()
         self.client,self.store=candidate,workspace
         apply_appearance(self,appearance_preferences(self))
         self.plan=None; self.raw_draft=None
@@ -320,6 +325,11 @@ class Window:
             candidate.telegram._http.close();raise
         finally:
             local_passphrase=None
+        from desktop_destinations import load_destination
+        try:
+            self.io(lambda:load_destination(workspace, candidate))
+        except Exception:
+            candidate.telegram._http.close();raise
         return workspace
 
     def verify_raw_admin(self, candidate):
@@ -496,7 +506,7 @@ def main():
         if not args.demo:lock=acquire_instance_lock()
         settings,candidates,notice = ({}, [], '') if args.demo else discover_connections(BASE,args.env)
         ctk.configure_rendering(settings.get('TEXT_RENDERING') or 'auto')
-        ctk.set_appearance_mode(settings.get('APPEARANCE') or 'Light')
+        ctk.set_appearance_mode(settings.get('APPEARANCE') or 'System')
         from desktop_appearance import set_palette_theme
         set_palette_theme()
         root=ctk.CTk()

@@ -112,14 +112,7 @@ internal class PatientRetrievalCoordinator(
                 }
 
                 val activeDoctors = doctorRepository.getAll()
-                val doctorsById = buildMap {
-                    activeDoctors.forEach { doctor ->
-                        put(doctor.id, doctor)
-                        doctor.options.syncAliases.asSequence()
-                            .filter { it.isNotBlank() }
-                            .forEach { alias -> put(alias, doctor) }
-                    }
-                }
+                val doctorsById = activeDoctors.associateBy { it.id }
                 val prepared = prepareShift(parsed, activeDoctors, doctorsById)
                 val overrideActor = if (allowOlder) doctorSync.requirePublishedAdmin(requireNotNull(remoteState.readState())) else null
                 val applied = database.withTransaction {
@@ -187,15 +180,8 @@ internal class PatientRetrievalCoordinator(
         activeDoctors: List<Doctor>,
         doctorsById: Map<String, Doctor>
     ): PreparedShift {
-        val normalizedPatients = parsed.patients.map { patient ->
-            patient.copy(
-                responsibleResidentId = patient.responsibleResidentId
-                    ?.let { doctorsById[it]?.id ?: it },
-                responsibleSpecialistId = patient.responsibleSpecialistId
-                    ?.let { doctorsById[it]?.id ?: it }
-            )
-        }
-        val normalizedDoctorIds = parsed.doctorIds.map { doctorsById[it]?.id ?: it }
+        val normalizedPatients = parsed.patients
+        val normalizedDoctorIds = parsed.doctorIds
         val validationErrors = normalizedPatients.mapNotNull { patient ->
             val resident = patient.responsibleResidentId?.let(doctorsById::get)
             val specialist = patient.responsibleSpecialistId?.let(doctorsById::get)

@@ -33,24 +33,15 @@ enum class UiControlSize { DEFAULT, COMPACT, STANDARD, COMFORTABLE;
 /** Device-local presentation only; excluded from Telegram snapshots and clinical exports. */
 @Serializable
 data class UiPreferences(
-    val profile: String = "current",
     val density: UiDensity = UiDensity.NORMAL,
     val controlSize: UiControlSize = UiControlSize.COMFORTABLE,
-    val reducedMotion: Boolean = false,
-    val autoHideNavigation: Boolean = false,
-    val compactAddAction: Boolean = true,
-    val expandPatientHeader: Boolean = false
+    val reducedMotion: Boolean = false
 ) {
-    fun simplified(): UiPreferences = copy(
-        profile = "current", density = UiDensity.NORMAL,
-        controlSize = UiControlSize.COMFORTABLE, autoHideNavigation = false,
-        compactAddAction = true, expandPatientHeader = false
-    )
-    fun encode(): String = codec.encodeToString(simplified())
+    fun encode(): String = codec.encodeToString(this)
     companion object {
-        private val codec = Json { ignoreUnknownKeys = true }
+        private val codec = Json
         fun decode(value: String?): UiPreferences = try {
-            (if (value == null) UiPreferences() else codec.decodeFromString<UiPreferences>(value)).simplified()
+            if (value == null) UiPreferences() else codec.decodeFromString<UiPreferences>(value)
         } catch (_: SerializationException) { UiPreferences() }
           catch (_: IllegalArgumentException) { UiPreferences() }
     }
@@ -61,7 +52,7 @@ val LocalUiStyle = staticCompositionLocalOf { UiStyleCatalog.current }
 
 @Composable
 fun ProvideUiPreferences(preferences: UiPreferences, content: @Composable () -> Unit) {
-    val selected = preferences.simplified()
+    val selected = preferences
     val base = UiStyleCatalog.current
     val style = if (selected.reducedMotion) base.copy(expandMillis = 0, collapseMillis = 0, highlightMillis = 0, indicatorMillis = 0, placementMillis = 0) else base
     CompositionLocalProvider(LocalUiPreferences provides selected, LocalUiStyle provides style, content = content)

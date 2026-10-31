@@ -31,11 +31,8 @@ private data class Accent(
 // Distinct accent hue families; clinical severity uses its separate palette.
 private fun accent(preset: AppThemePreset) = when (preset) {
     AppThemePreset.SYSTEM -> Accent(Color(0xFF2346B5), Color(0xFFDFE5FF), Color(0xFF122459), Color(0xFFB5C4FF), Color(0xFF243C80))
-    AppThemePreset.SAGE -> Accent(Color(0xFF006B3F), Color(0xFFBCF1D1), Color(0xFF003D23), Color(0xFF77DDA4), Color(0xFF004F30))
-    AppThemePreset.SUNSET -> Accent(Color(0xFF795900), Color(0xFFFFEBAC), Color(0xFF403000), Color(0xFFE9CA61), Color(0xFF594500))
-    AppThemePreset.COASTAL, AppThemePreset.FUCHSIA -> Accent(Color(0xFFA01575), Color(0xFFFFD8EF), Color(0xFF5C0841), Color(0xFFFFAADE), Color(0xFF721653))
+    AppThemePreset.COASTAL -> Accent(Color(0xFFA01575), Color(0xFFFFD8EF), Color(0xFF5C0841), Color(0xFFFFAADE), Color(0xFF721653))
     AppThemePreset.VANILLA -> Accent(Color(0xFF006B72), Color(0xFFBBEEF0), Color(0xFF003C42), Color(0xFF73D9DF), Color(0xFF135158))
-    AppThemePreset.CHOCOLATE -> Accent(Color(0xFF455364), Color(0xFFDFE5ED), Color(0xFF202D3C), Color(0xFFB8C9DC), Color(0xFF344558))
     AppThemePreset.CREAM -> Accent(Color(0xFFAD3D12), Color(0xFFFFDBCC), Color(0xFF5B2106), Color(0xFFFFB28E), Color(0xFF773015))
 }
 
@@ -61,7 +58,7 @@ private val AppShapes = Shapes(
 fun RushdPatientsTheme(
     preset: AppThemePreset = AppThemePreset.VANILLA,
     darkTheme: Boolean = isSystemInDarkTheme(),
-    appearance: AppAppearance = AppAppearance.LIGHT,
+    appearance: AppAppearance = AppAppearance.SYSTEM,
     dynamicColor: Boolean = false,
     uiPreferences: UiPreferences = LocalUiPreferences.current,
     content: @Composable () -> Unit

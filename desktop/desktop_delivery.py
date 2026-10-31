@@ -13,6 +13,7 @@ class ReportDelivery:
         self.owner = owner
         self.report_day = current_date(owner.client.zone)
         self.source_hash = fingerprint(local)
+        self.report_connection = (owner.client.config.get('residentsChatId', 0), owner.client.config.get('residentsTopicId', 0))
         self.plan, self.reviewed, self.needs_publish = owner.io(
             lambda: prepare_delivery(owner.client, local))
         self.require_unchanged()
@@ -21,7 +22,11 @@ class ReportDelivery:
         owner.report_attempt.publication = 'NOT_STARTED' if self.needs_publish else 'CONFIRMED'
         owner.show_report_attempt()
 
+    def require_connection(self):
+        require(self.report_connection == (self.owner.client.config.get('residentsChatId', 0), self.owner.client.config.get('residentsTopicId', 0)), 'تغيرت وجهة المقيمين؛ أعد معاينة التقرير')
+
     def require_unchanged(self):
+        self.require_connection()
         require(fingerprint(self.owner.store.read()) == self.source_hash, 'تغيرت المسودة؛ أعد مراجعة التقارير')
 
     def check_targets(self, supervisors):
@@ -73,6 +78,7 @@ class ReportDelivery:
                     continue
 
             def before(chat, topic):
+                self.require_connection()
                 owner.store.receipt_start(key, 'report', chat, topic, owner.client._actor,
                                           repeat=repeat, report_shift=self.reviewed['meta']['shiftId'])
                 outcome(supervisor, 'غير مؤكد')

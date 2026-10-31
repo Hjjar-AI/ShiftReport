@@ -107,7 +107,6 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val canExpand = patient.initialDiagnosis.isNotBlank() || patient.treatmentPlan.isNotBlank() ||
         patient.followUp.isNotBlank() || patient.labs.isNotBlank() || patient.tasks.isNotEmpty() ||
         patient.badges.isNotEmpty() || patient.hasCompanion
-    val headerExpands = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current.expandPatientHeader
     val cardDensity = UiPatientCard.density(compact)
     val sectionGap = cardDensity.sectionGap
     val taskCounts = remember(patient.tasks) { PatientTasks.counts(patient.tasks) }
@@ -202,7 +201,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 expanded = expanded,
                 pinned = pinned,
                 showViewControls = showViewControls,
-                canExpand = canExpand, headerExpands = headerExpands, animateExpansion = animateExpansion,
+                canExpand = canExpand, animateExpansion = animateExpansion,
                 onExpandToggle = onExpandToggle,
                 onPinToggle = onPinToggle,
                 onPriorityChange = onPriorityChange,
@@ -283,7 +282,6 @@ private fun PatientIdentityHeader(
     pinned: Boolean,
     showViewControls: Boolean,
     canExpand: Boolean,
-    headerExpands: Boolean,
     animateExpansion: Boolean,
     onExpandToggle: () -> Unit,
     onPinToggle: () -> Unit,
@@ -299,10 +297,7 @@ private fun PatientIdentityHeader(
         label = "patientChevron")
 
     Row(
-        modifier = Modifier.fillMaxWidth().then(
-            if (showViewControls && headerExpands && canExpand) Modifier.heightIn(min = UiSpacing.touchTarget)
-                .clickable(onClickLabel = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028),
-                    role = androidx.compose.ui.semantics.Role.Button, onClick = onExpandToggle) else Modifier),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
     ) {

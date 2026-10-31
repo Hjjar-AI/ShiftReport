@@ -35,6 +35,7 @@ object DoctorTeams {
     fun sharedOptions(local: Set<String>, incoming: Doctor): Set<String> =
         DoctorOptions.from(local).withSharedTeam(incoming.options)
 
+    /** Map explicit spreadsheet-import matches to the current local team IDs. */
     fun remap(doctors: List<Doctor>, aliases: Map<String, String>): List<Doctor> = doctors.map { doctor ->
         require(doctor.options.teamSupervisorIds.size <= 1) { "لكل مقيم مشرف فريق واحد فقط" }
         assign(doctor, doctor.teamSupervisorId?.let { aliases[it] ?: it })

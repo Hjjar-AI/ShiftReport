@@ -7,7 +7,6 @@ import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.data.model.TaskPriority
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.pdf.PdfStyle
-import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfRuleWeight
@@ -54,10 +53,6 @@ fun PdfStyle.uiLabel(uiText: UiStrings): String = uiText(when (this) {
     PdfStyle.CARDS -> R.string.ui_label_pdf_style_002
 })
 
-fun PdfOrientation.uiLabel(uiText: UiStrings): String = uiText(when (this) {
-    PdfOrientation.PORTRAIT -> R.string.ui_label_pdf_orientation_001
-    PdfOrientation.LANDSCAPE -> R.string.ui_label_pdf_orientation_002
-})
 
 fun PdfPaperSize.uiLabel(uiText: UiStrings): String = uiText(when (this) {
     PdfPaperSize.A4 -> R.string.ui_label_pdf_paper_size_001

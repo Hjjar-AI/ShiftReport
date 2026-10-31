@@ -39,19 +39,7 @@ class BootstrapManager @Inject constructor(
                 "تغيرت الرسالة المثبّتة بعد إنشاء السجل؛ لم يُفعّل المشروع. أعد التحقق من المجموعة"
             }
 
-            // Case A — pinned document IS the registry (bootstrap.txt)
-            pinned.document?.let { doc ->
-                val local = downloadToCache(doc.fileId, "bootstrap_registry.txt")
-                val text = try { local.readText(Charsets.UTF_8) } finally { local.delete() }
-                val decoded = runCatching { DoctorsRegistryCodec.decode(text) }.getOrNull()
-                if (decoded != null && decoded.doctors.isNotEmpty()) {
-                    requireExpectedPin(expectedPinnedMessageId)
-                    doctorRepository.replaceAll(decoded.doctors)
-                    return@withContext BootstrapResult.Success(decoded.doctors.size)
-                }
-            }
-
-            // Case B — pinned message is SyncState JSON
+            // The current project index points to the registry document.
             pinned.text?.let { text ->
                 val state = runCatching { json.decodeFromString<SyncState>(text) }.getOrNull()
                 if (state?.isRecognized == true) {

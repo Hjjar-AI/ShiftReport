@@ -10,8 +10,6 @@ PALETTES={
     'COASTAL':('ورد · Rose','#A01575'),
     'CREAM':('خشخاش · Poppy','#AD3D12')}
 
-LEGACY_ACCENTS={'SAGE':'VANILLA','SUNSET':'CREAM','FUCHSIA':'COASTAL','CHOCOLATE':'SYSTEM'}
-
 SIZES={1.0:'عادي',1.15:'كبير',1.3:'أكبر'}
 
 LIGHT_BACKGROUND='#DADFDB'
@@ -22,9 +20,8 @@ LIGHT_BORDER='#708278'
 
 
 def preferences(owner):
-    value=dict(mode=owner.settings.get('APPEARANCE') or 'Light',accent='VANILLA',scale=1.0,density='عادية')
+    value=dict(mode=owner.settings.get('APPEARANCE') or 'System',accent='VANILLA',scale=1.0,density='عادية')
     value.update(owner.store.state.get('appearance',{}))
-    value['accent']=LEGACY_ACCENTS.get(value['accent'],value['accent'])
     return value
 
 
@@ -34,7 +31,6 @@ def validate(value):
 
 
 def set_palette_theme(accent='VANILLA'):
-    accent=LEGACY_ACCENTS.get(accent,accent)
     native.set_default_color_theme('blue')
     theme=copy.deepcopy(native.ThemeManager.theme)
     normal=PALETTES[accent][1]
@@ -61,7 +57,6 @@ def set_palette_theme(accent='VANILLA'):
 
 
 def apply(owner,value):
-    value=dict(value,accent=LEGACY_ACCENTS.get(value['accent'],value['accent']))
     validate(value)
     old=copy.deepcopy(native.ThemeManager.theme)
     set_palette_theme(value['accent'])

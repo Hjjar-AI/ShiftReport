@@ -21,15 +21,13 @@ PRESENTATION_PRESETS = {
 
 def normalize_options(options=None):
     result = dict(DEFAULT_OPTIONS, **(options or {}))
-    if result['paper'] in {'A3','Letter'}:result['paper']='A4'
-    if result['layout']=='workbook':result['layout']='table'
     require(result['layout'] in {'table','cards','paragraphs'} and result['paper'] in PAPERS and
             result['orientation'] in {'portrait','landscape'} and result['color'] in
             {'teal','blue','green','purple','pastel'}, 'خيارات PDF غير صالحة')
     require(type(result['dark']) is bool and type(result['separate']) is bool and type(result['local_draft']) is bool, 'خيارات PDF غير صالحة')
     require(result['rule_weight'] in RULE_WEIGHTS and result['rule_contrast'] in RULE_CONTRASTS and
             result['row_shading'] in {'auto','zebra','none'}, 'خيارات فواصل PDF غير صالحة')
-    # Legacy overrides remain readable; PDFs are portrait/light with fixed separators.
+    # Current reports use portrait/light with fixed separators.
     result.update(rule_weight='medium', rule_contrast='medium', separate=False, orientation='portrait', dark=False)
     return result
 

@@ -92,7 +92,7 @@ def administer(owner):
     if action == 'transfer':
         text = ('نقل الإدارة الدائمة من '+actor['name']+' إلى '+snapshot['doctors'][key]['name']+
                 '\nسيحتفظ المدير السابق بصلاحية مدير عادي ورتبته الحالية. تحقّق من هوية المستلم.'+
-                '\nحدّث تطبيقات المشاركين قبل النقل؛ إصدارات أندرويد القديمة قد ترفض جلب هذا التغيير.\n\n'+text)
+                '\n\n'+text)
     if not owner.show_review(text): return
     service.approve(plan)
     owner.plan = None; owner.raw_draft = None

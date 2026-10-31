@@ -73,6 +73,7 @@ def create_project(owner):
         '\nالمواضيع — التقارير: '+str(review['topics']['reportsTopicId'])+
         '، بيانات المناوبات: '+str(review['topics']['csvTopicId'])+
         '، سجل الأطباء: '+str(review['topics']['doctorsTopicId'])+
+        '\nوجهة تقارير المقيمين: '+('مجموعة منفصلة مع موضوع اختياري' if config.get('residentsChatId') else 'مجموعة المشروع')+
         '\nالمدير الأول: '+review['admin']+
         '\nالدور السريري: '+('طبيب مشرف' if review['role']=='SUPERVISOR' else 'طبيب مقيم')+
         '\nتشفير بيانات تليجرام: '+('مفعّل بالمفتاح المحدد' if review['encrypted'] else 'غير مفعّل')+

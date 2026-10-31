@@ -1,5 +1,20 @@
 # Completed work
 
+## Remove obsolete app compatibility — 31 October 2026
+
+- Owner confirmed no initialized projects. Removed old CSV versions/short headers/plain and multi-ward Telegram containers, nine-column/fallback-UID registry readers, inline/direct-pinned registry bootstrap, binary-only join import, retired announcement settings/index fields, identity aliases, historical receipt fingerprints, saved accent/PDF aliases, retired PDF orientation/dark parameters and UI preference normalization/hidden-navigation implementation. Current wire versions are unchanged; current database/schema metadata and OS support remain. Repository rules now record the owner’s current-only decision. Current JSON joins, backups/imports, reviewed rollback and UNKNOWN/exact-copy delivery guards remain.
+- Python3.8 production grammar, XML/string references, Kotlin delimiters, removed-symbol/current-caller review and Git whitespace passed. No builds/compilation, migration inspection/changes, test-suite inspection/changes/runs or runtime/live work. Prior receipts are historical evidence; current-only acceptance belongs in the handoff.
+
+## Follow system appearance by default — 31 October 2026
+
+- Android unset/unknown appearance, initial theme flow, theme wrapper and settings defaults now use System. Desktop startup/unset preferences and the example configuration default to System. Explicit saved choices remain.
+- Python3.8 production grammar, targeted source-default review and Git whitespace checks passed. No build, compilation, test-suite or runtime work.
+
+## Optional Telegram residents destination — 31 October 2026
+
+- Android/desktop: optional residents group/topic at creation and later under published-admin checks; fallback to main group/optional Reports topic. CSV/registry/index stay in the main group, login challenges private. Protected join export/reconnect distributes changed routing without changing clinical project identity/key/records. Desktop local routing is stored separately from clinical drafts in authenticated encrypted connection storage. Review and transport retain destination checks and delivery uncertainty protection.
+- Lightweight production-source checks passed: Python3.8 grammar, resource XML/string references, Kotlin delimiters and Git whitespace. No build/compilation/test-suite/migration/version work or runtime/live verification; unrelated version-file edit preserved. Remaining checks live only in the handoff.
+
 ## Latest regression device follow-up — 27 October 2026
 
 - Requested PPA-LX2/Android10 isolated verification build/install/instrumentation completed all18 new device cases:14 transfer-sync,2 import-protection,2 card actions. Final unique18 passes/0 failures/errors/skips:16 initial passes plus2 affected-only resolving passes. Initial run3m35s (76tasks:9executed/67up-to-date); rerun2m24s (76tasks:7executed/69up-to-date).

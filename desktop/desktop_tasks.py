@@ -1,6 +1,6 @@
 """Task semantics shared by draft validation, publication, ward views and exports.
 
-Tasks are plain text/done checklists; legacy fields remain readable.
+Tasks are plain text/done checklists; current-schema metadata is storage-only.
 """
 import json
 
@@ -45,5 +45,5 @@ def validate(tasks):
         for key in ('ownerDoctorId', 'ownerName', 'dueShiftDate', 'completedByDoctorId', 'completedByName'):
             require(task.get(key) is None or isinstance(task[key], str), 'هوية أو نص مهمة غير صالح')
         require(task.get('dueAtEpochMillis') is None or type(task['dueAtEpochMillis']) is int,
-                'صيغة موعد قديم غير صالحة')
+                'صيغة موعد غير صالحة')
     require(len({task['id'] for task in tasks}) == len(tasks), 'معرف مهمة مكرر')

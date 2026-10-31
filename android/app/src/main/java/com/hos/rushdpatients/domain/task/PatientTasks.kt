@@ -6,7 +6,7 @@ import com.hos.rushdpatients.data.model.PatientTask
 data class TaskCounts(val pending: Int)
 data class WardTaskEntry(val patient: Patient, val task: PatientTask)
 
-/** Plain checklist behavior; legacy task fields remain in persistence and interchange only. */
+/** Plain checklist behavior; additional current-schema metadata is storage-only. */
 object PatientTasks {
     fun counts(tasks: List<PatientTask>): TaskCounts = TaskCounts(tasks.count { !it.done })
     fun orderedForDisplay(tasks: List<PatientTask>): List<PatientTask> = tasks.sortedBy { it.done }

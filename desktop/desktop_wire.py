@@ -13,8 +13,8 @@ def parse_doctors(raw):
         body, last = raw.decode('utf-8-sig').strip().rsplit('@', 1)
         rows = body.split('|')
         header = rows.pop(0).split(',')
-        expected = '#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId'.split(',')
-        require(header in (expected, expected+['teamSupervisorId']), 'مطلوب سجل الأطباء الحالي')
+        expected = '#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId,teamSupervisorId'.split(',')
+        require(header == expected, 'مطلوب سجل الأطباء الحالي')
         result = {}
         for line in rows:
             values = line.split(',')
@@ -26,7 +26,6 @@ def parse_doctors(raw):
             require(row['telegram_id'] is None or row['telegram_id'] > 0, 'هوية تليجرام غير صالحة')
             row['destination'] = int(row['supervisorGroupChatId']) if row['supervisorGroupChatId'] else None
             require(row['destination'] is None or row['clinicalRole'] == 'SUPERVISOR' and row['destination'] < 0, 'وجهة مشرف غير صالحة')
-            row['teamSupervisorId'] = row.get('teamSupervisorId','')
             result[row['uid']] = row
         require(result, 'سجل الأطباء فارغ')
         from desktop_teams import validate_teams
@@ -63,12 +62,12 @@ def parse_bundle(raw):
         text = raw.decode('utf-8-sig')
         require(text.splitlines()[0] == BUNDLE, 'مطلوب تنسيق حزمة المناوبات الحالي')
         parts = text.split('\n', 1)[1].split('\n' + BOUNDARY + '\n')
-        require(1 <= len(parts) <= 3, 'عدد المناوبات في الحزمة غير صالح')
+        require(len(parts) == 1, 'عدد المناوبات في الحزمة غير صالح')
         result = []
         for part in parts:
             rows = list(csv.reader(io.StringIO(part.strip(), newline='')))
             meta = dict(token.split('=', 1) for token in rows[0][0].lstrip('# ').split(' ') if '=' in token)
-            require(meta.get('schemaVersion') == '7' and rows[1] in (COLUMNS, COLUMNS[:-1]), 'مطلوب CSV المرضى الحالي بإصدار 7')
+            require(meta.get('schemaVersion') == '7' and rows[1] == COLUMNS, 'مطلوب CSV المرضى الحالي بإصدار 7')
             require(all(key in meta for key in ['shiftDate','shiftId','doctors','sortSpec','shiftRevision','snapshotId','baseSnapshotId','deviceId']), 'بيانات تعريف CSV ناقصة؛ أعد النشر من Android بعد إصلاح اقتباس metadata')
             require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',meta['shiftDate']) is not None,'تاريخ المناوبة يجب أن يكون YYYY-MM-DD')
             date.fromisoformat(meta['shiftDate'])
@@ -79,7 +78,6 @@ def parse_bundle(raw):
                     continue
                 require(len(row) == len(rows[1]), 'سطر مرضى غير مكتمل')
                 patient = dict(zip(rows[1], row))
-                patient.setdefault('assignmentChangedOn', '')
                 validate_wire_patient(patient)
                 patient['tasksJson'] = packed(json.loads(patient['tasksJson'] or '[]'))
                 patients.append(patient)
@@ -94,8 +92,9 @@ def parse_bundle(raw):
 
 
 def encode_bundle(shifts):
+    require(len(shifts) == 1, "حزمة النشر يجب أن تحتوي قسماً واحداً")
     parts = []
-    for shift in sorted(shifts, key=lambda s: s['meta']['shiftDate'], reverse=True)[:3]:
+    for shift in shifts:
         meta = shift['meta']
         require(not any(any(ch.isspace() for ch in str(v)) for v in meta.values()), 'بيانات تعريف المناوبة غير صالحة')
         stream = io.StringIO(newline='')

@@ -24,7 +24,7 @@ object DoctorNaming {
     fun defaultAdminTitle(doctor: Doctor): String =
         ADMIN_TITLE + feminize(doctor)
 
-    /** Imported custom-title columns remain compatible storage only. */
+    /** Display titles follow the clinical role; the current schema title field is storage-only. */
     fun displayTitle(doctor: Doctor): String = defaultShiftTitle(doctor)
 
     /**

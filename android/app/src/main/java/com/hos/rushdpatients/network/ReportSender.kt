@@ -46,31 +46,36 @@ class ReportSender @Inject constructor(
     private val deliveryLedger: ReportDeliveryLedger
 ) {
 
-    suspend fun checkGeneralDelivery(shift: Shift, contentKey: String, pdf: Boolean, legacyContentKey: String? = null) =
-        deliveryLedger.check(shift.id, topics.chatId, contentKey, if (pdf) "PDF" else "TEXT", legacyContentKey)
+    suspend fun checkGeneralDelivery(shift: Shift, contentKey: String, pdf: Boolean) =
+        deliveryLedger.check(shift.id, topics.reportsChatId, contentKey, if (pdf) "PDF" else "TEXT")
 
-    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long, legacyContentKey: String? = null) =
-        deliveryLedger.check(shift.id, chatId, contentKey, "PDF", legacyContentKey)
+    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long) =
+        deliveryLedger.check(shift.id, chatId, contentKey, "PDF")
 
     suspend fun sendTextReport(
-        shift: Shift, chunks: List<String>, actor: Doctor?, contentKey: String, legacyContentKey: String? = null
+        shift: Shift, chunks: List<String>, actor: Doctor?, contentKey: String
     ): SendResult = withContext(Dispatchers.IO) {
         require(chunks.isNotEmpty()) { "No chunks to send" }
+        val connectionUnchanged = topics.connectionUnchangedCheck()
+        val chatId = topics.reportsChatId
+        val topicId = topics.threadId(Topic.REPORTS)
         val file = if (dataCipher.enabled) File.createTempFile("text_report_", ".txt", context.cacheDir) else null
         val messageIds = mutableListOf<Long>()
         try {
             file?.writeText(chunks.joinToString("\n\n"), Charsets.UTF_8)
-            deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "TEXT", context.getString(R.string.report_general_route_label), actor?.id, legacyContentKey = legacyContentKey) { receipt ->
+            deliveryLedger.deliver(shift.id, chatId, contentKey, "TEXT", context.getString(R.string.report_general_route_label), actor?.id) { receipt ->
                 try {
+                    check(connectionUnchanged()) { "تغيرت وجهة التقرير؛ أعد المعاينة" }
                     if (file != null) {
-                        val msg = uncertainDelivery { telegram.sendDocument(chatId = topics.chatId, file = file,
-                            messageThreadId = topics.threadId(Topic.REPORTS)) }
+                        val msg = uncertainDelivery { telegram.sendDocument(chatId = chatId, file = file,
+                            messageThreadId = topicId) }
                         messageIds += msg.messageId
                     } else {
                         for (chunk in chunks) {
-                            val msg = uncertainDelivery { telegram.sendMessage(chatId = topics.chatId, text = chunk,
+                            check(connectionUnchanged()) { "تغيرت وجهة التقرير؛ أعد المعاينة" }
+                            val msg = uncertainDelivery { telegram.sendMessage(chatId = chatId, text = chunk,
                                 parseMode = ParseMode.MARKDOWN_V2, replyToMessageId = null, disableNotification = true,
-                                messageThreadId = topics.threadId(Topic.REPORTS)) }
+                                messageThreadId = topicId) }
                             messageIds += msg.messageId
                         }
                     }
@@ -78,7 +83,7 @@ class ReportSender @Inject constructor(
                     throw e
                 } catch (e: Exception) {
                     messageIds.asReversed().forEach { id ->
-                        try { telegram.deleteMessage(topics.chatId, id) }
+                        try { telegram.deleteMessage(chatId, id) }
                         catch (cancel: CancellationException) { throw cancel }
                         catch (_: Exception) { /* Partial cleanup is not proof of non-delivery. */ }
                     }
@@ -102,26 +107,28 @@ class ReportSender @Inject constructor(
 
     suspend fun sendPdfReport(
         shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, contentKey: String,
-        legacyContentKey: String? = null, fileName: String? = null
-    ): SendResult = sendPdf(shift, pdfFile, caption, actor, contentKey, legacyContentKey, fileName, PdfDestination.General)
+        fileName: String? = null
+    ): SendResult = sendPdf(shift, pdfFile, caption, actor, contentKey, fileName, PdfDestination.General)
 
     suspend fun sendSupervisorPdfReport(
         shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, supervisor: Doctor,
-        chatId: Long, contentKey: String, legacyContentKey: String? = null, fileName: String? = null
-    ): SendResult = sendPdf(shift, pdfFile, caption, actor, contentKey, legacyContentKey, fileName,
+        chatId: Long, contentKey: String, fileName: String? = null
+    ): SendResult = sendPdf(shift, pdfFile, caption, actor, contentKey, fileName,
         PdfDestination.Supervisor(supervisor, chatId))
 
     private suspend fun sendPdf(
         shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, contentKey: String,
-        legacyContentKey: String?, fileName: String?, destination: PdfDestination
+        fileName: String?, destination: PdfDestination
     ): SendResult = withContext(Dispatchers.IO) {
+        val connectionUnchanged = topics.connectionUnchangedCheck()
         val supervisor = destination as? PdfDestination.Supervisor
-        val chatId = supervisor?.chatId ?: topics.chatId
+        val chatId = supervisor?.chatId ?: topics.reportsChatId
         if (supervisor != null) require(chatId < 0L) { context.getString(R.string.report_supervisor_chat_invalid) }
         require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
         val label = supervisor?.doctor?.fullName ?: context.getString(R.string.report_general_route_label)
         val topicId = if (destination == PdfDestination.General) topics.threadId(Topic.REPORTS) else null
-        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", label, actor?.id, legacyContentKey = legacyContentKey) { receipt ->
+        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", label, actor?.id) { receipt ->
+            check(connectionUnchanged()) { "تغيرت وجهة التقرير؛ أعد المعاينة" }
             val titleParts = com.hos.rushdpatients.domain.report.ReportChunking.captionParts(caption.orEmpty())
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = chatId, file = pdfFile, fileName = fileName, caption = titleParts.firstOrNull(),

@@ -15,7 +15,7 @@ class CsvPublicationReview internal constructor(
 
 internal fun sameDoctorPublicationSource(a: SyncState?, b: SyncState): Boolean =
     a != null && a.doctorsFileId == b.doctorsFileId && a.doctorsMessageId == b.doctorsMessageId &&
-        a.doctorsUpdatedAt == b.doctorsUpdatedAt && a.doctorsData == b.doctorsData
+        a.doctorsUpdatedAt == b.doctorsUpdatedAt
 
 internal fun samePublicationSource(a: SyncState?, b: SyncState): Boolean =
     sameDoctorPublicationSource(a, b) && a?.csvFileId == b.csvFileId && a?.csvMessageId == b.csvMessageId

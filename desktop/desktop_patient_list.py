@@ -35,6 +35,8 @@ def render(owner):
         if not owner.demo and not owner.admin_sidebar.winfo_manager():owner.admin_sidebar.pack(fill='x',padx=3,pady=3,before=owner.help_sidebar)
         owner.admin_button.pack(fill='x',padx=8,pady=4)
         owner.admin_button.configure(state='disabled' if owner.busy else 'normal')
+        owner.residents_destination_button.pack(fill='x',padx=8,pady=4)
+        owner.residents_destination_button.configure(state='disabled' if owner.busy or owner.demo else 'normal')
         owner.join_export_button.pack(fill='x',padx=8,pady=4)
         owner.join_export_button.configure(state='disabled' if owner.busy else 'normal')
         if not owner.demo:
@@ -43,6 +45,7 @@ def render(owner):
     else:
         owner.admin_sidebar.pack_forget()
         owner.team_window.withdraw()
+        owner.residents_destination_button.pack_forget()
         owner.join_export_button.pack_forget()
         owner.admin_button.pack_forget()
         if not owner.demo:owner.assignments_button.pack_forget()

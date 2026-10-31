@@ -21,7 +21,7 @@ import com.hos.rushdpatients.ui.theme.appAccentColor
 fun AppPalettePicker(selected: AppThemePreset, onSelected: (AppThemePreset) -> Unit) {
     val uiText = rememberUiStrings()
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    AppChoiceChips(AppThemePreset.availablePresets, selected.simplified(), onSelected, { it.arabicLabel(uiText) },
+    AppChoiceChips(AppThemePreset.availablePresets, selected, onSelected, { it.arabicLabel(uiText) },
         leading = { option ->
             Box(Modifier.size(UiSize.iconSmall).clip(CircleShape).background(appAccentColor(option, dark)))
         })

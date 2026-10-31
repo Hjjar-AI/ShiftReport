@@ -45,8 +45,9 @@ class ProjectProvisioningManager @Inject constructor(
                     .put("encryptTelegram", config.telegramDataKey.isNotEmpty())
                     .put("telegramDataKey", config.telegramDataKey)
                     .put("chatId", config.chatId)
+                    .put("residentsChatId", config.residentsChatId)
+                    .put("residentsTopicId", config.residentsTopicId)
                     .put("reportsTopicId", config.reportsTopicId)
-                    .put("announcementsTopicId", config.announcementsTopicId)
                     .put("csvTopicId", config.csvTopicId)
                     .put("doctorsTopicId", config.doctorsTopicId)
                     .toString()
@@ -207,10 +208,7 @@ class ProjectProvisioningManager @Inject constructor(
     }
 
     private fun encryptedPayload(document: ByteArray): ByteArray {
-        // Recognize files by their content, including existing binary join files.
-        if (document.size >= MAGIC.size && document.copyOfRange(0, MAGIC.size).contentEquals(MAGIC)) {
-            return document
-        }
+        // Current password-protected JSON envelope.
         val envelope = JSONObject(document.toString(Charsets.UTF_8))
         require(envelope.getString("format") == ENVELOPE_FORMAT) { "صيغة ملف الانضمام غير مدعومة" }
         return Base64.decode(envelope.getString("encryptedPayload"), Base64.DEFAULT)
@@ -239,8 +237,9 @@ class ProjectProvisioningManager @Inject constructor(
                     hospitalName = json.getString("hospitalName"),
                     botToken = json.getString("botToken"),
                     chatId = json.getLong("chatId"),
+                    residentsChatId = json.optLong("residentsChatId"),
+                    residentsTopicId = json.optLong("residentsTopicId"),
                     reportsTopicId = json.optLong("reportsTopicId"),
-                    announcementsTopicId = json.optLong("announcementsTopicId"),
                     csvTopicId = json.optLong("csvTopicId"),
                     doctorsTopicId = json.optLong("doctorsTopicId")
                 )

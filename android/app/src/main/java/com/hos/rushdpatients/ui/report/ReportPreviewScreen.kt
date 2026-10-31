@@ -124,8 +124,9 @@ internal fun ReportWorkspace(
     val destinationReady = flowGate.destinationReady
     val nextDisabledReason = flowGate.nextDisabledReason?.let { uiText(it) }
     val sendDisabledReason = flowGate.sendDisabledReason?.let { uiText(it) }
+    val generalDestinationLabel = uiText(if (state.reportsToResidents) R.string.residents_report_label else R.string.project_report_label)
     val previews = buildList {
-        if (generalSelected) add(ReportPreviewItem("general", uiText(R.string.ui_report_preview_screen_025),
+        if (generalSelected) add(ReportPreviewItem("general", generalDestinationLabel,
             flowGate.previewReadiness.getValue("general")))
         selectedTargets.forEach { target ->
             val key = "supervisor:${target.doctorId}"
@@ -299,7 +300,7 @@ internal fun ReportWorkspace(
                 }
                 if (step == ReportFlowStep.DOCTORS) {
                     AppSection(title = uiText(R.string.ui_report_preview_screen_024)) {
-                        AppCheckRow(label = uiText(R.string.ui_report_preview_screen_025),
+                        AppCheckRow(label = generalDestinationLabel,
                             checked = generalSelected, enabled = !busy,
                             onCheckedChange = { generalSelected = it })
                         val selectableIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
@@ -478,8 +479,8 @@ internal fun ReportWorkspace(
 
                 if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
                     Text(uiText(R.string.ui_report_preview_screen_063) + state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
-                    if (generalSelected) Text(uiText(R.string.ui_report_preview_screen_065,
-                        if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
+                    if (generalSelected) Text(generalDestinationLabel + " · " +
+                        (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
                     selectedTargets.forEach { target ->
                         Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
                     }
@@ -549,7 +550,7 @@ internal fun ReportWorkspace(
             review.includeGeneral == generalSelected && review.generalAsPdf == state.reportAsPdf &&
             review.exportPdf == (exportPdf && pdfSelected)
         val destinations = buildList {
-            if (review.includeGeneral) add(uiText(R.string.ui_report_preview_screen_097))
+            if (review.includeGeneral) add(generalDestinationLabel)
             review.supervisors.forEach { add(uiText(R.string.ui_report_preview_screen_095, it.doctorName, uiNumber(it.patientCount))) }
         }
         val format = if (!review.includeGeneral || review.generalAsPdf) "PDF"

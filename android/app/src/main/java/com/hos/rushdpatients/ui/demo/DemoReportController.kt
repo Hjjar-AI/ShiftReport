@@ -83,8 +83,7 @@ internal class DemoReportController(
     override fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions) {
         if (busy) return
         clearReviews()
-        _state.update { it.copy(pdfStyle = style, pdfOptions = requested.copy(orientation = PdfOrientation.PORTRAIT,
-            darkMode = false, ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)) }
+        _state.update { it.copy(pdfStyle = style, pdfOptions = requested.copy(ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)) }
     }
     override fun fetchDoctorsForReport() { if (!busy) load(uiText(R.string.demo_fetch_complete)) }
     override fun dismissSnackbar() { _state.update { it.copy(snackbar = null) } }

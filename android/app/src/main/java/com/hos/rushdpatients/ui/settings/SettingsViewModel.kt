@@ -39,6 +39,7 @@ import com.hos.rushdpatients.ui.theme.AppAppearance
 import com.hos.rushdpatients.ui.theme.AppThemePreset
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,6 +70,7 @@ class SettingsViewModel @Inject constructor(
     private val biometricHelper: BiometricHelper,
     private val encryptedBackupManager: EncryptedBackupManager,
     private val projectConfigStore: ProjectConfigStore,
+    private val residentsDestinations: com.hos.rushdpatients.config.ResidentsDestinationManager,
     private val provisioningManager: ProjectProvisioningManager,
     private val adminAuthorizer: AdminAuthorizer,
     private val pendingExports: PendingExportStore,
@@ -120,6 +122,25 @@ class SettingsViewModel @Inject constructor(
                         isPermanentAdmin = permanent)
                 }
             }
+        }
+    }
+
+    internal fun residentsDestinationConfig(): com.hos.rushdpatients.config.ProjectConfig {
+        _state.update { it.copy(residentsDestinationError = null) }
+        return projectConfigStore.current()
+    }
+
+    internal fun saveResidentsDestination(expected: com.hos.rushdpatients.config.ProjectConfig, group: String, topic: String, onSaved: () -> Unit) {
+        if (_state.value.savingResidentsDestination) return
+        _state.update { it.copy(savingResidentsDestination = true, residentsDestinationError = null) }
+        viewModelScope.launch {
+            try {
+                residentsDestinations.save(expected, group, topic)
+                _state.update { it.copy(snackbar = uiText(R.string.residents_destination_saved)) }
+                onSaved()
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(residentsDestinationError = e.message ?: uiText(R.string.residents_destination_failed)) } }
+            finally { _state.update { it.copy(savingResidentsDestination = false) } }
         }
     }
 

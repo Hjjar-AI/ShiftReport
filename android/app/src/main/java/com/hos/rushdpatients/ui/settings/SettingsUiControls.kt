@@ -13,6 +13,6 @@ internal fun SettingsUiControls(value: UiPreferences, onChange: (UiPreferences) 
     val text = rememberUiStrings()
     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
         AppToggleRow(text(R.string.ui_reduced_motion), value.reducedMotion,
-            { onChange(value.copy(reducedMotion = it).simplified()) })
+            { onChange(value.copy(reducedMotion = it)) })
     }
 }

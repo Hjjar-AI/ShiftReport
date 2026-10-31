@@ -15,11 +15,13 @@ Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and `deskt
 | Encrypted text | `SRMSG1:` + Base64 of encrypted gzip text |
 | Portable shift backup | `.rpb`: `RUSHDBK1` + 16-byte salt + 12-byte nonce + AES-GCM ciphertext/tag; single CSV7 document; password PBKDF2-HMAC-SHA256/210000/256-bit, no AAD |
 
-Updated desktop accepts the current contract with or without the optional assignment-date column. Blank/missing dates remain unknown; retrieval/import never stamps them as new. Android DB5→6 adds the nullable epoch-day column with explicit owner approval. Updated clients are required to preserve assignment highlighting: older Android writers omit the date, and older desktop readers reject the extended header. No schema renumbering or old-schema conversion was added. The Android metadata-quoting fix preserves roster commas, sort JSON, snapshot/base IDs and revisions without altering clinical columns or the decoder. Android must rebuild/republish before shared use.
+Both clients require the current 23-column CSV7 header, including `assignmentChangedOn`; an empty assignment date remains unknown and is never restamped on retrieval/import. Current metadata quoting preserves roster commas, sort JSON, snapshot/base IDs and revisions. Current-only readers do not renumber formats or change the database schema. They have source-only checks pending compilation/runtime acceptance.
 
 ## Connection, crypto and identity
 
+- Optional `residentsChatId`/`residentsTopicId` join connection fields route general PDF/text reports to a separate group/topic; zero group retains main group/Reports topic. All topics may be omitted. CSV/registry/pinned index keep the main destination; login challenges remain private. Routing may change after creation under published admin authority; redistribute a fresh protected join file. Android reconnect applies reviewed residents routing while preserving main bot/group/data topics/key. Desktop excludes these mutable fields from clinical workspace identity and stores local overrides in a separate authenticated encrypted connection file, never clinical drafts. Report review binds the resolved route. Group/forum/bot-admin checks are read-only; topic existence/open state is established only by actual delivery. API metadata follows [Telegram ChatFullInfo](https://core.telegram.org/bots/api#chatfullinfo).
 - Default protected join supplies connection/topics/key. Explicit desktop raw mode verifies live registry admin before workspace access and on shared mutations; reconnect remains file-only. Passwords interactive, never argv/env. Extracted tokens bypass client gates.
+- Current join imports require the protected JSON envelope; binary-only join files are unsupported. Android pinned indices require the current version and file-backed registry, with no inline registry or directly pinned registry-document bootstrap.
 - Join: PBKDF2-HMAC-SHA256/210000,16-byte salt,32-byte key; AES-GCM12-byte nonce,no AAD. Data envelopes preserve purpose-specific authenticated bytes. Wrong keys/tampering fail; no encoding/plaintext fallback. Encryption chosen at creation; PDF/captions readable.
 - Private six-digit Telegram challenge:3min/5attempts; session30min. No `getUpdates`. Shared mutations recheck linked identity/live membership; actor fields/token possession are not authorization; registry/role/destination changes require live admin below GUI.
 - Fingerprint binds bot/group/topics/key. No cross-project mixing; stable shared key or random DPAPI/Linux-passphrase-protected local key survives same-bot token replacement. Linux stores authenticated wrapped key, never passphrase.
@@ -32,9 +34,9 @@ Join export: current verified live registry admin, only connection/topics/key in
 
 ## Download and draft
 
-Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre-download backup; Fetch selects the newest list from older multi-list containers. New publications contain the current ward alone. Preserve patient/doctor/task IDs,revisions,sort/roster/app-only fields; no connection secrets in drafts. CSV row order is stored order; filters never remove unpublished rows. Desktop draft/order changes invalidate its publication review.
+Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre-download backup; current bundle readers/writers require exactly one ward. Plain unwrapped CSV is not a Telegram bundle; the current `.rpb` backup still deliberately carries a single CSV document. Preserve patient/doctor/task IDs,revisions,sort/roster/app-only fields; no connection secrets in drafts. CSV row order is stored order; filters never remove unpublished rows. Desktop draft/order changes invalidate its publication review.
 
-08:30 labels the work day only; no date-based edit/publication/send deadline or shift copy-forward. Keep the current ward across days. Older CSV containers remain readable; dated-list browsing/copying is retired. Fetch Undo and reviewed admin republishing of the previous publication remain.
+08:30 labels the work day only; no date-based edit/publication/send deadline or shift copy-forward. Keep the current ward across days. Old-app CSV containers are unsupported; dated-list browsing/copying is retired. Fetch Undo and reviewed admin republishing of the previous publication remain.
 
 ## Publication
 
@@ -47,9 +49,9 @@ Last-successful-write-wins, not atomic transactions. No automatic retry; Android
 
 ## Desktop registry mutation and local recovery
 
-`desktop_doctors.py`: ten-column team-aware registry; previous nine-column header reads as unassigned membership. Bind action/proposal/actor/draft/both pointers; protect permanent admins/ranks/clinical references. UNKNOWN before upload; live admin/pointers rechecked before index update, exact registry/pointer verified after. Preserve patient baseline/unrelated index fields; same last-write-wins limits.
+`desktop_doctors.py`: ten-column team-aware registry with explicit UID and team column; old nine-column registries are unsupported. Bind action/proposal/actor/draft/both pointers; protect permanent admins/ranks/clinical references. UNKNOWN before upload; live admin/pointers rechecked before index update, exact registry/pointer verified after. Preserve patient baseline/unrelated index fields; same last-write-wins limits.
 
-Encrypted recycle records retain full content/position/previous completion evidence. Restore checks shift/expected draft/duplicate ID and needs full publication review. Recovery travels in `.srdraft`; receipts stay local. Clinical saves create no new editor/completion/audit stamps; legacy fields remain compatible. Audit excluded from portable drafts; report preferences private. Announcements retired; old topic/index fields remain inert.
+Encrypted recycle records retain full content/position/previous completion evidence. Restore checks shift/expected draft/duplicate ID and needs full publication review. Recovery travels in `.srdraft`; receipts stay local. Clinical saves create no new editor/completion/audit stamps; legacy fields remain compatible. Audit excluded from portable drafts; report preferences private. Announcements and their obsolete connection/index fields are removed.
 
 ## Desktop local access, CSV and demo
 
@@ -63,7 +65,7 @@ Review full replacement and exact report before final confirmation; publish pend
 
 ReportLab full clinical/tasks/badges/roster/context; omit routine/unassigned/last-edit labels. Classic7-column/paragraph/A5, palettes/shading/A4-A5 portrait-light/Medium separators and explicit local supervisor files including unassigned. Names-only A4: verified live admin below GUI/renderer/save,3×56.7mm tables/row, independent resident row/empty teams/unassigned group, global numbering/continuations. Exact PDF opening/options/hash/destination and current snapshot/registry/draft rechecked. Text: encrypted document or UTF-16-bounded plain messages, one UNKNOWN before first part; partial failure stays uncertain, no silent retry/rollback.
 
-General destination Reports; supervisor live registry group. Telegram `ok`/message identity required. UNKNOWN keyed across shift/chat/topic regardless of format/publication; unlabelled older receipts conservatively block destination. Live same-project sender/admin resolves; extra confirmed copy requires approval. Confirmed network send remains sent if local bookkeeping fails. Device-local receipts never populate Android audit or establish non-delivery elsewhere.
+General destination Reports; supervisor live registry group. Telegram `ok`/message identity required. UNKNOWN keyed across shift/chat/topic regardless of format/publication; current report receipts require their shift label; malformed receipts fail validation. Live same-project sender/admin resolves; extra confirmed copy requires approval. Confirmed network send remains sent if local bookkeeping fails. Device-local receipts never populate Android audit or establish non-delivery elsewhere.
 
 `desktop_delivery.ReportDelivery` owns draft/destination/publication reuse/durable receipts for single/batch reports; caller owns preview/confirmation. `desktop_tasks` supplies checklist validation/count/display; legacy task metadata is compatible storage only.
 

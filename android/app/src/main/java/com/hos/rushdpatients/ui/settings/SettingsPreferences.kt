@@ -80,7 +80,7 @@ internal class SettingsPreferences(
 
 
     fun setUiPreferences(requested: com.hos.rushdpatients.ui.theme.UiPreferences) {
-        val value = requested.simplified()
+        val value = requested
         val previous = _state.value.uiPreferences
         _state.update { it.copy(uiPreferences = value) }
         viewModelScope.launch {

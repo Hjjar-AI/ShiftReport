@@ -37,6 +37,7 @@ enum class ReportStepOutcome(@StringRes private val arabicLabelRes: Int) {
 enum class ReportRetryAction { SEND, PREVIEW, SAVE, SAVE_SUPERVISORS, SHARE, ASSIGNMENTS }
 
 data class ReportUiState(
+    val reportsToResidents: Boolean = false,
     val loading: Boolean = true,
     val isAdmin: Boolean = false,
     val shift: Shift? = null,

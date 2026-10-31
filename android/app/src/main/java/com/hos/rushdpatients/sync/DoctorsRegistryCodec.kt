@@ -102,21 +102,13 @@ object DoctorsRegistryCodec {
 
     fun decode(text: String): Decoded {
         val cleaned = text.removePrefix("\uFEFF").trim()
-        if (cleaned.isEmpty()) return Decoded(emptyList(), 0)
-
         val atIndex = cleaned.lastIndexOf(ID_SEP)
-        val body: String
-        val lastId: Int
-        if (atIndex >= 0) {
-            body = cleaned.substring(0, atIndex)
-            lastId = cleaned.substring(atIndex + 1).trim().toIntOrNull() ?: 0
-        } else {
-            body = cleaned
-            lastId = 0
-        }
-
+        require(atIndex > 0) { "سجل الأطباء لا يحتوي فاصل الرتبة" }
+        val body = cleaned.substring(0, atIndex)
+        val lastId = cleaned.substring(atIndex + 1).trim().toIntOrNull()
+            ?.takeIf { it >= 0 } ?: error("رتبة سجل الأطباء غير صالحة")
         val rows = body.split(ROW_SEP).filter { it.isNotBlank() }
-        if (rows.size < 2) return Decoded(emptyList(), lastId)
+        require(rows.size >= 2) { "سجل الأطباء فارغ" }
 
         val header = rows.first().split(",").map { it.trim().lowercase(Locale.ROOT) }
         val nameIdx = header.indexOf("name")
@@ -130,7 +122,7 @@ object DoctorsRegistryCodec {
         val supervisorGroupChatIdIdx = header.indexOf("supervisorgroupchatid")
         val teamSupervisorIdIdx = header.indexOf("teamsupervisorid")
         require(listOf(rankIdx, uidIdx, nameIdx, genderIdx, idIdx, titleIdx, optionsIdx,
-            clinicalRoleIdx, supervisorGroupChatIdIdx).all { it >= 0 }) {
+            clinicalRoleIdx, supervisorGroupChatIdIdx, teamSupervisorIdIdx).all { it >= 0 }) {
             "سجل الأطباء لا يحتوي جميع الأعمدة المطلوبة"
         }
 
@@ -141,24 +133,24 @@ object DoctorsRegistryCodec {
             val name = cols[nameIdx]
             require(name.isNotBlank()) { "سجل الأطباء يحتوي اسماً فارغاً" }
             val gender = when (cols[genderIdx].uppercase(Locale.ROOT)) {
-                "M", "MALE" -> Gender.MALE
-                "F", "FEMALE" -> Gender.FEMALE
+                "M" -> Gender.MALE
+                "F" -> Gender.FEMALE
                 else -> error("الجنس غير صالح في سجل الأطباء")
             }
             val telegramId = cols[idIdx].takeIf { it.isNotBlank() }?.toLongOrNull()
             require(cols[idIdx].isBlank() || telegramId != null && telegramId > 0) {
                 "هوية تليجرام غير صالحة في سجل الأطباء"
             }
-            val title = cols.getOrNull(titleIdx)?.takeIf { it.isNotBlank() }
-            val options = cols.getOrNull(optionsIdx).orEmpty()
-            val rankText = cols.getOrNull(rankIdx).orEmpty()
+            val title = cols[titleIdx].takeIf { it.isNotBlank() }
+            val options = cols[optionsIdx]
+            val rankText = cols[rankIdx]
 
             require(options.isBlank() || Regex("[aA][1-9][0-9]*").matches(options)) {
                 "خيارات صلاحية المدير غير صالحة في سجل الأطباء"
             }
             val parsedOptions = parseOptions(options)
-            val parsedRank = rankText.toIntOrNull() ?: parsedOptions.rank
-            require((rankText.isBlank() || rankText.toIntOrNull() != null) && parsedRank >= 0 &&
+            val parsedRank = rankText.toIntOrNull() ?: error("رتبة المدير غير صالحة")
+            require(parsedRank >= 0 &&
                 (!parsedOptions.isPermanent || parsedRank > 0) &&
                 (options.isBlank() || parsedOptions.rank == parsedRank)) { "رتبة المدير غير صالحة" }
             val clinicalRole = ClinicalRole.entries.firstOrNull {
@@ -169,8 +161,8 @@ object DoctorsRegistryCodec {
                 "معرّف مجموعة المشرف غير صالح"
             }
 
-            val stableId = cols.getOrNull(uidIdx)?.takeIf { it.isNotBlank() }
-                ?: DoctorNaming.stableId(name)
+            val stableId = cols[uidIdx]
+            require(stableId.isNotBlank()) { "معرّف الطبيب مفقود" }
 
             Doctor(
                 id = stableId,
@@ -185,8 +177,8 @@ object DoctorsRegistryCodec {
                 customTitle = title,
                 rank = parsedRank,
                 isPermanentAdmin = parsedOptions.isPermanent,
-                extraOptions = if (teamSupervisorIdIdx >= 0) cols[teamSupervisorIdIdx].takeIf { it.isNotBlank() }
-                    ?.let { DoctorOptions.from(emptySet()).withTeamSupervisor(it) }.orEmpty() else emptySet()
+                extraOptions = cols[teamSupervisorIdIdx].takeIf { it.isNotBlank() }
+                    ?.let { DoctorOptions.from(emptySet()).withTeamSupervisor(it) }.orEmpty()
             )
         }
 

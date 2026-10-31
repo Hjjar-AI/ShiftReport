@@ -35,17 +35,12 @@ data class SyncState(
     val previousCsvDate: String? = null,
     val previousCsvUpdatedAt: Long = 0L,
 
-    // --- Doctors registry (file IDs; doctorsData supports legacy state) ---
-    val doctorsData: String? = null,
+    // --- Doctors registry ---
     val doctorsFileId: String? = null,
     val doctorsMessageId: Long? = null,
-    val doctorsUpdatedAt: Long = 0L,
-
-    // Inert legacy index fields: preserve older clients' references.
-    val announcementMessageId: Long? = null,
-    val announcementUpdatedAt: Long = 0L
+    val doctorsUpdatedAt: Long = 0L
 ) {
-    val isRecognized: Boolean get() = kind == KIND && v in 1..CURRENT_VERSION
+    val isRecognized: Boolean get() = kind == KIND && v == CURRENT_VERSION
 
     companion object {
         const val KIND = "shift-report-sync-state"

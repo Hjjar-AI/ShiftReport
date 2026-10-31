@@ -623,7 +623,7 @@
     <string name="ui_project_connection_action_001" formatted="false">"إعادة الاتصال بالمشروع"</string>
     <string name="ui_project_connection_action_002" formatted="false">"استبدال رمز البوت"</string>
     <string name="ui_project_connection_action_003">"تم التحقق من اتصال %1$s."</string>
-    <string name="ui_project_connection_action_004" formatted="false">"سيُستبدل رمز الاتصال فقط. سيبقى مفتاح التشفير والمرضى والمناوبات والتعديلات غير المرسلة كما هي."</string>
+    <string name="ui_project_connection_action_004" formatted="false">"سيُحدّث الاتصال، وتُطبّق وجهة المقيمين من ملف الانضمام إن اخترت ملفاً. سيبقى مفتاح التشفير والمرضى والمناوبات والتعديلات غير المرسلة كما هي."</string>
     <string name="ui_project_connection_action_005" formatted="false">"استخدم ملف الانضمام المحدّث من المدير. يُرفض ملف مشروع آخر أو مفتاح مختلف لحماية البيانات المحلية."</string>
     <string name="ui_project_connection_action_006" formatted="false">"ألغِ الرمز القديم وأنشئ بديلاً للبوت نفسه عبر BotFather، ثم أدخله هنا. بعد الحفظ صدّر ملف انضمام جديداً ووزّعه على الأجهزة. إلغاء الرمز يوقف اتصال الأجهزة التي تستخدمه."</string>
     <string name="ui_project_connection_action_007" formatted="false">"افتح @BotFather في تليجرام"</string>

@@ -62,11 +62,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -483,26 +479,12 @@ private fun WardWorkspaceContent(
                             .semantics { contentDescription = uiText(R.string.ui_add_patient) }
                     ) {
                         Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
-                        if (!uiPreferences.compactAddAction) Text(uiText(R.string.ui_add_patient), Modifier.padding(start = UiSpacing.small))
                     }
                 }
             },
             bottomBar = {
-                // Read scroll-driven visibility in the dock scope, not the clinical workspace.
-                val navigationVisible = rememberWardNavigationVisible(patientGridState,
-                    uiPreferences.autoHideNavigation && patientDestination &&
-                        !expandedWindow && state.patients.isNotEmpty(),
-                    state.shift?.id to viewMode)
-                var navigationHeightPx by remember { mutableStateOf(0) }
-                val navigationShift by animateFloatAsState(if (navigationVisible) 0f else 1f,
-                    animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.placementMillis),
-                    label = "wardNavigationShift")
-                Box(Modifier.onSizeChanged { navigationHeightPx = it.height }
-                    .graphicsLayer { translationY = navigationShift * navigationHeightPx }
-                    .then(if (navigationVisible) Modifier else Modifier.clearAndSetSemantics { })) {
-                    WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
-                        onDestination = { viewMode = it })
-                }
+                WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
+                    onDestination = { viewMode = it })
             },
             snackbarHost = { if (!showWardTasks) AppSnackbarHost(snackbarHost) }
         ) { padding ->

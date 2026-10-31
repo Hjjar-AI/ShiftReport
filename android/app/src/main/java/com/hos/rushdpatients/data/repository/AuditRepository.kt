@@ -12,7 +12,7 @@ class AuditRepository @Inject constructor(
     private val dispatchers: DispatcherProvider
 ) {
 
-    // Compatibility API only. New audit records are disabled by owner choice.
+    // Current callers use this disabled audit sink; no new audit records are written.
     @Suppress("UNUSED_PARAMETER")
     suspend fun record(
         actorDoctorId: String?, actorName: String?, action: String, detail: String = "",

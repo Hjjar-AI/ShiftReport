@@ -76,7 +76,6 @@ class RemoteSyncStateStore @Inject constructor(
                     .distinctBy { it.messageId }
                     .sortedByDescending { it.messageId }
                     .take(12),
-                doctorsData = doctorsState.doctorsData,
                 doctorsFileId = doctorsState.doctorsFileId,
                 doctorsMessageId = doctorsState.doctorsMessageId,
                 doctorsUpdatedAt = doctorsState.doctorsUpdatedAt

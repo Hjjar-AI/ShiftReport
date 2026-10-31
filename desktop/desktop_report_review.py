@@ -4,7 +4,7 @@ import desktop_widgets as ctk
 from desktop_widgets import messagebox, set_readonly_text
 from desktop_forms import dialog_actions
 from desktop_protocol import BridgeError, fingerprint, require
-from desktop_reports import publication_review, readiness_notes, report_text
+from desktop_reports import publication_review, readiness_notes, report_text, report_destination
 from desktop_delivery import ReportDelivery
 
 
@@ -34,10 +34,10 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
 
     def signature():
         return fingerprint(dict(project=owner.client.project_id,actor=owner.client._actor,
-            local=owner.store.read(),options=read_options(),targets=read_targets()))
+            local=owner.store.read(),options=read_options(),targets=[(target, report_destination(owner.client, owner.client.doctors, target)) for target in read_targets()]))
 
     def name(target):
-        return 'مجموعة المشروع — التقرير العام' if target is None else 'مجموعة '+doctor_label(owner.client.doctors,target)
+        return ('مجموعة المقيمين — التقرير العام' if owner.client.config.get('residentsChatId') else 'مجموعة المشروع — التقرير العام') if target is None else 'مجموعة '+doctor_label(owner.client.doctors,target)
 
     def view_file(target):
         require(prepared and signature()==prepared['signature'],'تغيرت البيانات أو الوجهة أو الخيارات؛ اضغط معاينة مجدداً')

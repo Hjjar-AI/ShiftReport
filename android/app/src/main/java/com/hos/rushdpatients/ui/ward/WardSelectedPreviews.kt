@@ -28,15 +28,15 @@ private fun CompactWardPreview() = SelectedWardPreview(UiPreferences(reducedMoti
 @Preview(name = "Quiet — RTL dark 150%", locale = "ar", widthDp = 360, heightDp = 720,
     fontScale = 1.5f, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun QuietWardPreview() = SelectedWardPreview(UiPreferences(profile = "quiet", reducedMotion = true))
+private fun QuietWardPreview() = SelectedWardPreview(UiPreferences(reducedMotion = true))
 
 @Preview(name = "Clear — RTL AMOLED 200%", locale = "ar", widthDp = 320, heightDp = 720, fontScale = 2f)
 @Composable
-private fun ClearWardPreview() = SelectedWardPreview(UiPreferences(profile = "clear", reducedMotion = true), AppAppearance.AMOLED)
+private fun ClearWardPreview() = SelectedWardPreview(UiPreferences(reducedMotion = true), AppAppearance.AMOLED)
 
 @Preview(name = "Relaxed — RTL narrow 200%", locale = "ar", widthDp = 320, heightDp = 720, fontScale = 2f)
 @Composable
-private fun RelaxedWardPreview() = SelectedWardPreview(UiPreferences(profile = "relaxed", reducedMotion = true))
+private fun RelaxedWardPreview() = SelectedWardPreview(UiPreferences(reducedMotion = true))
 
 @Preview(name = "Search — RTL narrow dark", locale = "ar", widthDp = 320, heightDp = 640,
     uiMode = Configuration.UI_MODE_NIGHT_YES)

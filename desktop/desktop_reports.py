@@ -159,7 +159,9 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
 
 def report_destination(client, doctors, supervisor=None):
     if supervisor is None:
-        return client.config['chatId'], client.config.get('reportsTopicId')
+        if client.config.get('residentsChatId'):
+            return client.config['residentsChatId'], client.config.get('residentsTopicId') or None
+        return client.config['chatId'], client.config.get('reportsTopicId') or None
     doctor = doctors.get(supervisor)
     require(doctor and doctor['clinicalRole'] == 'SUPERVISOR' and doctor.get('destination'),
             'وجهة المشرف غير متاحة')
@@ -210,7 +212,7 @@ def publication_patient_content(row):
 
 
 def publication_content(shift):
-    """Clinical/order comparison; legacy bookkeeping cannot create pending work.
+    """Clinical/order comparison; stored bookkeeping cannot create pending work.
 
     Delivery receipt identity remains owned by report_content.
     """

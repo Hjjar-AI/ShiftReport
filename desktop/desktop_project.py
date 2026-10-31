@@ -59,7 +59,9 @@ class ProjectCreator:
                 'المشروع يحتاج مجموعة تليجرام')
         require(not chat.get('pinned_message'),
                 'توجد رسالة مثبتة بالفعل. استخدم الانضمام لمشروع قائم، أو راجع التثبيت القديم يدوياً قبل إنشاء مشروع جديد')
-        topics = [config.get(k, 0) for k in ('reportsTopicId', 'announcementsTopicId', 'csvTopicId', 'doctorsTopicId')]
+        from desktop_destinations import validate_destination
+        validate_destination(self.client)
+        topics = [config.get(k, 0) for k in ('reportsTopicId', 'csvTopicId', 'doctorsTopicId')]
         require(not any(topics) or chat.get('is_forum'), 'معرّفات المواضيع تتطلب مجموعة مفعّلة المواضيع')
         member = telegram.call('getChatMember', {'chat_id': config['chatId'], 'user_id': bot['id']})
         require(member.get('status') == 'administrator' and member.get('can_pin_messages'),
@@ -133,7 +135,7 @@ class ProjectCreator:
             'hospital': self.client.config['hospitalName'], 'group': chat.get('title', ''),
             'group_id': self.client.config['chatId'],
             'topics': {key: self.client.config.get(key, 0) for key in
-                       ('reportsTopicId', 'announcementsTopicId', 'csvTopicId', 'doctorsTopicId')},
+                       ('reportsTopicId', 'csvTopicId', 'doctorsTopicId')},
             'admin': profile['name'], 'role': profile['clinicalRole'],
             'encrypted': bool(self.client.config.get('telegramDataKey'))}
 
@@ -190,8 +192,8 @@ def export_join(client, path, password):
         require(is_admin(client.authorize(snapshot['doctors'])), 'تصدير ملف الانضمام متاح للمدير فقط')
     authorize()
     require(len(password.encode('utf-16-le'))//2 >= 10, 'عبارة مرور ملف الانضمام يجب ألا تقل عن 10 محارف')
-    keys = ('hospitalName', 'botToken', 'chatId', 'reportsTopicId', 'announcementsTopicId',
-            'csvTopicId', 'doctorsTopicId', 'telegramDataKey')
+    keys = ('hospitalName', 'botToken', 'chatId', 'reportsTopicId',
+            'csvTopicId', 'doctorsTopicId', 'telegramDataKey', 'residentsChatId', 'residentsTopicId')
     config = {key: client.config.get(key, '' if key in {'hospitalName','botToken','telegramDataKey'} else 0) for key in keys}
     config.update(version=1, encryptTelegram=bool(config['telegramDataKey']))
     salt, nonce = secrets.token_bytes(16), secrets.token_bytes(12)

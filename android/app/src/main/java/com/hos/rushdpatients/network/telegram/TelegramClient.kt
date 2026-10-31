@@ -74,6 +74,18 @@ class TelegramClient @Inject constructor(
         chat.pinnedMessage?.text?.let { dataCipher.decodeText(it, requireEncrypted = true) }
     }
 
+    /** Read destination metadata without interpreting another group's pinned message as project data. */
+    suspend fun validateReportDestination(chatId: Long, topicId: Long, candidateToken: String? = null) {
+        val chat: TgChat = callAndUnwrap("getChat", chatId,
+            FormBody.Builder().add("chat_id", chatId.toString()).build(), explicitToken = candidateToken)
+        require(chat.id == chatId && chat.type in setOf("group", "supergroup")) { "وجهة التقارير تحتاج مجموعة تليجرام" }
+        require(topicId == 0L || chat.isForum) { "المجموعة لا تدعم المواضيع؛ اترك معرّف الموضوع فارغاً" }
+        val bot: TgUser = callAndUnwrap("getMe", 0L, FormBody.Builder().build(), explicitToken = candidateToken)
+        val member: TgChatMember = callAndUnwrap("getChatMember", chatId, FormBody.Builder()
+            .add("chat_id", chatId.toString()).add("user_id", bot.id.toString()).build(), explicitToken = candidateToken)
+        require(member.isAdmin) { "اجعل البوت مديراً في مجموعة التقارير أولاً" }
+    }
+
     // ---------------- Messages ----------------
 
     suspend fun sendMessage(

@@ -4,7 +4,6 @@ object CsvSchema {
 
     const val META_PREFIX = "#"
     const val CURRENT_VERSION = 7
-    val SUPPORTED_VERSIONS = 3..CURRENT_VERSION
 
     // Column order — this is the on-wire format.
     val COLUMNS: List<String> = listOf(

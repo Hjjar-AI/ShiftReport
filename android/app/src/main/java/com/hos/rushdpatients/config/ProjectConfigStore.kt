@@ -24,11 +24,12 @@ data class ProjectConfig(
     val botToken: String = "",
     val chatId: Long = 0L,
     val reportsTopicId: Long = 0L,
-    val announcementsTopicId: Long = 0L,
     val csvTopicId: Long = 0L,
     val doctorsTopicId: Long = 0L,
     val telegramDataKey: String = "",
-    val initialAdmin: InitialAdminConfig = InitialAdminConfig()
+    val initialAdmin: InitialAdminConfig = InitialAdminConfig(),
+    val residentsChatId: Long = 0L,
+    val residentsTopicId: Long = 0L
 )
 
 /** Device-local project connection. Credentials are never stored in Room or exported backups. */
@@ -55,12 +56,24 @@ class ProjectConfigStore @Inject constructor(
         write(draft)
     }
 
-    /** Compare-and-set only the token: clinical scope, topics, and encryption key stay intact. */
+    /** Compare-and-set connection credentials and optional residents routing; clinical scope/key stay intact. */
     @Synchronized
-    internal fun replaceBotToken(expected: ProjectConfig, token: String) {
+    internal fun replaceBotToken(expected: ProjectConfig, token: String, residentsChatId: Long = expected.residentsChatId, residentsTopicId: Long = expected.residentsTopicId) {
         check(_config.value == expected) { "تغيرت إعدادات المشروع؛ أعد فتح ملف الاتصال" }
-        check(prefs.edit().putString(KEY_BOT_TOKEN, token).commit()) { "تعذر حفظ رمز البوت" }
-        _config.value = expected.copy(botToken = token)
+        check(prefs.edit().putString(KEY_BOT_TOKEN, token).putLong(KEY_RESIDENTS_CHAT, residentsChatId).putLong(KEY_RESIDENTS_TOPIC, residentsTopicId).commit()) { "تعذر حفظ رمز البوت" }
+        _config.value = expected.copy(botToken = token, residentsChatId = residentsChatId, residentsTopicId = residentsTopicId)
+    }
+
+    /** Device-local report routing; never changes clinical project identity. */
+    @Synchronized
+    internal fun replaceResidentsDestination(expected: ProjectConfig, chatId: Long, topicId: Long) {
+        check(_config.value == expected) { "تغيرت إعدادات المشروع؛ أعد فتح الوجهة" }
+        require(chatId <= 0L && topicId >= 0L && (chatId != 0L || topicId == 0L))
+        val updated = expected.copy(residentsChatId = chatId, residentsTopicId = topicId)
+        check(prefs.edit().putLong(KEY_RESIDENTS_CHAT, chatId).putLong(KEY_RESIDENTS_TOPIC, topicId).commit()) {
+            "تعذر حفظ وجهة المقيمين"
+        }
+        _config.value = updated
     }
 
     fun markInitialized() {
@@ -90,8 +103,9 @@ class ProjectConfigStore @Inject constructor(
             .putString(KEY_BOT_TOKEN, config.botToken)
             .putString(KEY_TELEGRAM_DATA_KEY, config.telegramDataKey)
             .putLong(KEY_CHAT_ID, config.chatId)
+            .putLong(KEY_RESIDENTS_CHAT, config.residentsChatId)
+            .putLong(KEY_RESIDENTS_TOPIC, config.residentsTopicId)
             .putLong(KEY_REPORTS_TOPIC, config.reportsTopicId)
-            .putLong(KEY_ANNOUNCEMENTS_TOPIC, config.announcementsTopicId)
             .putLong(KEY_CSV_TOPIC, config.csvTopicId)
             .putLong(KEY_DOCTORS_TOPIC, config.doctorsTopicId)
             .putString(KEY_ADMIN_NAME, config.initialAdmin.fullName)
@@ -109,8 +123,9 @@ class ProjectConfigStore @Inject constructor(
         botToken = prefs.getString(KEY_BOT_TOKEN, "").orEmpty(),
         telegramDataKey = prefs.getString(KEY_TELEGRAM_DATA_KEY, "").orEmpty(),
         chatId = prefs.getLong(KEY_CHAT_ID, 0L),
+        residentsChatId = prefs.getLong(KEY_RESIDENTS_CHAT, 0L),
+        residentsTopicId = prefs.getLong(KEY_RESIDENTS_TOPIC, 0L),
         reportsTopicId = prefs.getLong(KEY_REPORTS_TOPIC, 0L),
-        announcementsTopicId = prefs.getLong(KEY_ANNOUNCEMENTS_TOPIC, 0L),
         csvTopicId = prefs.getLong(KEY_CSV_TOPIC, 0L),
         doctorsTopicId = prefs.getLong(KEY_DOCTORS_TOPIC, 0L),
         initialAdmin = InitialAdminConfig(
@@ -129,8 +144,9 @@ class ProjectConfigStore @Inject constructor(
         const val KEY_BOT_TOKEN = "bot_token"
         const val KEY_TELEGRAM_DATA_KEY = "telegram_data_key"
         const val KEY_CHAT_ID = "chat_id"
+        const val KEY_RESIDENTS_CHAT = "residents_chat_id"
+        const val KEY_RESIDENTS_TOPIC = "residents_topic_id"
         const val KEY_REPORTS_TOPIC = "reports_topic"
-        const val KEY_ANNOUNCEMENTS_TOPIC = "announcements_topic"
         const val KEY_CSV_TOPIC = "csv_topic"
         const val KEY_DOCTORS_TOPIC = "doctors_topic"
         const val KEY_ADMIN_NAME = "admin_name"

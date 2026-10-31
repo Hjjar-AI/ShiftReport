@@ -147,7 +147,7 @@ object CsvCodec {
         val meta = parseMeta(metaLine)
 
         val version = meta[CsvSchema.META_SCHEMA_VERSION]?.toIntOrNull()
-        require(version in CsvSchema.SUPPORTED_VERSIONS) {
+        require(version == CsvSchema.CURRENT_VERSION) {
             "إصدار ملف CSV غير مدعوم: ${version ?: "غير محدد"}"
         }
 
@@ -178,8 +178,7 @@ object CsvCodec {
         val header = rows[1].map { it.trim() }
         require(header.distinct().size == header.size) { "أعمدة CSV مكررة" }
         val indexOf = header.withIndex().associate { (i, name) -> name to i }
-        val requiredColumns = CsvSchema.COLUMNS.take(14) +
-            if (version != null && version >= 7) listOf(CsvSchema.COL_TASKS) else emptyList()
+        val requiredColumns = CsvSchema.COLUMNS
         val missingColumns = requiredColumns.filterNot(indexOf::containsKey)
         require(missingColumns.isEmpty()) {
             "أعمدة CSV مفقودة: ${missingColumns.joinToString()}"
@@ -233,16 +232,16 @@ object CsvCodec {
         val admissionNumber = field(CsvSchema.COL_ADMIT_NUM).trim()
 
         val genderText = field(CsvSchema.COL_GENDER).trim().uppercase()
-        require(genderText in setOf("M", "MALE", "F", "FEMALE")) {
+        require(genderText in setOf("M", "F")) {
             "السطر $rowNumber: الجنس غير صالح"
         }
         val gender = Gender.fromCode(genderText)
 
         val companionText = field(CsvSchema.COL_COMPANION).trim().uppercase()
-        require(companionText in setOf("Y", "N", "TRUE", "FALSE", "1", "0")) {
+        require(companionText in setOf("Y", "N")) {
             "السطر $rowNumber: قيمة المرافق غير صالحة"
         }
-        val hasCompanion = companionText in setOf("Y", "TRUE", "1")
+        val hasCompanion = companionText == "Y"
 
         val admitDateText = field(CsvSchema.COL_ADMIT_DATE).trim()
         val admitDate = if (admitDateText.isBlank()) null else runCatching { LocalDate.parse(admitDateText) }
@@ -263,11 +262,11 @@ object CsvCodec {
         val residentId = field(CsvSchema.COL_RESIDENT_ID).ifBlank { null }
         val specialistId = field(CsvSchema.COL_SUPERVISOR_ID).ifBlank { null }
         val badges = PatientBadgeCodec.decode(
-            encoded = field(CsvSchema.COL_WARNING_DETAILS).trim(),
-            legacyFlags = field(CsvSchema.COL_WARNING_FLAGS).trim()
+            encoded = field(CsvSchema.COL_WARNING_DETAILS).trim()
         )
-        val priority = field(CsvSchema.COL_IS_PRIORITY).trim().uppercase() in
-            setOf("Y", "TRUE", "1")
+        val priorityText = field(CsvSchema.COL_IS_PRIORITY).trim().uppercase()
+        require(priorityText in setOf("Y", "N")) { "قيمة أولوية المريض غير صالحة" }
+        val priority = priorityText == "Y"
         val updatedAt = field(CsvSchema.COL_UPDATED_AT).trim().toLongOrNull()
             ?.let(Instant::ofEpochMilli)
             ?: Instant.now()

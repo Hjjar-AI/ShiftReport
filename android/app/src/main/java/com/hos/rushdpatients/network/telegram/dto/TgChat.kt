@@ -9,6 +9,7 @@ data class TgChat(
     val type: String,
     val title: String? = null,
     val username: String? = null,
+    @SerialName("is_forum") val isForum: Boolean = false,
     @SerialName("first_name") val firstName: String? = null,
     @SerialName("last_name") val lastName: String? = null,
     @SerialName("pinned_message") val pinnedMessage: TgMessage? = null

@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.report
 import com.hos.rushdpatients.ui.components.failureText
 import com.hos.rushdpatients.pdf.PdfRuleWeight
 import com.hos.rushdpatients.pdf.PdfRuleContrast
-import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.network.telegram.TelegramException
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -181,6 +180,7 @@ class ReportPreviewViewModel @Inject constructor(
                         shift = built.shift,
                         patients = built.patients,
                         doctors = built.doctors,
+                        reportsToResidents = (reviewedProject?.residentsChatId ?: 0L) != 0L,
                         supervisorTargets = supervisorTargets,
                         summary = built.summary,
                         previewMarkdown = built.textChunks.joinToString("\n\n") {
@@ -276,7 +276,7 @@ class ReportPreviewViewModel @Inject constructor(
     fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions) {
         val current = _state.value
         if (current.isBusy) return
-        val options = requested.copy(orientation = PdfOrientation.PORTRAIT, darkMode = false, ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)
+        val options = requested.copy(ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)
         _state.update { it.copy(savingPdfOptions = true) }
         viewModelScope.launch {
             try {
@@ -415,11 +415,11 @@ class ReportPreviewViewModel @Inject constructor(
             try {
                 // Check every selected route/artifact before publishing or sending any copy.
                 if (includeGeneral) {
-                    reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf, ReportReview.legacyFingerprint(reviewed))
+                    reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
                     if (current.reportAsPdf) checkedPdf(reviewed)
                 }
                 for (target in selected) {
-                    reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId), ReportReview.legacySupervisorFingerprint(reviewed, target.doctorId))
+                    reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId))
                     checkedPdf(reviewed, target.doctorId)
                 }
                 publishReviewedSnapshot(reviewed)
@@ -432,6 +432,7 @@ class ReportPreviewViewModel @Inject constructor(
                         uiText(R.string.report_supervisor_destination_changed)
                     }
                 }
+                check(projectConfigStore.current() == reviewedProject) { uiText(R.string.report_export_changed) }
                 if (includeGeneral) {
                     _state.update { it.copy(deliveryOutcome = ReportStepOutcome.IN_PROGRESS) }
                     if (current.reportAsPdf) sendPdf(built, actor) else sendText(built, actor)
@@ -507,7 +508,7 @@ class ReportPreviewViewModel @Inject constructor(
         reportSender.sendTextReport(
             shift = built.shift,
             chunks = built.textChunks,
-            actor = actor, contentKey = ReportReview.fingerprint(built), legacyContentKey = ReportReview.legacyFingerprint(built)
+            actor = actor, contentKey = ReportReview.fingerprint(built)
         )
     }
 
@@ -542,13 +543,12 @@ class ReportPreviewViewModel @Inject constructor(
         if (supervisor == null) {
             reportSender.sendPdfReport(shift = built.shift, pdfFile = file,
                 fileName = reportFileName(built.summary.shiftDate), caption = caption, actor = actor,
-                contentKey = ReportReview.fingerprint(built), legacyContentKey = ReportReview.legacyFingerprint(built))
+                contentKey = ReportReview.fingerprint(built))
         } else {
             reportSender.sendSupervisorPdfReport(shift = built.shift, pdfFile = file, caption = caption, actor = actor,
                 fileName = pdfWorkspace.reportFileName(built.summary.shiftDate, "supervisor:${supervisor.id}", supervisorName = supervisor.fullName),
                 supervisor = supervisor, chatId = requireNotNull(requireNotNull(target).chatId),
-                contentKey = ReportReview.supervisorFingerprint(built, supervisor.id),
-                legacyContentKey = ReportReview.legacySupervisorFingerprint(built, supervisor.id))
+                contentKey = ReportReview.supervisorFingerprint(built, supervisor.id))
         }
     }
 

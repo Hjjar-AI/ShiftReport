@@ -153,6 +153,10 @@ fun ProjectSetupScreen(
                             enabled = !state.busy
                         )
 
+                        Text(uiText(R.string.residents_destination_hint), style = MaterialTheme.typography.bodySmall)
+                        NumberField(state.residentsChatId, viewModel::setResidentsChatId, uiText(R.string.residents_group_optional), signed = true, enabled = !state.busy)
+                        NumberField(state.residentsTopicId, viewModel::setResidentsTopicId, uiText(R.string.residents_topic_optional), enabled = !state.busy)
+
                         AppTextButton(onClick = { showTopics = !showTopics }) {
                             Text(if (showTopics) uiText(R.string.ui_project_setup_screen_020) else uiText(R.string.ui_project_setup_screen_021))
                         }

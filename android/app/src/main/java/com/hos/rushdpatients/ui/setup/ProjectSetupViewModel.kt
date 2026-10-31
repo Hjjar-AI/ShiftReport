@@ -58,6 +58,8 @@ class ProjectSetupViewModel @Inject constructor(
     fun setHospitalName(value: String) = update { copy(hospitalName = value, error = null) }
     fun setBotToken(value: String) = update { copy(botToken = value.trim(), error = null) }
     fun setChatId(value: String) = update { copy(chatId = numeric(value, signed = true), error = null) }
+    fun setResidentsChatId(value: String) = update { copy(residentsChatId = numeric(value, signed = true), error = null) }
+    fun setResidentsTopicId(value: String) = update { copy(residentsTopicId = numeric(value), error = null) }
     fun setReportsTopicId(value: String) = update { copy(reportsTopicId = numeric(value), error = null) }
     fun setCsvTopicId(value: String) = update { copy(csvTopicId = numeric(value), error = null) }
     fun setDoctorsTopicId(value: String) = update { copy(doctorsTopicId = numeric(value), error = null) }
@@ -84,8 +86,9 @@ class ProjectSetupViewModel @Inject constructor(
                             hospitalName = config.hospitalName,
                             botToken = config.botToken,
                             chatId = config.chatId.toString(),
+                            residentsChatId = config.residentsChatId.takeIf { id -> id != 0L }?.toString().orEmpty(),
+                            residentsTopicId = config.residentsTopicId.takeIf { id -> id != 0L }?.toString().orEmpty(),
                             reportsTopicId = config.reportsTopicId.takeIf { id -> id > 0 }?.toString().orEmpty(),
-                            announcementsTopicId = config.announcementsTopicId.takeIf { id -> id > 0 }?.toString().orEmpty(),
                             csvTopicId = config.csvTopicId.takeIf { id -> id > 0 }?.toString().orEmpty(),
                             doctorsTopicId = config.doctorsTopicId.takeIf { id -> id > 0 }?.toString().orEmpty(),
                             provisioningPassphrase = "",
@@ -170,6 +173,10 @@ class ProjectSetupViewModel @Inject constructor(
                     uiText(R.string.ui_project_setup_view_model_009)
                 }
 
+                val mainTopic = listOf(configured.reportsTopicId, configured.csvTopicId, configured.doctorsTopicId).firstOrNull { it > 0L }
+                if (mainTopic != null) telegram.validateReportDestination(configured.chatId, mainTopic)
+                com.hos.rushdpatients.config.ResidentsDestination.validate(telegram, configured.residentsChatId, configured.residentsTopicId)
+
                 val bootstrap = if (input.mode == ProjectSetupMode.CREATE) {
                     if (review == null && chat.pinnedMessage != null) {
                         pendingPinnedProjectReview = PinnedProjectReview(configured,
@@ -230,15 +237,17 @@ class ProjectSetupViewModel @Inject constructor(
             )
         } else InitialAdminConfig()
 
+        val (residentsChatId, residentsTopicId) = com.hos.rushdpatients.config.ResidentsDestination.parse(input.residentsChatId, input.residentsTopicId)
         return ProjectConfig(
             hospitalName = hospitalName,
             botToken = token,
             telegramDataKey = if (input.mode == ProjectSetupMode.JOIN || input.encryptTelegram) input.telegramDataKey else "",
             chatId = chatId,
             reportsTopicId = topic(input.reportsTopicId, uiText(R.string.ui_project_setup_view_model_021)),
-            announcementsTopicId = input.announcementsTopicId.toLongOrNull() ?: 0L, // Legacy join files only.
             csvTopicId = topic(input.csvTopicId, uiText(R.string.ui_project_setup_view_model_023)),
             doctorsTopicId = topic(input.doctorsTopicId, uiText(R.string.ui_doctors)),
+            residentsChatId = residentsChatId,
+            residentsTopicId = residentsTopicId,
             initialAdmin = admin
         )
     }

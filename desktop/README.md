@@ -44,6 +44,10 @@ New unused workspace/group only: human admin plus bot send/pin rights; create op
 
 Verified live admin can export fresh `.srjoin.json` with password≥10, shared connection/key only; refuses overwrite, rechecks role and reopens encrypted output. Send password separately. Live Windows/desktop creation/export remains unverified.
 
+General PDF/text reports can optionally use a separate residents group and optional topic. At project creation, set `RESIDENTS_CHAT_ID`/`RESIDENTS_TOPIC_ID` in the private raw configuration; all topic fields are optional (blank/0 means no specific topic). Later, a verified live admin can use **إدارة الفريق والمشروع → وجهة تقارير المقيمين**. Blank residents group uses the main project group and its optional Reports topic. CSV/registry/index stay in the main group; verification codes stay private. The bot must administer the residents group. Topic validation checks forum capability; it does not prove a particular topic exists or is open.
+
+Changes are local connection settings, stored in a separate authenticated encrypted `.connection` file beside the workspace, excluded from clinical drafts/exports and clinical project identity. Export a new protected join file and reconnect other devices to distribute the destination. A newly supplied connection with different residents settings supersedes the prior local override. Changed routing invalidates report review; no automatic resend or cross-group message deletion.
+
 ## Configuration and storage
 
 | Item | Contract |
@@ -59,7 +63,7 @@ Verified live admin can export fresh `.srjoin.json` with password≥10, shared c
 
 ## Clinical, reports and administration
 
-Optional profiles/plain multiline diagnosis/treatment/follow-up/labs, explicit text/done tasks, badges/priority, valid assignments; no new audit/editor/completion stamps. Legacy metadata retained.08:30 in selected IANA zone (default Asia/Damascus) labels continuing ward; no date browser/copy-forward. New publications one ward; old multi-list Fetch chooses newest. Fetch Undo/admin reviewed prior-publication rollback remain.
+Optional profiles/plain multiline diagnosis/treatment/follow-up/labs, explicit text/done tasks, badges/priority, valid assignments; no new audit/editor/completion stamps. Current-schema storage metadata retained.08:30 in selected IANA zone (default Asia/Damascus) labels continuing ward; no date browser/copy-forward. Publication and Fetch require one current ward per bundle. Fetch Undo/admin reviewed prior-publication rollback remain.
 
 Grouping is presentation-only; manual/name/admission-duration/workbook sort presets persist order, priority first. Imported custom specs remain until changed. Up/down actions are removed; choose saved sort presets in View Options. Delete is a labelled card action with a named confirmation (No by default), followed by local recycle/restore. Standalone clinical export is always a labelled local draft. Admins export names-only assignments from the sidebar button directly below upload/send: local preview then save, no upload or draft marking. Normal PDF copying is a checked-by-default optional choice in final-confirmed upload/send, applied after successful Telegram delivery; sending retains its own review/confirmation. Resident team membership independent of cover, one active supervisor/resident; move members before unsafe supervisor changes. Cross-team cover never changes membership.
 

@@ -44,14 +44,6 @@ object ReportReview {
         add(report.textChunks.size.toString()); addAll(report.textChunks)
     })
 
-    /** Read existing receipt keys during the transition; new receipts use the explicit field list. */
-    fun legacyFingerprint(report: BuiltReport): String {
-        val fields = listOf(report.shift.id, report.shift.date.toString(), report.shift.doctorIds.toString(),
-            report.shift.multiDoctorMode.toString(), report.shift.sortSpecJson.orEmpty(),
-            report.patients.map { legacyPatientString(clinicalPatient(it)) }.joinToString(prefix = "[", postfix = "]"), relevantDoctors(report).toString(), report.textChunks.toString())
-        return digestFields(fields)
-    }
-
     /** Different supervisor subsets remain distinct even when they share a Telegram group. */
     fun supervisorFingerprint(report: BuiltReport, supervisorId: String): String {
         require(supervisorId.isNotBlank())
@@ -80,36 +72,6 @@ object ReportReview {
     })
 
     private fun sameContent(a: BuiltReport, b: BuiltReport): Boolean = fingerprint(a) == fingerprint(b)
-
-    fun legacySupervisorFingerprint(report: BuiltReport, supervisorId: String): String =
-        digestFields(listOf("supervisor-pdf", supervisorId, legacyFingerprint(report)))
-
-    /** Historical data-class shape, frozen before assignment marking was added. */
-    private fun legacyPatientString(patient: Patient): String = listOf(
-        "id=${patient.id}",
-        "admittanceNumber=${patient.admittanceNumber}",
-        "admittanceDate=${patient.admittanceDate}",
-        "gender=${patient.gender}",
-        "name=${patient.name}",
-        "birthDate=${patient.birthDate}",
-        "hasCompanion=${patient.hasCompanion}",
-        "diagnosisType=${patient.diagnosisType}",
-        "initialDiagnosis=${patient.initialDiagnosis}",
-        "treatmentPlan=${patient.treatmentPlan}",
-        "followUp=${patient.followUp}",
-        "labs=${patient.labs}",
-        "tasks=${patient.tasks}",
-        "responsibleResidentId=${patient.responsibleResidentId}",
-        "responsibleSpecialistId=${patient.responsibleSpecialistId}",
-        "badges=${patient.badges}",
-        "isPriority=${patient.isPriority}",
-        "lastEditedByDoctorId=${patient.lastEditedByDoctorId}",
-        "lastEditedByName=${patient.lastEditedByName}",
-        "sortOrder=${patient.sortOrder}",
-        "revision=${patient.revision}",
-        "updatedAt=${patient.updatedAt}",
-        "deletedAt=${patient.deletedAt}"
-    ).joinToString(prefix = "Patient(", postfix = ")")
 
     private fun clinicalPatient(patient: Patient): Patient = patient.withoutTrackingMetadata().copy(revision = 0)
 

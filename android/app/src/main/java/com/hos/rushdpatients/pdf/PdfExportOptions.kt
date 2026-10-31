@@ -2,12 +2,6 @@ package com.hos.rushdpatients.pdf
 
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 
-enum class PdfOrientation(val arabicLabel: String) {
-    PORTRAIT("عمودي"),
-    LANDSCAPE("أفقي");
-
-}
-
 enum class PdfPaperSize(
     val arabicLabel: String,
     val widthPoints: Int,
@@ -18,10 +12,7 @@ enum class PdfPaperSize(
 
     companion object {
         fun fromSetting(value: String?): PdfPaperSize =
-            when (value) {
-                null -> A5
-                else -> entries.firstOrNull { it.name == value } ?: A4
-            }
+            entries.firstOrNull { it.name == value } ?: A5
     }
 }
 
@@ -65,11 +56,8 @@ enum class PdfPresentationPreset(
 }
 
 data class PdfExportOptions(
-    // Retired options retained for source compatibility; renderers always use portrait/light.
-    val orientation: PdfOrientation = PdfOrientation.PORTRAIT,
     val paperSize: PdfPaperSize = PdfPaperSize.A5,
     val colorPreset: PdfColorPreset = PdfColorPreset.TEAL,
-    val darkMode: Boolean = false,
     val patientCardStyle: PatientCardStyle = PatientCardStyle.BADGE_HEADER,
     val hospitalName: String = "",
     val wardName: String = "",

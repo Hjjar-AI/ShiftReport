@@ -67,7 +67,7 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private fun sameDoctorPointer(a: SyncState?, b: SyncState?): Boolean =
         a?.doctorsMessageId == b?.doctorsMessageId && a?.doctorsFileId == b?.doctorsFileId &&
-            a?.doctorsUpdatedAt == b?.doctorsUpdatedAt && a?.doctorsData == b?.doctorsData
+            a?.doctorsUpdatedAt == b?.doctorsUpdatedAt
 
     private suspend fun uploadDoctorsInternal(
         registryData: String,
@@ -78,7 +78,7 @@ class DoctorSyncCoordinator @Inject constructor(
             val actor = adminAuthorizer.requireAdmin()
             if (transfer != null) validateTransferReview(transfer, remoteStateBeforeUpload)
             if (remoteStateBeforeUpload != null &&
-                (remoteStateBeforeUpload.doctorsFileId != null || remoteStateBeforeUpload.doctorsData != null)) {
+                remoteStateBeforeUpload.doctorsFileId != null) {
                 val remoteDoctors = loadPublishedRegistry(remoteStateBeforeUpload)
                 val remoteActor = remoteDoctors.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
                 require(remoteActor != null && remoteActor.telegramId == actor.telegramId) {
@@ -132,7 +132,6 @@ class DoctorSyncCoordinator @Inject constructor(
                     context.getString(R.string.doctors_registry_changed_upload)
                 }
                 current.copy(
-                    doctorsData = null,
                     doctorsFileId = uploadedFileId,
                     doctorsMessageId = message.messageId,
                     doctorsUpdatedAt = System.currentTimeMillis()
@@ -246,9 +245,6 @@ class DoctorSyncCoordinator @Inject constructor(
         uploadDoctorsInternal(registryData(doctors))
     }
 
-    /** Compatibility entry point: fetching never publishes local registry changes. */
-    suspend fun synchronizeDoctors(): Result<Unit> = refreshDoctorsFromRemote()
-
     /** Preserve pending registry edits during patient-only replacement. Missing references still fail validation. */
     suspend fun refreshDoctorsForPatientFetch(): Result<Unit> = doctorSyncMutex.withLock {
         if (doctorRepository.hasPendingSharedChanges()) Result.success(Unit)
@@ -295,7 +291,7 @@ class DoctorSyncCoordinator @Inject constructor(
                     !doctorRepository.hasPendingSharedChanges()) {
                     context.getString(R.string.doctors_local_changed_download)
                 }
-                // Replace all portable fields while preserving device-only PINs/identity aliases
+                // Replace all portable fields while preserving device-only PINs
                 // and the existing permanent-admin/clinical-reference safety checks.
                 doctorRepository.applyPublishedRegistry(remote)
                 settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData(remote))
@@ -396,18 +392,17 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun loadPublishedRegistry(state: SyncState): List<Doctor> {
         val decoded = registryCacheMutex.withLock {
-            val key = state.doctorsData?.let { "inline:$it" } ?: "file:${requireNotNull(state.doctorsFileId)}"
+            val key = "file:${requireNotNull(state.doctorsFileId)}"
             if (cachedRegistryKey == key) return@withLock requireNotNull(cachedRegistry)
             val registry = DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors
             cachedRegistryKey = key
             cachedRegistry = registry
             registry
         }
-        return doctorRepository.normalizeRemoteRegistry(decoded)
+        return decoded
     }
 
     private suspend fun downloadDoctorsData(state: SyncState): String {
-        state.doctorsData?.let { return it }
         val fileId = state.doctorsFileId
             ?: throw IllegalStateException(context.getString(R.string.doctors_registry_absent))
         val path = telegram.getFile(fileId).filePath

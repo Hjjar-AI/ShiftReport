@@ -75,14 +75,14 @@ class ReportDeliveryLedger @Inject constructor(
         ?: error("يجب تسجيل الدخول بطبيب نشط قبل تعديل سجل التسليم")
 
     private suspend fun begin(shiftId: String, chatId: Long, contentKey: String, format: String,
-                      label: String, expectedActorId: String?, metadata: Map<String, Long>, legacyContentKey: String?): ReportDeliveryRecord = withContext(Dispatchers.IO) {
+                      label: String, expectedActorId: String?, metadata: Map<String, Long>): ReportDeliveryRecord = withContext(Dispatchers.IO) {
         mutex.withLock {
             val actor = activeActor()
             require(actor.id == expectedActorId) { "تغير مستخدم الإرسال؛ أعد المراجعة" }
             val route = digest("$shiftId|$chatId")
             val key = digest("$route|$format|$contentKey")
             val log = load()
-            val keys = setOfNotNull(key, legacyContentKey?.let { digest("$route|$format|$it") })
+            val keys = setOf(key)
             requireAllowed(log, route, keys)
             val record = ReportDeliveryRecord(UUID.randomUUID().toString(), shiftId, route, key,
                 label, format, actor.id, System.currentTimeMillis(), metadata = metadata)
@@ -104,10 +104,9 @@ class ReportDeliveryLedger @Inject constructor(
     /** Register and release together even if cancellation arrives during durable registration. */
     suspend fun <T> deliver(shiftId: String, chatId: Long, contentKey: String, format: String,
                            label: String, expectedActorId: String?, metadata: Map<String, Long> = emptyMap(),
-                           legacyContentKey: String? = null,
                            block: suspend (ReportDeliveryRecord) -> T): T {
         val record = withContext(NonCancellable) {
-            begin(shiftId, chatId, contentKey, format, label, expectedActorId, metadata, legacyContentKey)
+            begin(shiftId, chatId, contentKey, format, label, expectedActorId, metadata)
         }
         try { return block(record) }
         catch (e: com.hos.rushdpatients.network.telegram.TelegramException) {
@@ -140,12 +139,11 @@ class ReportDeliveryLedger @Inject constructor(
             "هذا المحتوى سُلّم سابقاً؛ افتح سجل التسليم واسمح صراحةً بنسخة إضافية إن أردتها")
     }
 
-    suspend fun check(shiftId: String, chatId: Long, contentKey: String, format: String, legacyContentKey: String? = null) = withContext(Dispatchers.IO) {
+    suspend fun check(shiftId: String, chatId: Long, contentKey: String, format: String) = withContext(Dispatchers.IO) {
         mutex.withLock {
             activeActor()
             val route = digest("$shiftId|$chatId")
-            requireAllowed(load(), route, setOfNotNull(digest("$route|$format|$contentKey"),
-                legacyContentKey?.let { digest("$route|$format|$it") }))
+            requireAllowed(load(), route, setOf(digest("$route|$format|$contentKey")))
         }
     }
 

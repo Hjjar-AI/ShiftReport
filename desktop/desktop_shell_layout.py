@@ -140,6 +140,9 @@ def build_window(owner, root, settings, demo):
         command=lambda:owner.open_tool_window(owner.team_window))
     owner.join_export_button=ctk.CTkButton(admin_area,text='ضم جهاز جديد',height=48,
         command=lambda:owner.run(lambda:export_project_join(owner)))
+    from desktop_destinations import destination_dialog
+    owner.residents_destination_button=ctk.CTkButton(admin_area,text='وجهة تقارير المقيمين',height=48,
+        command=lambda:owner.run(lambda:destination_dialog(owner)))
     from desktop_empty_start import empty_start_dialog
     advanced_admin=section('إدارة متقدمة',expanded=False,parent=admin_area)
     owner.empty_start_button=ctk.CTkButton(advanced_admin,text='بداية فارغة — المدير الدائم',height=48,

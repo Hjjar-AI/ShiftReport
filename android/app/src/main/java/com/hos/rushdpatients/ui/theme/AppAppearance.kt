@@ -12,7 +12,7 @@ enum class AppAppearance(@StringRes private val arabicLabelRes: Int) {
 
     companion object {
         fun fromSetting(value: String?): AppAppearance =
-            entries.firstOrNull { it.name == value } ?: LIGHT
+            entries.firstOrNull { it.name == value } ?: SYSTEM
     }
 
     fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)

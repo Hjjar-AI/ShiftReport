@@ -61,7 +61,7 @@
     <string name="admin_transfer_no_candidates">لا يوجد مدير مرتبط مؤهل. امنح الشخص صلاحية مدير واربط حسابه، ثم انشر سجل الأطباء أولاً.</string>
     <string name="admin_transfer_review">جلب ومراجعة النقل</string>
     <string name="admin_transfer_review_body">المدير الدائم الحالي: %1$s\nالمدير الدائم الجديد: %2$s\nحساب تليجرام للمستلم: %3$s\nسيبقى المدير السابق مديراً عادياً برتبته الحالية. يحتفظ الطرفان ببياناتهما السريرية وتعييناتهما. لا يمكن التراجع عن النقل إلا بواسطة مدير دائم.</string>
-    <string name="admin_transfer_client_notice">حدّث تطبيقات المشاركين قبل النقل؛ إصدارات أندرويد القديمة قد ترفض جلب تغيير المدير الدائم. تحقّق من هوية المستلم قبل التأكيد.</string>
+    <string name="admin_transfer_client_notice">تحقّق من هوية المستلم قبل تأكيد نقل الإدارة الدائمة.</string>
     <string name="admin_transfer_confirm">تأكيد النقل ونشر السجل</string>
     <string name="admin_transfer_stale">تغير الحساب أو المشروع أو سجل الأطباء؛ اجلب السجل وأعد مراجعة النقل.</string>
     <string name="admin_transfer_sync_first">انشر تغييرات الأطباء أو اجلب السجل أولاً، ثم أعد النقل.</string>
@@ -69,4 +69,13 @@
     <string name="admin_transfer_prepare_failed">تعذرت مراجعة النقل. تحقّق من الاتصال وصلاحية المدير الدائم، وزامن سجل الأطباء، ثم أعد المراجعة.</string>
     <string name="admin_transfer_uncertain">لم يتأكد النقل محلياً. قد يكون نُشر؛ اجلب سجل الأطباء من الشبكة وتحقق من المدير الدائم قبل أي محاولة جديدة.</string>
     <string name="admin_transfer_success">تأكد نقل الإدارة الدائمة؛ احتفظ المدير السابق بصلاحية مدير عادي.</string>
+    <string name="residents_group_optional">مجموعة المقيمين — اختياري</string>
+    <string name="residents_topic_optional">موضوع المقيمين — اختياري</string>
+    <string name="residents_destination_title">وجهة تقارير المقيمين</string>
+    <string name="residents_destination_hint">اترك مجموعة المقيمين فارغة لإرسال التقارير إلى مجموعة المشروع. يمكنك تحديد مجموعة أخرى وموضوع اختياري فيها. تبقى بيانات الإدارة في مجموعة المشروع، ورموز الدخول في الخاص.</string>
+    <string name="residents_destination_saved">حُفظت الوجهة على هذا الجهاز. صدّر ملف انضمام جديداً وأعد الاتصال به على الأجهزة الأخرى لتطبيق الوجهة نفسها.</string>
+    <string name="residents_destination_failed">تعذر حفظ الوجهة</string>
+    <string name="residents_destination_redistribute">التعديل لهذا الجهاز. لتطبيقه على الأجهزة الأخرى، صدّر ملف انضمام جديداً وأعد الاتصال به عليها. تغيير الوجهة يتطلب معاينة التقارير مجدداً.</string>
+    <string name="residents_report_label">مجموعة المقيمين — تقرير المناوبة الكامل</string>
+    <string name="project_report_label">مجموعة المشروع — تقرير المناوبة الكامل</string>
 </resources>
