@@ -52,7 +52,7 @@ class PdfRenderingTest {
         }
     }
     @Test fun longArabicClassicReportPaginatesAndEveryPageRenders() = runBlocking<Unit> {
-        renderAll(export(false, PdfExportOptions(orientation = PdfOrientation.LANDSCAPE)), false, "classic")
+        renderAll(export(false, PdfExportOptions()), false, "classic")
     }
     @Test fun a5CardsIncludeIndexAndRenderEveryPatientPage() = runBlocking<Unit> {
         assertTrue(renderAll(export(true, PdfExportOptions(paperSize = PdfPaperSize.A5)), false) >= 9)
@@ -69,18 +69,16 @@ class PdfRenderingTest {
 
     @Test fun smallPaperClassicWithLongClinicalTextAndFortyTasksRendersEveryContinuation() = runBlocking<Unit> {
         val row = taskHeavyPatient()
-        val options = PdfExportOptions(paperSize = PdfPaperSize.A5, orientation = PdfOrientation.PORTRAIT,
-            rowShading = PdfRowShading.NONE, ruleContrast = PdfRuleContrast.STRONG)
+        val options = PdfExportOptions(paperSize = PdfPaperSize.A5, rowShading = PdfRowShading.NONE, ruleContrast = PdfRuleContrast.STRONG)
         val file = export(false, options, listOf(row))
         assertTrue(renderAll(file, false, "classic-a5-task-heavy") > 1)
     }
 
-    @Test fun legacyDarkA5OptionsRenderLightCardsAndLongClinicalContinuationPages() = runBlocking<Unit> {
+    @Test fun a5CardsRenderLightAndPreserveLongClinicalContinuationPages() = runBlocking<Unit> {
         val row = taskHeavyPatient()
-        val options = PdfExportOptions(paperSize = PdfPaperSize.A5, darkMode = true,
-            ruleWeight = PdfRuleWeight.THICK, ruleContrast = PdfRuleContrast.STRONG)
+        val options = PdfExportOptions(paperSize = PdfPaperSize.A5, ruleWeight = PdfRuleWeight.THICK, ruleContrast = PdfRuleContrast.STRONG)
         val file = export(true, options, listOf(row))
-        assertTrue(renderAll(file, false, "cards-dark-task-heavy") > 2)
+        assertTrue(renderAll(file, false, "cards-task-heavy") > 2)
         val notes = PdfPatientContent.buildNotesCell(row)
         row.tasks.forEach { assertTrue(notes.contains(it.description)) }
         assertFalse(notes.contains("أرز"))

@@ -107,7 +107,7 @@ class CurrentWorkflowTests(unittest.TestCase):
     def test_continuous_ward_review_uses_newest_remote_without_date_gate_or_patient_id_collision(self):
         older=shift();newest=shift();newest['meta'].update(shiftId='remote-newest',shiftDate='2026-10-25',snapshotId='latest-snapshot')
         self.client.baseline=dict(bundle=[older])
-        self.client.fetch=lambda:dict(state={},bundle=[older,newest],doctors=self.client.doctors)
+        self.client.fetch=lambda:dict(state={},bundle=[newest],doctors=self.client.doctors)
         self.client.authorize=lambda doctors:doctors['cedar'];self.client.device='dummy';self.client._actor='cedar'
         result=plan(self.client,self.original)
         self.assertTrue(result.force_required)
@@ -116,9 +116,9 @@ class CurrentWorkflowTests(unittest.TestCase):
         self.assertEqual('2026-01-01',prepared.shift['meta']['shiftDate'])
         self.assertEqual('synthetic-shift',prepared.shift['meta']['shiftId'])
 
-    def test_delivery_requires_publication_when_legacy_bundle_contains_an_older_matching_ward(self):
+    def test_delivery_requires_publication_when_current_remote_ward_differs(self):
         older=shift();newest=shift();newest['meta'].update(shiftId='other',shiftDate='2026-10-25')
-        prepared=SimpleNamespace(bundle=[older,newest],shift=older)
+        prepared=SimpleNamespace(bundle=[newest],shift=older)
         self.client.plan=lambda local:prepared;self.client.prepare=lambda value:value
         _,reviewed,needed=prepare_delivery(self.client,older)
         self.assertTrue(needed);self.assertEqual(older,reviewed)

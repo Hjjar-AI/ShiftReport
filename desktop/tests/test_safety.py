@@ -94,6 +94,11 @@ class WireAndTaskTests(unittest.TestCase):
         with self.assertRaises(BridgeError): parse_bundle(encode_bundle([source]))
         source = shift()
         with self.assertRaises(BridgeError): parse_bundle(encode_bundle([source, source]))
+        current=encode_bundle([source])
+        for obsolete in (current.replace(b'schemaVersion=7',b'schemaVersion=6'),
+                         current.split(b'\n',1)[1],
+                         current.replace(b',assignmentChangedOn',b'')):
+            with self.assertRaises(BridgeError):parse_bundle(obsolete)
 
     def test_plain_completion_and_legacy_metadata_round_trip_without_required_attribution(self):
         source = shift(); invalid = task(True); invalid['completedByDoctorId'] = None

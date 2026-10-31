@@ -13,7 +13,7 @@ from tests.support import KEY, shift
 def generate(destination):
     destination.mkdir(parents=True, exist_ok=True)
     config = dict(version=1, hospitalName='مشروع تجريبي', botToken='12345:' + 'a' * 20,
-                  chatId=-100, reportsTopicId=1, announcementsTopicId=2, csvTopicId=3, doctorsTopicId=4,
+                  chatId=-100, reportsTopicId=1, csvTopicId=3, doctorsTopicId=4, residentsChatId=-300, residentsTopicId=7,
                   encryptTelegram=True, telegramDataKey=base64.b64encode(KEY).decode())
     password = 'synthetic-password'
     cipher = Cipher(config)

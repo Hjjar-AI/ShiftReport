@@ -47,7 +47,7 @@ class CsvAdversarialTest {
     }
     @Test fun `all required columns individually enforced`() {
         val original = CsvCodec.encode(shift, emptyList()).lines()
-        (CsvSchema.COLUMNS.take(14) + CsvSchema.COL_TASKS).forEach { column ->
+        CsvSchema.COLUMNS.forEach { column ->
             val lines = original.toMutableList()
             lines[1] = lines[1].split(',').filterNot { it == column }.joinToString(",")
             assertThrows("Missing $column", IllegalArgumentException::class.java) { CsvCodec.decode(lines.joinToString("\n")) }

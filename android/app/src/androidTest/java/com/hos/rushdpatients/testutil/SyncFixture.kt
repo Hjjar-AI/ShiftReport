@@ -25,6 +25,6 @@ abstract class SyncFixture : ClinicalRepositoryFixture() {
             cursors, settings, db, audit, dispatchers, remote, undo, doctorSync,
             PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers))
         settings.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(doctors.getAll()))
-        wire.state = SyncState(doctorsData = DoctorsRegistryCodec.encode(doctors.getAll()))
+        wire.state = SyncState(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(doctors.getAll())))
     }
 }

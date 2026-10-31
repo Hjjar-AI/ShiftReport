@@ -63,6 +63,7 @@ internal fun WardDrawer(
     isPermanentAdmin: Boolean,
     online: Boolean,
     onAction: (WardDrawerAction) -> Unit,
+    onPublishData: () -> Unit = {},
     additionalActions: @Composable () -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
@@ -119,6 +120,13 @@ internal fun WardDrawer(
                         onClick = { onAction(WardDrawerAction.REPORT) }, enabled = state.shift != null,
                         modifier = Modifier.fillMaxWidth()) {
                         com.hos.rushdpatients.ui.components.AppActionLabel(UiAction.SEND_REPORT)
+                    }
+
+                    com.hos.rushdpatients.ui.components.AppOutlinedButton(
+                        onClick = onPublishData,
+                        enabled = state.shift != null && online && !state.loading && !state.saving && !state.syncing,
+                        modifier = Modifier.fillMaxWidth()) {
+                        Text(uiText(R.string.sync_upload_data_only))
                     }
 
                     if (isAdmin) com.hos.rushdpatients.ui.components.AppOutlinedButton(

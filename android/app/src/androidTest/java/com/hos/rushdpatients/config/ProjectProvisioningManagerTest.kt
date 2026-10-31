@@ -19,7 +19,7 @@ class ProjectProvisioningManagerTest {
     private val password get() = "synthetic-password".toCharArray()
     private val config = ProjectConfig(initialized = true, hospitalName = "مشروع تجريبي",
         botToken = "12345:" + "a".repeat(20), chatId = -100, reportsTopicId = 1,
-        announcementsTopicId = 2, csvTopicId = 3, doctorsTopicId = 4, telegramDataKey = ProjectDataCipher.generateKey())
+        csvTopicId = 3, doctorsTopicId = 4, residentsChatId = -300, residentsTopicId = 7, telegramDataKey = ProjectDataCipher.generateKey())
     private fun destination() = Uri.fromFile(File(context.cacheDir, "join.srjoin.json"))
     private suspend fun rejected(block: suspend () -> Unit) {
         try { block() } catch (_: Exception) { return }
@@ -45,8 +45,12 @@ class ProjectProvisioningManagerTest {
         val wrong = "wrong-password".toCharArray()
         rejected { manager().importConfig(destination(), wrong) }
         assertTrue(wrong.all { it == '\u0000' })
+        File(requireNotNull(destination().path)).writeBytes(encrypted)
+        val binaryPass = password
+        rejected { manager().importConfig(destination(), binaryPass) }
+        assertTrue(binaryPass.all { it == '\u0000' })
         val damaged = encrypted.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }
-        File(requireNotNull(destination().path)).writeBytes(damaged)
+        manager().writeExport(destination(), damaged)
         val pass = password
         rejected { manager().importConfig(destination(), pass) }
         assertTrue(pass.all { it == '\u0000' })

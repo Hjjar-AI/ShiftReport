@@ -85,8 +85,8 @@ abstract class ProductionUiFixture {
         client.doctors.upsert(enrolled)
         val registry = DoctorsRegistryCodec.encode(listOf(enrolled))
         server.files["registry"] = registry.toByteArray(Charsets.UTF_8)
-        server.state = SyncState(doctorsData = registry, doctorsFileId = "registry", doctorsMessageId = 2)
-        client.settings.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, server.state.doctorsData.orEmpty())
+        server.state = SyncState(doctorsFileId = "registry", doctorsMessageId = 2)
+        client.settings.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registry)
         text = UiStrings(client.context)
         ledger = ReportDeliveryLedger(client.settings, client.sessions, client.doctors)
         sender = ReportSender(client.context, ProjectDataCipher(client.projects, client.dispatchers), client.telegram,
@@ -177,7 +177,8 @@ abstract class ProductionUiFixture {
         EmptyStartCoordinator(client.context, client.db, client.settings, client.shifts, client.cursors, client.audit,
             client.doctorSync, client.remote, client.telegram, client.topics, client.dispatchers), csv, BiometricHelper(client.context),
         EncryptedBackupManager(client.context, client.db, client.shifts, client.patients, client.doctors, client.settings, client.dispatchers),
-        client.projects, ProjectProvisioningManager(client.context, client.dispatchers), client.authorizer,
+        client.projects, com.hos.rushdpatients.config.ResidentsDestinationManager(client.projects, client.telegram, client.remote, client.doctorSync, client.dispatchers),
+        ProjectProvisioningManager(client.context, client.dispatchers), client.authorizer,
         PendingExportStore(client.context, client.dispatchers), SavedStateHandle())
     @After fun closeIsolatedUi() {
         scenario?.close(); IsolatedWorkflowActivity.clearFixture()

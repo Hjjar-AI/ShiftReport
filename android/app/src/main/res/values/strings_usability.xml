@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="sync_upload_data_only">رفع البيانات فقط للشبكة</string>
+    <string name="sync_upload_data_only_hint">يحفظ بيانات المناوبة على الشبكة بعد المراجعة، دون إنشاء تقرير PDF أو إرساله.</string>
     <string name="delivery_exact_copy_required">الإذن المتاح يخص نسخة إضافية من التقرير نفسه فقط. راجع التقرير المأذون به أو احسم نتيجة تسليمه قبل إرسال محتوى مختلف.</string>
     <string name="sync_review_publish">مراجعة ونشر التعديلات</string>
     <string name="sync_replace_fetch">استبدال نسختي بالنسخة المنشورة</string>

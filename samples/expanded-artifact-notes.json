@@ -4,7 +4,7 @@
   "seed": 787355282334950807,
   "patients": 50,
   "uniqueNames": 50,
-  "columns": 22,
+  "columns": 23,
   "metadata": "# schemaVersion=7 shiftDate=2026-10-27 shiftId=79e93327-2937-54f3-a41b-ab75e9bd4a05 doctors= sortSpec={\"levels\":[]} shiftRevision=0 snapshotId= baseSnapshotId= deviceId=",
   "treatmentLines": {
     "min": 7,
@@ -20,9 +20,9 @@
   },
   "tasks": 112,
   "completedTasks": 13,
-  "sha256": "8af5170e44ddeac05a3216b9de1a5e34daedf259756719bc6476cc89fbed4326",
+  "sha256": "86c0c1703c45e90fb8a09975434c4548a95ced30ab0c10878fb6725098d104c8",
   "checks": [
-    "CSV parsed with real multiline fields and 22 complete columns",
+    "CSV parsed with real multiline fields and 23 complete columns",
     "50 unique names and patient IDs",
     "Doctor assignments remain blank",
     "Existing CSV and PDF still match their original recorded hashes",
@@ -32,5 +32,6 @@
     "Fictional independent values and drug fragments; not a prescribing or diagnostic example",
     "No PDF generated for expanded data; existing PDF represents the earlier dataset",
     "No app import, build, test suite or Telegram operation"
-  ]
+  ],
+  "currentFormatCorrection": "31 October2026: appended blank assignmentChangedOn only; existing clinical/task data unchanged. Existing PDF is the same earlier dataset/layout."
 }

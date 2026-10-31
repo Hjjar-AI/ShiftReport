@@ -111,10 +111,13 @@ class DoctorsRegistryCodecTest {
     }
 
     @Test
-    fun `decoding blank text returns empty`() {
-        val decoded = DoctorsRegistryCodec.decode("")
-        assertTrue(decoded.doctors.isEmpty())
-        assertEquals(0, decoded.lastId)
+    fun `blank and incomplete registry formats are rejected`() {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { DoctorsRegistryCodec.decode("") }
+        val current = DoctorsRegistryCodec.encode(listOf(Fixtures.doctor()))
+        val rows = current.substringBeforeLast("@").split("|")
+        val short = rows.joinToString("|") { it.substringBeforeLast(",") } + "@0"
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { DoctorsRegistryCodec.decode(short) }
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { DoctorsRegistryCodec.decode(current.substringBeforeLast("@")) }
     }
 
     @Test

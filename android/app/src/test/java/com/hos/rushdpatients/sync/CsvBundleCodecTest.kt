@@ -8,15 +8,19 @@ import java.time.Instant
 import java.time.LocalDate
 
 class CsvBundleCodecTest {
-    @Test fun `bundle retains latest three distinct shifts in date order`() {
-        val snapshots = (1..5).map { i -> ShiftCsvSnapshot(Fixtures.shift(id = "s$i", date = LocalDate.of(2026, 1, i)),
-            listOf(Fixtures.patient(id = "p$i"))) }
-        val parsed = CsvBundleCodec.decode(CsvBundleCodec.encode(snapshots + snapshots.last()))
-        assertEquals(listOf("s5", "s4", "s3"), parsed.map { it.shiftId })
-        assertEquals(listOf("p5", "p4", "p3"), parsed.map { it.patients.single().id })
+    @Test fun `bundle preserves one current ward and rejects multiple wards`() {
+        val snapshot = ShiftCsvSnapshot(Fixtures.shift(id = "current"), listOf(Fixtures.patient(id = "patient")))
+        val parsed = CsvBundleCodec.decode(CsvBundleCodec.encode(listOf(snapshot))).single()
+        assertEquals("current", parsed.shiftId)
+        assertEquals("patient", parsed.patients.single().id)
+        assertThrows(IllegalArgumentException::class.java) { CsvBundleCodec.encode(listOf(snapshot, snapshot)) }
+        val csv = CsvCodec.encode(snapshot.shift, snapshot.patients).trimEnd()
+        assertThrows(IllegalArgumentException::class.java) {
+            CsvBundleCodec.decode("# rushdShiftBundle=1\n$csv\n#==RUSHD_SHIFT_BOUNDARY_7F3A9C==\n$csv\n")
+        }
     }
-    @Test fun `single current CSV remains readable and empty bundle is rejected`() {
-        assertEquals("shift-1", CsvBundleCodec.decode(CsvCodec.encode(Fixtures.shift(), emptyList())).single().shiftId)
+    @Test fun `unwrapped CSV and empty bundle are rejected`() {
+        assertThrows(IllegalArgumentException::class.java) { CsvBundleCodec.decode(CsvCodec.encode(Fixtures.shift(), emptyList())) }
         assertThrows(IllegalArgumentException::class.java) { CsvBundleCodec.encode(emptyList()) }
         assertThrows(IllegalArgumentException::class.java) { CsvBundleCodec.decode("# rushdShiftBundle=1\n") }
     }

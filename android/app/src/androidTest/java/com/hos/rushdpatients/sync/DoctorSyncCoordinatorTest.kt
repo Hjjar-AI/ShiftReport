@@ -16,7 +16,7 @@ class DoctorSyncCoordinatorTest : SyncFixture() {
         val incoming = listOf(admin.copy(customTitle = "لقب منشور"), doctor("new"))
         settings.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
         settings.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(doctors.getAll()))
-        wire.state = wire.state.copy(doctorsData = DoctorsRegistryCodec.encode(incoming), doctorsMessageId = 10)
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(incoming)), doctorsMessageId = 10)
         assertEquals(2, doctorSync.fetchAndApplyLatestDoctors().getOrThrow())
         assertTrue("pin:local-test-hash" in requireNotNull(doctors.getById(admin.id)).extraOptions)
         assertEquals("لقب منشور", doctors.getById(admin.id)?.customTitle)
@@ -31,16 +31,16 @@ class DoctorSyncCoordinatorTest : SyncFixture() {
         assertTrue(wire.methods.isEmpty())
     }
     @Test fun remoteCannotRemovePermanentAdministrator() = runBlocking<Unit> {
-        wire.state = wire.state.copy(doctorsData = DoctorsRegistryCodec.encode(listOf(doctor("other", "بلوط", 1))))
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(doctor("other", "بلوط", 1)))))
         assertTrue(doctorSync.fetchAndApplyLatestDoctors().isFailure)
         assertEquals(admin, doctors.getById(admin.id))
     }
     @Test fun publishedAuthorityRequiresMatchingLiveTelegramIdentity() = runBlocking<Unit> {
         doctors.upsert(admin.copy(telegramId = 123))
         admin = requireNotNull(doctors.getById(admin.id)); login(admin)
-        wire.state = wire.state.copy(doctorsData = DoctorsRegistryCodec.encode(listOf(admin)))
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(admin))))
         assertEquals(admin, doctorSync.requirePublishedAdmin(wire.state))
-        wire.state = wire.state.copy(doctorsData = DoctorsRegistryCodec.encode(listOf(admin.copy(telegramId = 456))))
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(admin.copy(telegramId = 456)))))
         rejected { doctorSync.requirePublishedAdmin(wire.state) }
         rejected { doctorSync.requirePublishedClinician(wire.state) }
     }

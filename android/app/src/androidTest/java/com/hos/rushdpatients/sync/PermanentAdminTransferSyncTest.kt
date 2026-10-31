@@ -24,7 +24,7 @@ class PermanentAdminTransferSyncTest : SyncFixture() {
         recipient = requireNotNull(doctors.getById("recipient"))
         settings.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(doctors.getAll()))
         settings.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
-        wire.state = wire.state.copy(doctorsData = DoctorsRegistryCodec.encode(doctors.getAll()), doctorsMessageId = 2)
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(doctors.getAll())), doctorsMessageId = 2)
         wire.methods.clear()
     }
     private suspend fun review(): PermanentAdminTransferReview {
@@ -137,7 +137,7 @@ class PermanentAdminTransferSyncTest : SyncFixture() {
     }
     @Test fun fetchAcceptsSuccessorAfterMissingFormerOwnerRemoval() = runBlocking<Unit> {
         seed()
-        wire.state = wire.state.copy(doctorsData = DoctorsRegistryCodec.encode(listOf(recipient.copy(isPermanentAdmin = true))),
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(recipient.copy(isPermanentAdmin = true)))),
             doctorsMessageId = 3)
         doctorSync.fetchAndApplyLatestDoctors().getOrThrow()
         assertTrue(requireNotNull(doctors.getById(admin.id)).isDeleted)

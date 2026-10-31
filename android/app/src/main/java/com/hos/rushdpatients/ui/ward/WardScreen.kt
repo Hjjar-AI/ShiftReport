@@ -167,7 +167,6 @@ private fun WardWorkspaceContent(
         state.doctors.associate { it.id to it.fullName }
     }
     val patientGridState = rememberLazyGridState()
-    val uiPreferences = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current
     val editor = viewModel.editor
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
@@ -381,6 +380,7 @@ private fun WardWorkspaceContent(
                 isAdmin = isAdmin,
                 isPermanentAdmin = isAdmin && state.doctors.any { it.id == currentDoctorId && it.isPermanentAdmin && !it.isDeleted },
                 online = online,
+                onPublishData = { closeDrawer { viewModel.reviewPendingPublication() } },
                 onAction = { action -> closeDrawer {
                     navigation.openDrawerAction(action, state.shift?.id, isAdmin,
                         onRecycleBin = { showRecycleBin = true })

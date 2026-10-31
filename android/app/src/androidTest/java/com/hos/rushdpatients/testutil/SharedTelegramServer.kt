@@ -19,6 +19,12 @@ class SharedTelegramServer {
     var bootstrapPin: TgMessage? = null
     private val uploadedMessages = mutableMapOf<Long, TgMessage>()
     val files = mutableMapOf<String, ByteArray>()
+    private var registrySequence = 0
+    fun registry(text: String): String {
+        val id = "fixture-registry-${++registrySequence}"
+        files[id] = text.toByteArray(Charsets.UTF_8)
+        return id
+    }
     val calls = mutableListOf<Pair<String, String>>()
     val deliveredTexts = mutableListOf<String>()
     var fault: (String, String, String) -> Unit = { _, _, _ -> }

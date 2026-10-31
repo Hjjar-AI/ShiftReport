@@ -26,7 +26,7 @@
     "No test-suite execution"
   ],
   "sha256": {
-    "synthetic-patients-50.csv": "16482bdea28ba63428c89a94ae7e565d94d2ef4c28f16630990050767df8f862",
+    "synthetic-patients-50.csv": "5007b8fc4812ebde5ddf2e8179ad47c21a4b948a8856dc3e72d0a3ee1699c823",
     "synthetic-patients-50-A5.pdf": "e7096155c80f26cb1d92446b6f004fc1640673053add7b91712c827bf19b6f3b"
   },
   "indexCellHeightPt": 28,
@@ -48,5 +48,7 @@
   "treatmentPreview": "Both supplied lists visually inspected in a separate 3-page DEMO preview; long treatment continuation also inspected; Android uncompiled",
   "nameFamilyLimit": 2,
   "randomization": "Fresh seed by default; optional --seed reproduces names, shuffled profiles and independent clinical combinations",
-  "seed": 5799975733277176095
+  "seed": 5799975733277176095,
+  "columns": 23,
+  "currentFormatCorrection": "31 October2026: appended blank assignmentChangedOn only; existing clinical/task data unchanged. Existing PDF is the same earlier dataset/layout."
 }

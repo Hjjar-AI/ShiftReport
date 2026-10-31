@@ -76,8 +76,9 @@ internal fun SettingsSyncContent(
         loading = state.syncing, enabled = idle && state.online,
         onClick = onFetchRequested, modifier = Modifier.fillMaxWidth()
     )
+    Text(uiText(R.string.sync_upload_data_only_hint), style = MaterialTheme.typography.bodySmall)
     LoadingButton(
-        text = uiText(R.string.sync_publish_all), outlined = true,
+        text = uiText(R.string.sync_upload_data_only), outlined = true,
         loading = state.syncing, enabled = idle && state.online,
         onClick = viewModel::uploadCurrent, modifier = Modifier.fillMaxWidth()
     )

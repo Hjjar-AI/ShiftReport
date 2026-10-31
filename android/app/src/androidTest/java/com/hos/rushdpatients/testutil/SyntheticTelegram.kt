@@ -19,6 +19,12 @@ class SyntheticTelegram(context: Context, dispatchers: DispatcherProvider) {
     val topics = Topics(projects)
     var state = SyncState()
     val files = mutableMapOf<String, String>()
+    private var registrySequence = 0
+    fun registry(text: String): String {
+        val id = "fixture-registry-${++registrySequence}"
+        files[id] = text
+        return id
+    }
     val methods = mutableListOf<String>()
     val uploadedDocuments = mutableListOf<ByteArray>()
     var beforeResponse: (String) -> Unit = {}

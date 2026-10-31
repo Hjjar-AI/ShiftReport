@@ -21,7 +21,7 @@ class EmptyStartCoordinatorTest : SyncFixture() {
     @Before fun seedReset() = runBlocking<Unit> {
         doctors.upsert(admin.copy(telegramId = 123))
         admin = requireNotNull(doctors.getById(admin.id)); login(admin)
-        wire.state = wire.state.copy(doctorsData = DoctorsRegistryCodec.encode(doctors.getAll()))
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(doctors.getAll())))
         patients.upsert(row, "shift-1")
         row = requireNotNull(patients.getById(row.id))
         patients.upsert(row.copy(id = "recycled", deletedAt = Instant.EPOCH), "shift-2")

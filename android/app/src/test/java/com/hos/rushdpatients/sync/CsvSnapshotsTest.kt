@@ -10,7 +10,7 @@ class CsvSnapshotsTest {
     private val state = SyncState(csvFileId = current.fileId, csvMessageId = current.messageId,
         csvDate = current.date, csvUpdatedAt = current.updatedAt, previousCsvFileId = old.fileId,
         previousCsvMessageId = old.messageId, previousCsvDate = old.date, previousCsvUpdatedAt = old.updatedAt,
-        doctorsFileId = "registry", announcementMessageId = 7)
+        doctorsFileId = "registry", doctorsMessageId = 7)
 
     @Test fun `incomplete pointers are unavailable`() {
         assertNull(SyncState(csvFileId = "f").currentCsvSnapshot())
@@ -23,7 +23,7 @@ class CsvSnapshotsTest {
         assertEquals(uploaded, result.currentCsvSnapshot())
         assertEquals(current, result.previousCsvSnapshot())
         assertEquals("registry", result.doctorsFileId)
-        assertEquals(7L, result.announcementMessageId)
+        assertEquals(7L, result.doctorsMessageId)
         assertEquals(current, state.currentCsvSnapshot())
     }
     @Test fun `rotation uses message order rather than timestamps`() {

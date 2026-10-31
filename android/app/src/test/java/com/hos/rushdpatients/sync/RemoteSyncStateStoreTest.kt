@@ -45,17 +45,17 @@ class RemoteSyncStateStoreTest {
         assertEquals(RemoteSyncStateStore.PinnedState.Absent, store.readPinnedState())
         assertNull(store.readState())
         for (value in listOf(TgMessage(1), TgMessage(1, text = "not json"),
-            message(SyncState(kind = "other")), message(SyncState(v = SyncState.CURRENT_VERSION + 1)))) {
+            message(SyncState(kind = "other")), message(SyncState(v = 1)), message(SyncState(v = SyncState.CURRENT_VERSION + 1)))) {
             pinned = value
             assertEquals(RemoteSyncStateStore.PinnedState.Unrecognized, store.readPinnedState())
             assertThrows(IllegalStateException::class.java) { runBlocking { store.readState() } }
         }
     }
-    @Test fun `existing update edits recognized pin and upgrades protocol`() = runBlocking<Unit> {
-        pinned = message(SyncState(v = 1))
-        val result = store.updateExistingState { it.copy(announcementMessageId = 9, announcementUpdatedAt = 10) }
+    @Test fun `existing update edits current recognized pin without repinning`() = runBlocking<Unit> {
+        pinned = message(SyncState())
+        val result = store.updateExistingState { it.copy(doctorsFileId = "updated-registry", doctorsUpdatedAt = 10) }
         assertEquals(SyncState.CURRENT_VERSION, result.v)
-        assertEquals(9L, result.announcementMessageId)
+        assertEquals("updated-registry", result.doctorsFileId)
         coVerify(exactly = 0) { telegram.pinMessage(any(), any(), any()) }
     }
     @Test fun `required missing index never creates or pins replacement`() = runBlocking<Unit> {
@@ -81,16 +81,13 @@ class RemoteSyncStateStoreTest {
     @Test fun `newer remote pointers survive a stale transform`() = runBlocking<Unit> {
         pinned = message(SyncState(csvFileId = "remote", csvMessageId = 30,
             previousCsvFileId = "previous", previousCsvMessageId = 20,
-            doctorsFileId = "doctors-new", doctorsMessageId = 50, doctorsUpdatedAt = 1,
-            announcementMessageId = 99, announcementUpdatedAt = 100))
+            doctorsFileId = "doctors-new", doctorsMessageId = 50, doctorsUpdatedAt = 1))
         val result = store.updateExistingState { SyncState(csvFileId = "stale", csvMessageId = 10,
-            doctorsFileId = "doctors-old", doctorsMessageId = 40, doctorsUpdatedAt = 999,
-            announcementMessageId = 100, announcementUpdatedAt = 90) }
+            doctorsFileId = "doctors-old", doctorsMessageId = 40, doctorsUpdatedAt = 999) }
         assertEquals(30L, result.csvMessageId)
         assertEquals(20L, result.previousCsvMessageId)
         assertEquals("doctors-new", result.doctorsFileId)
-        // Retired announcement fields are carried through, with no publication merge semantics.
-        assertEquals(100L, result.announcementMessageId)
+        assertEquals(50L, result.doctorsMessageId)
     }
     @Test fun `explicit history replacement drops recovery and old journal`() = runBlocking<Unit> {
         pinned = message(SyncState(csvFileId = "old", csvMessageId = 30,
@@ -123,7 +120,7 @@ class RemoteSyncStateStoreTest {
     @Test fun `missing confirmation after write is an explicit failure`() = runBlocking<Unit> {
         coEvery { telegram.getChat(-100) } returnsMany listOf(chat(), chat(null))
         assertThrows(IllegalArgumentException::class.java) { runBlocking {
-            store.updateExistingState { it.copy(announcementMessageId = 9, announcementUpdatedAt = 1) }
+            store.updateExistingState { it.copy(doctorsFileId = "registry", doctorsUpdatedAt = 1) }
         } }
         coVerify(exactly = 1) { telegram.editMessageText(-100, 1, any(), null) }
     }

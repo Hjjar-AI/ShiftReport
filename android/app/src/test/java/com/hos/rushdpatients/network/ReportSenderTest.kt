@@ -28,7 +28,8 @@ class ReportSenderTest : DeliveryFixture() {
     }
     private val cipher = mockk<ProjectDataCipher> { every { enabled } returns false }
     private val telegram = mockk<TelegramClient>()
-    private val topics = mockk<Topics> { every { chatId } returns -100; every { threadId(Topic.REPORTS) } returns 1 }
+    private val topics = mockk<Topics> { every { chatId } returns -100; every { reportsChatId } returns -100;
+        every { connectionUnchangedCheck() } returns { true }; every { threadId(Topic.REPORTS) } returns 1 }
     private val shifts = mockk<ShiftRepository>(relaxed = true)
     private val audit = mockk<AuditRepository>(relaxed = true)
     private val shift = Fixtures.shift()
@@ -39,13 +40,19 @@ class ReportSenderTest : DeliveryFixture() {
         coEvery { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) } returns TgMessage(20)
     }
     @After fun cleanup() { directory.deleteRecursively() }
-    @Test fun `successful text send persists receipt and blocks duplicate after sender recreation`() = runBlocking<Unit> {
-        assertEquals(10L, sender().sendTextReport(shift, listOf("synthetic"), actor, "review-key").firstMessageId)
-        assertEquals(DeliveryStatus.SENT, ledger().observe().first().single().status)
-        assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking {
-            sender().sendTextReport(shift, listOf("synthetic"), actor, "review-key")
-        } }
-        coVerify(exactly = 1) { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) }
+    @Test fun `successful text send persists exact route and blocks duplicate after sender recreation`() = runBlocking<Unit> {
+        for ((chat, topic) in listOf(-100L to null, -100L to 1L, -300L to null, -300L to 7L)) {
+            raw.value = null
+            every { topics.reportsChatId } returns chat
+            every { topics.threadId(Topic.REPORTS) } returns topic
+            assertEquals(10L, sender().sendTextReport(shift, listOf("synthetic"), actor, "review-key").firstMessageId)
+            assertEquals(DeliveryStatus.SENT, ledger().observe().first().single().status)
+            coVerify(exactly = 1) { telegram.sendMessage(chat, "synthetic", any(), any(), any(), any(), topic) }
+            assertThrows(ReportDeliveryBlockedException::class.java) { runBlocking {
+                sender().sendTextReport(shift, listOf("synthetic"), actor, "review-key")
+            } }
+        }
+        coVerify(exactly = 4) { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) }
     }
     @Test fun `partial text delivery keeps UNKNOWN even after cleanup`() = runBlocking<Unit> {
         coEvery { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) } returns TgMessage(10) andThenThrows IOException("ambiguous second send")

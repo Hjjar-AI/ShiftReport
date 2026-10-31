@@ -26,7 +26,7 @@ class IndependentClientsWorkflowTest {
     @Before fun openClients() = runBlocking<Unit> {
         first = IndependentClient("first", server); second = IndependentClient("second", server)
         first.initialize(); second.initialize()
-        server.state = SyncState(doctorsData = DoctorsRegistryCodec.encode(listOf(first.actor)))
+        server.state = SyncState(doctorsFileId = server.registry(DoctorsRegistryCodec.encode(listOf(first.actor))))
     }
     @After fun closeClients() {
         if (::second.isInitialized) second.close()

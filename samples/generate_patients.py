@@ -12,7 +12,7 @@ from pathlib import Path
 COLUMNS = ('externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,'
            'diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,'
            'responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,'
-           'lastEditedBy,updatedAt,revision,tasksJson').split(',')
+           'lastEditedBy,updatedAt,revision,tasksJson,assignmentChangedOn').split(',')
 NAME_POOLS = {
     'ice_cream': ['بوظة عربية', 'مثلجات الفستق الحلبي', 'آيس كريم الفانيليا', 'سوربيه الليمون'],
     'hot_drinks': [

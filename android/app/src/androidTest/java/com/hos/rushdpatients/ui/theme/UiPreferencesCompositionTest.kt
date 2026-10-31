@@ -16,7 +16,7 @@ class UiPreferencesCompositionTest {
     @Test fun reducedMotionDisablesAllProfileAnimationsWithoutChangingSpacing() {
         var observed: UiStyleProfile? = null
         compose.setContent {
-            ProvideUiPreferences(UiPreferences(profile = "relaxed", reducedMotion = true)) {
+            ProvideUiPreferences(UiPreferences(reducedMotion = true)) {
                 val current = LocalUiStyle.current
                 SideEffect { observed = current }
             }
@@ -30,7 +30,7 @@ class UiPreferencesCompositionTest {
         }
     }
     @Test fun turningReducedMotionOffRestoresSelectedProfileDurations() {
-        var preferences by mutableStateOf(UiPreferences(profile = "quiet", reducedMotion = true))
+        var preferences by mutableStateOf(UiPreferences(reducedMotion = true))
         var observed: UiStyleProfile? = null
         compose.setContent { ProvideUiPreferences(preferences) {
             val current = LocalUiStyle.current
@@ -39,21 +39,21 @@ class UiPreferencesCompositionTest {
         compose.runOnIdle { preferences = preferences.copy(reducedMotion = false) }
         compose.runOnIdle { assertEquals(UiStyleCatalog.current, observed) }
     }
-    @Test fun unknownProfileUsesCurrentStyleWhileKeepingBehaviorPreferences() {
+    @Test fun currentStyleKeepsSuppliedPreferences() {
         var observedStyle: UiStyleProfile? = null
         var observedPreferences: UiPreferences? = null
-        val selected = UiPreferences(profile = "unavailable", autoHideNavigation = true)
+        val selected = UiPreferences()
         compose.setContent { ProvideUiPreferences(selected) {
             val style = LocalUiStyle.current; val preferences = LocalUiPreferences.current
             SideEffect { observedStyle = style; observedPreferences = preferences }
         } }
         compose.runOnIdle {
             assertEquals(UiStyleCatalog.current, observedStyle)
-            assertEquals(selected.simplified(), observedPreferences)
+            assertEquals(selected, observedPreferences)
         }
     }
     @Test fun localControlOverridesKeepBehaviorAndDoNotLeakToSibling() {
-        val selected = UiPreferences(reducedMotion = true, autoHideNavigation = true)
+        val selected = UiPreferences(reducedMotion = true)
         var inside: UiPreferences? = null; var outside: UiPreferences? = null
         compose.setContent { ProvideUiPreferences(selected) {
             ProvideUiDefaults(density = UiDensity.COMPACT, size = UiControlSize.COMFORTABLE) {
@@ -64,8 +64,8 @@ class UiPreferencesCompositionTest {
             SideEffect { outside = current }
         } }
         compose.runOnIdle {
-            assertEquals(selected.simplified().copy(density = UiDensity.COMPACT, controlSize = UiControlSize.COMFORTABLE), inside)
-            assertEquals(selected.simplified(), outside)
+            assertEquals(selected.copy(density = UiDensity.COMPACT, controlSize = UiControlSize.COMFORTABLE), inside)
+            assertEquals(selected, outside)
         }
     }
     @Test fun layoutThresholdNeverShrinksForSmallerFonts() {

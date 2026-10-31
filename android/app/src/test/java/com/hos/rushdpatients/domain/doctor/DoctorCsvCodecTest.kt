@@ -9,8 +9,8 @@ import java.time.LocalDate
 
 class DoctorCsvCodecTest {
     private fun decode(vararg doctors: Doctor) = DoctorCsvCodec.decode(DoctorCsvCodec.encode(doctors.toList()))
-    @Test fun `portable round trip retains team and strips local secrets and aliases`() {
-        val doctor = Fixtures.doctor().copy(extraOptions = setOf("pin:synthetic", "syncAlias:old", "teamSupervisor:s", "display"))
+    @Test fun `portable round trip retains team and strips local secrets`() {
+        val doctor = Fixtures.doctor().copy(extraOptions = setOf("pin:synthetic", "teamSupervisor:s", "display"))
         val decoded = decode(doctor)
         assertEquals(doctor.copy(extraOptions = setOf("teamSupervisor:s", "display")), decoded.doctors.single())
         assertEquals(1, decoded.activeCount)

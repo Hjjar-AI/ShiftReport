@@ -22,8 +22,8 @@ class ReportDeliveryTests(unittest.TestCase):
         self.owner=SimpleNamespace(client=self.client,store=self.store,io=lambda action:action(),
                                    report_attempt=ReportAttempt(),show_report_attempt=Mock(),status=Mock(),publish=Mock())
         def send(payload,reviewed,supervisor,pointer,registry,before,report_day):
-            chat=-100 if supervisor is None else -200
-            before(chat,3 if supervisor is None else None)
+            from desktop_reports import report_destination
+            before(*report_destination(self.client,self.client.doctors,supervisor))
             return dict(message_id=99)
         self.client.send_pdf=Mock(side_effect=send);self.client.send_text=Mock(side_effect=send)
         self.client.approve=Mock()
@@ -37,6 +37,13 @@ class ReportDeliveryTests(unittest.TestCase):
         delivery=self.delivery(True)
         self.owner.publish.assert_not_called();self.client.send_pdf.assert_not_called()
         self.assertEqual('2026-10-25',delivery.report_day)
+        from desktop_reports import report_destination
+        for group,topic in ((0,0),(-300,0),(-300,7)):
+            self.client.config.update(residentsChatId=group,residentsTopicId=topic)
+            self.assertEqual((group or -100,(topic or None) if group else 3),report_destination(self.client,self.client.doctors))
+            self.assertEqual((-200,None),report_destination(self.client,self.client.doctors,'cedar'))
+        with self.assertRaises(BridgeError):delivery.require_connection()
+        self.client.send_pdf.assert_not_called()
 
     def test_exact_reviewed_bytes_and_captured_day_reach_transport_after_durable_unknown(self):
         delivery=self.delivery();raw=b'%PDF-exact-preview'

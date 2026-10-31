@@ -50,7 +50,12 @@ class LightThemeTests(unittest.TestCase):
         self.before=copy.deepcopy(appearance.native.ThemeManager.theme)
         self.addCleanup(setattr,appearance.native.ThemeManager,'theme',self.before)
 
-    def test_light_fields_have_distinct_surfaces_and_visible_borders_for_all_accents(self):
+    def test_system_default_explicit_light_and_visible_borders_for_all_accents(self):
+        from types import SimpleNamespace
+        owner=SimpleNamespace(settings={},store=SimpleNamespace(state={}))
+        self.assertEqual("System",appearance.preferences(owner)["mode"])
+        owner.store.state["appearance"]={"mode":"Light"}
+        self.assertEqual("Light",appearance.preferences(owner)["mode"])
         def luminance(color):
             channels=[int(color[index:index+2],16)/255 for index in (1,3,5)]
             channels=[value/12.92 if value<=.04045 else ((value+.055)/1.055)**2.4 for value in channels]

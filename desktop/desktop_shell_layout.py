@@ -17,6 +17,10 @@ from desktop_backup import backup_dialog
 
 
 def build_window(owner, root, settings, demo):
+    def publish_data_only():
+        owner.plan=None
+        owner.publish()
+
     root.title('ShiftReport — Telegram')
     root.geometry('{}x{}'.format(min(1150,max(760,root.winfo_screenwidth()-50)),min(760,max(500,root.winfo_screenheight()-100))))
     root.minsize(760,500)
@@ -100,7 +104,7 @@ def build_window(owner, root, settings, demo):
     owner.data_status_label.pack(side='bottom',fill='x',padx=10,pady=4)
     owner.data_window.bind('<Configure>',owner.resize_data_tools,add='+')
     if not demo:
-        for label,action in [('جلب نسخة كاملة',owner.download),('مراجعة ونشر النسخة المحلية',owner.publish)]:
+        for label,action in [('جلب نسخة كاملة',owner.download),('رفع البيانات فقط للشبكة',publish_data_only)]:
             button(data_area,label,lambda f=action:owner.run(f))
         recovery=section('استعادة العرض قبل آخر جلب',expanded=False,parent=data_area)
         ctk.CTkLabel(recovery,text='يعيد بيانات الجهاز قبل الجلب؛ لا ينشرها إلى تليجرام.',wraplength=500,justify='right').pack(fill='x',padx=8,pady=3)
@@ -120,6 +124,7 @@ def build_window(owner, root, settings, demo):
     owner.supervisor=ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right',height=48)
     if not demo:
         owner.report_publish_button=button(reports,'رفع للشبكة وإرسال تقرير',lambda:owner.run(owner.report))
+        button(reports,'رفع البيانات فقط للشبكة',lambda:owner.run(publish_data_only))
         owner.assignments_button=ctk.CTkButton(reports,text='تصدير توزيع المرضى (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
         button(data_area,'سجل العمليات والتسليم',lambda:owner.run(owner.resolve))
     exports=section('تصدير',expanded=False,parent=reports)

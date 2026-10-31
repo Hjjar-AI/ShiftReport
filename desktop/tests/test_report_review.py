@@ -72,13 +72,14 @@ class ReportReviewTests(unittest.TestCase):
         self.primary().invoke();self.assertEqual([],self.result);self.confirm.assert_not_called();self.error.assert_called_once()
 
     def test_changed_data_actor_options_or_target_each_invalidate_review(self):
-        for change in ('data','actor','format','target'):
+        for change in ('data','actor','format','target','route'):
             with self.subTest(change=change):
                 if self.primary().cget('text')!='التالي — معاينة التقرير':find(self.actions,'السابق').invoke()
                 self.preview_all()
                 if change=='data':self.local['patients'][0]['labs']+='later'
                 elif change=='actor':self.client._actor+='other'
                 elif change=='format':self.options['format']='text'
+                elif change=='route':self.client.config.update(residentsChatId=-300,residentsTopicId=7)
                 else:self.targets.reverse()
                 self.primary().invoke();self.assertEqual([],self.result)
         self.confirm.assert_not_called()

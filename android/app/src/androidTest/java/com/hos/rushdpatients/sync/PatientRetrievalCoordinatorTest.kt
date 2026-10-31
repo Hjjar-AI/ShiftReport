@@ -19,7 +19,7 @@ class PatientRetrievalCoordinatorTest : SyncFixture() {
         val patient = Patient(id = "p", name = "شاي", admittanceNumber = "1", admittanceDate = ShiftDate.current(),
             birthDate = LocalDate.of(1990, 1, 1), initialDiagnosis = "تجريبي", treatmentPlan = "خطة", followUp = "متابعة", revision = 2)
         shifts.selectCurrent("today")
-        wire.files["csv"] = CsvCodec.encode(shift, listOf(patient))
+        wire.files["csv"] = CsvBundleCodec.encode(listOf(ShiftCsvSnapshot(shift, listOf(patient))))
         wire.state = wire.state.copy(csvFileId = "csv", csvMessageId = 10, csvUpdatedAt = 100,
             previousCsvFileId = "csv", previousCsvMessageId = 9)
     }

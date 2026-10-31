@@ -125,7 +125,7 @@ def publish(owner, notify=True):
         owner.io(lambda:owner.store.write(owner.client,plan.shift,backup=False))
     except Exception:
         raise BridgeError('تم النشر على تليجرام؛ تعذر تحديث المسودة محليا. لا تعد الإرسال. اجلب النسخة الحالية بعد حفظ مسودتك') from None
-    if notify:messagebox.showinfo('تم النشر','نشر مؤكد؛ بقيت بيانات الأطباء والإعلانات والاستعادة في الفهرس.')
+    if notify:messagebox.showinfo('تم رفع البيانات','حُفظت بيانات المناوبة على الشبكة دون إنشاء تقرير PDF أو إرساله.')
 
 
 def resolve(owner):

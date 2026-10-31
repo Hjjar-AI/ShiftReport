@@ -84,7 +84,7 @@ class DoctorMutationRepositoryTest : ClinicalRepositoryFixture() {
         val target = target()
         doctors.upsert(target.copy(telegramId = 123, extraOptions = setOf("pin:local-hash")))
         val incoming = target.copy(id = "portable-id", telegramId = 123,
-            extraOptions = setOf("pin:untrusted-hash", "syncAlias:untrusted"))
+            extraOptions = setOf("pin:untrusted-hash"))
         assertEquals(1, mutations.importRegistry(mutations.prepareImport(listOf(incoming))))
         val saved = requireNotNull(doctors.getById(target.id))
         assertTrue("pin:local-hash" in saved.extraOptions)

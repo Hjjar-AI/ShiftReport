@@ -34,6 +34,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         setChatId("-100"); setAdminName("أرز شجرة"); setAdminTelegramId("123")
     }
     @Before fun configureTransport() {
+        coEvery { telegram.validateReportDestination(any(), any(), any()) } just Runs
         coEvery { telegram.getMe() } returns TgUser(12345, isBot = true)
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup")
         every { projects.current() } returns ProjectConfig()
@@ -177,6 +178,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         assertNoInitialization()
     }
     @Test fun nonBotIdentityCannotBeInitialized() {
+        coEvery { telegram.validateReportDestination(any(), any(), any()) } just Runs
         coEvery { telegram.getMe() } returns TgUser(12345, isBot = false)
         val vm = validCreate(); vm.initialize()
         assertNotNull(vm.state.value.error)
@@ -217,7 +219,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
     }
     @Test fun importedJoinRetainsKeyAndTopicsWithoutSeeding() {
         val imported = ProjectConfig(hospitalName = "مشروع مستورد", botToken = token, chatId = -100,
-            reportsTopicId = 1, announcementsTopicId = 2, csvTopicId = 3, doctorsTopicId = 4,
+            reportsTopicId = 1, csvTopicId = 3, doctorsTopicId = 4, residentsChatId = -300, residentsTopicId = 7,
             telegramDataKey = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { 7 }))
         coEvery { provisioning.importConfig(uri, any()) } returns imported
         val vm = vm(); vm.setMode(ProjectSetupMode.JOIN); vm.setProvisioningPassphrase("synthetic password")
@@ -229,7 +231,8 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         assertTrue(vm.state.value.encryptTelegram)
         vm.initialize()
         verify { projects.saveDraft(match { it.telegramDataKey == imported.telegramDataKey &&
-            it.reportsTopicId == 1L && it.announcementsTopicId == 2L && it.csvTopicId == 3L && it.doctorsTopicId == 4L }) }
+            it.reportsTopicId == 1L && it.csvTopicId == 3L && it.doctorsTopicId == 4L &&
+            it.residentsChatId == -300L && it.residentsTopicId == 7L }) }
         coVerify(exactly = 0) { seeder.seed(any()) }
         verify(exactly = 1) { projects.markInitialized() }
     }

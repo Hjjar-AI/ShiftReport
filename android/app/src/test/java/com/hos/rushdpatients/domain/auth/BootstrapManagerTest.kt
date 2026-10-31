@@ -31,13 +31,15 @@ class BootstrapManagerTest {
         assertEquals(BootstrapResult.NoPin, manager.bootstrap())
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(1, text = "unrecognized"))
         assertEquals(BootstrapResult.UnrecognizedPin, manager.bootstrap())
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(1, document = TgDocument("obsolete-registry")))
+        assertEquals(BootstrapResult.UnrecognizedPin, manager.bootstrap())
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(1, text = Json.encodeToString(SyncState())))
         assertTrue(manager.bootstrap() is BootstrapResult.Failed)
         coVerify(exactly = 0) { doctors.replaceAll(any()) }
     }
-    @Test fun `recognized pinned registry imports through guarded repository and cleans cache`() = runBlocking<Unit> {
+    @Test fun `current pinned index imports registry through guarded repository and cleans cache`() = runBlocking<Unit> {
         val registry = listOf(Fixtures.doctor(rank = 1))
-        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(1, document = TgDocument("registry")))
+        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(1, text = Json.encodeToString(SyncState(doctorsFileId = "registry"))))
         coEvery { telegram.getFile("registry") } returns TgFile("registry", filePath = "registry.txt")
         coEvery { telegram.downloadFile("registry.txt", any()) } answers {
             secondArg<File>().apply { writeText(DoctorsRegistryCodec.encode(registry)) }
@@ -62,7 +64,7 @@ class BootstrapManagerTest {
     @Test fun `new project rechecks expected pin after download before importing`() = runBlocking<Unit> {
         val registry = listOf(Fixtures.doctor(rank = 1))
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup",
-            pinnedMessage = TgMessage(42, document = TgDocument("registry"))) andThen
+            pinnedMessage = TgMessage(42, text = Json.encodeToString(SyncState(doctorsFileId = "registry")))) andThen
             TgChat(-100, "supergroup", pinnedMessage = TgMessage(99))
         coEvery { telegram.getFile("registry") } returns TgFile("registry", filePath = "registry.txt")
         coEvery { telegram.downloadFile("registry.txt", any()) } answers {
@@ -76,7 +78,7 @@ class BootstrapManagerTest {
     @Test fun `newly seeded registry imports when expected pin remains current`() = runBlocking<Unit> {
         val registry = listOf(Fixtures.doctor(rank = 1))
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup",
-            pinnedMessage = TgMessage(42, document = TgDocument("registry")))
+            pinnedMessage = TgMessage(42, text = Json.encodeToString(SyncState(doctorsFileId = "registry"))))
         coEvery { telegram.getFile("registry") } returns TgFile("registry", filePath = "registry.txt")
         coEvery { telegram.downloadFile("registry.txt", any()) } answers {
             secondArg<File>().apply { writeText(DoctorsRegistryCodec.encode(registry)) }

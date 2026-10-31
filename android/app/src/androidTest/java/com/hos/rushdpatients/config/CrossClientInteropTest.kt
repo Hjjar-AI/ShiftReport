@@ -20,7 +20,7 @@ class CrossClientInteropTest : ClinicalRepositoryFixture() {
     private val key get() = Base64.encodeToString(ByteArray(32) { it.toByte() }, Base64.NO_WRAP)
     private fun config() = ProjectConfig(initialized = true, hospitalName = "مشروع تجريبي",
         botToken = "12345:" + "a".repeat(20), chatId = -100, reportsTopicId = 1,
-        announcementsTopicId = 2, csvTopicId = 3, doctorsTopicId = 4, telegramDataKey = key)
+        csvTopicId = 3, doctorsTopicId = 4, residentsChatId = -300, residentsTopicId = 7, telegramDataKey = key)
     private fun cipher() = ProjectDataCipher(ProjectConfigStore(preferences).apply { saveDraft(config()) }, dispatchers)
     private fun copyAsset(name: String) = File(preferences.cacheDir, name).apply {
         assets.open("interop/$name").use { input -> outputStream().use { input.copyTo(it) } }

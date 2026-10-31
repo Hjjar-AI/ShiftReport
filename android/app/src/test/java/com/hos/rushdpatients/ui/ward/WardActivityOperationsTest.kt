@@ -51,7 +51,7 @@ class WardActivityOperationsTest : ViewModelFixture() {
     @After fun releaseHistoryNetwork() { unmockkObject(NetworkStatus) }
     private fun model() = keep(SettingsViewModel(text, context, settings, doctors, mockk(), mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), sessions, sync, publication, mockk(), mockk(),
-        mockk(relaxed = true), mockk(), projects, mockk(), admin, mockk(), SavedStateHandle()))
+        mockk(relaxed = true), mockk(), projects, mockk(), mockk(), admin, mockk(), SavedStateHandle()))
     private suspend fun settled(vm: SettingsViewModel) = withTimeout(5_000) {
         vm.state.first { !it.publicationHistoryLoading }
     }

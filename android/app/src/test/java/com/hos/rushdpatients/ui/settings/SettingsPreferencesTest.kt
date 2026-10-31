@@ -83,11 +83,11 @@ class SettingsPreferencesTest {
     }
     @Test fun appearanceAndAccentPersistIndependently() = runTest {
         val preferences = preferences(this)
-        preferences.setAppearance(AppAppearance.AMOLED); preferences.setAppTheme(AppThemePreset.SAGE); runCurrent()
+        preferences.setAppearance(AppAppearance.AMOLED); preferences.setAppTheme(AppThemePreset.COASTAL); runCurrent()
         assertEquals(AppAppearance.AMOLED, state.value.appearance)
-        assertEquals(AppThemePreset.SAGE, state.value.appTheme)
+        assertEquals(AppThemePreset.COASTAL, state.value.appTheme)
         coVerify { settings.put(AppConstants.SETTING_APP_APPEARANCE, "AMOLED") }
-        coVerify { settings.put(AppConstants.SETTING_APP_THEME, "SAGE") }
+        coVerify { settings.put(AppConstants.SETTING_APP_THEME, "COASTAL") }
     }
     @Test fun wardNameIsTrimmedConsistentlyInStorageAndScreenState() = runTest {
         preferences(this).setReportWardName("  جناح تجريبي  "); runCurrent()
@@ -112,7 +112,7 @@ class SettingsPreferencesTest {
         val font = AppFontScale.entries.first { it != before.fontScale }
         coEvery { settings.put(any(), any()) } throws java.io.IOException("synthetic full disk")
         preferences.setAppearance(AppAppearance.AMOLED)
-        preferences.setAppTheme(AppThemePreset.SAGE)
+        preferences.setAppTheme(AppThemePreset.COASTAL)
         preferences.setFontScale(font)
         advanceUntilIdle()
         assertEquals(before.appearance, state.value.appearance)
@@ -121,11 +121,11 @@ class SettingsPreferencesTest {
         assertNotNull(state.value.snackbar)
         coEvery { settings.put(any(), any()) } returns Unit
         preferences.setAppearance(AppAppearance.AMOLED)
-        preferences.setAppTheme(AppThemePreset.SAGE)
+        preferences.setAppTheme(AppThemePreset.COASTAL)
         preferences.setFontScale(font)
         advanceUntilIdle()
         assertEquals(AppAppearance.AMOLED, state.value.appearance)
-        assertEquals(AppThemePreset.SAGE, state.value.appTheme)
+        assertEquals(AppThemePreset.COASTAL, state.value.appTheme)
         assertEquals(font, state.value.fontScale)
     }
     @Test fun rapidAppearanceThemeAndFontWritesRemainOrderedBehindSuspendedWrite() = runTest {
@@ -134,14 +134,14 @@ class SettingsPreferencesTest {
         val preferences = preferences(this)
         val font = AppFontScale.entries.first { it != state.value.fontScale }
         preferences.setAppearance(AppAppearance.AMOLED); runCurrent()
-        preferences.setAppTheme(AppThemePreset.SAGE)
+        preferences.setAppTheme(AppThemePreset.COASTAL)
         preferences.setFontScale(font); runCurrent()
         coVerify(exactly = 0) { settings.put(AppConstants.SETTING_APP_THEME, any()) }
         coVerify(exactly = 0) { settings.put(AppConstants.SETTING_FONT_SCALE, any()) }
         release.complete(Unit); advanceUntilIdle()
         coVerifyOrder {
             settings.put(AppConstants.SETTING_APP_APPEARANCE, "AMOLED")
-            settings.put(AppConstants.SETTING_APP_THEME, "SAGE")
+            settings.put(AppConstants.SETTING_APP_THEME, "COASTAL")
             settings.put(AppConstants.SETTING_FONT_SCALE, font.name)
         }
         assertEquals(font, state.value.fontScale)
