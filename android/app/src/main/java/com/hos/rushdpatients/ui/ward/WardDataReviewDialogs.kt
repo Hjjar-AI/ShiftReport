@@ -15,32 +15,10 @@ internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController
     onDismissLatest: () -> Unit) {
     val uiText = rememberUiStrings()
     val dismissLatest = { onDismissLatest(); viewModel.dismissPublicationReview() }
-    val pending = state.fetchChoiceRequired || state.synchronization.pending ||
-        state.synchronization.selectedSnapshot == com.hos.rushdpatients.sync.KnownShiftState.CHANGED
-    if (confirmLatest && !pending) ConfirmDialog(
+    if (confirmLatest || state.fetchChoiceRequired) ConfirmDialog(
         title = uiText(R.string.ui_ward_data_review_dialogs_001), message = uiText(R.string.ui_ward_data_review_dialogs_002),
-        confirmText = uiText(R.string.ui_ward_data_review_dialogs_003),
+        confirmText = uiText(R.string.sync_replace_fetch),
         onConfirm = { dismissLatest(); viewModel.bringLatestData() }, onDismiss = dismissLatest)
-    if ((confirmLatest || state.fetchChoiceRequired) && pending) {
-        com.hos.rushdpatients.ui.components.AppAlertDialog(
-            onDismissRequest = dismissLatest,
-            title = { androidx.compose.material3.Text(uiText(R.string.ui_ward_data_review_dialogs_001)) },
-            text = { androidx.compose.material3.Text(uiText(R.string.sync_fetch_choice_body)) },
-            confirmButton = {
-                androidx.compose.foundation.layout.Column {
-                    com.hos.rushdpatients.ui.components.AppButton(onClick = {
-                        dismissLatest(); viewModel.reviewPendingPublication()
-                    }) { androidx.compose.material3.Text(uiText(R.string.sync_review_publish)) }
-                    com.hos.rushdpatients.ui.components.AppTextButton(onClick = {
-                        dismissLatest(); viewModel.replaceAndFetch()
-                    }) { androidx.compose.material3.Text(uiText(R.string.sync_replace_fetch)) }
-                }
-            },
-            dismissButton = { com.hos.rushdpatients.ui.components.AppTextButton(onClick = dismissLatest) {
-                androidx.compose.material3.Text(uiText(R.string.ui_cancel))
-            } }
-        )
-    }
     state.publicationReviewText?.let { text ->
         com.hos.rushdpatients.ui.components.AppAlertDialog(
             onDismissRequest = viewModel::dismissPublicationReview,
@@ -53,12 +31,6 @@ internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController
             dismissButton = { com.hos.rushdpatients.ui.components.AppTextButton(onClick = viewModel::dismissPublicationReview) {
                 androidx.compose.material3.Text(uiText(R.string.ui_cancel))
             } })
-    }
-    if (state.olderRemoteConfirmation) {
-        ConfirmDialog(title = uiText(R.string.sync_older_admin_title), message = state.syncIssue.orEmpty(),
-            confirmText = uiText(R.string.sync_older_admin_confirm), onConfirm = {
-                viewModel.dismissPublicationReview(); viewModel.replaceAndFetch(allowOlder = true)
-            }, onDismiss = viewModel::dismissPublicationReview)
     }
 
 }

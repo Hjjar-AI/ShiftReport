@@ -10,7 +10,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
 
-class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()) {
+class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor(telegramId = 123)) {
     private var ledger = ledger()
 
     private suspend fun attempt(block: suspend (ReportDeliveryRecord) -> Unit = {}) =
@@ -158,7 +158,7 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
         assertThrows(IllegalStateException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
         every { sessions.current() } returns Session(actor.id, actor.fullName, null, actor.role, Fixtures.timestamp)
         coEvery { doctors.getActiveById(actor.id) } returns null
-        assertThrows(IllegalStateException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { attempt { fail("Unexpected transport") } } }
         assertNull(raw.value)
     }
 
@@ -166,7 +166,7 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
         attempt()
         val row = record()
         coEvery { doctors.getActiveById(actor.id) } returns null
-        assertThrows(IllegalStateException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             runBlocking { ledger.resolve(row.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED) }
         }
         assertEquals(DeliveryStatus.UNKNOWN, record().status)
@@ -185,12 +185,13 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
     @Test fun `publication metadata and transport result survive ledger wrapper`() = runBlocking<Unit> {
         val result = ledger.deliver("shift", -100, "content", "TEXT", "synthetic", actor.id,
             metadata = mapOf("publicationMessageId" to 42L)) { row ->
-            assertEquals(mapOf("publicationMessageId" to 42L), row.metadata)
+            assertEquals(42L, row.metadata["publicationMessageId"])
+            assertNotNull(row.metadata["actorBinding"])
             ledger.confirm(row.id, listOf(8))
             "transport-result"
         }
         assertEquals("transport-result", result)
-        assertEquals(mapOf("publicationMessageId" to 42L), recreated().observe().first().single().metadata)
+        assertEquals(42L, recreated().observe().first().single().metadata["publicationMessageId"])
     }
 
     @Test fun `failed manual resolution preserves uncertainty until a successful retry`() = runBlocking<Unit> {
@@ -267,8 +268,8 @@ class ReportDeliveryLedgerSafetyTest : DeliveryFixture(actor = Fixtures.doctor()
     @Test fun `admin demotion after opening resolution rejects the write without changing history`() = runBlocking<Unit> {
         attempt()
         val row = record()
-        val admin = Fixtures.doctor(id = "other-admin", fullName = "بلوط", rank = 1)
-        every { sessions.current() } returns Session(admin.id, admin.fullName, null, admin.role, Fixtures.timestamp)
+        val admin = Fixtures.doctor(id = "other-admin", fullName = "بلوط", telegramId = 456, rank = 1)
+        every { sessions.current() } returns Session(admin.id, admin.fullName, admin.telegramId, admin.role, Fixtures.timestamp)
         coEvery { doctors.getActiveById(admin.id) } returns admin
         ledger.requireResolvable(row.id, DeliveryStatus.UNKNOWN)
         val before = raw.value

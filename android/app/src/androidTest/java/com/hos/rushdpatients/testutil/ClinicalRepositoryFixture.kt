@@ -33,7 +33,7 @@ abstract class ClinicalRepositoryFixture : DatabaseFixture() {
         sessions = SessionManager(preferences)
         authorizer = AdminAuthorizer(sessions, doctors)
         mutations = DoctorMutationRepository(db, doctors, patients, authorizer, PasswordHasher(), audit, dispatchers)
-        doctors.upsert(doctor("admin", "أرز", rank = 10).copy(isPermanentAdmin = true))
+        doctors.upsert(doctor("admin", "أرز", rank = 10).copy(isPermanentAdmin = true, telegramId = 999001))
         admin = requireNotNull(doctors.getById("admin"))
         login(admin)
         settings.putBoolean(com.hos.rushdpatients.config.AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)

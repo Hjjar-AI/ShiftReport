@@ -12,12 +12,10 @@ import com.hos.rushdpatients.config.ProjectConfigStore
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
-import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.BootstrapManager
 import com.hos.rushdpatients.domain.auth.BootstrapResult
 import com.hos.rushdpatients.domain.auth.LoginVerificationResult
 import com.hos.rushdpatients.domain.auth.LocalPinLoginManager
-import com.hos.rushdpatients.domain.auth.PasswordHasher
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.auth.TelegramLoginManager
@@ -42,9 +40,7 @@ class LoginViewModel @Inject constructor(
     private val bootstrapManager: BootstrapManager,
     private val loginManager: TelegramLoginManager,
     private val localPinLogin: LocalPinLoginManager,
-    private val hasher: PasswordHasher,
     private val auditRepository: AuditRepository,
-    private val settingsRepository: SettingsRepository,
     projectConfigStore: ProjectConfigStore
 ) : ViewModel() {
 
@@ -62,36 +58,41 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(step = LoginStep.Bootstrapping, busy = true, error = null) }
 
-            val existing = doctorRepository.getAll()
-            if (existing.isNotEmpty()) {
-                _state.update { it.copy(step = LoginStep.PickDoctor(existing), busy = false) }
-                return@launch
-            }
+            try {
+                val existing = doctorRepository.getAll()
+                if (existing.isNotEmpty()) {
+                    showDoctorPicker(existing)
+                    return@launch
+                }
 
-            when (val result = bootstrapManager.bootstrap()) {
-                is BootstrapResult.Success -> {
-                    val doctors = doctorRepository.getAll()
-                    _state.update { it.copy(step = LoginStep.PickDoctor(doctors), busy = false) }
+                when (val result = bootstrapManager.bootstrap()) {
+                    is BootstrapResult.Success -> {
+                        val doctors = doctorRepository.getAll()
+                        showDoctorPicker(doctors)
+                    }
+                    is BootstrapResult.NoPin -> _state.update {
+                        it.copy(
+                            step = LoginStep.BootstrapFailed(
+                                uiText(R.string.ui_login_view_model_001)
+                            ),
+                            busy = false
+                        )
+                    }
+                    is BootstrapResult.UnrecognizedPin -> _state.update {
+                        it.copy(
+                            step = LoginStep.BootstrapFailed(
+                                uiText(R.string.ui_login_view_model_002)
+                            ),
+                            busy = false
+                        )
+                    }
+                    is BootstrapResult.Failed -> _state.update {
+                        it.copy(step = LoginStep.BootstrapFailed(result.message), busy = false)
+                    }
                 }
-                is BootstrapResult.NoPin -> _state.update {
-                    it.copy(
-                        step = LoginStep.BootstrapFailed(
-                            uiText(R.string.ui_login_view_model_001)
-                        ),
-                        busy = false
-                    )
-                }
-                is BootstrapResult.UnrecognizedPin -> _state.update {
-                    it.copy(
-                        step = LoginStep.BootstrapFailed(
-                            uiText(R.string.ui_login_view_model_002)
-                        ),
-                        busy = false
-                    )
-                }
-                is BootstrapResult.Failed -> _state.update {
-                    it.copy(step = LoginStep.BootstrapFailed(result.message), busy = false)
-                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                _state.update { it.copy(step = LoginStep.BootstrapFailed(uiText(R.string.ui_login_view_model_004)), busy = false) }
             }
         }
     }
@@ -99,10 +100,16 @@ class LoginViewModel @Inject constructor(
     fun pickDoctor(doctor: Doctor) {
         if (_state.value.busy) return
         verifyJob?.cancel()
-        if (doctor.telegramId != null && doctor.options.pinHash != null) {
-            _state.update { it.copy(step = LoginStep.EnterPin(doctor), busy = false, error = null) }
-        } else {
-            verifyViaTelegram(doctor)
+        _state.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val current = requireNotNull(doctorRepository.getActiveById(doctor.id))
+                val enrolled = localPinLogin.isEnrolled(current)
+                _state.update { it.copy(busy = false) }
+                if (enrolled) _state.update { it.copy(step = LoginStep.EnterPin(current), error = null) }
+                else verifyViaTelegram(current)
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _state.update { it.copy(busy = false, error = uiText(R.string.ui_login_view_model_004)) } }
         }
     }
 
@@ -134,56 +141,66 @@ class LoginViewModel @Inject constructor(
             _state.update { it.copy(error = uiText(R.string.ui_login_view_model_005)) }
             return
         }
-        val nonce = loginManager.generateNonce()
-        _state.update {
-            it.copy(
-                step = LoginStep.Verifying(doctor, nonce, remainingSeconds = 300),
-                error = null
-            )
-        }
-
+        _state.update { it.copy(busy = true, error = null) }
         verifyJob?.cancel()
         verifyJob = viewModelScope.launch {
-            val result = loginManager.awaitVerification(
-                nonce = nonce,
-                expectedTelegramId = telegramId
-            ) { remaining ->
-                _state.update { current ->
-                    val v = current.step as? LoginStep.Verifying ?: return@update current
-                    current.copy(step = v.copy(remainingSeconds = remaining))
+            try {
+                val current = requireNotNull(doctorRepository.getActiveById(doctor.id))
+                require(current.telegramId == telegramId)
+                loginManager.beginVerification(current.id, telegramId)
+                val remainingAtStart = loginManager.remainingSeconds(current.id)
+                _state.update { it.copy(step = LoginStep.Verifying(current, remainingAtStart), busy = false) }
+                while (true) {
+                    kotlinx.coroutines.delay(1000)
+                    val remaining = loginManager.remainingSeconds(current.id)
+                    if (remaining <= 0) {
+                        _state.update { it.copy(step = LoginStep.VerifyFailed(current, uiText(R.string.ui_login_view_model_007)), busy = false) }
+                        break
+                    }
+                    _state.update { state ->
+                        val step = state.step as? LoginStep.Verifying
+                        if (step?.doctor?.id == current.id) state.copy(step = step.copy(remainingSeconds = remaining)) else state
+                    }
                 }
-            }
-            when (result) {
-                is LoginVerificationResult.Success -> onVerified(doctor, telegramId)
-                is LoginVerificationResult.WrongUser -> _state.update {
-                    it.copy(
-                        step = LoginStep.VerifyFailed(doctor, uiText(R.string.ui_login_view_model_006)),
-                        busy = false
-                    )
-                }
-                is LoginVerificationResult.Timeout -> _state.update {
-                    it.copy(
-                        step = LoginStep.VerifyFailed(doctor, uiText(R.string.ui_login_view_model_007)),
-                        busy = false
-                    )
-                }
-                is LoginVerificationResult.Error -> _state.update {
-                    it.copy(
-                        step = LoginStep.VerifyFailed(doctor, result.message),
-                        busy = false
-                    )
-                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                _state.update { it.copy(step = LoginStep.VerifyFailed(doctor, uiText(R.string.login_private_code_send_failed)), busy = false) }
             }
         }
     }
 
-    private suspend fun onVerified(doctor: Doctor, telegramId: Long) {
-        val hasPin = doctor.options.pinHash != null
-        if (hasPin) {
-            startSession(doctor, telegramId)
-        } else {
-            _state.update { it.copy(step = LoginStep.SetPin(doctor, telegramId), busy = false) }
+    fun verifyTelegramCode(code: String) {
+        if (_state.value.busy) return
+        val step = _state.value.step as? LoginStep.Verifying ?: return
+        val telegramId = step.doctor.telegramId ?: return
+        _state.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                when (val result = loginManager.verify(step.doctor.id, telegramId, code)) {
+                    is LoginVerificationResult.Success -> {
+                        verifyJob?.cancel()
+                        onVerified(step.doctor, result.telegramId)
+                    }
+                    LoginVerificationResult.Incorrect -> _state.update { it.copy(error = uiText(R.string.login_private_code_incorrect)) }
+                    LoginVerificationResult.Timeout, LoginVerificationResult.Exhausted -> {
+                        verifyJob?.cancel()
+                        _state.update { it.copy(step = LoginStep.VerifyFailed(step.doctor, uiText(R.string.login_private_code_expired))) }
+                    }
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _state.update { it.copy(error = uiText(R.string.ui_login_view_model_004)) } }
+            finally { _state.update { it.copy(busy = false) } }
         }
+    }
+
+    private suspend fun onVerified(doctor: Doctor, telegramId: Long) {
+        try {
+            val current = requireNotNull(doctorRepository.getActiveById(doctor.id))
+            require(current.telegramId == telegramId) { "تغيرت هوية الطبيب؛ أعد التحقق" }
+            if (localPinLogin.isEnrolled(current)) startSession(current, telegramId)
+            else _state.update { it.copy(step = LoginStep.SetPin(current, telegramId), busy = false) }
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { _state.update { it.copy(busy = false, error = uiText(R.string.ui_login_view_model_004)) } }
     }
 
     fun cancelVerification() {
@@ -194,19 +211,24 @@ class LoginViewModel @Inject constructor(
 
     fun retryVerify(doctor: Doctor) = verifyViaTelegram(doctor)
 
+    private suspend fun showDoctorPicker(doctors: List<Doctor>) {
+        val enrolled = doctors.filter { localPinLogin.isEnrolled(it) }.mapTo(mutableSetOf()) { it.id }
+        _state.update { it.copy(step = LoginStep.PickDoctor(doctors), enrolledDoctorIds = enrolled, busy = false, error = null) }
+    }
+
     fun backToDoctors() {
+        verifyJob?.cancel()
         viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    step = LoginStep.PickDoctor(doctorRepository.getAll()),
-                    busy = false,
-                    error = null
-                )
-            }
+            try { showDoctorPicker(doctorRepository.getAll()) }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _state.update { it.copy(busy = false, error = uiText(R.string.ui_login_view_model_004)) } }
         }
     }
 
     fun setPin(doctor: Doctor, telegramId: Long, pin: String, confirm: String) {
+        if (_state.value.busy) return
+        val verified = _state.value.step as? LoginStep.SetPin ?: return
+        if (verified.doctor.id != doctor.id || verified.telegramId != telegramId) return
         if (pin.length !in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH ||
             !pin.all(Char::isDigit)
         ) {
@@ -217,26 +239,30 @@ class LoginViewModel @Inject constructor(
             _state.update { it.copy(error = uiText(R.string.ui_login_view_model_009)) }
             return
         }
+        _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            _state.update { it.copy(busy = true, error = null) }
-            val updatedExtra = doctor.options.withPinHash(hasher.hash(pin))
-            val updated = doctor.copy(extraOptions = updatedExtra, updatedAt = Instant.now())
-            doctorRepository.upsert(updated)
-            startSession(updated, telegramId)
+            try {
+                val updated = localPinLogin.enrollVerified(doctor.id, telegramId, pin)
+                startSession(updated, telegramId)
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _state.update { it.copy(error = uiText(R.string.ui_login_view_model_004)) } }
+            finally { _state.update { it.copy(busy = false) } }
         }
     }
 
     private suspend fun startSession(doctor: Doctor, telegramId: Long) {
-        sessionManager.start(
-            Session(
-                doctorId = doctor.id,
-                doctorName = doctor.fullName,
+        val current = requireNotNull(doctorRepository.getActiveById(doctor.id))
+        require(current.telegramId == telegramId) { "تغيرت هوية الطبيب؛ أعد التحقق" }
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            sessionManager.start(Session(
+                doctorId = current.id,
+                doctorName = current.fullName,
                 telegramId = telegramId,
-                role = doctor.role,
+                role = current.role,
                 unlockedAt = Instant.now()
-            )
-        )
-        runCatching {
+            ))
+        }
+        com.hos.rushdpatients.util.runCatchingCancellable {
             auditRepository.record(doctor.id, doctor.fullName, AppConstants.AUDIT_LOGIN)
         }
         _state.update { it.copy(busy = false) }

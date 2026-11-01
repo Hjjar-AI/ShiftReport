@@ -17,6 +17,7 @@ internal interface ReportController {
     fun previewSupervisorPdf(supervisorId: String)
     fun onPdfPreviewOpened(uri: Uri)
     fun onPdfViewerUnavailable()
+    fun onPdfShareUnavailable()
     fun consumePdfShare()
     fun setShiftDoctors(ids: List<String>, onSuccess: () -> Unit)
     fun setReportAsPdf(value: Boolean)
@@ -42,6 +43,7 @@ internal class LiveReportController(private val viewModel: ReportPreviewViewMode
     override fun previewSupervisorPdf(supervisorId: String) { viewModel.previewSupervisorPdf(supervisorId) }
     override fun onPdfPreviewOpened(uri: Uri) { viewModel.onPdfPreviewOpened(uri) }
     override fun onPdfViewerUnavailable() { viewModel.onPdfViewerUnavailable() }
+    override fun onPdfShareUnavailable() { viewModel.onPdfShareUnavailable() }
     override fun consumePdfShare() { viewModel.consumePdfShare() }
     override fun setShiftDoctors(ids: List<String>, onSuccess: () -> Unit) { viewModel.setShiftDoctors(ids, onSuccess) }
     override fun setReportAsPdf(value: Boolean) { viewModel.setReportAsPdf(value) }

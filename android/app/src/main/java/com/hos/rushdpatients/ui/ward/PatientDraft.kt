@@ -38,5 +38,7 @@ data class PatientDraft(
         get() = admittanceNumber.isBlank() && name.isBlank() && initialDiagnosis.isBlank() &&
             treatmentItems.isEmpty() && treatmentDraft.isBlank() && followUpItems.isEmpty() &&
             followUpDraft.isBlank() && labItems.isEmpty() && labDraft.isBlank() && badges.isEmpty() &&
-            badgeDraftText.isBlank() && tasks.isEmpty()
+            badgeDraftText.isBlank() && badgeDraftPriority == null && tasks.isEmpty() &&
+            admittanceDate == null && gender == "M" && birthYear.isBlank() && age.isBlank() &&
+            !hasCompanion && diagnosisType == "PSY" && residentId == null && specialistId == null && !isPriority
 }

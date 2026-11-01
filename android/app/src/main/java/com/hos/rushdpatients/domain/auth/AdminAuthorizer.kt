@@ -15,7 +15,8 @@ class AdminAuthorizer @Inject constructor(
         val session = sessionManager.current() ?: error("يجب تسجيل الدخول كمدير")
         val actor = doctorRepository.getById(session.doctorId)
             ?: error("المستخدم الحالي غير موجود")
-        require(session.isAdmin && actor.isAdmin && !actor.isDeleted) {
+        require(session.isAdmin && actor.isAdmin && !actor.isDeleted &&
+            actor.telegramId != null && session.telegramId == actor.telegramId) {
             "هذه العملية متاحة للمدير فقط"
         }
         return actor

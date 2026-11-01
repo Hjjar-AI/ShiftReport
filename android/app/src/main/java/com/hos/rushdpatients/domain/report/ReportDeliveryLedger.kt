@@ -52,7 +52,7 @@ enum class DeliveryResolution { RECEIVED, NOT_RECEIVED, ALLOW_COPY }
  *
  * UNKNOWN_COPY_ALLOWED with a permit authorizes one exact copy; without a permit it retains
  * unresolved historical evidence after a confirmed copy, so Resolve remains meaningful.
- * Permits bind content/route/format; active IDs only prevent resolving in-flight attempts.
+ * Permits bind exact artifact, chat/topic, format and originating linked actor; active IDs only prevent resolving in-flight attempts.
  */
 @Singleton
 class ReportDeliveryLedger @Inject constructor(
@@ -71,21 +71,28 @@ class ReportDeliveryLedger @Inject constructor(
     fun observe() = settings.observe(settingKey).map { decode(it).records }.flowOn(Dispatchers.IO)
     private fun digest(value: String) = MessageDigest.getInstance("SHA-256").digest(value.toByteArray())
         .joinToString("") { "%02x".format(it.toInt() and 255) }
-    private suspend fun activeActor() = sessions.current()?.doctorId?.let { doctors.getActiveById(it) }
-        ?: error("يجب تسجيل الدخول بطبيب نشط قبل تعديل سجل التسليم")
+    private fun actorBinding(actor: com.hos.rushdpatients.data.model.Doctor): Long =
+        java.nio.ByteBuffer.wrap(MessageDigest.getInstance("SHA-256")
+            .digest("${actor.id}|${actor.telegramId}".toByteArray(Charsets.UTF_8))).long
+    private suspend fun activeActor(): com.hos.rushdpatients.data.model.Doctor {
+        val session = sessions.current() ?: error("يجب تسجيل الدخول بطبيب نشط قبل تعديل سجل التسليم")
+        val actor = requireNotNull(doctors.getActiveById(session.doctorId))
+        require(actor.telegramId != null && actor.telegramId == session.telegramId) { "تغيرت هوية المستخدم؛ أعد تسجيل الدخول" }
+        return actor
+    }
 
     private suspend fun begin(shiftId: String, chatId: Long, contentKey: String, format: String,
-                      label: String, expectedActorId: String?, metadata: Map<String, Long>): ReportDeliveryRecord = withContext(Dispatchers.IO) {
+                      label: String, expectedActorId: String?, metadata: Map<String, Long>, topicId: Long?): ReportDeliveryRecord = withContext(Dispatchers.IO) {
         mutex.withLock {
             val actor = activeActor()
             require(actor.id == expectedActorId) { "تغير مستخدم الإرسال؛ أعد المراجعة" }
             val route = digest("$shiftId|$chatId")
-            val key = digest("$route|$format|$contentKey")
+            val key = digest("$route|${topicId ?: 0}|$format|$contentKey")
             val log = load()
             val keys = setOf(key)
-            requireAllowed(log, route, keys)
+            requireAllowed(log, route, keys, actor.id, actorBinding(actor))
             val record = ReportDeliveryRecord(UUID.randomUUID().toString(), shiftId, route, key,
-                label, format, actor.id, System.currentTimeMillis(), metadata = metadata)
+                label, format, actor.id, System.currentTimeMillis(), metadata = metadata + ("actorBinding" to actorBinding(actor)))
             val origins = log.records.filter {
                 it.route == route && it.status == DeliveryStatus.UNKNOWN_COPY_ALLOWED &&
                     it.key in keys && it.key in log.repeatPermits
@@ -104,9 +111,10 @@ class ReportDeliveryLedger @Inject constructor(
     /** Register and release together even if cancellation arrives during durable registration. */
     suspend fun <T> deliver(shiftId: String, chatId: Long, contentKey: String, format: String,
                            label: String, expectedActorId: String?, metadata: Map<String, Long> = emptyMap(),
+                           topicId: Long? = null,
                            block: suspend (ReportDeliveryRecord) -> T): T {
         val record = withContext(NonCancellable) {
-            begin(shiftId, chatId, contentKey, format, label, expectedActorId, metadata)
+            begin(shiftId, chatId, contentKey, format, label, expectedActorId, metadata, topicId)
         }
         try { return block(record) }
         catch (e: com.hos.rushdpatients.network.telegram.TelegramException) {
@@ -130,20 +138,20 @@ class ReportDeliveryLedger @Inject constructor(
         }
     }
 
-    private fun requireAllowed(log: DeliveryLog, route: String, keys: Set<String>) {
+    private fun requireAllowed(log: DeliveryLog, route: String, keys: Set<String>, actorId: String, actorBinding: Long) {
         if (log.records.any { it.route == route && it.status == DeliveryStatus.UNKNOWN }) throw ReportDeliveryBlockedException(
             "يوجد إرسال غير مؤكد لهذه الوجهة؛ افتح سجل التسليم وافحص تليجرام ثم احسمه قبل الإعادة")
-        if (log.records.any { it.route == route && it.status == DeliveryStatus.UNKNOWN_COPY_ALLOWED &&
-                it.key in log.repeatPermits && it.key !in keys }) throw ExactReportCopyRequiredException()
+        if (log.records.any { it.route == route && it.key in log.repeatPermits &&
+                (it.key !in keys || it.actorId != actorId || it.metadata["actorBinding"] != actorBinding) }) throw ExactReportCopyRequiredException()
         if (log.records.any { it.key in keys && it.status == DeliveryStatus.SENT } && keys.none { it in log.repeatPermits }) throw ReportDeliveryBlockedException(
             "هذا المحتوى سُلّم سابقاً؛ افتح سجل التسليم واسمح صراحةً بنسخة إضافية إن أردتها")
     }
 
-    suspend fun check(shiftId: String, chatId: Long, contentKey: String, format: String) = withContext(Dispatchers.IO) {
+    suspend fun check(shiftId: String, chatId: Long, contentKey: String, format: String, topicId: Long? = null) = withContext(Dispatchers.IO) {
         mutex.withLock {
-            activeActor()
+            val actor = activeActor()
             val route = digest("$shiftId|$chatId")
-            requireAllowed(load(), route, setOf(digest("$route|$format|$contentKey")))
+            requireAllowed(load(), route, setOf(digest("$route|${topicId ?: 0}|$format|$contentKey")), actor.id, actorBinding(actor))
         }
     }
 

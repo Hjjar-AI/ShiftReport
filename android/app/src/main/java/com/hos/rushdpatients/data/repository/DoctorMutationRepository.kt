@@ -90,6 +90,14 @@ class DoctorMutationRepository @Inject constructor(
         database.withTransaction {
             val actor = authorizer.requireAdmin()
             val current = requireCurrent(expected)
+            require(current.telegramId == input.telegramId || !current.isPermanentAdmin) {
+                "لتغيير هوية المدير الدائم استخدم نقل الإدارة الدائمة"
+            }
+            require((pinHash == null && current.telegramId == input.telegramId) ||
+                actor.id == current.id || actor.isPermanentAdmin ||
+                !current.isPermanentAdmin && actor.rank > current.rank) {
+                "لا يمكنك تغيير هوية أو رقم سري لمدير أعلى رتبة"
+            }
             require(current.clinicalRole == input.clinicalRole || patients.countActiveReferencesToDoctor(current.id) == 0) {
                 "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب"
             }
@@ -203,6 +211,12 @@ class DoctorMutationRepository @Inject constructor(
                 require(local?.isPermanentAdmin != true && (local?.rank ?: 0) < actor.rank &&
                     !result.isPermanentAdmin && result.rank < actor.rank) {
                     "لا يمكن للاستيراد تغيير صلاحيات مدير أعلى رتبة أو منح صلاحية أعلى من المنفذ"
+                }
+            }
+            if (local != null && local.telegramId != result.telegramId) {
+                require(!local.isPermanentAdmin) { "لتغيير هوية المدير الدائم استخدم نقل الإدارة الدائمة" }
+                require(actor.id == local.id || actor.isPermanentAdmin || actor.rank > local.rank) {
+                    "لا يمكن للاستيراد تغيير هوية مدير أعلى رتبة"
                 }
             }
             val telegramId = result.telegramId

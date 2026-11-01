@@ -21,21 +21,27 @@ internal fun EditPatientDialog(
     onConfirmAndNext: ((Patient, (Patient?) -> Unit) -> Unit)? = null,
     roundsNavigation: PatientRoundsNavigation? = null,
     onDismiss: () -> Unit,
-    onLoadDraft: (String, (PatientDraft?) -> Unit) -> Unit = { _, done -> done(null) },
+    onLoadDraft: (String, (Result<PatientDraft?>) -> Unit) -> Unit = { _, done -> done(Result.success(null)) },
     onDraftChanged: (String, PatientDraft) -> Unit = { _, _ -> },
     onDiscardDraft: (String) -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
     val session = retainedState ?: remember(patient.id) { EditPatientState(patient) }
-    androidx.compose.runtime.LaunchedEffect(patient.id) {
-        if (!session.draftLoaded) onLoadDraft(patient.id) { draft ->
-            if (draft != null) {
-                session.form.restore(session.initial, draft)
-            }
-            session.draftLoaded = true
+    androidx.compose.runtime.LaunchedEffect(patient.id, session.draftLoadAttempt) {
+        if (!session.draftLoaded) onLoadDraft(patient.id) { result ->
+            result.fold(onSuccess = { draft ->
+                if (draft != null) session.form.restore(session.initial, draft)
+                session.draftLoadFailed = false
+                session.draftLoaded = true
+            }, onFailure = { session.draftLoadFailed = true })
         }
     }
-    if (!session.draftLoaded) return
+    if (!session.draftLoaded) {
+        PatientDraftLoadDialog(session.draftLoadFailed,
+            onRetry = { session.draftLoadFailed = false; session.draftLoadAttempt++ },
+            onDismiss = onDismiss)
+        return
+    }
     val initial = session.initial
     fun submit(draft: Patient, advance: Boolean) {
         val replacement = draft.copy(sortOrder = patient.sortOrder)
@@ -63,5 +69,21 @@ internal fun EditPatientDialog(
         onConfirm = { submit(it, false) },
         onConfirmAndNext = if (onConfirmAndNext == null) null else { draft -> submit(draft, true) },
         onDismiss = { onDiscardDraft(patient.id); onDismiss() }
+    )
+}
+
+/** A failed read never means there was no saved draft. Closing keeps the original bytes. */
+@Composable
+internal fun PatientDraftLoadDialog(failed: Boolean, onRetry: () -> Unit, onDismiss: () -> Unit) {
+    val uiText = rememberUiStrings()
+    com.hos.rushdpatients.ui.components.AppAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(uiText(R.string.patient_draft_recovery_title)) },
+        text = { Text(uiText(if (failed) R.string.patient_draft_recovery_failed else R.string.patient_draft_loading)) },
+        confirmButton = {
+            if (failed) com.hos.rushdpatients.ui.components.AppDialogConfirmAction(
+                text = uiText(R.string.ui_retry), onClick = onRetry)
+        },
+        dismissButton = { com.hos.rushdpatients.ui.components.AppDialogDismissAction(onClick = onDismiss) }
     )
 }

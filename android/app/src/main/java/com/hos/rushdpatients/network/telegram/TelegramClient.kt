@@ -116,6 +116,15 @@ class TelegramClient @Inject constructor(
         return callAndUnwrap("sendMessage", chatId, body)
     }
 
+    /** Login codes are deliberately readable only in the linked account's private bot chat. */
+    internal suspend fun sendPrivateLoginCode(telegramId: Long, code: String): TgMessage {
+        require(telegramId > 0 && code.length == 6 && code.all { it in '0'..'9' })
+        val body = FormBody.Builder().add("chat_id", telegramId.toString())
+            .add("text", "ShiftReport Android\nرمز تحقق تسجيل الدخول: $code\nلا تشاركه مع أحد. صالح خمس دقائق.")
+            .add("protect_content", "true").add("disable_notification", "false").build()
+        return callAndUnwrap("sendMessage", telegramId, body)
+    }
+
     /** Only public PDF title metadata; ordinary clinical messages still use encrypted sendMessage. */
     suspend fun sendPublicReportTitle(chatId: Long, text: String, replyToMessageId: Long,
         messageThreadId: Long? = null): TgMessage {
@@ -304,9 +313,14 @@ class TelegramClient @Inject constructor(
 
     // ---------------- Chats & admins ----------------
 
-    suspend fun getChat(chatId: Long): TgChat {
+    /** Metadata only, for creation review before this project owns the pin. */
+    suspend fun getChatMetadata(chatId: Long): TgChat {
         val body = FormBody.Builder().add("chat_id", chatId.toString()).build()
-        val chat: TgChat = callAndUnwrap("getChat", chatId, body)
+        return callAndUnwrap("getChat", chatId, body)
+    }
+
+    suspend fun getChat(chatId: Long): TgChat {
+        val chat = getChatMetadata(chatId)
         val pinned = chat.pinnedMessage ?: return chat
         return chat.copy(pinnedMessage = pinned.copy(
             text = dataCipher.decodeText(pinned.text, requireEncrypted = true),

@@ -53,7 +53,7 @@ class ShiftRepository @Inject constructor(
     ): Shift = withContext(dispatchers.io) {
         // Remote IDs identify a section; its date is only a retained label.
         val requestedId = preferredId?.takeIf { it.isNotBlank() }
-        val existing = requestedId?.let { dao.getById(it) } ?: dao.getByDate(date.toEpochDay())
+        val existing = if (requestedId != null) dao.getById(requestedId) else dao.getByDate(date.toEpochDay())
         if (existing != null) {
             return@withContext ShiftMapper.fromEntity(existing)
         }

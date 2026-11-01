@@ -38,11 +38,11 @@ internal class SettingsDataOperations(
             is com.hos.rushdpatients.sync.LocalPatientChangesPendingException -> SettingsSyncRecovery.PATIENTS
             else -> null
         }
-        _state.update { it.copy(fetchChoiceRequired = error is com.hos.rushdpatients.sync.LocalPatientChangesPendingException, olderRemoteConfirmation = error is com.hos.rushdpatients.sync.OlderRemoteSnapshotException, syncIssue = error?.message ?: uiText(fallback),
+        _state.update { it.copy(fetchChoiceRequired = error is com.hos.rushdpatients.sync.LocalPatientChangesPendingException, olderRemoteConfirmation = false, syncIssue = error?.message ?: uiText(fallback),
             syncRecovery = recovery, syncRetryAction = retry, retryAction = retry) }
     }
 
-    fun bringLatest(replaceLocal: Boolean = false, allowOlder: Boolean = false) {
+    fun bringLatest() {
         if (_state.value.syncing || _state.value.backupBusy || _state.value.exportingCsv) return
         if (!NetworkStatus.isOnline(context)) {
             _state.update {
@@ -60,12 +60,11 @@ internal class SettingsDataOperations(
         viewModelScope.launch {
             var fallback = R.string.ui_ward_shift_operations_019
             try {
-                // Explicit fetch accepts the authoritative registry through its existing guards.
-                syncService.refreshDoctorsForPatientFetch().getOrThrow()
                 fallback = R.string.ui_ward_shift_operations_024
-                val result = syncService.fetchLatestCsv(replaceLocal, allowOlder).getOrThrow()
+                val result = syncService.fetchLatestCsv().getOrThrow()
                 _state.update { it.copy(
-                    snackbar = uiText(R.string.ui_settings_data_operations_002, result.inserted, result.updated),
+                    snackbar = if (result.localBookkeepingFailed) uiText(R.string.sync_fetch_bookkeeping_warning)
+                        else uiText(R.string.ui_settings_data_operations_002, result.inserted, result.updated),
                     lastOperation = uiText(R.string.ui_settings_data_operations_003),
                     syncIssue = null, syncRecovery = null, syncRetryAction = null, retryAction = null,
                     lastCsvSync = format(Instant.now().toEpochMilli())

@@ -167,17 +167,18 @@ internal class PatientPublicationCoordinator(
             )
             requirePublicationReview(review, remoteState.readState())
             val newState = remoteState.updateState { current ->
+                requirePublicationReview(review, current)
                 current.withPublishedCsv(uploadedSnapshot).copy(
                     publicationJournal = (
-                        current.publicationJournal + PublicationJournalEntry(
+                        listOf(PublicationJournalEntry(
                             snapshotId = requireNotNull(shift.snapshotId),
                             parentSnapshotId = shift.baseSnapshotId,
                             fileId = uploadedFileId,
                             messageId = msg.messageId,
                             at = uploadedAt,
                             deviceId = publishingDeviceId
-                        )
-                    ).distinctBy { it.messageId }.sortedByDescending { it.messageId }.take(12)
+                        )) + current.publicationJournal
+                    ).distinctBy { it.messageId }.take(12)
                 )
             }
             val published = newState.currentCsvSnapshot()
@@ -272,10 +273,10 @@ internal class PatientPublicationCoordinator(
                 val parsed = CsvBundleCodec.decode(review.csv).first()
                 val deviceId = getOrCreateDeviceId()
                 remoteState.updateState { current -> current.withPublishedCsv(snapshot).copy(
-                    publicationJournal = (current.publicationJournal + PublicationJournalEntry(
+                    publicationJournal = (listOf(PublicationJournalEntry(
                         snapshotId = parsed.snapshotId ?: "rollback-${message.messageId}", parentSnapshotId = parsed.baseSnapshotId,
                         fileId = snapshot.fileId, messageId = snapshot.messageId, at = snapshot.updatedAt,
-                        deviceId = deviceId, forced = true)).distinctBy { it.messageId }.sortedByDescending { it.messageId }.take(12)) }
+                        deviceId = deviceId, forced = true)) + current.publicationJournal).distinctBy { it.messageId }.take(12)) }
                 syncStateRepository.update(SyncChannel.CSV, snapshot.updatedAt, snapshot.messageId, snapshot.fileId)
                 // Baselines now refer to a superseded publication; keep local data explicitly pending.
                 settingsRepository.getAll().keys.filter { it.startsWith(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX) }

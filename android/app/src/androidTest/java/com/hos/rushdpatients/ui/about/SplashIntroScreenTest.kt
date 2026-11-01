@@ -18,21 +18,21 @@ class SplashIntroScreenTest {
     @get:Rule val compose = createComposeRule()
     @Test fun quickTapSkipsIntro() {
         var skips = 0
-        compose.setContent { MaterialTheme { SplashIntroScreen { skips++ } } }
+        compose.setContent { MaterialTheme { SplashIntroScreen(onSkip = { skips++ }) } }
         compose.onNode(hasClickAction()).performTouchInput { click(center) }
         compose.runOnIdle { assertEquals(1, skips) }
     }
-    @Test fun holdingDoesNotExposeRetiredPauseControls() {
+    @Test fun longHoldDoesNotSkipOrExposePauseControls() {
         var skips = 0
-        compose.setContent { MaterialTheme { SplashIntroScreen { skips++ } } }
+        compose.setContent { MaterialTheme { SplashIntroScreen(onSkip = { skips++ }) } }
         compose.onNode(hasClickAction()).performTouchInput { down(center); advanceEventTime(700); up() }
-        compose.runOnIdle { assertEquals(1, skips) }
+        compose.runOnIdle { assertEquals(0, skips) }
         compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)).assertCountEquals(0)
     }
     @Test fun accessibilityClickSkipsWithoutHoldActions() {
         var skips = 0
         compose.setContent { CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            MaterialTheme { SplashIntroScreen { skips++ } }
+            MaterialTheme { SplashIntroScreen(onSkip = { skips++ }) }
         } }
         compose.onNode(hasClickAction()).performClick()
         compose.runOnIdle { assertEquals(1, skips) }

@@ -186,6 +186,10 @@ internal fun ReportWorkspace(
                     uiText(R.string.ui_report_preview_screen_012)
                 )
             )
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            viewModel.onPdfShareUnavailable()
         } finally {
             viewModel.consumePdfShare()
         }

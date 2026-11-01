@@ -82,4 +82,16 @@
     <string name="report_preview_destination">معاينة: %1$s</string>
     <string name="report_preview_progress">تمت معاينة %1$s من %2$s</string>
     <string name="report_preview_opened">تم فتح المعاينة</string>
+    <string name="backup_saved_bookkeeping_warning">حُفظت النسخة الاحتياطية، لكن تعذر تحديث معلومات التخزين المحلية. الملف المحفوظ صالح؛ لا حاجة لإعادة التصدير.</string>
+    <string name="report_share_launch_failed">تعذر فتح نافذة المشاركة. الملف محفوظ للمعاينة؛ حاول المشاركة مجدداً.</string>
+    <string name="sync_fetch_bookkeeping_warning">تم جلب البيانات واستبدال النسخة المحلية، لكن تعذر تنظيف الذاكرة المؤقتة. يمكنك التراجع إلى النسخة المحلية السابقة؛ لا حاجة لإعادة الجلب.</string>
+    <string name="patient_draft_recovery_title">استعادة المسودة</string>
+    <string name="patient_draft_loading">جارٍ قراءة المسودة المحفوظة…</string>
+    <string name="patient_draft_recovery_failed">تعذر قراءة المسودة. بقيت محفوظة دون تغيير؛ أعد المحاولة أو أغلق النافذة.</string>
+    <string name="login_private_code_instructions">أرسلنا رمزاً إلى محادثتك الخاصة مع البوت. أدخله هنا لإثبات هويتك؛ لا تشاركه مع أحد.</string>
+    <string name="login_private_code_label">رمز التحقق من تليجرام</string>
+    <string name="login_private_code_confirm">تحقق</string>
+    <string name="login_private_code_incorrect">الرمز غير صحيح؛ راجع رسالة البوت.</string>
+    <string name="login_private_code_expired">انتهت صلاحية الرمز أو محاولاته. انتظر انتهاءه ثم اطلب رمزاً جديداً.</string>
+    <string name="login_private_code_send_failed">تعذر تأكيد إرسال الرمز. افتح محادثة البوت واضغط Start؛ إن وصل رمز فإعادة المحاولة تتيح إدخاله دون إرساله مجدداً.</string>
 </resources>

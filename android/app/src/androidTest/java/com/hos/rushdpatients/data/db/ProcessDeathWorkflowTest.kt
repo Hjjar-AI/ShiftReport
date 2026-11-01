@@ -172,7 +172,7 @@ class ProcessDeathWorkflowTest {
         core.db.withTransaction {
             core.patients.upsert(patient.copy(labs = "downloaded", revision = 9), shift.id)
             core.shifts.upsert(shift.copy(revision = 9))
-            core.undo.record(listOf(ShiftCsvSnapshot(shift, listOf(patient))), listOf(shift.id))
+            core.undo.record(listOf(ShiftCsvSnapshot(shift, listOf(patient))), listOf(shift.id), beforeDoctors = core.doctors.getAll(), afterDoctors = core.doctors.getAll())
         }
         null
     }) { core ->

@@ -15,9 +15,9 @@ class AdminAuthorizerTest {
     private val sessions = mockk<SessionManager>()
     private val doctors = mockk<DoctorRepository>()
     private val authorizer = AdminAuthorizer(sessions, doctors)
-    private val session = Session("doc-1", "أرز", null, Role.ADMIN, Instant.EPOCH)
+    private val session = Session("doc-1", "أرز", 123, Role.ADMIN, Instant.EPOCH)
     @Test fun `active admin is returned from live registry`() = runTest {
-        val actor = Fixtures.doctor(rank = 1)
+        val actor = Fixtures.doctor(rank = 1, telegramId = 123)
         every { sessions.current() } returns session
         coEvery { doctors.getById("doc-1") } returns actor
         assertEquals(actor, authorizer.requireAdmin())
@@ -25,7 +25,7 @@ class AdminAuthorizerTest {
     }
     @Test fun `cached admin cannot authorize deleted demoted or missing actor`() = runTest {
         every { sessions.current() } returns session
-        for (actor in listOf(null, Fixtures.doctor(), Fixtures.doctor(rank = 1).copy(deletedAt = Instant.EPOCH))) {
+        for (actor in listOf(null, Fixtures.doctor(), Fixtures.doctor(rank = 1, telegramId = 123).copy(deletedAt = Instant.EPOCH))) {
             coEvery { doctors.getById("doc-1") } returns actor
             try { authorizer.requireAdmin(); fail("Unauthorized actor accepted") }
             catch (_: IllegalStateException) { }
@@ -33,7 +33,7 @@ class AdminAuthorizerTest {
         }
     }
     @Test fun `session also needs admin authority and must exist`() = runTest {
-        coEvery { doctors.getById("doc-1") } returns Fixtures.doctor(rank = 1)
+        coEvery { doctors.getById("doc-1") } returns Fixtures.doctor(rank = 1, telegramId = 123)
         every { sessions.current() } returns session.copy(role = Role.NON_ADMIN)
         try { authorizer.requireAdmin(); fail("Non-admin session accepted") } catch (_: IllegalArgumentException) { }
         every { sessions.current() } returns null

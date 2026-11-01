@@ -22,6 +22,7 @@ import javax.inject.Singleton
 class BootstrapSeeder @Inject constructor(
     private val telegram: TelegramClient,
     private val topics: Topics,
+    private val json: kotlinx.serialization.json.Json,
     private val projectConfigStore: ProjectConfigStore
 ) {
 
@@ -38,7 +39,7 @@ class BootstrapSeeder @Inject constructor(
             val config = projectConfigStore.current()
             check(!config.initialized && !config.demoMode) { "إنشاء السجل متاح أثناء إعداد مشروع جديد فقط" }
             require(reviewedPin == null || reviewedPin.chatId == config.chatId) { "تغيرت مجموعة المشروع؛ أعد المراجعة" }
-            requireReviewedPin(reviewedPin, telegram.getChat(topics.chatId).pinnedMessage)
+            requireReviewedPin(reviewedPin, telegram.getChatMetadata(topics.chatId).pinnedMessage)
             val admin = config.initialAdmin
             val telegramId = admin.telegramId
             require(telegramId > 0L) {
@@ -85,13 +86,25 @@ class BootstrapSeeder @Inject constructor(
 
             check(projectConfigStore.current() == config) { "تغير إعداد المشروع؛ أعد مراجعته" }
             if (reviewedPin != null) requireGroupAdmin(telegramId)
-            requireReviewedPin(reviewedPin, telegram.getChat(topics.chatId).pinnedMessage)
+            requireReviewedPin(reviewedPin, telegram.getChatMetadata(topics.chatId).pinnedMessage)
             check(projectConfigStore.current() == config) { "تغير إعداد المشروع؛ أعد مراجعته" }
-            check(telegram.pinMessage(topics.chatId, msg.messageId, disableNotification = true)) {
+            val state = com.hos.rushdpatients.sync.SyncState(
+                doctorsFileId = requireNotNull(msg.document?.fileId),
+                doctorsMessageId = msg.messageId, doctorsUpdatedAt = System.currentTimeMillis()
+            )
+            val index = telegram.sendMessage(chatId = topics.chatId,
+                text = json.encodeToString(com.hos.rushdpatients.sync.SyncState.serializer(), state),
+                parseMode = null, disableNotification = true)
+            requireReviewedPin(reviewedPin, telegram.getChatMetadata(topics.chatId).pinnedMessage)
+            check(projectConfigStore.current() == config) { "تغير إعداد المشروع؛ أعد مراجعته" }
+            check(telegram.pinMessage(topics.chatId, index.messageId, disableNotification = true)) {
                 "لم يؤكد تليجرام تثبيت سجل الأطباء؛ راجع الرسالة المثبّتة قبل إعادة المحاولة"
             }
 
-            Result.Success(msg.messageId, 1)
+            check(telegram.getChat(topics.chatId).pinnedMessage?.messageId == index.messageId) {
+                "لم يتأكد تثبيت فهرس المشروع؛ راجع الرسالة المثبتة"
+            }
+            Result.Success(index.messageId, 1)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

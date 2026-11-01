@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.domain.auth
 
+import androidx.room.withTransaction
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.repository.DoctorRepository
@@ -21,9 +22,39 @@ class LocalPinLoginManager @Inject constructor(
     private val doctors: DoctorRepository,
     private val settings: SettingsRepository,
     private val hasher: PasswordHasher,
-    private val dispatchers: DispatcherProvider
+    private val dispatchers: DispatcherProvider,
+    private val database: com.hos.rushdpatients.data.db.AppDatabase
 ) {
     private val mutex = Mutex()
+
+    private fun enrollmentKey(id: String) = "local_pin_enrollment:$id"
+    private fun enrollmentIdentity(doctor: Doctor): String {
+        val text = "${doctor.id}|${doctor.telegramId}|${doctor.options.pinHash}"
+        return java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+
+    suspend fun isEnrolled(doctor: Doctor): Boolean = withContext(dispatchers.io) {
+        doctor.telegramId != null && doctor.options.pinHash != null &&
+            settings.get(enrollmentKey(doctor.id)) == enrollmentIdentity(doctor)
+    }
+
+    /** Called after Telegram proof; administrators' preset PINs never enroll another identity. */
+    suspend fun enrollVerified(doctorId: String, telegramId: Long, pin: String): Doctor = withContext(dispatchers.io) {
+        require(pin.length in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH && pin.all(Char::isDigit))
+        val hash = hasher.hash(pin)
+        mutex.withLock {
+            database.withTransaction {
+                val doctor = requireNotNull(doctors.getActiveById(doctorId)) { "الطبيب غير متاح" }
+                require(doctor.telegramId == telegramId) { "تغيرت هوية الطبيب؛ أعد التحقق عبر تليجرام" }
+                val updated = doctor.copy(extraOptions = doctor.options.withPinHash(hash))
+                doctors.upsert(updated)
+                settings.put(enrollmentKey(doctorId), enrollmentIdentity(updated))
+                settings.delete("local_pin_login:$doctorId")
+                requireNotNull(doctors.getActiveById(doctorId))
+            }
+        }
+    }
 
     suspend fun verify(doctorId: String, pin: String): Doctor = withContext(dispatchers.io) {
         mutex.withLock {
@@ -32,6 +63,7 @@ class LocalPinLoginManager @Inject constructor(
             val doctor = doctors.getActiveById(doctorId) ?: throw LocalPinException(LocalPinFailure.UNAVAILABLE)
             val hash = doctor.options.pinHash ?: throw LocalPinException(LocalPinFailure.NOT_ENROLLED)
             if (doctor.telegramId == null) throw LocalPinException(LocalPinFailure.NOT_LINKED)
+            if (!isEnrolled(doctor)) throw LocalPinException(LocalPinFailure.NOT_ENROLLED)
 
             // Room is encrypted. Persist only counters/deadlines, never the submitted PIN.
             val key = "local_pin_login:$doctorId"
@@ -57,7 +89,7 @@ class LocalPinLoginManager @Inject constructor(
 
             val current = doctors.getActiveById(doctorId) ?: throw LocalPinException(LocalPinFailure.UNAVAILABLE)
             if (current.telegramId != doctor.telegramId ||
-                current.options.pinHash != hash)
+                current.options.pinHash != hash || !isEnrolled(current))
                 throw LocalPinException(LocalPinFailure.ACCOUNT_CHANGED)
             settings.delete(key)
             // Session privileges come from the live record, not the selected card's snapshot.

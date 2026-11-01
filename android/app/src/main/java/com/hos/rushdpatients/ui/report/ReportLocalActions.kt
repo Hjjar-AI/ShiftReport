@@ -177,6 +177,10 @@ internal class ReportLocalActions(
         }
     }
 
+    fun onPdfShareUnavailable() {
+        _state.update { it.copy(error = uiText(R.string.report_share_launch_failed), retryAction = null) }
+    }
+
     fun consumePdfShare() = _state.update { it.copy(pdfShareUri = null) }
     fun onPdfViewerUnavailable() {
         pdfWorkspace.clearReviews()

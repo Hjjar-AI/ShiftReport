@@ -70,14 +70,15 @@ class SettingsBackupOperationsTest {
         handle[PENDING_BACKUP_ID] = "opaque-id"; handle[PENDING_BACKUP_COUNT] = 7
         operations(this).exportEncryptedBackup(null); runCurrent()
         coVerify { pending.discard("opaque-id") }
-        coVerify(exactly = 0) { pending.write(any(), any()) }
+        coVerify(exactly = 0) { pending.write(any(), any(), any()) }
         assertTrue(handle.keys().isEmpty()); assertFalse(state.value.backupBusy)
     }
     @Test fun `export success stamps time only after verified write and removes staging`() = runTest {
         handle[PENDING_BACKUP_ID] = "opaque-id"; handle[PENDING_BACKUP_COUNT] = 7
+        coEvery { pending.write(uri, "opaque-id", any()) } answers { thirdArg<() -> Unit>().invoke() }
         operations(this).exportEncryptedBackup(uri); runCurrent()
         coVerifyOrder {
-            pending.write(uri, "opaque-id")
+            pending.write(uri, "opaque-id", any())
             settings.putLong(AppConstants.SETTING_LAST_ENCRYPTED_BACKUP_AT, any())
             pending.discard("opaque-id")
         }
@@ -85,7 +86,7 @@ class SettingsBackupOperationsTest {
     }
     @Test fun `failed destination removes partial file and never records successful backup`() = runTest {
         handle[PENDING_BACKUP_ID] = "opaque-id"
-        coEvery { pending.write(uri, "opaque-id") } throws IllegalStateException("synthetic partial write")
+        coEvery { pending.write(uri, "opaque-id", any()) } throws IllegalStateException("synthetic partial write")
         operations(this).exportEncryptedBackup(uri); runCurrent()
         coVerify { pending.discardDestination(uri); pending.discard("opaque-id") }
         coVerify(exactly = 0) { settings.putLong(any(), any()) }
@@ -93,10 +94,10 @@ class SettingsBackupOperationsTest {
     }
     @Test fun `duplicate picker callback cannot write the same export twice`() = runTest {
         handle[PENDING_BACKUP_ID] = "opaque-id"
-        coEvery { pending.write(uri, "opaque-id") } coAnswers { awaitCancellation() }
+        coEvery { pending.write(uri, "opaque-id", any()) } coAnswers { awaitCancellation() }
         val operation = operations(backgroundScope)
         operation.exportEncryptedBackup(uri); operation.exportEncryptedBackup(uri); runCurrent()
-        coVerify(exactly = 1) { pending.write(uri, "opaque-id") }
+        coVerify(exactly = 1) { pending.write(uri, "opaque-id", any()) }
     }
     @Test fun `restore cancellation propagates without error snackbar and wipes password`() = runTest {
         val password = slot<CharArray>()
@@ -114,4 +115,17 @@ class SettingsBackupOperationsTest {
         assertFalse(state.value.backupBusy)
         assertEquals("synthetic bad backup", state.value.snackbar)
     }
+
+    @Test fun `verified backup survives metadata failure and cancellation on return`() = runTest {
+        for (failure in listOf(IllegalStateException("synthetic metadata failure"), CancellationException("synthetic cancellation"))) {
+            handle[PENDING_BACKUP_ID] = "opaque-id"
+            coEvery { pending.write(uri, "opaque-id", any()) } answers { thirdArg<() -> Unit>().invoke() }
+            coEvery { settings.putLong(AppConstants.SETTING_LAST_ENCRYPTED_BACKUP_AT, any()) } throws failure
+            operations(this).exportEncryptedBackup(uri); runCurrent()
+            coVerify(exactly = 0) { pending.discardDestination(uri) }
+            coVerify { pending.discard("opaque-id") }
+            assertFalse(state.value.backupBusy)
+        }
+    }
+
 }

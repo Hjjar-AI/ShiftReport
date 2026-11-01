@@ -92,5 +92,6 @@ private fun MainActivity.AppContent(
 /** The launch deadline starts before storage loading; themed content shares that same state. */
 @androidx.compose.runtime.Composable
 private fun LaunchIntro(splash: com.hos.rushdpatients.ui.about.LaunchSplashState) {
-    IntroAboutScreen(splash = true, onBack = splash::skip)
+    IntroAboutScreen(splash = true, onBack = splash::skip,
+        onSplashPress = splash::press, onSplashRelease = splash::release)
 }

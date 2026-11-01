@@ -31,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextDirection
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.runtime.Composable
@@ -41,15 +40,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.os.Build
-import android.os.PersistableBundle
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -73,6 +63,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 is LoginStep.PickDoctor -> PickDoctorList(
                     projectName = state.projectName,
                     doctors = step.doctors,
+                    enrolledDoctorIds = state.enrolledDoctorIds,
                     error = state.error,
                     onPick = viewModel::pickDoctor
                 )
@@ -85,7 +76,8 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                     onTelegram = { viewModel.verifyViaTelegram(step.doctor) },
                     onBack = viewModel::backToDoctors
                 )
-                is LoginStep.Verifying -> VerifyingView(step, viewModel::cancelVerification)
+                is LoginStep.Verifying -> VerifyingView(step, state.busy, state.error,
+                    viewModel::verifyTelegramCode, viewModel::cancelVerification)
                 is LoginStep.VerifyFailed -> VerifyFailedView(
                     step,
                     viewModel::retryVerify,
@@ -119,6 +111,7 @@ private fun Centered(content: @Composable () -> Unit) {
 private fun PickDoctorList(
     projectName: String,
     doctors: List<Doctor>,
+    enrolledDoctorIds: Set<String>,
     error: String?,
     onPick: (Doctor) -> Unit
 ) {
@@ -153,7 +146,7 @@ private fun PickDoctorList(
         }
         items(matchingDoctors, key = { it.id }) { doctor ->
             val enabled = doctor.telegramId != null
-            val hasPin = doctor.options.pinHash != null
+            val hasPin = doctor.id in enrolledDoctorIds
             AppCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,56 +172,27 @@ private fun PickDoctorList(
 }
 
 @Composable
-internal fun VerifyingView(step: LoginStep.Verifying, onCancel: () -> Unit) {
+internal fun VerifyingView(step: LoginStep.Verifying, busy: Boolean, error: String?,
+    onVerify: (String) -> Unit, onCancel: () -> Unit) {
     val uiText = rememberUiStrings()
-    val context = LocalContext.current
-    val clipboard = remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
-    fun clearNonce() {
-        // Only remove this verification code; a later user copy belongs to the user.
-        try {
-            val clip = clipboard.primaryClip
-            if (clip?.description?.label == "ShiftReport verification" && clip.itemCount == 1 &&
-                clip.getItemAt(0).text?.toString() == step.nonce) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) clipboard.clearPrimaryClip()
-                else clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
-            }
-        } catch (_: SecurityException) {
-            // Android may deny clipboard access when the app has lost focus.
-        }
-    }
-    DisposableEffect(clipboard, step.nonce) { onDispose { clearNonce() } }
-    LaunchedEffect(step.remainingSeconds) { if (step.remainingSeconds <= 0) clearNonce() }
-    AppCenteredContent() {
+    // Never save a submitted login code in a Bundle or clipboard.
+    var code by remember(step.doctor.id) { mutableStateOf("") }
+    AppCenteredContent(modifier = Modifier.imePadding()) {
         Text(uiText(R.string.ui_login_screen_009), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            uiText(R.string.ui_login_screen_010),
-            modifier = Modifier.padding(top = UiSpacing.screen),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = step.nonce,
-            fontFamily = FontFamily.Monospace,
-            style = MaterialTheme.typography.headlineMedium.copy(textDirection = TextDirection.Ltr),
-            modifier = Modifier.padding(vertical = UiSpacing.screen)
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppOutlinedButton(enabled = step.remainingSeconds > 0, onClick = {
-                val clip = ClipData.newPlainText("ShiftReport verification", step.nonce)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    clip.description.extras = PersistableBundle().apply {
-                        putBoolean("android.content.extra.IS_SENSITIVE", true)
-                    }
-                }
-                clipboard.setPrimaryClip(clip)
-            }) { Text(uiText(R.string.ui_copy)) }
+        Text(uiText(R.string.login_private_code_instructions), textAlign = TextAlign.Center)
+        com.hos.rushdpatients.ui.components.AppTextField(
+            value = code, onValueChange = { code = it.filter(Char::isDigit).take(6) },
+            label = { Text(uiText(R.string.login_private_code_label)) },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
+            singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth())
+        error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
+        Text(uiText(R.string.ui_login_screen_011, uiNumber(step.remainingSeconds)), style = MaterialTheme.typography.bodySmall)
+        AppButton(enabled = !busy && code.length == 6 && step.remainingSeconds > 0,
+            onClick = { val submitted = code; code = ""; onVerify(submitted) }) {
+            Text(uiText(R.string.login_private_code_confirm))
         }
-        Text(
-            uiText(R.string.ui_login_screen_011, uiNumber(step.remainingSeconds)),
-            modifier = Modifier.padding(top = UiSpacing.section),
-            style = MaterialTheme.typography.bodySmall
-        )
-        AppBusyIndicator(modifier = Modifier.padding(top = UiSpacing.screen), size = UiSize.loadingIndicator, color = MaterialTheme.colorScheme.primary)
-        AppTextButton(onClick = onCancel, modifier = Modifier.padding(top = UiSpacing.screen)) { Text(uiText(R.string.ui_cancel)) }
+        AppTextButton(onClick = onCancel, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
     }
 }
 

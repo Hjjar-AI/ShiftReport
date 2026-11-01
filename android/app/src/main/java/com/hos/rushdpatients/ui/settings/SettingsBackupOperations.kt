@@ -73,20 +73,22 @@ internal class SettingsBackupOperations(
         val count = savedStateHandle.get<Int>(PENDING_BACKUP_COUNT) ?: 0
         _state.update { it.copy(backupBusy = true, backupReady = false, snackbar = null) }
         exportJob = viewModelScope.launch {
+            var copyCompleted = false
             try {
                 if (uri == null) return@launch
                 check(id != null) { uiText(R.string.ui_settings_backup_operations_003) }
-                pendingExports.write(uri, id)
+                pendingExports.write(uri, id) { copyCompleted = true }
                 settingsRepository.putLong(AppConstants.SETTING_LAST_ENCRYPTED_BACKUP_AT,
                     Instant.now().toEpochMilli())
                 _state.update { it.copy(snackbar = uiText(R.string.ui_settings_backup_operations_004, count)) }
                 refreshStorageHealth()
             } catch (e: CancellationException) {
-                if (uri != null) pendingExports.discardDestination(uri)
+                if (uri != null && !copyCompleted) pendingExports.discardDestination(uri)
                 throw e
             } catch (e: Exception) {
-                if (uri != null) pendingExports.discardDestination(uri)
-                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_backup_operations_005)) }
+                if (uri != null && !copyCompleted) pendingExports.discardDestination(uri)
+                _state.update { it.copy(snackbar = if (copyCompleted) uiText(R.string.backup_saved_bookkeeping_warning)
+                    else e.message ?: uiText(R.string.ui_settings_backup_operations_005)) }
             } finally {
                 clearPendingBackup()
                 _state.update { it.copy(backupBusy = false) }

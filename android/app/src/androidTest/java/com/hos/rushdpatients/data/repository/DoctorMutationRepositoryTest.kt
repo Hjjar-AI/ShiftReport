@@ -74,7 +74,7 @@ class DoctorMutationRepositoryTest : ClinicalRepositoryFixture() {
         doctors.upsert(doctor("other", "صنوبر"))
         assertTrue(rejected { mutations.importRegistry(plan) } is StaleDoctorImportException)
         assertNull(doctors.getById(imported.id))
-                doctors.upsert(doctor("alternate", "سرو", 5))
+                doctors.upsert(doctor("alternate", "سرو", 5).copy(telegramId = 999002))
         val withActor = mutations.prepareImport(listOf(imported))
         login(requireNotNull(doctors.getById("alternate")))
         assertTrue(rejected { mutations.importRegistry(withActor) } is StaleDoctorImportException)
@@ -130,6 +130,19 @@ class DoctorMutationRepositoryTest : ClinicalRepositoryFixture() {
         mutations.importRegistry(mutations.prepareImport(listOf(admin.copy(rank = 0, isPermanentAdmin = false))))
         assertTrue(requireNotNull(doctors.getById(admin.id)).isPermanentAdmin)
         assertEquals(admin.rank, doctors.getById(admin.id)?.rank)
+    }
+
+
+    @Test fun lowerAdminCannotPresetOwnerPinOrReplaceLinkedIdentity() = runBlocking<Unit> {
+        val lower = doctor("lower-admin", "صنوبر", 1).copy(telegramId = 999003)
+        doctors.upsert(lower); login(lower)
+        val owner = requireNotNull(doctors.getById(admin.id))
+        val edit = DoctorEditInput(owner.firstName, owner.lastName, owner.gender, owner.clinicalRole,
+            pin = "2468", telegramId = owner.telegramId, customTitle = owner.customTitle)
+        rejected { mutations.edit(owner, edit) }
+        rejected { mutations.edit(owner, edit.copy(pin = null, telegramId = 999004)) }
+        rejected { mutations.prepareImport(listOf(owner.copy(telegramId = 999004))) }
+        assertEquals(owner, doctors.getById(owner.id))
     }
 
 }

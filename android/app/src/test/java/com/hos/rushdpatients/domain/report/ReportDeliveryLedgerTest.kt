@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
 
-class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor()) {
+class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor(telegramId = 123)) {
     private val ledger = ledger()
     private suspend fun begin(block: suspend (ReportDeliveryRecord) -> Unit = {}) =
         ledger.deliver("shift", -100, "content", "TEXT", "synthetic", "doc-1", block = block)
@@ -55,12 +55,12 @@ class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor()) {
     @Test fun `resolution requires sender or live admin and current expected status`() = runBlocking<Unit> {
         begin()
         val record = ledger.observe().first().single()
-        every { sessions.current() } returns Session("other", "بلوط", null, Role.ADMIN, Instant.EPOCH)
-        coEvery { doctors.getActiveById("other") } returns Fixtures.doctor(id = "other", rank = 0)
+        every { sessions.current() } returns Session("other", "بلوط", 456, Role.ADMIN, Instant.EPOCH)
+        coEvery { doctors.getActiveById("other") } returns Fixtures.doctor(id = "other", telegramId = 456, rank = 0)
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.RECEIVED) }
         }
-        coEvery { doctors.getActiveById("other") } returns Fixtures.doctor(id = "other", rank = 1)
+        coEvery { doctors.getActiveById("other") } returns Fixtures.doctor(id = "other", telegramId = 456, rank = 1)
         ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.RECEIVED)
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { ledger.resolve(record.id, DeliveryStatus.UNKNOWN, DeliveryResolution.NOT_RECEIVED) }
@@ -72,4 +72,20 @@ class ReportDeliveryLedgerTest : DeliveryFixture(actor = Fixtures.doctor()) {
         }
         assertNull(raw.value)
     }
+
+    @Test fun `extra copy permission rejects another topic and linked identity`() = runBlocking<Unit> {
+        ledger.deliver("shift", -100, "content", "PDF", "synthetic", actor.id, topicId = 2) { ledger.confirm(it.id, listOf(1)) }
+        val original = ledger.observe().first().single()
+        ledger.resolve(original.id, DeliveryStatus.SENT, DeliveryResolution.ALLOW_COPY)
+        assertThrows(ExactReportCopyRequiredException::class.java) { runBlocking {
+            ledger.check("shift", -100, "content", "PDF", topicId = 3)
+        } }
+        coEvery { doctors.getActiveById(actor.id) } returns actor.copy(telegramId = 456)
+        every { sessions.current() } returns Session(actor.id, actor.fullName, 456, actor.role, Instant.EPOCH)
+        assertThrows(ExactReportCopyRequiredException::class.java) { runBlocking {
+            ledger.check("shift", -100, "content", "PDF", topicId = 2)
+        } }
+        assertEquals(1, ledger.observe().first().size)
+    }
+
 }

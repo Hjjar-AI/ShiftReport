@@ -678,7 +678,11 @@ private fun WardWorkspaceContent(
         }
     }
 
-    if (editor.showAdd) {
+    if (editor.showAdd && !state.patientDraftLoaded) {
+        PatientDraftLoadDialog(state.patientDraftLoadFailed,
+            onRetry = viewModel::retryLoadDraft, onDismiss = { editor.showAdd = false })
+    }
+    if (editor.showAdd && state.patientDraftLoaded) {
         val insertionPatients = editor.insertionPatients
         AddPatientDialog(
             doctors = state.doctors,

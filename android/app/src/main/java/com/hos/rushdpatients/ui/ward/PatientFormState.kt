@@ -62,6 +62,8 @@ internal class PatientFormStateStore {
 internal class EditPatientState(patient: Patient) {
     var initial by mutableStateOf(patient)
     var draftLoaded by mutableStateOf(false)
+    var draftLoadFailed by mutableStateOf(false)
+    var draftLoadAttempt by mutableStateOf(0)
     val form = PatientFormStateStore()
 }
 

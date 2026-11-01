@@ -29,7 +29,7 @@ internal class CrashWorkflowHarness(val context: Context, val db: AppDatabase) {
     val sessions = SessionManager(context)
     val ledger = ReportDeliveryLedger(settings, sessions, doctors)
     val backup = EncryptedBackupManager(context, db, shifts, patients, doctors, settings, dispatchers)
-    val undo = LocalDownloadUndo(db, shifts, patients, settings, audit, sessions, dispatchers, Json)
+    val undo = LocalDownloadUndo(db, shifts, patients, doctors, settings, dispatchers, Json)
 
     suspend fun signIn() {
         if (doctors.getById("crash-doctor") == null) {

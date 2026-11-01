@@ -35,12 +35,15 @@ class PatientRetrievalCoordinatorTest : SyncFixture() {
         undo.undo()
         assertTrue(patients.getForShift("today").isEmpty())
     }
-    @Test fun pendingLocalDataPreventsAnyDownload() = runBlocking<Unit> {
+    @Test fun pendingLocalDataIsReplacedAndUndoRestoresIt() = runBlocking<Unit> {
         publication()
         patients.upsert(Patient(id = "local", name = "قهوة"), "today")
-        assertTrue(retrieval.fetchLatestCsv().isFailure)
-        assertTrue(wire.methods.isEmpty())
-        assertNull(patients.getById("p"))
+        assertTrue(retrieval.fetchLatestCsv().isSuccess)
+        assertNotNull(patients.getById("p"))
+        assertTrue(requireNotNull(patients.getById("local")).deletedAt != null)
+        undo.undo()
+        assertEquals("قهوة", patients.getById("local")?.name)
+        assertTrue(requireNotNull(patients.getById("p")).deletedAt != null)
     }
     @Test fun localEditDuringNetworkDownloadCannotBeOverwritten() = runBlocking<Unit> {
         publication()
@@ -61,21 +64,70 @@ class PatientRetrievalCoordinatorTest : SyncFixture() {
         assertNull(cursors.lastMessageId(SyncChannel.CSV))
         assertTrue(db.auditDao().getRecent(10).isEmpty())
     }
-    @Test fun olderRemotePointerCannotRollBackLastKnownPublication() = runBlocking<Unit> {
+    @Test fun currentPinReplacesHigherKnownDocumentId() = runBlocking<Unit> {
         publication()
         cursors.update(SyncChannel.CSV, 200, 20, "newer")
-        assertTrue(retrieval.fetchLatestCsv().isFailure)
-        assertFalse("getFile" in wire.methods)
-        assertEquals(20L, cursors.lastMessageId(SyncChannel.CSV))
+        assertTrue(retrieval.fetchLatestCsv().isSuccess)
+        assertTrue("getFile" in wire.methods)
+        assertEquals(10L, cursors.lastMessageId(SyncChannel.CSV))
+        assertNotNull(patients.getById("p"))
     }
-    @Test fun olderRemoteRequiresExplicitAdminApprovalWithoutChangingLocalBaseline() = runBlocking<Unit> {
+    @Test fun currentPinReplacesBaselineWithoutOlderMessageApproval() = runBlocking<Unit> {
         publication()
         cursors.update(SyncChannel.CSV, 200, 20, "newer")
         settings.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + "today", "preserved-baseline")
-        val failure = retrieval.fetchLatestCsv().exceptionOrNull()
-        assertTrue(failure is OlderRemoteSnapshotException)
-        assertEquals(20L, cursors.lastMessageId(SyncChannel.CSV))
-        assertEquals("preserved-baseline", settings.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + "today"))
-        assertNull(patients.getById("p"))
+        assertTrue(retrieval.fetchLatestCsv().isSuccess)
+        assertEquals(10L, cursors.lastMessageId(SyncChannel.CSV))
+        assertNotEquals("preserved-baseline", settings.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + "today"))
+        assertNotNull(patients.getById("p"))
     }
+
+    @Test fun coupledRegistryReplacementAndUndoRestoreOnlyLocalState() = runBlocking<Unit> {
+        publication()
+        val obsolete = doctor("obsolete").copy(clinicalRole = ClinicalRole.RESIDENT, telegramId = 999007)
+        doctors.upsert(obsolete)
+        patients.upsert(Patient(id = "local", name = "قهوة", responsibleResidentId = obsolete.id), "today")
+        shifts.updateDoctorIds("today", listOf(obsolete.id))
+        val replacement = doctor("replacement").copy(clinicalRole = ClinicalRole.RESIDENT, telegramId = obsolete.telegramId)
+        val incoming = requireNotNull(shifts.getById("today")).copy(doctorIds = listOf(replacement.id))
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(admin, replacement))), doctorsMessageId = 30)
+        wire.files["csv"] = CsvBundleCodec.encode(listOf(ShiftCsvSnapshot(incoming,
+            listOf(Patient(id = "remote", name = "شاي", responsibleResidentId = replacement.id)))))
+        retrieval.fetchLatestCsv().getOrThrow()
+        assertTrue(requireNotNull(patients.getById("local")).deletedAt != null)
+        assertEquals(replacement.id, patients.getById("remote")?.responsibleResidentId)
+        assertTrue(doctors.getById(obsolete.id)?.isDeleted == true)
+        assertNull(doctors.getById(obsolete.id)?.telegramId)
+        assertEquals(obsolete.telegramId, doctors.getById(replacement.id)?.telegramId)
+        wire.methods.clear()
+        undo.undo()
+        assertEquals(obsolete.id, patients.getById("local")?.responsibleResidentId)
+        assertEquals(listOf(obsolete.id), shifts.getById("today")?.doctorIds)
+        assertFalse(requireNotNull(doctors.getById(obsolete.id)).isDeleted)
+        assertEquals(obsolete.telegramId, doctors.getById(obsolete.id)?.telegramId)
+        assertNull(doctors.getById(replacement.id)?.telegramId)
+        assertTrue(requireNotNull(patients.getById("remote")).deletedAt != null)
+        assertTrue(wire.methods.isEmpty())
+    }
+
+
+    @Test fun sameDateWardIdsRemainDistinctAndUndoRestoresSelection() = runBlocking<Unit> {
+        publication()
+        val prior = requireNotNull(shifts.getById("today")).copy(doctorIds = listOf(admin.id))
+        patients.upsert(Patient(id = "retained", name = "قهوة"), prior.id)
+        val remoteWard = prior.copy(id = "other-ward", date = prior.date.minusDays(1))
+        wire.files["csv"] = CsvBundleCodec.encode(listOf(ShiftCsvSnapshot(remoteWard,
+            listOf(Patient(id = "remote", name = "شاي")))))
+        // Same date as the incoming ward must not alias its explicit ID.
+        shifts.upsert(prior.copy(date = remoteWard.date))
+        retrieval.fetchLatestCsv().getOrThrow()
+        assertEquals("other-ward", shifts.getLatest()?.id)
+        assertNotNull(patients.getById("retained"))
+        assertEquals(remoteWard.date, shifts.getById("other-ward")?.date)
+        undo.undo()
+        assertEquals("today", shifts.getLatest()?.id)
+        assertTrue(requireNotNull(patients.getById("remote")).deletedAt != null)
+        assertNotNull(patients.getById("retained"))
+    }
+
 }

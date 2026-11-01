@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
     tableName = "doctors",
     indices = [
         Index(value = ["telegramId"], unique = true),
-        Index(value = ["fullName"], unique = true),
+        Index(value = ["fullName"]),
         Index(value = ["deletedAtEpochMillis"]),
         Index(value = ["rank"])
     ]

@@ -51,7 +51,7 @@ class ClinicalPipelineTest : SyncFixture() {
         prepared.bytes.fill(0)
         val beforeDownload = ShiftCsvSnapshot(shift, listOf(completed))
         val changed = ward().updatePatient(completed.copy(labs = "تنزيل تجريبي أحدث"), shift.id)
-        undo.record(listOf(beforeDownload), listOf(shift.id))
+        undo.record(listOf(beforeDownload), listOf(shift.id), beforeDoctors = doctors.getAll(), afterDoctors = doctors.getAll())
         undo.undo()
         val undone = requireNotNull(patients.getById(original.id))
         assertTrue(undone.revision > changed.revision)

@@ -57,7 +57,7 @@ class DemoWorkflowDeviceTest {
             vm.controller.bringLatestData()
         }
         assertTrue(vm.state.value.fetchChoiceRequired)
-        main { vm.controller.replaceAndFetch(false) }
+        main { vm.controller.replaceAndFetch() }
         assertEquals(before.labs, vm.state.value.patients.single { it.id == before.id }.labs)
         main { vm.undoFetch() }
         assertEquals("نتيجة محلية تجريبية", vm.state.value.patients.single { it.id == before.id }.labs)

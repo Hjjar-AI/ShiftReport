@@ -26,15 +26,15 @@ class CsvSnapshotsTest {
         assertEquals(7L, result.doctorsMessageId)
         assertEquals(current, state.currentCsvSnapshot())
     }
-    @Test fun `rotation uses message order rather than timestamps`() {
+    @Test fun `rotation follows publication order rather than timestamps`() {
         val result = state.withPublishedCsv(uploaded)
         assertEquals(uploaded, result.currentCsvSnapshot())
         assertEquals(current, result.previousCsvSnapshot())
     }
-    @Test fun `late older upload cannot displace newest snapshot during rotation`() {
+    @Test fun `last publication wins even when upload message id is lower`() {
         val result = state.withPublishedCsv(old.copy(messageId = 15))
-        assertEquals(current, result.currentCsvSnapshot())
-        assertEquals(15L, result.previousCsvSnapshot()?.messageId)
+        assertEquals(15L, result.currentCsvSnapshot()?.messageId)
+        assertEquals(current, result.previousCsvSnapshot())
     }
     @Test fun `repeated publication does not duplicate recovery pointer`() {
         val result = state.withPublishedCsv(current)

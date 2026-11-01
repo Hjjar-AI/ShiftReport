@@ -33,9 +33,9 @@ class IndependentClient(val label: String, val server: SharedTelegramServer) : A
     val telegram = server.client(label, projects, dispatchers)
     val cursors = SyncStateRepository(db.syncStateDao(), settings, dispatchers)
     val remote = RemoteSyncStateStore(context, telegram, topics, server.json)
-    val undo = LocalDownloadUndo(db, shifts, patients, settings, audit, sessions, dispatchers, server.json)
+    val undo = LocalDownloadUndo(db, shifts, patients, doctors, settings, dispatchers, server.json)
     val doctorSync = DoctorSyncCoordinator(context, telegram, topics, doctors, cursors, settings, db, audit,
-        authorizer, sessions, dispatchers, remote)
+        authorizer, sessions, dispatchers, remote, undo)
     val reports = ReportBuilder(patients, doctors, shifts, TextReportBuilder(), db, dispatchers)
     val sync = SyncService(context, telegram, topics, shifts, patients, doctors, cursors, settings, db,
         audit, dispatchers, remote, doctorSync, reports, undo, PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers))

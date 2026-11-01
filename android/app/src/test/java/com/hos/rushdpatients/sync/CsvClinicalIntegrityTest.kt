@@ -110,4 +110,14 @@ class CsvClinicalIntegrityTest {
         }
     }
 
+
+    @Test fun `truncated trailing cells cannot erase tasks or metadata`() {
+        val patient = Fixtures.patient().copy(tasks = listOf(Fixtures.task()))
+        val rows = CsvCodec.parseCsv(CsvCodec.encode(shift, listOf(patient)))
+        fun quote(value: String) = "\"" + value.replace("\"", "\"\"") + "\""
+        val truncated = listOf(rows[0], rows[1], rows[2].dropLast(1))
+            .joinToString("\n") { row -> row.joinToString(",", transform = ::quote) }
+        assertThrows(IllegalArgumentException::class.java) { CsvCodec.decode(truncated) }
+    }
+
 }

@@ -415,12 +415,12 @@ class ReportPreviewViewModel @Inject constructor(
             try {
                 // Check every selected route/artifact before publishing or sending any copy.
                 if (includeGeneral) {
-                    reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
-                    if (current.reportAsPdf) checkedPdf(reviewed)
+                    reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf,
+                        if (current.reportAsPdf) checkedPdf(reviewed) else null)
                 }
                 for (target in selected) {
-                    reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId))
-                    checkedPdf(reviewed, target.doctorId)
+                    reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId),
+                        requireNotNull(target.chatId), checkedPdf(reviewed, target.doctorId))
                 }
                 publishReviewedSnapshot(reviewed)
                 val built = reviewed
@@ -483,6 +483,8 @@ class ReportPreviewViewModel @Inject constructor(
     fun sharePdf() = localActions.sharePdf()
 
     fun consumePdfShare() = localActions.consumePdfShare()
+
+    fun onPdfShareUnavailable() = localActions.onPdfShareUnavailable()
 
     fun retryLastAction(onReviewSend: () -> Unit) {
         when (_state.value.retryAction) {

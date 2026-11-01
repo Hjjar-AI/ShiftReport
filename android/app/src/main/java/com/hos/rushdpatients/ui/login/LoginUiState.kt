@@ -9,7 +9,6 @@ sealed interface LoginStep {
     data class EnterPin(val doctor: Doctor) : LoginStep
     data class Verifying(
         val doctor: Doctor,
-        val nonce: String,
         val remainingSeconds: Int
     ) : LoginStep
     data class VerifyFailed(val doctor: Doctor, val message: String) : LoginStep
@@ -18,6 +17,7 @@ sealed interface LoginStep {
 
 data class LoginUiState(
     val projectName: String = "",
+    val enrolledDoctorIds: Set<String> = emptySet(),
     val step: LoginStep = LoginStep.Bootstrapping,
     val busy: Boolean = false,
     val error: String? = null

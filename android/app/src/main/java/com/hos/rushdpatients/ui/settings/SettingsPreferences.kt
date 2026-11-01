@@ -80,20 +80,16 @@ internal class SettingsPreferences(
 
 
     fun setUiPreferences(requested: com.hos.rushdpatients.ui.theme.UiPreferences) {
-        val value = requested
-        val previous = _state.value.uiPreferences
-        _state.update { it.copy(uiPreferences = value) }
         viewModelScope.launch {
             try {
                 uiPreferencesWrites.withLock {
-                    settingsRepository.put(AppConstants.SETTING_UI_PREFERENCES, value.encode())
+                    settingsRepository.put(AppConstants.SETTING_UI_PREFERENCES, requested.encode())
+                    _state.update { it.copy(uiPreferences = requested) }
                 }
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                _state.update { current -> current.copy(
-                    uiPreferences = if (current.uiPreferences == value) previous else current.uiPreferences,
-                    snackbar = uiText(R.string.ui_interface_save_failed)) }
+                _state.update { it.copy(snackbar = uiText(R.string.ui_interface_save_failed)) }
             }
         }
     }

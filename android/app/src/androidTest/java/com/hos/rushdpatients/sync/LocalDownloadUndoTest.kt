@@ -13,7 +13,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
-    private fun undo() = LocalDownloadUndo(db, shifts, patients, settings, audit, sessions, dispatchers, Json)
+    private fun undo() = LocalDownloadUndo(db, shifts, patients, doctors, settings, dispatchers, Json)
     private suspend fun record(): Patient {
         val before = Patient(id = "p", name = "شاي", labs = "old", revision = 3,
             admittanceNumber = "1", admittanceDate = java.time.LocalDate.of(2020, 1, 1),
@@ -22,7 +22,7 @@ class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
         patients.upsert(before, "shift-1")
         val snapshot = ShiftCsvSnapshot(requireNotNull(shifts.getById("shift-1")), patients.getForShift("shift-1"))
         patients.upsert(before.copy(labs = "downloaded", revision = 4), "shift-1")
-        undo().record(listOf(snapshot), listOf("shift-1"))
+        undo().record(listOf(snapshot), listOf("shift-1"), beforeDoctors = doctors.getAll(), afterDoctors = doctors.getAll())
         return requireNotNull(patients.getById("p"))
     }
     @Test fun restartRetainsUndoAndRestoresWithNewRevision() = runBlocking<Unit> {
@@ -59,7 +59,7 @@ class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
         val before = listOf("shift-1", "shift-2").map { id -> ShiftCsvSnapshot(requireNotNull(shifts.getById(id)), emptyList()) }
         patients.upsert(Patient(id = "a", name = "شاي"), "shift-1")
         patients.upsert(Patient(id = "b", name = "قهوة"), "shift-2")
-        undo().record(before, listOf("shift-1", "shift-2"))
+        undo().record(before, listOf("shift-1", "shift-2"), beforeDoctors = doctors.getAll(), afterDoctors = doctors.getAll())
         patients.upsert(requireNotNull(patients.getById("b")).copy(labs = "local"), "shift-2")
         rejected { undo().undo() }
         assertEquals(1, patients.getForShift("shift-1").size)
@@ -69,7 +69,7 @@ class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
         val shift = requireNotNull(shifts.getById("shift-1"))
         shifts.upsert(shift.copy(reportMessageId = 123, pdfMessageId = 124))
         patients.upsert(Patient(id = "a", name = "شاي"), shift.id)
-        undo().record(listOf(null), listOf(shift.id))
+        undo().record(listOf(null), listOf(shift.id), beforeDoctors = doctors.getAll(), afterDoctors = doctors.getAll())
         undo().undo()
         assertTrue(patients.getForShift(shift.id).isEmpty())
         val restored = requireNotNull(shifts.getById(shift.id))
@@ -82,10 +82,20 @@ class LocalDownloadUndoTest : ClinicalRepositoryFixture() {
         patients.upsert(before, "shift-1")
         val snapshot = ShiftCsvSnapshot(requireNotNull(shifts.getById("shift-1")), listOf(before))
         patients.upsert(before.copy(assignmentChangedOn = day.plusDays(1), revision = 2), "shift-1")
-        undo().record(listOf(snapshot), listOf("shift-1"))
+        undo().record(listOf(snapshot), listOf("shift-1"), beforeDoctors = doctors.getAll(), afterDoctors = doctors.getAll())
         undo().undo()
         assertEquals(day, patients.getById("marked")?.assignmentChangedOn)
         assertFalse(undo().available.first())
+    }
+
+
+    @Test fun changedRegistryBlocksUndoWithoutPartialClinicalRestore() = runBlocking<Unit> {
+        val downloaded = record()
+        doctors.upsert(doctor("later-doctor"))
+        rejected { undo().undo() }
+        assertEquals(downloaded, patients.getById("p"))
+        assertNotNull(doctors.getById("later-doctor"))
+        assertTrue(undo().available.first())
     }
 
 }

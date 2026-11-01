@@ -37,7 +37,7 @@ class LiveBootstrapOverrideTest {
         val http = OkHttpClient()
         val client = TelegramClient(BotTokenProvider(projects), cipher,
             Json { ignoreUnknownKeys = true }, DefaultDispatcherProvider(), TelegramRateLimiter(), http)
-        val seeder = BootstrapSeeder(client, Topics(projects), projects)
+        val seeder = BootstrapSeeder(client, Topics(projects), Json, projects)
         val created = mutableListOf<Long>()
         val receipt = File(requireNotNull(configPath)).resolveSibling("live-bootstrap-receipt.txt")
         fun record(line: String) { receipt.appendText(line + "\n") }

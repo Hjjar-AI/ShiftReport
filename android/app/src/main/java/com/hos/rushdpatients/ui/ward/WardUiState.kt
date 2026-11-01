@@ -42,6 +42,8 @@ data class WardUiState(
     val recycleBinLoading: Boolean = true,
     val recycleBinFailed: Boolean = false,
     val patientDraft: PatientDraft? = null,
+    val patientDraftLoaded: Boolean = false,
+    val patientDraftLoadFailed: Boolean = false,
     val draftSaveIssue: PatientDraftIssue? = null,
     val groupedPatients: List<PatientGroup> = emptyList(),
     val doctors: List<Doctor> = emptyList(),

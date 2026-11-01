@@ -321,7 +321,7 @@
     <string name="ui_ward_drawer_030">"طي %1$s"</string>
     <string name="ui_ward_drawer_031">"فتح %1$s"</string>
     <string name="ui_ward_data_review_dialogs_001" formatted="false">"جلب أحدث نسخة"</string>
-    <string name="ui_ward_data_review_dialogs_002" formatted="false">"ستُستبدل بيانات المرضى المحلية بأحدث نسخة منشورة. راجع تعديلاتك المحلية قبل الجلب."</string>
+    <string name="ui_ward_data_review_dialogs_002" formatted="false">"ستُستبدل بيانات المرضى والأطباء المحلية بالكامل بالنسخة المنشورة حالياً في تليجرام، بما فيها التعديلات غير المنشورة. يمكنك استعادة نسختك المحلية السابقة عبر «تراجع عن آخر جلب» دون تغيير تليجرام."</string>
     <string name="ui_ward_data_review_dialogs_003" formatted="false">"جلب النسخة"</string>
     <string name="ui_ward_supporting_pane_001" formatted="false">"جاهزية التقرير"</string>
     <string name="ui_ward_supporting_pane_002" formatted="false">"لا توجد ملاحظات اكتمال في الفحص الحالي"</string>

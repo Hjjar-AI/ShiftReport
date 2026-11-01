@@ -46,7 +46,7 @@ class PendingExportStore @Inject constructor(
         }
     }
 
-    suspend fun write(uri: Uri, id: String) = withContext(dispatchers.io) {
+    suspend fun write(uri: Uri, id: String, onVerified: () -> Unit = {}) = withContext(dispatchers.io) {
         val file = file(id)
         check(file.isFile) { "انتهت جلسة التصدير؛ أعد إنشاء الملف" }
         val encrypted = file.readBytes()
@@ -56,6 +56,7 @@ class PendingExportStore @Inject constructor(
         val bytes = cipher.doFinal(encrypted.copyOfRange(IV_BYTES, encrypted.size))
         try {
             writeVerified(context, uri, bytes)
+            onVerified() // Record completion before a cancelled dispatcher return can throw.
         } finally {
             bytes.fill(0)
         }

@@ -76,6 +76,9 @@ interface DoctorDao {
     @Upsert
     suspend fun upsertAll(doctors: List<DoctorEntity>)
 
+    @Query("UPDATE doctors SET telegramId = NULL, telegramUsername = NULL WHERE id IN (:ids)")
+    suspend fun clearTelegramBindings(ids: List<String>)
+
     @Query("""
         UPDATE doctors
         SET deletedAtEpochMillis = :deletedAtMillis,
@@ -95,8 +98,11 @@ interface DoctorDao {
         retainedIds: List<String>,
         updatedAtMillis: Long
     ) {
-        upsertAll(doctors)
         softDeleteMissing(retainedIds, updatedAtMillis)
+        if (doctors.isNotEmpty()) {
+            clearTelegramBindings(doctors.map { it.id })
+            upsertAll(doctors)
+        }
     }
 
     @Query("""

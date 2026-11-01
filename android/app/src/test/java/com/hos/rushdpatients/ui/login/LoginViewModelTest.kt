@@ -30,11 +30,12 @@ class LoginViewModelTest {
     @Before fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         coEvery { doctors.getAll() } returns listOf(actor)
-        every { telegram.generateNonce() } returns "SYNTHETIC"
+        coEvery { doctors.getActiveById(actor.id) } returns actor
+        coEvery { pins.isEnrolled(any()) } returns true
     }
     @After fun cleanup() { store.clear(); Dispatchers.resetMain() }
     private fun vm() = LoginViewModel(text, mockk<Context>(), doctors, sessions, bootstrap, telegram,
-        pins, mockk(), mockk(relaxed = true), mockk(relaxed = true), projects).also { store.put("login", it) }
+        pins, mockk(relaxed = true), projects).also { store.put("login", it) }
 
     @Test fun `local registry loads without network bootstrap`() {
         val vm = vm()
@@ -60,9 +61,11 @@ class LoginViewModelTest {
     @Test fun `enrolled doctor opens PIN screen without Telegram verification`() {
         val vm = vm(); vm.pickDoctor(actor)
         assertEquals(LoginStep.EnterPin(actor), vm.state.value.step)
-        coVerify(exactly = 0) { telegram.awaitVerification(any(), any(), any()) }
+        coVerify(exactly = 0) { telegram.beginVerification(any(), any()) }
     }
     @Test fun `doctor without Telegram identity cannot begin verification`() {
+        coEvery { doctors.getActiveById(actor.id) } returns actor.copy(telegramId = null)
+        coEvery { pins.isEnrolled(any()) } returns false
         val vm = vm(); vm.pickDoctor(actor.copy(telegramId = null))
         assertNotNull(vm.state.value.error)
         verify(exactly = 0) { sessions.start(any()) }
@@ -77,8 +80,14 @@ class LoginViewModelTest {
     @Test fun `successful PIN uses live returned doctor identity`() {
         val live = actor.copy(fullName = "اسم محدث", rank = 0)
         coEvery { pins.verify(actor.id, any()) } returns live
+        coEvery { doctors.getActiveById(actor.id) } returns live
         val vm = vm(); vm.pickDoctor(actor); vm.loginWithPin("1234")
-        verify { sessions.start(match { it.doctorName == live.fullName && it.role == live.role && it.telegramId == live.telegramId }) }
+        verify(timeout = 2000) { sessions.start(match { it.doctorName == live.fullName && it.role == live.role && it.telegramId == live.telegramId }) }
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.withTimeout(2000) {
+                while (vm.state.value.busy) kotlinx.coroutines.delay(1)
+            }
+        }
         assertFalse(vm.state.value.busy)
     }
     @Test fun `duplicate PIN submit cannot start second verification`() {
@@ -88,7 +97,8 @@ class LoginViewModelTest {
         assertTrue(vm.state.value.busy)
     }
     @Test fun `cancelling Telegram verification returns to chooser without login`() {
-        coEvery { telegram.awaitVerification(any(), any(), any()) } coAnswers { awaitCancellation() }
+        coEvery { telegram.beginVerification(any(), any()) } just Runs
+        coEvery { telegram.remainingSeconds(any()) } returns 300
         val vm = vm(); vm.verifyViaTelegram(actor)
         assertTrue(vm.state.value.step is LoginStep.Verifying)
         vm.cancelVerification()

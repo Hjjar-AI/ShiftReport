@@ -78,16 +78,16 @@ class RemoteSyncStateStoreTest {
         coVerify(exactly = 1) { telegram.pinMessage(-100, 2, true) }
         coVerify(exactly = 0) { telegram.editMessageText(any(), any(), any(), any()) }
     }
-    @Test fun `newer remote pointers survive a stale transform`() = runBlocking<Unit> {
+    @Test fun `last reviewed index write replaces higher upload pointers`() = runBlocking<Unit> {
         pinned = message(SyncState(csvFileId = "remote", csvMessageId = 30,
             previousCsvFileId = "previous", previousCsvMessageId = 20,
             doctorsFileId = "doctors-new", doctorsMessageId = 50, doctorsUpdatedAt = 1))
         val result = store.updateExistingState { SyncState(csvFileId = "stale", csvMessageId = 10,
             doctorsFileId = "doctors-old", doctorsMessageId = 40, doctorsUpdatedAt = 999) }
-        assertEquals(30L, result.csvMessageId)
-        assertEquals(20L, result.previousCsvMessageId)
-        assertEquals("doctors-new", result.doctorsFileId)
-        assertEquals(50L, result.doctorsMessageId)
+        assertEquals(10L, result.csvMessageId)
+        assertNull(result.previousCsvFileId)
+        assertEquals("doctors-old", result.doctorsFileId)
+        assertEquals(40L, result.doctorsMessageId)
     }
     @Test fun `explicit history replacement drops recovery and old journal`() = runBlocking<Unit> {
         pinned = message(SyncState(csvFileId = "old", csvMessageId = 30,
@@ -100,12 +100,12 @@ class RemoteSyncStateStoreTest {
         assertNull(result.previousCsvSnapshot())
         assertTrue(result.publicationJournal.isEmpty())
     }
-    @Test fun `publication journal deduplicates and retains newest twelve by message id`() = runBlocking<Unit> {
+    @Test fun `publication journal bounds twelve entries without reordering index history`() = runBlocking<Unit> {
         fun entry(id: Long) = PublicationJournalEntry("snapshot-$id", fileId = "f-$id", messageId = id,
             at = 100 - id, deviceId = "synthetic")
         pinned = message(SyncState(publicationJournal = (1L..10L).map(::entry)))
-        val result = store.updateExistingState { it.copy(publicationJournal = (5L..20L).map(::entry)) }
-        assertEquals((20L downTo 9L).toList(), result.publicationJournal.map { it.messageId })
+        val result = store.updateExistingState { it.copy(publicationJournal = (5L..20L).map(::entry) + listOf(entry(5))) }
+        assertEquals((5L..16L).toList(), result.publicationJournal.map { it.messageId })
     }
     @Test fun `telegram not modified response retains confirmed state`() = runBlocking<Unit> {
         coEvery { telegram.editMessageText(-100, 1, any(), null) } throws TelegramException(400, "message is not modified")
@@ -177,7 +177,7 @@ class RemoteSyncStateStoreTest {
         for (number in 10L..25L) {
             val id = "synthetic-$number-" + "x".repeat(450)
             val result = store.updateExistingState { current ->
-                current.copy(csvFileId = id, csvMessageId = number, csvUpdatedAt = number,
+                current.withPublishedCsv(CsvSnapshot(id, number, null, number)).copy(
                     publicationJournal = listOf(PublicationJournalEntry("snapshot-$number", fileId = id,
                         messageId = number, at = number, deviceId = "synthetic")) + current.publicationJournal)
             }
@@ -200,6 +200,16 @@ class RemoteSyncStateStoreTest {
         assertEquals(original, pinned)
         coVerify(exactly = 0) { telegram.editMessageText(any(), any(), any(), any()) }
         coVerify(exactly = 0) { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+
+    @Test fun `absent required kind or version refuses replacement`() = runBlocking<Unit> {
+        for (text in listOf("{}", "{\"kind\":\"${SyncState.KIND}\"}", "{\"v\":${SyncState.CURRENT_VERSION}}")) {
+            pinned = TgMessage(1, text = text)
+            assertEquals(RemoteSyncStateStore.PinnedState.Unrecognized, store.readPinnedState())
+            assertThrows(IllegalStateException::class.java) { runBlocking { store.updateExistingState { it } } }
+        }
+        coVerify(exactly = 0) { telegram.editMessageText(any(), any(), any(), any()) }
     }
 
 }

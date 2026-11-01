@@ -40,14 +40,18 @@ class InMemoryDemoWardRepository @Inject constructor() {
         val current = state.value
         undo = current
         downloadedAt = System.currentTimeMillis()
-        state.value = current.copy(patients = published.patients, shiftDoctorIds = published.shiftDoctorIds,
+        state.value = current.copy(doctors = registry, patients = published.patients, shiftDoctorIds = published.shiftDoctorIds,
             sort = published.sort, deleted = current.deleted.filterNot { row -> published.patients.any { it.id == row.id } },
             revision = current.revision + 1)
+    }
+    internal fun fetchDoctors() {
+        undo = state.value
+        state.update { it.copy(doctors = registry, revision = it.revision + 1) }
     }
     internal fun undoFetch() {
         val previous = undo ?: return
         undo = null
-        state.value = state.value.copy(patients = previous.patients, shiftDoctorIds = previous.shiftDoctorIds,
+        state.value = state.value.copy(doctors = previous.doctors, patients = previous.patients, shiftDoctorIds = previous.shiftDoctorIds,
             sort = previous.sort, deleted = previous.deleted, revision = state.value.revision + 1)
     }
     internal fun reset(message: String? = null) {

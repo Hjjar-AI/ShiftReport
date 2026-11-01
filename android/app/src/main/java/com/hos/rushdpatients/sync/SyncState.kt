@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.sync
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Required
 
 @Serializable
 data class PublicationJournalEntry(
@@ -15,12 +16,12 @@ data class PublicationJournalEntry(
 
 /**
  * Machine-readable state, serialized as JSON and pinned in General.
- * CSV ordering uses Telegram message IDs; timestamps are display/sync metadata only.
+ * The current pointer follows the last successful index write; message IDs identify artifacts.
  */
 @Serializable
 data class SyncState(
-    val kind: String = KIND,
-    val v: Int = CURRENT_VERSION,
+    @Required val kind: String = KIND,
+    @Required val v: Int = CURRENT_VERSION,
 
     // --- CSV ---
     val csvFileId: String? = null,

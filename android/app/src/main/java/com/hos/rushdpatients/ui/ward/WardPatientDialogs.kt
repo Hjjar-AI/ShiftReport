@@ -17,7 +17,7 @@ internal fun WardPatientDialogs(
     onDismissEdit: () -> Unit,
     onCopyConfirmed: (Patient) -> Unit, onDismissCopy: () -> Unit,
     onDeleteConfirmed: (Patient) -> Unit, onDismissDelete: () -> Unit,
-    onLoadEditDraft: (String, (PatientDraft?) -> Unit) -> Unit = { _, done -> done(null) },
+    onLoadEditDraft: (String, (Result<PatientDraft?>) -> Unit) -> Unit = { _, done -> done(Result.success(null)) },
     onEditDraftChanged: (String, PatientDraft) -> Unit = { _, _ -> },
     onDiscardEditDraft: (String) -> Unit = {}
 ) {

@@ -65,15 +65,15 @@ class PatientEditorInteractionTest {
     }
     @Test fun delayedDraftCallbackForPreviousPatientCannotReplaceCurrentEditor() {
         var current by mutableStateOf(patient())
-        val callbacks = mutableMapOf<String, (PatientDraft?) -> Unit>()
+        val callbacks = mutableMapOf<String, (Result<PatientDraft?>) -> Unit>()
         var saved: Patient? = null
         compose.setContent { MaterialTheme {
             EditPatientDialog(current, emptyList(), onConfirm = { value, _ -> saved = value }, onDismiss = {},
                 onLoadDraft = { id, done -> callbacks[id] = done })
         } }
         compose.runOnIdle { assertTrue(callbacks.containsKey("synthetic")); current = patient().copy(id = "coffee", name = "قهوة") }
-        compose.runOnIdle { callbacks.getValue("coffee")(PatientDraft(name = "قهوة", labDraft = "current draft")) }
-        compose.runOnIdle { callbacks.getValue("synthetic")(PatientDraft(name = "شاي", labDraft = "obsolete result")) }
+        compose.runOnIdle { callbacks.getValue("coffee")(Result.success(PatientDraft(name = "قهوة", labDraft = "current draft"))) }
+        compose.runOnIdle { callbacks.getValue("synthetic")(Result.success(PatientDraft(name = "شاي", labDraft = "obsolete result"))) }
         compose.onNodeWithText(label(R.string.ui_save)).performClick()
         compose.runOnIdle {
             assertEquals("coffee", saved?.id)
@@ -93,6 +93,27 @@ class PatientEditorInteractionTest {
         compose.onNodeWithContentDescription(pending).assertDoesNotExist()
         compose.runOnIdle { enabled = false }
         compose.onNodeWithContentDescription(completed).assertIsNotEnabled()
+    }
+
+
+    @Test fun failedDraftReadCannotAutosaveOrDiscardBeforeSuccessfulRetry() {
+        var reads = 0
+        var autosaves = 0
+        var discards = 0
+        compose.setContent { MaterialTheme {
+            EditPatientDialog(patient(), emptyList(), onConfirm = { _, _ -> fail("Save before load") }, onDismiss = {},
+                onLoadDraft = { _, done ->
+                    reads++
+                    if (reads == 1) done(Result.failure(IllegalStateException("synthetic unreadable draft")))
+                    else done(Result.success(PatientDraft(name = "شاي", labDraft = "retained labs")))
+                }, onDraftChanged = { _, _ -> autosaves++ }, onDiscardDraft = { discards++ })
+        } }
+        compose.onNodeWithText(label(R.string.patient_draft_recovery_failed)).assertIsDisplayed()
+        compose.onNodeWithText(label(R.string.ui_save)).assertDoesNotExist()
+        compose.runOnIdle { assertEquals(0, autosaves); assertEquals(0, discards) }
+        compose.onNodeWithText(label(R.string.ui_retry)).performClick()
+        compose.onNodeWithText(label(R.string.ui_save)).assertIsDisplayed()
+        compose.runOnIdle { assertEquals(2, reads); assertEquals(0, discards) }
     }
 
 }

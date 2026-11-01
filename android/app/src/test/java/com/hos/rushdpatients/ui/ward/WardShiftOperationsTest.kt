@@ -45,43 +45,38 @@ class WardShiftOperationsTest {
         val operations = operations(this); operations.bringLatestData()
         assertEquals(WardRetryAction.FETCH_LATEST, state.value.retryAction)
         operations.replaceAndFetch(); assertEquals(WardRetryAction.FETCH_LATEST, state.value.retryAction)
-        coVerify(exactly = 0) { sync.refreshDoctorsForPatientFetch() }
         assertTrue(observed.isEmpty())
     }
-    @Test fun failedDoctorRefreshBlocksClinicalDownload() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.failure(IllegalStateException("synthetic registry failure"))
+    @Test fun failedCombinedFetchRetainsLocalState() = runTest {
+        coEvery { sync.fetchLatestCsv() } returns Result.failure(IllegalStateException("synthetic registry failure"))
         operations(this).bringLatestData(); runCurrent()
         assertFalse(state.value.syncing); assertEquals("synthetic registry failure", state.value.syncIssue)
-        coVerify(exactly = 0) { sync.fetchLatestCsv(false, false) }
+        coVerify(exactly = 1) { sync.fetchLatestCsv() }
     }
-    @Test fun latestFetchLoadsDoctorsThenPatientsAndSelectsReturnedShift() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
-        coEvery { sync.fetchLatestCsv(false, false) } returns Result.success(CsvFetchResult("downloaded", 1, 2))
+    @Test fun latestFetchUsesCombinedSnapshotAndSelectsReturnedShift() = runTest {
+        coEvery { sync.fetchLatestCsv() } returns Result.success(CsvFetchResult("downloaded", 1, 2))
         operations(this).bringLatestData(); runCurrent()
-        coVerifyOrder { sync.refreshDoctorsForPatientFetch(); sync.fetchLatestCsv(false, false) }
+        coVerify(exactly = 1) { sync.fetchLatestCsv() }
         assertEquals(listOf("downloaded"), observed); assertFalse(state.value.syncing)
         assertNull(state.value.retryAction)
     }
-    @Test fun replacementFetchUsesExplicitReplaceFlagAndReturnedSection() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
-        coEvery { sync.fetchLatestCsv(true, false) } returns Result.success(CsvFetchResult("previous", 1, 0))
+    @Test fun replacementFetchUsesSameOperationAndReturnedSection() = runTest {
+        coEvery { sync.fetchLatestCsv() } returns Result.success(CsvFetchResult("previous", 1, 0))
         operations(this).replaceAndFetch(); runCurrent()
         assertEquals(listOf("previous"), observed)
-        coVerify(exactly = 1) { sync.fetchLatestCsv(true, false) }
-        coVerify(exactly = 0) { sync.fetchLatestCsv(false, false) }
+        coVerify(exactly = 1) { sync.fetchLatestCsv() }
     }
     @Test fun failedPatientFetchLeavesDisplayedShiftAndOffersRetry() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
-        coEvery { sync.fetchLatestCsv(true, false) } returns Result.failure(IllegalStateException("synthetic bad snapshot"))
+        coEvery { sync.fetchLatestCsv() } returns Result.failure(IllegalStateException("synthetic bad snapshot"))
         operations(this).replaceAndFetch(); runCurrent()
         assertEquals(shift, state.value.shift); assertTrue(observed.isEmpty())
         assertEquals(WardRetryAction.FETCH_LATEST, state.value.retryAction); assertFalse(state.value.syncing)
     }
     @Test fun duplicateFetchCannotDownloadTwoSnapshots() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } coAnswers { awaitCancellation() }
+        coEvery { sync.fetchLatestCsv() } coAnswers { awaitCancellation() }
         val operations = operations(backgroundScope); operations.bringLatestData(); runCurrent()
         operations.replaceAndFetch(); runCurrent()
-        coVerify(exactly = 1) { sync.refreshDoctorsForPatientFetch() }
+        coVerify(exactly = 1) { sync.fetchLatestCsv() }
     }
     @Test fun undoSelectsRestoredShiftOnlyAfterSuccess() = runTest {
         coEvery { sync.undoLastDownload() } returns Result.success("restored")

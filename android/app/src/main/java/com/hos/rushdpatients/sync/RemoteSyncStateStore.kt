@@ -44,14 +44,14 @@ class RemoteSyncStateStore @Inject constructor(
 
     suspend fun readState(): SyncState? = readPinnedState().recognizedOrNull()
 
-    suspend fun updateState(transform: (SyncState) -> SyncState): SyncState =
+    suspend fun updateState(transform: suspend (SyncState) -> SyncState): SyncState =
         update(requireExisting = false, replaceCsvHistory = false, transform = transform)
 
-    suspend fun updateExistingState(replaceCsvHistory: Boolean = false, transform: (SyncState) -> SyncState): SyncState =
+    suspend fun updateExistingState(replaceCsvHistory: Boolean = false, transform: suspend (SyncState) -> SyncState): SyncState =
         update(requireExisting = true, replaceCsvHistory = replaceCsvHistory, transform = transform)
 
     private suspend fun update(requireExisting: Boolean, replaceCsvHistory: Boolean,
-                               transform: (SyncState) -> SyncState): SyncState = remoteStateMutex.withLock {
+                               transform: suspend (SyncState) -> SyncState): SyncState = remoteStateMutex.withLock {
         val pinned = readPinnedState()
         val current = pinned.recognizedOrNull()
         require(!requireExisting || current != null) { context.getString(R.string.sync_index_unavailable_fetch) }
@@ -61,29 +61,13 @@ class RemoteSyncStateStore @Inject constructor(
     }
 
     private suspend fun writeState(state: SyncState, existing: PinnedState.Valid?, replaceCsvHistory: Boolean) {
-        val existingState = existing?.state
-        val stateToWrite = if (existingState == null) state else {
-            val snapshots = listOfNotNull(
-                state.currentCsvSnapshot(), state.previousCsvSnapshot(),
-                existingState.currentCsvSnapshot(), existingState.previousCsvSnapshot()
-            ).distinctBy { it.messageId }.sortedByDescending { it.messageId }
-            val doctorsState = listOf(state, existingState).maxWithOrNull(
-                compareBy<SyncState> { it.doctorsMessageId ?: Long.MIN_VALUE }
-                    .thenBy { it.doctorsUpdatedAt }
-            ) ?: state
-            state.withCsvHistory(if (replaceCsvHistory) listOfNotNull(state.currentCsvSnapshot()) else snapshots).copy(
-                publicationJournal = (state.publicationJournal + if (replaceCsvHistory) emptyList() else existingState.publicationJournal)
-                    .distinctBy { it.messageId }
-                    .sortedByDescending { it.messageId }
-                    .take(12),
-                doctorsFileId = doctorsState.doctorsFileId,
-                doctorsMessageId = doctorsState.doctorsMessageId,
-                doctorsUpdatedAt = doctorsState.doctorsUpdatedAt
-            )
-        }
+        // The transform already starts from the latest observed pin. Keep its complete
+        // pointers: an upload's message ID is not the order of successful index writes.
+        val stateToWrite = if (replaceCsvHistory)
+            state.withCsvHistory(listOfNotNull(state.currentCsvSnapshot())) else state
         // Bound the actual wire text, including pointers and JSON escaping. Retain
         // newest history first; current/previous rollback pointers are never trimmed.
-        var bounded = stateToWrite
+        var bounded = stateToWrite.copy(publicationJournal = stateToWrite.publicationJournal.distinctBy { it.messageId }.take(12))
         var encoded = json.encodeToString(SyncState.serializer(), bounded)
         while (encoded.length > AppConstants.TELEGRAM_SAFE_CHARS && bounded.publicationJournal.isNotEmpty()) {
             bounded = bounded.copy(publicationJournal = bounded.publicationJournal.dropLast(1))

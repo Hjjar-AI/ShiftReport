@@ -226,6 +226,9 @@ internal class DemoReportController(
             finally { _state.update { it.copy(sharingPdf = false) } }
         }
     }
+    override fun onPdfShareUnavailable() {
+        _state.update { it.copy(error = uiText(R.string.report_share_launch_failed), retryAction = null) }
+    }
     override fun consumePdfShare() { _state.update { it.copy(pdfShareUri = null) } }
     override fun exportLocally() = saveExportPdfs(setOf("general"), true)
     override fun exportSupervisorPdfs() = saveExportPdfs(_state.value.supervisorTargets.mapTo(linkedSetOf()) { key(it.doctorId) }, true)

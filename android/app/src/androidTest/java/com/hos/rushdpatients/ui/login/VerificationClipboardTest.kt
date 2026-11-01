@@ -6,6 +6,8 @@ import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.activity.ComponentActivity
@@ -27,7 +29,8 @@ class VerificationClipboardTest {
     private val clipboard get() = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     private var previous: ClipData? = null
     private val doctor = Doctor(id = "synthetic", fullName = "أرز", firstName = "أرز", lastName = "شجرة", gender = Gender.MALE)
-    private val nonce = "SYNTHETIC-CODE"
+    private val code = "123456"
+    private var submitted: String? = null
     private var visible by mutableStateOf(true)
     private var seconds by mutableStateOf(30)
     @Before fun captureClipboard() {
@@ -44,30 +47,35 @@ class VerificationClipboardTest {
     }
     private fun show() {
         compose.setContent { MaterialTheme {
-            if (visible) VerifyingView(LoginStep.Verifying(doctor, nonce, seconds), {}) else Text("finished")
+            if (visible) VerifyingView(LoginStep.Verifying(doctor, seconds), false, null,
+                { submitted = it }, {}) else Text("finished")
         } }
     }
-    private fun copy() = compose.onNodeWithText(context.getString(R.string.ui_copy)).performClick()
-    @Test fun copiedCodeIsMarkedSensitiveAndExact() {
-        show(); copy()
+    private fun enter() = compose.onNode(hasSetTextAction()).performTextInput(code)
+    private fun confirm() = compose.onNodeWithText(context.getString(R.string.login_private_code_confirm))
+    @Test fun enteredCodeSubmitsWithoutCopyingToClipboard() {
+        show(); enter(); confirm().performClick()
+        assertEquals(code, submitted)
+        compose.onNode(hasSetTextAction()).assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
         compose.runOnIdle {
-            val clip = requireNotNull(clipboard.primaryClip)
-            assertEquals(nonce, clip.getItemAt(0).text.toString())
-            assertTrue(clip.description.extras?.getBoolean("android.content.extra.IS_SENSITIVE") == true)
+            assertNotEquals(code, clipboard.primaryClip?.getItemAt(0)?.text?.toString())
         }
     }
-    @Test fun expiryClearsOnlyTheMatchingCodeAndDisablesCopy() {
-        show(); copy(); compose.runOnIdle { seconds = 0 }
+    @Test fun expiryDisablesSubmissionWithoutChangingClipboard() {
+        show(); enter(); compose.runOnIdle { seconds = 0 }
         compose.waitForIdle()
-        compose.onNodeWithText(context.getString(R.string.ui_copy)).assertIsNotEnabled()
-        compose.runOnIdle { assertNotEquals(nonce, clipboard.primaryClip?.getItemAt(0)?.text?.toString()) }
+        confirm().assertIsNotEnabled()
+        assertNull(submitted)
+        compose.runOnIdle { assertNotEquals(code, clipboard.primaryClip?.getItemAt(0)?.text?.toString()) }
     }
-    @Test fun leavingVerificationClearsItsCode() {
-        show(); copy(); compose.runOnIdle { visible = false }; compose.waitForIdle()
-        compose.runOnIdle { assertNotEquals(nonce, clipboard.primaryClip?.getItemAt(0)?.text?.toString()) }
+    @Test fun leavingVerificationDiscardsEnteredCode() {
+        show(); enter(); compose.runOnIdle { visible = false }; compose.waitForIdle()
+        compose.runOnIdle { visible = true }; compose.waitForIdle()
+        compose.onNode(hasSetTextAction()).assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+        assertNull(submitted)
     }
-    @Test fun cleanupPreservesLaterUserClipboardContent() {
-        show(); copy()
+    @Test fun leavingVerificationPreservesUserClipboardContent() {
+        show(); enter()
         compose.runOnIdle {
             clipboard.setPrimaryClip(ClipData.newPlainText("synthetic-user-replacement", "synthetic later copy"))
             visible = false

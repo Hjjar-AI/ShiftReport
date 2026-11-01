@@ -9,13 +9,13 @@ Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and `deskt
 | Join | `.srjoin.json`, `format=ShiftReportJoin`, encrypted `RUSHDJOIN1` payload, inner version 1 |
 | Shared pointer | Pinned JSON `kind=shift-report-sync-state`, version 4 |
 | Patient document | Bundle 1, `# rushdShiftBundle=1`, boundary `#==RUSHD_SHIFT_BOUNDARY_7F3A9C==` |
-| Shift CSV | Schema 7, 22 legacy columns plus optional final `assignmentChangedOn` ISO date; full quoted metadata field |
+| Shift CSV | Schema 7, 23 required columns including final `assignmentChangedOn` ISO date (blank allowed); full quoted metadata field |
 | Doctor Telegram wire | Ten columns including teamSupervisorId; distinct from schema-1 spreadsheet CSV |
 | Encrypted file | `SRDATA1` + 12-byte nonce + AES-GCM ciphertext/tag |
 | Encrypted text | `SRMSG1:` + Base64 of encrypted gzip text |
 | Portable shift backup | `.rpb`: `RUSHDBK1` + 16-byte salt + 12-byte nonce + AES-GCM ciphertext/tag; single CSV7 document; password PBKDF2-HMAC-SHA256/210000/256-bit, no AAD |
 
-Both clients require the current 23-column CSV7 header, including `assignmentChangedOn`; an empty assignment date remains unknown and is never restamped on retrieval/import. Current metadata quoting preserves roster commas, sort JSON, snapshot/base IDs and revisions. Current-only readers do not renumber formats or change the database schema. They have source-only checks pending compilation/runtime acceptance.
+Both clients require the current 23-column CSV7 header, including `assignmentChangedOn`; an empty assignment date remains unknown and is never restamped on retrieval/import. Current metadata quoting preserves roster commas, sort JSON, snapshot/base IDs and revisions. Wire versions/fields are unchanged. Android database 7 relaxes date/name indexes while preserving rows, IDs and unique Telegram accounts. Compilation/focused results and remaining live acceptance are recorded in Current state and the handoff.
 
 ## Connection, crypto and identity
 
@@ -23,18 +23,18 @@ Both clients require the current 23-column CSV7 header, including `assignmentCha
 - Default protected join supplies connection/topics/key. Explicit desktop raw mode verifies live registry admin before workspace access and on shared mutations; reconnect remains file-only. Passwords interactive, never argv/env. Extracted tokens bypass client gates.
 - Current join imports require the protected JSON envelope; binary-only join files are unsupported. Android pinned indices require the current version and file-backed registry, with no inline registry or directly pinned registry-document bootstrap.
 - Join: PBKDF2-HMAC-SHA256/210000,16-byte salt,32-byte key; AES-GCM12-byte nonce,no AAD. Data envelopes preserve purpose-specific authenticated bytes. Wrong keys/tampering fail; no encoding/plaintext fallback. Encryption chosen at creation; PDF/captions readable.
-- Private six-digit Telegram challenge:3min/5attempts; session30min. No `getUpdates`. Shared mutations recheck linked identity/live membership; actor fields/token possession are not authorization; registry/role/destination changes require live admin below GUI.
+- Private six-digit Telegram challenge, entered in the originating app: desktop3min/5attempts/session30min; Android5min/5attempts with separately configured local session locking. Neither login reads/acknowledges `getUpdates`. Android keeps only a salted challenge hash in memory, binds the challenge to project/doctor/linked identity, and reuses an unexpired challenge after an uncertain send/cancel. PIN re-entry requires device-local Telegram enrollment bound to the current identity and PIN hash; administratively preset PINs do not enroll accounts. Shared mutations recheck linked identity/live membership; actor fields/token possession are not authorization; registry/role/destination changes require live admin below GUI.
 - Fingerprint binds bot/group/topics/key. No cross-project mixing; stable shared key or random DPAPI/Linux-passphrase-protected local key survives same-bot token replacement. Linux stores authenticated wrapped key, never passphrase.
 
 ## First-admin bootstrap and join export
 
-`desktop_project.py`: unused workspace/no baseline/draft/receipts, private challenge, human group admin and bot pin rights. Bound single-use review rechecks authority/config/absent pin before each write. Persist encrypted UNKNOWN → permanent-admin stable UUID registry → General JSON index → pin → exact index/registry readback → clinician session/confirmed receipt. Failure requires inspection/reconnect, never automatic retry/deletion. Neither atomic creation nor proof of empty history.
+`desktop_project.py`: unused workspace/no baseline/draft/receipts, private challenge, human group admin and bot pin rights. Bound single-use review rechecks authority/config/absent pin before each write. Persist encrypted UNKNOWN → permanent-admin stable UUID registry → General JSON index → pin → exact index/registry readback → clinician session/confirmed receipt. Failure requires inspection/reconnect, never automatic retry/deletion. Neither atomic creation nor proof of empty history. Android creation uploads the registry, sends/pins its current JSON index and bootstraps that exact index. Initial unrelated-pin review reads raw metadata under the creation authority/config checks; established-project reads retain strict decryption. Android emits and requires explicit current index kind/version.
 
 Join export: current verified live registry admin, only connection/topics/key in existing protected Android envelope; refuse overwrite, recheck before write, reopen/verify. No secrets in clinical state/receipts.
 
 ## Download and draft
 
-Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre-download backup; current bundle readers/writers require exactly one ward. Plain unwrapped CSV is not a Telegram bundle; the current `.rpb` backup still deliberately carries a single CSV document. Preserve patient/doctor/task IDs,revisions,sort/roster/app-only fields; no connection secrets in drafts. CSV row order is stored order; filters never remove unpublished rows. Desktop draft/order changes invalidate its publication review.
+Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre-download backup; current bundle readers/writers require exactly one ward. Android manual full Fetch replaces pending local patients and doctors together, with baseline/cursor/Undo in one transaction; no local/remote merge. Undo restores pre-Fetch patients/registry locally after unchanged-download and assignment validation, never republishes. Doctor-only Fetch also replaces pending portable registry edits but requires retained current clinical references to remain valid; otherwise use full Fetch. Explicit ward IDs never resolve through another ward of the same date; both rows can retain their stored dates. Historical doctors may share a name with the incoming roster; active roster names/accounts remain validated. Registry replacement releases obsolete account bindings transactionally before inserting the incoming rows, retaining Telegram-account uniqueness. Current CSV rows must have the full header width and numeric revision/update metadata. Plain unwrapped CSV is not a Telegram bundle; the current `.rpb` backup still deliberately carries a single CSV document. Preserve patient/doctor/task IDs,revisions,sort/roster/app-only fields; no connection secrets in drafts. CSV row order is stored order; filters never remove unpublished rows. Desktop draft/order changes invalidate its publication review.
 
 08:30 labels the work day only; no date-based edit/publication/send deadline or shift copy-forward. Keep the current ward across days. Old-app CSV containers are unsupported; dated-list browsing/copying is retired. Fetch Undo and reviewed admin republishing of the previous publication remain.
 
@@ -45,7 +45,7 @@ Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre
 3. Persist UNKNOWN before immutable upload; recheck pointers, update existing pinned index retaining unrelated fields.
 4. Retain immediate previous immutable publication and bounded journal (≤12entries/message budget); read back actual pointer before success.
 
-Last-successful-write-wins, not atomic transactions. No automatic retry; Android older-remote fetch requires explicit live-admin confirmation. Upload alone is not publication. Matching journal may confirm; absence from bounded journal does not prove failure.
+Last-successful-write-wins, not atomic transactions. No automatic retry. Android manual Fetch accepts the current pin, including an intentionally restored pointer with a lower document ID; historical high-water metadata does not veto it. Upload alone is not publication. Matching journal may confirm; absence from bounded journal does not prove failure.
 
 ## Desktop registry mutation and local recovery
 
@@ -73,4 +73,6 @@ General destination Reports; supervisor live registry group. Telegram `ok`/messa
 
 Details follow captured visible stable IDs; readonly copy returns logical text.
 
-Android-compatible `.rpb`: same project/selected shift ID/date, valid registry references, expected-draft check/review/confirmation; retains receipts/imported completion attribution. `.srdraft` remains separate workspace recovery. Android pending saved changes require reviewed publication/recoverable replacement/cancel; successful publication does not immediately fetch its own snapshot; desktop retains its guarded replacement flow. Current-format backup/join/cipher fixtures passed both directions; live GUI workflows unverified. [Results](../status/current-state.md#verification-and-limits) · [Remaining](../status/testing-handoff.md).
+Android-compatible `.rpb`: same project/selected shift ID/date, valid registry references, expected-draft check/review/confirmation; retains receipts/imported completion attribution. `.srdraft` remains separate workspace recovery. Android manual Fetch confirms complete replacement, including pending saved changes, with local pre-Fetch Undo; successful publication does not immediately fetch its own snapshot; desktop retains its guarded replacement flow. Current-format backup/join/cipher fixtures passed both directions; live GUI workflows unverified. [Results](../status/current-state.md#verification-and-limits) · [Remaining](../status/testing-handoff.md).
+
+Android delivery-copy permissions use the existing receipt fields to bind exact PDF SHA-256, full chat/topic, format and originating linked actor. Clinical fingerprints still bind reviewed report content; they alone cannot authorize a regenerated PDF. UNKNOWN remains durable and requires explicit resolution. Source changes of1 November are not compile/runtime/live evidence.

@@ -61,7 +61,7 @@ class ProjectSetupOverrideTest {
             val existing = activity.viewModelStore["setup-override"] as? ProjectSetupViewModel
             setup = existing ?: ProjectSetupViewModel(UiStrings(client.context), client.context, client.projects,
                 client.telegram, BootstrapManager(client.context, client.telegram, client.topics, server.json, client.doctors),
-                BootstrapSeeder(client.telegram, client.topics, client.projects), client.sessions, client.settings,
+                BootstrapSeeder(client.telegram, client.topics, server.json, client.projects), client.sessions, client.settings,
                 ProjectProvisioningManager(client.context, client.dispatchers)).also {
                 activity.viewModelStore.put("setup-override", it)
                 it.setMode(ProjectSetupMode.CREATE); it.setHospitalName("مشفى تجريبي")

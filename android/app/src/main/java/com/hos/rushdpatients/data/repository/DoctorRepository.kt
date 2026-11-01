@@ -197,31 +197,19 @@ class DoctorRepository @Inject constructor(
         }.mapTo(mutableSetOf()) { it.id }
     }
 
-    /** Caller must run this together with base/cursor/pending bookkeeping in a Room transaction. */
-    suspend fun applyMergedRegistry(doctors: List<Doctor>) = applyRegistry(doctors, published = false)
-
-    /** For DoctorSyncCoordinator after live pointer/content verification only. */
-    internal suspend fun applyPublishedRegistry(doctors: List<Doctor>) = applyRegistry(doctors, published = true)
-
-    private suspend fun applyRegistry(doctors: List<Doctor>, published: Boolean) = withContext(dispatchers.io) {
+    /** Replace portable fields only; local PINs survive only for the same Telegram identity.
+     * Caller commits clinical rows, selection, baseline and cursor in this transaction too.
+     */
+    internal suspend fun applyPublishedRegistry(doctors: List<Doctor>, replaceClinical: suspend () -> Unit = {}) = withContext(dispatchers.io) {
         database.withTransaction {
             DoctorTeams.validate(doctors)
+            val active = doctors.filterNot { it.isDeleted }.associateBy { it.id }
             val local = getAllIncludingDeleted()
-            val byId = doctors.associateBy { it.id }
-            val transferred = if (published)
-                com.hos.rushdpatients.domain.doctor.PermanentAdminTransfer.transferredOwnerIds(local, doctors)
-            else emptySet()
-            local.filterNot { it.isDeleted }.forEach { current ->
-                val next = byId[current.id]
-                require(!current.isPermanentAdmin || current.id in transferred || next != null && next.isPermanentAdmin && next.rank > 0) {
-                    "لا يمكن حذف المدير الدائم أو إزالة صلاحياته عبر دمج السجل"
-                }
-                if (next == null) requireNoClinicalReferences(current.id)
-                require(next == null || next.clinicalRole == current.clinicalRole ||
-                    patients.countActiveReferencesToDoctor(current.id) == 0) {
-                    "أعد إسناد المرضى قبل تغيير التصنيف السريري للطبيب ${current.fullName}"
-                }
-            }
+            // Accept the final published owner without reconstructing missed handovers.
+            // A replacement still needs a linked permanent successor; it cannot erase ownership.
+            if (local.any { it.isPermanentAdmin && !it.isDeleted }) require(active.values.any {
+                it.isPermanentAdmin && it.isAdmin && it.telegramId != null
+            }) { "سجل الأطباء المنشور يفتقد مديراً دائماً مرتبطاً بتليجرام" }
             val now = Instant.now()
             val merged = doctors.map { incoming ->
                 val existing = local.firstOrNull { it.id == incoming.id }
@@ -243,16 +231,24 @@ class DoctorRepository @Inject constructor(
             // An unchanged pull must not manufacture a stale editor by changing every row's timestamp.
             val existingById = local.associateBy { it.id }
             val changed = merged.filter { it != existingById[it.id] }
-            if (changed.isNotEmpty()) dao.upsertAll(changed.map(DoctorMapper::toEntity))
-            dao.softDeleteMissing(merged.map { it.id }, now.toEpochMilli())
+            // Release old account bindings inside the same transaction before applying
+            // authoritative replacements or swaps; Telegram IDs remain unique in storage.
+            dao.replaceActiveRegistry(changed.map(DoctorMapper::toEntity), merged.map { it.id }, now.toEpochMilli())
+            // Incoming patients may reference newly published doctors. Stage all registry rows
+            // first, then replace clinical rows and validate the final pair in this transaction.
+            replaceClinical()
+            val current = database.shiftDao().getLatest()
+            require(current?.doctorIdsCsv?.split(',')?.filter(String::isNotBlank).orEmpty().all(active::containsKey)) {
+                "سجل الأطباء المنشور لا يطابق أطباء القسم؛ اجلب بيانات القسم كاملة"
+            }
+            current?.let { shift -> patients.getForShift(shift.id).forEach {
+                com.hos.rushdpatients.domain.patient.PatientDoctorAssignments.requireValid(it, active)
+            } }
         }
     }
 
     suspend fun replaceAll(doctors: List<Doctor>) = withContext(dispatchers.io) {
         database.withTransaction {
-            require(!hasPendingSharedChanges()) {
-                "توجد تغييرات محلية في سجل الأطباء؛ استخدم المزامنة ومراجعة التعارضات"
-            }
             val local = dao.getAllIncludingDeleted().map(DoctorMapper::fromEntity)
             val merged = doctors.map { remote ->
                 val existing = local.firstOrNull { candidate ->

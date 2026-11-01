@@ -83,7 +83,7 @@ class EncryptedBackupManager @Inject constructor(
                 }
                 patientRepository.softDeleteMissingFromShift(shift.id, restored.map { it.id })
                 patientRepository.upsertAll(restored, shift.id)
-                shiftRepository.upsert(shift.copy(doctorIds = parsed.doctorIds.distinct(),
+                shiftRepository.upsert(shift.copy(date = parsed.shiftDate, doctorIds = parsed.doctorIds.distinct(),
                     sortSpecJson = parsed.sortSpecJson, revision = nextRevision(shift.revision, parsed.shiftRevision)))
                 shiftRepository.selectCurrent(shift.id)
 

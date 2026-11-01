@@ -110,29 +110,26 @@ class SettingsDataOperationsTest {
         operations(this).bringLatest(); runCurrent()
         assertEquals(SettingsRetryAction.FETCH, state.value.retryAction)
         assertFalse(state.value.syncing)
-        coVerify(exactly = 0) { sync.refreshDoctorsForPatientFetch() }
         coVerify(exactly = 0) { sync.fetchLatestCsv() }
     }
-    @Test fun doctorRefreshFailureStopsPatientDownload() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.failure(IllegalStateException("synthetic registry failure"))
+    @Test fun combinedFetchFailureRetainsRetry() = runTest {
+        coEvery { sync.fetchLatestCsv() } returns Result.failure(IllegalStateException("synthetic registry failure"))
         operations(this).bringLatest(); runCurrent()
         assertFalse(state.value.syncing)
         assertEquals(SettingsRetryAction.FETCH, state.value.retryAction)
         assertEquals("synthetic registry failure", state.value.syncIssue)
-        coVerify(exactly = 0) { sync.fetchLatestCsv() }
+        coVerify(exactly = 1) { sync.fetchLatestCsv() }
     }
-    @Test fun successfulFetchRefreshesDoctorsBeforePatientsAndStampsTime() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
+    @Test fun successfulCombinedFetchStampsTime() = runTest {
         coEvery { sync.fetchLatestCsv() } returns Result.success(CsvFetchResult("shift-1", 2, 1))
         operations(this).bringLatest(); runCurrent()
-        coVerifyOrder { sync.refreshDoctorsForPatientFetch(); sync.fetchLatestCsv() }
+        coVerify(exactly = 1) { sync.fetchLatestCsv() }
         assertFalse(state.value.syncing)
         assertNull(state.value.retryAction)
         assertEquals("synthetic time", state.value.lastCsvSync)
         assertNotNull(state.value.lastOperation)
     }
     @Test fun downloadFailureDoesNotStampSuccessfulSync() = runTest {
-        coEvery { sync.refreshDoctorsForPatientFetch() } returns Result.success(Unit)
         coEvery { sync.fetchLatestCsv() } returns Result.failure(IllegalStateException("synthetic download failure"))
         operations(this).bringLatest(); runCurrent()
         assertFalse(state.value.syncing)

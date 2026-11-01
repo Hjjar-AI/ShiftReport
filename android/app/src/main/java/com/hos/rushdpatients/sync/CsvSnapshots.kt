@@ -24,10 +24,10 @@ internal fun SyncState.previousCsvSnapshot(): CsvSnapshot? {
  * publication while retaining the immediately preceding publication for rollback.
  */
 internal fun SyncState.withPublishedCsv(uploaded: CsvSnapshot): SyncState = withCsvHistory(
-    listOfNotNull(currentCsvSnapshot(), previousCsvSnapshot(), uploaded))
+    listOfNotNull(uploaded, currentCsvSnapshot(), previousCsvSnapshot()))
 
 internal fun SyncState.withCsvHistory(snapshots: List<CsvSnapshot>): SyncState {
-    val ordered = snapshots.distinctBy { it.messageId }.sortedByDescending { it.messageId }
+    val ordered = snapshots.distinctBy { it.messageId }
     val latest = ordered.firstOrNull()
     val previous = ordered.getOrNull(1)
     return copy(

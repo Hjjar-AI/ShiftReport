@@ -83,6 +83,8 @@ abstract class ProductionUiFixture {
         client = IndependentClient("ui", server); client.initialize(); client.seedPatient()
         val enrolled = client.actor.copy(extraOptions = setOf("pin:" + PasswordHasher().hash("2468")))
         client.doctors.upsert(enrolled)
+        LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers, client.db)
+            .enrollVerified(enrolled.id, requireNotNull(enrolled.telegramId), "2468")
         val registry = DoctorsRegistryCodec.encode(listOf(enrolled))
         server.files["registry"] = registry.toByteArray(Charsets.UTF_8)
         server.state = SyncState(doctorsFileId = "registry", doctorsMessageId = 2)
@@ -108,13 +110,13 @@ abstract class ProductionUiFixture {
                 ProjectProvisioningManager(client.context, client.dispatchers), client.telegram, client.authorizer, client.dispatchers),
                 client.context, client.dispatchers) }
             root = get(store) { RootViewModel(text, client.sessions, client.settings, BiometricHelper(client.context),
-                client.audit, client.doctors, LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers), client.projects) }
+                client.audit, client.doctors, LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers, client.db), client.projects) }
             setup = get(store) { ProjectSetupViewModel(text, client.context, client.projects, client.telegram, bootstrap,
-                BootstrapSeeder(client.telegram, client.topics, client.projects), client.sessions, client.settings,
+                BootstrapSeeder(client.telegram, client.topics, server.json, client.projects), client.sessions, client.settings,
                 ProjectProvisioningManager(client.context, client.dispatchers)) }
             login = get(store) { LoginViewModel(text, client.context, client.doctors, client.sessions, bootstrap,
-                TelegramLoginManager(client.telegram), LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers),
-                PasswordHasher(), client.audit, client.settings, client.projects) }
+                TelegramLoginManager(client.telegram, client.topics), LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers, client.db),
+                client.audit, client.projects) }
         }
         IsolatedWorkflowActivity.content = { activity ->
             val density = LocalDensity.current

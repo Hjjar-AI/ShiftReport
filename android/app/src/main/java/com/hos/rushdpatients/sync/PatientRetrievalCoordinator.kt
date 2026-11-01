@@ -10,8 +10,8 @@ import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.data.model.SyncChannel
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.withoutTrackingMetadata
 import com.hos.rushdpatients.data.model.Shift
-import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
@@ -21,7 +21,6 @@ import com.hos.rushdpatients.domain.patient.PatientValidationResult
 import com.hos.rushdpatients.domain.patient.PatientValidator
 import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.util.DispatcherProvider
-import com.hos.rushdpatients.util.ShiftDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -52,16 +51,14 @@ internal class PatientRetrievalCoordinator(
     private val syncStateRepository: SyncStateRepository,
     private val settingsRepository: SettingsRepository,
     private val database: AppDatabase,
-    private val auditRepository: AuditRepository,
     private val dispatchers: DispatcherProvider,
     private val remoteState: RemoteSyncStateStore,
     private val downloadUndo: LocalDownloadUndo,
-    private val doctorSync: DoctorSyncCoordinator,
-    private val publicationStatus: PatientPublicationStatus
+    private val doctorSync: DoctorSyncCoordinator
 ) {
 
-    suspend fun fetchLatestCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> = patientSyncMutex.withLock {
-        fetchCsv(replaceLocal = replaceLocal, allowOlder = allowOlder)
+    suspend fun fetchLatestCsv(): Result<CsvFetchResult> = patientSyncMutex.withLock {
+        doctorSync.withRegistryLock { fetchCsv() }
     }
 
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary =
@@ -74,26 +71,20 @@ internal class PatientRetrievalCoordinator(
                 changes.removed.map { it.displayName }, changes.settingsChanged)
         }
 
-    private suspend fun fetchCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> =
+    private suspend fun fetchCsv(): Result<CsvFetchResult> =
         withContext(dispatchers.io) {
             try {
-                if (!replaceLocal) {
-                    if (publicationStatus.hasPending()) {
-                        throw LocalPatientChangesPendingException()
-                    }
-                }
                 val state = remoteState.readState()
                     ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.patients_publication_absent)))
-                if (allowOlder) doctorSync.requirePublishedAdmin(state)
                 val snapshot = state.currentCsvSnapshot()
                 if (snapshot == null) {
                     val message = context.getString(R.string.patients_publication_absent)
                     return@withContext Result.failure(IllegalStateException(message))
                 }
-                val lastKnownMessageId = syncStateRepository.csvMessageHighWater()
-                if (!allowOlder && snapshot.messageId < lastKnownMessageId) throw OlderRemoteSnapshotException()
 
 
+                val guardedDoctors = doctorRepository.getAllIncludingDeleted()
+                val activeDoctors = doctorSync.doctorsForFetch(state)
                 val guardedShift = shiftRepository.getLatest()
                 val guardedPatients = guardedShift
                     ?.let { patientRepository.getForShift(it.id) }
@@ -111,63 +102,59 @@ internal class PatientRetrievalCoordinator(
                     local.delete()
                 }
 
-                val activeDoctors = doctorRepository.getAll()
                 val doctorsById = activeDoctors.associateBy { it.id }
                 val prepared = prepareShift(parsed, activeDoctors, doctorsById)
-                val overrideActor = if (allowOlder) doctorSync.requirePublishedAdmin(requireNotNull(remoteState.readState())) else null
+                // Stage one observed pin. A changed publication requires a fresh manual Fetch.
+                check(remoteState.readState() == state) { context.getString(R.string.doctors_registry_changed_download) }
                 val applied = database.withTransaction {
                     val currentShift = shiftRepository.getLatest()
                     val currentPatients = currentShift
                         ?.let { patientRepository.getForShift(it.id) }
                         .orEmpty()
                     require(
-                        (replaceLocal || !publicationStatus.hasPending()) &&
+                        doctorRepository.getAllIncludingDeleted() == guardedDoctors &&
                         sameEditableShift(currentShift, guardedShift) &&
                             samePublishedPatients(currentPatients, guardedPatients)
                     ) {
                         context.getString(R.string.patients_local_changed_download)
                     }
 
-                    val beforeDownload = (prepared.parsed.shiftId?.let { shiftRepository.getById(it) }
-                        ?: shiftRepository.getByDate(prepared.parsed.shiftDate))?.let { shift ->
+                    val beforeDownload = (if (prepared.parsed.shiftId != null)
+                        shiftRepository.getById(prepared.parsed.shiftId)
+                        else shiftRepository.getByDate(prepared.parsed.shiftDate))?.let { shift ->
                         ShiftCsvSnapshot(shift, patientRepository.getForShift(shift.id))
                     }
-                    val downloaded = applyPreparedShift(prepared).also { appliedShift ->
-                        settingsRepository.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + appliedShift.shift.id,
-                            CsvCodec.encode(appliedShift.shift, appliedShift.patients))
-                        settingsRepository.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + appliedShift.shift.id,
-                            snapshot.updatedAt.toString())
+                    lateinit var downloaded: AppliedShift
+                    doctorSync.applyFetchedRegistry(state, activeDoctors) {
+                        downloaded = applyPreparedShift(prepared).also { appliedShift ->
+                            settingsRepository.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + appliedShift.shift.id,
+                                CsvCodec.encode(appliedShift.shift, appliedShift.patients))
+                            settingsRepository.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + appliedShift.shift.id,
+                                snapshot.updatedAt.toString())
 
-                        shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
-                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
-                            java.time.Instant.now().toEpochMilli().toString())
-                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + appliedShift.shift.id,
-                            snapshot.messageId.toString())
+                            shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
+                            settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
+                                java.time.Instant.now().toEpochMilli().toString())
+                            settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + appliedShift.shift.id,
+                                snapshot.messageId.toString())
+                        }
+                        shiftRepository.selectCurrent(downloaded.shift.id)
                     }
-                    shiftRepository.selectCurrent(downloaded.shift.id)
-                    downloadUndo.record(listOf(beforeDownload), listOf(downloaded.shift.id), currentShift?.id)
+                    downloadUndo.record(listOf(beforeDownload), listOf(downloaded.shift.id), currentShift?.id,
+                        guardedDoctors, activeDoctors)
+                    syncStateRepository.update(SyncChannel.CSV, snapshot.updatedAt, snapshot.messageId, snapshot.fileId)
                     downloaded
                 }
-                settingsRepository.pruneShiftSyncCache(shiftRepository.getRecent(12).map { it.id }.toSet() + applied.shift.id)
+                // Maintenance cannot turn an already committed replacement into a failed Fetch.
+                var maintenanceFailed = false
+                try {
+                    settingsRepository.pruneShiftSyncCache(shiftRepository.getRecent(12).map { it.id }.toSet() + applied.shift.id)
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { maintenanceFailed = true }
                 val inserted = applied.inserted
                 val updated = applied.updated
 
-                syncStateRepository.update(
-                    channel = SyncChannel.CSV,
-                    offset = snapshot.updatedAt,
-                    messageId = snapshot.messageId,
-                    fileId = snapshot.fileId
-                )
-
-                auditRepository.record(
-                    actorDoctorId = overrideActor?.id,
-                    actorName = overrideActor?.fullName,
-                    action = AppConstants.AUDIT_CSV_DOWNLOADED,
-                    detail = "shifts=1 latest=${applied.shift.date} " +
-                        "source=latest forcedOlder=$allowOlder inserted=$inserted updated=$updated"
-                )
-
-                Result.success(CsvFetchResult(applied.shift.id, inserted, updated))
+                Result.success(CsvFetchResult(applied.shift.id, inserted, updated, maintenanceFailed))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -215,8 +202,8 @@ internal class PatientRetrievalCoordinator(
 
     private suspend fun applyPreparedShift(prepared: PreparedShift): AppliedShift {
         val parsed = prepared.parsed
-        val existingShift = parsed.shiftId?.let { shiftRepository.getById(it) }
-            ?: shiftRepository.getByDate(parsed.shiftDate)
+        val existingShift = if (parsed.shiftId != null) shiftRepository.getById(parsed.shiftId)
+            else shiftRepository.getByDate(parsed.shiftDate)
         val existing = existingShift
             ?.let { patientRepository.getForShift(it.id).associateBy(Patient::id) }
             ?: emptyMap()
@@ -229,10 +216,10 @@ internal class PatientRetrievalCoordinator(
         val changedIds = KnownShiftSnapshot.changes(incoming, existingOrder).changed.mapTo(mutableSetOf()) { it.id }
         val toUpsert = incoming.map { patient ->
             val previous = existing[patient.id]
-            if (previous != null && patient.id !in changedIds) previous.copy(sortOrder = patient.sortOrder)
+            if (previous != null && patient.id !in changedIds) patient.withoutTrackingMetadata().copy(revision = previous.revision)
             else {
                 if (previous == null) inserted++ else updated++
-                patient.copy(revision = maxOf(patient.revision, previous?.revision ?: 0L) + 1)
+                patient.withoutTrackingMetadata().copy(revision = maxOf(patient.revision, previous?.revision ?: 0L) + 1)
             }
         }
         val shift = existingShift
@@ -246,6 +233,8 @@ internal class PatientRetrievalCoordinator(
         patientRepository.softDeleteMissingFromShift(shift.id, toUpsert.map(Patient::id))
         patientRepository.upsertAll(toUpsert.filter { row -> row != existing[row.id] }, shift.id)
         val updatedShift = shift.copy(
+            date = parsed.shiftDate,
+            multiDoctorMode = prepared.doctorIds.size > 1,
             doctorIds = prepared.doctorIds,
             sortSpecJson = parsed.sortSpecJson,
             revision = maxOf(shift.revision, parsed.shiftRevision) + 1,

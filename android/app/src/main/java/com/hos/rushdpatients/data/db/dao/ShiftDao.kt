@@ -16,7 +16,7 @@ interface ShiftDao {
     @Query("""
         SELECT * FROM shifts
         ORDER BY CASE WHEN id = (SELECT value FROM settings WHERE `key` = '${AppConstants.SETTING_CURRENT_SHIFT_ID}')
-            THEN 0 ELSE 1 END, dateEpochDay DESC
+            THEN 0 ELSE 1 END, dateEpochDay DESC, updatedAtEpochMillis DESC, id ASC
         LIMIT 1
     """)
     suspend fun getLatest(): ShiftEntity?
@@ -24,7 +24,7 @@ interface ShiftDao {
     @Query("""
         SELECT * FROM shifts
         ORDER BY CASE WHEN id = (SELECT value FROM settings WHERE `key` = '${AppConstants.SETTING_CURRENT_SHIFT_ID}')
-            THEN 0 ELSE 1 END, dateEpochDay DESC
+            THEN 0 ELSE 1 END, dateEpochDay DESC, updatedAtEpochMillis DESC, id ASC
         LIMIT 1
     """)
     fun observeLatest(): Flow<ShiftEntity?>
@@ -35,7 +35,12 @@ interface ShiftDao {
     @Query("SELECT * FROM shifts WHERE id = :id LIMIT 1")
     fun observeById(id: String): Flow<ShiftEntity?>
 
-    @Query("SELECT * FROM shifts WHERE dateEpochDay = :epochDay LIMIT 1")
+    @Query("""
+        SELECT * FROM shifts WHERE dateEpochDay = :epochDay
+        ORDER BY CASE WHEN id = (SELECT value FROM settings WHERE `key` = '${AppConstants.SETTING_CURRENT_SHIFT_ID}')
+            THEN 0 ELSE 1 END, updatedAtEpochMillis DESC, id ASC
+        LIMIT 1
+    """)
     suspend fun getByDate(epochDay: Long): ShiftEntity?
 
     @Query("""

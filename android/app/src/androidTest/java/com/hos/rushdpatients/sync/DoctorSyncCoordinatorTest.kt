@@ -23,17 +23,26 @@ class DoctorSyncCoordinatorTest : SyncFixture() {
         assertNotNull(doctors.getById("new"))
         assertFalse(doctors.hasPendingSharedChanges())
     }
-    @Test fun pendingLocalRegistryChangesBlockRemoteReplacement() = runBlocking<Unit> {
+    @Test fun pendingLocalRegistryChangesAreReplacedWithLocalUndo() = runBlocking<Unit> {
         doctors.upsert(doctor("local"))
-        val before = doctors.getAll()
-        assertTrue(doctorSync.fetchAndApplyLatestDoctors().isFailure)
-        assertEquals(before, doctors.getAll())
-        assertTrue(wire.methods.isEmpty())
+        seedShift("selected", com.hos.rushdpatients.util.ShiftDate.current())
+        shifts.selectCurrent("selected")
+        assertTrue(doctorSync.fetchAndApplyLatestDoctors().isSuccess)
+        assertNull(doctors.getById("local")?.takeUnless { it.isDeleted })
+        undo.undo()
+        assertNotNull(doctors.getById("local")?.takeUnless { it.isDeleted })
+        assertFalse("sendDocument" in wire.methods)
+        assertFalse("editMessageText" in wire.methods)
     }
-    @Test fun remoteCannotRemovePermanentAdministrator() = runBlocking<Unit> {
+    @Test fun publishedRegistryNeedsLinkedPermanentSuccessor() = runBlocking<Unit> {
         wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(doctor("other", "بلوط", 1)))))
         assertTrue(doctorSync.fetchAndApplyLatestDoctors().isFailure)
         assertEquals(admin, doctors.getById(admin.id))
+        val successor = doctor("successor", "صفصاف", 1).copy(isPermanentAdmin = true, telegramId = 999005)
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(successor))))
+        doctorSync.fetchAndApplyLatestDoctors().getOrThrow()
+        assertTrue(requireNotNull(doctors.getById(successor.id)).isPermanentAdmin)
+        assertTrue(requireNotNull(doctors.getById(admin.id)).isDeleted)
     }
     @Test fun publishedAuthorityRequiresMatchingLiveTelegramIdentity() = runBlocking<Unit> {
         doctors.upsert(admin.copy(telegramId = 123))
@@ -43,5 +52,23 @@ class DoctorSyncCoordinatorTest : SyncFixture() {
         wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(listOf(admin.copy(telegramId = 456)))))
         rejected { doctorSync.requirePublishedAdmin(wire.state) }
         rejected { doctorSync.requirePublishedClinician(wire.state) }
+    }
+
+    @Test fun publishedIdentitySwapReplacesBindingsAndUndoIsLocal() = runBlocking<Unit> {
+        val oak = doctor("oak", "بلوط").copy(telegramId = 999002, extraOptions = setOf("pin:synthetic-oak"))
+        val pine = doctor("pine", "صنوبر").copy(telegramId = 999003, extraOptions = setOf("pin:synthetic-pine"))
+        doctors.upsertAll(listOf(oak, pine))
+        val incoming = listOf(admin, oak.copy(telegramId = pine.telegramId), pine.copy(telegramId = oak.telegramId))
+        wire.state = wire.state.copy(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(incoming)))
+        doctorSync.fetchAndApplyLatestDoctors().getOrThrow()
+        assertEquals(pine.telegramId, doctors.getById(oak.id)?.telegramId)
+        assertEquals(oak.telegramId, doctors.getById(pine.id)?.telegramId)
+        assertNull(doctors.getById(oak.id)?.options?.pinHash)
+        assertNull(doctors.getById(pine.id)?.options?.pinHash)
+        wire.methods.clear()
+        undo.undo()
+        assertEquals(oak.telegramId, doctors.getById(oak.id)?.telegramId)
+        assertEquals(pine.telegramId, doctors.getById(pine.id)?.telegramId)
+        assertTrue(wire.methods.isEmpty())
     }
 }

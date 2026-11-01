@@ -17,7 +17,7 @@ internal interface WardController {
     fun applySort(spec: SortSpec,
         onSuccess: () -> Unit = {})
     fun bringLatestData()
-    fun replaceAndFetch(allowOlder: Boolean = false) {}
+    fun replaceAndFetch() {}
     fun reviewPendingPublication() {}
     fun confirmPendingPublication() {}
     fun dismissPublicationReview() {}
@@ -29,9 +29,10 @@ internal interface WardController {
     fun restorePatient(patient: Patient)
     fun reloadWard() {}
     fun retryLastAction()
-    fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) { done(null) }
+    fun loadEditDraft(id: String, done: (Result<PatientDraft?>) -> Unit) { done(Result.success(null)) }
     fun discardEditDraft(id: String) {}
     fun saveEditDraft(id: String, draft: PatientDraft) {}
+    fun retryLoadDraft() {}
     fun saveDraft(draft: PatientDraft)
     fun setCompactCards(compact: Boolean)
     fun setGroupByMode(mode: GroupByMode)
@@ -54,7 +55,7 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun applySort(spec: SortSpec,
         onSuccess: () -> Unit) { viewModel.applySort(spec, onSuccess) }
     override fun bringLatestData() { viewModel.bringLatestData() }
-    override fun replaceAndFetch(allowOlder: Boolean) { viewModel.replaceAndFetch(allowOlder) }
+    override fun replaceAndFetch() { viewModel.replaceAndFetch() }
     override fun reviewPendingPublication() { viewModel.reviewPendingPublication() }
     override fun confirmPendingPublication() { viewModel.confirmPendingPublication() }
     override fun dismissPublicationReview() { viewModel.dismissPublicationReview() }
@@ -65,9 +66,10 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun restorePatient(patient: Patient) { viewModel.restorePatient(patient) }
     override fun reloadWard() { viewModel.load() }
     override fun retryLastAction() { viewModel.retryLastAction() }
-    override fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) { viewModel.loadEditDraft(id, done) }
+    override fun loadEditDraft(id: String, done: (Result<PatientDraft?>) -> Unit) { viewModel.loadEditDraft(id, done) }
     override fun discardEditDraft(id: String) { viewModel.discardEditDraft(id) }
     override fun saveEditDraft(id: String, draft: PatientDraft) { viewModel.saveEditDraft(id, draft) }
+    override fun retryLoadDraft() { viewModel.retryLoadDraft() }
     override fun saveDraft(draft: PatientDraft) { viewModel.saveDraft(draft) }
     override fun setCompactCards(compact: Boolean) { viewModel.setCompactCards(compact) }
     override fun setGroupByMode(mode: GroupByMode) { viewModel.setGroupByMode(mode) }

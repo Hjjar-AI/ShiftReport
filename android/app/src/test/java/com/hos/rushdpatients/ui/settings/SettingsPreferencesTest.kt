@@ -147,4 +147,22 @@ class SettingsPreferencesTest {
         assertEquals(font, state.value.fontScale)
     }
 
+
+    @Test fun `two failed queued choices preserve the last committed preference`() = runTest {
+        val committed = UiPreferences()
+        val first = committed.copy(reducedMotion = true)
+        val second = first.copy()
+        val release = CompletableDeferred<Unit>()
+        coEvery { settings.put(AppConstants.SETTING_UI_PREFERENCES, any()) } coAnswers {
+            release.await(); throw IllegalStateException("synthetic storage failure")
+        }
+        val preferences = preferences(this)
+        preferences.setUiPreferences(first); runCurrent()
+        preferences.setUiPreferences(second); runCurrent()
+        assertEquals(committed, state.value.uiPreferences)
+        release.complete(Unit); runCurrent()
+        assertEquals(committed, state.value.uiPreferences)
+        assertNotNull(state.value.snackbar)
+    }
+
 }

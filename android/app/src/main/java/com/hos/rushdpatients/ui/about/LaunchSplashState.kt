@@ -7,14 +7,17 @@ import kotlinx.coroutines.delay
 
 /** Monotonic launch deadline and visibility survive recreation; touch never pauses them. */
 internal class LaunchSplashState(private val showing: MutableState<Boolean>, val deadline: Long) {
+    private var held = false
     val visible: Boolean get() = showing.value
+    fun press() { held = true }
+    fun release() { held = false; tick() }
     // Retained for debug callers; the splash no longer displays a countdown.
     val remainingSeconds: Int get() =
         (((deadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L) + 999L) / 1000L).toInt()
     fun skip() { showing.value = false }
     internal fun tick(): Long {
         val remaining = (deadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
-        if (remaining == 0L) showing.value = false
+        if (remaining == 0L && !held) showing.value = false
         return remaining
     }
 }
@@ -28,6 +31,7 @@ internal fun rememberLaunchSplashState(): LaunchSplashState {
         while (state.visible) {
             val remaining = state.tick()
             if (!state.visible) break
+            if (remaining == 0L) break // Release will dismiss an expired hold.
             delay(remaining)
         }
     }

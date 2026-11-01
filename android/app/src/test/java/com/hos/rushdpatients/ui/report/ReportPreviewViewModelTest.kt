@@ -78,7 +78,7 @@ class ReportPreviewViewModelTest {
             CsvPublicationReview(shift.id, "synthetic csv", SyncState(), actor.id, actor.telegramId, captured.shift, captured.patients, null, "synthetic review")
         }
         coEvery { sync.uploadReviewedCsv(any()) } returns Result.success(CsvUploadResult(10, 1))
-        coEvery { sender.sendTextReport(any(), any(), any(), any(), any()) } returns SendResult(listOf(20), 20, Fixtures.timestamp)
+        coEvery { sender.sendTextReport(any(), any(), any(), any()) } returns SendResult(listOf(20), 20, Fixtures.timestamp)
     }
     private fun viewModel() = ReportPreviewViewModel(text, SavedStateHandle(mapOf("shiftId" to shift.id)), context,
         reports, TextReportBuilder(), sender, mockk(), cards, mockk(), saver, settings, doctors, shifts,
@@ -87,12 +87,12 @@ class ReportPreviewViewModelTest {
     @Test fun `loading review never sends and explicit send publishes before delivery`() {
         val vm = viewModel()
         assertFalse(vm.state.value.loading)
-        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any()) }
         vm.send()
         coVerifyOrder {
             sender.checkGeneralDelivery(any(), any(), false, any())
             sync.uploadReviewedCsv(any())
-            sender.sendTextReport(any(), any(), actor, any(), any())
+            sender.sendTextReport(any(), any(), actor, any())
         }
         assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.publicationOutcome)
         assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.deliveryOutcome)
@@ -114,7 +114,7 @@ class ReportPreviewViewModelTest {
         vm.send()
         assertFalse(vm.state.value.sending)
         assertTrue(vm.state.value.error.orEmpty().contains("publication failed"))
-        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any()) }
     }
     @Test fun `empty roster still exposes selectable doctors before report exists`() {
         shift = shift.copy(doctorIds = emptyList())
@@ -153,8 +153,8 @@ class ReportPreviewViewModelTest {
         coEvery { cards.export(any(), any(), any(), any(), any(), any(), any(), any()) } answers {
             arg<File>(6).apply { writeText("reviewed bytes: " + firstArg<List<com.hos.rushdpatients.data.model.Patient>>().joinToString { it.labs }) }
         }
-        coEvery { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) } returns SendResult(listOf(20), 20, Fixtures.timestamp)
-        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns SendResult(listOf(21), 21, Fixtures.timestamp)
+        coEvery { sender.sendPdfReport(any(), any(), any(), any(), any(), any()) } returns SendResult(listOf(20), 20, Fixtures.timestamp)
+        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any()) } returns SendResult(listOf(21), 21, Fixtures.timestamp)
         coEvery { saver.savePdf(any(), any(), any(), true) } returns mockk()
         val vm = viewModel()
         vm.previewPdf(); awaitIdle(vm)
@@ -169,10 +169,10 @@ class ReportPreviewViewModelTest {
     @Test fun `all selected destinations confirm before exact reviewed bytes are copied`() {
         val vm = pdfRoutes()
         val delivered = mutableListOf<ByteArray>()
-        coEvery { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { sender.sendPdfReport(any(), any(), any(), any(), any(), any()) } answers {
             delivered += secondArg<File>().readBytes(); SendResult(listOf(20), 20, Fixtures.timestamp)
         }
-        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any()) } answers {
             delivered += secondArg<File>().readBytes(); SendResult(listOf(21), 21, Fixtures.timestamp)
         }
         val copied = mutableListOf<ByteArray>()
@@ -190,7 +190,7 @@ class ReportPreviewViewModelTest {
 
     @Test fun `partial supervisor failure never copies selected PDFs locally`() {
         val vm = pdfRoutes()
-        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) } throws IOException("synthetic interrupted destination")
+        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any()) } throws IOException("synthetic interrupted destination")
         vm.sendSelectedReports(true, setOf("oak"), exportPdf = true); awaitIdle(vm)
         assertEquals(ReportStepOutcome.PARTIAL, vm.state.value.deliveryOutcome)
         coVerify(exactly = 0) { saver.savePdf(any(), any(), any(), any()) }
@@ -203,8 +203,8 @@ class ReportPreviewViewModelTest {
         assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.deliveryOutcome)
         assertNotNull(vm.state.value.error)
         assertNull(vm.state.value.retryAction)
-        coVerify(exactly = 1) { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) }
-        coVerify(exactly = 1) { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { sender.sendPdfReport(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test fun `cancelled local copy retains confirmed delivery and releases busy state`() {
@@ -221,7 +221,7 @@ class ReportPreviewViewModelTest {
         directory.resolve("pdf_previews").listFiles().orEmpty().first().appendText("tampered")
         vm.sendSelectedReports(true, setOf("oak"), exportPdf = true); awaitIdle(vm)
         coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
-        coVerify(exactly = 0) { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendPdfReport(any(), any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { saver.savePdf(any(), any(), any(), any()) }
         assertNotNull(vm.state.value.error)
     }
@@ -234,13 +234,13 @@ class ReportPreviewViewModelTest {
     }
     @Test fun `uncertain general delivery never copies PDFs or offers automatic send retry`() {
         val vm = pdfRoutes()
-        coEvery { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) } throws
+        coEvery { sender.sendPdfReport(any(), any(), any(), any(), any(), any()) } throws
             com.hos.rushdpatients.network.ReportDeliveryUncertainException(IOException("synthetic response lost"))
         vm.sendSelectedReports(true, setOf("oak"), exportPdf = true); awaitIdle(vm)
         assertEquals(ReportStepOutcome.UNCERTAIN, vm.state.value.deliveryOutcome)
         assertNull(vm.state.value.retryAction)
         coVerify(exactly = 0) { saver.savePdf(any(), any(), any(), any()) }
-        coVerify(exactly = 0) { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test fun `mixed text and supervisor PDF saves only PDF after both confirm`() {
@@ -249,10 +249,10 @@ class ReportPreviewViewModelTest {
         vm.setReportAsPdf(false); awaitIdle(vm)
         var textSent = false
         var supervisorSent = false
-        coEvery { sender.sendTextReport(any(), any(), any(), any(), any()) } answers {
+        coEvery { sender.sendTextReport(any(), any(), any(), any()) } answers {
             textSent = true; SendResult(listOf(20), 20, Fixtures.timestamp)
         }
-        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { sender.sendSupervisorPdfReport(any(), any(), any(), any(), any(), any(), any(), any()) } answers {
             supervisorSent = true; SendResult(listOf(21), 21, Fixtures.timestamp)
         }
         coEvery { saver.savePdf(any(), any(), any(), true) } answers {
@@ -261,7 +261,7 @@ class ReportPreviewViewModelTest {
         vm.sendSelectedReports(true, setOf("oak"), exportPdf = true); awaitIdle(vm)
         assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.deliveryOutcome)
         coVerify(exactly = 1) { saver.savePdf(any(), any(), any(), true) }
-        coVerify(exactly = 0) { sender.sendPdfReport(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendPdfReport(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test fun `locked session after review blocks publication and preserves reviewed patients`() {
@@ -270,7 +270,7 @@ class ReportPreviewViewModelTest {
         every { sessions.current() } returns null
         vm.send(); awaitIdle(vm)
         coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
-        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any()) }
         assertEquals(patients, vm.state.value.patients)
         assertNotNull(vm.state.value.error)
     }
@@ -279,7 +279,7 @@ class ReportPreviewViewModelTest {
         coEvery { doctors.getActiveById(actor.id) } returns null
         vm.send(); awaitIdle(vm)
         coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
-        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any()) }
         assertNotNull(vm.state.value.error)
     }
     @Test fun `reconnected project invalidates reviewed publication before transport`() {
@@ -287,7 +287,7 @@ class ReportPreviewViewModelTest {
         every { projects.current() } returns ProjectConfig(hospitalName = "another synthetic project")
         vm.send(); awaitIdle(vm)
         coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
-        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any()) }
         assertNotNull(vm.state.value.error)
     }
     @Test fun `double send during publication enters transport once`() = runBlocking<Unit> {
@@ -298,16 +298,16 @@ class ReportPreviewViewModelTest {
         assertTrue(vm.state.value.sending)
         coVerify(exactly = 1) { sync.uploadReviewedCsv(any()) }
         release.complete(Unit); awaitIdle(vm)
-        coVerify(exactly = 1) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { sender.sendTextReport(any(), any(), any(), any()) }
         assertFalse(vm.state.value.sending)
     }
     @Test fun `explicit delivery retry revalidates and reuses already confirmed publication`() {
         coEvery { sync.validatePublishedReport(any(), any(), any()) } just Runs
-        coEvery { sender.sendTextReport(any(), any(), any(), any(), any()) } throws IOException("synthetic definite failure")
+        coEvery { sender.sendTextReport(any(), any(), any(), any()) } throws IOException("synthetic definite failure")
         val vm = viewModel()
         vm.send(); awaitIdle(vm)
         assertEquals(ReportStepOutcome.CONFIRMED, vm.state.value.publicationOutcome)
-        coEvery { sender.sendTextReport(any(), any(), any(), any(), any()) } returns SendResult(listOf(21), 21, Fixtures.timestamp)
+        coEvery { sender.sendTextReport(any(), any(), any(), any()) } returns SendResult(listOf(21), 21, Fixtures.timestamp)
         vm.send(); awaitIdle(vm)
         coVerify(exactly = 1) { sync.uploadReviewedCsv(any()) }
         coVerify(exactly = 1) { sync.validatePublishedReport(any(), actor.id, actor.telegramId) }
@@ -322,7 +322,7 @@ class ReportPreviewViewModelTest {
         vm.retryLastAction { reviews++ }
         assertEquals(1, reviews)
         coVerify(exactly = 0) { sync.uploadReviewedCsv(any()) }
-        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { sender.sendTextReport(any(), any(), any(), any()) }
     }
     @Test fun `second load cannot overtake pending report construction`() = runBlocking<Unit> {
         val release = CompletableDeferred<Unit>()

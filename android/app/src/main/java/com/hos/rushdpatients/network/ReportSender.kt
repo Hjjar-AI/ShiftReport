@@ -46,11 +46,25 @@ class ReportSender @Inject constructor(
     private val deliveryLedger: ReportDeliveryLedger
 ) {
 
-    suspend fun checkGeneralDelivery(shift: Shift, contentKey: String, pdf: Boolean) =
-        deliveryLedger.check(shift.id, topics.reportsChatId, contentKey, if (pdf) "PDF" else "TEXT")
+    private fun pdfContentKey(contentKey: String, file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { stream ->
+            val buffer = ByteArray(8192)
+            while (true) { val count = stream.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) }
+        }
+        return contentKey + "|" + digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+    private fun textContentKey(contentKey: String) = "$contentKey|encrypted=${dataCipher.enabled}"
 
-    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long) =
-        deliveryLedger.check(shift.id, chatId, contentKey, "PDF")
+    suspend fun checkGeneralDelivery(shift: Shift, contentKey: String, pdf: Boolean, pdfFile: File? = null) = withContext(Dispatchers.IO) {
+        deliveryLedger.check(shift.id, topics.reportsChatId,
+            if (pdf) pdfContentKey(contentKey, requireNotNull(pdfFile)) else textContentKey(contentKey),
+            if (pdf) "PDF" else "TEXT", topics.threadId(Topic.REPORTS))
+    }
+
+    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long, pdfFile: File) = withContext(Dispatchers.IO) {
+        deliveryLedger.check(shift.id, chatId, pdfContentKey(contentKey, pdfFile), "PDF")
+    }
 
     suspend fun sendTextReport(
         shift: Shift, chunks: List<String>, actor: Doctor?, contentKey: String
@@ -63,7 +77,7 @@ class ReportSender @Inject constructor(
         val messageIds = mutableListOf<Long>()
         try {
             file?.writeText(chunks.joinToString("\n\n"), Charsets.UTF_8)
-            deliveryLedger.deliver(shift.id, chatId, contentKey, "TEXT", context.getString(R.string.report_general_route_label), actor?.id) { receipt ->
+            deliveryLedger.deliver(shift.id, chatId, textContentKey(contentKey), "TEXT", context.getString(R.string.report_general_route_label), actor?.id, topicId = topicId) { receipt ->
                 try {
                     check(connectionUnchanged()) { "تغيرت وجهة التقرير؛ أعد المعاينة" }
                     if (file != null) {
@@ -127,7 +141,7 @@ class ReportSender @Inject constructor(
         require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
         val label = supervisor?.doctor?.fullName ?: context.getString(R.string.report_general_route_label)
         val topicId = if (destination == PdfDestination.General) topics.threadId(Topic.REPORTS) else null
-        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", label, actor?.id) { receipt ->
+        deliveryLedger.deliver(shift.id, chatId, pdfContentKey(contentKey, pdfFile), "PDF", label, actor?.id, topicId = topicId) { receipt ->
             check(connectionUnchanged()) { "تغيرت وجهة التقرير؛ أعد المعاينة" }
             val titleParts = com.hos.rushdpatients.domain.report.ReportChunking.captionParts(caption.orEmpty())
             val msg = uncertainDelivery { telegram.sendDocument(

@@ -82,8 +82,7 @@ internal class DemoDoctorsController(
         notices.update { it.copy(snackbar = uiText(R.string.demo_publish_complete)) }
     }
     override fun fetchDoctors() {
-        if (repository.state.value.doctors != baseline) return
-        repository.state.update { it.copy(doctors = baseline, revision = it.revision + 1) }
+        repository.fetchDoctors()
         notices.update { it.copy(snackbar = uiText(R.string.demo_fetch_complete)) }
     }
     override fun dismissOperationIssue() { notices.update { it.copy(operationIssue = null) } }

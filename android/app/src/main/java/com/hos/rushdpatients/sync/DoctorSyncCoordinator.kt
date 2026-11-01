@@ -47,7 +47,8 @@ class DoctorSyncCoordinator @Inject constructor(
     private val adminAuthorizer: AdminAuthorizer,
     private val sessions: SessionManager,
     private val dispatchers: DispatcherProvider,
-    private val remoteState: RemoteSyncStateStore
+    private val remoteState: RemoteSyncStateStore,
+    private val downloadUndo: LocalDownloadUndo
 ) {
     private val doctorSyncMutex = Mutex()
 
@@ -69,6 +70,44 @@ class DoctorSyncCoordinator @Inject constructor(
         a?.doctorsMessageId == b?.doctorsMessageId && a?.doctorsFileId == b?.doctorsFileId &&
             a?.doctorsUpdatedAt == b?.doctorsUpdatedAt
 
+    /** Recheck live privileges/identity for the complete replacement, without merging data. */
+    private suspend fun validatePublicationAuthority(source: SyncState?, registryData: String,
+        actor: Doctor, transfer: PermanentAdminTransferReview?) {
+        val liveActor = adminAuthorizer.requireAdmin()
+        require(liveActor.id == actor.id && liveActor.telegramId == actor.telegramId) {
+            context.getString(R.string.doctors_admin_changed_upload)
+        }
+        if (source != null &&
+            source.doctorsFileId != null) {
+            val remoteDoctors = loadPublishedRegistry(source)
+            val remoteActor = remoteDoctors.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
+            require(remoteActor != null && remoteActor.telegramId == actor.telegramId) {
+                context.getString(R.string.doctors_published_admin_unavailable)
+            }
+            val proposed = DoctorsRegistryCodec.decode(registryData).doctors.associateBy { it.id }
+            if (transfer == null) require(
+                proposed.values.filter { it.isPermanentAdmin }.map { it.id }.toSet() ==
+                    remoteDoctors.filter { it.isPermanentAdmin }.map { it.id }.toSet()
+            ) { context.getString(R.string.admin_transfer_dedicated_required) }
+            remoteDoctors.filter { it.isAdmin }.forEach { current ->
+                val next = proposed[current.id]
+                if (current.isPermanentAdmin && transfer == null) require(next != null && next.isPermanentAdmin && next.rank > 0) {
+                    context.getString(R.string.doctors_permanent_admin_removal_blocked)
+                }
+                if (next != null && next.telegramId != current.telegramId) {
+                    require(!current.isPermanentAdmin && (remoteActor.id == current.id || canModify(remoteActor, current))) {
+                        context.getString(R.string.doctors_higher_rank_change_blocked)
+                    }
+                }
+                if (next == null || next.rank != current.rank || next.isPermanentAdmin != current.isPermanentAdmin) {
+                    require(canModify(remoteActor, current)) {
+                        context.getString(R.string.doctors_higher_rank_change_blocked)
+                    }
+                }
+            }
+        }
+    }
+
     private suspend fun uploadDoctorsInternal(
         registryData: String,
         transfer: PermanentAdminTransferReview? = null
@@ -77,30 +116,7 @@ class DoctorSyncCoordinator @Inject constructor(
             val remoteStateBeforeUpload = remoteState.readState()
             val actor = adminAuthorizer.requireAdmin()
             if (transfer != null) validateTransferReview(transfer, remoteStateBeforeUpload)
-            if (remoteStateBeforeUpload != null &&
-                remoteStateBeforeUpload.doctorsFileId != null) {
-                val remoteDoctors = loadPublishedRegistry(remoteStateBeforeUpload)
-                val remoteActor = remoteDoctors.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
-                require(remoteActor != null && remoteActor.telegramId == actor.telegramId) {
-                    context.getString(R.string.doctors_published_admin_unavailable)
-                }
-                val proposed = DoctorsRegistryCodec.decode(registryData).doctors.associateBy { it.id }
-                if (transfer == null) require(
-                    proposed.values.filter { it.isPermanentAdmin }.map { it.id }.toSet() ==
-                        remoteDoctors.filter { it.isPermanentAdmin }.map { it.id }.toSet()
-                ) { context.getString(R.string.admin_transfer_dedicated_required) }
-                remoteDoctors.filter { it.isAdmin }.forEach { current ->
-                    val next = proposed[current.id]
-                    if (current.isPermanentAdmin && transfer == null) require(next != null && next.isPermanentAdmin && next.rank > 0) {
-                        context.getString(R.string.doctors_permanent_admin_removal_blocked)
-                    }
-                    if (next == null || next.rank != current.rank || next.isPermanentAdmin != current.isPermanentAdmin) {
-                        require(canModify(remoteActor, current)) {
-                            context.getString(R.string.doctors_higher_rank_change_blocked)
-                        }
-                    }
-                }
-            }
+            validatePublicationAuthority(remoteStateBeforeUpload, registryData, actor, transfer)
             val file = File.createTempFile("doctors_registry_", ".csv", context.cacheDir)
             file.writeText(registryData, Charsets.UTF_8)
             val message = try {
@@ -122,14 +138,13 @@ class DoctorSyncCoordinator @Inject constructor(
             require(adminAuthorizer.requireAdmin().id == actor.id) { context.getString(R.string.doctors_admin_changed_upload) }
             if (transfer != null) validateTransferReview(transfer, remoteState.readState())
             val newState = remoteState.updateState { current ->
+                validatePublicationAuthority(current, registryData, actor, transfer)
                 if (transfer != null) {
+                    validateTransferReview(transfer, current)
                     check(transfer.connectionUnchanged()) { context.getString(R.string.admin_transfer_stale) }
                     check(sessions.current()?.doctorId == transfer.actorId) {
                         context.getString(R.string.admin_transfer_stale)
                     }
-                }
-                require(sameDoctorPointer(current, remoteStateBeforeUpload ?: SyncState())) {
-                    context.getString(R.string.doctors_registry_changed_upload)
                 }
                 current.copy(
                     doctorsFileId = uploadedFileId,
@@ -245,10 +260,17 @@ class DoctorSyncCoordinator @Inject constructor(
         uploadDoctorsInternal(registryData(doctors))
     }
 
-    /** Preserve pending registry edits during patient-only replacement. Missing references still fail validation. */
-    suspend fun refreshDoctorsForPatientFetch(): Result<Unit> = doctorSyncMutex.withLock {
-        if (doctorRepository.hasPendingSharedChanges()) Result.success(Unit)
-        else fetchAndApplyLatestDoctorsInternal().map { Unit }
+    internal suspend fun <T> withRegistryLock(block: suspend () -> T): T = doctorSyncMutex.withLock { block() }
+
+    internal suspend fun doctorsForFetch(state: SyncState): List<Doctor> =
+        loadPublishedRegistry(state).also(::validateDoctorRegistry)
+
+    internal suspend fun applyFetchedRegistry(state: SyncState, doctors: List<Doctor>, replaceClinical: suspend () -> Unit = {}) {
+        doctorRepository.applyPublishedRegistry(doctors, replaceClinical)
+        settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData(doctors))
+        settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
+        syncStateRepository.update(SyncChannel.DOCTORS, state.doctorsUpdatedAt,
+            state.doctorsMessageId, state.doctorsFileId)
     }
 
     suspend fun refreshDoctorsFromRemote(): Result<Unit> = doctorSyncMutex.withLock {
@@ -277,7 +299,6 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun fetchAndApplyLatestDoctorsInternal(): Result<Int> = withContext(dispatchers.io) {
         try {
-            doctorRepository.pendingSharedChangesSummary()?.let { throw DoctorRegistryActionRequired(DoctorRegistryAction.PUBLISH, it.message) }
             val local = doctorRepository.getAllIncludingDeleted()
             val state = remoteState.readState()
                 ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.doctors_registry_absent)))
@@ -287,17 +308,11 @@ class DoctorSyncCoordinator @Inject constructor(
                 context.getString(R.string.doctors_registry_changed_download)
             }
             database.withTransaction {
-                check(doctorRepository.getAllIncludingDeleted() == local &&
-                    !doctorRepository.hasPendingSharedChanges()) {
+                check(doctorRepository.getAllIncludingDeleted() == local) {
                     context.getString(R.string.doctors_local_changed_download)
                 }
-                // Replace all portable fields while preserving device-only PINs
-                // and the existing permanent-admin/clinical-reference safety checks.
-                doctorRepository.applyPublishedRegistry(remote)
-                settingsRepository.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registryData(remote))
-                settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, false)
-                syncStateRepository.update(SyncChannel.DOCTORS, state.doctorsUpdatedAt,
-                    state.doctorsMessageId, state.doctorsFileId)
+                downloadUndo.recordRegistry(local, remote)
+                applyFetchedRegistry(state, remote)
                 auditRepository.record(null, null, AppConstants.AUDIT_DOCTORS_SYNCED,
                     "full_download:${remote.size}")
             }

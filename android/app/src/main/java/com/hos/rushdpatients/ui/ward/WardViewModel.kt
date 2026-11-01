@@ -173,8 +173,9 @@ class WardViewModel @Inject constructor(
     }
 
     private fun loadDraft() = patientActions.loadDraft()
+    fun retryLoadDraft() = patientActions.loadDraft()
 
-    fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) = patientActions.loadEditDraft(id, done)
+    fun loadEditDraft(id: String, done: (Result<PatientDraft?>) -> Unit) = patientActions.loadEditDraft(id, done)
     fun discardEditDraft(id: String) = patientActions.discardEditDraft(id)
     fun saveEditDraft(id: String, draft: PatientDraft) = patientActions.saveEditDraft(id, draft)
 
@@ -262,7 +263,7 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    fun replaceAndFetch(allowOlder: Boolean) = shiftOperations.replaceAndFetch(allowOlder)
+    fun replaceAndFetch() = shiftOperations.replaceAndFetch()
     fun reviewPendingPublication() = shiftOperations.reviewPendingPublication()
     fun confirmPendingPublication() = shiftOperations.confirmPendingPublication()
     fun dismissPublicationReview() = shiftOperations.dismissPublicationReview()

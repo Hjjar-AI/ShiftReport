@@ -41,10 +41,14 @@ import com.hos.rushdpatients.ui.theme.uiContentPadding
 /** MainActivity owns the fixed five-second deadline; tapping skips the intro. */
 @Composable
 internal fun SplashIntroScreen(
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
+    onPress: () -> Unit = {},
+    onRelease: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
     val currentOnSkip by rememberUpdatedState(onSkip)
+    val currentOnPress by rememberUpdatedState(onPress)
+    val currentOnRelease by rememberUpdatedState(onRelease)
     var entered by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!entered) {
@@ -54,7 +58,10 @@ internal fun SplashIntroScreen(
     }
     BoxWithConstraints(Modifier.fillMaxSize()
         .background(Brush.verticalGradient(listOf(lerp(colors.background, colors.primary, 0.08f), colors.background, colors.background)))
-        .pointerInput(Unit) { detectTapGestures(onTap = { currentOnSkip() }) }
+        .pointerInput(Unit) { detectTapGestures(onTap = { currentOnSkip() }, onLongPress = {}, onPress = {
+            currentOnPress()
+            try { tryAwaitRelease() } finally { currentOnRelease() }
+        }) }
         .semantics { onClick(label = "تخطي المقدمة") { onSkip(); true } }
         .safeDrawingPadding().padding(UiSpacing.section), contentAlignment = Alignment.Center) {
         // Keep the credits reachable on short windows and with enlarged text.

@@ -54,13 +54,16 @@ class IndependentClientsWorkflowTest {
         assertEquals("نتيجة الجهاز الثاني", first.patients.getById("tea")?.labs)
         assertEquals(second.patients.getById("tea")?.labs, first.patients.getById("tea")?.labs)
     }
-    @Test fun pendingEditsBlockPeerDownloadWithoutOverwritingThem() = runBlocking<Unit> {
+    @Test fun manualPeerDownloadReplacesPendingEditsWithLocalUndo() = runBlocking<Unit> {
         publishAndRetrieve(); edit(first, "نتيجة أولى"); first.publish()
         edit(second, "تعديل غير منشور")
-        val cursor = second.cursors.lastMessageId(SyncChannel.CSV)
-        assertTrue(second.sync.fetchLatestCsv().isFailure)
+        second.sync.fetchLatestCsv().getOrThrow()
+        assertEquals("نتيجة أولى", second.patients.getById("tea")?.labs)
+        assertEquals(server.state.csvMessageId, second.cursors.lastMessageId(SyncChannel.CSV))
+        val writes = server.calls.count { it.second in setOf("sendDocument", "editMessageText") }
+        second.undo.undo()
         assertEquals("تعديل غير منشور", second.patients.getById("tea")?.labs)
-        assertEquals(cursor, second.cursors.lastMessageId(SyncChannel.CSV))
+        assertEquals(writes, server.calls.count { it.second in setOf("sendDocument", "editMessageText") })
     }
     @Test fun explicitLocalPublicationRetainsDocumentedLastSuccessfulWriterScope() = runBlocking<Unit> {
         publishAndRetrieve(); edit(first, "نشر أول"); edit(second, "نشر ثان")

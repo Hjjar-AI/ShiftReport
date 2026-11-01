@@ -26,7 +26,7 @@ internal class WardShiftOperations(
 ) {
 
     private var pendingPublication: com.hos.rushdpatients.sync.CsvPublicationReview? = null
-    fun replaceAndFetch(allowOlder: Boolean = false) = fetchRemoteData(replaceLocal = true, allowOlder = allowOlder)
+    fun replaceAndFetch() = fetchRemoteData()
     fun dismissPublicationReview() {
         pendingPublication = null
         _state.update { it.copy(publicationReviewText = null, olderRemoteConfirmation = false, fetchChoiceRequired = false) }
@@ -114,12 +114,12 @@ internal class WardShiftOperations(
         }
         _state.update { it.copy(syncing = false, snackbar = null,
             syncIssue = com.hos.rushdpatients.ui.components.failureText(uiText, error) ?: uiText(R.string.ui_ward_shift_operations_024),
-            olderRemoteConfirmation = error is com.hos.rushdpatients.sync.OlderRemoteSnapshotException,
+            olderRemoteConfirmation = false,
             fetchChoiceRequired = error is com.hos.rushdpatients.sync.LocalPatientChangesPendingException,
             syncRecovery = recovery, retryAction = retry) }
     }
 
-    private fun fetchRemoteData(replaceLocal: Boolean = false, allowOlder: Boolean = false) {
+    private fun fetchRemoteData() {
         if (_state.value.syncing || _state.value.saving) return
         val retry = WardRetryAction.FETCH_LATEST
         if (!NetworkStatus.isOnline(context)) {
@@ -141,22 +141,15 @@ internal class WardShiftOperations(
         }
         viewModelScope.launch {
             try {
-                // Refresh the complete registry; pending local changes require explicit handling.
-                val doctorsResult = syncService.refreshDoctorsForPatientFetch()
-                if (doctorsResult.isFailure) {
-                    showDownloadIssue(doctorsResult.exceptionOrNull()
-                        ?: IllegalStateException(uiText(R.string.ui_ward_shift_operations_019)), retry)
-                    return@launch
-                }
-
-                val result = syncService.fetchLatestCsv(replaceLocal, allowOlder)
+                val result = syncService.fetchLatestCsv()
                 result.onSuccess { fetched ->
                     observeShift(fetched.shiftId)
                     val source = uiText(R.string.ui_ward_shift_operations_021)
                     _state.update {
                         it.copy(
                             syncing = false,
-                            snackbar = uiText(R.string.ui_ward_shift_operations_022, source),
+                            snackbar = if (fetched.localBookkeepingFailed) uiText(R.string.sync_fetch_bookkeeping_warning)
+                                else uiText(R.string.ui_ward_shift_operations_022, source),
                             lastOperation = uiText(R.string.ui_ward_shift_operations_023, source),
                             retryAction = null
                         )

@@ -104,7 +104,7 @@ class DemoWardViewModel @Inject constructor(
             lastReportAt = repository.receipts.value.lastOrNull()?.at) },
         patients = snapshot.ordered, doctors = snapshot.doctors, deletedPatients = snapshot.deleted,
         groupedPatients = groupPatients(uiText, snapshot.ordered, snapshot.doctors, snapshot.groupBy),
-        sortSpec = snapshot.sort, groupByMode = snapshot.groupBy, patientDraft = snapshot.draft,
+        sortSpec = snapshot.sort, groupByMode = snapshot.groupBy, patientDraft = snapshot.draft, patientDraftLoaded = true,
         patientDetailsExpanded = snapshot.expanded, twoColumn = snapshot.twoColumn,
         compactCards = snapshot.compact, snackbar = snapshot.message
     )
@@ -180,10 +180,9 @@ class DemoWardViewModel @Inject constructor(
         override fun loadRecycleBin() { }
         override fun bringLatestData() {
             refreshDayLabel()
-            if (repository.changes().pending) _state.update { it.copy(fetchChoiceRequired = true) }
-            else replaceAndFetch()
+            replaceAndFetch()
         }
-        override fun replaceAndFetch(allowOlder: Boolean) {
+        override fun replaceAndFetch() {
             repository.fetch()
             message(uiText(R.string.demo_fetch_complete))
         }
@@ -204,7 +203,7 @@ class DemoWardViewModel @Inject constructor(
             pendingPublication = null
             _state.update { it.copy(fetchChoiceRequired = false, publicationReviewText = null) }
         }
-        override fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) { done(editDrafts[id]) }
+        override fun loadEditDraft(id: String, done: (Result<PatientDraft?>) -> Unit) { done(Result.success(editDrafts[id])) }
         override fun saveEditDraft(id: String, draft: PatientDraft) { editDrafts[id] = draft }
         override fun discardEditDraft(id: String) { editDrafts.remove(id) }
         override fun retryLastAction() { bringLatestData() }

@@ -301,7 +301,7 @@ class SettingsViewModel @Inject constructor(
     fun setAutoLockMinutes(value: Int) = preferences.setAutoLockMinutes(value)
 
     fun bringLatest() = dataOperations.bringLatest()
-    fun replaceAndFetch(allowOlder: Boolean = false) = dataOperations.bringLatest(replaceLocal = true, allowOlder = allowOlder)
+    fun replaceAndFetch() = dataOperations.bringLatest()
     fun reviewPendingPublication() = dataOperations.uploadCurrent()
     fun dismissFetchChoice() = dataOperations.dismissFetchChoice()
     fun dismissOlderRemote() = dataOperations.dismissOlderRemote()

@@ -190,7 +190,10 @@ object CsvCodec {
         // the position the patient occupies in the file. Without this, every
         // imported patient lands at sortOrder = 0.
         val patients = rows.drop(2).mapIndexedNotNull { index, row ->
-            runCatching { decodeRow(row, indexOf, index + 3) }
+            runCatching {
+                require(row.size == header.size) { "السطر ${index + 3}: عدد خلايا CSV غير صالح" }
+                decodeRow(row, indexOf, index + 3)
+            }
                 .onFailure { errors += it.message ?: "خطأ في السطر ${index + 3}" }
                 .getOrNull()
                 ?.copy(sortOrder = index + 1)
@@ -269,14 +272,15 @@ object CsvCodec {
         val priority = priorityText == "Y"
         val updatedAt = field(CsvSchema.COL_UPDATED_AT).trim().toLongOrNull()
             ?.let(Instant::ofEpochMilli)
-            ?: Instant.now()
+            ?: throw IllegalArgumentException("السطر $rowNumber: وقت تحديث المريض غير صالح")
 
         val assignmentDateText = field(CsvSchema.COL_ASSIGNMENT_CHANGED_ON).trim()
         val assignmentDate = if (assignmentDateText.isBlank()) null else
             runCatching { LocalDate.parse(assignmentDateText) }.getOrElse {
                 throw IllegalArgumentException("السطر $rowNumber: تاريخ تغيير توزيع المريض غير صالح")
             }
-        val revision = field(CsvSchema.COL_REVISION).toLongOrNull() ?: 0L
+        val revision = field(CsvSchema.COL_REVISION).toLongOrNull()
+            ?: throw IllegalArgumentException("السطر $rowNumber: نسخة المريض غير صالحة")
         require(revision >= 0L) { "السطر $rowNumber: نسخة المريض غير صالحة" }
         return Patient(
             id = id,

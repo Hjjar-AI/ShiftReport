@@ -148,24 +148,11 @@ fun SettingsScreen(
             else -> Unit
         }
     }
-    val pendingForFetch = state.fetchChoiceRequired || state.patientsPending == true || state.doctorsPending == true
-    if (confirmFetch && !pendingForFetch) com.hos.rushdpatients.ui.components.ConfirmDialog(
+    if (confirmFetch || state.fetchChoiceRequired) com.hos.rushdpatients.ui.components.ConfirmDialog(
         title = uiText(R.string.ui_ward_data_review_dialogs_001), message = uiText(R.string.ui_ward_data_review_dialogs_002),
-        confirmText = uiText(R.string.ui_ward_data_review_dialogs_003),
-        onConfirm = { confirmFetch = false; viewModel.bringLatest() }, onDismiss = { confirmFetch = false })
-    if ((confirmFetch || state.fetchChoiceRequired) && pendingForFetch) com.hos.rushdpatients.ui.components.AppAlertDialog(
-        onDismissRequest = { confirmFetch = false; viewModel.dismissFetchChoice() },
-        title = { Text(uiText(R.string.ui_ward_data_review_dialogs_001)) },
-        text = { Text(uiText(R.string.sync_fetch_review_body)) },
-        confirmButton = { Column {
-            AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.reviewPendingPublication() }) { Text(uiText(R.string.sync_review_publish)) }
-            AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.replaceAndFetch() }) { Text(uiText(R.string.sync_replace_fetch)) }
-        } },
-        dismissButton = { AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice() }) { Text(uiText(R.string.ui_cancel)) } })
-    if (state.olderRemoteConfirmation) com.hos.rushdpatients.ui.components.ConfirmDialog(
-        title = uiText(R.string.sync_older_admin_title), message = state.syncIssue.orEmpty(), confirmText = uiText(R.string.sync_older_admin_confirm),
-        onConfirm = { viewModel.dismissOlderRemote(); viewModel.replaceAndFetch(allowOlder = true) },
-        onDismiss = viewModel::dismissOlderRemote)
+        confirmText = uiText(R.string.sync_replace_fetch),
+        onConfirm = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.bringLatest() },
+        onDismiss = { confirmFetch = false; viewModel.dismissFetchChoice() })
     state.rollbackReviewText?.let { text ->
         com.hos.rushdpatients.ui.components.ConfirmDialog(title = uiText(R.string.sync_rollback_title), message = text,
             confirmText = uiText(R.string.sync_rollback_confirm), onConfirm = viewModel::confirmRollback, onDismiss = viewModel::dismissRollback)

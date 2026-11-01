@@ -222,7 +222,7 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
                                 }
                                 AppOutlinedButton(onClick = { registryAction = "fetch" },
                                     modifier = Modifier.fillMaxWidth(),
-                                    enabled = !busy && state.pendingRegistrySummary == null) {
+                                    enabled = !busy) {
                                     Text(uiText(R.string.ui_doctors_screen_005))
                                 }
                                 com.hos.rushdpatients.ui.components.AppSectionHeader(

@@ -18,7 +18,7 @@ class LocalPinLoginManagerTest {
     private val settings = mockk<SettingsRepository>()
     private val hasher = mockk<PasswordHasher>()
     private val dispatchers = mockk<DispatcherProvider> { every { io } returns Dispatchers.Unconfined }
-    private val manager = LocalPinLoginManager(doctors, settings, hasher, dispatchers)
+    private val manager = LocalPinLoginManager(doctors, settings, hasher, dispatchers, mockk())
     private val doctor = Fixtures.doctor(telegramId = 123).copy(extraOptions = setOf("pin:synthetic-hash"))
     private val key = "local_pin_login:${doctor.id}"
     // Synthetic input; the hasher is mocked, no enrolled PIN or credential is used.
@@ -26,6 +26,10 @@ class LocalPinLoginManagerTest {
     @Before fun setup() {
         coEvery { doctors.getActiveById(doctor.id) } returns doctor
         coEvery { settings.get(key) } returns null
+        val binding = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("${doctor.id}|${doctor.telegramId}|synthetic-hash".toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+        coEvery { settings.get("local_pin_enrollment:${doctor.id}") } returns binding
         coEvery { settings.put(key, any()) } just Runs
         coEvery { settings.delete(key) } just Runs
         every { hasher.verify(pin, "synthetic-hash") } returns true
@@ -115,7 +119,7 @@ class LocalPinLoginManagerTest {
         for ((level, minutes) in listOf(0 to 5L, 1 to 15L, 2 to 60L, 3 to 60L)) {
             coEvery { settings.get(key) } returns "${AppConstants.LOGIN_MAX_ATTEMPTS - 1}:0:$level"
             val before = System.currentTimeMillis()
-            val recreated = LocalPinLoginManager(doctors, settings, hasher, dispatchers)
+            val recreated = LocalPinLoginManager(doctors, settings, hasher, dispatchers, mockk())
             val error = assertThrows(LocalPinException::class.java) { runBlocking { recreated.verify(doctor.id, pin) } }
             assertEquals(LocalPinFailure.BLOCKED, error.reason)
             assertEquals(minutes, error.waitMinutes)

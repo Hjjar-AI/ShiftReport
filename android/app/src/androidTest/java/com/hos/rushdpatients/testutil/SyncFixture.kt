@@ -18,12 +18,11 @@ abstract class SyncFixture : ClinicalRepositoryFixture() {
         wire = SyntheticTelegram(preferences, dispatchers)
         remote = RemoteSyncStateStore(preferences, wire.client, wire.topics, wire.json)
         cursors = SyncStateRepository(db.syncStateDao(), settings, dispatchers)
-        undo = LocalDownloadUndo(db, shifts, patients, settings, audit, sessions, dispatchers, wire.json)
+        undo = LocalDownloadUndo(db, shifts, patients, doctors, settings, dispatchers, wire.json)
         doctorSync = DoctorSyncCoordinator(preferences, wire.client, wire.topics, doctors, cursors, settings,
-            db, audit, authorizer, sessions, dispatchers, remote)
+            db, audit, authorizer, sessions, dispatchers, remote, undo)
         retrieval = PatientRetrievalCoordinator(Mutex(), preferences, wire.client, shifts, patients, doctors,
-            cursors, settings, db, audit, dispatchers, remote, undo, doctorSync,
-            PatientPublicationStatus(shifts, patients, doctors, settings, dispatchers))
+            cursors, settings, db, dispatchers, remote, undo, doctorSync)
         settings.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, DoctorsRegistryCodec.encode(doctors.getAll()))
         wire.state = SyncState(doctorsFileId = wire.registry(DoctorsRegistryCodec.encode(doctors.getAll())))
     }

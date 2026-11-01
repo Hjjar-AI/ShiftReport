@@ -38,5 +38,16 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_4_5, MIGRATION_5_6)
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // IDs carry identity. Dates and names must not block retaining old rows
+            // while replacing a complete snapshot with different authoritative IDs.
+            db.execSQL("DROP INDEX IF EXISTS `index_shifts_dateEpochDay`")
+            db.execSQL("CREATE INDEX `index_shifts_dateEpochDay` ON `shifts` (`dateEpochDay`)")
+            db.execSQL("DROP INDEX IF EXISTS `index_doctors_fullName`")
+            db.execSQL("CREATE INDEX `index_doctors_fullName` ON `doctors` (`fullName`)")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 }

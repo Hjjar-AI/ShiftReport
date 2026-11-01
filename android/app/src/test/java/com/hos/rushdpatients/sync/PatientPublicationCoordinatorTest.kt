@@ -63,7 +63,7 @@ class PatientPublicationCoordinatorTest {
         coEvery { settings.get(AppConstants.SETTING_DEVICE_ID) } returns "synthetic-device"
         coEvery { remote.readState() } answers { source }
         coEvery { remote.updateState(any()) } coAnswers {
-            firstArg<(SyncState) -> SyncState>().invoke(source).also { source = it }
+            firstArg<suspend (SyncState) -> SyncState>().invoke(source).also { source = it }
         }
         coEvery { doctorSync.requirePublishedClinician(any()) } returns actor
         coEvery { reports.build(shift.id) } answers { built() }
@@ -72,6 +72,9 @@ class PatientPublicationCoordinatorTest {
     }
     @After fun cleanup() { unmockkObject(ShiftDate); unmockkStatic("androidx.room.RoomDatabaseKt"); directory.deleteRecursively() }
     @Test fun `reviewed upload publishes exact local bundle and records confirmed cursor`() = runBlocking<Unit> {
+        // Upload IDs can be lower even when this index write succeeds last.
+        source = source.copy(publicationJournal = listOf(PublicationJournalEntry("prior", fileId = "prior-file",
+            messageId = 20, at = 90, deviceId = "synthetic")))
         val review = coordinator.prepareCsvPublication(shift.id)
         var csv = ""
         coEvery { telegram.sendDocument(any(), any(), any(), any(), any(), any(), any()) } answers {
@@ -82,7 +85,7 @@ class PatientPublicationCoordinatorTest {
         assertEquals(10L, result.messageId)
         assertEquals(rows.single().name, CsvBundleCodec.decode(csv).single().patients.single().name)
         assertEquals(10L, source.csvMessageId)
-        assertEquals(1, source.publicationJournal.size)
+        assertEquals(listOf(10L, 20L), source.publicationJournal.map { it.messageId })
         coVerify { settings.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + shift.id, match {
             val saved = CsvCodec.decode(it)
             saved.shiftId == shift.id && saved.patients.map { row -> row.name } == rows.map { row -> row.name }

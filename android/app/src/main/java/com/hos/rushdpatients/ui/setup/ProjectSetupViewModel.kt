@@ -168,7 +168,8 @@ class ProjectSetupViewModel @Inject constructor(
                 projectConfigStore.saveDraft(configured)
                 val bot = telegram.getMe()
                 require(bot.isBot) { uiText(R.string.ui_project_setup_view_model_008) }
-                val chat = telegram.getChat(config.chatId)
+                val chat = if (input.mode == ProjectSetupMode.CREATE) telegram.getChatMetadata(config.chatId)
+                    else telegram.getChat(config.chatId)
                 require(chat.type == "group" || chat.type == "supergroup") {
                     uiText(R.string.ui_project_setup_view_model_009)
                 }

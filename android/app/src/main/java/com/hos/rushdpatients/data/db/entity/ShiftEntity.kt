@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "shifts",
     indices = [
-        Index(value = ["dateEpochDay"], unique = true),
+        Index(value = ["dateEpochDay"]),
         Index(value = ["updatedAtEpochMillis"])
     ]
 )
