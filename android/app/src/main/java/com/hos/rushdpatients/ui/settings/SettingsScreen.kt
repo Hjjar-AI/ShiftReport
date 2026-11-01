@@ -171,7 +171,6 @@ fun SettingsScreen(
     var pendingRestorePassword by remember { mutableStateOf("") }
     var confirmBackupRestore by remember { mutableStateOf(false) }
     var advancedAdministration by rememberSaveable(workspace.canonical()) { mutableStateOf(false) }
-    var advancedPdf by rememberSaveable(workspace.canonical()) { mutableStateOf(false) }
     var provisioningDialog by remember(canManageProject) { mutableStateOf(false) }
     var provisioningPassphrase by remember(canManageProject) { mutableStateOf("") }
 
@@ -339,7 +338,7 @@ fun SettingsScreen(
                                 onUiPreferences = viewModel::setUiPreferences,
                                 onFont = viewModel::setFontScale
                             )
-                            SettingsSectionId.REPORT -> SettingsReportContent(state, viewModel, advancedPdf, { advancedPdf = !advancedPdf })
+                            SettingsSectionId.REPORT -> SettingsReportContent(state, viewModel)
                             SettingsSectionId.SYNC -> SettingsSyncContent(
                                 state, viewModel, showRecovery, { showRecovery = !showRecovery },
                                 { confirmUndoDownload = true }, { confirmFetch = true })

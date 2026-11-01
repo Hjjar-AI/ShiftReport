@@ -28,7 +28,7 @@ Repository-wide. Read applicable nested rules, current plan/status and relevant 
 - Compose `ui/` delegates to Hilt ViewModels; dedicated navigation/dashboard/review/field files. `domain/` rules, `data/repository/` persistence, `network/telegram/` transport, `sync/` orchestration. `DoctorSyncCoordinator` owns doctor sync; patient/doctor writes share singleton `RemoteSyncStateStore`/mutex.
 - DB/file/crypto/network work off-main; cancellation separate. Shared-data changes cover model/persistence/sync/backup/conflicts/counts/filters/text/PDF; schema authorization still required.
 - `domain/report/ReportReadiness.kt` and `domain/task/PatientTasks.kt` own rules. Tasks are explicit text/done records, never parsed notes. Preserve storage/sync/backup/report and current-schema ownership/deadline/priority/stamp fields; no corresponding controls, new attribution/time, overdue/unassigned counters, revision gating or acknowledgment workflow.
-- Demo: memory-only clinical/settings, no Room/sync; reuse real offline forms/cards, beverage patients/tree doctors. Explicit dummy PDF allowed with DEMO on **every page**.
+- Demo: memory-only clinical/settings, no Room/sync; reuse real offline forms/cards, sample-CSV food/drink patients/tree doctors. Explicit dummy PDF allowed with DEMO on **every page**.
 
 ## Product invariants
 
@@ -38,9 +38,9 @@ Repository-wide. Read applicable nested rules, current plan/status and relevant 
 - Appearance: theme/text size/normal-or-comfortable spacing/reduced motion; navigation visible, Add compact, header expansion explicit. Card controls only Ward View Options. Individual expansion brief; bulk/reduced motion immediate. Keep top/individual expand, task counts/dashboard totals; collapsed omissions never hide expanded content.
 - PDF: A4/A5 only; unsupported saved sizes use current defaults or reject, portrait/light, Medium separators/contrast; ignore retired saved overrides. Uncommon controls Advanced; supervisor split is explicit local export, no persistent switch. Android/desktop A5 geometry/fonts/sections and full-page index/patient links preserve headers; matching fixtures required for parity claims, disclose renderer differences.
 - Announcements and their obsolete topic/index fields are removed. Local exports under Export; ordinary Save/Share copies previewed PDF without rerender. Start empty stays collapsed under Advanced administration. Sort presets manual/name/admission-duration/workbook; current stored custom definitions readable, stored order agrees with exports.
-- Fullscreen Edit: clinical/tasks first, demographics last; Add: demographics first. Plain multiline diagnosis/treatment/follow-up/labs, retained drafts including unfinished inline task text; fixed keyboard-safe Save/Cancel. Explicit Save/Save and next only with successor; no persistent/global entry mode. Numeric admission/PIN keyboards, «أو» between birth year/age, diagnosis-specific hints. Doctor custom titles current-schema storage only, no editor/display override.
+- Fullscreen Edit: clinical/tasks first, demographics last; Add: demographics first. Plain multiline diagnosis/treatment/follow-up; repeatable lab groups with optional title/date and multiline results; retained drafts including unfinished inline task text; fixed keyboard-safe Save/Cancel. Explicit Save/Save and next only with successor; no persistent/global entry mode. Numeric admission/PIN keyboards, «أو» between birth year/age, diagnosis-specific hints. Doctor custom titles current-schema storage only, no editor/display override.
 - Report starts with actionable shift-doctor selection even with empty roster; no roster cap. Preserve active-doctor/exact reviewed artifact/destination checks. Omit routine/unassigned/last-edit labels without losing content/tasks.
-- Preserve logo, white-field emblem, About/credits. Splash deadline5seconds continues during hold; expired hold dismisses on release, quick tap skips, recreation retains deadline.
+- Preserve logo, white-field emblem, About/credits. Splash deadline3seconds continues during hold; expired hold dismisses on release, quick tap skips, recreation retains deadline.
 
 ## Documentation and evidence
 

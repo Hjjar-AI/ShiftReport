@@ -77,12 +77,12 @@ No debug fallback. Protected `android/keystore.properties` or nonblank environme
 
 ## Automatic app patch and version-code increments
 
-POSIX packaging invocations (assemble/build/bundle/package/export, including `:app:`) reserve one patch/code pair atomically through [counter](../../android/gradle/app-version.properties)/[helper](../../android/gradle/next_app_version.py). Both variants share it; failures/cancellation consume it. Parent-directory lock plus atomic replace avoids private lockfiles. Format `major.minor.patch.YYYYMMDD`, build-start Asia/Damascus date; debug adds `-debug`. Preserve gaps; new flavor names need recognition. Synchronize tracked counters across PCs before packaging; offline checkouts cannot guarantee globally unique codes. No auto-commit; counter changes may invalidate configuration cache.
+POSIX packaging invocations (assemble/build/bundle/package/export, including `:app:`) reserve one patch/code pair atomically through [counter](../../android/gradle/app-version.properties)/[helper](../../android/gradle/next_app_version.py). Both variants share it; failures/cancellation consume it. Parent-directory lock plus atomic replace avoids private lockfiles. Format `major.minor.patch` (for example `1.1.50`); debug adds `-debug`. The separate Android version code stays monotonic for installed-app updates; it is not reset when the display format changes. Preserve gaps; new flavor names need recognition. Synchronize tracked counters across PCs before packaging; offline checkouts cannot guarantee globally unique codes. No auto-commit; counter changes may invalidate configuration cache.
 
 | Control | Effect |
 |---|---|
 | `-Pshiftreport.autoVersion=false` | No reservation; use recorded version |
-| Both `-Pshiftreport.versionCode=N` and `-Pshiftreport.versionName=X.Y.Z.YYYYMMDD` | Explicit owner-managed pair; no counter advance; supplying only one fails |
+| Both `-Pshiftreport.versionCode=N` and `-Pshiftreport.versionName=X.Y.Z` | Explicit owner-managed pair; no counter advance; supplying only one fails |
 | Help/version/listing, `--dry-run` / `-m` | No reservation |
 
 ## Overrides and Android Studio

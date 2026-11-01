@@ -36,7 +36,9 @@ internal class PatientFormState(initial: Patient?, draft: PatientDraft?) {
     var initialDiagnosis by mutableStateOf(initial?.initialDiagnosis ?: draft?.initialDiagnosis.orEmpty())
     var treatmentText by mutableStateOf(initial?.treatmentPlan ?: clinicalDraftText(draft?.treatmentItems.orEmpty(), draft?.treatmentDraft.orEmpty()))
     var followUpText by mutableStateOf(initial?.followUp ?: clinicalDraftText(draft?.followUpItems.orEmpty(), draft?.followUpDraft.orEmpty()))
-    var labText by mutableStateOf(initial?.labs ?: clinicalDraftText(draft?.labItems.orEmpty(), draft?.labDraft.orEmpty()))
+    var labGroups by mutableStateOf(initial?.effectiveLabGroups ?: draft?.labGroups ?:
+        com.hos.rushdpatients.data.model.PatientLabGroups.fromText(
+            clinicalDraftText(draft?.labItems.orEmpty(), draft?.labDraft.orEmpty()), "draft-labs"))
     var residentId by mutableStateOf(initial?.responsibleResidentId ?: draft?.residentId)
     var specialistId by mutableStateOf(initial?.responsibleSpecialistId ?: draft?.specialistId)
 }

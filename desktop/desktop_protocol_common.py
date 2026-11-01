@@ -10,9 +10,9 @@ try:
 except ImportError:  # Python 3.8 / Windows 7 distribution.
     from backports.zoneinfo import ZoneInfo
 
-COLUMNS = 'externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,lastEditedBy,updatedAt,revision,tasksJson,assignmentChangedOn'.split(',')
+COLUMNS = 'externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,lastEditedBy,updatedAt,revision,tasksJson,assignmentChangedOn,labGroupsJson'.split(',')
 
-EDITABLE = [key for key in COLUMNS[:17] if key != 'warningFlags'] + ['tasksJson']
+EDITABLE = [key for key in COLUMNS[:17] if key != 'warningFlags'] + ['tasksJson', 'labGroupsJson']
 
 BOUNDARY = '#==RUSHD_SHIFT_BOUNDARY_7F3A9C=='
 

@@ -41,4 +41,16 @@ class WardPatientFilteringTest {
         assertTrue(filter(patients, WardFilterOptions(searchQuery = "missing"), setOf("b")).isEmpty())
         assertEquals(listOf("a", "b", "c", "d"), patients.map { it.id })
     }
+    @Test fun `group title date and results are searchable but internal identities are not`() {
+        val groups = Fixtures.labGroups().map { it.copy(id = "internal-only-${it.id}") }
+        val patient = Fixtures.patientWithLabs(groups)
+        listOf("تعداد الدم", "2024-02-29", "Na = 140", "µL").forEach { query ->
+            assertEquals(listOf(patient.id), filter(listOf(patient), WardFilterOptions(searchQuery = query)))
+        }
+        assertTrue(filter(listOf(patient), WardFilterOptions(searchQuery = "internal-only")).isEmpty())
+        val cleared = patient.copy(labs = "", labGroups = emptyList())
+        assertTrue(filter(listOf(cleared), WardFilterOptions(searchQuery = "Na = 140")).isEmpty())
+        assertEquals(groups, patient.labGroups)
+    }
+
 }

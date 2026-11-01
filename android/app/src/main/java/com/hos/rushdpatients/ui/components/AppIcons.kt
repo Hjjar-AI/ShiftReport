@@ -4,6 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Bookmark
@@ -65,6 +67,8 @@ import androidx.compose.material.icons.outlined.ViewAgenda as OutlinedViewAgenda
 object AppIcons {
     val Add get() = Icons.Filled.Add
     val AdminPanelSettings get() = Icons.Filled.AdminPanelSettings
+    val ArrowUpward get() = Icons.Filled.ArrowUpward
+    val ArrowDownward get() = Icons.Filled.ArrowDownward
     val ArrowBack get() = Icons.Filled.ArrowBack
     val ArrowDropDown get() = Icons.Filled.ArrowDropDown
     val Backup get() = Icons.Filled.Backup

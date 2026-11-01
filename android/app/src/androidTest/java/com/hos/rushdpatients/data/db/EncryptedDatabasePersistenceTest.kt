@@ -73,9 +73,10 @@ class EncryptedDatabasePersistenceTest {
         db.shiftDao().upsert(ward); db.shiftDao().selectCurrent(ward.id)
         db.doctorDao().upsert(doctor); db.patientDao().upsert(patient)
         db.settingDao().put(SettingEntity("synthetic-undo", "preserved"))
-        // Version 6 has identical tables/columns and these two unique indexes.
+        // Recreate version6 without the later lab-group column and with its unique indexes.
         // Recreate that exact predecessor shape inside disposable encrypted storage.
         db.openHelper.writableDatabase.apply {
+            execSQL("ALTER TABLE patients DROP COLUMN labGroupsJson")
             execSQL("DROP INDEX index_shifts_dateEpochDay")
             execSQL("CREATE UNIQUE INDEX index_shifts_dateEpochDay ON shifts(dateEpochDay)")
             execSQL("DROP INDEX index_doctors_fullName")
@@ -85,10 +86,11 @@ class EncryptedDatabasePersistenceTest {
         }
         db.close()
         db = open(key.copyOf())
-        assertEquals(7, db.openHelper.writableDatabase.version)
+        assertEquals(8, db.openHelper.writableDatabase.version)
         assertEquals(ward, db.shiftDao().getById(ward.id))
         assertEquals(doctor, db.doctorDao().getById(doctor.id))
-        assertEquals(patient, db.patientDao().getById(patient.id))
+        assertEquals(patient.copy(labGroupsJson = PatientLabGroups.encode(
+            PatientLabGroups.fromText(patient.labs, "${patient.id}-labs"))), db.patientDao().getById(patient.id))
         assertEquals(ward.id, db.shiftDao().getLatest()?.id)
         assertEquals("preserved", db.settingDao().get("synthetic-undo"))
         db.shiftDao().upsert(ward.copy(id = "ward-after"))
@@ -107,6 +109,46 @@ class EncryptedDatabasePersistenceTest {
         db.close()
         assertFalse(context.getDatabasePath("synthetic-encrypted.db").readBytes()
             .toString(Charsets.ISO_8859_1).contains(patient.labs))
+        key.fill(0)
+    }
+
+    @Test fun versionSevenLabMigrationRetainsActiveDeletedEmptyAndWhitespaceRows() = runBlocking<Unit> {
+        val key = DatabaseKeyProvider(context).getOrCreatePassphrase()
+        var db = open(key.copyOf())
+        val ward = ShiftMapper.toEntity(Shift(id = "lab-ward", date = java.time.LocalDate.of(2026, 1, 1), doctorIds = emptyList()))
+        db.shiftDao().upsert(ward); db.shiftDao().selectCurrent(ward.id)
+        val rows = listOf("", "   ", "  Hb=12\r\n\nNa=140  ", "عنوان: ليس تصنيفاً تلقائياً\nنتيجة ☕").mapIndexed { index, text ->
+            PatientMapper.toEntity(Patient(id = "lab-$index", name = "شاي $index", labs = text,
+                revision = 11L + index, sortOrder = index,
+                assignmentChangedOn = java.time.LocalDate.of(2026, 1, 1),
+                deletedAt = if (index == 3) java.time.Instant.ofEpochMilli(1000) else null), ward.id)
+        }
+        rows.forEach { db.patientDao().upsert(it) }
+        db.settingDao().put(SettingEntity("lab-draft-preserved", "unfinished"))
+        db.openHelper.writableDatabase.apply {
+            execSQL("ALTER TABLE patients DROP COLUMN labGroupsJson")
+            execSQL("UPDATE room_master_table SET identity_hash = 'synthetic-version-seven' WHERE id = 42")
+            version = 7
+        }
+        db.close()
+        db = open(key.copyOf())
+        assertEquals(8, db.openHelper.writableDatabase.version)
+        rows.forEach { before ->
+            val after = requireNotNull(db.patientDao().getById(before.id))
+            val expected = PatientLabGroups.fromText(before.labs, "${before.id}-labs")
+            assertEquals(before.copy(labGroupsJson = PatientLabGroups.encode(expected)), after)
+            assertEquals(before.labs, PatientMapper.fromEntity(after).labText)
+            expected.forEach { assertEquals("", it.title); assertNull(it.date) }
+        }
+        assertEquals(3, db.patientDao().getForShift(ward.id).size)
+        assertEquals(1, db.patientDao().getSoftDeletedForShift(ward.id).size)
+        assertEquals("unfinished", db.settingDao().get("lab-draft-preserved"))
+        assertEquals(ward.id, db.shiftDao().getLatest()?.id)
+        db.openHelper.writableDatabase.query("PRAGMA foreign_key_check").use { assertFalse(it.moveToFirst()) }
+        db.close()
+        db = open(key.copyOf())
+        assertEquals(rows.map { it.id }.toSet(),
+            (db.patientDao().getForShift(ward.id) + db.patientDao().getSoftDeletedForShift(ward.id)).map { it.id }.toSet())
         key.fill(0)
     }
 

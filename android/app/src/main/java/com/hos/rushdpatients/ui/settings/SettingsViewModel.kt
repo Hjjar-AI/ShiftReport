@@ -172,9 +172,7 @@ class SettingsViewModel @Inject constructor(
                         pdfPatientCardStyle = PatientCardStyle.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_PATIENT_CARD_STYLE)
                         ),
-                        pdfPaperSize = PdfPaperSize.fromSetting(
-                            settingsRepository.get(AppConstants.SETTING_PDF_PAPER_SIZE)
-                        ),
+                        pdfPaperSize = PdfPaperSize.A5,
                         pdfColorPreset = PdfColorPreset.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
                         ),

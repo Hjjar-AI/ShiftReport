@@ -18,8 +18,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.FileOutputStream
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,9 +56,6 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
     // One PDF point clears even the outer table stroke while maximizing clinical text space.
     private val cellPadding = 1f
 
-    private val dateFmt: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale("ar"))
-
     private val titlePaint by lazy { Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textSize = 14f
@@ -92,6 +87,11 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
         color = Color.BLACK
         style = Paint.Style.STROKE
         strokeWidth = PdfRuleWeight.MEDIUM.points
+    }
+    // Quiet column guides, deliberately much lighter/thinner than horizontal rules.
+    private val verticalGridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 0.25f
     }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -135,7 +135,7 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
 
                 val rosterTitle = "${ReportRosterLabel.forDoctors(doctors)}: " + doctors.joinToString(" + ") { it.fullName }
                 val contextPaint = Paint(titlePaint).apply { textSize = 8.5f }
-                val contextLines = PdfTextWrapper.wrap(PdfReportContext.lines(summary).joinToString(" · "),
+                val contextLines = PdfTextWrapper.wrap(PdfReportContext.lines(summary).joinToString(" • "),
                     contextPaint, contentWidth - 2 * cellPadding)
                 val contextHeight = contextLines.size * PdfTextWrapper.lineHeight(contextPaint) + 2 * cellPadding
                 val titleLines = PdfTextWrapper.wrap(rosterTitle, titlePaint, contentWidth - 2 * cellPadding)
@@ -232,7 +232,7 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
     }
 
     private fun configure(options: PdfExportOptions) {
-        val paper = options.paperSize
+        val paper = PdfPaperSize.A5
         val portraitWidth = paper.widthPoints.toFloat()
         val portraitHeight = paper.heightPoints.toFloat()
         pageWidth = portraitWidth
@@ -295,11 +295,9 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
         canvas.drawRect(contentLeft, y, contentRight, y + summaryBandHeight, fillPaint)
 
         val c1 = contentLeft
-        val c1End = contentLeft + contentWidth / 3f
+        val c1End = contentLeft + contentWidth / 2f
         val c2 = c1End
-        val c2End = contentLeft + contentWidth * 2f / 3f
-        val c3 = c2End
-        val c3End = contentRight
+        val c2End = contentRight
 
         val baseline = y + summaryBandHeight / 2f -
                 (summaryPaint.fontMetrics.ascent + summaryPaint.fontMetrics.descent) / 2f
@@ -317,7 +315,6 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
             }
         }
         val escortsText = "${PdfStrings.ESCORTS_COUNT_LABEL}: ${summary.escortCount}"
-        val dateText = "${PdfStrings.DATE_LABEL}:    ${summary.shiftDate.format(dateFmt)}"
 
         drawCenteredFittedText(
             canvas, countText, (c1 + c1End) / 2f, baseline, summaryPaint,
@@ -326,10 +323,6 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
         drawCenteredFittedText(
             canvas, escortsText, (c2 + c2End) / 2f, baseline, summaryPaint,
             c2End - c2 - 2 * cellPadding
-        )
-        drawCenteredFittedText(
-            canvas, dateText, (c3 + c3End) / 2f, baseline, summaryPaint,
-            c3End - c3 - 2 * cellPadding
         )
 
         canvas.drawLine(contentLeft, y + summaryBandHeight, contentRight, y + summaryBandHeight, borderPaint)
@@ -353,6 +346,7 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
 
         fillPaint.color = palette.tableHeader
         canvas.drawRect(contentLeft, y, contentRight, y + height, fillPaint)
+        drawVerticalGrid(canvas, y, height, Color.WHITE)
 
         for (i in headerTexts.indices) {
             val xStart = colX[i]
@@ -413,6 +407,7 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
             canvas.drawRect(contentLeft, y, contentRight, y + height, fillPaint)
         }
 
+        drawVerticalGrid(canvas, y, height, palette.text)
         val lineHeight = PdfTextWrapper.lineHeight(bodyPaint)
         for (i in cells.indices) {
             val paint = cells[i].paint
@@ -437,6 +432,14 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
             }
         }
         canvas.drawLine(contentLeft, y + height, contentRight, y + height, borderPaint)
+    }
+
+    private fun drawVerticalGrid(canvas: Canvas, top: Float, height: Float, color: Int) {
+        verticalGridPaint.color = color
+        verticalGridPaint.alpha = 24 // About 9% opacity, including on shaded rows.
+        for (index in 1 until colX.size) {
+            canvas.drawLine(colX[index], top, colX[index], top + height, verticalGridPaint)
+        }
     }
 
     private fun autoDirection(text: String): String = bidiFormatter.unicodeWrap(

@@ -64,9 +64,11 @@ class CrossClientInteropTest : ClinicalRepositoryFixture() {
         assertNotNull(doctors.getById("cedar"))
         val manager = EncryptedBackupManager(preferences, db, shifts, patients, doctors, settings, dispatchers)
         assertEquals(1, manager.restore(Uri.fromFile(copyAsset("desktop.rpb")), "synthetic-password".toCharArray()))
-        // Restore reuses an existing local shift for the same date.
-        val savedShift = requireNotNull(shifts.getByDate(java.time.LocalDate.of(2026, 1, 1)))
-        assertEquals("shift-1", savedShift.id)
+        // Incoming section identity is retained even when a local section shares its date.
+        val savedShift = requireNotNull(shifts.getById("synthetic-shift"))
+        assertEquals(java.time.LocalDate.of(2026, 1, 1), savedShift.date)
+        assertNotNull(shifts.getById("shift-1"))
+        assertTrue(patients.getForShift("shift-1").isEmpty())
         val stored = patients.getForShift(savedShift.id).single()
         assertEquals("نتيجة ☕", stored.labs)
         assertEquals(2, stored.tasks.size)

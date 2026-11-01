@@ -53,8 +53,10 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     section_heading(areas['السريرية'],'التشخيص والعلاج')
     widgets['initialDiagnosis']=entry(areas['السريرية'],LABELS['initialDiagnosis'],row.get('initialDiagnosis',''),True)
     section_heading(areas['السريرية'],'الخطة والمتابعة')
-    for key in ['treatmentPlan','followUp','labs']:
+    for key in ['treatmentPlan','followUp']:
         widgets[key]=entry(areas['السريرية'],LABELS[key],row.get(key,''),True)
+    from desktop_lab_editor import lab_groups_editor
+    read_lab_groups = lab_groups_editor(areas['السريرية'],row)
     section_heading(areas['السريرية'],'الفريق المسؤول')
     for key, role in [('responsibleResidentId','RESIDENT'),('responsibleSupervisorId','SUPERVISOR')]:
         getters[key] = doctor_picker(areas['السريرية'],LABELS[key],owner.client.doctors,row.get(key,''),role=role)
@@ -121,6 +123,8 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
             result[key] = widget.get('1.0','end-1c') if key in ['initialDiagnosis','treatmentPlan','followUp','labs'] else widget.get().strip()
         for key,getter in getters.items(): result[key] = getter()
         result['tasksJson'] = packed(read_task_draft())
+        from desktop_labs import apply as apply_labs
+        apply_labs(result,read_lab_groups())
         result['warningDetails'] = badges_encode(badges)
         result['warningFlags'] = '|'.join(level for _,level in badges if level!='none')
         return result

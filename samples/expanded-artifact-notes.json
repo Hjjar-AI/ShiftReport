@@ -4,12 +4,12 @@
   "seed": 787355282334950807,
   "patients": 50,
   "uniqueNames": 50,
-  "columns": 23,
-  "metadata": "# schemaVersion=7 shiftDate=2026-10-27 shiftId=79e93327-2937-54f3-a41b-ab75e9bd4a05 doctors= sortSpec={\"levels\":[]} shiftRevision=0 snapshotId= baseSnapshotId= deviceId=",
+  "columns": 24,
+  "metadata": "# schemaVersion=8 shiftDate=2026-10-27 shiftId=79e93327-2937-54f3-a41b-ab75e9bd4a05 doctors= sortSpec={\"levels\":[]} shiftRevision=0 snapshotId= baseSnapshotId= deviceId=",
   "treatmentLines": {
-    "min": 7,
-    "max": 30,
-    "total": 615
+    "min": 5,
+    "max": 11,
+    "total": 342
   },
   "labLines": {
     "patientsWithLabs": 45,
@@ -20,18 +20,34 @@
   },
   "tasks": 112,
   "completedTasks": 13,
-  "sha256": "86c0c1703c45e90fb8a09975434c4548a95ced30ab0c10878fb6725098d104c8",
+  "sha256": "7b1110edb4b6a7ac4967b21ce8017f8faf416f7794421110c07d6ed9c5285159",
   "checks": [
-    "CSV parsed with real multiline fields and 23 complete columns",
+    "CSV parsed with real multiline fields and 24 complete columns",
     "50 unique names and patient IDs",
     "Doctor assignments remain blank",
-    "Existing CSV and PDF still match their original recorded hashes",
-    "Generator parses with Python 3.8 grammar"
+    "Generator parses with Python 3.8 grammar",
+    "1 November treatment-only revision: all other CSV cells unchanged; medicine lines outnumber notes in every patient"
   ],
   "limits": [
     "Fictional independent values and drug fragments; not a prescribing or diagnostic example",
     "No PDF generated for expanded data; existing PDF represents the earlier dataset",
     "No app import, build, test suite or Telegram operation"
   ],
-  "currentFormatCorrection": "31 October2026: appended blank assignmentChangedOn only; existing clinical/task data unchanged. Existing PDF is the same earlier dataset/layout."
+  "currentFormatCorrection": "31 October2026: appended blank assignmentChangedOn only; existing clinical/task data unchanged. Existing PDF is the same earlier dataset/layout.",
+  "treatmentRevision": {
+    "date": "2026-11-01",
+    "seed": 20261101,
+    "scope": "Only treatmentPlan replaced; metadata and every other CSV cell preserved. Original dataset seed above predates this revision.",
+    "medicationLines": 263,
+    "notes": 79,
+    "content": "Independent fictional medication/dose fragments, one per line, followed by 1–3 earlier generated notes; not source-patient regimens."
+  },
+  "labGroupRevision": {
+    "date": "2026-11-02",
+    "schemaVersion": 8,
+    "groups": 138,
+    "datedGroups": 104,
+    "undatedGroups": 34,
+    "scope": "Fictional panel titles/results retained; add 26/27 October dates with optional undated groups. Only labs and labGroupsJson changed; other patient fields preserved."
+  }
 }

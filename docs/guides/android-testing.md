@@ -8,8 +8,8 @@ Inventory, executed results and exact limits live in [Current state](../status/c
 
 | Area | Existing coverage |
 |---|---|
-| Clinical/tasks | Optional profiles, validation/search/filter/counts, last-save-wins clinical writes with existence/deletion/section/assignment guards, plain checklists, rollback, sorting and report/export; legacy metadata round trips remain covered |
-| Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, same-project reconnect, key/topic protection, cancellation and secret cleanup |
+| Clinical/tasks/lab groups | Optional profiles, validation/search/filter/counts, last-save-wins clinical writes with existence/deletion/section/assignment guards, plain checklists, grouped-lab codec/mapper/draft/search/review/wire contracts, rollback, sorting and report/export; legacy metadata round trips remain covered |
+| Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, explicit7→8 lab migration row-preservation case (device execution status in Current state), same-project reconnect, key/topic protection, cancellation and secret cleanup |
 | Sync/delivery | Reviewed uploads/download Undo, pointer/history/mutex races, independent clients, UNKNOWN receipts, duplicate permission, write failure and actor revocation |
 | Reports/Telegram | Readiness/fingerprints, exact PDF review, Room snapshot consistency, long Markdown/Unicode chunks, retry/rate-limit/cancellation and intercepted transport |
 | Device/UI | Production navigation, privacy/recreation/picker results, editor/task/roster controls, setup 200% text/scrolling, adaptive/synthetic folds, clipboard/splash, native PDF/process-kill and scrolling |

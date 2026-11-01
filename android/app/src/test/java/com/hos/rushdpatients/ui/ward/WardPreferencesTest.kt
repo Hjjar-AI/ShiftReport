@@ -32,19 +32,19 @@ class WardPreferencesTest {
     @Test fun missingPreferencesUseCompactSafeWardDefaults() = runTest {
         observe(backgroundScope); runCurrent()
         assertFalse(state.value.patientDetailsExpanded); assertFalse(state.value.twoColumn)
-        assertFalse(state.value.compactCards)
+        assertTrue(state.value.compactCards)
         assertEquals(GroupByMode.SUPERVISOR, state.value.groupByMode)
     }
     @Test fun malformedBooleanPreferencesDoNotEnableActions() = runTest {
         expanded.value = "TRUE"; columns.value = "1"; compact.value = "yes"
         observe(backgroundScope); runCurrent()
         assertFalse(state.value.patientDetailsExpanded); assertFalse(state.value.twoColumn)
-        assertFalse(state.value.compactCards)
+        assertTrue(state.value.compactCards)
     }
     @Test fun eachObservedPreferenceUpdatesIndependently() = runTest {
         observe(backgroundScope); runCurrent()
         columns.value = "true"; runCurrent()
-        assertTrue(state.value.twoColumn); assertFalse(state.value.compactCards)
+        assertTrue(state.value.twoColumn); assertTrue(state.value.compactCards)
         compact.value = "true"; expanded.value = "true"; runCurrent()
         assertTrue(state.value.compactCards); assertTrue(state.value.patientDetailsExpanded)
         columns.value = "false"; runCurrent()
@@ -79,12 +79,14 @@ class WardPreferencesTest {
         coVerify { settings.put(AppConstants.SETTING_GROUP_BY_MODE, "SUPERVISOR") }
         assertEquals("أرز", state.value.groupedPatients.single().name)
     }
-    @Test fun compactCardPreferenceDoesNotChangeClinicalContent() = runTest {
+    @Test fun retiredDensityPreferenceCannotChangeCompactLayoutOrClinicalContent() = runTest {
         val before = Fixtures.patient(labs = "نتيجة")
         state.value = state.value.copy(patients = listOf(before))
-        preferences(this).setCompactCards(true); runCurrent()
+        observe(backgroundScope); runCurrent()
+        compact.value = "false"; runCurrent()
         assertTrue(state.value.compactCards)
         assertEquals(listOf(before), state.value.patients)
-        coVerify(exactly = 1) { settings.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, true) }
+        verify(exactly = 0) { settings.observe(AppConstants.SETTING_PATIENT_COMPACT_DENSITY) }
+        coVerify(exactly = 0) { settings.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, any()) }
     }
 }

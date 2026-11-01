@@ -29,9 +29,14 @@ data class Patient(
     val revision: Long = 0,
     val updatedAt: Instant = Instant.EPOCH,
     val deletedAt: Instant? = null,
-    val assignmentChangedOn: LocalDate? = null
+    val assignmentChangedOn: LocalDate? = null,
+    val labGroups: List<PatientLabGroup> = emptyList()
 ) {
     val displayName: String get() = name.ifBlank { if (admittanceNumber.isNotBlank()) "مريض · $admittanceNumber" else "مريض ${sortOrder.coerceAtLeast(1)}" }
+
+    val effectiveLabGroups: List<PatientLabGroup> get() =
+        labGroups.ifEmpty { PatientLabGroups.fromText(labs, "$id-labs") }
+    val labText: String get() = if (labGroups.isEmpty()) labs else PatientLabGroups.text(labGroups)
 
     val isDeleted: Boolean get() = deletedAt != null
 

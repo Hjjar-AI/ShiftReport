@@ -18,12 +18,12 @@
         <item quantity="other">%1$s شارة أخرى</item>
     </plurals>
     <plurals name="patient_tasks_pending">
-        <item quantity="zero">لا مهام معلقة</item>
-        <item quantity="one">مهمة معلقة</item>
-        <item quantity="two">مهمتان معلقتان</item>
-        <item quantity="few">%1$s مهام معلقة</item>
-        <item quantity="many">%1$s مهمة معلقة</item>
-        <item quantity="other">%1$s مهمة معلقة</item>
+        <item quantity="zero">لا مهام معلّقة</item>
+        <item quantity="one">مهمة معلّقة</item>
+        <item quantity="two">مهمتان معلّقتان</item>
+        <item quantity="few">%1$s مهام معلّقة</item>
+        <item quantity="many">%1$s مهمة معلّقة</item>
+        <item quantity="other">%1$s مهمة معلّقة</item>
     </plurals>
     <plurals name="patient_tasks_overdue">
         <item quantity="zero">لا مهام متأخرة</item>
@@ -48,7 +48,7 @@
     <string name="ui_settings_search">بحث في الإعدادات</string>
     <string name="ui_settings_search_empty">لا توجد إعدادات مطابقة</string>
     <string name="readiness_incomplete_patients">%1$s مريض ببيانات ناقصة — مراجعة</string>
-    <string name="report_send_summary">%1$s · %2$s · %3$s مريض · %4$s ببيانات ناقصة</string>
+    <string name="report_send_summary">%1$s • %2$s • %3$s مريض • %4$s ببيانات ناقصة</string>
     <string name="delivery_received_explicit">تم الاستلام</string>
     <string name="delivery_not_received_explicit">لم يتم الاستلام</string>
     <string name="delivery_allow_copy_explicit">السماح بنسخة إضافية واحدة</string>

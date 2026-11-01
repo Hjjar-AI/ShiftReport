@@ -32,12 +32,13 @@ data class PatientDraft(
     val badges: List<PatientBadgeDraft> = emptyList(),
     val badgeDraftText: String = "",
     val badgeDraftPriority: String? = null,
-    val isPriority: Boolean = false
+    val isPriority: Boolean = false,
+    val labGroups: List<com.hos.rushdpatients.data.model.PatientLabGroup>? = null
 ) {
     val isEmpty: Boolean
         get() = admittanceNumber.isBlank() && name.isBlank() && initialDiagnosis.isBlank() &&
             treatmentItems.isEmpty() && treatmentDraft.isBlank() && followUpItems.isEmpty() &&
-            followUpDraft.isBlank() && labItems.isEmpty() && labDraft.isBlank() && badges.isEmpty() &&
+            followUpDraft.isBlank() && labGroups.isNullOrEmpty() && labItems.isEmpty() && labDraft.isBlank() && badges.isEmpty() &&
             badgeDraftText.isBlank() && badgeDraftPriority == null && tasks.isEmpty() &&
             admittanceDate == null && gender == "M" && birthYear.isBlank() && age.isBlank() &&
             !hasCompanion && diagnosisType == "PSY" && residentId == null && specialistId == null && !isPriority

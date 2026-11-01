@@ -12,7 +12,7 @@ from pathlib import Path
 COLUMNS = ('externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,'
            'diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,'
            'responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,'
-           'lastEditedBy,updatedAt,revision,tasksJson,assignmentChangedOn').split(',')
+           'lastEditedBy,updatedAt,revision,tasksJson,assignmentChangedOn,labGroupsJson').split(',')
 NAME_POOLS = {
     'ice_cream': ['بوظة عربية', 'مثلجات الفستق الحلبي', 'آيس كريم الفانيليا', 'سوربيه الليمون'],
     'hot_drinks': [
@@ -80,12 +80,12 @@ CLINICAL_TERMS = {
     'symptoms': ['اضطراب النوم', 'تغير الشهية', 'أعراض قلق متقطعة',
                  'أفكار وسواسية متكررة', 'تفاوت التعاون أثناء المقابلة'],
     'medications': {
-        'olanzapine': ['10 mg', '15 mg', '20 mg'],
-        'haloperidol': ['10 mg', '20 mg'],
-        'quetiapine': ['50 mg', '600 mg'],
-        'valproate': ['500 mg', '1000 mg', '1500 mg'],
-        'clozapine': ['150 mg'], 'sertraline': ['25 mg', '50 mg'],
-        'diazepam': ['10 mg', '20 mg'], 'lorazepam': ['3 mg', '6 mg'],
+        'Olanzapine': ['10 mg', '15 mg', '20 mg'],
+        'Haloperidol': ['5 mg', '10 mg', '20 mg'],
+        'Quetiapine': ['50 mg', '600 mg'],
+        'Valproate': ['500 mg', '1000 mg', '1500 mg'],
+        'Clozapine': ['150 mg'], 'Sertraline': ['25 mg', '50 mg'],
+        'Diazepam': ['10 mg', '20 mg'], 'Lorazepam': ['3 mg', '6 mg'],
     },
     'observations': ['النوم متقطع', 'الشهية متبدلة',
                      'التعاون جزئي أثناء المقابلة', 'القلق أقل مقارنة بالتقييم السابق',
@@ -118,10 +118,12 @@ TREATMENT_LINES = [
 
 
 def treatment_example(number, rng):
-    lines = rng.sample(TREATMENT_LINES, rng.randint(6, 12))
-    if number % 10 == 0:
-        lines.extend('متابعة اليوم {}: {}'.format(i, rng.choice(TREATMENT_LINES))
-                     for i in range(1, rng.randint(15, 22)))
+    """Fictional layout data: mostly separate medication/dose lines, then brief notes."""
+    long_example = number % 10 == 0
+    medications = CLINICAL_TERMS['medications']
+    drugs = rng.sample(list(medications), 8 if long_example else rng.randint(4, 6))
+    lines = [drug + ' ' + rng.choice(medications[drug]) for drug in drugs]
+    lines.extend(rng.sample(TREATMENT_LINES, 3 if long_example else rng.randint(1, 2)))
     return '\n'.join(lines)
 
 
@@ -168,13 +170,29 @@ def laboratory_example(rng):
 def mix_clinical_fragments(row, rng):
     """Combine independent, reworded themes; retain no source-patient linkage."""
     symptoms = rng.sample(CLINICAL_TERMS['symptoms'], 2)
-    medications = rng.sample(list(CLINICAL_TERMS['medications']), rng.randint(2, 4))
-    dose_labels = [drug + ' ' + rng.choice(CLINICAL_TERMS['medications'][drug]) for drug in medications]
     observations = rng.sample(CLINICAL_TERMS['observations'], 3)
     row['initialDiagnosis'] += '؛ ' + ' مع '.join(symptoms) + '.'
-    row['treatmentPlan'] = '\n'.join(dose_labels + [row['treatmentPlan']])
     if row['followUp']:
         row['followUp'] = '\n'.join(observations)
+
+
+def lab_groups(text, patient_id, day=None):
+    """Only the generator's explicit panel headings define these fictional sample groups."""
+    groups = []
+    for line in text.splitlines():
+        if line.endswith(':') or not groups:
+            groups.append(dict(id=patient_id+'-labs-'+str(len(groups)),
+                               title=line if line.endswith(':') else '', date=day, results=''))
+            if line.endswith(':'):continue
+        group = groups[-1]
+        group['results'] += ('\n' if group['results'] else '') + line
+    return groups
+
+
+def lab_text(groups):
+    return '\n\n'.join('\n'.join(value for value in (
+        ' • '.join(value for value in (group['title'], group['date']) if value), group['results']) if value)
+        for group in groups)
 
 
 def packed(value):
@@ -233,8 +251,11 @@ def generate(path, day, seed, mix_clinical=True):
             tasksJson=packed(tasks))
         if mix_clinical and number % 5 in (1, 2, 3):
             mix_clinical_fragments(row, clinical_rng)
+        groups = lab_groups(row['labs'],row['externalId'],day.isoformat())
+        row['labGroupsJson'] = packed(groups)
+        row['labs'] = lab_text(groups)
         rows.append(row)
-    meta = '# schemaVersion=7 shiftDate={} shiftId={} doctors= sortSpec={{"levels":[]}} shiftRevision=0 snapshotId= baseSnapshotId= deviceId='.format(
+    meta = '# schemaVersion=8 shiftDate={} shiftId={} doctors= sortSpec={{"levels":[]}} shiftRevision=0 snapshotId= baseSnapshotId= deviceId='.format(
         day, identity('shift'))
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open('x', encoding='utf-8-sig', newline='') as stream:

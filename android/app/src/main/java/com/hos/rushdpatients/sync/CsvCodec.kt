@@ -95,7 +95,7 @@ object CsvCodec {
         append(',')
         append(escape(p.followUp))
         append(',')
-        append(escape(p.labs))
+        append(escape(p.labText))
         append(',')
         append(escape(p.responsibleResidentId.orEmpty()))
         append(',')
@@ -118,6 +118,8 @@ object CsvCodec {
         append(escape(PatientTaskCodec.encode(p.tasks)))
         append(',')
         append(p.assignmentChangedOn?.toString().orEmpty())
+        append(',')
+        append(escape(com.hos.rushdpatients.data.model.PatientLabGroups.encode(p.labGroups)))
     }
 
     private fun escape(value: String): String {
@@ -282,6 +284,10 @@ object CsvCodec {
         val revision = field(CsvSchema.COL_REVISION).toLongOrNull()
             ?: throw IllegalArgumentException("السطر $rowNumber: نسخة المريض غير صالحة")
         require(revision >= 0L) { "السطر $rowNumber: نسخة المريض غير صالحة" }
+        val labGroups = com.hos.rushdpatients.data.model.PatientLabGroups.decode(field(CsvSchema.COL_LAB_GROUPS))
+        require(labGroups.isEmpty() || field(CsvSchema.COL_LABS) == com.hos.rushdpatients.data.model.PatientLabGroups.text(labGroups)) {
+            "السطر $rowNumber: نص التحاليل لا يطابق المجموعات"
+        }
         return Patient(
             id = id,
             admittanceNumber = admissionNumber,
@@ -295,6 +301,7 @@ object CsvCodec {
             treatmentPlan = field(CsvSchema.COL_TREATMENT_PLAN),
             followUp = field(CsvSchema.COL_FOLLOW_UP),
             labs = field(CsvSchema.COL_LABS),
+            labGroups = labGroups,
             tasks = PatientTaskCodec.decode(field(CsvSchema.COL_TASKS)),
             responsibleResidentId = residentId,
             responsibleSpecialistId = specialistId,

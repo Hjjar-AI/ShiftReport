@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -64,7 +65,8 @@ internal fun WardDrawer(
     online: Boolean,
     onAction: (WardDrawerAction) -> Unit,
     onPublishData: () -> Unit = {},
-    additionalActions: @Composable () -> Unit = {}
+    additionalActions: @Composable () -> Unit = {},
+    uploadAvailable: Boolean = online
 ) {
     val uiText = rememberUiStrings()
     val dayLabel = LocalWardDayLabel.current
@@ -116,6 +118,7 @@ internal fun WardDrawer(
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())
                     .padding(top = UiSpacing.screen),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
+                    DrawerSectionLabel(uiText(R.string.drawer_quick_actions))
                     com.hos.rushdpatients.ui.components.AppButton(
                         onClick = { onAction(WardDrawerAction.REPORT) }, enabled = state.shift != null,
                         modifier = Modifier.fillMaxWidth()) {
@@ -124,7 +127,7 @@ internal fun WardDrawer(
 
                     com.hos.rushdpatients.ui.components.AppOutlinedButton(
                         onClick = onPublishData,
-                        enabled = state.shift != null && online && !state.loading && !state.saving && !state.syncing,
+                        enabled = state.shift != null && uploadAvailable && !state.loading && !state.saving && !state.syncing,
                         modifier = Modifier.fillMaxWidth()) {
                         Text(uiText(R.string.sync_upload_data_only))
                     }
@@ -135,26 +138,38 @@ internal fun WardDrawer(
                         Text(uiText(R.string.assignments_export_title))
                     }
 
+                    com.hos.rushdpatients.ui.components.AppDivider()
+                    DrawerSectionLabel(uiText(R.string.drawer_data_files))
                     WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
+                    WardDrawerRow(uiText(R.string.drawer_exports_imports), AppIcons.FolderOpen) { onAction(WardDrawerAction.FILES) }
+                    WardDrawerRow(uiText(R.string.ui_settings_section_layout_031), AppIcons.Backup) { onAction(WardDrawerAction.BACKUP) }
                     WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
-                    DrawerToolGroup(uiText(R.string.ui_ward_drawer_017), AppIcons.Settings, preferencesMenuExpanded,
+
+                    DrawerToolGroup(uiText(R.string.drawer_settings_administration), AppIcons.Settings, preferencesMenuExpanded,
                         onToggle = { preferencesMenuExpanded = !preferencesMenuExpanded }) {
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_018), AppIcons.Settings) { onAction(WardDrawerAction.SETTINGS) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_019), AppIcons.Link) { onAction(WardDrawerAction.PROJECT) }
+                        if (isAdmin) WardDrawerRow(uiText(R.string.ui_admin_screen_001), AppIcons.AdminPanelSettings) {
+                            onAction(WardDrawerAction.ADMIN)
+                        }
                     }
-                    if (isAdmin) {
-                        WardDrawerRow(uiText(R.string.ui_admin_screen_001), AppIcons.AdminPanelSettings) { onAction(WardDrawerAction.ADMIN) }
-                    }
-                    additionalActions()
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_026), AppIcons.HelpOutline, helpMenuExpanded,
                         onToggle = { helpMenuExpanded = !helpMenuExpanded }) {
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_027), AppIcons.Build) { onAction(WardDrawerAction.DIAGNOSTICS) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_028), AppIcons.Info) { onAction(WardDrawerAction.ABOUT) }
                     }
+                    additionalActions()
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DrawerSectionLabel(label: String) {
+    Text(label, modifier = Modifier.padding(horizontal = UiSpacing.screen).semantics { heading() },
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /** All navigation categories share the same heading, disclosure and child-row treatment. */

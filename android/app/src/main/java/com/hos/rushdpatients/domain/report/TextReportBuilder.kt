@@ -138,12 +138,12 @@ class TextReportBuilder @Inject constructor() {
             append('\n')
             append(Markdown.escape(PatientTasks.summary(patient.tasks)))
         }
-        if (patient.labs.isNotBlank()) {
+        if (patient.labText.isNotBlank()) {
             append('\n')
             append(Markdown.underline("التحاليل"))
             append(Markdown.escape(":"))
             append('\n')
-            append(Markdown.escape(patient.labs))
+            append(Markdown.escape(patient.labText))
         }
     }
 

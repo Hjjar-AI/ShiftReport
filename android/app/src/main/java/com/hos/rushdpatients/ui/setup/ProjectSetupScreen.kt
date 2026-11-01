@@ -58,9 +58,10 @@ fun ProjectSetupScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showTopics by rememberSaveable(state.mode) { mutableStateOf(false) }
     var showInstructions by rememberSaveable(state.mode) { mutableStateOf(false) }
+    var showResidents by rememberSaveable(state.mode) { mutableStateOf(false) }
     val openProvisioning = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
-    ) { uri -> uri?.let(viewModel::importProvisioning) }
+    ) { uri -> uri?.let(viewModel::selectProvisioning) }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding(),
         horizontalAlignment = Alignment.CenterHorizontally) {
@@ -106,17 +107,26 @@ fun ProjectSetupScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        AppButton(
+                            onClick = { openProvisioning.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
+                            enabled = !state.busy,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (state.joinFileSelected) uiText(R.string.ui_project_setup_screen_009) else uiText(R.string.ui_project_setup_screen_010)) }
+                        if (state.joinFileSelected && !state.importedProvisioning) Text(uiText(R.string.setup_join_file_selected),
+                            style = MaterialTheme.typography.bodySmall)
                         PasswordField(
                             value = state.provisioningPassphrase,
                             onValueChange = viewModel::setProvisioningPassphrase,
                             label = uiText(R.string.ui_project_setup_screen_008),
                             enabled = !state.busy
                         )
-                        AppButton(
-                            onClick = { openProvisioning.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
-                            enabled = !state.busy && state.provisioningPassphrase.length >= 10,
+                        if (!state.importedProvisioning) AppButton(
+                            onClick = viewModel::unlockProvisioning,
+                            enabled = !state.busy && state.joinFileSelected &&
+                                state.provisioningPassphrase.length >= com.hos.rushdpatients.config.ProjectProvisioningManager.MIN_PASSWORD_LENGTH,
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (state.importedProvisioning) uiText(R.string.ui_project_setup_screen_009) else uiText(R.string.ui_project_setup_screen_010)) }
+                        ) { Text(uiText(R.string.setup_unlock_join_file)) }
+                        else Text(uiText(R.string.setup_join_file_unlocked), style = MaterialTheme.typography.bodySmall)
                     }
                     if (state.importedProvisioning) {
                         AppSection(uiText(R.string.ui_project_setup_screen_011)) {
@@ -130,6 +140,7 @@ fun ProjectSetupScreen(
                 }
 
                 if (state.mode == ProjectSetupMode.CREATE) {
+                    AppNotice(uiText(R.string.setup_create_overview), kind = NoticeKind.ACCENT)
                     AppSection(uiText(R.string.ui_project_setup_screen_016)) {
                         AppTextField(
                             value = state.hospitalName,
@@ -139,25 +150,27 @@ fun ProjectSetupScreen(
                             enabled = !state.busy,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Text(uiText(R.string.setup_prepare_bot), style = MaterialTheme.typography.bodySmall)
                         PasswordField(
                             value = state.botToken,
                             onValueChange = viewModel::setBotToken,
                             label = uiText(R.string.ui_project_setup_screen_018),
                             enabled = !state.busy
                         )
+                        Text(uiText(R.string.setup_prepare_group), style = MaterialTheme.typography.bodySmall)
                         NumberField(
                             value = state.chatId,
                             onValueChange = viewModel::setChatId,
                             label = uiText(R.string.ui_project_setup_screen_019),
                             signed = true,
-                            enabled = !state.busy
+                            enabled = !state.busy,
+                            hint = uiText(R.string.setup_group_id_help)
                         )
+                        Text(uiText(R.string.setup_group_topic_explanation),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                        Text(uiText(R.string.residents_destination_hint), style = MaterialTheme.typography.bodySmall)
-                        NumberField(state.residentsChatId, viewModel::setResidentsChatId, uiText(R.string.residents_group_optional), signed = true, enabled = !state.busy)
-                        NumberField(state.residentsTopicId, viewModel::setResidentsTopicId, uiText(R.string.residents_topic_optional), enabled = !state.busy)
-
-                        AppTextButton(onClick = { showTopics = !showTopics }) {
+                        AppTextButton(onClick = { showTopics = !showTopics }, enabled = !state.busy) {
                             Text(if (showTopics) uiText(R.string.ui_project_setup_screen_020) else uiText(R.string.ui_project_setup_screen_021))
                         }
                         if (showTopics) {
@@ -166,23 +179,35 @@ fun ProjectSetupScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, uiText(R.string.ui_project_setup_screen_023), enabled = !state.busy)
-                            NumberField(state.csvTopicId, viewModel::setCsvTopicId, uiText(R.string.ui_project_setup_screen_025), enabled = !state.busy)
-                            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, uiText(R.string.ui_project_setup_screen_026), enabled = !state.busy)
+                            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, uiText(R.string.ui_project_setup_screen_023), enabled = !state.busy,
+                                hint = uiText(R.string.setup_report_topic_help))
+                            NumberField(state.csvTopicId, viewModel::setCsvTopicId, uiText(R.string.ui_project_setup_screen_025), enabled = !state.busy,
+                                hint = uiText(R.string.setup_data_topic_help))
+                            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, uiText(R.string.ui_project_setup_screen_026), enabled = !state.busy,
+                                hint = uiText(R.string.setup_doctors_topic_help))
+                        }
+                        if (!showTopics && listOf(state.reportsTopicId, state.csvTopicId, state.doctorsTopicId).any { it.isNotBlank() }) {
+                            Text(uiText(R.string.setup_topics_retained), style = MaterialTheme.typography.bodySmall)
+                        }
+                        AppTextButton(onClick = { showResidents = !showResidents }, enabled = !state.busy) {
+                            Text(uiText(if (showResidents) R.string.setup_hide_residents else R.string.setup_show_residents))
+                        }
+                        if (showResidents) {
+                            Text(uiText(R.string.residents_destination_hint), style = MaterialTheme.typography.bodySmall)
+                            NumberField(state.residentsChatId, viewModel::setResidentsChatId,
+                                uiText(R.string.residents_group_optional), signed = true, enabled = !state.busy,
+                                hint = uiText(R.string.setup_residents_group_help))
+                            NumberField(state.residentsTopicId, viewModel::setResidentsTopicId,
+                                uiText(R.string.residents_topic_optional), enabled = !state.busy,
+                                hint = uiText(R.string.setup_residents_topic_help))
+                        } else if (state.residentsChatId.isNotBlank()) {
+                            Text(uiText(R.string.setup_residents_retained), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
             }
 
             if (state.mode == ProjectSetupMode.CREATE) {
-                AppSection(uiText(R.string.ui_project_setup_screen_027)) {
-                    AppToggleRow(title = uiText(R.string.ui_project_setup_screen_028), checked = state.encryptTelegram,
-                        onCheckedChange = viewModel::setEncryptTelegram, enabled = !state.busy)
-                    Text(uiText(R.string.ui_project_setup_screen_029),
-                        style = MaterialTheme.typography.bodySmall)
-                    Text(uiText(R.string.ui_project_setup_screen_030),
-                        style = MaterialTheme.typography.bodySmall)
-                }
                 AppSection(uiText(R.string.ui_project_setup_screen_031)) {
                     AppTextField(
                         value = state.adminName,
@@ -196,8 +221,10 @@ fun ProjectSetupScreen(
                         state.adminTelegramId,
                         viewModel::setAdminTelegramId,
                         uiText(R.string.ui_project_setup_screen_033),
-                        enabled = !state.busy
+                        enabled = !state.busy,
+                        hint = uiText(R.string.setup_admin_id_help)
                     )
+                    Text(uiText(R.string.ui_patient_demographic_fields_010), style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         AppFilterChip(
                             selected = state.adminGenderCode == "M",
@@ -211,6 +238,9 @@ fun ProjectSetupScreen(
                             label = { Text(uiText(R.string.ui_female)) },
                             enabled = !state.busy
                         )
+                    }
+                    Text(uiText(R.string.setup_admin_role), style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         AppFilterChip(
                             selected = state.adminClinicalRoleCode == "RESIDENT",
                             onClick = { viewModel.setAdminClinicalRole("RESIDENT") },
@@ -225,7 +255,14 @@ fun ProjectSetupScreen(
                         )
                     }
                 }
-
+                AppSection(uiText(R.string.ui_project_setup_screen_027)) {
+                    AppToggleRow(title = uiText(R.string.ui_project_setup_screen_028), checked = state.encryptTelegram,
+                        onCheckedChange = viewModel::setEncryptTelegram, enabled = !state.busy)
+                    Text(uiText(R.string.ui_project_setup_screen_029),
+                        style = MaterialTheme.typography.bodySmall)
+                    Text(uiText(R.string.ui_project_setup_screen_030),
+                        style = MaterialTheme.typography.bodySmall)
+                }
             }
             AppTextButton(onClick = { showInstructions = !showInstructions },
                 enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
@@ -300,12 +337,14 @@ private fun NumberField(
     onValueChange: (String) -> Unit,
     label: String,
     signed: Boolean = false,
-    enabled: Boolean
+    enabled: Boolean,
+    hint: String? = null
 ) {
     AppTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        supportingText = hint?.let { text -> { Text(text) } },
         singleLine = true,
         enabled = enabled,
         keyboardOptions = KeyboardOptions(

@@ -6,23 +6,6 @@ from pathlib import Path
 import re
 import sys
 import tempfile
-import time
-
-
-def build_date(timestamp=None):
-    """Build-start calendar date in the project's Asia/Damascus timezone."""
-    previous_timezone = os.environ.get('TZ')
-    try:
-        os.environ['TZ'] = 'Asia/Damascus'
-        time.tzset()
-        instant = time.time() if timestamp is None else timestamp
-        return time.strftime('%Y%m%d', time.localtime(instant))
-    finally:
-        if previous_timezone is None:
-            os.environ.pop('TZ', None)
-        else:
-            os.environ['TZ'] = previous_timezone
-        time.tzset()
 
 
 def reserve(path):
@@ -38,11 +21,11 @@ def reserve(path):
                 key, value = line.split('=', 1)
                 values[key.strip()] = value.strip()
         code = int(values['versionCode']) + 1
-        match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:\.\d{8})?', values['versionName'])
+        match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', values['versionName'])
         if not match or not 1 < code <= 2_100_000_000:
             raise ValueError('Invalid app version counter; repair it explicitly rather than resetting it.')
         major, minor, patch = match.groups()
-        name = '{}.{}.{}.{}'.format(major, minor, int(patch) + 1, build_date())
+        name = '{}.{}.{}'.format(int(major), int(minor), int(patch) + 1)
         descriptor, temporary = tempfile.mkstemp(prefix='.app-version-', dir=str(path.parent))
         try:
             with os.fdopen(descriptor, 'w', encoding='utf-8') as output:

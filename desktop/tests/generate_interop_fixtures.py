@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from desktop_backup import encode
 from desktop_crypto import Cipher
 from desktop_wire import encode_bundle
-from tests.support import KEY, shift
+from tests.support import KEY, shift, lab_group_shift
 
 
 def generate(destination):
@@ -19,6 +19,7 @@ def generate(destination):
     cipher = Cipher(config)
     plain = encode_bundle([shift()])
     (destination / 'desktop.bundle.csv').write_bytes(plain)
+    (destination / 'desktop-labs.bundle.csv').write_bytes(encode_bundle([lab_group_shift()]))
     (destination / 'desktop.srdata').write_bytes(cipher.encrypt(plain, 'file'))
     (destination / 'desktop-text.txt').write_text(cipher.encode_text('شاي — نتيجة تجريبية ☕'))
     (destination / 'desktop.rpb').write_bytes(encode(shift(), password))
@@ -31,4 +32,9 @@ def generate(destination):
 
 
 if __name__ == '__main__':
-    generate(Path(__file__).resolve().parents[2] / 'android/app/src/androidTest/assets/interop')
+    root=Path(__file__).resolve().parents[2]
+    assets=root/'android/app/src/androidTest/assets/interop'
+    generate(assets)
+    resource=root/'android/app/src/test/resources/interop/desktop-labs.bundle.csv'
+    resource.parent.mkdir(parents=True,exist_ok=True)
+    resource.write_bytes((assets/'desktop-labs.bundle.csv').read_bytes())

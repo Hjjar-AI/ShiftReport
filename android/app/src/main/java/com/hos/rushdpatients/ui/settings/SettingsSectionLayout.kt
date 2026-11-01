@@ -141,7 +141,7 @@ internal enum class SettingsSectionId(
 
 internal fun SettingsSectionId.summary(uiText: UiStrings, state: SettingsUiState): String = when (this) {
     SettingsSectionId.APPEARANCE -> uiText(R.string.ui_settings_section_layout_005, state.appearance.arabicLabel(uiText), state.appTheme.arabicLabel(uiText), state.fontScale.arabicLabel(uiText))
-    SettingsSectionId.REPORT -> if (state.reportAsPdf) "PDF · ${state.pdfStyle.uiLabel(uiText)}" else uiText(R.string.ui_settings_section_layout_016)
+    SettingsSectionId.REPORT -> if (state.reportAsPdf) "PDF • ${state.pdfStyle.uiLabel(uiText)}" else uiText(R.string.ui_settings_section_layout_016)
     SettingsSectionId.SYNC -> syncCenterSummary(uiText, state.patientsPending, state.lastCsvSync)
     SettingsSectionId.DOCTORS -> syncCenterSummary(uiText, state.doctorsPending, state.lastDoctorsSync)
     SettingsSectionId.FILES -> uiText(R.string.ui_settings_section_layout_018)
@@ -159,4 +159,4 @@ private fun syncCenterSummary(uiText: UiStrings, pending: Boolean?, lastContact:
         true -> R.string.ui_sync_center_pending_short
         false -> R.string.ui_sync_center_local_short
         null -> R.string.ui_sync_center_loading
-    }), uiText(R.string.ui_sync_center_last_short, lastContact ?: uiText(R.string.ui_unknown))).joinToString(" · ")
+    }), uiText(R.string.ui_sync_center_last_short, lastContact ?: uiText(R.string.ui_unknown))).joinToString(" • ")

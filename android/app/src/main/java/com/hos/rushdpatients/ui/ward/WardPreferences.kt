@@ -35,14 +35,6 @@ internal class WardPreferences(
                 }
         }
         viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_PATIENT_COMPACT_DENSITY)
-                .collect { stored ->
-                    _state.update {
-                        it.copy(compactCards = stored?.toBooleanStrictOrNull() ?: false)
-                    }
-                }
-        }
-        viewModelScope.launch {
             settingsRepository.observe(AppConstants.SETTING_GROUP_BY_MODE)
                 .collect { stored ->
                     val mode = GroupByMode.fromSetting(stored)
@@ -73,13 +65,6 @@ internal class WardPreferences(
         _state.update { it.copy(twoColumn = enabled) }
         viewModelScope.launch {
             settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_TWO_COLUMN, enabled)
-        }
-    }
-
-    fun setCompactCards(compact: Boolean) {
-        _state.update { it.copy(compactCards = compact) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, compact)
         }
     }
 

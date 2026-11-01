@@ -29,21 +29,21 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val navigationPadding = 2f
     private val navigationInset = 2f
     private val gap = 4f
-    private val treatmentColumnGap = 8f
+    private val sectionColumnGap = 8f
     private val left = margin + padding
     private val right = width - margin - padding
     private val cardBottom = height - bottomMargin
     private val bidi = BidiFormatter.getInstance()
     private val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = 11.5f
+        textSize = 12.5f
         typeface = fonts.regular
         textAlign = Paint.Align.RIGHT
     }
     private val heading = Paint(body).apply {
         typeface = fonts.bold
-        textSize = 12f
+        textSize = 13f
     }
-    private val name = Paint(heading).apply { textSize = 15f; textAlign = Paint.Align.CENTER }
+    private val name = Paint(heading).apply { textSize = 16f; textAlign = Paint.Align.CENTER }
     private val navigation = Paint(heading).apply { textSize = 12f; textAlign = Paint.Align.CENTER }
     private val urgentHeading = Paint(heading)
     private val footer = Paint(body).apply { textSize = 8.5f; textAlign = Paint.Align.CENTER }
@@ -69,7 +69,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private data class IndexEntry(val page: Int, val rect: RectF)
     private data class CardPage(val patientIndex: Int, val page: Int, val rects: List<RectF>)
     private data class BadgeCell(val width: Float, val lines: List<String>, val foreground: Int, val background: Int, val border: Int)
-    private data class Section(val title: String, val text: String, val urgent: Boolean = false, val keepTogether: Boolean = false, val alwaysShow: Boolean = false, val allowColumns: Boolean = false)
+    private data class Section(val title: String, val text: String, val urgent: Boolean = false, val keepTogether: Boolean = false, val alwaysShow: Boolean = false, val columnCount: Int = 1, val labPanel: Boolean = false)
 
     suspend fun export(
         patients: List<Patient>, doctors: List<Doctor>, summary: ReportSummary,
@@ -109,7 +109,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             val metadataPaint = Paint(body).apply { textSize = 11.5f }
             val totalPaint = Paint(heading).apply { textSize = 15f }
             indexText("إجمالي المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})", totalPaint, documentLabel)
-            indexText("${summary.shiftDate} · ${summary.escortCount} مرافق", metadataPaint, documentLabel)
+            indexText("${summary.shiftDate} • ${summary.escortCount} مرافق", metadataPaint, documentLabel)
             if (doctors.isNotEmpty()) indexText(ReportRosterLabel.forDoctors(doctors) + ": " +
                 doctors.joinToString(" / ") { it.fullName }, metadataPaint, documentLabel)
             val indexGap = 5f
@@ -128,15 +128,15 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 // Fill each RTL column downward before advancing to the next column.
                 repeat(count) { offset ->
                     val patient = patients[firstPatient + offset]
-                    val text = "${patient.sortOrder} · ${patient.displayName}"
-                    val paint = Paint(heading).apply { textSize = 14f }
+                    val text = "${patient.sortOrder} • ${patient.displayName}"
+                    val paint = Paint(heading).apply { textSize = 15f }
                     val availableWidth = tileWidth - 2 * tilePadding
                     val availableHeight = rowHeight - 2 * tilePadding
                     fun fits(): Boolean = PdfTextWrapper.wrap(text, paint, availableWidth).size *
                         PdfTextWrapper.lineHeight(paint) <= availableHeight
                     if (!fits()) {
                         var low = 1f
-                        var high = 14f
+                        var high = 15f
                         repeat(18) {
                             paint.textSize = (low + high) / 2f
                             if (fits()) low = paint.textSize else high = paint.textSize
@@ -193,20 +193,26 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 val columnGap = 6f
                 val columnWidth = (right - left - 2 * columnGap) / 3f
                 val introColumns = listOf(
-                    Triple("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames), left + columnWidth),
-                    Triple("القبول", PdfPatientContent.buildAdmitCell(patient, summary.shiftDate), left + 2 * columnWidth + columnGap),
+                    Triple("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames, roleSeparator = "\n"), left + columnWidth),
+                    Triple(listOf("القبول", patient.admittanceNumber).filter(String::isNotBlank).joinToString(" "),
+                        PdfPatientContent.buildAdmitCell(patient, summary.shiftDate, includeNumber = false), left + 2 * columnWidth + columnGap),
                     Triple("بيانات المريض", PdfPatientContent.buildPatientCell(patient, includeName = false, reportDate = summary.shiftDate), right)
                 )
                 val introLines = introColumns.map { PdfTextWrapper.wrap(it.second, body, columnWidth) }
+                val introTitleLines = introColumns.map { PdfTextWrapper.wrap(it.first, heading, columnWidth) }
+                val introTitleHeight = introTitleLines.maxOf { it.size } * PdfTextWrapper.lineHeight(heading)
                 val lineHeight = PdfTextWrapper.lineHeight(body)
                 fun introHeadings() {
-                    if (y + PdfTextWrapper.lineHeight(heading) + gap + lineHeight > bottom) {
+                    if (y + introTitleHeight + gap + lineHeight > bottom) {
                         error("اسم المريض أطول من مساحة البطاقة")
                     }
-                    introColumns.forEach { (title, _, end) ->
-                        canvas.drawText(directed(title), end, y - heading.fontMetrics.top, heading)
+                    introTitleLines.forEachIndexed { column, lines ->
+                        lines.forEachIndexed { lineIndex, line ->
+                            canvas.drawText(directed(line), introColumns[column].third,
+                                y + lineIndex * PdfTextWrapper.lineHeight(heading) - heading.fontMetrics.top, heading)
+                        }
                     }
-                    y += PdfTextWrapper.lineHeight(heading) + gap
+                    y += introTitleHeight + gap
                 }
                 introHeadings()
                 for (lineIndex in 0 until (introLines.maxOfOrNull { it.size } ?: 0)) {
@@ -277,7 +283,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 var usedWidth = 0f
                 visibleBadges.forEach { badge ->
                     val high = badge.priority == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH
-                    val label = badge.text + if (high) " · عالية" else ""
+                    val label = badge.text + if (high) " • عالية" else ""
                     val cellWidth = minOf(maximumBadgeWidth, label.lineSequence().maxOf { badgePaint.measureText(directed(it)) } + 2 * badgeXPadding)
                     if (badgeRow.isNotEmpty() && usedWidth + badgeGap + cellWidth > right - left + 0.01f) {
                         drawBadgeRow(badgeRow); badgeRow = mutableListOf(); usedWidth = 0f
@@ -290,20 +296,34 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 }
                 if (badgeRow.isNotEmpty()) drawBadgeRow(badgeRow)
                 val sections = listOf(
-                    Section("التشخيص · ${patient.diagnosisType.arabicLabel}", patient.initialDiagnosis, alwaysShow = true),
-                    Section(PdfStrings.HEADER_TREATMENT, patient.treatmentPlan, allowColumns = true),
+                    Section("التشخيص • ${patient.diagnosisType.arabicLabel}", patient.initialDiagnosis, alwaysShow = true),
+                    Section(PdfStrings.HEADER_TREATMENT, patient.treatmentPlan, columnCount = 2),
                     Section("المتابعة", patient.followUp),
-                    Section("المهام (${tasks.size})", taskText,
-                        keepTogether = true),
-                    Section("التحاليل", patient.labs)
-                )
+                    Section("المهام (${tasks.size})", taskText, keepTogether = true)
+                ) + patient.effectiveLabGroups.map { group ->
+                    val label = com.hos.rushdpatients.data.model.PatientLabGroups.heading(group)
+                    Section(listOf("التحاليل", label).filter(String::isNotBlank).joinToString(" • "),
+                        group.results, keepTogether = true, alwaysShow = label.isNotBlank(), labPanel = true)
+                }
                 sections.filter { section -> section.alwaysShow || section.text.isNotBlank() }.forEach { section ->
                     val title = section.title
                     val text = section.text
                     val titlePaint = if (section.urgent) urgentHeading else heading
                     val lines = if (text.isBlank()) emptyList() else PdfTextWrapper.wrap(text, body, right - left)
-                    val columns = if (section.allowColumns) treatmentColumns(text, lines.size) else null
-                    val labelHeight = PdfTextWrapper.lineHeight(heading)
+                    val columns = if (section.columnCount > 1) sectionColumns(text, section.columnCount) else null
+                    val labelHeight = PdfTextWrapper.wrap(title, titlePaint, right - left).size * PdfTextWrapper.lineHeight(titlePaint)
+                    fun drawSectionHeading(label: String) {
+                        val labels = PdfTextWrapper.wrap(label, titlePaint, right - left)
+                        val height = labels.size * PdfTextWrapper.lineHeight(titlePaint)
+                        check(y + height + (if (lines.isEmpty()) 0f else PdfTextWrapper.lineHeight(body)) <= bottom) {
+                            "عنوان مجموعة التحاليل أطول من مساحة البطاقة"
+                        }
+                        if (section.labPanel) {
+                            fill.color = palette.teamSubheader
+                            canvas.drawRect(left, y, right, y + height, fill)
+                        }
+                        labels.forEach { drawLine(it, titlePaint) }
+                    }
                     val requiredHeight = gap + labelHeight + lines.size * PdfTextWrapper.lineHeight(body) + gap
                     val freshTop = topMargin + padding +
                         PdfTextWrapper.wrap(patient.displayName, name, right - left).size * PdfTextWrapper.lineHeight(name) + 2 * titlePadding + gap
@@ -314,7 +334,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     }
                     canvas.drawLine(left, y, right, y, divider)
                     y += gap
-                    drawLine(title, titlePaint)
+                    drawSectionHeading(title)
                     if (columns != null) {
                         var offset = 0
                         while (offset < columns.lines.size) {
@@ -322,39 +342,40 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                             if (capacity < 1) {
                                 newPage(documentLabel, index = false)
                                 cardHeader()
-                                drawLine("$title (تابع)", titlePaint)
+                                drawSectionHeading("$title (تابع)")
                                 capacity = ((bottom - y) / PdfTextWrapper.lineHeight(body)).toInt()
                             }
-                            check(capacity > 0) { "لا توجد مساحة لعرض العلاج" }
-                            val limit = minOf(columns.lines.size, offset + 2 * capacity)
-                            // Leave room unused rather than split a source line when both columns can fit it.
+                            check(capacity > 0) { "لا توجد مساحة لعرض المحتوى" }
+                            val limit = minOf(columns.lines.size, offset + columns.count * capacity)
+                            // Keep source lines together where they fit, reading down each RTL column.
                             val wholeLines = columns.boundaries.asReversed().asSequence()
                                 .filter { it > offset && it <= limit }
                                 .mapNotNull { end ->
-                                    val count = end - offset
-                                    val split = columns.boundaries.asSequence().map { it - offset }
-                                        .filter { it in maxOf(1, count - capacity)..minOf(capacity, count) }
-                                        .minWithOrNull(compareBy<Int> { kotlin.math.abs(2 * it - count) }.thenByDescending { it })
-                                    split?.let { end to it }
+                                    columnEnds(columns, offset, end, capacity)?.let { end to it }
                                 }.firstOrNull()
                             val end = wholeLines?.first ?: limit
                             val count = end - offset
-                            val split = wholeLines?.second ?: minOf(capacity, (count + 1) / 2)
+                            val ends = wholeLines?.second ?: List(columns.count) { column ->
+                                offset + (column + 1) * (count / columns.count) +
+                                    minOf(column + 1, count % columns.count)
+                            }
                             val top = y
-                            for (column in 0..1) {
-                                val start = offset + if (column == 0) 0 else split
-                                val finish = offset + if (column == 0) split else count
+                            var start = offset
+                            var height = 0
+                            ends.forEachIndexed { column, finish ->
                                 for (lineIndex in start until finish) {
-                                    canvas.drawText(directed(columns.lines[lineIndex]), right - column * (columns.width + treatmentColumnGap),
+                                    canvas.drawText(directed(columns.lines[lineIndex]), right - column * (columns.width + sectionColumnGap),
                                         top + (lineIndex - start) * PdfTextWrapper.lineHeight(body) - body.fontMetrics.top, body)
                                 }
+                                height = maxOf(height, finish - start)
+                                start = finish
                             }
-                            y = top + maxOf(split, count - split) * PdfTextWrapper.lineHeight(body)
+                            y = top + height * PdfTextWrapper.lineHeight(body)
                             offset = end
                             if (offset < columns.lines.size) {
                                 newPage(documentLabel, index = false)
                                 cardHeader()
-                                drawLine("$title (تابع)", titlePaint)
+                                drawSectionHeading("$title (تابع)")
                             }
                         }
                     } else {
@@ -362,7 +383,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                             if (y + PdfTextWrapper.lineHeight(body) > bottom) {
                                 newPage(documentLabel, index = false)
                                 cardHeader()
-                                drawLine("$title (تابع)", titlePaint)
+                                drawSectionHeading("$title (تابع)")
                             }
                             drawLine(line, body)
                         }
@@ -402,19 +423,42 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         page = null
     }
 
-    private data class TreatmentColumns(val lines: List<String>, val boundaries: List<Int>, val width: Float)
+    private data class SectionColumns(val lines: List<String>, val boundaries: List<Int>, val width: Float, val count: Int)
 
-    private fun treatmentColumns(text: String, fullLineCount: Int): TreatmentColumns? {
+    private fun sectionColumns(text: String, count: Int): SectionColumns? {
         val paragraphs = text.replace("\r\n", "\n").replace('\r', '\n').split('\n')
-        if (paragraphs.count { it.isNotBlank() } < 4) return null
-        val width = (right - left - treatmentColumnGap) / 2f
+        if (paragraphs.count { it.isNotBlank() } < 2) return null
+        val width = (right - left - (count - 1) * sectionColumnGap) / count
         val lines = mutableListOf<String>()
         val boundaries = paragraphs.map { paragraph ->
             lines += PdfTextWrapper.wrap(paragraph, body, width)
             lines.size
         }
-        val height = boundaries.dropLast(1).minOfOrNull { maxOf(it, lines.size - it) } ?: return null
-        return if (height < fullLineCount) TreatmentColumns(lines, boundaries, width) else null
+        return SectionColumns(lines, boundaries, width, count)
+    }
+
+    private fun columnEnds(columns: SectionColumns, offset: Int, end: Int, capacity: Int): List<Int>? {
+        val boundaries = columns.boundaries.filter { it > offset && it <= end }
+        fun partition(height: Int): List<Int>? {
+            val ends = mutableListOf<Int>()
+            var start = offset
+            repeat(columns.count) {
+                val finish = if (start == end) end else
+                    boundaries.lastOrNull { it > start && it <= start + height } ?: return null
+                ends += finish
+                start = finish
+            }
+            return ends.takeIf { start == end }
+        }
+        // Find the shortest balanced columns that preserve complete source lines.
+        var low = (end - offset + columns.count - 1) / columns.count
+        var high = capacity
+        if (partition(high) == null) return null
+        while (low < high) {
+            val middle = (low + high) / 2
+            if (partition(middle) == null) low = middle + 1 else high = middle
+        }
+        return partition(low)
     }
 
     private suspend fun newPage(documentLabel: String?, index: Boolean) {
@@ -436,7 +480,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         canvas.drawRoundRect(card, 4f, 4f, outline)
         y = pageTop + padding
         footer.color = palette.text
-        val label = listOfNotNull(documentLabel, "ShiftReport", "${pageIndex + 1}/$pageTotal", generatedLabel).joinToString(" · ")
+        val label = listOfNotNull(documentLabel, "ShiftReport", "${pageIndex + 1}/$pageTotal", generatedLabel).joinToString(" • ")
         val footerPaint = Paint(footer)
         val textWidth = footerPaint.measureText(directed(label))
         if (textWidth > width - 2 * margin) footerPaint.textSize *= (width - 2 * margin) / textWidth

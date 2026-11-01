@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.pdf
 
 import android.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import com.hos.rushdpatients.ui.theme.appAccentColor
 
 object PdfPalette {
     const val HEADER_TEAL = 0xFF146474.toInt()       // RGB(20, 100, 116)
@@ -41,13 +43,8 @@ object PdfPalette {
     }
 
     fun resolve(options: PdfExportOptions): Resolved {
-        val headerColors = when (options.colorPreset) {
-            PdfColorPreset.TEAL -> 0xFF0D5663.toInt() to 0xFF146474.toInt()
-            PdfColorPreset.BLUE -> 0xFF123F70.toInt() to 0xFF174A7E.toInt()
-            PdfColorPreset.GREEN -> 0xFF214D39.toInt() to 0xFF285943.toInt()
-            PdfColorPreset.PURPLE -> 0xFF493269.toInt() to 0xFF563D7C.toInt()
-            PdfColorPreset.PASTEL_RAINBOW -> 0xFF8F2450.toInt() to 0xFF4E568F.toInt()
-        }
+        // PDFs remain light/printable in every appearance mode, using the selected accent's light face.
+        val primary = appAccentColor(options.appTheme, dark = false).toArgb()
         val lightGroups = when (options.colorPreset) {
             PdfColorPreset.PASTEL_RAINBOW -> intArrayOf(
                 0xFFFFADAD.toInt(), 0xFFFFD6A5.toInt(), 0xFFFDFFB6.toInt(),
@@ -58,8 +55,8 @@ object PdfPalette {
         }
         val lightSummary = SUMMARY_BACKGROUND
         return Resolved(
-            titleHeader = headerColors.first,
-            tableHeader = headerColors.second,
+            titleHeader = primary,
+            tableHeader = primary,
             summary = lightSummary,
             pageBackground = 0xFFFFFFFF.toInt(),
             text = 0xFF1E293B.toInt(),

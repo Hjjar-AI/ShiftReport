@@ -12,7 +12,8 @@ internal fun patientForSubmission(
     name: String, resolvedBirthDate: LocalDate?, hasCompanion: Boolean, diagnosisType: DiagnosisType,
     initialDiagnosis: String, treatmentPlan: String, followUp: String, labs: String,
     residentId: String?, specialistId: String?, resolvedBadges: List<PatientBadge>,
-    tasks: List<com.hos.rushdpatients.data.model.PatientTask>, isPriority: Boolean
+    tasks: List<com.hos.rushdpatients.data.model.PatientTask>, isPriority: Boolean,
+    labGroups: List<com.hos.rushdpatients.data.model.PatientLabGroup> = emptyList()
 ): Patient = initial?.copy(
     admittanceNumber = admittanceNumber.trim(),
     admittanceDate = admittanceDate,
@@ -24,7 +25,8 @@ internal fun patientForSubmission(
     initialDiagnosis = initialDiagnosis.trim(),
     treatmentPlan = treatmentPlan.trim(),
     followUp = followUp.trim(),
-    labs = labs.trim(),
+    labs = labs,
+    labGroups = labGroups,
     responsibleResidentId = residentId,
     responsibleSpecialistId = specialistId,
     badges = resolvedBadges,
@@ -41,7 +43,8 @@ internal fun patientForSubmission(
     initialDiagnosis = initialDiagnosis.trim(),
     treatmentPlan = treatmentPlan.trim(),
     followUp = followUp.trim(),
-    labs = labs.trim(),
+    labs = labs,
+    labGroups = labGroups,
     responsibleResidentId = residentId,
     responsibleSpecialistId = specialistId,
     badges = resolvedBadges,

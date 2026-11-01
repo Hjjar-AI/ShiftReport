@@ -28,8 +28,20 @@ def shift():
     row.update(externalId='tea', admitNum='12', admitDate='2020-01-01', gender='F', name='شاي',
                birthDate='1990', hasCompanion='Y', diagnosisType='DUAL', initialDiagnosis='تشخيص تجريبي',
                treatmentPlan='خطة, "تجريبية"\nسطر', followUp='متابعة\r\nتجريبية', labs='نتيجة ☕',
-               isPriority='N', lastEditedByDoctorId='cedar', lastEditedBy='أرز',
+               labGroupsJson='[]', isPriority='N', lastEditedByDoctorId='cedar', lastEditedBy='أرز',
                updatedAt='1767225600000', revision='7', tasksJson=json.dumps([task(), task(True, 'done')], ensure_ascii=False))
-    return dict(meta=dict(schemaVersion='7', shiftDate='2026-01-01', shiftId='synthetic-shift',
+    return dict(meta=dict(schemaVersion='8', shiftDate='2026-01-01', shiftId='synthetic-shift',
                           doctors='cedar', sortSpec='{"levels":[]}', shiftRevision='9',
                           snapshotId='snapshot', baseSnapshotId='base', deviceId='synthetic-device'), patients=[row])
+
+
+def lab_groups():
+    return [dict(id='cbc', title='تعداد الدم', date='2024-02-29', results='Hb=12.5 g/dL\nWBC=6000 /µL'),
+            dict(id='renal', title='الكلى', date=None, results='Na=140 mmol/L\nK=4.1 mmol/L')]
+
+
+def lab_group_shift():
+    from desktop_labs import apply
+    result=shift()
+    apply(result['patients'][0],lab_groups())
+    return result

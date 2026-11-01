@@ -15,7 +15,6 @@ import com.hos.rushdpatients.domain.report.ReportReview
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.MediaStoreSaver
 import com.hos.rushdpatients.pdf.PdfCardsExporter
-import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfRuleWeight
 import com.hos.rushdpatients.pdf.PdfRuleContrast
 import com.hos.rushdpatients.pdf.PdfRowShading
@@ -96,15 +95,13 @@ internal class ReportPdfWorkspace(
     suspend fun loadPdfOptions(): PdfExportOptions = PdfExportOptions(
         hospitalName = projectConfigStore.current().hospitalName,
         wardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
-        paperSize = PdfPaperSize.fromSetting(
-            settingsRepository.get(AppConstants.SETTING_PDF_PAPER_SIZE)
-        ),
-        colorPreset = PdfColorPreset.fromSetting(
-            settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
+        paperSize = PdfPaperSize.A5,
+        appTheme = com.hos.rushdpatients.ui.theme.AppThemePreset.fromSetting(
+            settingsRepository.get(AppConstants.SETTING_APP_THEME)
         ),
         ruleWeight = PdfRuleWeight.MEDIUM,
         ruleContrast = PdfRuleContrast.MEDIUM,
-        rowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
+        rowShading = PdfRowShading.ZEBRA,
         patientCardStyle = PatientCardStyle.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_PATIENT_CARD_STYLE)
         )

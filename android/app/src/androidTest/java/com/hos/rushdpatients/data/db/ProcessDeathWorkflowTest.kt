@@ -127,7 +127,7 @@ class ProcessDeathWorkflowTest {
         val form = com.hos.rushdpatients.ui.ward.PatientFormState(null, draft)
         assertEquals("تشخيص\nسطر ثان", form.initialDiagnosis)
         assertEquals("خطة\n12.5 mg", form.treatmentText)
-        assertEquals("Na=140\nK=4", form.labText)
+        assertEquals("Na=140\nK=4", com.hos.rushdpatients.data.model.PatientLabGroups.text(form.labGroups))
         assertEquals("unfinished-inline", form.tasks.single().id)
         assertEquals("مهمة قيد الكتابة", form.tasks.single().description)
         assertEquals("before", core.patients.getById("crash-patient")?.labs)

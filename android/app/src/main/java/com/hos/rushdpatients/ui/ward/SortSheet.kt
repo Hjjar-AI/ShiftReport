@@ -20,9 +20,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import com.hos.rushdpatients.ui.components.AppChoiceChips
+import com.hos.rushdpatients.ui.components.AppTextButton
+import com.hos.rushdpatients.ui.components.AppButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.sort.SortDirection
 import com.hos.rushdpatients.domain.sort.SortField
 import com.hos.rushdpatients.domain.sort.SortLevel
@@ -61,16 +68,45 @@ internal fun PatientSortOptions(
     val presets = listOf(
         R.string.ui_sort_sheet_011 to SortSpec.EMPTY,
         R.string.sort_preset_name to SortSpec.DEFAULT,
+        R.string.sort_preset_supervisor to SortSpec(listOf(
+            SortLevel(SortField.SUPERVISOR), SortLevel(SortField.NAME))),
         R.string.sort_preset_admission to SortSpec(listOf(
             SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.DESC), SortLevel(SortField.NAME))),
         R.string.ui_sort_sheet_012 to SortSpec.WORKBOOK
     )
+    var levels by remember(initial) { mutableStateOf(initial.levels) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         presets.forEach { (label, spec) ->
             com.hos.rushdpatients.ui.components.AppFilterChip(
                 selected = initial == spec, enabled = !saving,
                 onClick = { onApply(spec) },
                 label = { Text(uiText(label)) })
+        }
+        Text(uiText(R.string.sort_custom), style = MaterialTheme.typography.titleSmall)
+        levels.forEachIndexed { index, level ->
+            Text(uiText(R.string.sort_level_number, index + 1), style = MaterialTheme.typography.labelLarge)
+            AppChoiceChips(
+                options = SortField.entries.filter { field -> field == level.field || levels.none { it.field == field } },
+                selected = level.field, enabled = !saving,
+                onSelect = { field -> levels = levels.mapIndexed { i, item -> if (i == index) item.copy(field = field) else item } },
+                label = { fieldLabel(uiText, it) })
+            AppChoiceChips(options = SortDirection.entries.toList(), selected = level.direction, enabled = !saving,
+                onSelect = { direction -> levels = levels.mapIndexed { i, item -> if (i == index) item.copy(direction = direction) else item } },
+                label = { uiText(if (it == SortDirection.ASC) R.string.ui_sort_sheet_013 else R.string.ui_sort_sheet_014) })
+            if (index > 0) AppTextButton(enabled = !saving, onClick = {
+                levels = levels.toMutableList().apply { add(index - 1, removeAt(index)) }
+            }) { Text(uiText(R.string.sort_move_earlier)) }
+            AppTextButton(enabled = !saving, onClick = { levels = levels.filterIndexed { i, _ -> i != index } }) {
+                Text(uiText(R.string.sort_remove_level))
+            }
+        }
+        SortField.entries.firstOrNull { field -> levels.none { it.field == field } }?.let { next ->
+            AppTextButton(enabled = !saving, onClick = { levels = levels + SortLevel(next) }) {
+                Text(uiText(R.string.ui_sort_sheet_008))
+            }
+        }
+        AppButton(enabled = !saving && SortSpec(levels) != initial, onClick = { onApply(SortSpec(levels)) }) {
+            Text(uiText(R.string.ui_sort_sheet_009))
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.data.mapper
 
+import com.hos.rushdpatients.data.model.PatientLabGroups
 import com.hos.rushdpatients.data.model.PatientTaskCodec
 import com.hos.rushdpatients.data.db.entity.PatientEntity
 import com.hos.rushdpatients.data.model.DiagnosisType
@@ -24,7 +25,8 @@ object PatientMapper {
         initialDiagnosis = patient.initialDiagnosis,
         treatmentPlan = patient.treatmentPlan,
         followUp = patient.followUp,
-        labs = patient.labs,
+        labs = patient.labText,
+        labGroupsJson = PatientLabGroups.encode(patient.labGroups),
         tasksJson = PatientTaskCodec.encode(patient.tasks),
         responsibleResidentId = patient.responsibleResidentId,
         responsibleSpecialistId = patient.responsibleSpecialistId,
@@ -56,6 +58,11 @@ object PatientMapper {
         treatmentPlan = entity.treatmentPlan,
         followUp = entity.followUp,
         labs = entity.labs,
+        labGroups = PatientLabGroups.decode(entity.labGroupsJson).also { groups ->
+            require(groups.isEmpty() || entity.labs == PatientLabGroups.text(groups)) {
+                "نص التحاليل المحفوظ لا يطابق المجموعات"
+            }
+        },
         tasks = PatientTaskCodec.decode(entity.tasksJson),
         responsibleResidentId = entity.responsibleResidentId,
         responsibleSpecialistId = entity.responsibleSpecialistId,

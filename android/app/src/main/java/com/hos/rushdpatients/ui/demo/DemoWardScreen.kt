@@ -28,6 +28,12 @@ import com.hos.rushdpatients.ui.ward.*
 @Composable
 fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewModel()) {
     val uiText = rememberUiStrings()
+    val savedAppearance by viewModel.demoAppearance.collectAsStateWithLifecycle()
+    val selectedAppearance = savedAppearance
+    if (selectedAppearance == null) {
+        AppLoadingState(uiText(R.string.demo_loading_appearance))
+        return
+    }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val ward by viewModel.controller.state.collectAsStateWithLifecycle()
     val report by viewModel.report.state.collectAsStateWithLifecycle()
@@ -35,8 +41,11 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     val pages = rememberSaveableStateHolder()
     val snackbar = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableStateOf(DemoDestination.PATIENTS) }
-    var appearance by rememberSaveable { mutableStateOf(AppAppearance.LIGHT) }
-    var accent by rememberSaveable { mutableStateOf(AppThemePreset.VANILLA) }
+    val appearance = selectedAppearance.appearance
+    val accent = selectedAppearance.accent
+    LaunchedEffect(accent, busy, report.pdfOptions.appTheme) {
+        if (!busy) viewModel.report.setAppTheme(accent)
+    }
     var uiPreferencesSetting by rememberSaveable { mutableStateOf(UiPreferences().encode()) }
     val uiPreferences = UiPreferences.decode(uiPreferencesSetting)
     var font by rememberSaveable { mutableStateOf(AppFontScale.NORMAL) }
@@ -68,7 +77,8 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
             navigation.openDrawerAction(action, state.shiftId, isAdmin = true,
                 onRecycleBin = { showRecycle = true })
         } }, onUndoFetch = if (viewModel.canUndoFetch) ({ viewModel.undoFetch() }) else null, onActor = { close { showActor = true } },
-            onReset = { close { showReset = true } }, onExit = { close { showExit = true } })
+            onReset = { close { showReset = true } }, onExit = { close { showExit = true } },
+            onPublishData = { close { viewModel.controller.reviewPendingPublication() } })
     }
     BackHandler(enabled = !busy && viewModel.editor.dialog == null && tab != DemoDestination.REPORT && tab != DemoDestination.ASSIGNMENTS) {
         if (main && tab == DemoDestination.PATIENTS) {
@@ -122,7 +132,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 else -> Scaffold(topBar = { AppTopBar(tab.title(uiText), onBack = { tab = DemoDestination.PATIENTS }) },
                     snackbarHost = { AppSnackbarHost(snackbar) }) { padding ->
                     pages.SaveableStateProvider("settings") {
-                        DemoPreferencesContent(appearance, { appearance = it }, accent, { accent = it },
+                        DemoPreferencesContent(appearance, viewModel::setDemoAppearance, accent, viewModel::setDemoAccent,
                             font, { font = it }, ward.patientDetailsExpanded, ward.twoColumn, ward.compactCards,
                             uiPreferences, { uiPreferencesSetting = it.encode() },
                             Modifier.fillMaxSize().padding(padding).padding(UiPadding.screen))

@@ -15,7 +15,7 @@ object PatientTasks {
             (residentId == null || it.responsibleResidentId == residentId) }
             .flatMap { patient -> patient.tasks.filterNot { it.done }.map { WardTaskEntry(patient, it) } }
 
-    fun statusLabel(task: PatientTask): String = if (task.done) "مكتملة" else "معلقة"
+    fun statusLabel(task: PatientTask): String = if (task.done) "مكتملة" else "معلّقة"
 
     fun requireValid(tasks: List<PatientTask>) {
         require(tasks.map { it.id }.distinct().size == tasks.size) { "توجد معرّفات مهام مكررة" }

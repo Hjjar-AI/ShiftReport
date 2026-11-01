@@ -9,11 +9,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/** The same bundled faces serve Compose and PDF exports; UI loading runs asynchronously. */
+/** The same bundled faces serve Compose and PDF exports; bundled resources load before the first text layout. */
 private val ArabicFontFamily = FontFamily(
-    Font(R.font.tajawal_regular, FontWeight.Normal, loadingStrategy = FontLoadingStrategy.Async),
-    Font(R.font.tajawal_medium, FontWeight.Medium, loadingStrategy = FontLoadingStrategy.Async),
-    Font(R.font.tajawal_bold, FontWeight.Bold, loadingStrategy = FontLoadingStrategy.Async)
+    Font(R.font.tajawal_regular, FontWeight.Normal, loadingStrategy = FontLoadingStrategy.Blocking),
+    Font(R.font.tajawal_medium, FontWeight.Medium, loadingStrategy = FontLoadingStrategy.Blocking),
+    Font(R.font.tajawal_bold, FontWeight.Bold, loadingStrategy = FontLoadingStrategy.Blocking)
 )
 
 private fun textStyle(size: Int, height: Int, weight: FontWeight = FontWeight.Normal) = TextStyle(

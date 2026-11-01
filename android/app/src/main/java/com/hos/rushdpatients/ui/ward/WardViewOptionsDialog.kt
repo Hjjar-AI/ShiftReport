@@ -40,10 +40,11 @@ internal fun WardViewOptionsDialog(
     state: WardUiState, viewModel: WardController, filters: WardFilterOptions,
     resultSummary: String, activeFilterLabels: List<String>,
     onFiltersChanged: ((WardFilterOptions) -> WardFilterOptions) -> Unit, selectedViewOption: WardViewOption,
-    viewOptionsScroll: androidx.compose.foundation.ScrollState, showSort: Boolean,
-    onSortExpandedChange: (Boolean) -> Unit, onSelectOption: (WardViewOption) -> Unit,
+    viewOptionsScroll: androidx.compose.foundation.ScrollState,
+    onSelectOption: (WardViewOption) -> Unit,
     onShowTasks: () -> Unit, onSetAllExpanded: (Boolean) -> Unit,
-    onResetFilters: () -> Unit, onClose: () -> Unit
+    onResetFilters: () -> Unit, onClose: () -> Unit,
+    cardsExpanded: Boolean = state.patientDetailsExpanded
 ) {
     val uiText = rememberUiStrings()
     AppAlertDialog(
@@ -60,7 +61,7 @@ internal fun WardViewOptionsDialog(
                 .verticalScroll(viewOptionsScroll), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 Text(resultSummary, style = MaterialTheme.typography.labelMedium)
                 if (activeFilterLabels.isNotEmpty()) Text(
-                    uiText(R.string.ui_ward_patient_list_controls_002, activeFilterLabels.distinct().joinToString(" · ")),
+                    uiText(R.string.ui_ward_patient_list_controls_002, activeFilterLabels.distinct().joinToString(" • ")),
                     style = MaterialTheme.typography.bodySmall)
                 Text(uiText(R.string.ui_ward_view_options_dialog_001), style = MaterialTheme.typography.bodySmall)
                 if (selectedViewOption == WardViewOption.FILTERS) {
@@ -95,25 +96,20 @@ internal fun WardViewOptionsDialog(
                 }
                 if (selectedViewOption == WardViewOption.CARDS) {
                     Text(uiText(R.string.ui_ward_view_options_dialog_008), style = MaterialTheme.typography.titleSmall)
-                    AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_009), checked = state.patientDetailsExpanded,
+                    AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_009), checked = cardsExpanded,
                         onCheckedChange = onSetAllExpanded)
                     AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_010), checked = state.twoColumn,
                         onCheckedChange = viewModel::setTwoColumn)
-                    AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_011), checked = state.compactCards,
-                        onCheckedChange = viewModel::setCompactCards)
                 }
                 if (selectedViewOption == WardViewOption.SORT) {
                     Text(uiText(R.string.ui_ward_view_options_dialog_012), style = MaterialTheme.typography.titleSmall)
                     Text(sortReviewLabel(uiText, state.sortSpec), style = MaterialTheme.typography.bodySmall)
                     if (!state.isReadOnly) {
-                        AppTextButton(onClick = { onSortExpandedChange(!showSort) }, enabled = !state.saving) {
-                            Text(if (showSort) uiText(R.string.ui_ward_view_options_dialog_013) else uiText(R.string.ui_ward_view_options_dialog_014))
-                        }
-                        if (showSort) PatientSortOptions(
+                        PatientSortOptions(
                             initial = state.sortSpec,
                             saving = state.saving,
                             onApply = { spec ->
-                                viewModel.applySort(spec) { onSortExpandedChange(false) }
+                                viewModel.applySort(spec) {}
                             }
                         )
                     }

@@ -3,7 +3,7 @@ package com.hos.rushdpatients.sync
 object CsvSchema {
 
     const val META_PREFIX = "#"
-    const val CURRENT_VERSION = 7
+    const val CURRENT_VERSION = 8
 
     // Column order — this is the on-wire format.
     val COLUMNS: List<String> = listOf(
@@ -29,7 +29,8 @@ object CsvSchema {
         "updatedAt",
         "revision",
         "tasksJson",
-        "assignmentChangedOn"
+        "assignmentChangedOn",
+        "labGroupsJson"
     )
 
     const val COL_EXTERNAL_ID = "externalId"
@@ -44,6 +45,7 @@ object CsvSchema {
     const val COL_TREATMENT_PLAN = "treatmentPlan"
     const val COL_FOLLOW_UP = "followUp"
     const val COL_LABS = "labs"
+    const val COL_LAB_GROUPS = "labGroupsJson"
     const val COL_RESIDENT_ID = "responsibleResidentId"
     const val COL_SUPERVISOR_ID = "responsibleSupervisorId"
     const val COL_WARNING_FLAGS = "warningFlags"

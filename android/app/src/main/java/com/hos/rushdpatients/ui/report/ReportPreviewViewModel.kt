@@ -190,7 +190,7 @@ class ReportPreviewViewModel @Inject constructor(
                         changeBriefing = briefing,
                         registryChangeSummary = built.registryChangeSummary?.summary?.let { summary ->
                             summary + "\n" + built.registryDoctors.filterNot { it.isDeleted }.joinToString("\n") {
-                                it.fullName + " · " + it.clinicalRole.arabicLabel
+                                it.fullName + " • " + it.clinicalRole.arabicLabel
                             }
                         },
                         reportAsPdf = asPdf,
@@ -276,15 +276,14 @@ class ReportPreviewViewModel @Inject constructor(
     fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions) {
         val current = _state.value
         if (current.isBusy) return
-        val options = requested.copy(ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)
+        val options = requested.copy(paperSize = com.hos.rushdpatients.pdf.PdfPaperSize.A5,
+            rowShading = com.hos.rushdpatients.pdf.PdfRowShading.ZEBRA, ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)
         _state.update { it.copy(savingPdfOptions = true) }
         viewModelScope.launch {
             try {
                 settingsRepository.putAll(mapOf(
                     AppConstants.SETTING_PDF_STYLE to style.name,
                     AppConstants.SETTING_PDF_PAPER_SIZE to options.paperSize.name,
-                    AppConstants.SETTING_PDF_COLOR_PRESET to options.colorPreset.name,
-                    AppConstants.SETTING_PDF_ROW_SHADING to options.rowShading.name
                 ))
                 clearPdfReviews()
                 _state.update { it.copy(pdfStyle = style, pdfOptions = options) }

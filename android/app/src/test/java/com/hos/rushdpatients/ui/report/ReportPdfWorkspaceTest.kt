@@ -48,9 +48,9 @@ class ReportPdfWorkspaceTest {
     }
     @Test fun `appearance or clinical changes invalidate the reviewed artifact`() = runBlocking<Unit> {
         reviewed()
-        coEvery { settings.get(AppConstants.SETTING_PDF_PAPER_SIZE) } returns PdfPaperSize.A4.name
+        coEvery { settings.get(AppConstants.SETTING_APP_THEME) } returns com.hos.rushdpatients.ui.theme.AppThemePreset.SYSTEM.name
         assertThrows(PdfReviewRequiredException::class.java) { runBlocking { workspace.checkedPdf(built) } }
-        coEvery { settings.get(AppConstants.SETTING_PDF_PAPER_SIZE) } returns null
+        coEvery { settings.get(AppConstants.SETTING_APP_THEME) } returns null
         assertThrows(ReportChangedSinceReviewException::class.java) { runBlocking {
             workspace.checkedPdf(built.copy(patients = listOf(built.patients.single().copy(labs = "new result"))))
         } }
@@ -59,4 +59,11 @@ class ReportPdfWorkspaceTest {
         reviewed().delete()
         assertThrows(PdfReviewRequiredException::class.java) { runBlocking { workspace.checkedPdf(built) } }
     }
+    @Test fun `retired paper size preference cannot invalidate a fixed A5 reviewed artifact`() = runBlocking<Unit> {
+        val file = reviewed()
+        coEvery { settings.get(AppConstants.SETTING_PDF_PAPER_SIZE) } returns PdfPaperSize.A4.name
+        assertEquals(PdfPaperSize.A5, workspace.loadPdfOptions().paperSize)
+        assertEquals(file, workspace.checkedPdf(built))
+    }
+
 }

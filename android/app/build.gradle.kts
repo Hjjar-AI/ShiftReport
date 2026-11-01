@@ -20,7 +20,7 @@ val currentAppVersionCode = providers.gradleProperty("shiftreport.versionCode")
 val currentAppVersionName = providers.gradleProperty("shiftreport.versionName")
     .orElse(appVersionProperties.getProperty("versionName")).get()
 require(currentAppVersionCode in 1..2_100_000_000) { "Invalid app versionCode" }
-require(currentAppVersionName.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(?:\\.[0-9]+)*"))) { "Invalid app versionName" }
+require(currentAppVersionName.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+"))) { "Invalid app versionName" }
 
 // Local file and CI environment inputs only; signing credentials never enter source.
 val releaseSigningProperties = Properties().apply {

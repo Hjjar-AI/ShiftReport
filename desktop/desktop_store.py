@@ -60,6 +60,18 @@ class Workspace:
             value = json.loads(plain.decode('utf-8'))
             require(value['project'] == self.project, 'المسودة تخص مشروعا آخر')
             require(isinstance(value['receipts'], list), 'سجل عمليات غير صالح')
+            from desktop_labs import read_groups, apply
+            def upgrade(node):
+                if isinstance(node, dict):
+                    if 'externalId' in node and 'labs' in node:
+                        groups = read_groups(node)
+                        if 'labGroupsJson' not in node:apply(node, groups)
+                    meta = node.get('meta')
+                    if isinstance(meta, dict) and meta.get('schemaVersion') == '7':meta['schemaVersion'] = '8'
+                    for child in node.values():upgrade(child)
+                elif isinstance(node, list):
+                    for child in node:upgrade(child)
+            upgrade(value)
             return value
         except Exception:
             raise BridgeError('تعذر فتح المسودة؛ الملف تالف أو يخص مشروعا أو مفتاحا آخر') from None

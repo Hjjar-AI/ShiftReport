@@ -19,6 +19,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.data.model.Patient
 
 @Composable
@@ -35,9 +37,12 @@ internal fun PatientRecycleBinDialog(
     val uiText = rememberUiStrings()
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(uiText(R.string.ui_ward_review_dialogs_009)) },
+        modifier = Modifier.fillMaxWidth(),
+        title = { Text(uiText(R.string.ui_ward_review_dialogs_009),
+            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            Column(Modifier.fillMaxWidth().appDialogBody(),
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 if (automaticCleanup) Text(uiText(R.string.recycle_bin_retention),
                     style = MaterialTheme.typography.bodySmall)
                 if (loading) {
@@ -46,7 +51,8 @@ internal fun PatientRecycleBinDialog(
                     Text(uiText(R.string.recycle_bin_load_failed))
                     if (onRetry != null) AppTextButton(onClick = onRetry) { Text(uiText(R.string.ui_retry)) }
                 } else if (patients.isEmpty()) {
-                    Text(uiText(R.string.ui_ward_review_dialogs_010))
+                    Text(uiText(R.string.ui_ward_review_dialogs_010),
+                        modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         items(patients, key = { it.id }) { patient ->

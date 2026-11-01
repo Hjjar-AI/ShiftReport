@@ -80,7 +80,6 @@ fun PdfRuleContrast.uiLabel(uiText: UiStrings): String = uiText(when (this) {
 })
 
 fun PdfRowShading.uiLabel(uiText: UiStrings): String = uiText(when (this) {
-    PdfRowShading.AUTO -> R.string.ui_label_pdf_row_shading_001
     PdfRowShading.ZEBRA -> R.string.ui_label_pdf_row_shading_002
     PdfRowShading.NONE -> R.string.ui_label_pdf_row_shading_003
 })

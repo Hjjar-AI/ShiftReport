@@ -19,11 +19,11 @@ class WardEditorStateTest {
         val state = WardEditorState()
         state.openAdd(listOf(patient))
         val form = state.addForm.obtain(null, null)
-        form.labText = "نتيجة لم تحفظ"
+        form.labGroups = listOf(com.hos.rushdpatients.data.model.PatientLabGroup("pending", results = "نتيجة لم تحفظ"))
         state.insertionPosition = "2"
         state.openAdd(emptyList())
         assertSame(form, state.addForm.obtain(null, null))
-        assertEquals("نتيجة لم تحفظ", form.labText)
+        assertEquals("نتيجة لم تحفظ", com.hos.rushdpatients.data.model.PatientLabGroups.text(form.labGroups))
         assertEquals("2", state.insertionPosition)
         assertEquals(listOf(patient), state.insertionPatients)
     }
@@ -32,12 +32,12 @@ class WardEditorStateTest {
         val state = WardEditorState()
         state.editTarget = patient
         val session = requireNotNull(state.editSession)
-        session.form.obtain(patient, null).labText = "مسودة"
+        session.form.obtain(patient, null).labGroups = listOf(com.hos.rushdpatients.data.model.PatientLabGroup("pending", results = "مسودة"))
         session.draftLoaded = true
         state.editTarget = patient.copy()
         assertSame(session, state.editSession)
         assertTrue(requireNotNull(state.editSession).draftLoaded)
-        assertEquals("مسودة", session.form.obtain(patient, null).labText)
+        assertEquals("مسودة", com.hos.rushdpatients.data.model.PatientLabGroups.text(session.form.obtain(patient, null).labGroups))
     }
 
     @Test fun `explicitly opening changed revision creates a fresh edit session`() {

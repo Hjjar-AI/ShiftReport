@@ -25,7 +25,7 @@ internal class LaunchSplashState(private val showing: MutableState<Boolean>, val
 @Composable
 internal fun rememberLaunchSplashState(): LaunchSplashState {
     val showing = rememberSaveable { mutableStateOf(true) }
-    val deadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 5000L) }
+    val deadline by rememberSaveable { mutableLongStateOf(SystemClock.elapsedRealtime() + 3000L) }
     val state = remember(showing, deadline) { LaunchSplashState(showing, deadline) }
     LaunchedEffect(state, state.visible) {
         while (state.visible) {

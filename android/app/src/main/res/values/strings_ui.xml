@@ -9,7 +9,7 @@
     <string name="ui_admin_screen_003">"الرتبة: %1$s"</string>
     <string name="ui_admin_screen_004" formatted="false">"تؤثر الإجراءات في هذه الشاشة على جميع مستخدمي المشروع."</string>
     <string name="ui_admin_screen_005" formatted="false">"ملخص الصلاحيات"</string>
-    <string name="ui_admin_screen_006">"المديرون: %1$s · الأطباء الآخرون: %2$s"</string>
+    <string name="ui_admin_screen_006">"المديرون: %1$s • الأطباء الآخرون: %2$s"</string>
     <string name="ui_admin_screen_007" formatted="false">"الأطباء والحسابات"</string>
     <string name="ui_admin_screen_008" formatted="false">"إضافة الأطباء وتعديل بياناتهم واستيراد أو تصدير سجل CSV."</string>
     <string name="ui_admin_screen_009" formatted="false">"فتح سجل الأطباء"</string>
@@ -109,7 +109,7 @@
     <string name="ui_next" formatted="false">"التالي"</string>
     <string name="ui_ward_patient_dialogs_001" formatted="false">"نقل إلى السلة"</string>
     <string name="ui_ward_patient_dialogs_002">"سيُنقل %1$s إلى سلة المحذوفات. يمكنك استعادته من السلة."</string>
-    <string name="ui_patient_task_editor_001">"مهام المريض · %1$s معلقة"</string>
+    <string name="ui_patient_task_editor_001">"مهام المريض • %1$s معلّقة"</string>
     <string name="ui_patient_task_editor_002" formatted="false">"إضافة مهمة"</string>
     <string name="ui_patient_task_editor_003" formatted="false">"المكتملة"</string>
     <string name="ui_patient_task_editor_004" formatted="false">"تُحفظ تغييرات المهام مع حفظ المريض؛ يسجل التطبيق منفّذ الإتمام ووقته عند الحفظ."</string>
@@ -119,7 +119,7 @@
     <string name="ui_patient_task_editor_008" formatted="false">"إعادة فتح المهمة: "</string>
     <string name="ui_patient_task_editor_009" formatted="false">"تحديد كمكتملة: "</string>
     <string name="ui_patient_task_editor_010" formatted="false">"مكتملة"</string>
-    <string name="ui_patient_task_editor_011" formatted="false">"معلقة"</string>
+    <string name="ui_patient_task_editor_011" formatted="false">"معلّقة"</string>
     <string name="ui_patient_task_editor_012" formatted="false">"إعادة فتح المهمة"</string>
     <string name="ui_patient_task_editor_013" formatted="false">"تحديد كمكتملة"</string>
     <string name="ui_patient_task_editor_014" formatted="false">"مهمة جديدة"</string>
@@ -145,15 +145,15 @@
     <string name="ui_handover_dashboard_004" formatted="false">"قائمة المرضى"</string>
     <string name="ui_handover_dashboard_005" formatted="false">"يحتاج انتباهك"</string>
     <string name="ui_handover_dashboard_006" formatted="false">"عاجل أو أولوية"</string>
-    <string name="ui_handover_dashboard_007" formatted="false">"المهام المتأخرة (ضمن المعلقة)"</string>
+    <string name="ui_handover_dashboard_007" formatted="false">"المهام المتأخرة (ضمن المعلّقة)"</string>
     <string name="ui_handover_dashboard_008" formatted="false">"لا توجد حالات عاجلة"</string>
     <string name="ui_handover_dashboard_009" formatted="false">"ملخص المناوبة"</string>
     <string name="ui_handover_dashboard_010" formatted="false">"إجمالي المرضى"</string>
     <string name="ui_handover_dashboard_011" formatted="false">"مرضاي"</string>
-    <string name="ui_handover_dashboard_012" formatted="false">"المهام المعلقة"</string>
+    <string name="ui_handover_dashboard_012" formatted="false">"المهام المعلّقة"</string>
     <string name="ui_handover_dashboard_013" formatted="false">"مرضى لديهم شارات"</string>
     <string name="ui_handover_dashboard_014" formatted="false">"بحاجة إلى تعيين طبيب"</string>
-    <string name="ui_handover_dashboard_015" formatted="false">"مهام معلقة غير معيّنة"</string>
+    <string name="ui_handover_dashboard_015" formatted="false">"مهام معلّقة غير معيّنة"</string>
     <string name="ui_handover_dashboard_016" formatted="false">"دخول اليوم"</string>
     <string name="ui_handover_dashboard_017" formatted="false">"حفظ البيانات ونشرها"</string>
     <string name="ui_handover_dashboard_018" formatted="false">"استخدم معاينة التقرير لمراجعة تغييرات المناوبة قبل النشر"</string>
@@ -175,23 +175,23 @@
     <string name="ui_ward_screen_008">"بحث: %1$s"</string>
     <string name="ui_ward_screen_009" formatted="false">"مع شارة"</string>
     <string name="ui_ward_screen_010" formatted="false">"غير معيّن"</string>
-    <string name="ui_ward_screen_011" formatted="false">"مهام معلقة"</string>
+    <string name="ui_ward_screen_011" formatted="false">"مهام معلّقة"</string>
     <string name="ui_ward_screen_012" formatted="false">"مهام غير معيّنة"</string>
     <string name="ui_ward_screen_013" formatted="false">"نسخة محفوظة — للعرض والاستعادة فقط"</string>
     <string name="ui_ward_screen_014">"تم نقل %1$s إلى سلة المحذوفات"</string>
     <string name="ui_ward_screen_015" formatted="false">"تراجع"</string>
     <string name="ui_ward_view_options_dialog_001" formatted="false">"البحث والتصفية والتجميع للعرض فقط؛ الترتيب يُحفظ ويستخدم في التقارير وCSV. مرضى الأولوية أولاً."</string>
     <string name="ui_search" formatted="false">"بحث"</string>
-    <string name="ui_ward_view_options_dialog_003" formatted="false">"تصفية · للعرض فقط"</string>
+    <string name="ui_ward_view_options_dialog_003" formatted="false">"تصفية • للعرض فقط"</string>
     <string name="ui_ward_view_options_dialog_004" formatted="false">"مهام القسم"</string>
     <string name="ui_ward_view_options_dialog_005" formatted="false">"مرضاي"</string>
     <string name="ui_ward_view_options_dialog_006" formatted="false">"أولوية فقط"</string>
-    <string name="ui_ward_view_options_dialog_007" formatted="false">"تجميع · للعرض فقط"</string>
-    <string name="ui_ward_view_options_dialog_008" formatted="false">"بطاقات المرضى · تفضيلات الجهاز"</string>
+    <string name="ui_ward_view_options_dialog_007" formatted="false">"تجميع • للعرض فقط"</string>
+    <string name="ui_ward_view_options_dialog_008" formatted="false">"بطاقات المرضى • تفضيلات الجهاز"</string>
     <string name="ui_ward_view_options_dialog_009" formatted="false">"عرض التفاصيل"</string>
     <string name="ui_ward_view_options_dialog_010" formatted="false">"بطاقة بعمودين عند توفر المساحة"</string>
     <string name="ui_ward_view_options_dialog_011" formatted="false">"بطاقات مضغوطة"</string>
-    <string name="ui_ward_view_options_dialog_012" formatted="false">"ترتيب · يُحفظ مع القسم"</string>
+    <string name="ui_ward_view_options_dialog_012" formatted="false">"ترتيب • يُحفظ مع القسم"</string>
     <string name="ui_ward_view_options_dialog_013" formatted="false">"طي خيارات الترتيب"</string>
     <string name="ui_ward_view_options_dialog_014" formatted="false">"تعديل ترتيب المرضى"</string>
     <string name="ui_done" formatted="false">"تم"</string>
@@ -208,7 +208,7 @@
     <string name="ui_patient_card_001" formatted="false">"، رقم القبول الحالي "</string>
     <string name="ui_patient_card_002" formatted="false">"، "</string>
     <string name="ui_patient_card_003" formatted="false">"، المقيم "</string>
-    <string name="ui_patient_card_004">"، مهام معلقة %1$s، منها متأخرة %2$s"</string>
+    <string name="ui_patient_card_004">"، مهام معلّقة %1$s، منها متأخرة %2$s"</string>
     <string name="ui_patient_card_005" formatted="false">"، مثبت مؤقتاً"</string>
     <string name="ui_patient_card_006" formatted="false">"دون شارات"</string>
     <string name="ui_patient_card_007" formatted="false">"شارات فعالة"</string>
@@ -230,7 +230,7 @@
     <string name="ui_patient_card_023">"مقيم: %1$s"</string>
     <string name="ui_patient_card_024" formatted="false">"التشخيص"</string>
     <string name="ui_tasks" formatted="false">"المهام"</string>
-    <string name="ui_patient_card_026">"آخر تعديل: %1$s · %2$s · %3$s"</string>
+    <string name="ui_patient_card_026">"آخر تعديل: %1$s • %2$s • %3$s"</string>
     <string name="ui_patient_card_027" formatted="false">"طي التفاصيل"</string>
     <string name="ui_patient_card_028" formatted="false">"توسيع التفاصيل"</string>
     <string name="ui_patient_card_029" formatted="false">"لا توجد متابعة أو تحاليل"</string>
@@ -254,7 +254,7 @@
     <string name="ui_group_by_sheet_001" formatted="false">"تجميع المرضى"</string>
     <string name="ui_group_by_sheet_002" formatted="false">"تطبيق"</string>
     <string name="ui_shift_doctor_picker_001" formatted="false">"أطباء المناوبة"</string>
-    <string name="ui_shift_doctor_picker_002">"المختارون: %1$s · الحفظ يحدّث أطباء هذه المناوبة"</string>
+    <string name="ui_shift_doctor_picker_002">"المختارون: %1$s • الحفظ يحدّث أطباء هذه المناوبة"</string>
     <string name="ui_shift_doctor_picker_003" formatted="false">"بحث باسم الطبيب"</string>
     <string name="ui_shift_doctor_picker_004" formatted="false">"مراجعة الاختيار المرفوض"</string>
     <string name="ui_shift_doctor_picker_005" formatted="false">"لا يوجد أطباء متاحون"</string>
@@ -270,21 +270,21 @@
     <string name="ui_ward_adaptive_panes_006" formatted="false">"تضييق القائمة"</string>
     <string name="ui_ward_adaptive_panes_007" formatted="false">"إعادة توزيع العرض"</string>
     <string name="ui_ward_task_board_001" formatted="false">"إغلاق المهام"</string>
-    <string name="ui_ward_task_board_002" formatted="false">" · الإتمام من ملف المريض بعد المراجعة والحفظ."</string>
+    <string name="ui_ward_task_board_002" formatted="false">" • الإتمام من ملف المريض بعد المراجعة والحفظ."</string>
     <string name="ui_ward_task_board_003" formatted="false">"مشرف المريض"</string>
     <string name="ui_ward_task_board_004" formatted="false">"مقيم المريض"</string>
     <string name="ui_ward_task_board_005" formatted="false">"مهامي"</string>
-    <string name="ui_ward_task_board_006" formatted="false">"لا توجد مهام معلقة ضمن التصفية"</string>
+    <string name="ui_ward_task_board_006" formatted="false">"لا توجد مهام معلّقة ضمن التصفية"</string>
     <string name="ui_ward_task_board_007" formatted="false">"متأخرة"</string>
     <string name="ui_ward_task_board_008" formatted="false">"اليوم"</string>
     <string name="ui_ward_task_board_009" formatted="false">"لاحقاً"</string>
     <string name="ui_ward_task_board_010" formatted="false">"دون موعد"</string>
     <string name="ui_ward_task_board_011" formatted="false">"طبيب غير متاح"</string>
     <string name="ui_ward_task_board_012" formatted="false">"فتح ملف المريض"</string>
-    <string name="ui_patient_sync_notice_001" formatted="false">"غير متصل · تُعرض البيانات المحلية\n"</string>
+    <string name="ui_patient_sync_notice_001" formatted="false">"غير متصل • تُعرض البيانات المحلية\n"</string>
     <string name="ui_patient_sync_notice_002" formatted="false">"تفاصيل البيانات"</string>
     <string name="ui_patient_sync_notice_003" formatted="false">"التفاصيل"</string>
-    <string name="ui_ward_navigation_chrome_001">"المرضى · %1$s"</string>
+    <string name="ui_ward_navigation_chrome_001">"المرضى • %1$s"</string>
     <string name="ui_ward_navigation_chrome_002" formatted="false">"تسليم المناوبة"</string>
     <string name="ui_ward_navigation_chrome_003" formatted="false">"النشاط"</string>
     <string name="ui_ward_navigation_chrome_004" formatted="false">"القائمة"</string>
@@ -297,7 +297,7 @@
     <string name="ui_ward_drawer_004" formatted="false">"مدير"</string>
     <string name="ui_ward_drawer_005" formatted="false">"عضو الفريق"</string>
     <string name="ui_ward_drawer_006" formatted="false">"مستخدم غير محدد"</string>
-    <string name="ui_ward_drawer_007" formatted="false">"غير متصل · تُعرض البيانات المحلية"</string>
+    <string name="ui_ward_drawer_007" formatted="false">"غير متصل • تُعرض البيانات المحلية"</string>
     <string name="ui_ward_drawer_008" formatted="false">"القسم الحالي"</string>
     <string name="ui_ward_drawer_009" formatted="false">"جميع المرضى"</string>
     <string name="ui_ward_drawer_010" formatted="false">"لوحة تسليم المناوبة"</string>
@@ -375,7 +375,7 @@
     <string name="ui_patient_details_screen_002" formatted="false">"مهام المريض"</string>
     <string name="ui_patient_details_screen_003" formatted="false">"لا توجد مهام مسجلة"</string>
     <string name="ui_patient_details_screen_004" formatted="false">"شارة المريض"</string>
-    <string name="ui_patient_details_screen_005">" · أولوية %1$s"</string>
+    <string name="ui_patient_details_screen_005">" • أولوية %1$s"</string>
     <string name="ui_patient_details_screen_006" formatted="false">"لا توجد شارات"</string>
     <string name="ui_patient_details_screen_007" formatted="false">"السجل الزمني المهم"</string>
     <string name="ui_copy" formatted="false">"نسخ"</string>
@@ -427,7 +427,7 @@
     <string name="ui_settings_appearance_section_006" formatted="false">"نص تشخيص تجريبي لمعاينة الخط"</string>
     <string name="ui_settings_appearance_section_007" formatted="false">"نص تجريبي لخطة العلاج"</string>
     <string name="ui_settings_appearance_section_008" formatted="false">"نص تجريبي للمتابعة"</string>
-    <string name="ui_settings_appearance_section_009" formatted="false">"معاينة البطاقة · بيانات تجريبية فقط"</string>
+    <string name="ui_settings_appearance_section_009" formatted="false">"معاينة البطاقة • بيانات تجريبية فقط"</string>
     <string name="ui_settings_appearance_section_010" formatted="false">"تتبع المعاينة المظهر والخط ومسافات البطاقات المختارة."</string>
     <string name="ui_settings_appearance_section_011" formatted="false">"سنديان"</string>
     <string name="ui_settings_appearance_section_012" formatted="false">"صنوبر"</string>
@@ -459,7 +459,7 @@
     <string name="ui_settings_screen_026" formatted="false">"حفظ إلى التنزيلات"</string>
     <string name="ui_settings_screen_027" formatted="false">"مشاركة الملف"</string>
     <string name="ui_settings_screen_028" formatted="false">"مراجعة نشر النسخة الكاملة"</string>
-    <string name="ui_settings_screen_029" formatted="false">سيُنشر سجل الأطباء المراجع أولاً عند وجود تعديلات عليه وبصلاحية مدير، ثم نسخة المرضى المراجعة. التعديلات المحلية اللاحقة تبقى معلقة.</string>
+    <string name="ui_settings_screen_029" formatted="false">سيُنشر سجل الأطباء المراجع أولاً عند وجود تعديلات عليه وبصلاحية مدير، ثم نسخة المرضى المراجعة. التعديلات المحلية اللاحقة تبقى معلّقة.</string>
     <string name="ui_settings_screen_030" formatted="false">"راجعت النسخة وأؤكد نشرها"</string>
     <string name="ui_settings_screen_031" formatted="false">"تأكيد استعادة النسخة"</string>
     <string name="ui_settings_screen_032" formatted="false">"ستستبدل النسخة الاحتياطية البيانات المحلية الحالية. لا يمكن التراجع عن هذه العملية من داخل التطبيق."</string>
@@ -519,11 +519,11 @@
     <string name="ui_report_preview_screen_010" formatted="false">"ارجع إلى المعاينة وافتح كل ملف مختار"</string>
     <string name="ui_report_preview_screen_011" formatted="false">"ارجع إلى المعاينة وافتح التقرير"</string>
     <string name="ui_report_preview_screen_012" formatted="false">"مشاركة التقرير"</string>
-    <string name="ui_report_preview_screen_013">"رفع للشبكة وإرسال تقرير · %1$s"</string>
-    <string name="ui_report_preview_screen_014">"%1$s مجموعات مشرفين · PDF"</string>
+    <string name="ui_report_preview_screen_013">"رفع للشبكة وإرسال تقرير • %1$s"</string>
+    <string name="ui_report_preview_screen_014">"%1$s مجموعات مشرفين • PDF"</string>
     <string name="ui_report_preview_screen_015" formatted="false">"نصي"</string>
-    <string name="ui_report_preview_screen_016">"التقرير العام · %1$s"</string>
-    <string name="ui_report_preview_screen_017">"التالي · %1$s"</string>
+    <string name="ui_report_preview_screen_016">"التقرير العام • %1$s"</string>
+    <string name="ui_report_preview_screen_017">"التالي • %1$s"</string>
     <string name="ui_report_preview_screen_018" formatted="false">"جار تحميل التقرير…"</string>
     <string name="ui_report_preview_screen_019" formatted="false">"اختر أطباء المناوبة من الزر أدناه"</string>
     <string name="ui_report_preview_screen_020" formatted="false">"طي الأسماء"</string>
@@ -534,15 +534,15 @@
     <string name="ui_report_preview_screen_025" formatted="false">"التقرير العام"</string>
     <string name="ui_report_preview_screen_026" formatted="false">"ملف PDF مستقل لكل مجموعة مختارة. عاين كل ملف قبل الإرسال."</string>
     <string name="ui_report_preview_screen_027" formatted="false">"لا يوجد مشرفون مرتبطون بمرضى هذه المناوبة"</string>
-    <string name="ui_report_preview_screen_028">"%1$s · %2$s مريض"</string>
-    <string name="ui_report_preview_screen_029" formatted="false">" · لا توجد مجموعة"</string>
-    <string name="ui_report_preview_screen_030" formatted="false">"جميع مرضى المناوبة · مجموعة المشروع"</string>
+    <string name="ui_report_preview_screen_028">"%1$s • %2$s مريض"</string>
+    <string name="ui_report_preview_screen_029" formatted="false">" • لا توجد مجموعة"</string>
+    <string name="ui_report_preview_screen_030" formatted="false">"جميع مرضى المناوبة • مجموعة المشروع"</string>
     <string name="ui_report_preview_screen_031" formatted="false">"إرسال كملف PDF"</string>
     <string name="ui_report_preview_screen_032" formatted="false">"ملخص التقرير"</string>
-    <string name="ui_report_preview_screen_033">"%1$s مريض · %2$s مرافق · %3$s"</string>
+    <string name="ui_report_preview_screen_033">"%1$s مريض • %2$s مرافق • %3$s"</string>
     <string name="ui_report_preview_screen_034">"(حالات نفسية: %1$s)"</string>
     <string name="report_total_patients">"إجمالي المرضى: %1$s"</string>
-    <string name="report_escorts_and_date">"%1$s مرافق · %2$s"</string>
+    <string name="report_escorts_and_date">"%1$s مرافق • %2$s"</string>
     <string name="ui_report_preview_screen_035" formatted="false">"يوجد تسليم غير مؤكد محفوظ على هذا الجهاز؛ احسمه من السجل قبل الإعادة إلى الوجهة نفسها."</string>
     <string name="ui_report_preview_screen_036" formatted="false">"سبب التعذر والخطوة التالية"</string>
     <string name="ui_report_preview_screen_037" formatted="false">"معاينة PDF مجدداً"</string>
@@ -558,7 +558,7 @@
     <string name="ui_report_preview_screen_047" formatted="false">"يمكن المتابعة رغم هذه الملاحظات."</string>
     <string name="ui_report_preview_screen_048" formatted="false">"ما الذي تغيّر منذ آخر نشر؟"</string>
     <string name="ui_report_preview_screen_049" formatted="false">"لا توجد تغييرات محلية غير منشورة"</string>
-    <string name="ui_report_preview_screen_050">"%1$s تغييرات · "</string>
+    <string name="ui_report_preview_screen_050">"%1$s تغييرات • "</string>
     <string name="ui_report_preview_screen_051" formatted="false">"إغلاق تخصيص PDF"</string>
     <string name="ui_report_preview_screen_052" formatted="false">"تخصيص PDF (اختياري)"</string>
     <string name="ui_report_preview_screen_053" formatted="false">"تخصيص PDF"</string>
@@ -572,8 +572,8 @@
     <string name="ui_report_preview_screen_061" formatted="false">"تم فتح المعاينة؛ يمكنك المتابعة إلى الإرسال."</string>
     <string name="ui_report_preview_screen_062" formatted="false">"مراجعة الإرسال"</string>
     <string name="ui_report_preview_screen_063" formatted="false">"أطباء المناوبة: "</string>
-    <string name="ui_report_preview_screen_064">"مجموعة %1$s · %2$s مريض · PDF"</string>
-    <string name="ui_report_preview_screen_065">"مجموعة المشروع · %1$s"</string>
+    <string name="ui_report_preview_screen_064">"مجموعة %1$s • %2$s مريض • PDF"</string>
+    <string name="ui_report_preview_screen_065">"مجموعة المشروع • %1$s"</string>
     <string name="ui_report_preview_screen_066" formatted="false">"بعد الضغط على «رفع للشبكة وإرسال تقرير» ستظهر مراجعة التأكيد النهائي للنشر والتسليم."</string>
     <string name="ui_report_preview_screen_067" formatted="false">"إغلاق أدوات الحفظ والسجل"</string>
     <string name="ui_report_preview_screen_068" formatted="false">"الحفظ وسجل التسليم"</string>
@@ -583,7 +583,7 @@
     <string name="ui_report_preview_screen_072" formatted="false">"مشاركة PDF"</string>
     <string name="ui_report_preview_screen_073" formatted="false">"اختر صيغة PDF من خطوة الوجهة لإظهار حفظ التقرير ومشاركته."</string>
     <string name="ui_report_preview_screen_074" formatted="false">"حفظ توزيع المرضى بالأسماء فقط (PDF)"</string>
-    <string name="ui_report_preview_screen_075" formatted="false">"A4 عمودي · أسماء المقيمين والمرضى في جداول الفرق."</string>
+    <string name="ui_report_preview_screen_075" formatted="false">"A5 عمودي • ثلاثة أعمدة للفرق، بأسماء المقيمين والمرضى."</string>
     <string name="ui_report_preview_screen_076" formatted="false">"سجل التسليم — التحقق من محاولة سابقة"</string>
     <string name="ui_report_preview_screen_077" formatted="false">"معاينة التقرير العام"</string>
     <string name="ui_report_preview_screen_078" formatted="false">"افتح ملف كل مجموعة مختارة وافحصه. سيُرسل الملف نفسه بعد التأكيد."</string>
@@ -603,7 +603,7 @@
     <string name="ui_report_preview_screen_092" formatted="false">"هذا التقرير سُلّم بالفعل. هل تسمح بنسخة إضافية واحدة من المحتوى نفسه، بعد معاينته وتأكيد إرساله؟"</string>
     <string name="ui_report_preview_screen_093" formatted="false">"تأكيد قرار التسليم"</string>
     <string name="ui_report_preview_screen_094" formatted="false">"أؤكد"</string>
-    <string name="ui_report_preview_screen_095">"مجموعة %1$s · %2$s مريض"</string>
+    <string name="ui_report_preview_screen_095">"مجموعة %1$s • %2$s مريض"</string>
     <string name="ui_report_preview_screen_096" formatted="false">"تغيّرت مجموعات المشرفين؛ أغلق هذه المراجعة واختر الوجهات من جديد."</string>
     <string name="ui_report_preview_screen_097" formatted="false">"مجموعة المشروع — تقرير المناوبة الكامل"</string>
     <string name="ui_report_flow_step_001" formatted="false">"الخطوة الحالية"</string>
@@ -744,8 +744,8 @@
     <string name="ui_doctors_screen_049">"اللقب: %1$s"</string>
     <string name="ui_doctors_screen_050">"تعديل %1$s"</string>
     <string name="ui_doctors_screen_051">"حذف %1$s"</string>
-    <string name="ui_demo_navigation_001" formatted="false">"مشفى تجريبي · تقرير المناوبة"</string>
-    <string name="ui_demo_navigation_002">"%1$s · جلسة مؤقتة"</string>
+    <string name="ui_demo_navigation_001" formatted="false">"مشفى تجريبي • تقرير المناوبة"</string>
+    <string name="ui_demo_navigation_002">"%1$s • جلسة مؤقتة"</string>
     <string name="ui_demo_navigation_003" formatted="false">"اكتشف التطبيق ببيانات وهمية. التغييرات هنا لا تؤثر في مشروعك."</string>
     <string name="ui_demo_navigation_004">"سلة المحذوفات (%1$s)"</string>
     <string name="ui_demo_navigation_005" formatted="false">"إعادة ضبط البيانات التجريبية"</string>
@@ -754,8 +754,8 @@
     <string name="ui_demo_navigation_008" formatted="false">"ترتيب الجلسة التجريبية؛ يستخدم أيضاً في PDF."</string>
     <string name="ui_demo_secondary_screens_001" formatted="false">"اختر أطباء المناوبة"</string>
     <string name="ui_demo_secondary_screens_002" formatted="false">"النطاق والوجهة والصيغة"</string>
-    <string name="ui_demo_secondary_screens_003">"%1$s · %2$s مريض · %3$s مرافق"</string>
-    <string name="ui_demo_secondary_screens_004" formatted="false">"جميع مرضى المناوبة · حفظ ملف PDF محلي فقط"</string>
+    <string name="ui_demo_secondary_screens_003">"%1$s • %2$s مريض • %3$s مرافق"</string>
+    <string name="ui_demo_secondary_screens_004" formatted="false">"جميع مرضى المناوبة • حفظ ملف PDF محلي فقط"</string>
     <string name="ui_demo_secondary_screens_005" formatted="false">"لا يوجد نشر أو إرسال في التجربة. تحمل كل صفحة علامة عرض تجريبي."</string>
     <string name="ui_demo_secondary_screens_006" formatted="false">"صفحة أفقية"</string>
     <string name="ui_demo_secondary_screens_007" formatted="false">"حفظ PDF تجريبي"</string>
@@ -772,7 +772,7 @@
     <string name="ui_demo_ward_screen_002" formatted="false">"فتح القائمة"</string>
     <string name="ui_demo_ward_screen_003" formatted="false">"طي جميع البطاقات"</string>
     <string name="ui_demo_ward_screen_004" formatted="false">"توسيع جميع البطاقات"</string>
-    <string name="ui_demo_ward_screen_005" formatted="false">"عرض تجريبي · التعديلات مؤقتة · لا اتصال بتليجرام"</string>
+    <string name="ui_demo_ward_screen_005" formatted="false">"عرض تجريبي • التعديلات مؤقتة • لا اتصال بتليجرام"</string>
     <string name="ui_demo_ward_screen_006" formatted="false">"لا يوجد مرضى"</string>
     <string name="ui_demo_ward_screen_007" formatted="false">"جلسة تجريبية مؤقتة"</string>
     <string name="ui_demo_ward_screen_008" formatted="false">"تعذر فتح مكان الحفظ"</string>
@@ -789,14 +789,14 @@
     <string name="ui_project_setup_choices_003" formatted="false">"الانضمام لمشروع"</string>
     <string name="ui_project_setup_choices_004" formatted="false">"باستخدام ملف الانضمام من المدير"</string>
     <string name="ui_project_setup_choices_005" formatted="false">"إنشاء مشروع"</string>
-    <string name="ui_project_setup_choices_006" formatted="false">"إعداد مجموعة جديدة وإدارة الفريق"</string>
+    <string name="ui_project_setup_choices_006" formatted="false">"للمدير الذي يجهّز المشروع لأول مرة"</string>
     <string name="ui_project_setup_screen_001" formatted="false">"مرحباً بك في ShiftReport"</string>
-    <string name="ui_project_setup_screen_002" formatted="false">"تقرير المناوبة · اختر طريقة البدء"</string>
+    <string name="ui_project_setup_screen_002" formatted="false">"تقرير المناوبة • اختر طريقة البدء"</string>
     <string name="ui_project_setup_screen_003" formatted="false">"اكتشف التطبيق قبل إعداد المشروع"</string>
     <string name="ui_project_setup_screen_004" formatted="false">"مرضى وأطباء تجريبيون لتجربة البطاقات والجولات والتقارير."</string>
     <string name="ui_project_setup_screen_005" formatted="false">"لا تحتاج إلى حساب أو رمز بوت. تبقى التجربة في الذاكرة دون حفظ أو مزامنة."</string>
     <string name="ui_project_setup_screen_006" formatted="false">"١. ملف الانضمام من المدير"</string>
-    <string name="ui_project_setup_screen_007" formatted="false">"اطلب الملف من المدير وعبارة مروره عبر قناة منفصلة. لا تُرسل العبارة مع الملف."</string>
+    <string name="ui_project_setup_screen_007" formatted="false">"اختر ملف الانضمام وأدخل عبارة مروره بأي ترتيب؛ كلاهما مطلوب لفتح الملف. اطلبهما من المدير عبر قناتين منفصلتين."</string>
     <string name="ui_project_setup_screen_008" formatted="false">"عبارة مرور الملف (10 محارف على الأقل)"</string>
     <string name="ui_project_setup_screen_009" formatted="false">"اختيار ملف انضمام آخر"</string>
     <string name="ui_project_setup_screen_010" formatted="false">"اختيار ملف الانضمام"</string>
@@ -805,39 +805,39 @@
     <string name="ui_project_setup_screen_013" formatted="false">"تشفير بيانات تليجرام: مفعّل"</string>
     <string name="ui_project_setup_screen_014" formatted="false">"تشفير بيانات تليجرام: غير مفعّل"</string>
     <string name="ui_project_setup_screen_015" formatted="false">"تم استيراد إعدادات الاتصال والمواضيع تلقائياً؛ لا يلزم إدخال معرّفات المواضيع."</string>
-    <string name="ui_project_setup_screen_016" formatted="false">"بيانات الاتصال بالمشروع"</string>
+    <string name="ui_project_setup_screen_016" formatted="false">"1. ربط مجموعة المشروع"</string>
     <string name="ui_project_setup_screen_017" formatted="false">"اسم المستشفى أو المشروع"</string>
     <string name="ui_project_setup_screen_018" formatted="false">"رمز البوت من BotFather"</string>
-    <string name="ui_project_setup_screen_019" formatted="false">"معرف المجموعة الرئيسي (رقم سالب)"</string>
-    <string name="ui_project_setup_screen_020" formatted="false">"إخفاء إعدادات المواضيع"</string>
-    <string name="ui_project_setup_screen_021" formatted="false">"إعدادات المواضيع المتقدمة (اختياري)"</string>
-    <string name="ui_project_setup_screen_022" formatted="false">"اختيارية. اترك الحقول فارغة للنشر في General."</string>
-    <string name="ui_project_setup_screen_023" formatted="false">"موضوع التقارير"</string>
-    <string name="ui_project_setup_screen_025" formatted="false">"موضوع بيانات المناوبات"</string>
-    <string name="ui_project_setup_screen_026" formatted="false">"موضوع سجل الأطباء"</string>
-    <string name="ui_project_setup_screen_027" formatted="false">"حماية بيانات تليجرام"</string>
-    <string name="ui_project_setup_screen_028" formatted="false">"تشفير البيانات بمفتاح عشوائي"</string>
+    <string name="ui_project_setup_screen_019" formatted="false">"رقم مجموعة المشروع (Chat ID)"</string>
+    <string name="ui_project_setup_screen_020" formatted="false">"إخفاء تخصيص المواضيع"</string>
+    <string name="ui_project_setup_screen_021" formatted="false">"تخصيص مواضيع داخل المجموعة — اختياري"</string>
+    <string name="ui_project_setup_screen_022" formatted="false">"هذه مواضيع داخل مجموعة المشروع نفسها، وليست مجموعات جديدة. فعّل المواضيع في تليجرام أولاً إن أردت استخدامها. أدخل رقم كل موضوع فقط؛ اترك أي حقل فارغاً لاستخدام المحادثة الرئيسية / عام."</string>
+    <string name="ui_project_setup_screen_023" formatted="false">"رقم موضوع التقارير — اختياري"</string>
+    <string name="ui_project_setup_screen_025" formatted="false">"رقم موضوع بيانات المرضى — اختياري"</string>
+    <string name="ui_project_setup_screen_026" formatted="false">"رقم موضوع سجل الأطباء — اختياري"</string>
+    <string name="ui_project_setup_screen_027" formatted="false">"3. اختيار حماية البيانات"</string>
+    <string name="ui_project_setup_screen_028" formatted="false">"تشفير ملفات البيانات على تليجرام"</string>
     <string name="ui_project_setup_screen_029" formatted="false">"اختياري عند إنشاء المشروع. يُنشأ مفتاح عشوائي ويُنقل للأعضاء داخل ملف الانضمام المحمي. يفك التطبيق البيانات محلياً؛ التقارير النصية تُرسل كملفات مشفرة. استخدم PDF للقراءة في تليجرام."</string>
     <string name="ui_project_setup_screen_030" formatted="false">"احتفظ بملف الانضمام وعبارة مروره؛ استعادة البيانات المشفرة تحتاج مفتاح المشروع."</string>
-    <string name="ui_project_setup_screen_031" formatted="false">"المدير الأول"</string>
+    <string name="ui_project_setup_screen_031" formatted="false">"2. تعريف المدير الأول"</string>
     <string name="ui_project_setup_screen_032" formatted="false">"الاسم الكامل"</string>
-    <string name="ui_project_setup_screen_033" formatted="false">"معرف مستخدم تليجرام"</string>
+    <string name="ui_project_setup_screen_033" formatted="false">"رقم حسابك الشخصي في تليجرام (User ID)"</string>
     <string name="ui_project_setup_screen_034" formatted="false">"مقيم"</string>
     <string name="ui_project_setup_screen_035" formatted="false">"مشرف"</string>
     <string name="ui_project_setup_screen_036" formatted="false">"إخفاء المساعدة"</string>
-    <string name="ui_project_setup_screen_037" formatted="false">"خطوات الإعداد والمساعدة"</string>
+    <string name="ui_project_setup_screen_037" formatted="false">"مساعدة: البوت والمجموعة وأرقام المواضيع"</string>
     <string name="ui_project_setup_screen_038" formatted="false">"بدء التجربة"</string>
     <string name="ui_project_setup_screen_039" formatted="false">"التحقق والانضمام"</string>
-    <string name="ui_project_setup_screen_040" formatted="false">"إنشاء وتهيئة المشروع"</string>
-    <string name="ui_project_setup_screen_041" formatted="false">"شاهد التطبيق فوراً بمرضى وهميين بأسماء المشروبات الساخنة وأطباء بأسماء الأشجار. لا يحتاج رمز بوت، ولا يحفظ أو يزامن أي بيانات. يمكنك الخروج والعودة للتهيئة الحقيقية في أي وقت."</string>
+    <string name="ui_project_setup_screen_040" formatted="false">"التحقق من الاتصال وإنشاء المشروع"</string>
+    <string name="ui_project_setup_screen_041" formatted="false">"شاهد التطبيق فوراً بـ 50 مريضاً وهمياً من ملف العينة، بأسماء أطعمة ومشروبات وأطباء بأسماء الأشجار. لا يحتاج رمز بوت، ولا يحفظ أو يزامن أي بيانات. يمكنك الخروج والعودة للتهيئة الحقيقية في أي وقت."</string>
     <string name="ui_project_setup_screen_042" formatted="false">"اطلب ملف الانضمام من المدير وعبارة مروره عبر قناة منفصلة. يستورد الملف بيانات الاتصال والمواضيع ومفتاح المشروع إن كان التشفير مفعلاً. راجع اسم المشروع ثم اضغط التحقق والانضمام."</string>
-    <string name="ui_project_setup_screen_043" formatted="false">"١. أنشئ بوتاً عبر BotFather.\n٢. أضف البوت مديراً إلى مجموعة Supergroup بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل.\n٣. أنشئ المواضيع المطلوبة إن رغبت، ثم أدخل المعرفات أدناه.\n٤. يمكن استخدام مجموعة موجودة؛ إذا وجدت رسالة مثبّتة، راجع تأكيد بدء مشروع جديد. يجب أن يكون المدير الأول مديراً في مجموعة تليجرام.\n٥. بعد التهيئة، صدّر ملف انضمام مشفراً للأعضاء من إعدادات المدير."</string>
+    <string name="ui_project_setup_screen_043" formatted="false">"ابدأ بمجموعة واحدة فقط\n1. في BotFather أنشئ بوتاً وانسخ رمز API كاملاً، وليس اسم البوت.\n2. أنشئ مجموعة تليجرام أو اختر مجموعتك، وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل. يجب أن يكون حسابك أيضاً مديراً فيها.\n3. أدخل رقم المجموعة السالب. اسم المجموعة ورابط الدعوة ليسا رقم المجموعة.\n\nما الفرق بين المجموعة والموضوع؟\nالمجموعة هي المكان الأساسي للمشروع. الموضوع قسم داخل المجموعة لتنظيم الرسائل؛ لا تحتاج إليه للبدء. إن تركت أرقام المواضيع فارغة، يستخدم التطبيق المحادثة الرئيسية / عام.\n\nكيف تقرأ رابط رسالة؟\nمثال توضيحي فقط: t.me/c/1234567890/45 يشير إلى المجموعة ذات الرقم -1001234567890؛ العدد 45 هو رقم الرسالة، وليس رقم موضوع. في رابط مثل t.me/c/1234567890/12/45 يكون 12 رقم الموضوع داخل المجموعة نفسها. هذه الأمثلة تخص روابط الرسائل الخاصة بهذا الشكل؛ لا تنطبق على روابط الدعوة أو الروابط ذات أسماء المستخدمين.\n\nالمدير الأول\nأدخل رقم حسابك الشخصي، لا رقم الهاتف ولا رقم البوت.\n\nبعد الإنشاء\nصدّر ملف الانضمام المحمي من إعدادات المدير وشاركه مع الأعضاء؛ أرسل عبارة مروره عبر قناة منفصلة. لا يحتاج الأعضاء إلى إدخال أرقام المجموعات أو المواضيع. إذا كانت في المجموعة رسالة مثبّتة، سيطلب التطبيق مراجعة تأكيد البدء قبل المتابعة."</string>
     <string name="ui_app_pdf_appearance_controls_001" formatted="false">"اختيار سريع"</string>
     <string name="ui_app_pdf_appearance_controls_002" formatted="false">"سماكة الفواصل الأفقية"</string>
     <string name="ui_app_pdf_appearance_controls_003" formatted="false">"وضوح الفواصل"</string>
     <string name="ui_app_pdf_appearance_controls_004" formatted="false">"تظليل صفوف الجدول"</string>
     <string name="ui_app_pdf_appearance_controls_005">"معاينة الفواصل: %1$s، %2$s، %3$s"</string>
-    <string name="ui_app_pdf_appearance_controls_006" formatted="false">"المعاينة للفواصل؛ التظليل يخص الجداول وتوزيع الفرق. تبقى البطاقات A5 بهوامش ثابتة."</string>
+    <string name="ui_app_pdf_appearance_controls_006" formatted="false">"التظليل يتناوب بين صفوف المرضى، ولا يعتمد على الفرق. بطاقات A5 تبقى دون تظليل."</string>
     <string name="ui_app_pdf_style_picker_001" formatted="false">"نمط PDF"</string>
     <string name="ui_app_pdf_style_picker_002" formatted="false">"بطاقات طولية ملونة بحجم A5 عمودي مع فهرس قابل للضغط؛ اضغط اسم المريض للعودة إلى الفهرس."</string>
     <string name="ui_app_pdf_style_picker_003" formatted="false">"جدول كلاسيكي مضغوط يحافظ على كامل المحتوى؛ يمكن اختيار حجم الورق والاتجاه."</string>
@@ -862,20 +862,20 @@
     <string name="ui_admin_view_model_001" formatted="false">"غير مصرح لك بتنفيذ هذا الإجراء"</string>
     <string name="ui_admin_view_model_002">"تمت ترقية %1$s محلياً؛ افتح سجل الأطباء وراجع نشر الصلاحيات"</string>
     <string name="ui_admin_view_model_003">"أُزيلت صلاحية %1$s محلياً؛ افتح سجل الأطباء وراجع نشر الصلاحيات"</string>
-    <string name="ui_ward_synchronization_001" formatted="false">" · حالة النشر غير معروفة"</string>
+    <string name="ui_ward_synchronization_001" formatted="false">" • حالة النشر غير معروفة"</string>
     <string name="ui_ward_synchronization_002" formatted="false">"\nآخر نشر على هذا الجهاز: "</string>
     <string name="ui_unknown" formatted="false">"غير معروف"</string>
-    <string name="ui_ward_synchronization_004" formatted="false">" · آخر جلب: "</string>
+    <string name="ui_ward_synchronization_004" formatted="false">" • آخر جلب: "</string>
     <string name="ui_ward_synchronization_005" formatted="false">" (نسخة سابقة)"</string>
     <string name="ui_patient_identity_003">"رقم القبول الحالي: %1$s"</string>
-    <string name="ui_patient_identity_004">" · %1$s سنة"</string>
+    <string name="ui_patient_identity_004">" • %1$s سنة"</string>
     <string name="ui_patient_identity_005">"رقم %1$s"</string>
     <string name="ui_patient_identity_006">"دخول %1$s"</string>
     <string name="ui_patient_identity_007">"%1$s يوم"</string>
     <string name="ui_ward_activity_operations_001" formatted="false">"تعذر تحميل النشاط المحلي"</string>
     <string name="ui_ward_activity_operations_002" formatted="false">"تعذر تحديث النشاط والمنشورات"</string>
     <string name="ui_doctor_choice_groups_001" formatted="false">"المشرفون"</string>
-    <string name="ui_doctor_choice_groups_002" formatted="false">"المقيمون · دون فريق"</string>
+    <string name="ui_doctor_choice_groups_002" formatted="false">"المقيمون • دون فريق"</string>
     <string name="ui_doctor_choice_groups_003" formatted="false">"مشرف مرتبط"</string>
     <string name="ui_doctor_choice_groups_004">"فريق %1$s"</string>
     <string name="ui_ward_shift_operations_014" formatted="false">"لا توجد وردية للتصدير"</string>
@@ -928,7 +928,7 @@
     <string name="ui_ward_save_guard_015" formatted="false">"بيانات المريض غير صحيحة"</string>
     <string name="ui_patient_details_screen_010" formatted="false">"\nقبل: "</string>
     <string name="ui_patient_details_screen_011" formatted="false">"\nبعد: "</string>
-    <string name="ui_patient_details_screen_012" formatted="false">"آخر تعديل محلي · "</string>
+    <string name="ui_patient_details_screen_012" formatted="false">"آخر تعديل محلي • "</string>
     <string name="ui_patient_details_screen_013" formatted="false">"\nالمريض محدد كأولوية"</string>
     <string name="ui_patient_details_screen_014" formatted="false">"\nشارات: "</string>
     <string name="ui_patient_form_validation_001" formatted="false">"اختر تاريخ الدخول"</string>
@@ -970,7 +970,7 @@
     <string name="ui_settings_project_operations_013" formatted="false">"انتهت جلسة التصدير؛ أعد إنشاء ملف الانضمام"</string>
     <string name="ui_settings_project_operations_014" formatted="false">"تم حفظ ملف الانضمام المشفر والتحقق منه. شارك عبارة المرور عبر قناة منفصلة."</string>
     <string name="ui_settings_project_operations_015" formatted="false">"فشل حفظ ملف الانضمام"</string>
-    <string name="ui_settings_section_layout_005">"%1$s · %2$s · خط %3$s"</string>
+    <string name="ui_settings_section_layout_005">"%1$s • %2$s • خط %3$s"</string>
     <string name="ui_settings_section_layout_006" formatted="false">"التفاصيل موسعة"</string>
     <string name="ui_settings_section_layout_007" formatted="false">"التفاصيل مطوية"</string>
     <string name="ui_settings_section_layout_008" formatted="false">"عمودان عند توفر المساحة"</string>
@@ -980,19 +980,19 @@
     <string name="ui_settings_section_layout_012" formatted="false">"حفظ والتالي: "</string>
     <string name="ui_settings_section_layout_013" formatted="false">"مفعل"</string>
     <string name="ui_settings_section_layout_014" formatted="false">"متوقف"</string>
-    <string name="ui_settings_section_layout_015" formatted="false">" · اقتراح نسخ المناوبة: "</string>
+    <string name="ui_settings_section_layout_015" formatted="false">" • اقتراح نسخ المناوبة: "</string>
     <string name="ui_settings_section_layout_016" formatted="false">"إرسال كنص"</string>
-    <string name="ui_settings_section_layout_017" formatted="false">"جلب نسخة كاملة · مراجعة ونشر · تراجع عن الجلب"</string>
-    <string name="ui_settings_section_layout_018" formatted="false">"تصدير CSV · استيراد مرضى"</string>
-    <string name="ui_settings_section_layout_019" formatted="false">"نسخة مشفرة · استعادة نسخة محفوظة"</string>
+    <string name="ui_settings_section_layout_017" formatted="false">"جلب نسخة كاملة • مراجعة ونشر • تراجع عن الجلب"</string>
+    <string name="ui_settings_section_layout_018" formatted="false">"تصدير CSV • استيراد مرضى"</string>
+    <string name="ui_settings_section_layout_019" formatted="false">"نسخة مشفرة • استعادة نسخة محفوظة"</string>
     <string name="ui_settings_section_layout_020" formatted="false">"إعادة الاتصال بالمشروع الحالي"</string>
     <string name="ui_settings_section_layout_021" formatted="false">"ملف انضمام محمي بكلمة مرور"</string>
     <string name="ui_settings_section_layout_022" formatted="false">"وجهة تقرير كل مشرف"</string>
-    <string name="ui_settings_section_layout_023" formatted="false">"المدير الدائم فقط · مراجعة وتأكيد"</string>
-    <string name="ui_settings_section_layout_024">"قفل تلقائي: %1$s د · "</string>
+    <string name="ui_settings_section_layout_023" formatted="false">"المدير الدائم فقط • مراجعة وتأكيد"</string>
+    <string name="ui_settings_section_layout_024">"قفل تلقائي: %1$s د • "</string>
     <string name="ui_settings_section_layout_025" formatted="false">"البصمة مفعلة"</string>
     <string name="ui_settings_section_layout_026" formatted="false">"البصمة متوقفة"</string>
-    <string name="ui_settings_section_layout_027">"%1$s · %2$s مناوبة محفوظة"</string>
+    <string name="ui_settings_section_layout_027">"%1$s • %2$s مناوبة محفوظة"</string>
     <string name="ui_settings_view_model_001" formatted="false">"غير مدير"</string>
     <string name="ui_settings_view_model_002" formatted="false">"تعذر تحميل الإعدادات"</string>
     <string name="delivery_log_unavailable" formatted="false">"تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد حتى إصلاح السجل"</string>
@@ -1023,7 +1023,7 @@
     <string name="report_delivered_and_published" formatted="false">"تم إرسال التقرير ونشر أحدث بيانات المرضى"</string>
     <string name="report_delivery_last_operation" formatted="false">"آخر عملية ناجحة: إرسال التقرير ونشر بيانات المرضى"</string>
     <string name="report_pdf_save_failed" formatted="false">"تعذر حفظ ملف PDF"</string>
-    <string name="report_pdf_caption">"تقرير المناوبة: %1$s · أطباء المناوبة: %2$s"</string>
+    <string name="report_pdf_caption">"تقرير المناوبة: %1$s • أطباء المناوبة: %2$s"</string>
     <string name="report_supervisor_missing" formatted="false">"المشرف غير موجود"</string>
     <string name="ui_report_pdf_workspace_001" formatted="false">"لا يوجد مرضى لهذا المشرف"</string>
     <string name="ui_report_pdf_workspace_002">"تعذر حفظ ملف PDF للمشرف %1$s"</string>
@@ -1146,15 +1146,15 @@
     <string name="ui_app_appearance_001" formatted="false">"حسب النظام"</string>
     <string name="ui_app_appearance_002" formatted="false">"فاتح"</string>
     <string name="ui_app_appearance_003" formatted="false">"داكن"</string>
-    <string name="ui_app_appearance_004" formatted="false">"ليلي أسود · Night"</string>
-    <string name="ui_app_theme_preset_001" formatted="false">"لازورد · Lapis"</string>
-    <string name="ui_app_theme_preset_002" formatted="false">"زمرد · Emerald"</string>
-    <string name="ui_app_theme_preset_003" formatted="false">"ورد · Rose"</string>
-    <string name="ui_app_theme_preset_004" formatted="false">"زعفران · Saffron"</string>
-    <string name="ui_app_theme_preset_005" formatted="false">"تنين وردي · Dragonfruit"</string>
-    <string name="ui_app_theme_preset_006" formatted="false">"فيروز · Turquoise"</string>
-    <string name="ui_app_theme_preset_007" formatted="false">"غرافيت · Graphite"</string>
-    <string name="ui_app_theme_preset_008" formatted="false">"خشخاش · Poppy"</string>
+    <string name="ui_app_appearance_004" formatted="false">"ليلي أسود"</string>
+    <string name="ui_app_theme_preset_001" formatted="false">"أزرق"</string>
+    <string name="ui_app_theme_preset_002" formatted="false">"زمرد"</string>
+    <string name="ui_app_theme_preset_003" formatted="false">"وردي"</string>
+    <string name="ui_app_theme_preset_004" formatted="false">"زعفران"</string>
+    <string name="ui_app_theme_preset_005" formatted="false">"توتي"</string>
+    <string name="ui_app_theme_preset_006" formatted="false">"بترولي"</string>
+    <string name="ui_app_theme_preset_007" formatted="false">"رمادي"</string>
+    <string name="ui_app_theme_preset_008" formatted="false">"عنبري"</string>
     <string name="ui_app_font_scale_001" formatted="false">"صغير"</string>
     <string name="ui_app_font_scale_002" formatted="false">"عادي"</string>
     <string name="ui_app_font_scale_003" formatted="false">"كبير"</string>
@@ -1238,7 +1238,7 @@
     <string name="ui_demo_local_only">هذا العرض محلي ومؤقت؛ لا يتصل بالمشروع. تغيّرت البيانات؟ أعد فتح الإجراء وراجعه.</string>
     <string name="ui_report_preview_each_selected">افتح معاينة كل تقرير مختار قبل الإرسال.</string>
     <string name="ui_patient_optional_section">المهام وخيارات إضافية</string>
-    <string name="ui_patient_optional_summary">المهام: %1$s · الشارات: %2$s</string>
+    <string name="ui_patient_optional_summary">المهام: %1$s • الشارات: %2$s</string>
     <string name="ui_report_setup_step">الأطباء والوجهات</string>
     <string name="ui_report_review_send_step">المعاينة والإرسال</string>
     <string name="ui_report_no_destination">اختر وجهة واحدة على الأقل.</string>
@@ -1298,7 +1298,7 @@
     <string name="demo_doctor_in_use">الطبيب مستخدم في التعيينات أو الحساب التجريبي الحالي؛ انقل التعيينات أولاً.</string>
     <string name="demo_undo_fetch">التراجع عن الجلب التجريبي</string>
     <string name="report_export_invalid_route" formatted="false">"نطاق التصدير غير متاح؛ أعد فتح التقرير"</string>
-    <string name="report_local_draft_label" formatted="false">"مسودة محلية · لم يُعتمد نشرها"</string>
+    <string name="report_local_draft_label" formatted="false">"مسودة محلية • لم يُعتمد نشرها"</string>
     <string name="report_export_select" formatted="false">"اختر تقريراً واحداً على الأقل"</string>
     <string name="report_draft_exported" formatted="false">"تم تصدير المسودة المحلية المعاينة؛ لم تُرفع بيانات ولم يُرسل تقرير"</string>
     <string name="report_official_exported" formatted="false">"تم تصدير PDF المعاين بعد تأكيد رفع بياناته"</string>
@@ -1310,7 +1310,7 @@
     <string name="report_export_draft_option" formatted="false">"مسودة محلية — دون رفع البيانات"</string>
     <string name="report_export_draft_help" formatted="false">"تظهر عبارة «مسودة محلية» في كل صفحة. عاين المسودة نفسها قبل حفظها أو مشاركتها"</string>
     <string name="report_export_official_help" formatted="false">"معاينة ← رفع بيانات المناوبة ← حفظ أو مشاركة PDF. لا يُرسل التقرير إلى تليجرام من هنا"</string>
-    <string name="report_export_preview_again" formatted="false">"تم فتح المعاينة · معاينة مجدداً"</string>
+    <string name="report_export_preview_again" formatted="false">"تم فتح المعاينة • معاينة مجدداً"</string>
     <string name="report_export_preview" formatted="false">"معاينة PDF"</string>
     <string name="report_export_upload" formatted="false">"رفع البيانات فقط"</string>
     <string name="report_export_save_draft" formatted="false">"حفظ المسودة المعاينة"</string>
@@ -1326,4 +1326,14 @@
     <string name="assignments_export_title">تصدير توزيع المرضى (PDF)</string>
     <string name="assignments_export_help">ملف بأسماء المرضى وتوزيعهم على الفرق، يُحفظ على الهاتف فقط. لا يحتاج إلى رفع البيانات أو إرسال تقرير إلى تليجرام.</string>
     <string name="assignments_export_preview">معاينة توزيع المرضى</string>
+    <string name="lab_groups_add">إضافة مجموعة تحاليل</string>
+    <string name="lab_group_title">عنوان المجموعة — اختياري</string>
+    <string name="lab_group_date">تاريخ التحاليل — اختياري</string>
+    <string name="lab_group_results">النتائج</string>
+    <string name="lab_group_number">مجموعة تحاليل %1$d</string>
+    <string name="lab_group_up">نقل المجموعة لأعلى</string>
+    <string name="lab_group_down">نقل المجموعة لأسفل</string>
+    <string name="lab_group_remove">حذف مجموعة التحاليل</string>
+    <string name="lab_group_remove_message">حذف هذه المجموعة من النموذج؟ لن يُعتمد الحذف إلا عند حفظ المريض.</string>
+    <string name="lab_groups_invalid">مجموعات التحاليل أو تواريخها غير صالحة</string>
 </resources>

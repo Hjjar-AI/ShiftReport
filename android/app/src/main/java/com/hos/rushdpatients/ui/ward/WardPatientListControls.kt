@@ -65,8 +65,8 @@ internal fun WardPatientListControls(
         val description = listOfNotNull(
             uiText(R.string.ui_ward_patient_list_controls_004),
             uiText(R.string.ui_ward_patient_list_controls_001, uiNumber(visibleCount), uiNumber(totalCount)),
-            groupingLabel, activeFilters.takeIf { it.isNotEmpty() }?.distinct()?.joinToString(" · ")
-        ).joinToString(" · ")
+            groupingLabel, activeFilters.takeIf { it.isNotEmpty() }?.distinct()?.joinToString(" • ")
+        ).joinToString(" • ")
         val chipScroll = rememberScrollState()
         val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
         val surface = MaterialTheme.colorScheme.surface
@@ -105,7 +105,7 @@ internal fun WardPatientListControls(
 }
 
 internal enum class WardViewOption(@StringRes private val labelRes: Int) {
-    FILTERS(R.string.ui_ward_patient_list_controls_009), GROUPING(R.string.ui_ward_patient_list_controls_010), CARDS(R.string.ui_ward_patient_list_controls_011), SORT(R.string.ui_ward_patient_list_controls_012);
+    SORT(R.string.ui_ward_patient_list_controls_012), FILTERS(R.string.ui_ward_patient_list_controls_009), GROUPING(R.string.ui_ward_patient_list_controls_010), CARDS(R.string.ui_ward_patient_list_controls_011);
 
     fun label(uiText: UiStrings): String = uiText(labelRes)
 }

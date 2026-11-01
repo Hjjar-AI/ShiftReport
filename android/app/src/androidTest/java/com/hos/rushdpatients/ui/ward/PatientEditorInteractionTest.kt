@@ -34,7 +34,7 @@ class PatientEditorInteractionTest {
             MaterialTheme { PatientFormDialog("تعديل تجريبي", patient, stateStore = store, doctors = emptyList(),
                 saving = false, onConfirm = { saved = it }, onDismiss = {}) }
         } }
-        compose.runOnIdle { store.obtain(patient, null).labText = "نتيجة غير محفوظة" }
+        compose.runOnIdle { store.obtain(patient, null).labGroups = listOf(PatientLabGroup("pending", results = "نتيجة غير محفوظة")) }
         compose.onNodeWithText(label(R.string.ui_save)).assertIsDisplayed().performClick()
         compose.runOnIdle {
             assertTrue(requireNotNull(saved).labs.contains("نتيجة غير محفوظة"))

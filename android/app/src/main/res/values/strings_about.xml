@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Editable About/splash content. Edit values; keep resource names unchanged.
+         Guide: docs/guides/about-splash-content.md. Rebuild the app after editing. -->
+    <string name="about_app_title">تقرير المناوبة</string>
+    <string name="about_subtitle">(للطب النفسي)</string>
+    <!-- Empty means no subtitle on the splash screen. -->
+    <string name="about_splash_subtitle"></string>
+
+    <string name="about_supervisor_role">إشراف وتطوير</string>
+    <string name="about_supervisor_name">الطبيب محمد علي حجار</string>
+    <string name="about_technical_role">مساهمة تقنية</string>
+    <string name="about_splash_technical_role">مساهمة تقنية • الأطباء</string>
+    <string name="about_contributors_prefix">الأطباء:</string>
+    <!-- Add/remove an item for each technical contributor; both screens share this list. -->
+    <string-array name="about_technical_contributors">
+        <item>أيهم شيخة</item>
+        <item>محمد زاهر شقير</item>
+    </string-array>
+    <string name="about_testers_role">اختبار التطبيق</string>
+    <string-array name="about_testers">
+        <item>أسامة .....</item>
+        <item>بنان جمعة</item>
+        <item>ديا خلوف</item>
+        <item>محمد نور السيد</item>
+        <item>نور الهندي</item>
+        <item>هلا فارس</item>
+        <item>يزن شاهين</item>
+    </string-array>
+    <string name="about_original_role">فكرة Excel الأولية وبنية التقرير الأساسي</string>
+    <string name="about_original_author_name">الطبيب الاختصاصي نديم العباس</string>
+
+    <string name="about_page_title">حول التطبيق</string>
+    <string name="about_version_label">الإصدار</string>
+    <string name="about_emblem_description">شعار شعبة الطب النفسي</string>
+    <string name="about_splash_skip_label">تخطي المقدمة</string>
+    <string name="about_back_label">رجوع</string>
+</resources>

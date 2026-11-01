@@ -1,6 +1,7 @@
 """Temporary fictional CSV generation; no clinical workspace or retained fixture mutation."""
 import csv
 import importlib.util
+import json
 import tempfile
 import unittest
 from datetime import date
@@ -20,7 +21,9 @@ class SampleGeneratorTests(unittest.TestCase):
         path=self.directory/name
         rows=generator.generate(path,date(2026,10,27),seed,mix_clinical=not generic)
         with path.open(encoding='utf-8-sig',newline='') as stream:
-            next(csv.reader(stream));reader=csv.DictReader(stream);decoded=list(reader)
+            metadata=next(csv.reader(stream))[0]
+            self.assertIn('schemaVersion=8 ',metadata)
+            reader=csv.DictReader(stream);decoded=list(reader)
         self.assertEqual(generator.COLUMNS,reader.fieldnames)
         self.assertEqual(rows,decoded)
         return path,rows
@@ -35,19 +38,37 @@ class SampleGeneratorTests(unittest.TestCase):
         self.assertEqual(50,len(rows))
         for field in ('externalId','name'):self.assertEqual(50,len({r[field] for r in rows}))
         self.assertTrue(all(not r['responsibleResidentId'] and not r['responsibleSupervisorId'] for r in rows))
-        self.assertTrue(all(len(r['treatmentPlan'].splitlines())>=6 for r in rows))
-        self.assertTrue(any(len(r['treatmentPlan'].splitlines())>=20 for r in rows))
+        self.assertTrue(all(len(r['treatmentPlan'].splitlines())>=5 for r in rows))
+        self.assertEqual(5,sum(len(r['treatmentPlan'].splitlines())==11 for r in rows))
         labs=[r['labs'] for r in rows if r['labs']]
         self.assertEqual(45,len(labs));self.assertTrue(all(len(v.splitlines())>=8 for v in labs))
         self.assertTrue(any('CBC' in v for v in labs))
         self.assertTrue(any('mmol/L' in v for v in labs))
 
-    def test_generic_generation_retains_rich_multiline_data_without_medication_fragments(self):
+    def test_generic_generation_remains_medication_led_without_optional_diagnosis_enrichment(self):
         _,rows=self.generate('generic.csv',generic=True)
         medications=tuple(generator.CLINICAL_TERMS['medications'])
-        self.assertTrue(all(not any(drug in r['treatmentPlan'] for drug in medications) for r in rows))
-        self.assertTrue(all(len(r['treatmentPlan'].splitlines())>=6 for r in rows))
+        for row in rows:
+            lines=row['treatmentPlan'].splitlines()
+            drug_lines=[line for line in lines if any(line.startswith(drug+' ') for drug in medications)]
+            self.assertGreater(len(drug_lines),len(lines)-len(drug_lines))
+            self.assertEqual(len(drug_lines),len({line.split(' ')[0] for line in drug_lines}))
+            self.assertNotIn('؛',row['initialDiagnosis'])
+        self.assertTrue(all(len(r['treatmentPlan'].splitlines())>=5 for r in rows))
         self.assertEqual(45,sum(bool(r['labs']) for r in rows))
+
+    def test_generated_lab_groups_have_valid_dates_unique_ids_and_readable_projection(self):
+        from desktop_labs import read_groups
+        _,rows=self.generate('panels.csv')
+        for row in rows:
+            groups=read_groups(row)
+            self.assertEqual(len(groups),len({g['id'] for g in groups}))
+            self.assertEqual(bool(row['labs']),bool(groups))
+            for group in groups:
+                self.assertEqual('2026-10-27',group['date'])
+                self.assertTrue(group['title'].endswith(':'))
+                self.assertTrue(group['results'])
+        self.assertEqual(45,sum(bool(json.loads(row['labGroupsJson'])) for row in rows))
 
     def test_existing_output_is_never_overwritten(self):
         path,_=self.generate('existing.csv');before=path.read_bytes()

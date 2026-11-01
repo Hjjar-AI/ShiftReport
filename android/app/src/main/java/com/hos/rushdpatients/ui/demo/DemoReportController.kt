@@ -80,10 +80,17 @@ internal class DemoReportController(
         load()
     }
     override fun setReportAsPdf(value: Boolean) { if (!busy) _state.update { it.copy(reportAsPdf = value) } }
+    fun setAppTheme(theme: com.hos.rushdpatients.ui.theme.AppThemePreset) {
+        if (busy || _state.value.pdfOptions.appTheme == theme) return
+        clearReviews()
+        _state.update { it.copy(pdfOptions = it.pdfOptions.copy(appTheme = theme)) }
+    }
+
     override fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions) {
         if (busy) return
         clearReviews()
-        _state.update { it.copy(pdfStyle = style, pdfOptions = requested.copy(ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)) }
+        _state.update { it.copy(pdfStyle = style, pdfOptions = requested.copy(appTheme = it.pdfOptions.appTheme, rowShading = PdfRowShading.ZEBRA,
+            ruleWeight = PdfRuleWeight.MEDIUM, ruleContrast = PdfRuleContrast.MEDIUM)) }
     }
     override fun fetchDoctorsForReport() { if (!busy) load(uiText(R.string.demo_fetch_complete)) }
     override fun dismissSnackbar() { _state.update { it.copy(snackbar = null) } }
@@ -144,7 +151,7 @@ internal class DemoReportController(
                     val doctors = if (supervisor == null) snapshot.shiftDoctors else snapshot.doctors.filter { it.id == supervisor }
                     val options = current.pdfOptions.copy(hospitalName = uiText(R.string.ui_demo_navigation_001))
                     val label = listOfNotNull(uiText(R.string.demo_document_label),
-                        if (draft) uiText(R.string.report_local_draft_label) else null).joinToString(" · ")
+                        if (draft) uiText(R.string.report_local_draft_label) else null).joinToString(" • ")
                     if (route == "assignments") {
                         check(current.isAdmin)
                         assignmentRenderer.export(snapshot.ordered, snapshot.names, snapshot.doctors,
@@ -274,7 +281,7 @@ internal class DemoReportController(
                 }
                 val receipts = destinations.map { (route, label) -> ReportDeliveryRecord(
                     UUID.randomUUID().toString(), snapshot.shiftId, route, "demo-${snapshot.revision}",
-                    "DEMO · $label", if (route == "general" && !current.reportAsPdf) "TEXT" else "PDF",
+                    "DEMO • $label", if (route == "general" && !current.reportAsPdf) "TEXT" else "PDF",
                     snapshot.actorId, System.currentTimeMillis(), DeliveryStatus.SENT) }
                 repository.receipts.update { it + receipts }
                 repository.publish(snapshot)

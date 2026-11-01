@@ -29,17 +29,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import com.hos.rushdpatients.BuildConfig
 import com.hos.rushdpatients.R
 
-internal val technicalContributors = listOf("أيهم شيخة", "محمد زاهر شقير")
-internal const val introSupervisorName = "الطبيب محمد علي حجار"
-internal const val introOriginalAuthorName = "الطبيب الاختصاصي نديم العباس"
+/** Ordinary spaces between people allow wrapping; nonbreaking spaces keep each name together. */
+internal fun testerNamesParagraph(names: Array<String>): String =
+    names.joinToString("، ") { it.trim().replace(' ', '\u00A0') }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,9 +57,9 @@ fun IntroAboutScreen(
         return
     }
     Scaffold(topBar = {
-        TopAppBar(title = { Text("حول التطبيق") }, navigationIcon = {
+        TopAppBar(title = { Text(stringResource(R.string.about_page_title)) }, navigationIcon = {
             IconButton(onClick = { onBack?.invoke() }) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "رجوع",
+                Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back_label),
                     modifier = Modifier.rotate(if (LocalLayoutDirection.current == LayoutDirection.Rtl) 180f else 0f))
             }
         })
@@ -76,25 +79,36 @@ fun IntroAboutScreen(
 
 @Composable
 private fun AppVersion() {
-    Text("الإصدار ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.UiSpacing.tiny)) {
+        Text(stringResource(R.string.about_version_label), style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(BuildConfig.VERSION_NAME, modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.labelLarge.copy(textDirection = TextDirection.Ltr),
+            textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 @Composable
 private fun IntroCredits(compact: Boolean) {
-    Text("تقرير المناوبة", style = MaterialTheme.typography.headlineMedium,
+    Text(stringResource(R.string.about_app_title), style = MaterialTheme.typography.headlineMedium,
         fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.primary, modifier = Modifier.semantics { heading() })
-    Text("(للطب النفسي)", style = MaterialTheme.typography.titleMedium,
+    val subtitle = stringResource(R.string.about_subtitle)
+    if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    CreditBlock("إشراف وتطوير", introSupervisorName, prominent = true)
+    CreditBlock(stringResource(R.string.about_supervisor_role), stringResource(R.string.about_supervisor_name), prominent = true)
     Surface(color = Color.White, shape = MaterialTheme.shapes.large) {
         Image(painterResource(R.drawable.app_emblem_transparent),
-            contentDescription = "شعار شعبة الطب النفسي", contentScale = ContentScale.Fit,
+            contentDescription = stringResource(R.string.about_emblem_description), contentScale = ContentScale.Fit,
             modifier = Modifier.size(if (compact) com.hos.rushdpatients.ui.theme.UiSize.aboutEmblemCompact else com.hos.rushdpatients.ui.theme.UiSize.aboutEmblem).padding(com.hos.rushdpatients.ui.theme.UiSpacing.screen))
     }
-    CreditBlock("مساهمة تقنية", "الأطباء:\n" + technicalContributors.joinToString("\n"), prominent = true)
-    CreditBlock("فكرة Excel الأولية وبنية التقرير الأساسي", introOriginalAuthorName)
+    CreditBlock(stringResource(R.string.about_technical_role),
+        listOf(stringResource(R.string.about_contributors_prefix),
+            stringArrayResource(R.array.about_technical_contributors).joinToString("\n"))
+            .filter(String::isNotBlank).joinToString("\n"), prominent = true)
+    CreditBlock(stringResource(R.string.about_original_role), stringResource(R.string.about_original_author_name))
+    CreditBlock(stringResource(R.string.about_testers_role), testerNamesParagraph(stringArrayResource(R.array.about_testers)))
 }
 
 @Composable

@@ -31,7 +31,7 @@ internal fun SettingsPublicationHistory(state: SettingsUiState, viewModel: Setti
             Text(text(R.string.ui_ward_activity_screen_007))
         state.publicationHistory.forEach { publication ->
             Text(text(if (publication.forced) R.string.ui_ward_activity_screen_001 else R.string.ui_ward_activity_screen_002) +
-                " · " + uiDateTime(Instant.ofEpochMilli(publication.at)), style = MaterialTheme.typography.bodySmall)
+                " • " + uiDateTime(Instant.ofEpochMilli(publication.at)), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

@@ -64,7 +64,7 @@ def prepare(owner, plan):
         row.update(lastEditedByDoctorId='', lastEditedBy='', updatedAt='0',
                    revision=str(max(int(row.get('revision') or 0), int(old.get('revision') or 0)+1)))
     meta = shift['meta']
-    meta.update(schemaVersion='7', snapshotId=str(uuid.uuid4()), baseSnapshotId=latest['meta'].get('snapshotId', '') if latest else '',
+    meta.update(schemaVersion='8', snapshotId=str(uuid.uuid4()), baseSnapshotId=latest['meta'].get('snapshotId', '') if latest else '',
                 shiftRevision=str(int(latest['meta'].get('shiftRevision') or 0) + 1) if latest else '1', deviceId=owner.device,
                 sortSpec=meta.get('sortSpec') or '{"levels":[]}')
     plan.shift = shift

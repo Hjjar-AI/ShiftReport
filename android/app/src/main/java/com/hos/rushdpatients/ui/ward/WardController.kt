@@ -34,7 +34,6 @@ internal interface WardController {
     fun saveEditDraft(id: String, draft: PatientDraft) {}
     fun retryLoadDraft() {}
     fun saveDraft(draft: PatientDraft)
-    fun setCompactCards(compact: Boolean)
     fun setGroupByMode(mode: GroupByMode)
     fun setPatientDetailsExpanded(expanded: Boolean)
     fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit)
@@ -71,7 +70,6 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun saveEditDraft(id: String, draft: PatientDraft) { viewModel.saveEditDraft(id, draft) }
     override fun retryLoadDraft() { viewModel.retryLoadDraft() }
     override fun saveDraft(draft: PatientDraft) { viewModel.saveDraft(draft) }
-    override fun setCompactCards(compact: Boolean) { viewModel.setCompactCards(compact) }
     override fun setGroupByMode(mode: GroupByMode) { viewModel.setGroupByMode(mode) }
     override fun setPatientDetailsExpanded(expanded: Boolean) { viewModel.setPatientDetailsExpanded(expanded) }
     override fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) { viewModel.setTaskDone(patient, taskId, done, onSuccess) }

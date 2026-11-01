@@ -9,6 +9,7 @@ from reportlab.lib.colors import HexColor
 from desktop_protocol import require
 from desktop_model import patient_name, DIAGNOSIS, GENDER, badges_decode
 from desktop_pdf_content import palette, roster_label
+from desktop_labs import read_groups, heading as lab_heading
 from desktop_tasks import read_tasks, ordered_for_display, status_label
 
 
@@ -309,7 +310,9 @@ class _Cards:
             for task in group:
                 task_lines.append('• ' + task['description'])
         sections.append(('المهام ({})'.format(len(tasks)), '\n'.join(task_lines), False, True, False))
-        sections.append(('التحاليل', row.get('labs', ''), False, False, False))
+        for group in read_groups(row):
+            label = ' • '.join(value for value in ('التحاليل', lab_heading(group)) if value)
+            sections.append((label, group['results'], False, True, bool(lab_heading(group))))
         return personal, admit, team, sections
 
     def render(self):
@@ -405,22 +408,33 @@ class _Cards:
                 paint = self.urgent if urgent else self.heading
                 lines = self.wrap(value, self.body, RIGHT - LEFT) if value.strip() else []
                 columns = self.treatment_columns(value, len(lines)) if title == TREATMENT_TITLE else None
-                needed = GAP + self.heading.height + len(lines) * self.body.height + GAP
+                def draw_section_heading(label):
+                    labels = self.wrap(label, paint, RIGHT - LEFT)
+                    require(self.y + len(labels) * paint.height + (self.body.height if lines else 0) <= self.bottom,
+                            'عنوان القسم أطول من مساحة البطاقة')
+                    if title.startswith('التحاليل'):
+                        self.canvas.setFillColor(HexColor(self.colors['summary']))
+                        self.canvas.rect(LEFT, HEIGHT - self.y - len(labels) * paint.height,
+                                         RIGHT - LEFT, len(labels) * paint.height, stroke=0, fill=1)
+                    for line in labels:self.line(line, paint)
+
+                needed = GAP + len(self.wrap(title, paint, RIGHT - LEFT)) * paint.height + len(lines) * self.body.height + GAP
                 fresh_top = TOP + PADDING + len(self.wrap(patient_name(row), self.name, RIGHT - LEFT)) * self.name.height + 2 * TITLE_PADDING + GAP
                 move_group = keep_together and needed <= self.bottom - fresh_top and self.y + needed > self.bottom
-                if move_group or self.y + GAP + self.heading.height + (self.body.height if lines else 0) > self.bottom:
+                if move_group or self.y + GAP + len(self.wrap(title, paint, RIGHT - LEFT)) * paint.height + (self.body.height if lines else 0) > self.bottom:
                     self.new_page(); self.header(index)
                 self.canvas.setStrokeColor(HexColor(self.colors['rule']))
                 self.canvas.setLineWidth(self.colors['rule_width'])
                 self.canvas.line(LEFT, HEIGHT - self.y, RIGHT, HEIGHT - self.y)
                 self.y += GAP
-                self.line(title, paint)
+                draw_section_heading(title)
                 if columns is not None:
                     self.draw_treatment_columns(index, title, paint, columns)
                 else:
                     for line in lines:
                         if self.y + self.body.height > self.bottom:
-                            self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
+                            self.new_page(); self.header(index)
+                            draw_section_heading(title + ' (تابع)')
                         self.line(line, self.body)
                 self.y += GAP
         self.canvas.save()

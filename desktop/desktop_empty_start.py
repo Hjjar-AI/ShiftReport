@@ -22,7 +22,7 @@ class EmptyStart:
         self.actor_id = client._actor
         self.local = local_signature(store)
         self.used = False
-        self.shift = dict(meta=dict(schemaVersion='7', shiftId=str(uuid.uuid4()),
+        self.shift = dict(meta=dict(schemaVersion='8', shiftId=str(uuid.uuid4()),
             shiftDate=current_date(client.zone), doctors=self.actor_id, shiftRevision='1',
             snapshotId=str(uuid.uuid4()), baseSnapshotId='', deviceId=client.device,
             sortSpec='{"levels":[]}'), patients=[])

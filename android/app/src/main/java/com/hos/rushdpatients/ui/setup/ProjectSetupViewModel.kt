@@ -47,10 +47,14 @@ class ProjectSetupViewModel @Inject constructor(
     val state: StateFlow<ProjectSetupUiState> = _state.asStateFlow()
     private data class PinnedProjectReview(val config: ProjectConfig, val pin: BootstrapSeeder.PinReview)
     private var pendingPinnedProjectReview: PinnedProjectReview? = null
+    private var selectedProvisioningUri: Uri? = null
 
     fun setMode(value: ProjectSetupMode) = update {
-        if (mode == value || busy) this else copy(mode = value, error = null, status = null,
-            importedProvisioning = false, telegramDataKey = "", encryptTelegram = false)
+        if (mode == value || busy) this else {
+            selectedProvisioningUri = null
+            copy(mode = value, error = null, status = null, provisioningPassphrase = "",
+                importedProvisioning = false, joinFileSelected = false, telegramDataKey = "", encryptTelegram = false)
+        }
     }
     fun setEncryptTelegram(value: Boolean) = update {
         if (mode == ProjectSetupMode.CREATE && !busy) copy(encryptTelegram = value, error = null) else this
@@ -64,14 +68,27 @@ class ProjectSetupViewModel @Inject constructor(
     fun setCsvTopicId(value: String) = update { copy(csvTopicId = numeric(value), error = null) }
     fun setDoctorsTopicId(value: String) = update { copy(doctorsTopicId = numeric(value), error = null) }
     fun setProvisioningPassphrase(value: String) = update {
-        copy(provisioningPassphrase = value, error = null)
+        copy(provisioningPassphrase = value, importedProvisioning = false, error = null, status = null)
     }
     fun setAdminName(value: String) = update { copy(adminName = value, error = null) }
     fun setAdminTelegramId(value: String) = update { copy(adminTelegramId = numeric(value), error = null) }
     fun setAdminGender(value: String) = update { copy(adminGenderCode = value, error = null) }
     fun setAdminClinicalRole(value: String) = update { copy(adminClinicalRoleCode = value, error = null) }
 
+    fun selectProvisioning(uri: Uri) {
+        if (_state.value.busy || _state.value.mode != ProjectSetupMode.JOIN) return
+        selectedProvisioningUri = uri
+        update { copy(joinFileSelected = true, importedProvisioning = false, error = null, status = null) }
+    }
+
+    fun unlockProvisioning() {
+        if (_state.value.busy || _state.value.mode != ProjectSetupMode.JOIN) return
+        val uri = selectedProvisioningUri ?: return
+        importProvisioning(uri)
+    }
+
     fun importProvisioning(uri: Uri) {
+        if (_state.value.busy || _state.value.mode != ProjectSetupMode.JOIN) return
         val passphrase = _state.value.provisioningPassphrase
         if (passphrase.length < ProjectProvisioningManager.MIN_PASSWORD_LENGTH) {
             _state.update { it.copy(error = uiText(R.string.ui_project_setup_view_model_001)) }

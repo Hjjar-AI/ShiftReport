@@ -28,12 +28,12 @@ private data class Accent(
     val darkPrimary: Color, val darkContainer: Color
 )
 
-// Distinct accent hue families; clinical severity uses its separate palette.
+// Muted accent families with soft containers; clinical severity uses its separate palette.
 private fun accent(preset: AppThemePreset) = when (preset) {
-    AppThemePreset.SYSTEM -> Accent(Color(0xFF2346B5), Color(0xFFDFE5FF), Color(0xFF122459), Color(0xFFB5C4FF), Color(0xFF243C80))
-    AppThemePreset.COASTAL -> Accent(Color(0xFFA01575), Color(0xFFFFD8EF), Color(0xFF5C0841), Color(0xFFFFAADE), Color(0xFF721653))
-    AppThemePreset.VANILLA -> Accent(Color(0xFF006B72), Color(0xFFBBEEF0), Color(0xFF003C42), Color(0xFF73D9DF), Color(0xFF135158))
-    AppThemePreset.CREAM -> Accent(Color(0xFFAD3D12), Color(0xFFFFDBCC), Color(0xFF5B2106), Color(0xFFFFB28E), Color(0xFF773015))
+    AppThemePreset.SYSTEM -> Accent(Color(0xFF405B83), Color(0xFFE2E8F0), Color(0xFF23364E), Color(0xFFB4C6DE), Color(0xFF34475F))
+    AppThemePreset.COASTAL -> Accent(Color(0xFF944C70), Color(0xFFF3E3EB), Color(0xFF4D293C), Color(0xFFDDB3C8), Color(0xFF583E4C))
+    AppThemePreset.VANILLA -> Accent(Color(0xFF0D5663), Color(0xFFE0EBED), Color(0xFF203B41), Color(0xFFA3C9CF), Color(0xFF29494F))
+    AppThemePreset.CREAM -> Accent(Color(0xFF805B34), Color(0xFFEFE7DD), Color(0xFF44311D), Color(0xFFD8C0A3), Color(0xFF534330))
 }
 
 private data class Surfaces(val background: Color, val surface: Color, val variant: Color)
@@ -41,7 +41,7 @@ private data class Surfaces(val background: Color, val surface: Color, val varia
 private fun surfaces(dark: Boolean, amoled: Boolean): Surfaces = when {
     amoled -> Surfaces(Color.Black, Color.Black, Color(0xFF15171B))
     dark -> Surfaces(Color(0xFF171D24), Color(0xFF252F3A), Color(0xFF394655))
-    else -> Surfaces(Color(0xFFF8FAFC), Color.White, Color(0xFFE8EEF2))
+    else -> Surfaces(Color(0xFFEDF1F5), Color.White, Color(0xFFE8EEF2))
 }
 
 /** Used by palette controls to preview the actual selected appearance. */

@@ -18,7 +18,7 @@ LABELS = {'name': 'الاسم', 'admitNum': 'رقم القبول', 'admitDate': 
           'birthDate': 'سنة الميلاد', 'gender': 'الجنس', 'hasCompanion': 'مرافق', 'diagnosisType': 'الحالة المرضية',
           'initialDiagnosis': 'التشخيص', 'treatmentPlan': 'العلاج والحقن المديدة', 'followUp': 'المتابعة', 'labs': 'التحاليل',
           'responsibleResidentId': 'الطبيب المقيم', 'responsibleSupervisorId': 'الطبيب المشرف', 'isPriority': 'مريض ذو أولوية',
-          'tasksJson': 'المهام', 'warningDetails': 'الشارات', 'warningFlags': 'مستويات الشارات', 'doctors': 'أطباء المناوبة', '__record__': 'سجل المريض / الحذف', 'order': 'ترتيب المرضى'}
+          'labGroupsJson': 'مجموعات التحاليل', 'tasksJson': 'المهام', 'warningDetails': 'الشارات', 'warningFlags': 'مستويات الشارات', 'doctors': 'أطباء المناوبة', '__record__': 'سجل المريض / الحذف', 'order': 'ترتيب المرضى'}
 
 
 def doctor_label(doctors, key):
@@ -57,7 +57,7 @@ def patient_name(row):
 def new_patient(zone):
     row = {key: '' for key in COLUMNS}
     row.update(externalId=str(uuid.uuid4()), admitDate=datetime.now(ZoneInfo(zone)).date().isoformat(),
-               gender='M', hasCompanion='N', diagnosisType='PSYCHIATRIC', isPriority='N', tasksJson='[]', revision='0')
+               gender='M', hasCompanion='N', diagnosisType='PSYCHIATRIC', isPriority='N', tasksJson='[]', labGroupsJson='[]', revision='0')
     return row
 
 
@@ -77,6 +77,8 @@ def validate_patient(row, doctors, zone):
         require(not value or value in doctors and doctors[value]['clinicalRole'] == role, 'اختر طبيبا نشطا بالدور الصحيح')
     tasks = read_tasks(row)
     validate_tasks(tasks)
+    from desktop_labs import read_groups
+    read_groups(row)
 
 
 def patient_text(row, doctors, zone, clinical_only=False):

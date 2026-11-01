@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.hos.rushdpatients.data.model.Gender
@@ -35,8 +37,18 @@ internal object PatientIdentityText {
             add(uiText(R.string.ui_patient_identity_006, uiNumber(date)))
             patient.admittanceDaysOn(dayLabel)?.let { add(uiText(R.string.ui_patient_identity_007, uiNumber(it))) }
         }
-    }.joinToString(" · ")
-    fun details(uiText: UiStrings, patient: Patient, dayLabel: LocalDate = ShiftDate.current()) = listOf(personal(uiText, patient, dayLabel), admissionDetails(uiText, patient, dayLabel)).filter(String::isNotBlank).joinToString(" · ")
+    }.joinToString(" • ")
+    fun details(uiText: UiStrings, patient: Patient, dayLabel: LocalDate = ShiftDate.current()) = listOf(personal(uiText, patient, dayLabel), admissionDetails(uiText, patient, dayLabel)).filter(String::isNotBlank).joinToString(" • ")
+}
+
+/** Emphasize labels only in generated identity/team summaries, never in saved clinical text. */
+internal fun patientFieldText(text: String) = buildAnnotatedString {
+    append(text)
+    Regex("""(?:^|•\s*)([^:•\n]+:)""").findAll(text).forEach { match ->
+        val label = checkNotNull(match.groups[1])
+        addStyle(SpanStyle(fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight),
+            label.range.first, label.range.last + 1)
+    }
 }
 
 @Composable
@@ -50,11 +62,17 @@ internal fun PatientName(name: String, modifier: Modifier = Modifier,
 @Composable
 internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modifier, pinned: Boolean = false,
     nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
-    showPersonal: Boolean = false, showOrdinal: Boolean = false, showDemographics: Boolean = false) {
+    showPersonal: Boolean = false, showOrdinal: Boolean = false, showDemographics: Boolean = false,
+    trailingContent: (@Composable () -> Unit)? = null) {
     val uiText = rememberUiStrings()
     val dayLabel = LocalWardDayLabel.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        PatientName(if (showOrdinal) "${uiNumber(patient.sortOrder)} · ${patient.displayName}" else patient.displayName, style = nameStyle)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+            PatientName(if (showOrdinal) "${uiNumber(patient.sortOrder)} • ${patient.displayName}" else patient.displayName,
+                modifier = Modifier.weight(1f), style = nameStyle)
+            trailingContent?.invoke()
+        }
         FlowRow(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny),
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             if (pinned) Icon(AppIcons.Bookmark, contentDescription = uiText(R.string.ui_patient_identity_001), modifier = Modifier.size(UiSize.iconSmall))
@@ -68,9 +86,10 @@ internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modif
             val metadata = if (showPersonal) PatientIdentityText.details(uiText, patient, dayLabel) else listOfNotNull(
                 PatientIdentityText.admission(uiText, patient),
                 PatientIdentityText.personal(uiText, patient, dayLabel).takeIf { showDemographics }
-            ).filter(String::isNotBlank).joinToString(" · ")
-            Text(metadata,
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ).filter(String::isNotBlank).joinToString(" • ")
+            Text(patientFieldText(metadata),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal),
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

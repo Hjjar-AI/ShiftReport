@@ -50,6 +50,8 @@ def validate_wire_patient(patient):
         require(re.fullmatch(r'[0-9]{4}', patient['birthDate']), 'سنة الميلاد غير صالحة')
         require(1900 <= int(patient['birthDate']) <= 2100, 'سنة الميلاد غير صالحة')
     require(int(patient.get('revision') or 0) >= 0, 'نسخة مريض غير صالحة')
+    from desktop_labs import read_groups
+    read_groups(patient)
     from desktop_tasks import read_tasks, validate as validate_tasks
     validate_tasks(read_tasks(patient))
     from desktop_model import badges_decode
@@ -67,7 +69,7 @@ def parse_bundle(raw):
         for part in parts:
             rows = list(csv.reader(io.StringIO(part.strip(), newline='')))
             meta = dict(token.split('=', 1) for token in rows[0][0].lstrip('# ').split(' ') if '=' in token)
-            require(meta.get('schemaVersion') == '7' and rows[1] == COLUMNS, 'مطلوب CSV المرضى الحالي بإصدار 7')
+            require(meta.get('schemaVersion') == '8' and rows[1] == COLUMNS, 'مطلوب CSV المرضى الحالي بإصدار 8')
             require(all(key in meta for key in ['shiftDate','shiftId','doctors','sortSpec','shiftRevision','snapshotId','baseSnapshotId','deviceId']), 'بيانات تعريف CSV ناقصة؛ أعد النشر من Android بعد إصلاح اقتباس metadata')
             require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',meta['shiftDate']) is not None,'تاريخ المناوبة يجب أن يكون YYYY-MM-DD')
             date.fromisoformat(meta['shiftDate'])
@@ -95,7 +97,7 @@ def encode_bundle(shifts):
     require(len(shifts) == 1, "حزمة النشر يجب أن تحتوي قسماً واحداً")
     parts = []
     for shift in shifts:
-        meta = shift['meta']
+        meta = dict(shift['meta'], schemaVersion='8')
         require(not any(any(ch.isspace() for ch in str(v)) for v in meta.values()), 'بيانات تعريف المناوبة غير صالحة')
         stream = io.StringIO(newline='')
         writer = csv.writer(stream, lineterminator='\n')
@@ -103,6 +105,9 @@ def encode_bundle(shifts):
         writer.writerow(COLUMNS)
         for row in shift['patients']:
             require(not any('\n' + BOUNDARY in str(v) for v in row.values()), 'نص يتعارض مع فاصل الحزمة')
+            from desktop_labs import read_groups
+            read_groups(row)  # Validate without inventing a group for an intentionally flat current record.
+            row = dict(row, labGroupsJson=packed(json.loads(row.get('labGroupsJson') or '[]')))
             writer.writerow([row.get(k, '') for k in COLUMNS])
         parts.append(stream.getvalue().rstrip('\n'))
     result = (BUNDLE + '\n' + ('\n' + BOUNDARY + '\n').join(parts) + '\n').encode()

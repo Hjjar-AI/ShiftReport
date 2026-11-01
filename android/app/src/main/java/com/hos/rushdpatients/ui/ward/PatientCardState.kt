@@ -11,7 +11,7 @@ data class PatientCardState(
     val doctorNames: Map<String, String> = emptyMap(), val readOnly: Boolean = false,
     val selected: Boolean = false, val recentlyEdited: Boolean = false, val pinned: Boolean = false,
     val showViewControls: Boolean = true, val showIdentity: Boolean = true,
-    val compact: Boolean = false, val animateExpansion: Boolean = false
+    val compact: Boolean = true, val animateExpansion: Boolean = false
 )
 
 @androidx.compose.runtime.Immutable

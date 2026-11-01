@@ -92,7 +92,6 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val pinned = state.pinned
     val showViewControls = state.showViewControls
     val showIdentity = state.showIdentity
-    val compact = state.compact
     val animateExpansion = state.animateExpansion
     val onClick = actions.onOpen
     val onLongClick = actions.onLongPress
@@ -105,9 +104,9 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val uiText = rememberUiStrings()
     val dayLabel = LocalWardDayLabel.current
     val canExpand = patient.initialDiagnosis.isNotBlank() || patient.treatmentPlan.isNotBlank() ||
-        patient.followUp.isNotBlank() || patient.labs.isNotBlank() || patient.tasks.isNotEmpty() ||
+        patient.followUp.isNotBlank() || patient.labText.isNotBlank() || patient.tasks.isNotEmpty() ||
         patient.badges.isNotEmpty() || patient.hasCompanion
-    val cardDensity = UiPatientCard.density(compact)
+    val cardDensity = UiPatientCard.density()
     val sectionGap = cardDensity.sectionGap
     val taskCounts = remember(patient.tasks) { PatientTasks.counts(patient.tasks) }
     val badgesLabel = uiPlural(R.plurals.patient_badges, patient.badges.size)
@@ -126,7 +125,9 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val supervisorName = patient.responsibleSpecialistId?.let(doctorNames::get)
 
     val cardColor by animateColorAsState(
-        targetValue = if (recentlyEdited) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        targetValue = if (recentlyEdited) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.lerp(
+            MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface,
+            if (MaterialTheme.colorScheme.surface == Color.Black) 0.06f else 0f),
         animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.highlightMillis), label = "patientReturnHighlight"
     )
     val expansionMillis = if (!animateExpansion) 0 else if (expanded)
@@ -219,7 +220,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     AppChip(
                         text = buildString {
                             append(badge.text)
-                            badge.priority?.let { append(" · ").append(it.uiLabel(uiText)) }
+                            badge.priority?.let { append(" • ").append(it.uiLabel(uiText)) }
                         },
                         colors = badgeColors
                     )
@@ -238,8 +239,8 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
             }
 
             if (supervisorName != null || residentName != null) {
-                Text(listOfNotNull(supervisorName?.let { uiText(R.string.ui_patient_card_022, it) }, residentName?.let { uiText(R.string.ui_patient_card_023, it) })
-                    .joinToString(" · "), style = MaterialTheme.typography.bodySmall,
+                Text(patientFieldText(listOfNotNull(supervisorName?.let { uiText(R.string.ui_patient_card_022, it) }, residentName?.let { uiText(R.string.ui_patient_card_023, it) })
+                    .joinToString(" • ")), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -262,7 +263,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                         PatientTasks.summary(patient.tasks))
                 }
             }
-            if (!showIdentity) Text(PatientIdentityText.details(uiText, patient, dayLabel),
+            if (!showIdentity) Text(patientFieldText(PatientIdentityText.details(uiText, patient, dayLabel)),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (expanded && showViewControls && !readOnly) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
@@ -296,29 +297,24 @@ private fun PatientIdentityHeader(
         animationSpec = if (animateExpansion && indicatorMillis > 0) tween(indicatorMillis) else snap(),
         label = "patientChevron")
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
-    ) {
-        PatientIdentityHeading(patient, modifier = Modifier.weight(1f), pinned = pinned,
-            showPersonal = expanded && !showViewControls, showOrdinal = true, showDemographics = true)
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (showViewControls) {
+    PatientIdentityHeading(patient, modifier = Modifier.fillMaxWidth(), pinned = pinned,
+        showPersonal = expanded && !showViewControls, showOrdinal = true, showDemographics = true,
+        trailingContent = {
+            if (showViewControls) Row(verticalAlignment = Alignment.CenterVertically) {
                 if (!readOnly) AppIconButton(
                     label = if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018),
-                    icon = if (patient.isPriority) AppIcons.Star else AppIcons.StarBorder, onClick = { onPriorityChange(!patient.isPriority) })
-                if (canExpand) AppIconButton(label = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028),
-            icon = AppIcons.ExpandMore,
-            iconModifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
-            onClick = onExpandToggle)
+                    icon = if (patient.isPriority) AppIcons.Star else AppIcons.StarBorder,
+                    onClick = { onPriorityChange(!patient.isPriority) })
+                if (canExpand) AppIconButton(
+                    label = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028),
+                    icon = AppIcons.ExpandMore,
+                    iconModifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
+                    onClick = onExpandToggle)
                 PatientMenu(priority = patient.isPriority, onPriorityChange = onPriorityChange,
                     onCopy = onCopy, onDelete = onDelete, pinned = pinned, onPinToggle = onPinToggle,
                     readOnly = readOnly)
             }
-        }
-    }
+        })
 }
 
 
@@ -327,7 +323,7 @@ private fun SingleColumnDetail(patient: Patient, spacing: Dp) {
     val uiText = rememberUiStrings()
     val sections = listOf(Triple(uiText(R.string.ui_patient_form_dialog_011), patient.treatmentPlan, ClinicalTextKind.CLINICAL),
         Triple(uiText(R.string.ui_patient_form_dialog_012), patient.followUp, ClinicalTextKind.CLINICAL),
-        Triple(uiText(R.string.ui_labs), patient.labs, ClinicalTextKind.LABS)).filter { it.second.isNotBlank() }
+        Triple(uiText(R.string.ui_labs), patient.labText, ClinicalTextKind.LABS)).filter { it.second.isNotBlank() }
     Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
         sections.forEachIndexed { index, (title, content, kind) ->
             if (index > 0) AppDivider()
@@ -371,11 +367,11 @@ private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
             if (patient.followUp.isNotBlank()) {
                 AppClinicalSection(uiText(R.string.ui_patient_form_dialog_012), patient.followUp)
             }
-            if (patient.labs.isNotBlank()) {
+            if (patient.labText.isNotBlank()) {
                 if (patient.followUp.isNotBlank()) AppDivider()
-                AppClinicalSection(uiText(R.string.ui_labs), patient.labs, kind = ClinicalTextKind.LABS)
+                AppClinicalSection(uiText(R.string.ui_labs), patient.labText, kind = ClinicalTextKind.LABS)
             }
-            if (patient.followUp.isBlank() && patient.labs.isBlank()) {
+            if (patient.followUp.isBlank() && patient.labText.isBlank()) {
                 Text(
                     text = uiText(R.string.ui_patient_card_029),
                     style = MaterialTheme.typography.labelSmall,

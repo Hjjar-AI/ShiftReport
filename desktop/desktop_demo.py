@@ -2,6 +2,8 @@
 from __future__ import annotations
 import copy
 import uuid
+from datetime import date, timedelta
+from desktop_labs import apply as apply_lab_groups
 from desktop_model import new_patient
 from desktop_protocol import current_date, packed, require
 from desktop_store import Workspace
@@ -50,7 +52,7 @@ class DemoWorkspace(Workspace):
         supervisors=[key for key,d in client.doctors.items() if d['clinicalRole']=='SUPERVISOR']
         residents=[key for key,d in client.doctors.items() if d['clinicalRole']=='RESIDENT']
         for index,key in enumerate(residents):client.doctors[key]['teamSupervisorId']=supervisors[index%len(supervisors)]
-        shift=dict(meta=dict(schemaVersion='7',shiftDate=current_date(client.zone),shiftId=str(uuid.uuid4()),
+        shift=dict(meta=dict(schemaVersion='8',shiftDate=current_date(client.zone),shiftId=str(uuid.uuid4()),
                              doctors=','.join(client.doctors),sortSpec='{"levels":[]}'),patients=[])
         for i,name in enumerate(['شاي بالنعناع','قهوة عربية','كاكاو ساخن','يانسون دافئ','زنجبيل بالعسل','قرفة بالحليب']):
             row=new_patient(client.zone)
@@ -58,6 +60,14 @@ class DemoWorkspace(Workspace):
                        initialDiagnosis='مثال توضيحي للتشخيص',treatmentPlan='مثال توضيحي لخطة العلاج',
                        followUp='متابعة تجريبية',labs='تحاليل تجريبية',responsibleSupervisorId=supervisors[i%2],
                        responsibleResidentId=residents[i%2],isPriority='Y' if i==0 else 'N')
+            day=date.fromisoformat(shift['meta']['shiftDate'])
+            apply_lab_groups(row,[
+                dict(id=row['externalId']+'-cbc',title='تعداد الدم CBC',
+                     date=(day-timedelta(days=1)).isoformat(),results='Hb = 12.8 g/dL\nWBC = 7200 /µL\nPlatelets = 240 ×10^3/µL'),
+                dict(id=row['externalId']+'-renal',title='الشوارد ووظائف الكلية',
+                     date=day.isoformat(),results='Na = 139 mmol/L\nK = 4.1 mmol/L\nCreatinine = 0.9 mg/dL'),
+                dict(id=row['externalId']+'-extra',title='تحاليل إضافية',date=None,
+                     results='TSH = 2.4 mIU/L\nVitamin B12: قيد الانتظار — مثال توضيحي')])
             row['tasksJson']=packed([dict(id=str(uuid.uuid4()),description='مهمة تجريبية',done=False,priority='NORMAL',
                                          ownerDoctorId=None,ownerName=None,dueAtEpochMillis=None,dueShiftDate=None,
                                          completedByDoctorId=None,completedByName=None,completedAtEpochMillis=None)])

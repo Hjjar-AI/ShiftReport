@@ -68,6 +68,7 @@ internal class WardSaveGuard(
         when (result.errors.firstOrNull()) {
             PatientValidationError.ADMITTANCE_DATE_INVALID -> uiText(R.string.ui_ward_save_guard_008)
             PatientValidationError.BIRTH_DATE_INVALID -> uiText(R.string.ui_ward_save_guard_009)
+            PatientValidationError.LAB_GROUPS_INVALID -> uiText(R.string.lab_groups_invalid)
             PatientValidationError.TASKS_INVALID -> uiText(R.string.ui_ward_save_guard_013)
             PatientValidationError.RESIDENT_EQUALS_SUPERVISOR -> uiText(R.string.ui_ward_save_guard_014)
             null -> uiText(R.string.ui_ward_save_guard_015)

@@ -276,7 +276,6 @@ class WardViewModel @Inject constructor(
 
     fun setTwoColumn(enabled: Boolean) = preferences.setTwoColumn(enabled)
 
-    fun setCompactCards(compact: Boolean) = preferences.setCompactCards(compact)
 
     fun setGroupByMode(mode: GroupByMode) = preferences.setGroupByMode(mode)
 

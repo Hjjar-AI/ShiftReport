@@ -49,5 +49,20 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+    private val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `patients` ADD COLUMN `labGroupsJson` TEXT NOT NULL DEFAULT '[]'")
+            db.query("SELECT `id`, `labs` FROM `patients`").use { cursor ->
+                while (cursor.moveToNext()) {
+                    val id = cursor.getString(0)
+                    val text = cursor.getString(1)
+                    val groups = com.hos.rushdpatients.data.model.PatientLabGroups.fromText(text, "$id-labs")
+                    db.execSQL("UPDATE `patients` SET `labGroupsJson` = ? WHERE `id` = ?",
+                        arrayOf(com.hos.rushdpatients.data.model.PatientLabGroups.encode(groups), id))
+                }
+            }
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
 }

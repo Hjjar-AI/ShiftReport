@@ -16,17 +16,17 @@ data class PatientCardDensity(val padding: PaddingValues, val sectionGap: Dp)
 
 object UiPatientCard {
     val compact = PatientCardDensity(
-        PaddingValues(horizontal = UiSpacing.small, vertical = UiSpacing.tiny), UiSpacing.small)
+        PaddingValues(horizontal = UiSpacing.screen, vertical = UiSpacing.medium), UiSpacing.small)
     val normal = PatientCardDensity(
         PaddingValues(horizontal = UiSpacing.section, vertical = UiSpacing.screen), UiSpacing.screen)
     val listGap = UiSpacing.screen
     @Composable
-    fun density(compact: Boolean): PatientCardDensity {
+    fun density(): PatientCardDensity {
         val profile = LocalUiStyle.current
         return when (LocalUiPreferences.current.density) {
             UiDensity.COMPACT -> profile.compactDensity
             UiDensity.RELAXED -> UiStyleCatalog.relaxed.normalDensity
-            UiDensity.NORMAL -> if (compact) profile.compactDensity else profile.normalDensity
+            UiDensity.NORMAL -> profile.compactDensity
         }
     }
 
@@ -34,7 +34,7 @@ object UiPatientCard {
     fun border(selected: Boolean = false): BorderStroke {
         val target = if (selected) UiBorder.stroke(selected = true) else UiBorder.cardStroke()
         val targetColor = if (selected) MaterialTheme.colorScheme.primary else
-            lerp(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.outlineVariant, 0.65f)
+            MaterialTheme.colorScheme.outlineVariant
         val color by animateColorAsState(targetColor,
             tween(LocalUiStyle.current.indicatorMillis), label = "patientSelectionBorder")
         return BorderStroke(target.width, color)

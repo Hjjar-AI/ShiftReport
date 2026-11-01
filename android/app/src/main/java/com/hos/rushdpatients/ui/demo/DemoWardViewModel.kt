@@ -24,6 +24,7 @@ import com.hos.rushdpatients.domain.task.PatientTasks
 import com.hos.rushdpatients.pdf.PdfReportExporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +45,7 @@ internal data class DemoWardState(
     val shiftId: String = "demo-${java.util.UUID.randomUUID()}",
     val createdAt: Instant = Instant.now(),
     val revision: Long = 0,
-    val expanded: Boolean = false, val twoColumn: Boolean = false, val compact: Boolean = false,
+    val expanded: Boolean = false, val twoColumn: Boolean = false, val compact: Boolean = true,
     val groupBy: GroupByMode = GroupByMode.NONE, val draft: PatientDraft? = null,
     val fetchChoiceRequired: Boolean = false, val publicationReviewText: String? = null
 ) {
@@ -59,7 +60,7 @@ internal data class DemoWardState(
         patients.count { it.hasCompanion }, date, shiftDoctors)
 }
 
-/** Deliberately has no clinical repository, settings store, session, or network dependencies. */
+/** No production clinical/settings/session/network services; only isolated cosmetic preferences persist. */
 @HiltViewModel
 class DemoWardViewModel @Inject constructor(
     private val uiText: UiStrings,
@@ -75,6 +76,11 @@ class DemoWardViewModel @Inject constructor(
     internal val state = _state.asStateFlow()
     private val dayLabel = MutableStateFlow(com.hos.rushdpatients.util.ShiftDate.current())
     private val offline = MutableStateFlow(false)
+    private val appearanceStore = DemoAppearanceStore(context)
+    private val appearanceState = MutableStateFlow<DemoAppearance?>(null)
+    internal val demoAppearance = appearanceState.asStateFlow()
+    private val appearanceWrites = kotlinx.coroutines.sync.Mutex()
+
     internal val report = DemoReportController(context, uiText, viewModelScope, repository,
         pdfExporter, assignmentRenderer, mediaStoreSaver, textReportBuilder, ::selectDoctors)
     internal val doctors = DemoDoctorsController(repository, viewModelScope, uiText)
@@ -82,6 +88,15 @@ class DemoWardViewModel @Inject constructor(
     private var pendingPublication: DemoWardState? = null
     private val editDrafts = mutableMapOf<String, PatientDraft>()
     init {
+        viewModelScope.launch {
+            try {
+                appearanceState.value = appearanceStore.load()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                appearanceState.value = DemoAppearance()
+                message(uiText(R.string.demo_appearance_read_failed))
+            }
+        }
         viewModelScope.launch {
             while (true) {
                 val boundary = com.hos.rushdpatients.util.ShiftDate.endOf(com.hos.rushdpatients.util.ShiftDate.current()).toEpochMilli()
@@ -92,6 +107,28 @@ class DemoWardViewModel @Inject constructor(
     }
     override fun onCleared() { report.reset(); super.onCleared() }
     internal fun refreshDayLabel() { dayLabel.value = com.hos.rushdpatients.util.ShiftDate.current() }
+
+    internal fun setDemoAppearance(value: com.hos.rushdpatients.ui.theme.AppAppearance) =
+        updateDemoAppearance { it.copy(appearance = value) }
+
+    internal fun setDemoAccent(value: com.hos.rushdpatients.ui.theme.AppThemePreset) =
+        updateDemoAppearance { it.copy(accent = value) }
+
+    private fun updateDemoAppearance(transform: (DemoAppearance) -> DemoAppearance) {
+        val current = appearanceState.value ?: return
+        val next = transform(current)
+        if (next == current) return
+        appearanceState.value = next
+        viewModelScope.launch {
+            appearanceWrites.lock()
+            try {
+                appearanceStore.save(requireNotNull(appearanceState.value))
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { message(uiText(R.string.demo_appearance_save_failed)) }
+            finally { appearanceWrites.unlock() }
+        }
+    }
+
 
     private fun wardState(snapshot: DemoWardState) = WardUiState(
         loading = false, hospitalName = uiText(R.string.ui_demo_navigation_001),
@@ -174,7 +211,6 @@ class DemoWardViewModel @Inject constructor(
         }
         override fun setPatientDetailsExpanded(expanded: Boolean) { _state.update { it.copy(expanded = expanded) } }
         override fun setTwoColumn(enabled: Boolean) { _state.update { it.copy(twoColumn = enabled) } }
-        override fun setCompactCards(compact: Boolean) { _state.update { it.copy(compact = compact) } }
         override fun setGroupByMode(mode: GroupByMode) { _state.update { it.copy(groupBy = mode) } }
         override fun dismissSnackbar() { dismissMessage() }
         override fun loadRecycleBin() { }

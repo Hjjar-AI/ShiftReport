@@ -171,30 +171,31 @@ private fun WardWorkspaceContent(
     var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
     var recentlyEditedId by remember { mutableStateOf<String?>(null) }
-    var showSort by remember { mutableStateOf(false) }
     var confirmLatest by overlays::confirmLatest
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var requestSearchFocus by remember { mutableStateOf(false) }
     var showRecycleBin by overlays::showRecycleBin
     var collapsedGroups by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var showFilters by overlays::showFilters
-    var selectedViewOption by rememberSaveable { mutableStateOf(WardViewOption.FILTERS) }
+    var selectedViewOption by rememberSaveable { mutableStateOf(WardViewOption.SORT) }
     val viewOptionsScroll = rememberScrollState()
+    // A bulk click owns the displayed mode immediately; preference IO only persists it.
+    var bulkExpansionOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    val allCardsExpanded = bulkExpansionOverride ?: state.patientDetailsExpanded
     var expandedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var collapsedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var showWardTasks by overlays::showWardTasks
     var animatedPatientId by remember { mutableStateOf<String?>(null) }
     fun setAllPatientsExpanded(expand: Boolean) {
         animatedPatientId = null
-        val ids = patientIds
-        // Both override sets express the target immediately, even before preference IO completes.
-        expandedPatientIds = if (expand) ids else emptyList()
-        collapsedPatientIds = if (expand) emptyList() else ids
+        bulkExpansionOverride = expand
+        expandedPatientIds = emptyList()
+        collapsedPatientIds = emptyList()
         viewModel.setPatientDetailsExpanded(expand)
     }
     fun toggleCard(id: String) {
         animatedPatientId = id
-        if (state.patientDetailsExpanded) {
+        if (allCardsExpanded) {
             collapsedPatientIds = if (id in collapsedPatientIds) collapsedPatientIds - id else collapsedPatientIds + id
         } else {
             expandedPatientIds = if (id in expandedPatientIds) expandedPatientIds - id else expandedPatientIds + id
@@ -205,8 +206,8 @@ private fun WardWorkspaceContent(
     val searchIndex = remember(state.patients) { wardSearchIndex(state.patients) }
     val expandedIds = remember(expandedPatientIds) { expandedPatientIds.toSet() }
     val collapsedIds = remember(collapsedPatientIds) { collapsedPatientIds.toSet() }
-    val anyCardsExpanded = remember(state.patients, state.patientDetailsExpanded, expandedIds, collapsedIds) {
-        state.patients.any { patient -> if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds }
+    val anyCardsExpanded = remember(state.patients, allCardsExpanded, expandedIds, collapsedIds) {
+        state.patients.any { patient -> if (allCardsExpanded) patient.id !in collapsedIds else patient.id in expandedIds }
     }
     fun toggleAllCards() = setAllPatientsExpanded(!anyCardsExpanded)
     val visiblePatients = remember(state.patients, filters, currentDoctorId, dayLabel, searchIndex, patientFilterIds) {
@@ -360,7 +361,6 @@ private fun WardWorkspaceContent(
             editor.showAdd = false
             editor.editTarget = null
             editor.deleteTarget = null
-            showSort = false
         }
     }
 
@@ -443,12 +443,16 @@ private fun WardWorkspaceContent(
                     uiText(R.string.back_online_fetch), actionLabel = uiText(R.string.ui_patient_fetch_reminder_003),
                     onAction = { showBackOnline = false; confirmLatest = true },
                     actionEnabled = !state.loading && !state.saving && !state.syncing && !state.isReadOnly && editor.dialog == null && detailsTargetId == null)
-                if (viewModel.synchronizationAvailable && patientDestination) WardTransferBar(
+                if (viewModel.synchronizationAvailable && (patientDestination || viewMode == WardViewMode.DASHBOARD)) WardTransferBar(
                     fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
                         editor.dialog == null && detailsTargetId == null && !confirmLatest,
                     reportEnabled = state.shift != null && !state.isReadOnly && !state.loading && !state.syncing && !state.saving &&
                         editor.dialog == null && detailsTargetId == null,
                     onFetch = { confirmLatest = true },
+                    uploadEnabled = state.shift != null && (!viewModel.liveProject || online) &&
+                        !state.loading && !state.isReadOnly && !state.saving && !state.syncing &&
+                        editor.dialog == null && detailsTargetId == null && !confirmLatest,
+                    onUpload = viewModel::reviewPendingPublication,
                     onReport = { state.shift?.id?.let(onOpenReport) })
                 if (state.shift != null && state.loading) com.hos.rushdpatients.ui.components.AppLoadingState(
                     uiText(R.string.ui_ward_screen_006),
@@ -609,7 +613,7 @@ private fun WardWorkspaceContent(
                                     PatientCard(
         modifier = cardModifier,
         state = PatientCardState(patient = patient,
-            expanded = if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds,
+            expanded = if (allCardsExpanded) patient.id !in collapsedIds else patient.id in expandedIds,
             animateExpansion = animatedPatientId == patient.id,
             twoColumn = state.twoColumn,
             doctorNames = doctorNames,
@@ -618,7 +622,7 @@ private fun WardWorkspaceContent(
             recentlyEdited = recentlyEditedId == patient.id,
             pinned = false,
             compact = state.compactCards),
-        actions = remember(patient, state.patientDetailsExpanded, state.isReadOnly, state.saving, state.syncing, viewModel, editor, haptics) {
+        actions = remember(patient, allCardsExpanded, state.isReadOnly, state.saving, state.syncing, viewModel, editor, haptics) {
             PatientCardActions(
             onOpen = {
                                                                                         detailsTargetId = patient.id
@@ -749,16 +753,16 @@ private fun WardWorkspaceContent(
     if (showFilters) WardViewOptionsDialog(state, viewModel,
         resultSummary = listOfNotNull(uiText(R.string.ui_ward_patient_list_controls_001,
             com.hos.rushdpatients.ui.components.uiNumber(visiblePatients.size), com.hos.rushdpatients.ui.components.uiNumber(state.patients.size)),
-            state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText)).joinToString(" · "),
+            state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText)).joinToString(" • "),
         activeFilterLabels = filtersState.labels(uiText),
         filters = filters,
         onFiltersChanged = { transform -> filtersState.update(transform(filtersState.options()))
         }, selectedViewOption = selectedViewOption, viewOptionsScroll = viewOptionsScroll,
-        showSort = showSort, onSortExpandedChange = { showSort = it },
         onSelectOption = { selectedViewOption = it; scope.launch { viewOptionsScroll.scrollTo(0) } },
         onShowTasks = { showFilters = false; showWardTasks = true },
-        onSetAllExpanded = ::setAllPatientsExpanded, onResetFilters = ::resetPatientFilters,
-        onClose = { showFilters = false; showSort = false })
+        onSetAllExpanded = ::setAllPatientsExpanded, cardsExpanded = anyCardsExpanded,
+        onResetFilters = ::resetPatientFilters,
+        onClose = { showFilters = false })
 
     if (showRecycleBin) {
         androidx.compose.runtime.DisposableEffect(viewModel, state.shift?.id) {

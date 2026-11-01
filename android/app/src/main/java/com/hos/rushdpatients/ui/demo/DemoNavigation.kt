@@ -21,11 +21,13 @@ internal enum class DemoDestination(@StringRes private val titleRes: Int) {
 internal fun DemoDrawer(
     state: DemoWardState, ward: WardUiState, busy: Boolean,
     onAction: (WardDrawerAction) -> Unit,
-    onUndoFetch: (() -> Unit)?, onActor: () -> Unit, onReset: () -> Unit, onExit: () -> Unit
+    onUndoFetch: (() -> Unit)?, onActor: () -> Unit, onReset: () -> Unit, onExit: () -> Unit,
+    onPublishData: () -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
     WardDrawer(ward, state.actor.fullName, isAdmin = true, isPermanentAdmin = false,
-        online = false, onAction = onAction, additionalActions = {
+        online = false, uploadAvailable = true, onAction = onAction,
+        onPublishData = onPublishData, additionalActions = {
             AppNotice(uiText(R.string.demo_simulation_notice))
             if (onUndoFetch != null) AppTextButton(onClick = onUndoFetch, enabled = !busy) {
                 Text(uiText(R.string.demo_undo_fetch))

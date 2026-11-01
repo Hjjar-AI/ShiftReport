@@ -63,5 +63,6 @@ data class PatientEntity(
     val revision: Long,
     val updatedAtEpochMillis: Long,
     val assignmentChangedOnEpochDay: Long? = null,
-    val deletedAtEpochMillis: Long?
+    val deletedAtEpochMillis: Long?,
+    @androidx.room.ColumnInfo(defaultValue = "'[]'") val labGroupsJson: String = "[]"
 )

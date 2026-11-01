@@ -90,7 +90,7 @@ internal fun PatientFormDialog(
     var initialDiagnosis by formState::initialDiagnosis
     var treatmentText by formState::treatmentText
     var followUpText by formState::followUpText
-    var labText by formState::labText
+    var labGroups by formState::labGroups
     var residentId by formState::residentId
     var specialistId by formState::specialistId
     val today = LocalDate.now()
@@ -120,7 +120,7 @@ internal fun PatientFormDialog(
     val formValues = listOf(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
         hasCompanion, diagnosisType, initialDiagnosis, treatmentText,
-        followUpText, labText, residentId, specialistId,
+        followUpText, labGroups, residentId, specialistId,
         badges, resolvedTasks, badgeDraftText, badgeDraftPriority, isPriority
     )
     val savedValues = remember(savedBaseline) {
@@ -130,7 +130,7 @@ internal fun PatientFormDialog(
             savedBaseline?.birthDate?.year?.toString().orEmpty(), savedBaseline?.age?.toString().orEmpty(),
             savedBaseline?.hasCompanion ?: false, savedBaseline?.diagnosisType ?: DiagnosisType.fromCode(""),
             savedBaseline?.initialDiagnosis.orEmpty(), savedBaseline?.treatmentPlan.orEmpty(),
-            savedBaseline?.followUp.orEmpty(), savedBaseline?.labs.orEmpty(),
+            savedBaseline?.followUp.orEmpty(), savedBaseline?.effectiveLabGroups.orEmpty(),
             savedBaseline?.responsibleResidentId, savedBaseline?.responsibleSpecialistId,
             savedBaseline?.badges.orEmpty(), savedBaseline?.tasks.orEmpty(), "", null,
             savedBaseline?.isPriority ?: false
@@ -205,7 +205,7 @@ internal fun PatientFormDialog(
     LaunchedEffect(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
         hasCompanion, diagnosisType, initialDiagnosis, treatmentText,
-        followUpText, labText, residentId, specialistId,
+        followUpText, labGroups, residentId, specialistId,
         badges, badgeDraftText, badgeDraftPriority, isPriority, tasks, taskEntry
     ) {
         run {
@@ -225,7 +225,8 @@ internal fun PatientFormDialog(
                     followUpItems = emptyList(),
                     followUpDraft = followUpText,
                     labItems = emptyList(),
-                    labDraft = labText,
+                    labDraft = "",
+                    labGroups = labGroups,
                     residentId = residentId,
                     specialistId = specialistId,
                     tasks = resolvedTasks,
@@ -341,10 +342,8 @@ internal fun PatientFormDialog(
                         )
                     }
                     PatientFormSection {
-                        MultilineField(
-                            value = labText, onValueChange = { labText = it },
-                            label = uiText(R.string.ui_labs), textStyle = autoStyle
-                        )
+                        PatientLabGroupsEditor(labGroups, autoStyle, enabled = !saving,
+                            onChange = { labGroups = it })
                     }
                     PatientFormSection {
                         optionalFieldsContent()
@@ -359,7 +358,7 @@ internal fun PatientFormDialog(
                 val submit: (Boolean) -> Unit = submit@{ advance ->
                     val treatmentPlan = treatmentText
                     val followUp = followUpText
-                    val labs = labText
+                    val labs = com.hos.rushdpatients.data.model.PatientLabGroups.text(labGroups)
 
                     val errors = validatePatientForm(uiText, admittanceDate, today,
                         ageText, birthYear, currentYear, age, residentId, specialistId)
@@ -378,7 +377,7 @@ internal fun PatientFormDialog(
 
                     val patient = patientForSubmission(initial, admittanceNumber, admittanceDate,
                         gender, name, resolvedBirthDate, hasCompanion, diagnosisType, initialDiagnosis,
-                        treatmentPlan, followUp, labs, residentId, specialistId, resolvedBadges, resolvedTasks, isPriority)
+                        treatmentPlan, followUp, labs, residentId, specialistId, resolvedBadges, resolvedTasks, isPriority, labGroups)
                     if (advance) onConfirmAndNext?.invoke(patient) else onConfirm(patient)
                 }
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {

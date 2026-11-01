@@ -10,6 +10,7 @@
 | Multiple sections design | [Owner-review proposal](decisions/multiple-sections.md) |
 | Proposed iPhone client | [iPhone plan](../iphone.plan.md) |
 | Android UI maintenance | [Work guide](guides/android-ui.md), [Style/components](reference/design-catalog.md), [Demo](guides/android-demo.md) |
+| About/splash wording | [Editable content guide](guides/about-splash-content.md) |
 | Telegram setup | [دليل الإعداد](guides/telegram-setup.md) |
 | Build/cache/sign/package | [Shared workstation/signing](guides/android-build.md), [Windows EXE](guides/windows-exe-packaging.md) |
 | Remaining tests / results | [Single checklist](status/testing-handoff.md), [Evidence](status/current-state.md#verification-and-limits) |

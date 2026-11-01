@@ -9,13 +9,13 @@ Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and `deskt
 | Join | `.srjoin.json`, `format=ShiftReportJoin`, encrypted `RUSHDJOIN1` payload, inner version 1 |
 | Shared pointer | Pinned JSON `kind=shift-report-sync-state`, version 4 |
 | Patient document | Bundle 1, `# rushdShiftBundle=1`, boundary `#==RUSHD_SHIFT_BOUNDARY_7F3A9C==` |
-| Shift CSV | Schema 7, 23 required columns including final `assignmentChangedOn` ISO date (blank allowed); full quoted metadata field |
+| Shift CSV | Schema 8, 24 required columns, including `assignmentChangedOn` ISO date (blank allowed) and final `labGroupsJson`; full quoted metadata field |
 | Doctor Telegram wire | Ten columns including teamSupervisorId; distinct from schema-1 spreadsheet CSV |
 | Encrypted file | `SRDATA1` + 12-byte nonce + AES-GCM ciphertext/tag |
 | Encrypted text | `SRMSG1:` + Base64 of encrypted gzip text |
-| Portable shift backup | `.rpb`: `RUSHDBK1` + 16-byte salt + 12-byte nonce + AES-GCM ciphertext/tag; single CSV7 document; password PBKDF2-HMAC-SHA256/210000/256-bit, no AAD |
+| Portable shift backup | `.rpb`: `RUSHDBK1` + 16-byte salt + 12-byte nonce + AES-GCM ciphertext/tag; single CSV8 document; password PBKDF2-HMAC-SHA256/210000/256-bit, no AAD |
 
-Both clients require the current 23-column CSV7 header, including `assignmentChangedOn`; an empty assignment date remains unknown and is never restamped on retrieval/import. Current metadata quoting preserves roster commas, sort JSON, snapshot/base IDs and revisions. Wire versions/fields are unchanged. Android database 7 relaxes date/name indexes while preserving rows, IDs and unique Telegram accounts. Compilation/focused results and remaining live acceptance are recorded in Current state and the handoff.
+Both clients require the current 24-column CSV8 header, including `assignmentChangedOn` and `labGroupsJson`; an empty assignment date remains unknown and is never restamped on retrieval/import. Current metadata quoting preserves roster commas, sort JSON, snapshot/base IDs and revisions. CSV8 appends `labGroupsJson`: an ordered array of `{id,title,date,results}` with optional ISO date (`null` when unknown). Existing `labs` is its readable text projection; inconsistent grouped text is rejected. Empty groups can retain an ungrouped `labs` field. Android database8 adds the JSON column and converts existing labs to one untitled, undated group without changing the stored text; database7 index changes remain. Desktop encrypted local snapshots gain the same groups on read. Both clients must be updated before sharing CSV8. Compilation/focused results and remaining live acceptance are recorded in Current state and the handoff.
 
 ## Connection, crypto and identity
 
@@ -57,7 +57,7 @@ Encrypted recycle records retain full content/position/previous completion evide
 
 PIN hashes/throttling remain encrypted local records, excluded from drafts/CSV/Telegram. Fresh verified membership enrolls; lock hides clinical windows, retains editors and clears network authority. Cached binding unlocks local work; shared writes still require fresh authority.
 
-Doctor spreadsheet schema1; patient export single CSV7. Reviewed admin import retains stable IDs/omitted active doctors/protected permissions; rejects ambiguous identity/unsupported options, excludes PIN/sync aliases and wire-inapplicable username/time/tombstones. Teams: Telegram `teamSupervisorId`, CSV `extra_options=teamSupervisor:<id>`; ≤1supervisor/resident, blank unassigned. Updated clients needed; Android existing options storage/no schema change. Sort metadata/positions normalized before review; grouping presentation-only. Demo memory-only/no transport, every PDF page DEMO.
+Doctor spreadsheet schema1; patient export single CSV8. Reviewed admin import retains stable IDs/omitted active doctors/protected permissions; rejects ambiguous identity/unsupported options, excludes PIN/sync aliases and wire-inapplicable username/time/tombstones. Teams: Telegram `teamSupervisorId`, CSV `extra_options=teamSupervisor:<id>`; ≤1supervisor/resident, blank unassigned. Updated clients needed; Android existing options storage/no schema change. Sort metadata/positions normalized before review; grouping presentation-only. Demo memory-only/no transport, every PDF page DEMO.
 
 ## Report delivery
 

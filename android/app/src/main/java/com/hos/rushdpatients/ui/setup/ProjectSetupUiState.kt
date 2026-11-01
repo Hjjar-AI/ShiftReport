@@ -14,6 +14,7 @@ data class ProjectSetupUiState(
     val doctorsTopicId: String = "",
     val provisioningPassphrase: String = "",
     val importedProvisioning: Boolean = false,
+    val joinFileSelected: Boolean = false,
     val encryptTelegram: Boolean = false,
     val telegramDataKey: String = "",
     val adminName: String = "",

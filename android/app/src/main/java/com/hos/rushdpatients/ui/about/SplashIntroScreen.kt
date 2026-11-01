@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -38,7 +40,7 @@ import com.hos.rushdpatients.ui.theme.LocalUiStyle
 import com.hos.rushdpatients.ui.theme.uiContentGap
 import com.hos.rushdpatients.ui.theme.uiContentPadding
 
-/** MainActivity owns the fixed five-second deadline; tapping skips the intro. */
+/** MainActivity owns the fixed three-second deadline; tapping skips the intro. */
 @Composable
 internal fun SplashIntroScreen(
     onSkip: () -> Unit,
@@ -46,6 +48,7 @@ internal fun SplashIntroScreen(
     onRelease: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
+    val skipLabel = stringResource(R.string.about_splash_skip_label)
     val currentOnSkip by rememberUpdatedState(onSkip)
     val currentOnPress by rememberUpdatedState(onPress)
     val currentOnRelease by rememberUpdatedState(onRelease)
@@ -62,7 +65,7 @@ internal fun SplashIntroScreen(
             currentOnPress()
             try { tryAwaitRelease() } finally { currentOnRelease() }
         }) }
-        .semantics { onClick(label = "تخطي المقدمة") { onSkip(); true } }
+        .semantics { onClick(label = skipLabel) { onSkip(); true } }
         .safeDrawingPadding().padding(UiSpacing.section), contentAlignment = Alignment.Center) {
         // Keep the credits reachable on short windows and with enlarged text.
         val emblemSize = minOf(com.hos.rushdpatients.ui.theme.UiSize.splashEmblem, maxHeight * 0.25f)
@@ -80,24 +83,31 @@ internal fun SplashIntroScreen(
                     Surface(modifier = splashEntrance(entered, order = 0, initialScale = 0.92f),
                         color = Color.White, shape = MaterialTheme.shapes.extraLarge,
                         border = BorderStroke(LocalUiStyle.current.normalBorder, colors.outlineVariant)) {
-                        Image(painterResource(R.drawable.app_emblem_transparent), contentDescription = "شعار شعبة الطب النفسي",
+                        Image(painterResource(R.drawable.app_emblem_transparent), contentDescription = stringResource(R.string.about_emblem_description),
                             contentScale = ContentScale.Fit, modifier = Modifier.size(emblemSize).padding(UiSpacing.screen))
                     }
                 }
-                Text("تقرير المناوبة", style = MaterialTheme.typography.headlineMedium, color = colors.primary,
+                Text(stringResource(R.string.about_app_title), style = MaterialTheme.typography.headlineMedium, color = colors.primary,
                     textAlign = TextAlign.Center, modifier = splashEntrance(entered, order = 1).semantics { heading() })
-                Text("للطب النفسي", style = MaterialTheme.typography.titleMedium,
+                val subtitle = stringResource(R.string.about_splash_subtitle)
+                if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.titleMedium,
                     color = colors.onSurfaceVariant, textAlign = TextAlign.Center,
                     modifier = splashEntrance(entered, order = 2))
             }
             Surface(modifier = Modifier.fillMaxWidth().then(splashEntrance(entered, order = 3)), shape = MaterialTheme.shapes.large,
                 color = colors.surface, border = BorderStroke(LocalUiStyle.current.normalBorder, colors.outlineVariant)) {
+                SplashCreditSection(stringResource(R.string.about_supervisor_role),
+                    listOf(stringResource(R.string.about_supervisor_name)), 0, entered)
+            }
+            Surface(modifier = Modifier.fillMaxWidth().then(splashEntrance(entered, order = 4)), shape = MaterialTheme.shapes.large,
+                color = colors.surface, border = BorderStroke(LocalUiStyle.current.normalBorder, colors.outlineVariant)) {
                 Column {
-                    SplashCreditSection("إشراف وتطوير", listOf(introSupervisorName), 0, entered)
+                    SplashCreditSection(stringResource(R.string.about_splash_technical_role), stringArrayResource(R.array.about_technical_contributors).toList(), 1, entered)
                     Divider(Modifier.padding(horizontal = UiSpacing.largeSection), color = colors.outlineVariant)
-                    SplashCreditSection("مساهمة تقنية · الأطباء", technicalContributors, 1, entered)
+                    SplashCreditSection(stringResource(R.string.about_original_role), listOf(stringResource(R.string.about_original_author_name)), 2, entered)
                     Divider(Modifier.padding(horizontal = UiSpacing.largeSection), color = colors.outlineVariant)
-                    SplashCreditSection("فكرة Excel الأولية وبنية التقرير الأساسي", listOf(introOriginalAuthorName), 2, entered)
+                    SplashCreditSection(stringResource(R.string.about_testers_role),
+                        listOf(testerNamesParagraph(stringArrayResource(R.array.about_testers))), 3, entered)
                 }
             }
         }

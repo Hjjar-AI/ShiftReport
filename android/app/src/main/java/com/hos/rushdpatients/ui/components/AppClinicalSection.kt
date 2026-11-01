@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +24,10 @@ fun AppClinicalSection(title: String, content: String, modifier: Modifier = Modi
     emptyText: String? = null, showHeading: Boolean = true) {
     val value = if (content.isBlank()) emptyText ?: return else content
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        if (showHeading) AppSectionHeader(title, titleColor = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (showHeading) AppSectionHeader(title,
+            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                MaterialTheme.shapes.extraSmall),
+            titleColor = MaterialTheme.colorScheme.onSurface)
         AppText(value, role = if (kind == ClinicalTextKind.LABS) AppTextRole.LABS else AppTextRole.CLINICAL,
             maxLines = maxLines, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
     }

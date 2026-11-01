@@ -35,7 +35,7 @@
     <string name="patients_local_changed_download" formatted="false">"تغيرت البيانات المحلية أثناء التنزيل؛ أعد المزامنة لنشر التعديلات بأمان"</string>
     <string name="sync_list_separator" formatted="false">"، "</string>
     <string name="sync_nothing" formatted="false">"لا يوجد"</string>
-    <string name="patients_doctors_remain_pending" formatted="false">"تعديلات سجل الأطباء ستبقى معلقة؛ نشرها يتطلب مديراً. ستُنشر نسخة المرضى المراجعة فقط.\n"</string>
+    <string name="patients_doctors_remain_pending" formatted="false">"تعديلات سجل الأطباء ستبقى معلّقة؛ نشرها يتطلب مديراً. ستُنشر نسخة المرضى المراجعة فقط.\n"</string>
     <string name="patients_review_publish_all" formatted="false">"نشر الكل — سجل الأطباء أولاً ثم المرضى\n"</string>
     <string name="patients_review_snapshot_notice" formatted="false">"ستُنشر النسخة المحلية الكاملة للمناوبة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.\n"</string>
     <string name="patients_review_additions" formatted="false">"إضافات: "</string>

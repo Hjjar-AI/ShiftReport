@@ -57,7 +57,7 @@ data class WardUiState(
     val exportingCsv: Boolean = false,
     val patientDetailsExpanded: Boolean = false,
     val twoColumn: Boolean = false,
-    val compactCards: Boolean = false,
+    val compactCards: Boolean = true,
     val lastOperation: String? = null,
     val retryAction: WardRetryAction? = null,
     val error: String? = null,

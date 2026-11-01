@@ -12,6 +12,7 @@ enum class PatientValidationError {
     ADMITTANCE_DATE_INVALID,
     BIRTH_DATE_INVALID,
     RESIDENT_EQUALS_SUPERVISOR,
+    LAB_GROUPS_INVALID,
     TASKS_INVALID
 }
 
@@ -35,6 +36,9 @@ object PatientValidator {
         ) {
             errors += PatientValidationError.RESIDENT_EQUALS_SUPERVISOR
         }
+
+        if (runCatching { com.hos.rushdpatients.data.model.PatientLabGroups.requireValid(patient.labGroups) }.isFailure)
+            errors += PatientValidationError.LAB_GROUPS_INVALID
 
         if (runCatching {
                 PatientTasks.requireValid(patient.tasks)

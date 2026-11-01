@@ -36,12 +36,18 @@ internal object PdfPatientContent {
         return sb.toString()
     }
 
-    fun buildAdmitCell(patient: Patient, reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): String {
+    fun buildAdmitCell(
+        patient: Patient,
+        reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current(),
+        includeNumber: Boolean = true
+    ): String {
         val sb = StringBuilder()
-        if (patient.admittanceNumber.isNotBlank()) sb.append(patient.admittanceNumber)
-        sb.append('\n')
-        sb.append(PdfStrings.SEPARATOR)
-        sb.append('\n')
+        if (includeNumber) {
+            if (patient.admittanceNumber.isNotBlank()) sb.append(patient.admittanceNumber)
+            sb.append('\n')
+            sb.append(PdfStrings.SEPARATOR)
+            sb.append('\n')
+        }
         patient.admittanceDate?.let { date ->
             sb.append("يوم ")
             sb.append(patient.admittanceDaysOn(reportDate) ?: 0)
@@ -54,12 +60,13 @@ internal object PdfPatientContent {
     fun buildSupervisorResidentCell(
         patient: Patient,
         residentNames: Map<String, String>,
-        supervisorNames: Map<String, String>
+        supervisorNames: Map<String, String>,
+        roleSeparator: String = "\n${PdfStrings.SEPARATOR}\n"
     ): String {
         return listOfNotNull(
             patient.responsibleSpecialistId?.let(supervisorNames::get)?.takeIf(String::isNotBlank),
             patient.responsibleResidentId?.let(residentNames::get)?.takeIf(String::isNotBlank)
-        ).joinToString("\n${PdfStrings.SEPARATOR}\n")
+        ).joinToString(roleSeparator)
     }
 
     fun buildNotesCell(patient: Patient): String {
@@ -72,10 +79,10 @@ internal object PdfPatientContent {
             if (sb.isNotEmpty()) sb.append('\n')
             sb.append("المهام: ").append(PatientTasks.summary(patient.tasks))
         }
-        if (patient.labs.isNotBlank()) {
+        if (patient.labText.isNotBlank()) {
             if (sb.isNotEmpty()) sb.append('\n')
             sb.append("التحاليل: ")
-            sb.append(patient.labs)
+            sb.append(patient.labText)
         }
         return sb.toString()
     }
@@ -86,7 +93,7 @@ internal object PdfPatientContent {
             if (isNotEmpty()) append('\n')
             append(patient.badges.joinToString("\n") { badge ->
                 val level = badge.priority?.takeIf { it == com.hos.rushdpatients.data.model.PatientBadgePriority.HIGH }
-                    ?.let { " · ${it.arabicLabel}" }.orEmpty()
+                    ?.let { " • ${it.arabicLabel}" }.orEmpty()
                 "⚠ ${badge.text}$level"
             })
         }

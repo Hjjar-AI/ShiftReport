@@ -37,7 +37,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.hos.rushdpatients.pdf.*
 import com.hos.rushdpatients.ui.components.AppPdfStylePicker
-import com.hos.rushdpatients.ui.components.AppPdfAppearanceControls
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
@@ -289,7 +288,7 @@ internal fun ReportWorkspace(
                         if (state.doctors.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_019))
                         else {
                             Text(state.doctors.take(2).joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName } +
-                                if (state.doctors.size > 2) " · +${uiNumber(state.doctors.size - 2)}" else "")
+                                if (state.doctors.size > 2) " • +${uiNumber(state.doctors.size - 2)}" else "")
                             if (state.doctors.size > 2) AppTextButton(onClick = { showRosterDetails = !showRosterDetails }) {
                                 Text(if (showRosterDetails) uiText(R.string.ui_report_preview_screen_020) else uiText(R.string.ui_report_preview_screen_021, uiNumber(state.doctors.size)))
                             }
@@ -464,26 +463,15 @@ internal fun ReportWorkspace(
                         AppPdfStylePicker(selected = state.pdfStyle,
                             onSelected = { viewModel.setPdfAppearance(it, state.pdfOptions) }, enabled = !busy)
                         val options = state.pdfOptions
-                        fun update(value: PdfExportOptions) = viewModel.setPdfAppearance(state.pdfStyle, value)
-                        if (state.pdfStyle != PdfStyle.CARDS) {
-                            Text(uiText(R.string.ui_report_preview_screen_054), style = MaterialTheme.typography.labelMedium)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                PdfPaperSize.entries.forEach { value ->
-                                    AppFilterChip(selected = options.paperSize == value, enabled = !busy,
-                                        onClick = { update(options.copy(paperSize = value)) }, label = { Text(value.uiLabel(uiText)) })
-                                }
-                            }
-                        }
-                        AppPdfAppearanceControls(shading = options.rowShading, enabled = !busy,
-                            showShading = state.pdfStyle != PdfStyle.CARDS,
-                            onShading = { update(options.copy(rowShading = it)) })
+                        Text(uiText(R.string.pdf_uses_app_theme, options.appTheme.arabicLabel(uiText)),
+                            style = MaterialTheme.typography.bodySmall)
                         Text(uiText(R.string.ui_report_preview_screen_055), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
                 if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
                     Text(uiText(R.string.ui_report_preview_screen_063) + state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
-                    if (generalSelected) Text(generalDestinationLabel + " · " +
+                    if (generalSelected) Text(generalDestinationLabel + " • " +
                         (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
                     selectedTargets.forEach { target ->
                         Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
@@ -520,7 +508,7 @@ internal fun ReportWorkspace(
                 if (state.deliveryRecords.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_083))
                 state.deliveryRecords.asReversed().forEach { row ->
                     val label = when (row.status) { DeliveryStatus.UNKNOWN_COPY_ALLOWED -> uiText(R.string.delivery_uncertain_copy_allowed); DeliveryStatus.UNKNOWN -> uiText(R.string.ui_report_preview_screen_084); DeliveryStatus.SENT -> uiText(R.string.ui_report_preview_screen_085); else -> uiText(R.string.ui_report_preview_screen_086) }
-                    Text("${row.label} · ${row.format} · $label")
+                    Text("${row.label} • ${row.format} • $label")
                     Text(java.time.Instant.ofEpochMilli(row.at).atZone(java.time.ZoneId.systemDefault())
                         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                         style = MaterialTheme.typography.bodySmall)

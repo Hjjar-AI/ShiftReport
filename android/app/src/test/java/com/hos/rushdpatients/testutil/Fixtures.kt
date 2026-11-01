@@ -41,4 +41,12 @@ object Fixtures {
         completedByDoctorId = if (done) "doc-1" else null,
         completedByName = if (done) "أرز" else null,
         completedAtEpochMillis = if (done) timestamp.toEpochMilli() else null)
+    fun labGroups() = listOf(
+        PatientLabGroup("cbc", "تعداد الدم", "2024-02-29", "Hb = 12.5 g/dL\nWBC = 6000 /µL"),
+        PatientLabGroup("renal", "الكلى", null, "Na = 140 mmol/L\nK = 4.1 mmol/L")
+    )
+
+    fun patientWithLabs(groups: List<PatientLabGroup> = labGroups()) =
+        patient(labs = PatientLabGroups.text(groups)).copy(labGroups = groups)
+
 }

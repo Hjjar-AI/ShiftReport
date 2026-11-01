@@ -9,11 +9,6 @@ enum class PdfPaperSize(
 ) {
     A4("A4", 595, 842),
     A5("A5", 420, 595);
-
-    companion object {
-        fun fromSetting(value: String?): PdfPaperSize =
-            entries.firstOrNull { it.name == value } ?: A5
-    }
 }
 
 enum class PdfColorPreset(val arabicLabel: String) {
@@ -40,9 +35,9 @@ enum class PdfRuleContrast(val arabicLabel: String, val light: Int, val dark: In
 }
 
 enum class PdfRowShading(val arabicLabel: String) {
-    AUTO("تلقائي حسب الفرق"), ZEBRA("صفوف متناوبة"), NONE("دون تظليل");
+    ZEBRA("صفوف متناوبة"), NONE("دون تظليل");
     companion object {
-        fun fromSetting(value: String?): PdfRowShading = entries.firstOrNull { it.name == value } ?: AUTO
+        fun fromSetting(value: String?): PdfRowShading = entries.firstOrNull { it.name == value } ?: ZEBRA
     }
 }
 
@@ -50,7 +45,7 @@ enum class PdfPresentationPreset(
     val arabicLabel: String, val weight: PdfRuleWeight, val contrast: PdfRuleContrast,
     val shading: PdfRowShading, val lightOnly: Boolean = false
 ) {
-    BALANCED("متوازن", PdfRuleWeight.MEDIUM, PdfRuleContrast.MEDIUM, PdfRowShading.AUTO),
+    BALANCED("متوازن", PdfRuleWeight.MEDIUM, PdfRuleContrast.MEDIUM, PdfRowShading.ZEBRA),
     CLEAR("فواصل واضحة", PdfRuleWeight.THICK, PdfRuleContrast.STRONG, PdfRowShading.ZEBRA),
     PRINT("للطباعة", PdfRuleWeight.MEDIUM, PdfRuleContrast.STRONG, PdfRowShading.NONE, true)
 }
@@ -64,5 +59,6 @@ data class PdfExportOptions(
     val generatedAtEpochMillis: Long = System.currentTimeMillis(),
     val ruleWeight: PdfRuleWeight = PdfRuleWeight.MEDIUM,
     val ruleContrast: PdfRuleContrast = PdfRuleContrast.MEDIUM,
-    val rowShading: PdfRowShading = PdfRowShading.AUTO
+    val rowShading: PdfRowShading = PdfRowShading.ZEBRA,
+    val appTheme: com.hos.rushdpatients.ui.theme.AppThemePreset = com.hos.rushdpatients.ui.theme.AppThemePreset.VANILLA
 )

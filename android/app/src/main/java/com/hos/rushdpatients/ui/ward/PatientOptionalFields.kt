@@ -51,7 +51,7 @@ internal fun PatientOptionalFields(
         uiText(R.string.ui_patient_optional_summary,
             uiNumber(tasks.size), uiNumber(badges.size + if (badgeDraftText.isNotBlank()) 1 else 0)),
         uiText(R.string.ui_patient_form_dialog_022).takeIf { isPriority }, entryOptionsSummary
-    ).joinToString(" · ")
+    ).joinToString(" • ")
     AppSectionHeader(
         title = uiText(R.string.ui_patient_optional_section), summary = summary,
         expanded = formState.extrasExpanded,
@@ -73,7 +73,7 @@ internal fun PatientOptionalFields(
                     verticalAlignment = Alignment.CenterVertically) {
                     Text(buildString {
                         append(badge.text)
-                        badge.priority?.let { append(" · ").append(it.uiLabel(uiText)) }
+                        badge.priority?.let { append(" • ").append(it.uiLabel(uiText)) }
                     }, modifier = Modifier.weight(1f))
                     AppIconButton(label = uiText(R.string.ui_patient_form_dialog_027),
                         icon = AppIcons.Close,

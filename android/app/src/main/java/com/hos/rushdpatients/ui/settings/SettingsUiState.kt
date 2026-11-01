@@ -31,7 +31,7 @@ data class SettingsUiState(
     val pdfPatientCardStyle: PatientCardStyle = PatientCardStyle.BADGE_HEADER,
     val pdfPaperSize: PdfPaperSize = PdfPaperSize.A5,
     val pdfColorPreset: PdfColorPreset = PdfColorPreset.TEAL,
-    val pdfRowShading: PdfRowShading = PdfRowShading.AUTO,
+    val pdfRowShading: PdfRowShading = PdfRowShading.ZEBRA,
     val uiPreferences: com.hos.rushdpatients.ui.theme.UiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences(),
     val appearance: AppAppearance = AppAppearance.SYSTEM,
     val appTheme: AppThemePreset = AppThemePreset.VANILLA,

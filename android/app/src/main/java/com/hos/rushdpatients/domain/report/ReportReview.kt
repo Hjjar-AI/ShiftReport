@@ -26,7 +26,7 @@ object ReportReview {
             add(patient.id); add(patient.admittanceNumber); add(patient.admittanceDate?.toString().orEmpty())
             add(patient.gender.name); add(patient.name); add(patient.birthDate?.toString().orEmpty())
             add(patient.hasCompanion.toString()); add(patient.diagnosisType.name)
-            add(patient.initialDiagnosis); add(patient.treatmentPlan); add(patient.followUp); add(patient.labs)
+            add(patient.initialDiagnosis); add(patient.treatmentPlan); add(patient.followUp); add(patient.labText); add(com.hos.rushdpatients.data.model.PatientLabGroups.encode(patient.labGroups))
             add(patient.responsibleResidentId.orEmpty()); add(patient.responsibleSpecialistId.orEmpty())
             add(patient.isPriority.toString()); add(patient.sortOrder.toString())
             add(patient.tasks.size.toString())

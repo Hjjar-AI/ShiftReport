@@ -95,7 +95,7 @@ class WireAndTaskTests(unittest.TestCase):
         source = shift()
         with self.assertRaises(BridgeError): parse_bundle(encode_bundle([source, source]))
         current=encode_bundle([source])
-        for obsolete in (current.replace(b'schemaVersion=7',b'schemaVersion=6'),
+        for obsolete in (current.replace(b'schemaVersion=8',b'schemaVersion=7'),
                          current.split(b'\n',1)[1],
                          current.replace(b',assignmentChangedOn',b'')):
             with self.assertRaises(BridgeError):parse_bundle(obsolete)

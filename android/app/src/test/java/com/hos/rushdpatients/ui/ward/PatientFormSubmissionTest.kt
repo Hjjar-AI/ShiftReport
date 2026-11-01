@@ -36,7 +36,7 @@ class PatientFormSubmissionTest {
         assertEquals("تشخيص", saved.initialDiagnosis)
         assertEquals("خطة\nثانية", saved.treatmentPlan)
         assertEquals("متابعة", saved.followUp)
-        assertEquals("تحاليل", saved.labs)
+        assertEquals(" تحاليل ", saved.labs)
         assertEquals("resident", saved.responsibleResidentId)
         assertEquals("supervisor", saved.responsibleSpecialistId)
         assertEquals(tasks, saved.tasks)
