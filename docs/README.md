@@ -22,9 +22,10 @@ Start with the [project README](../README.md). Guides are grouped by platform; s
 | Android UI / demo / credits | [Maintenance](guides/android/ui.md), [design catalog](reference/design-catalog.md), [demo](guides/android/demo.md), [About and splash](guides/android/about-and-splash.md) |
 | Android verification procedures | [Execution guide](guides/android/testing.md), [device checks](guides/android/device-checks.md) |
 | Web client | [Setup](../web/README.md), [Windows EXE guide](../web/bundle.md), [capability map](reference/web-capabilities.md), [implementation plan](status/web-plan.md) |
+| iPhone host | [Initial Pyto source and boundaries](../iphone/README.md), [remaining implementation](../iphone.plan.md) |
 | Archived desktop client | [Setup](../old/desktop/README.md), [Windows EXE guide](guides/desktop/windows-exe.md), [troubleshooting](guides/desktop/troubleshooting.md), [testing and interop](guides/desktop/testing-and-interop.md) |
 | Archived Excel client | [Source, setup and limits](../old/excel/README.md) |
-| Proposals | [Android UI options](decisions/android-ui-options.md), [multiple sections](decisions/multiple-sections.md), [iPhone client](../iphone.plan.md) |
+| Proposals | [Android UI options](decisions/android-ui-options.md), [multiple sections](decisions/multiple-sections.md) |
 | Contributor rules | [AGENTS.md](../AGENTS.md) |
 
 Commands stay in their guides. The [completed documentation consolidation](status/archive/documentation-consolidation.md) is historical scope, not pending work. Private notes belong in ignored `local/guides/` or `docs/local/`; evidence and original workbooks remain private under `local/`.

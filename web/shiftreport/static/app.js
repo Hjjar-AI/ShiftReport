@@ -81,9 +81,17 @@
         try {
           const result = await fetch(editor.getAttribute("action") || location.href, {method:"POST", body:data, credentials:"same-origin"});
           status.textContent = result.status === 204 ? "حُفظت مسودة الإدخال • الحفظ السريري يحتاج زر حفظ" : "لم تُحفظ المسودة؛ أبقِ الصفحة مفتوحة وراجع الهوية أو الحفظ";
-        } catch (_) { status.textContent = "تعذّر حفظ المسودة؛ أبقِ الصفحة مفتوحة"; }
+          return result.status === 204;
+        } catch (_) { status.textContent = "تعذّر حفظ المسودة؛ أبقِ الصفحة مفتوحة"; return false; }
       });
     };
+    // Host interruptions use this same queue/form owner, never a second writer.
+    editor.addEventListener("shiftreport:flush-draft", event => {
+      if (typeof event.detail?.waitUntil !== "function") return;
+      clearTimeout(timer);
+      if (dirty && !submitting) saveDraft();
+      event.detail.waitUntil(submitting ? Promise.resolve(false) : pending);
+    });
     const changed = () => { dirty = true; clearTimeout(timer); timer = setTimeout(saveDraft, 600); };
     editor.addEventListener("input", changed);
     editor.addEventListener("change", changed);
@@ -91,7 +99,7 @@
       const rows = section.querySelector("[data-rows]");
       const setup = row => {
         const hidden = row.querySelector('input[name="task_id"], input[name="lab_id"]');
-        if (hidden && !hidden.value) hidden.value = crypto.randomUUID();
+        if (hidden && !hidden.value) hidden.value = window.shiftreportIphone ? window.shiftreportIphone.uuid() : crypto.randomUUID();
         const done = row.querySelector('input[name="task_done"]');
         if (done) done.value = hidden.value;
         row.querySelector("[data-remove]").addEventListener("click", () => {
@@ -122,6 +130,7 @@
         if (button) {
           const field = document.createElement("input"); field.type = "hidden"; field.name = button.name; field.value = button.value; editor.append(field);
         }
+        window.shiftreportIphone?.operationStarted();
         HTMLFormElement.prototype.submit.call(editor);
       });
     });

@@ -1,0 +1,24 @@
+{% extends 'shared/base.html' %}
+{% block host_attributes %} data-host="iphone" data-iphone-state="covered" data-iphone-menu="closed"{% endblock %}
+{% block viewport %}width=device-width, initial-scale=1, viewport-fit=cover{% endblock %}
+{% block host_head %}
+  <meta name="iphone-page-identity" content="{{ iphone_page_identity }}">
+  <link rel="stylesheet" href="{{ url_for('iphone.static', filename='iphone.css') }}">
+  <script src="{{ url_for('iphone.static', filename='iphone.js') }}" defer></script>
+{% endblock %}
+{% block host_controls %}
+  <div class="iphone-toolbar">
+    <button type="button" class="secondary" data-iphone-menu-toggle aria-expanded="false" aria-controls="iphone-navigation">القائمة</button>
+    <span>تقرير المناوبة <small lang="en" dir="ltr">DEMO</small></span>
+  </div>
+  <button type="button" class="iphone-menu-shade" data-iphone-menu-close aria-label="إغلاق القائمة" tabindex="-1" hidden></button>
+  <section class="iphone-cover" role="dialog" aria-modal="true" aria-labelledby="iphone-cover-title" tabindex="-1">
+    <h1 id="iphone-cover-title">تقرير المناوبة</h1>
+    <p data-iphone-status role="status">المحتوى مخفي ريثما يجري التحقق من الجلسة.</p>
+    <button type="button" data-iphone-resume>التحقق من الجلسة</button>
+    <a class="button secondary" href="{{ url_for('pages.ward') }}" data-iphone-leave hidden>فتح القسم ومراجعة البيانات الحالية</a>
+    <p>النسخة الأولية وهمية؛ تغييراتها ومسوداتها في ذاكرة هذه الجلسة فقط.</p>
+    <noscript>يتطلب هذا العرض JavaScript. لم تبدأ أي إعادة حفظ أو إرسال.</noscript>
+  </section>
+  <p class="iphone-operation" role="status" hidden>جارٍ تنفيذ العملية المحلية. لا تُعدها إذا انقطع الاتصال.</p>
+{% endblock %}

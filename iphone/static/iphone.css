@@ -1,0 +1,35 @@
+/* Host-only overrides; shared typography, accents, clinical cards and forms own their content. */
+:root[data-host="iphone"] { --iphone-keyboard: 0px; --iphone-footer: 150px; }
+[data-host="iphone"] body { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+[data-host="iphone"] .app-shell { display: block; min-height: 0; }
+[data-host="iphone"] main { padding: 12px; min-width: 0; }
+[data-host="iphone"] .sidebar { position: fixed; inset: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) auto; width: min(90vw, 380px); overflow-y: auto; overscroll-behavior: contain; z-index: 120; background: var(--surface); padding: 16px; border-inline-end: 1px solid var(--line); }
+[data-host="iphone"][data-iphone-menu="closed"] .sidebar { display: none; }
+[data-host="iphone"] .sidebar nav { display: grid; }
+[data-host="iphone"] .sidebar nav a { text-align: start; min-height: 48px; }
+[data-host="iphone"] .sidebar .nav-caption { display: block; }
+[data-host="iphone"] .iphone-menu-close { width: 100%; margin-bottom: 8px; }
+[data-host="iphone"] .iphone-menu-shade { position: fixed; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 0; background: rgb(0 0 0 / 45%); z-index: 110; }
+[data-host="iphone"][data-iphone-menu="open"] { overflow: hidden; }
+[data-host="iphone"] .iphone-toolbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+[data-host="iphone"] .iphone-toolbar > span { overflow-wrap: anywhere; }
+[data-host="iphone"] .iphone-toolbar small { margin-inline-start: 8px; }
+[data-host="iphone"] .iphone-cover { display: none; position: fixed; inset: 0; overflow: auto; z-index: 140; padding: max(24px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); background: var(--bg); align-content: center; gap: 20px; }
+[data-host="iphone"] .iphone-cover h1 { font-size: 1.5rem; }
+[data-host="iphone"] .iphone-cover p { overflow-wrap: anywhere; }
+[data-host="iphone"] .iphone-cover button { justify-self: start; }
+[data-host="iphone"]:not([data-iphone-state="ready"]) .app-shell,
+[data-host="iphone"]:not([data-iphone-state="ready"]) .iphone-toolbar,
+[data-host="iphone"]:not([data-iphone-state="ready"]) .intro { visibility: hidden; }
+[data-host="iphone"]:not([data-iphone-state="ready"]) .iphone-cover { display: grid; }
+[data-host="iphone"] .iphone-operation { position: fixed; inset: auto 12px calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 90; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+[data-host="iphone"][data-iphone-operation="busy"] .app-shell,
+[data-host="iphone"][data-iphone-operation="busy"] .iphone-toolbar { pointer-events: none; }
+[data-host="iphone"] .patient-editor { padding-bottom: calc(var(--iphone-footer) + 16px); }
+[data-host="iphone"] .patient-editor .editor-actions { position: fixed; left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px); bottom: var(--iphone-keyboard); z-index: 30; padding: 10px 12px max(10px, env(safe-area-inset-bottom, 0px)); box-shadow: 0 -3px 12px rgb(0 0 0 / 8%); max-height: 45vh; overflow: auto; }
+[data-host="iphone"] .editor-actions .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+[data-host="iphone"] input:not([type="checkbox"]), [data-host="iphone"] select, [data-host="iphone"] textarea { font-size: max(16px, 1rem); min-height: 48px; }
+[data-host="iphone"] textarea { font-size: max(16px, 1rem); }
+[data-host="iphone"] .check { min-height: 48px; align-items: center; }
+[data-host="iphone"] :focus { scroll-margin-block: 80px calc(var(--iphone-footer) + 24px); }
+[data-host="iphone"][data-iphone-menu="open"] .patient-editor .editor-actions { visibility: hidden; }
