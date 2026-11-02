@@ -54,9 +54,8 @@ def settings():
         except (ValueError,KeyError):
             raise BridgeError('منطقة زمنية غير صالحة') from None
         layout=request.form.get('layout','cards')
-        format_name=request.form.get('format','pdf')
-        require(layout in ('cards','table','paragraphs') and format_name in ('pdf','text'),'صيغة تقرير غير صالحة')
-        w.store.commit(browserSettings=dict(zone=zone),reportPreferences=dict(layout=layout,format=format_name))
+        require(layout in ('cards','table','paragraphs') and request.form.get('format','pdf')=='pdf','التقارير بصيغة PDF فقط؛ اختر تنسيقاً صالحاً')
+        w.store.commit(browserSettings=dict(zone=zone),reportPreferences=dict(layout=layout,format='pdf'))
         w.client.zone=w.store.zone=zone
         w.notice='حُفظت الإعدادات '+('في ذاكرة التجربة.' if w.demo else 'محلياً.')
         return redirect(url_for('features.settings'),code=303)

@@ -8,7 +8,7 @@ import time
 from flask import g, redirect, render_template, request, send_file, url_for
 from .features import features, home, download
 from .core.protocol import require, fingerprint, pointer, doctor_pointer, current_date, packed
-from .core.reports import ReportAttempt, publication_review, report_text, report_destination
+from .core.reports import ReportAttempt, publication_review, report_destination
 
 PDF_LOCK=threading.RLock()
 
@@ -90,8 +90,7 @@ def reports():
         targets=[None if key=='general' else key for key in request.form.getlist('target')]
         require(targets and len(set(targets))==len(targets),'اختر وجهة واحدة على الأقل')
         require(all(t is None or t in w.client.doctors and w.client.doctors[t]['clinicalRole']=='SUPERVISOR' for t in targets),'وجهة غير صالحة')
-        format_name=request.form.get('format','pdf')
-        require(format_name in ('pdf','text'),'صيغة غير صالحة')
+        require(request.form.get('format','pdf')=='pdf','التقارير بصيغة PDF فقط')
         shift=w.store.read()
         shift['meta']['doctors']=','.join(selected)
         w.store.commit(draft=shift)
@@ -124,12 +123,8 @@ def reports():
             if separate:
                 subset=copy.deepcopy(reviewed)
                 subset['patients']=[p for p in reviewed['patients'] if (p.get('responsibleSupervisorId') or None)==target]
-            raw=render_pdf(w,subset,None if separate else target,options,day=day) if format_name=='pdf' else report_text(w.client,subset,None if separate else target,day)
-            if not sending and format_name=='text':
-                raw='مسودة محلية • لم يُعتمد نشرها\n'+raw
-                if w.demo:
-                    raw='DEMO\n'+raw
-            payloads.append(dict(target=target,format=format_name,raw=raw,
+            raw=render_pdf(w,subset,None if separate else target,options,day=day)
+            payloads.append(dict(target=target,format='pdf',raw=raw,
                 label=w.client.doctors.get(target,{}).get('name','بدون مشرف' if separate else 'التقرير العام'),
                 sha=hashlib.sha256(raw if isinstance(raw,bytes) else raw.encode()).hexdigest(),viewed=False))
         source=fingerprint(w.store.read())

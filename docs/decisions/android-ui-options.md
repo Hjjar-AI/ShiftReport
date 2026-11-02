@@ -4,6 +4,7 @@ Unselected; choose IDs/subsets. [Completed](../status/changelog.md) · [Behavior
 
 | ID | Optional choice |
 |---|---|
+| F1 | Flask settings search matching Android; identified in the parity comparison, not selected for implementation. |
 | O2 | More haptics; border interpolation/chevron/tab motion implemented. |
 | O3 | Skeleton cards instead of the labelled spinner; static under reduced motion. |
 | O5 | Animate removal; group expansion/collapse height animation implemented. |
@@ -19,6 +20,8 @@ Unselected; choose IDs/subsets. [Completed](../status/changelog.md) · [Behavior
 | O21 | Optional compact desktop mouse controls. |
 | O22 | Dock desktop details/dashboard beside patients on wide windows. |
 | O23 | Automated screenshot matrix; production previews are expanded. |
+
+Flask scope confirmed by owner3November2026: no biometric unlock or legacy Excel/VBA import/export; Android can handle the one-time legacy import. Reports are PDF-only, retaining CSV data synchronization. Mixed text/PDF delivery is excluded.
 
 Further report-preview regrouping awaits device review/selection.
 
