@@ -232,8 +232,8 @@ def render_assignments(client,shift,font_path=None,options=None,report_day=None)
     column_gap,gap,padding,number_width=3,6,2,16
     content_width=width-2*margin
     table_width=(content_width-2*column_gap)/3
-    def text(value,size=10,color=None,align='right',bold=False):
-        return RTLText(value,size,color=HexColor(color or colors['text']),align=align,bold=bold)
+    def text(value,size=10,color=None,align='right',bold=False,lines=None):
+        return RTLText(value,size,lines=lines,color=HexColor(color or colors['text']),align=align,bold=bold)
     from desktop_protocol import current_date
     report_day=report_day or current_date(client.zone)
     context_title=text('توزيع المرضى حسب المشرف',13,colors['title'],align='center',bold=True)
@@ -247,7 +247,7 @@ def render_assignments(client,shift,font_path=None,options=None,report_day=None)
     def team_table(group,rows,filler=0):
         data=[[text(group['supervisor'],11,'#FFFFFF',align='center',bold=True),''],
               [text('، '.join(group['residents']) or 'لم يُحدد مقيم في الفريق',9.5,align='center',bold=True),'']]
-        data += [[text(name,11,bold=True),text(str(number),11,align='center',bold=True)]
+        data += [[text(name,11,bold=True),text(str(number),11,align='center',bold=True,lines=[str(number)])]
                  for number,name,highlighted in rows]
         backgrounds=[colors['title'],subheader]+[colors['page'] if i%2==0 else colors['zebra'] for i in range(len(rows))]
         if filler>.01:

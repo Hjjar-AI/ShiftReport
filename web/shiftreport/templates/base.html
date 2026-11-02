@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}تقرير المناوبة{% endblock %}</title>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/tajawal_regular.ttf') }}" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="التنقل الرئيسي">
+      <a class="brand" href="{{ url_for('pages.ward') }}">
+        <span class="emblem"><img src="{{ url_for('static', filename='department_emblem.png') }}" alt="شعار شعبة الطب النفسي" width="56" height="56"></span>
+        <span><strong>تقرير المناوبة</strong><small>مساحة العمل المحلية</small></span>
+      </a>
+      <p class="nav-caption">مساحة العمل</p>
+      <nav>
+        <a href="{{ url_for('pages.ward') }}" {% if page == 'ward' %}aria-current="page"{% endif %}>قائمة المرضى</a>
+        <a href="{{ url_for('pages.tasks') }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>المهام</a>
+        <a href="{{ url_for('pages.doctors') }}" {% if page == 'doctors' %}aria-current="page"{% endif %}>الفريق الطبي</a>
+        <a href="{{ url_for('pages.about') }}" {% if page == 'about' %}aria-current="page"{% endif %}>حول التطبيق</a>
+      </nav>
+      <details class="appearance">
+        <summary>المظهر</summary>
+        <label for="appearance">السمة</label>
+        <select id="appearance"><option value="system">النظام</option><option value="light">فاتح</option><option value="dark">داكن</option><option value="amoled">أسود</option></select>
+        <label for="accent">اللون</label>
+        <select id="accent"><option value="teal">بترولي</option><option value="blue">أزرق</option><option value="rose">وردي</option><option value="amber">عنبري</option></select>
+        <label for="text-size">حجم النص</label>
+        <select id="text-size"><option value="100">100%</option><option value="115">115%</option><option value="130">130%</option></select>
+      </details>
+      <div class="sidebar-footer">
+        <span class="demo-label" lang="en" dir="ltr">DEMO</span>
+        <p>بيانات وهمية في الذاكرة فقط.</p>
+        <form action="{{ url_for('pages.reset') }}" method="post" data-confirm="إعادة البيانات التجريبية وحذف تغييرات هذه الجلسة؟">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="secondary" type="submit">إعادة التجربة</button>
+        </form>
+      </div>
+    </aside>
+    <main id="main" tabindex="-1">
+      <div class="demo-notice"><strong>وضع تجريبي</strong><span>بيانات وهمية • تُحذف التغييرات عند إيقاف الخادم • للاطلاع فقط على الحقول السريرية</span></div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

@@ -62,6 +62,8 @@ Android source defaults: 420×595pt; side/top/bottom margins 4/12/8mm, body/sect
 
 ## Isolation and platform choices
 
+The independent local browser foundation in `web/` uses a Flask application factory and Jinja pages, with a Python3.8.10-compatible dependency set and loopback-only Waitress launcher for Windows/Linux. Jinja avoids a second build/runtime toolchain for this setup. Demo data and task mutations belong to locked per-browser memory workspaces; routes compose snapshots without importing the native desktop client. The browser retains only isolated cosmetic preferences. This foundation has no real-project persistence, identity or transport adapters and does not establish production parity; [setup/scope](../../web/README.md) owns its operating instructions.
+
 Shared Ward/Report/Doctors workspaces depend on controller state/actions; production adapters forward to existing Hilt ViewModels, while demo adapters use one memory-only repository/fake snapshot and receipts. Shared drawer/appearance/forms/cards/readiness/text/PDF prevent separate demo UI drift. Explicit simulation notices and every-page DEMO PDFs; no production store/session/transport or entered identity/PIN retention. Reset/exit discards clinical state; only isolated accent/appearance persist. Samples/action adapters remain maintenance points. [Demo](../guides/android-demo.md).
 
 Desktop fingerprint-bound AES-GCM before SQLite, DPAPI/Linux-passphrase keys and platform path/lock/PDF adapters. Logical Arabic input/caret/clipboard/Save separate from shaping; unfinished drafts/cached enrollment/shared authority distinct. [Operations](../../desktop/README.md).

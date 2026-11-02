@@ -53,6 +53,8 @@ class AssignmentPdfTests(unittest.TestCase):
         _,pages=self.render(source);self.assertGreater(len(pages),1)
         all_text=' '.join(word.text or '' for page in pages for word in self.words(page))
         for index in range(110):self.assertEqual(1,all_text.count('PAT{:03d}'.format(index)))
+        tokens=[word.text for page in pages for word in self.words(page)]
+        for number in range(1,111):self.assertIn(str(number),tokens,'Assignment number wrapped or disappeared')
         for page in pages:
             self.assert_a5_geometry(page);self.assertIn('DEMO',' '.join(word.text or '' for word in self.words(page)))
         self.assertEqual(before,source)

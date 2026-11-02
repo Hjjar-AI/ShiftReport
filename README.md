@@ -10,6 +10,7 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 |---|---|
 | [`android/`](android) | Android Studio/Gradle project, app source, wrapper and Android-local settings |
 | [`desktop/`](desktop/README.md) | Python CustomTkinter client for Windows and Linux, setup and launch scripts |
+| [`web/`](web/README.md) | Independent local Flask/Jinja foundation for Python 3.8.10+, Windows/Linux; fictional-data demo |
 | [`docs/`](docs/README.md) | Shared architecture, current state, guides and roadmap |
 | `local/` | Ignored private local artifacts, including the old Excel workspace |
 

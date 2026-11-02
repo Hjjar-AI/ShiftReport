@@ -1,0 +1,20 @@
+<details class="patient panel" id="{{ patient.id }}">
+  <summary>
+    <span class="patient-heading"><strong>{{ patient.name }}</strong><span class="disclosure">تفاصيل الملف</span></span>
+    <span class="demographics"><span><b>القبول</b> <bdi>{{ patient.admitNum }}</bdi></span><span><b>التاريخ</b> <bdi>{{ patient.admitDate }}</bdi></span><span><b>الميلاد</b> <bdi>{{ patient.birthDate }}</bdi></span><span>{{ 'أنثى' if patient.gender == 'F' else 'ذكر' }}</span></span>
+    <span class="team-line"><span><b>الاختصاصي</b> {{ patient.supervisor }}</span><span><b>المقيم</b> {{ patient.resident }}</span></span>
+    <span class="badge-row">
+      {% if patient.pending %}<span class="badge task-count">{{ patient.pending }} مهام معلّقة</span>{% endif %}
+      {% if patient.isPriority == 'Y' %}<span class="badge priority">أولوية</span>{% endif %}
+      {% if patient.hasCompanion == 'Y' %}<span class="badge">مع مرافق</span>{% endif %}
+      {% for badge in patient.badges %}<span class="badge severity-{{ badge.priority }}">{{ badge.text }}</span>{% endfor %}
+    </span>
+  </summary>
+  <div class="clinical-grid">
+    <section><h2>التشخيص</h2><p class="multiline" dir="auto">{{ patient.initialDiagnosis or '—' }}</p></section>
+    <section><h2>العلاج</h2><p class="multiline" dir="auto">{{ patient.treatmentPlan or '—' }}</p></section>
+    <section><h2>المتابعة</h2><p class="multiline" dir="auto">{{ patient.followUp or '—' }}</p></section>
+    <section><h2>التحاليل</h2>{% for group in patient.lab_groups %}<div class="lab-group"><h3>{{ group.title or 'تحاليل' }}{% if group.date %} <bdi>{{ group.date }}</bdi>{% endif %}</h3><p class="multiline" dir="auto">{{ group.results }}</p></div>{% else %}<p>—</p>{% endfor %}</section>
+    <section class="patient-tasks"><h2>المهام</h2>{% for task in patient.tasks|sort(attribute='done') %}<p class="task-text {% if task.done %}done{% endif %}"><span aria-label="{{ 'مكتملة' if task.done else 'معلّقة' }}">{{ '✓' if task.done else '☐' }}</span> {{ task.description }}</p>{% else %}<p>—</p>{% endfor %}<a class="button secondary" href="{{ url_for('pages.tasks') }}">فتح لوحة المهام</a></section>
+  </div>
+</details>

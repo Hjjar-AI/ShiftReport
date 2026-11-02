@@ -6,6 +6,10 @@
 
 Owner protected production key/certificate required. Local/CI inputs exist without debug fallback; signed release unverified. [Inputs](../guides/android-build.md#production-release-signing).
 
+## P1 — local Flask functional coverage
+
+Owner authorized the remaining native-client functions on 2 November: protected create/join/reconnect, encrypted persistence and identity/PIN/permissions; patient forms/drafts/recycle and doctor/team/assignment management; current-format backups/CSV and stored custom sorting; reviewed A5 PDF/export and complete Telegram Fetch/Undo/publication/delivery/receipts. Implement independently in `web/` on Python3.8.10, using headless native services as the protocol reference, preserving current formats and existing below-UI guards. Keep the reviewed Jinja design and softer light palette. Demo remains memory-only. Source work is in progress; no full-parity claim. Native source remains unchanged. Live operations need deliberate user actions and review/final confirmation.
+
 ## Far future — optional voice dictation
 
 Field-by-field diagnosis/treatment/follow-up → guided sections → optional whole-handoff suggestions. Prefer local; retain typing/editable drafts/visual review/Save. Evaluate Syrian/mixed Arabic-English,drug names/doses,available languages,device/storage needs.

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}المهام • تقرير المناوبة{% endblock %}
+{% block content %}
+<header class="page-heading"><div><p class="eyebrow">القسم</p><h1>المهام</h1><p>قائمة المهام المسجلة • التعديلات تجريبية في الذاكرة</p></div></header>
+<section class="task-list" aria-label="مهام المرضى">
+{% for patient, task in entries %}
+  <article class="task-row panel {% if task.done %}done{% endif %}">
+    <div><a href="{{ url_for('pages.ward') }}#{{ patient.id }}">{{ patient.name }}</a><p class="task-text">{{ task.description }}</p><small>{{ 'مكتملة' if task.done else 'معلّقة' }}</small></div>
+    <form method="post" action="{{ url_for('pages.update_task', patient_id=patient.id, task_id=task.id) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="done" value="{{ '0' if task.done else '1' }}">
+      <button type="submit" class="{{ 'secondary' if task.done else '' }}" aria-label="{{ 'إعادة فتح' if task.done else 'إكمال' }} مهمة {{ task.description }} للمريض {{ patient.name }}">{{ 'تراجع' if task.done else 'إكمال' }}</button>
+    </form>
+  </article>
+{% else %}<p class="empty panel">لا توجد مهام.</p>{% endfor %}
+</section>
+{% endblock %}
