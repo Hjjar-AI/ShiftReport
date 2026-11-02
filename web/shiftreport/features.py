@@ -27,6 +27,12 @@ def appearance():
     return '',204
 
 
+@features.post('/session/touch')
+def touch_session():
+    g.workspace.ready()
+    return '',204
+
+
 def data_directory():
     root=current_app.config.get('DATA_DIRECTORY')
     path = (Path(root) if root else Path(current_app.root_path).parent / 'instance') / 'workspaces'
@@ -205,6 +211,7 @@ def creation():
             from .workspace import project_lock
             w.client, w.store, w.lock = creator.client, store, project_lock(creator.client.project_id)
             w.client.admin_only = False
+            w.client.require_local_admin=w.local_admin
             w.actor, w.demo, w.unlocked = creator.client._actor, False, True
             w.creator, w.creation_store = None, None
             w.store.commit(draft=dict(meta=dict(schemaVersion='8',shiftDate=current_date(w.client.zone),

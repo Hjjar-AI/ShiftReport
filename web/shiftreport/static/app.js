@@ -144,3 +144,29 @@
     });
   }
 })();
+
+(() => {
+  const seconds = Number(document.body.dataset.lockSeconds);
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+  if (!seconds || !csrf) return;
+  let timer, lastTouch = 0;
+  const channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("shiftreport.web.activity") : null;
+  const lock = async () => {
+    const body = new FormData(); body.set("csrf", csrf); body.set("action", "lock");
+    try { await fetch("/identity", {method:"POST",body,credentials:"same-origin"}); }
+    finally { location.replace("/identity"); }
+  };
+  const reset = () => { clearTimeout(timer); timer = setTimeout(lock, seconds * 1000); };
+  const active = () => {
+    reset(); channel?.postMessage("active");
+    if (Date.now() - lastTouch < 30000) return;
+    lastTouch = Date.now();
+    const body = new FormData(); body.set("csrf", csrf);
+    fetch("/session/touch", {method:"POST",body,credentials:"same-origin"}).then(result => {
+      if (result.status !== 204) location.replace("/identity");
+    }).catch(() => {});
+  };
+  for (const name of ["pointerdown", "keydown", "wheel"]) document.addEventListener(name, active, {passive:true});
+  if (channel) channel.onmessage = reset;
+  reset();
+})();

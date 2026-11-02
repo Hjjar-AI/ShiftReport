@@ -81,9 +81,13 @@ def create_app(data_directory=None):
     @app.context_processor
     def page_context():
         workspace = getattr(g, "workspace", None)
+        lock_seconds=0
+        if workspace and not workspace.demo and workspace.unlocked:
+            from .core.access import LocalAccess
+            lock_seconds=LocalAccess(workspace.store,workspace.client).timeout()
         return {"csrf": workspace.csrf if workspace else "", "workspace": workspace,
                 "is_demo": workspace.demo if workspace else True,
-                "notice": workspace.notice if workspace else ''}
+                "notice": workspace.notice if workspace else '',"lock_seconds":lock_seconds}
 
     @app.errorhandler(400)
     @app.errorhandler(403)

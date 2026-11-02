@@ -149,7 +149,11 @@ def report_review(token):
             targets=[p['target'] for p in data['payloads']]
             delivery.check_targets(targets)
             for p in data['payloads']:
-                if any(row[2] in ('SENT','CHECKED_DO_NOT_REPEAT') for _,row in w.store.receipts() if row[0]=='report'):
+                identity=dict(operation='report',project=w.client.project_id,pointer=pointer(delivery.snapshot['state']),
+                              shift=delivery.reviewed['meta']['shiftId'],supervisor=p['target'])
+                if p['format']=='text':
+                    identity['format']='text'
+                if any(row[2] in ('SENT','CHECKED_DO_NOT_REPEAT') for _,row in w.store.receipts(key=fingerprint(identity))):
                     require(request.form.get('repeat')=='1','توجد إيصالات سابقة؛ وافق صراحة على نسخة إضافية بعد المراجعة')
             review['used']=True
             try:

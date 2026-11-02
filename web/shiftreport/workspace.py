@@ -129,9 +129,15 @@ class BrowserWorkspace:
             from .core.destinations import load_destination
             load_destination(store, client)
         self.client, self.store, self.lock = client, store, mutex
+        self.client.require_local_admin=self.local_admin
         self.demo, self.unlocked, self.actor = False, False, None
         self.forms.clear()
         self.reviews.clear()
+
+    def local_admin(self):
+        # A locally enrolled PIN can authorize a local names-only PDF; it never
+        # populates Client's separate live Telegram identity/session fields.
+        return self.ready(admin=True)
 
     def refresh(self):
         if not self.demo:

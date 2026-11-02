@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
-<body>
+<body data-lock-seconds="{{ lock_seconds }}">
   <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
   <div class="app-shell">
     <aside class="sidebar" aria-label="التنقل الرئيسي">
