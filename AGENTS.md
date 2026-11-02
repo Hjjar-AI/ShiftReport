@@ -8,7 +8,7 @@ Repository-wide; owner instructions prevail. Read nested rules, plan/status and 
 - **Migrations:** explicit approval before inspection/review/creation/change. **Tests:** explicit test approval before inspection/review/run/change; creation needs creation approval. Build approval excludes tests; fixture consolidation preserves authority/failure coverage.
 - **Gradle/build/compile/package:** describe commands/scope; obtain explicit approval unless authorized. Supplied failures authorize fixes, not reruns. No version changes (app/database/interchange/toolchain/SDK), staging/commits or destructive Git without request.
 - **Every build:** inspect cross-project/account builds/IDEs/compilers and available RAM/swap against heaps. Idle daemons/cache alone are not pressure. Defer for activity/pressure/unreliable visibility; report reason/manual command. Never kill others' work or clear their caches.
-- Preflight installed Java/pinned Gradle/SDK/tools/durable dependencies; check `desktop/.venv` before declaring missing dependencies. Install once with approval. Prefer narrow offline debug compile/resources, `-Pshiftreport.autoVersion=false`; no assumed packaging/export/distribution. Keep full logs local; no unchanged successful reruns.
+- Preflight installed Java/pinned Gradle/SDK/tools/durable dependencies; check `old/desktop/.venv` before declaring missing dependencies. Install once with approval. Prefer narrow offline debug compile/resources, `-Pshiftreport.autoVersion=false`; no assumed packaging/export/distribution. Keep full logs local; no unchanged successful reruns.
 - Native UI: await settled results, inspect, tap; respect screenshot scaling. Timeout ≠ import failure. No competing UiAutomator during instrumentation. Physical interaction needs owner availability; honor skips. Live/device work uses disposable projects/dummy data; delete only owned temporary files.
 - Report outcome/checks/limits: source ≠ compile ≠ runtime. Separate inventory/cases/passes/skips; overlapping reruns add no unique coverage. Batch narrow reads. At visible five-hour allowance ≤20%, finish this step and stop; never invent usage.
 
@@ -22,7 +22,7 @@ Repository-wide; owner instructions prevail. Read nested rules, plan/status and 
 
 ## Source ownership
 
-- Android: `android/app/src/main/java/com/hos/rushdpatients/`; desktop: `desktop/`; docs: `docs/`; private originals: `local/excel/` and `excel/private/`.
+- Android: `android/app/src/main/java/com/hos/rushdpatients/`; desktop: `old/desktop/`; docs: `docs/`; private originals: `local/excel/` and `old/excel/private/`.
 - Compose `ui/` delegates to Hilt ViewModels; dedicated navigation/dashboard/review/fields. `domain/`: rules; `data/repository/`: persistence; `network/telegram/`: transport; `sync/`: orchestration. `DoctorSyncCoordinator` owns doctor sync; patient/doctor writes share singleton `RemoteSyncStateStore`/mutex.
 - Reuse components for repeated behavior/semantics; keep substantial feature sections local. Avoid pass-through wrappers. Existing owners retain drafts/state/launchers/validation/review guards.
 - DB/file/crypto/network off-main; cancellation separate. Shared-data changes cover model/persistence/sync/backup/conflicts/counts/filters/text/PDF.

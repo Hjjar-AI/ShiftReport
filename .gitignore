@@ -75,21 +75,21 @@ Thumbs.db
 /android/.idea/httpRequests/
 
 # --- Desktop ---
-/desktop/.venv/
+/old/desktop/.venv/
 
 # --- Local Flask client ---
 /web/.venv/
 /web/instance/
 
 # --- Excel: private originals and generated output ---
-/excel/private/
-/excel/output/
-/excel/**/*.local.md
-/excel/**/*.local.json
-/excel/**/*.xls
-/excel/**/*.xlsm
-/excel/**/*.xlsx
-/excel/**/*.pdf
+/old/excel/private/
+/old/excel/output/
+/old/excel/**/*.local.md
+/old/excel/**/*.local.json
+/old/excel/**/*.xls
+/old/excel/**/*.xlsm
+/old/excel/**/*.xlsx
+/old/excel/**/*.pdf
 /Xslx Things/
 
 # --- Private workspace documents ---

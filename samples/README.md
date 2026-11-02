@@ -1,23 +1,42 @@
-# Fictional patient CSV
+# Samples
 
-**Current expanded sample (2 November 2026):** CSV8/24 columns include138 ordered lab groups:104 dated panels (26–27 October) and34 panels with no date, across45 patients; five patients have no labs. Each group has a title and multiline results, demonstrating CBC, renal/electrolyte, liver and additional panels. The readable `labs` text matches `labGroupsJson`. Both demos embed this same dataset. Regenerate with `python3 samples/generate_android_demo.py` and `python3 samples/generate_desktop_demo.py`.
+Fictional data and layout examples for demos and disposable projects. These values and independently mixed medication fragments are layout data, not prescribing instructions or clinical interpretations.
 
-**Historical format correction (31 October 2026):** both patient CSVs and the generator use the full23-column CSV7 header, including blank `assignmentChangedOn`. Existing clinical/task values and row order are preserved. Both supplied files and a fresh generated50-patient file pass the current production desktop decoder. The paired A5 PDF is unchanged because no displayed patient content changed; it remains a historical DEMO preview, not current Android/desktop rendering-parity proof. No app import or Telegram publication was performed. Receipt: `local/verification/sample-fixes-upload-only-2026-10-31/`.
+| Folder | Contents |
+|---|---|
+| [`data/`](data/patients.csv) | Current `patients.csv` and [its metadata](data/patients.metadata.json) |
+| [`data/history/`](data/history/original-patients.metadata.json) | Metadata for the earlier sample; its CSV/PDF are no longer present |
+| `generators/` | Python tools for patient CSVs, embedded native demos and A5 previews |
+| [`previews/a5/`](previews/a5/README.md) | A5 preview source selection, renderer notes and generated PDFs when available |
 
-Latest: [`synthetic-patients-50-expanded.csv`](synthetic-patients-50-expanded.csv), dated27 October2026, with treatment examples revised1 November2026. Fifty fictional patients now have **5–11 treatment lines each** (342 total): **263 medication/dose lines** followed by79 brief notes retained from the earlier generated wording. Medicines outnumber notes in every record, with each medicine on its own line (for example, `Olanzapine 10 mg` or `Haloperidol 5 mg`). Medication fragments are independently pooled, never copied as a source-patient regimen. The1 November treatment revision changed only `treatmentPlan`; the2 November lab revision changes only `labs`/`labGroupsJson`. **9–25 lab lines for45 patients** (744 total) retain their fictional results with dated panel headings; five lab fields remain empty. Values and combinations are fictional layout data, not prescribing instructions or clinical interpretations.
+## Current dataset
 
-UTF-8 BOM/CSV8/24columns,50 unique shuffled food/drink names,112 tasks (13 completed); doctor/roster assignments remain blank. Seed, hash, exact counts and data checks: [`expanded-artifact-notes.json`](expanded-artifact-notes.json). No app import, build, test-suite or Telegram operation. No PDF has been generated for this expanded dataset.
+`data/patients.csv` is UTF-8 BOM, CSV8, 24 columns and 50 unique food/drink patients, dated 27 October 2026. It contains 112 tasks (13 completed); doctor and roster assignments are blank. The 2 November lab revision retains 138 ordered panels: 104 dated 26–27 October and 34 undated, across 45 patients; five patients have no labs. Readable `labs` agrees with `labGroupsJson`.
 
-The earlier sample CSV/PDF are no longer present; historical receipts do not describe the current dataset.
+Each patient has 5–11 treatment lines: 342 total, comprising 263 independent medication/dose lines and 79 earlier brief notes. Medicines outnumber notes in each patient. The 1 November treatment revision changed only `treatmentPlan`; the 2 November lab revision changed only `labs` and `labGroupsJson`. The 45 populated lab fields have 9–25 lines each, 744 total. Seeds, revisions and recorded checks remain in the metadata; moving the CSV did not change its bytes.
 
-For deliberate manual import into a disposable project. This patient CSV is separate from doctor-registry CSV/protected joins/encrypted backups; no app import or Telegram publication was performed. Desktop offers patient CSV export, doctor CSV import and encrypted-backup restore, without a direct patient-CSV import action.
+Android and the archived desktop demo embed this dataset; the web demo reads it from disk. This patient CSV is separate from doctor-registry CSVs, protected joins and encrypted backups. Manual import belongs in a disposable project. The desktop has patient CSV export, doctor CSV import and encrypted-backup restore, without a direct patient-CSV import action.
 
-Generate a new dated/randomized copy (existing outputs are never overwritten):
+## Generators
+
+Run from the repository root. These commands document explicit actions; reorganizing the files did not execute them.
 
 ```sh
-python3 samples/generate_patients.py --date 2026-10-27 --seed 123 --output /tmp/synthetic-patients-50-new.csv
+# Generate a separate dated sample; existing output is never overwritten.
+python3 samples/generators/generate_patients.py --date 2026-10-27 --seed 123 --output /tmp/patients-new.csv
+
+# Refresh embedded native demo sources after an intentional dataset edit.
+python3 samples/generators/generate_android_demo.py
+python3 samples/generators/generate_desktop_demo.py
+
+# Render the current fixed two-column A5 preview with desktop dependencies.
+PYTHONDONTWRITEBYTECODE=1 old/desktop/.venv/bin/python samples/generators/generate_layout_comparison.py
 ```
 
-The generator creates4–6 separate medication/dose lines plus1–2 earlier documentation notes; five longer examples use8 medication lines and3 notes. Optional clinical enrichment mixes diagnosis/follow-up themes without duplicating medication entries. Lab entries use two-to-four multiline panels for45 patients. Each run uses a fresh random seed unless `--seed` is supplied; names, patient profiles, demographics, task details and clinical fragments vary. Patient fields use plain clinical wording, with DEMO identification retained on PDF pages. Name selection and clinical mixing use independent seeded generators; `--generic-only` omits workbook-theme enrichment. The generator contains only curated fragments and needs no workbook access. Regenerate for the intended shift; the shift boundary remains08:30 Damascus time.
+The patient generator defaults to `data/generated-patients.csv` and creates 4–6 medication lines plus 1–2 notes; five longer examples have eight medication lines and three notes. It uses two-to-four multiline lab panels for 45 patients. A fresh random seed is used unless supplied; names and clinical mixing use independent seeded generators. `--generic-only` omits workbook-theme enrichment. The generator uses curated fragments and needs no workbook access. Use the intended report date; the report-day boundary is 08:30 Damascus time. Builds and PDF rendering still require their usual explicit approval.
 
-Historical optional A5 layouts using the same six fictional patients: [stacked](layout-comparison/a5-current-stacked.pdf), [two-column lab groups](layout-comparison/a5-lab-groups-two-columns.pdf), [two-column clinical sections](layout-comparison/a5-all-sections-two-columns.pdf). [Renderer/reading-order details](layout-comparison/README.md). The current renderer uses only two clinical columns; the generator now produces `a5-current-two-columns.pdf` while retaining these historical files. Generate the current layout with `PYTHONDONTWRITEBYTECODE=1 desktop/.venv/bin/python samples/generate_layout_comparison.py`.
+## Historical evidence
+
+The earlier CSV7 correction retained clinical content and row order while adding blank `assignmentChangedOn`; its recorded receipt is `local/verification/sample-fixes-upload-only-2026-10-31/`. Historical metadata describes that earlier dataset, not current CSV8 acceptance.
+
+Earlier optional A5 layouts were named `a5-current-stacked.pdf`, `a5-lab-groups-two-columns.pdf` and `a5-all-sections-two-columns.pdf`. Those PDFs are absent from this checkout; the six-patient selection and [renderer details](previews/a5/README.md) are retained. The current generator writes `previews/a5/a5-current-two-columns.pdf`, marked DEMO on every page. Desktop rendering does not establish Android pagination or visual parity. No sample generation, app import, build, PDF render, test run or Telegram publication was performed for this reorganization.

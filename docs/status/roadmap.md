@@ -4,7 +4,7 @@
 
 ## P0 — production signing
 
-Owner protected production key/certificate required. Local/CI inputs exist without debug fallback; signed release unverified. [Inputs](../guides/android-build.md#production-release-signing).
+Owner protected production key/certificate required. Local/CI inputs exist without debug fallback; signed release unverified. [Inputs](../guides/android/build.md#production-release-signing).
 
 ## Far future — optional voice dictation
 

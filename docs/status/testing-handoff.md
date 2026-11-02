@@ -1,6 +1,6 @@
 # Remaining verification
 
-Updated 3 November 2026. Completed checks: [Current state](current-state.md#verification-and-limits). Commands/prerequisites: [Android](../guides/android-testing.md), [device](../guides/device-coverage.md), [desktop/live](../guides/deep-testing.md).
+Updated 3 November 2026. Completed checks: [Current state](current-state.md#verification-and-limits). Commands/prerequisites: [Android](../guides/android/testing.md), [device](../guides/android/device-checks.md), [desktop/live](../guides/desktop/testing-and-interop.md).
 
 The isolated build/phone checks are complete; this list retains acceptance work beyond those focused results.
 
@@ -19,7 +19,7 @@ Card toggle follow-up: install the owner-built 1.0.10-debug APK and confirm Abou
 
 ## Local Flask client
 
-The owner resumed the stopped work; the recorded source items are implemented and mapped in [Flask capabilities](../reference/flask-capabilities.md). [Current behavior/results](current-state.md#local-flask-client) and the private resume receipt distinguish actual passes from unexecuted acceptance. The original Python3.8.10 manual client remains at `http://127.0.0.1:8765/` (demo needs no credentials). The newly created encrypted dummy project runs at `http://127.0.0.1:8766/` in the owner’s setup browser session; keep its downloaded protected join for reconnecting.
+The owner resumed the stopped work; the recorded source items are implemented and mapped in [Flask capabilities](../reference/web-capabilities.md). [Current behavior/results](current-state.md#local-flask-client) and the private resume receipt distinguish actual passes from unexecuted acceptance. The manual client and encrypted dummy project use ports8765/8766. Both ports were confirmed stopped on3November at the owner’s stop request. Preserve the downloaded protected join for reconnecting after a deliberate server restart.
 
 | Area | Remaining verification |
 |---|---|
@@ -35,4 +35,4 @@ Completed live evidence is recorded in [Current state](current-state.md#verifica
 
 PDF-only source passed focused offline checks but is not loaded in the running manual processes. Apply it at a deliberate server restart with the protected join/password available; reconnect/verify identity normally, preserving clinical data and keys.
 
-Use disposable projects/dummy data. Preserve unique/private evidence. This is the sole remaining Flask verification checklist; implementation changes discovered here belong in the [Flask plan](flask-plan.md).
+Use disposable projects/dummy data. Preserve unique/private evidence. This is the sole remaining Flask verification checklist; implementation changes discovered here belong in the [Flask plan](web-plan.md).

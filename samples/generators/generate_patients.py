@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""Create fictional patient CSV data for deliberate manual import (Python 3.8+)."""
+import argparse
+import base64
+import csv
+import json
+import random
+import uuid
+from datetime import date, datetime, time, timedelta, timezone
+from pathlib import Path
+
+COLUMNS = ('externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,'
+           'diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,'
+           'responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,'
+           'lastEditedBy,updatedAt,revision,tasksJson,assignmentChangedOn,labGroupsJson').split(',')
+NAME_POOLS = {
+    'ice_cream': ['بوظة عربية', 'مثلجات الفستق الحلبي', 'آيس كريم الفانيليا', 'سوربيه الليمون'],
+    'hot_drinks': [
+        'شاي أحمر', 'شاي أخضر', 'شاي بالنعناع', 'شاي بالهيل', 'شاي بالقرفة',
+        'شاي بالليمون', 'قهوة عربية', 'قهوة تركية', 'قهوة بالحليب', 'قهوة بالهيل',
+        'قهوة بيضاء', 'كابتشينو', 'لاتيه', 'كاكاو ساخن', 'شوكولا ساخنة',
+        'سحلب', 'سحلب بالقرفة', 'حليب بالعسل', 'حليب بالزنجبيل', 'يانسون',
+        'بابونج', 'زهورات شامية', 'زنجبيل بالليمون', 'كمون وليمون',
+    ],
+    'syrian_food': [
+        'كبة مقلية', 'كبة مشوية', 'كبة لبنية', 'كبة بالصينية', 'كبة سماقية',
+        'كبة سفرجلية', 'كبة حيلة', 'شيش برك', 'شاكرية', 'حراق إصبعه',
+        'مجدرة', 'محشي كوسا', 'يبرق', 'ملوخية', 'فريكة بالدجاج', 'أوزي',
+        'فتة حمص', 'فتة باذنجان', 'فول مدمس', 'مسبحة', 'فتوش', 'تبولة',
+        'محمرة', 'متبل باذنجان', 'صفيحة شامية', 'لحم بعجين', 'شاورما دجاج',
+        'كباب حلبي', 'سمبوسك بالجبنة', 'برك بالسبانخ', 'مناقيش زعتر',
+        'مناقيش جبنة', 'قطايف بالجوز', 'معمول بالتمر', 'مهلبية',
+        'أرز بالحليب', 'حلاوة الجبن', 'كنافة نابلسية', 'عش البلبل', 'برازق',
+    ],
+}
+NAME_COUNTS = {'ice_cream': 4, 'hot_drinks': 14, 'syrian_food': 32}
+
+
+def patient_names(seed):
+    """Shuffle varied dishes/drinks without letting one name family dominate."""
+    rng = random.Random("patient-names/{}".format(seed))
+    names = []
+    for category, count in NAME_COUNTS.items():
+        candidates = list(NAME_POOLS[category])
+        rng.shuffle(candidates)
+        chosen, families = [], {}
+        for name in candidates:
+            family = name.split()[0]
+            if families.get(family, 0) >= 2:
+                continue
+            chosen.append(name)
+            families[family] = families.get(family, 0) + 1
+            if len(chosen) == count:
+                break
+        if len(chosen) != count:
+            raise ValueError('Not enough varied names in ' + category)
+        names.extend(chosen)
+    rng.shuffle(names)
+    return names
+
+
+CASES = [
+    ('PSYCHIATRIC', 'أعراض اكتئابية مع اضطراب النوم والشهية'),
+    ('PSYCHIATRIC', 'نشاط زائد مع قلة النوم وسرعة الكلام'),
+    ('PSYCHIATRIC', 'أفكار غير واقعية مع تشتت الانتباه'),
+    ('PSYCHIATRIC', 'قلق ونوبات هلع متقطعة'),
+    ('PSYCHIATRIC', 'أفكار وسواسية وسلوكيات متكررة'),
+    ('PSYCHIATRIC', 'كوابيس واسترجاع أحداث وضغط نفسي'),
+    ('PSYCHIATRIC', 'صعوبات معرفية لدى مسن مع حاجة لتقييم إضافي'),
+    ('ADDICTION', 'متابعة أعراض انسحاب الكحول'),
+    ('ADDICTION', 'متابعة أعراض انسحاب الأفيونات'),
+    ('ADDICTION', 'استخدام منبهات مع اضطراب النوم'),
+    ('DUAL', 'أعراض مزاجية مترافقة مع استخدام مواد'),
+    ('DUAL', 'أعراض ذهانية مترافقة مع استخدام مواد'),
+]
+
+# Curated clinical terms and dose fragments from the owner's private workbook.
+# Phrases are newly written; fragments are pooled independently; no source rows survive.
+CLINICAL_TERMS = {
+    'symptoms': ['اضطراب النوم', 'تغير الشهية', 'أعراض قلق متقطعة',
+                 'أفكار وسواسية متكررة', 'تفاوت التعاون أثناء المقابلة'],
+    'medications': {
+        'Olanzapine': ['10 mg', '15 mg', '20 mg'],
+        'Haloperidol': ['5 mg', '10 mg', '20 mg'],
+        'Quetiapine': ['50 mg', '600 mg'],
+        'Valproate': ['500 mg', '1000 mg', '1500 mg'],
+        'Clozapine': ['150 mg'], 'Sertraline': ['25 mg', '50 mg'],
+        'Diazepam': ['10 mg', '20 mg'], 'Lorazepam': ['3 mg', '6 mg'],
+    },
+    'observations': ['النوم متقطع', 'الشهية متبدلة',
+                     'التعاون جزئي أثناء المقابلة', 'القلق أقل مقارنة بالتقييم السابق',
+                     'استمرار الأفكار الوسواسية'],
+}
+
+
+TREATMENT_LINES = [
+    'مراجعة الخطة المسجلة والاستجابة خلال الجولة مع توثيق نقاط المتابعة.',
+    'تسجيل عدد ساعات النوم والاستيقاظ الليلي في ملاحظات المناوبة.',
+    'وصف الشهية وتناول الوجبات والسوائل بصورة منفصلة عن الشكوى الرئيسية.',
+    'مقارنة مستوى النشاط والتواصل والمشاركة بالتقييم السابق.',
+    'تدوين الأعراض التي يذكرها المريض مع الفصل بينها وبين ملاحظات الفريق.',
+    'مراجعة قائمة الأدوية المسجلة ومطابقتها مع الورقة العلاجية الوهمية.',
+    'توثيق التحمل والشكاوى الجديدة دون افتراض علاقة سببية بالدواء.',
+    'تسجيل التعاون أثناء المقابلة والعناية الذاتية والأنشطة اليومية.',
+    'مراجعة نتائج التحاليل المتاحة وتحديد النتائج التي لم تصل بعد.',
+    'تنظيم ملاحظات المرافق والأسئلة المطلوب مناقشتها مع الفريق.',
+    'تحديث ملخص المتابعة بما تم إنجازه وما بقي للمناوبة القادمة.',
+    'تدوين المشاركة في الأنشطة الجماعية ودرجة التفاعل أثناء الزيارة.',
+    'وصف التغير في القلق والتركيز مقارنة بالملاحظة السابقة.',
+    'تسجيل الشكوى الجسدية ومدتها والعوامل المرافقة كما وردت في المقابلة.',
+    'مراجعة المعلومات الناقصة في الملف وتحديد ما يحتاج إلى استكمال.',
+    'توثيق خطة التواصل مع الأسرة ونقاط التثقيف التي نوقشت.',
+    'تسجيل انتظام الحضور للمقابلات والتعاون في التقييم اليومي.',
+    'إعداد تسليم واضح يتضمن الأعراض الحالية والملاحظات والأسئلة المفتوحة.',
+    'تمييز المعلومات المؤكدة عن المعلومات التي ما زالت قيد الاستيضاح.',
+    'مراجعة ترتيب بنود الخطة وتحديث الصياغة دون حذف الملاحظات السابقة.',
+]
+
+
+def treatment_example(number, rng):
+    """Fictional layout data: mostly separate medication/dose lines, then brief notes."""
+    long_example = number % 10 == 0
+    medications = CLINICAL_TERMS['medications']
+    drugs = rng.sample(list(medications), 8 if long_example else rng.randint(4, 6))
+    lines = [drug + ' ' + rng.choice(medications[drug]) for drug in drugs]
+    lines.extend(rng.sample(TREATMENT_LINES, 3 if long_example else rng.randint(1, 2)))
+    return '\n'.join(lines)
+
+
+def laboratory_example(rng):
+    """Independent fictional measurements for layout/data-entry examples, not interpretation."""
+    panels = [
+        ('تعداد الدم CBC', [
+            'Hb = {:.1f} g/dL'.format(rng.uniform(10.5, 16.8)),
+            'WBC = {} /µL'.format(rng.randrange(3900, 14100, 100)),
+            'Platelets = {} ×10^3/µL'.format(rng.randrange(140, 391)),
+            'MCV = {} fL'.format(rng.randrange(77, 100)),
+            'Hct = {} %'.format(rng.randrange(32, 49))]),
+        ('الشوارد ووظائف الكلية', [
+            'Na = {} mmol/L'.format(rng.randrange(132, 146)),
+            'K = {:.1f} mmol/L'.format(rng.uniform(3.2, 5.1)),
+            'Urea = {} mg/dL'.format(rng.randrange(16, 55)),
+            'Creatinine = {:.2f} mg/dL'.format(rng.uniform(0.6, 1.5)),
+            'Ca = {:.1f} mg/dL'.format(rng.uniform(8.1, 10.5)),
+            'Mg = {:.1f} mg/dL'.format(rng.uniform(1.6, 2.6))]),
+        ('وظائف الكبد', [
+            'ALT = {} U/L'.format(rng.randrange(12, 74)),
+            'AST = {} U/L'.format(rng.randrange(14, 80)),
+            'ALP = {} U/L'.format(rng.randrange(52, 151)),
+            'Total bilirubin = {:.1f} mg/dL'.format(rng.uniform(0.3, 1.6)),
+            'Albumin = {:.1f} g/dL'.format(rng.uniform(3.2, 4.9))]),
+        ('تحاليل إضافية', [
+            'Glucose = {} mg/dL'.format(rng.randrange(76, 161)),
+            'HbA1c = {:.1f} %'.format(rng.uniform(4.8, 7.1)),
+            'TSH = {:.2f} mIU/L'.format(rng.uniform(0.5, 5.5)),
+            'Vitamin B12 = {} pg/mL'.format(rng.randrange(180, 781)),
+            'CRP = {} mg/L'.format(rng.randrange(1, 25)),
+            'Triglycerides = {} mg/dL'.format(rng.randrange(75, 241))]),
+    ]
+    chosen = rng.sample(panels, rng.randint(2, 4))
+    lines = []
+    for title, measurements in chosen:
+        lines.append(title + ':')
+        lines.extend(rng.sample(measurements, rng.randint(3, len(measurements))))
+    if rng.randrange(4) == 0:
+        lines.append('نتيجة إضافية: قيد الانتظار — مثال توضيحي')
+    return '\n'.join(lines)
+
+
+def mix_clinical_fragments(row, rng):
+    """Combine independent, reworded themes; retain no source-patient linkage."""
+    symptoms = rng.sample(CLINICAL_TERMS['symptoms'], 2)
+    observations = rng.sample(CLINICAL_TERMS['observations'], 3)
+    row['initialDiagnosis'] += '؛ ' + ' مع '.join(symptoms) + '.'
+    if row['followUp']:
+        row['followUp'] = '\n'.join(observations)
+
+
+def lab_groups(text, patient_id, day=None):
+    """Only the generator's explicit panel headings define these fictional sample groups."""
+    groups = []
+    for line in text.splitlines():
+        if line.endswith(':') or not groups:
+            groups.append(dict(id=patient_id+'-labs-'+str(len(groups)),
+                               title=line if line.endswith(':') else '', date=day, results=''))
+            if line.endswith(':'):continue
+        group = groups[-1]
+        group['results'] += ('\n' if group['results'] else '') + line
+    return groups
+
+
+def lab_text(groups):
+    return '\n\n'.join('\n'.join(value for value in (
+        ' • '.join(value for value in (group['title'], group['date']) if value), group['results']) if value)
+        for group in groups)
+
+
+def packed(value):
+    return json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+
+
+def generate(path, day, seed, mix_clinical=True):
+    rng = random.Random(seed)
+    clinical_rng = random.Random("clinical-fragments/{}".format(seed))
+    names = patient_names(seed)
+    namespace = uuid.uuid5(uuid.NAMESPACE_URL, 'shiftreport-synthetic-50/{}/{}'.format(day, seed))
+    identity = lambda label: str(uuid.uuid5(namespace, label))
+    now = datetime.combine(day, time(12), timezone(timedelta(hours=3)))
+    epoch = lambda value: int(value.timestamp() * 1000)
+    rows = []
+    for position, number in enumerate(rng.sample(range(1, 51), 50), 1):
+        kind, case = CASES[(number - 1) % len(CASES)]
+        row = dict.fromkeys(COLUMNS, '')
+        task_count = 8 if number in (10, 30, 50) else (number - 1) % 5
+        tasks = []
+        for index in range(task_count):
+            done = index % 4 == 3
+            due = None if index % 5 == 4 else now + timedelta(hours=rng.choice([-30, -6, 2, 10, 28]))
+            tasks.append(dict(id=identity('task-{}-{}'.format(number, index)),
+                description=rng.choice([
+                    'توثيق ساعات النوم', 'مراجعة نتائج التقييم', 'إعادة تقييم الشهية',
+                    'التواصل مع المرافق', 'تحضير ملخص المتابعة']),
+                ownerDoctorId=None, ownerName=None, priority=rng.choice(['LOW', 'NORMAL', 'HIGH']),
+                dueAtEpochMillis=epoch(due) if due else None,
+                dueShiftDate=day.isoformat() if due and index % 3 == 0 else None,
+                done=done, completedByDoctorId=identity('fictional-completer') if done else None,
+                completedByName='د. الأرز' if done else None,
+                completedAtEpochMillis=epoch(now - timedelta(hours=1)) if done else None))
+        badges = []
+        if number % 3 == 0:
+            badges.append(('يحتاج مراجعة مبكرة', 'high'))
+        if number % 4 == 0:
+            badges.append(('تواصل مع المرافق', 'medium'))
+        if number % 7 == 0:
+            badges.append(('متابعة انتظام النوم والشهية والتواصل مع المرافق', 'low'))
+        treatment = treatment_example(number, rng)
+        row.update(externalId=identity('patient-{}'.format(number)), admitNum='SR-{:03d}'.format(position),
+            admitDate=(day - timedelta(days=rng.randrange(0, 46))).isoformat(),
+            gender='F' if number % 2 == 0 else 'M',
+            name=names[position - 1],
+            birthDate=str(day.year - rng.randrange(18, 87)), hasCompanion='Y' if number % 3 == 0 else 'N',
+            diagnosisType=kind, initialDiagnosis=case,
+            treatmentPlan=treatment,
+            followUp='' if number % 6 == 0 else 'النوم {} ساعات، الشهية {}، والاستجابة {}.'.format(
+                rng.randrange(2, 10), rng.choice(['جيدة', 'متوسطة', 'ضعيفة']), rng.choice(['تحسن', 'ثبات', 'تحتاج إعادة تقييم'])),
+            labs='' if number % 10 == 7 else laboratory_example(rng),
+            warningFlags='|'.join(level for text, level in badges),
+            warningDetails='badges:' + ';'.join(level + ':' + base64.urlsafe_b64encode(text.encode()).decode().rstrip('=')
+                for text, level in badges) if badges else '',
+            isPriority='Y' if number % 5 == 0 else 'N', updatedAt=str(epoch(now)), revision='0',
+            tasksJson=packed(tasks))
+        if mix_clinical and number % 5 in (1, 2, 3):
+            mix_clinical_fragments(row, clinical_rng)
+        groups = lab_groups(row['labs'],row['externalId'],day.isoformat())
+        row['labGroupsJson'] = packed(groups)
+        row['labs'] = lab_text(groups)
+        rows.append(row)
+    meta = '# schemaVersion=8 shiftDate={} shiftId={} doctors= sortSpec={{"levels":[]}} shiftRevision=0 snapshotId= baseSnapshotId= deviceId='.format(
+        day, identity('shift'))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('x', encoding='utf-8-sig', newline='') as stream:
+        writer = csv.writer(stream, lineterminator='\n')
+        writer.writerow([meta])
+        writer.writerow(COLUMNS)
+        writer.writerows([[row[column] for column in COLUMNS] for row in rows])
+    return rows
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parents[1] / 'data' / 'generated-patients.csv')
+    parser.add_argument('--date', type=date.fromisoformat,
+                        default=datetime.now(timezone(timedelta(hours=3))).date())
+    parser.add_argument('--seed', type=int, default=None, help='Optional seed for repeatable output')
+    parser.add_argument('--generic-only', action='store_true',
+                        help='Omit the reworded, mixed workbook-theme enrichment')
+    args = parser.parse_args()
+    seed = args.seed if args.seed is not None else random.SystemRandom().randrange(2**63)
+    generate(args.output, args.date, seed, mix_clinical=not args.generic_only)
+    print('Created 50 sample patients (seed={}): {}'.format(seed, args.output))
+
+
+if __name__ == '__main__':
+    main()

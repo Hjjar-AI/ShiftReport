@@ -1,6 +1,6 @@
 # Android style and component guide
 
-Source defaults, not measurements. [UI workflow](../guides/android-ui.md) · [Behavior/evidence](../status/current-state.md#shared-android-presentation).
+Source defaults, not measurements. [UI workflow](../guides/android/ui.md) · [Behavior/evidence](../status/current-state.md#shared-android-presentation).
 
 ## Source map
 
@@ -37,7 +37,7 @@ Keep tokens independent, row selection/toggle semantics explicit and labels wrap
 
 ## Internal profiles and local overrides
 
-Appearance exposes theme/text size/reduced motion; spacing follows shared defaults and compatible profiles stay internal. Retired overrides normalize to current profile, comfortable controls, visible navigation, compact Add and explicit expansion. `LocalUiStyle` owns spacing/motion; live `UiPreferences` is encrypted/device-local, demo memory-only except [accent/appearance](../guides/android-demo.md#isolation-and-lifecycle). PDF colors follow app accent; reduced motion zeroes app animation, platform sheets/ripples follow Android.
+Appearance exposes theme/text size/reduced motion; spacing follows shared defaults and compatible profiles stay internal. Retired overrides normalize to current profile, comfortable controls, visible navigation, compact Add and explicit expansion. `LocalUiStyle` owns spacing/motion; live `UiPreferences` is encrypted/device-local, demo memory-only except [accent/appearance](../guides/android/demo.md#isolation-and-lifecycle). PDF colors follow app accent; reduced motion zeroes app animation, platform sheets/ripples follow Android.
 
 ```kotlin
 ProvideUiPreferences(UiPreferences(reducedMotion = true)) {

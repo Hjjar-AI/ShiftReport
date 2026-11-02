@@ -1,0 +1,7 @@
+# Flask client — remaining implementation
+
+The owner resumed work on 2 November 2026. The source items recorded at the earlier stop have been implemented: reviewed one-use additional copies, single-owner form recovery/failure handling, independent assignment export, captured rounds/Save-next, cosmetic isolation, ward/team/report/navigation behavior and the native desktop capability map. Completion details belong to the [changelog](changelog.md); functions are mapped in [Flask capabilities](../reference/web-capabilities.md).
+
+No open implementation item remains from that recorded list. This does not establish full acceptance: remaining browser/platform/transport verification is owned solely by the [handoff](testing-handoff.md#local-flask-client), and [current state](current-state.md#local-flask-client) records actual results and limits. Any new source issue found during that verification belongs here until resolved.
+
+Continue to use `web/shiftreport/core/` for current-format headless services, `workspace.py` for session/clinical state and guards, route modules for controllers and Jinja/static assets for presentation. Preserve Python3.8.10, accepted muted light design, current schemas/formats, protected joins/keys, local versus network authority, stored task metadata, last-save-wins, exact reviewed artifacts and durable UNKNOWN. No native source change, migration, version bump, staging or commit is part of this work.

@@ -9,12 +9,14 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 | Folder | Contents |
 |---|---|
 | [`android/`](android) | Android Studio/Gradle project, app source, wrapper and Android-local settings |
-| [`desktop/`](desktop/README.md) | Python CustomTkinter client for Windows and Linux, setup and launch scripts |
-| [`web/`](web/README.md) | Independent local Flask/Jinja client on Python 3.8.10; local workflows and dummy demo; [functional map](docs/reference/flask-capabilities.md) |
+| [`old/desktop/`](old/desktop/README.md) | Archived Python CustomTkinter client for Windows and Linux, setup and launch scripts |
+| [`old/excel/`](old/excel/README.md) | Archived Excel/VBA client, workbook generator and setup |
+| [`web/`](web/README.md) | Independent local Flask/Jinja client on Python 3.8.10; local workflows and dummy demo; [functional map](docs/reference/web-capabilities.md) |
 | [`docs/`](docs/README.md) | Shared architecture, current state, guides and roadmap |
-| `local/` | Ignored private local artifacts, including the old Excel workspace |
+| [`samples/`](samples/README.md) | Fictional CSV data, generators and A5 preview sources |
+| `local/` | Ignored private Excel originals, local guides, toolchains and verification evidence |
 
-Open **`android/`** in Android Studio. For the PC client, use the launch scripts inside **`desktop/`**. Each platform keeps its existing application identity and shared Telegram formats. Root-level Git metadata and repository instructions stay shared.
+Open **`android/`** in Android Studio. For the PC client, use the launch scripts inside **`old/desktop/`**. Each platform keeps its existing application identity and shared Telegram formats. Root-level Git metadata and repository instructions stay shared.
 
 ## Current capabilities
 
@@ -46,7 +48,7 @@ Admin mutations are authorized below navigation; clinical saves retain existence
 
 ## Project documentation
 
-[Documentation index](docs/README.md) · [Arabic setup](docs/guides/telegram-setup.md) · [Desktop workflow](desktop/README.md) · [Agent rules](AGENTS.md).
+[Documentation index](docs/README.md) · [Arabic setup](docs/guides/telegram-setup.md) · [Desktop workflow](old/desktop/README.md) · [Agent rules](AGENTS.md).
 
 ## Developer commands
 
@@ -91,4 +93,4 @@ app/build/outputs/apk/release/
 app/build/outputs/bundle/release/
 ```
 
-Release requires a protected production keystore and has no debug-key fallback. See the [cache/signing guide](docs/guides/android-build.md); never commit signing material or credentials.
+Release requires a protected production keystore and has no debug-key fallback. See the [cache/signing guide](docs/guides/android/build.md); never commit signing material or credentials.

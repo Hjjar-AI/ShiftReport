@@ -1,6 +1,6 @@
 # Shared Telegram protocol
 
-Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and `desktop_gui.py`, based on current Android production source. [Usage](../../desktop/README.md) · [Verification limits](../status/current-state.md#verification-and-limits)
+Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and `desktop_gui.py`, based on current Android production source. [Usage](../../old/desktop/README.md) · [Verification limits](../status/current-state.md#verification-and-limits)
 
 ## Formats
 

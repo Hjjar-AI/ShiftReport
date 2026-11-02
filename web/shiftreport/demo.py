@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
-SAMPLE = Path(__file__).resolve().parents[2] / "samples" / "synthetic-patients-50-expanded.csv"
+SAMPLE = Path(__file__).resolve().parents[2] / "samples" / "data" / "patients.csv"
 
 
 def report_day():

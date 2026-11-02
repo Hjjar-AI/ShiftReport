@@ -1,6 +1,6 @@
 # iPhone client proposal
 
-Planning date: 2026-10-26. Status: proposed; no iPhone client implemented or device behavior verified. This document records requirements, implementation prescriptions and suggestions. It does not authorize builds, package installation, migrations, tests or changes to existing desktop/Android behavior.
+Planning date: 2026-10-26. Status: proposed; no iPhone client implemented or device behavior verified. This document records requirements, implementation prescriptions and suggestions. It does not authorize builds, package installation, migrations, tests or changes to existing old/desktop/Android behavior.
 
 [Documentation index](docs/README.md) · [Current implementation](docs/status/current-state.md) · [Shared protocol](docs/reference/telegram-protocol.md) · [Remaining-check owner](docs/status/testing-handoff.md)
 
@@ -87,7 +87,7 @@ This plan records implementation work only. Any subsequently authorized remainin
 - Decide exact supported Pyto edition/release and package versions from available runtime evidence. Do not promise a free-only installation while required native libraries may require Full Version.
 - Choose an available secure key-storage adapter and deliberate iOS file-protection/backup behavior. App sandbox storage alone is not a substitute for authenticated encryption.
 - Resolve Arabic PDF dependencies early. Browser printing is only an alternative proposal, with potentially different pagination, links and artifact-review semantics; no automatic renderer substitution or parity claim.
-- Prefer a small reusable Python core plus separate mobile presentation, retaining existing desktop/Android clients. Defer a standalone iOS app, hosted backend, PWA conversion and iSH distribution unless the owner selects them.
+- Prefer a small reusable Python core plus separate mobile presentation, retaining existing old/desktop/Android clients. Defer a standalone iOS app, hosted backend, PWA conversion and iSH distribution unless the owner selects them.
 
 ## Sources and evidence limits
 

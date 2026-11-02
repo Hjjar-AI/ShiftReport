@@ -1,24 +1,30 @@
 # Documentation
 
-`guides/` — procedures · `reference/` — architecture/contracts/style · `status/` — current state/roadmap/history · `decisions/` — unselected proposals.
+Start with the [project README](../README.md). Guides are grouped by platform; shared contracts, status and proposals each have one home.
+
+| Folder | Purpose |
+|---|---|
+| `guides/android/` | Android development, build, device checks and troubleshooting |
+| `guides/desktop/` | Guides for the archived native client in `old/desktop/` |
+| `reference/` | Architecture, wire contracts, UI design and web capability map |
+| `status/` | Current behavior, remaining implementation, remaining checks and completed work |
+| `status/archive/` | Completed planning records |
+| `decisions/` | Deferred or unselected proposals |
 
 | Need | Read |
 |---|---|
-| Start/use/build | [Project README](../README.md), [Desktop guide](../desktop/README.md) |
-| Current behavior, concerns and verification | [Current state](status/current-state.md) |
-| Rationale / remaining / completed / choices | [Architecture](reference/architecture.md), [Roadmap](status/roadmap.md), [Changelog](status/changelog.md), [UI decisions](decisions/android-ui-options.md) |
-| Multiple sections design | [Owner-review proposal](decisions/multiple-sections.md) |
-| Proposed iPhone client | [iPhone plan](../iphone.plan.md) |
-| Local Flask/Jinja client (Python 3.8.10) | [Setup/source](../web/README.md), [Functional map](reference/flask-capabilities.md), [Implementation status](status/flask-plan.md), [Remaining checks](status/testing-handoff.md#local-flask-client) |
-| Android UI maintenance | [Work guide](guides/android-ui.md), [Style/components](reference/design-catalog.md), [Demo](guides/android-demo.md) |
-| About/splash wording | [Editable content guide](guides/about-splash-content.md) |
-| Telegram setup | [دليل الإعداد](guides/telegram-setup.md) |
-| Build/cache/sign/package | [Shared workstation/signing](guides/android-build.md), [Windows EXE](guides/windows-exe-packaging.md) |
-| Remaining tests / results | [Single checklist](status/testing-handoff.md), [Evidence](status/current-state.md#verification-and-limits) |
-| Test execution | [Android](guides/android-testing.md), [Device/manual](guides/device-coverage.md), [Desktop/interop/live](guides/deep-testing.md) |
-| Diagnose | [Android](guides/android-troubleshooting.md), [Desktop](guides/desktop-troubleshooting.md) |
-| Shared wire format / contributor rules | [Protocol](reference/telegram-protocol.md), [AGENTS.md](../AGENTS.md) |
+| Current behavior and evidence | [Current state](status/current-state.md) |
+| Remaining implementation / verification | [Roadmap](status/roadmap.md), [single check list](status/testing-handoff.md) |
+| Completed work | [Changelog](status/changelog.md) |
+| Shared architecture / data formats | [Architecture](reference/architecture.md), [Telegram protocol](reference/telegram-protocol.md) |
+| Telegram setup | [Arabic setup guide](guides/telegram-setup.md) |
+| Android build / diagnose | [Build and signing](guides/android/build.md), [troubleshooting](guides/android/troubleshooting.md) |
+| Android UI / demo / credits | [Maintenance](guides/android/ui.md), [design catalog](reference/design-catalog.md), [demo](guides/android/demo.md), [About and splash](guides/android/about-and-splash.md) |
+| Android verification procedures | [Execution guide](guides/android/testing.md), [device checks](guides/android/device-checks.md) |
+| Web client | [Setup](../web/README.md), [Windows EXE guide](../web/bundle.md), [capability map](reference/web-capabilities.md), [implementation plan](status/web-plan.md) |
+| Archived desktop client | [Setup](../old/desktop/README.md), [Windows EXE guide](guides/desktop/windows-exe.md), [troubleshooting](guides/desktop/troubleshooting.md), [testing and interop](guides/desktop/testing-and-interop.md) |
+| Archived Excel client | [Source, setup and limits](../old/excel/README.md) |
+| Proposals | [Android UI options](decisions/android-ui-options.md), [multiple sections](decisions/multiple-sections.md), [iPhone client](../iphone.plan.md) |
+| Contributor rules | [AGENTS.md](../AGENTS.md) |
 
-One topic/home; commands stay in guides. Private `docs/local/` notes remain ignored/excluded from packages.
-
-Documentation work: [plan](status/documentation-plan.md). Excel has its own [source/setup/limits](../excel/README.md); private VBA/credentials and historical local evidence remain preserved.
+Commands stay in their guides. The [completed documentation consolidation](status/archive/documentation-consolidation.md) is historical scope, not pending work. Private notes belong in ignored `local/guides/` or `docs/local/`; evidence and original workbooks remain private under `local/`.

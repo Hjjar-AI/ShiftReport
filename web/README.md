@@ -1,8 +1,8 @@
 # Local Flask client
 
-Independent **Python 3.8.10 / Flask / Jinja** local browser client for Windows and Linux. No runtime imports from `desktop/`, no Node toolchain and no CDN assets. Launchers use a separate `web/.venv` and bind Waitress to `127.0.0.1:8765` only. Keep the repository's `samples/` folder beside `web/`.
+Independent **Python 3.8.10 / Flask / Jinja** local browser client for Windows and Linux. No runtime imports from `old/desktop/`, no Node toolchain and no CDN assets. Launchers use a separate `web/.venv` and bind Waitress to `127.0.0.1:8765` only. Keep the repository's `samples/` folder beside `web/`.
 
-The recorded functional follow-up is implemented. The [functional map](../docs/reference/flask-capabilities.md) maps native desktop functions to browser routes; [current behavior/evidence](../docs/status/current-state.md#local-flask-client) and [remaining verification](../docs/status/testing-handoff.md#local-flask-client) distinguish source coverage from platform/live acceptance. Standalone live Telegram transport with dummy CSV/PDF/text and exact downloaded bytes passed. Normal live encrypted-project creation/private-code verification/protected recovery download/new index pin also passed on3November; Windows execution and cross-client Telegram acceptance are not claimed.
+The recorded functional follow-up is implemented. The [functional map](../docs/reference/web-capabilities.md) maps native desktop functions to browser routes; [current behavior/evidence](../docs/status/current-state.md#local-flask-client) and [remaining verification](../docs/status/testing-handoff.md#local-flask-client) distinguish source coverage from platform/live acceptance. Standalone live Telegram transport with dummy CSV/PDF/text and exact downloaded bytes passed. Normal live encrypted-project creation/private-code verification/protected recovery download/new index pin also passed on3November; Windows execution and cross-client Telegram acceptance are not claimed.
 
 The original manual client remains at **http://127.0.0.1:8765/**. The new encrypted `TEST ONLY — Flask Dummy Project` runs at **http://127.0.0.1:8766/** on exact Python3.8.10, with one fictional administrator profile and no patients. Keep the setup browser session or reconnect using its downloaded protected join and normal identity verification. Its isolated data directory is ignored `web/instance/dummy-project-2026-11-03/`. It includes patient forms/recovery/recycle, task/team/roster administration, stored sort and presentation grouping, encrypted local storage/protected project setup/identity, CSV/backups/Fetch/Undo, exact A5 report preview/Save/Share and reviewed publication/delivery/receipts. Extra-copy approvals are durable and single use; local assignment export is independent of report roster changes.
 
@@ -11,6 +11,8 @@ Reports are PDF-only for general/supervisor delivery and local drafts; CSV data 
 Demo needs no credentials and starts with50 fictional food/drink patients,138 ordered lab groups and six tree doctors. Demo clinical changes stay in server memory. Real-project connections require the protected file/private identity workflow; no default or embedded real credentials are provided.
 
 ## Windows setup
+
+For a distributable Windows executable, see the [Flask EXE bundling guide](bundle.md): folder/single-file recipes, resource handling, persistent storage and troubleshooting. Packaging commands and the proposed entry point remain unverified on Windows.
 
 From `web/`, with CPython 3.8.10 installed:
 
@@ -60,7 +62,7 @@ No existing native app, wire, database, SDK or toolchain version is changed. The
 | `shiftreport/clinical_views.py` | Patient editor/draft/recycle, stored sorting/roster, doctor/team reviews and dashboard/details/diagnostics |
 | `shiftreport/data_views.py` | CSV/RPB/SRDRAFT recovery, Fetch/Undo, publication/rollback/advanced administration and receipt resolution |
 | `shiftreport/report_views.py` | Exact preview bytes, report/publication coordinator, downloads, original-artifact recovery, one-use additional-copy approvals and independent assignment exports |
-| `shiftreport/core/` | Current-format headless services adapted from native protocol/crypto/store/PDF code, with native UI functions removed; independent copies, not a runtime dependency on `desktop/` |
+| `shiftreport/core/` | Current-format headless services adapted from native protocol/crypto/store/PDF code, with native UI functions removed; independent copies, not a runtime dependency on `old/desktop/` |
 | `shiftreport/demo.py`, `templates/`, `static/` | Shared fictional sample, bounded memory sessions, Jinja and buildless CSS/JS; bundled Tajawal/license and original emblem copied from Android |
 | `run.py`, `shiftreport/instance.py` | Python version gate, local Waitress process and per-data-directory instance lock |
 
