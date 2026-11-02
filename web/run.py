@@ -35,7 +35,7 @@ def main():
     except OSError:
         raise SystemExit("Cannot open the local port. Try --port 8766.") from None
     url = "http://127.0.0.1:{}/".format(options.port)
-    print("ShiftReport DEMO: {} (Ctrl+C to stop)".format(url))
+    print("ShiftReport local: {} (Ctrl+C to stop)".format(url))
     if not options.no_browser:
         threading.Thread(target=webbrowser.open, args=(url,), daemon=True).start()
     try:

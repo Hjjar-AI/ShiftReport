@@ -1,6 +1,8 @@
 """Office-free paginated Arabic PDF. Logical clinical text is never reshaped in storage."""
 from __future__ import annotations
 from datetime import datetime
+from contextvars import ContextVar
+from functools import cached_property, lru_cache, wraps
 import atexit
 import shutil
 from pathlib import Path
@@ -21,12 +23,39 @@ from .model import patient_name, pending_task_count
 END_TIMESTAMP_GAP = 30  # Points between final report content and its creation date.
 
 
-_reshaper = arabic_reshaper.ArabicReshaper(configuration={'use_unshaped_instead_of_isolated': True})
+class _ReportReshaper(arabic_reshaper.ArabicReshaper):
+    @cached_property
+    def _ligatures_re(self):
+        # The pinned dependency rebuilds this immutable pattern on each call
+        # because its hasattr check uses an unmangled private attribute name.
+        return super()._ligatures_re
+
+
+_reshaper = _ReportReshaper(configuration={'use_unshaped_instead_of_isolated': True})
+_visual_cache = ContextVar('report_visual_cache', default=None)
 
 
 def visual(text, direction='R'):
     # Tajawal maps isolated letters through base Unicode rather than presentation forms.
-    return get_display(_reshaper.reshape(str(text)), base_dir=direction)
+    cache = _visual_cache.get()
+    return cache(str(text), direction) if cache else _visual(str(text), direction)
+
+
+def _visual(text, direction):
+    return get_display(_reshaper.reshape(text), base_dir=direction)
+
+
+def _render_scope(function):
+    @wraps(function)
+    def render(*args, **kwargs):
+        cache = lru_cache(maxsize=8192)(_visual)
+        token = _visual_cache.set(cache)
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _visual_cache.reset(token)
+            cache.cache_clear()
+    return render
 
 
 class RTLText(Flowable):
@@ -139,6 +168,7 @@ def styled_table(data, widths, colors, repeat=0, backgrounds=None, guides=False,
     return table
 
 
+@_render_scope
 def render_report(client, shift, supervisor=None, font_path=None, options=None, report_day=None):
     return _render_report(client, shift, supervisor, font_path, options,
                           datetime.now(ZoneInfo(client.zone)), report_day)
@@ -218,6 +248,7 @@ def _render_report(client, shift, supervisor, font_path, options, now, report_da
     return path
 
 
+@_render_scope
 def render_assignments(client,shift,font_path=None,options=None,report_day=None):
     """Admin-only A5 grid, matching Android's three RTL team columns."""
     actor_id=client.require_local_admin()['uid']

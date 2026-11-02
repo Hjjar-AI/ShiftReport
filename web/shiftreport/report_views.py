@@ -84,22 +84,19 @@ def reports():
     w.ready()
     if request.method=='POST':
         action=request.form.get('action','export')
-        assignments=action=='assignments'
         selected=request.form.getlist('doctor')
-        require((selected or assignments) and len(set(selected))==len(selected) and all(k in w.client.doctors for k in selected),'اختر أطباء المناوبة أولاً')
-        shift=w.store.read()
-        shift['meta']['doctors']=','.join(selected)
-        w.store.commit(draft=shift)
+        require(selected and len(set(selected))==len(selected) and all(k in w.client.doctors for k in selected),'اختر أطباء المناوبة أولاً')
+        require(action in ('export','send'),'عملية تقرير غير صالحة')
         targets=[None if key=='general' else key for key in request.form.getlist('target')]
         require(targets and len(set(targets))==len(targets),'اختر وجهة واحدة على الأقل')
         require(all(t is None or t in w.client.doctors and w.client.doctors[t]['clinicalRole']=='SUPERVISOR' for t in targets),'وجهة غير صالحة')
         format_name=request.form.get('format','pdf')
         require(format_name in ('pdf','text'),'صيغة غير صالحة')
-        if assignments:
-            w.ready(admin=True)
-            targets=[None]
+        shift=w.store.read()
+        shift['meta']['doctors']=','.join(selected)
+        w.store.commit(draft=shift)
+        assignments=False
         sending=action=='send' and not w.demo
-        require(action in ('export','send','assignments'),'عملية تقرير غير صالحة')
         if sending:
             w.ready(online=True)
             from .core.delivery import ReportDelivery
@@ -117,17 +114,31 @@ def reports():
         options=normalize_options(dict(layout=request.form.get('layout','cards'),app_theme=request.form.get('app_theme','VANILLA'),local_draft=not sending and not assignments))
         w.print_accent=options['app_theme']
         payloads=[]
+        separate=request.form.get('separate')=='1'
+        require(not separate or not sending,'التقسيم حسب المشرف للتصدير المحلي فقط')
+        if separate:
+            targets=list(dict.fromkeys(p.get('responsibleSupervisorId') or None for p in reviewed['patients']))
+            require(targets,'لا يوجد مرضى في التقرير المختار')
         for target in targets:
-            raw=render_pdf(w,reviewed,target,options,assignments,day) if format_name=='pdf' or assignments else report_text(w.client,reviewed,target,day)
-            payloads.append(dict(target=target,format='pdf' if assignments else format_name,raw=raw,
-                                 sha=hashlib.sha256(raw if isinstance(raw,bytes) else raw.encode()).hexdigest(),viewed=False))
+            subset=reviewed
+            if separate:
+                subset=copy.deepcopy(reviewed)
+                subset['patients']=[p for p in reviewed['patients'] if (p.get('responsibleSupervisorId') or None)==target]
+            raw=render_pdf(w,subset,None if separate else target,options,day=day) if format_name=='pdf' else report_text(w.client,subset,None if separate else target,day)
+            if not sending and format_name=='text':
+                raw='مسودة محلية • لم يُعتمد نشرها\n'+raw
+                if w.demo:
+                    raw='DEMO\n'+raw
+            payloads.append(dict(target=target,format=format_name,raw=raw,
+                label=w.client.doctors.get(target,{}).get('name','بدون مشرف' if separate else 'التقرير العام'),
+                sha=hashlib.sha256(raw if isinstance(raw,bytes) else raw.encode()).hexdigest(),viewed=False))
         source=fingerprint(w.store.read())
         summary=publication_review(delivery.plan,w.client.zone) if delivery and delivery.needs_publish else 'راجع التقرير كاملاً قبل الحفظ أو التأكيد النهائي.'
         token=w.review('report',dict(payloads=payloads,delivery=delivery,owner=owner,source=source,options=options,
             day=day,sending=sending,assignments=assignments,simulation=action=='send' and w.demo,
-            doctors=fingerprint(w.client.doctors)),summary,None)
+            doctors=fingerprint(w.client.doctors),copies_enabled=False,all_delivered=False),summary,None)
         return redirect(url_for('features.report_review',token=token),code=303)
-    return render_template('reports.html',doctors=w.client.doctors,selected=w.store.read()['meta'].get('doctors','').split(','),page='reports')
+    return render_template('reports.html',doctors=w.client.doctors,selected=w.store.read()['meta'].get('doctors','').split(','),preferences=w.store.report_preferences(),page='reports')
 
 
 @features.route('/reports/review/<token>',methods=['GET','POST'])
@@ -158,8 +169,10 @@ def report_review(token):
             review['used']=True
             try:
                 delivery.plan.force_local=True
-                delivery.send([(p['target'],p['format'],p['raw']) for p in data['payloads']],
+                sent=delivery.send([(p['target'],p['format'],p['raw']) for p in data['payloads']],
                               lambda target:request.form.get('repeat')=='1')
+                data['all_delivered']=sent==len(data['payloads'])
+                data['copies_enabled']=data['all_delivered'] and request.form.get('local_copy')=='1'
             except Exception:
                 data['owner'].report_attempt.failed(w.client.baseline)
                 data['source']=fingerprint(w.store.read())
@@ -185,16 +198,16 @@ def report_artifact(token,index):
     payload=data['payloads'][index]
     if request.args.get('save')=='1':
         require(payload['viewed'],'افتح الملف قبل حفظه')
-        require(fingerprint(w.store.read())==data['source'] and fingerprint(w.client.doctors)==data['doctors'], 'تغير المحتوى؛ أعد المعاينة')
-        require(w.print_accent==data['options']['app_theme'],'تغير لون التطبيق؛ أعد المعاينة')
-    else:
+    require(fingerprint(w.store.read())==data['source'] and fingerprint(w.client.doctors)==data['doctors'], 'تغير المحتوى؛ أعد المعاينة')
+    require(w.print_accent==data['options']['app_theme'],'تغير لون التطبيق؛ أعد المعاينة')
+    if request.args.get('save')!='1':
         payload['viewed']=True
     if data['assignments']:
         w.ready(admin=True)
     if request.args.get('save')=='1' and data['sending']:
-        require(review['used'] and data['owner'] is not None and data['owner'].report_attempt.delivery=='CONFIRMED','حفظ النسخة العادية متاح بعد تأكيد التسليم؛ للتصدير المحلي اختر مسودة')
+        require(review['used'] and data.get('copies_enabled') and data.get('all_delivered'),'حفظ النسخة العادية متاح بعد تأكيد التسليم؛ للتصدير المحلي اختر مسودة')
     raw=payload['raw']
-    name=('DEMO-' if w.demo else '')+'ShiftReport-'+data['day']+('.pdf' if payload['format']=='pdf' else '.txt')
+    name=('DEMO-' if w.demo else '')+'ShiftReport-'+data['day']+'-'+str(index+1)+('.pdf' if payload['format']=='pdf' else '.txt')
     return send_file(io.BytesIO(raw if isinstance(raw,bytes) else raw.encode('utf-8')),mimetype='application/pdf' if payload['format']=='pdf' else 'text/plain; charset=utf-8',
                      as_attachment=request.args.get('save')=='1',download_name=name)
 
@@ -217,28 +230,39 @@ def report_copy(token,receipt_index):
         require(request.form.get('confirm')=='1','الموافقة الصريحة على نسخة إضافية مطلوبة')
         require(payload['viewed'],'افتح الملف الأصلي قبل الموافقة على النسخة الإضافية')
         require(w.store.state['receipts'][receipt_index]==receipt,'تغير الإيصال الأصلي')
-        permit=secrets.token_hex(24)
+        permit=request.form.get('permit','')
         permissions=copy.deepcopy(w.store.state.get('reportCopyPermits',{}))
-        permissions[permit]=dict(binding=binding,receipt=receipt_index,used=False)
-        w.store.commit(reportCopyPermits=permissions)
+        permission=permissions.get(permit)
+        require(permission is not None and not permission['used'] and
+                permission['binding']==binding and permission['receipt']==receipt_index and
+                permission['original']==receipt and permission['review']==token and
+                time.time()-permission['created']<1800,'انتهى إذن النسخة أو استُخدم؛ افتح مراجعة جديدة')
         copy_index=[None]
         def before(chat,topic):
             require((chat,topic)==(binding['chat'],binding['topic']),'تغيرت وجهة النسخة')
             permits=copy.deepcopy(w.store.state['reportCopyPermits'])
-            require(not permits[permit]['used'],'استُخدم إذن النسخة')
+            require(permits.get(permit)==permission and not permits[permit]['used'],'استُخدم إذن النسخة')
             permits[permit]['used']=True
             rows=copy.deepcopy(w.store.state['receipts'])
             require(rows[receipt_index][2]=='UNKNOWN','حُسم الإيصال أثناء العملية')
             rows.append(['report',fingerprint(dict(copy=permit,sha=binding['sha256'])),'UNKNOWN','',str(chat),str(topic or ''),time.strftime('%Y-%m-%dT%H:%M:%S'),'نسخة إضافية مصرح بها',w.actor,receipt[9]])
             copy_index[0]=len(rows)-1
-            w.store.commit(receipts=rows,reportCopyPermits=permits)
+            bindings=copy.deepcopy(w.store.state.get('reportArtifacts',{}))
+            bindings[str(copy_index[0])]=copy.deepcopy(binding)
+            w.store.commit(receipts=rows,reportCopyPermits=permits,reportArtifacts=bindings)
         send=w.client.send_pdf if payload['format']=='pdf' else w.client.send_text
         result=send(payload['raw'],data['delivery'].reviewed,payload['target'],tuple(binding['pointer']),tuple(binding['registry']),before,report_day=binding['day'])
         w.store.confirm_indexed_receipt(copy_index[0],result['message_id'])
         w.notice='أكد تليجرام النسخة الإضافية؛ بقي الإيصال الأصلي غير محسوم حتى تفحصه.'
         return redirect(url_for('features.sync'),code=303)
+    permit=secrets.token_hex(24)
+    permissions={key:value for key,value in w.store.state.get('reportCopyPermits',{}).items()
+                 if not value['used'] and time.time()-value['created']<1800}
+    permissions[permit]=dict(binding=copy.deepcopy(binding),receipt=receipt_index,
+        original=receipt,review=token,created=time.time(),used=False)
+    w.store.commit(reportCopyPermits=permissions)
     return render_template('copy_review.html',token=token,index=receipt_index,
-                           artifact_index=data['payloads'].index(payload),page='reports')
+                           permit=permit,artifact_index=data['payloads'].index(payload),page='reports')
 
 @features.route('/receipts/<int:receipt_index>/artifact',methods=['GET','POST'])
 def recover_artifact(receipt_index):
@@ -267,3 +291,24 @@ def recover_artifact(receipt_index):
         w.reviews[key]['used']=True
         return redirect(url_for('features.report_copy',token=key,receipt_index=receipt_index),code=303)
     return render_template('recover_artifact.html',page='reports')
+
+
+@features.route('/export/assignments',methods=['GET','POST'])
+def assignments_export():
+    w=g.workspace
+    w.ready(admin=True)
+    if request.method=='POST':
+        from .core.pdf_content import normalize_options
+        options=normalize_options(dict(app_theme=request.form.get('app_theme','VANILLA')))
+        w.print_accent=options['app_theme']
+        shift=w.store.read()
+        day=current_date(w.client.zone)
+        raw=render_pdf(w,shift,None,options,assignments=True,day=day)
+        payload=dict(target=None,label='توزيع المرضى بالأسماء',format='pdf',raw=raw,
+            sha=hashlib.sha256(raw).hexdigest(),viewed=False)
+        token=w.review('report',dict(payloads=[payload],delivery=None,owner=None,
+            source=fingerprint(shift),doctors=fingerprint(w.client.doctors),options=options,
+            day=day,sending=False,assignments=True,simulation=False),
+            'توزيع الأسماء فقط — معاينة وحفظ محلي دون تغيير أطباء المناوبة.',None)
+        return redirect(url_for('features.report_review',token=token),code=303)
+    return render_template('assignments_export.html',page='reports')

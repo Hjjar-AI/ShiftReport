@@ -6,15 +6,17 @@ import uuid
 from datetime import datetime
 from flask import g, redirect, render_template, request, url_for
 from .features import features, home, uploaded
-from .core.protocol import require, packed, fingerprint, is_admin, current_date
+from .core.protocol import BridgeError, require, packed, fingerprint, is_admin, current_date
 from .core.model import new_patient, badges_decode
 from .core.labs import read_groups
 from .core.tasks import read_tasks
 
 
-def form_values(form):
+def form_values(form, validate=True):
     value = {key:form.get(key,'').strip() for key in ('name','admitNum','admitDate','birthDate','gender','diagnosisType','initialDiagnosis','treatmentPlan','followUp','responsibleResidentId','responsibleSupervisorId')}
-    if form.get('age','').strip() and not value['birthDate']:
+    value['age'] = form.get('age','')
+    value['position'] = form.get('position','')
+    if validate and form.get('age','').strip() and not value['birthDate']:
         age = form['age'].strip()
         require(age.isascii() and age.isdigit() and 0 <= int(age) <= 120, 'العمر غير صالح')
         from .core.protocol import ZoneInfo
@@ -36,60 +38,102 @@ def form_values(form):
     return value
 
 
+# Store only clinical form fields; never persist CSRF/session values.
+FORM_FIELDS = ('name','admitNum','admitDate','birthDate','age','gender','diagnosisType',
+    'initialDiagnosis','treatmentPlan','followUp','responsibleResidentId','responsibleSupervisorId',
+    'hasCompanion','isPriority','position','task_id','task_description','task_done',
+    'lab_id','lab_title','lab_date','lab_results','badge_text','badge_priority')
+
+
+def editor_page(w, token, state, values, error=None):
+    sequence = w.rounds.get(state['round'], {}).get('ids', [])
+    index = sequence.index(state['id']) if state['id'] in sequence else len(sequence)
+    return render_template('patient_edit.html',patient=values,doctors=w.client.doctors,
+        form_id=token,is_new=state['new'],successor=not state['new'] and index+1<len(sequence),
+        error=error,page='ward')
+
+
 @features.route('/patients/new', methods=['GET','POST'])
 @features.route('/patients/<key>/edit', methods=['GET','POST'])
 def patient_edit(key=None):
     w = g.workspace
     w.ready()
     new = key is None
+    shift = w.store.read()
+    pending = w.store.patient_form_draft()
     if request.method == 'POST':
         token = request.form.get('form_id','')
         state = w.forms.get(token)
-        require(state is not None and state['actor']==w.actor, 'أُغلقت هذه المسودة؛ أعد فتح المحرر')
+        require(state is not None and state['actor']==w.actor and
+                pending and pending.get('formId')==token,
+                'أُغلقت هذه المسودة أو فُتحت في نافذة أخرى؛ أعد فتح المحرر')
+        require(state['shift']==shift['meta']['shiftId'],'تغير القسم؛ لن تحفظ مسودة في قسم آخر')
+        require(new==state['new'] and (new or key==state['id']),'المحرر لا يخص هذا المريض')
         key = state['id']
-        values = form_values(request.form)
-        if request.form.get('action') == 'draft':
-            require(state['shift']==w.store.read()['meta']['shiftId'],'تغير القسم؛ لن تحفظ مسودة في قسم آخر')
-            if not state['new']:
-                w.require_patient(key,True)
-            existing = w.store.patient_form_draft()
-            require(not existing or existing.get('actor')==w.actor, 'هناك مسودة لمستخدم آخر؛ لا يمكن استبدالها')
-            w.store.save_patient_form(dict(actor=w.actor,shiftId=state['shift'],patientId=key,isNew=state['new'],values=values))
-            return '', 204
-        if request.form.get('action') == 'cancel':
-            w.forms.pop(token,None)
-            return home()
-        values['tasks'] = [t for t in values['tasks'] if t['description'].strip()]
-        values['badges'] = [(text.strip(),level) for text,level in values['badges'] if text.strip()]
-        w.save_patient(key,values,state['shift'],state['new'],int(request.form['position']) if request.form.get('position') else None)
+        if not state['new']:
+            w.require_patient(key,True)
+        action = request.form.get('action','save')
+        require(action in ('draft','cancel','save','next'),'عملية حفظ غير صالحة')
+        raw = {field:request.form.getlist(field) for field in FORM_FIELDS}
+        # Capture unfinished and invalid input before clinical validation, including
+        # the final keystroke supplied with Save/Cancel. One durable form owns it.
+        saved = dict(pending, raw=raw)
+        from werkzeug.datastructures import MultiDict
+        display = form_values(MultiDict(raw),validate=False)
+        try:
+            w.store.save_patient_form(saved)
+            if action=='draft':
+                return '',204
+            if action=='cancel':
+                w.forms.pop(token,None)
+                return home()
+            values = form_values(request.form)
+            values['tasks'] = [t for t in values['tasks'] if t['description'].strip()]
+            values['badges'] = [(text.strip(),level) for text,level in values['badges'] if text.strip()]
+            position = request.form.get('position','')
+            require(not position or position.isascii() and position.isdigit(),'موضع الإدراج غير صالح')
+            w.save_patient(key,values,state['shift'],state['new'],int(position) if position else None)
+        except BridgeError as error:
+            return editor_page(w,token,state,display,str(error)),400
+        except Exception:
+            return editor_page(w,token,state,display,'تعذّر حفظ الإدخال. أبقِ الصفحة مفتوحة وأعد الحفظ.'),500
         w.forms.pop(token,None)
-        if request.form.get('action')=='next':
-            rows = w.store.read()['patients']
-            index = next(i for i,row in enumerate(rows) if row['externalId']==key)
-            if index+1 < len(rows):
-                return redirect(url_for('features.patient_edit',key=rows[index+1]['externalId']),code=303)
+        if action=='next':
+            _, sequence = w.sequence(state['round'])
+            index = sequence.index(key) if key in sequence else len(sequence)
+            if index+1<len(sequence):
+                return redirect(url_for('features.patient_edit',key=sequence[index+1],round=state['round']),code=303)
         return home()
-    shift = w.store.read()
-    pending = w.store.patient_form_draft()
+    if pending and request.args.get('resume')!='1':
+        return render_template('draft_recovery.html',pending=pending,page='ward')
     if request.args.get('resume')=='1':
-        require(pending is not None and pending.get('actor')==w.actor and pending['shiftId']==shift['meta']['shiftId'], 'المسودة غير متاحة لهذا المستخدم والقسم')
-        key, new = pending['patientId'], pending['isNew']
-    elif pending and (pending.get('patientId')!=key or pending.get('actor')!=w.actor):
-        return render_template('draft_recovery.html', pending=pending,page='ward')
+        require(pending is not None and pending.get('actor')==w.actor and
+                pending['shiftId']==shift['meta']['shiftId'],'المسودة غير متاحة لهذا المستخدم والقسم')
+        key,new = pending['patientId'],pending['isNew']
+        # Resume always uses its own canonical endpoint, including Add recovery.
+        if new != (request.view_args.get('key') is None) or (not new and request.view_args.get('key')!=key):
+            return redirect(url_for('features.patient_edit',key=None if new else key,resume='1'),code=303)
     if new:
         row = new_patient(w.client.zone)
         row['externalId'] = key or row['externalId']
     else:
-        _, row = w.require_patient(key,True)
+        _,row = w.require_patient(key,True)
     values = dict(row,tasks=read_tasks(row),lab_groups=read_groups(row),badges=badges_decode(row.get('warningDetails','')))
-    if pending and pending.get('patientId')==row['externalId']:
-        require(pending.get('actor')==w.actor, 'المسودة تخص مستخدماً آخر')
-        values.update(pending['values'])
+    if pending:
+        if 'raw' in pending:
+            from werkzeug.datastructures import MultiDict
+            values.update(form_values(MultiDict(pending['raw']),validate=False))
+        else:
+            values.update(pending['values'])
+    round_hint = (pending or {}).get('round')
+    round_token,_ = w.sequence(request.args.get('round') or (round_hint if round_hint in w.rounds else None))
     token = secrets.token_urlsafe(24)
-    w.forms[token] = dict(id=row['externalId'],new=new,shift=shift['meta']['shiftId'],actor=w.actor)
-    index = next((i for i,p in enumerate(shift['patients']) if p['externalId']==row['externalId']),len(shift['patients']))
-    return render_template('patient_edit.html', patient=values,doctors=w.client.doctors,form_id=token,
-                           is_new=new,successor=not new and index+1<len(shift['patients']),page='ward')
+    state = dict(id=row['externalId'],new=new,shift=shift['meta']['shiftId'],actor=w.actor,round=round_token)
+    w.store.save_patient_form(dict(actor=w.actor,shiftId=state['shift'],patientId=state['id'],
+        isNew=new,values=values,formId=token,round=round_token))
+    w.forms.clear()
+    w.forms[token] = state
+    return editor_page(w,token,state,values)
 
 
 @features.post('/draft/discard')
@@ -183,7 +227,9 @@ def doctor_manage():
             from .core.csv import decode_doctors
             values=decode_doctors(uploaded(4*1024*1024))
         elif action=='teams':
-            values={request.form.get('resident',''):request.form.get('supervisor','')}
+            values={key:request.form.get('team_'+key,'') for key,d in source['doctors'].items()
+                    if d['clinicalRole']=='RESIDENT' and 'team_'+key in request.form and
+                    request.form['team_'+key]!=(d.get('teamSupervisorId') or '')}
         else:
             values={field:request.form.get(field,'') for field in ('first','last','gender','clinicalRole','telegram_id','destination','teamSupervisorId')}
             values['title']=source['doctors'].get(key,{}).get('title','')
@@ -193,6 +239,11 @@ def doctor_manage():
         else:
             payload=service.review(source,action,key,values)
         summary='سجل الأطباء بعد العملية:\n'+'\n'.join(d['name']+' • '+d['clinicalRole'] for d in payload['doctors'].values())
+        if action=='teams':
+            names={uid:d['name'] for uid,d in source['doctors'].items()}
+            summary='تغييرات عضوية الفرق؛ لا تتغير تعيينات المرضى:\n'+'\n\n'.join(
+                names[uid]+'\n'+names.get(source['doctors'][uid].get('teamSupervisorId'),'دون فريق')+
+                ' ← '+names.get(supervisor,'دون فريق') for uid,supervisor in values.items())
         def commit():
             if w.demo:
                 require(fingerprint(w.client.doctors)==payload['original'],'تغير السجل؛ أعد المراجعة')
@@ -232,6 +283,9 @@ def dashboard():
     from .core.reports import readiness_warnings
     totals=dict(patients=len(patients),tasks=sum(sum(not t['done'] for t in p['tasks']) for p in patients),
                 companions=sum(p.get('hasCompanion')=='Y' for p in patients),priority=sum(p.get('isPriority')=='Y' for p in patients))
+    totals.update(badges=sum(bool(p['badges']) for p in patients),
+        urgent=sum(p.get('isPriority')=='Y' or any(b['priority']=='high' for b in p['badges']) for p in patients),
+        admissions=sum(p.get('admitDate')==current_date(w.client.zone) for p in patients))
     groups=[]
     for d in doctors:
         if d['clinicalRole']=='SUPERVISOR':
@@ -248,10 +302,11 @@ def patient_details(key):
     patient=next(p for p in rows if p['id']==key)
     names={k:d['name'] for k,d in w.client.doctors.items()}
     patient.update(resident=names.get(patient.get('responsibleResidentId'),''),supervisor=names.get(patient.get('responsibleSupervisorId'),''),pending=sum(not t['done'] for t in patient['tasks']))
-    sequence=[p['externalId'] for p in shift['patients']]
+    round_token,sequence=w.sequence(request.args.get('round'))
+    require(key in sequence,'المريض ليس ضمن هذه الجولة')
     index=sequence.index(key)
     return render_template('patient_details.html',patient=patient,previous=sequence[index-1] if index else None,
-                           successor=sequence[index+1] if index+1<len(sequence) else None,page='ward')
+                           successor=sequence[index+1] if index+1<len(sequence) else None,round_token=round_token,page='ward')
 
 
 @features.get('/diagnostics')

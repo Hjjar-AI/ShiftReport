@@ -2,6 +2,7 @@
 from __future__ import annotations
 from datetime import date
 from io import BytesIO
+from functools import lru_cache
 from unicodedata import bidirectional
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas as pdfcanvas
@@ -36,7 +37,7 @@ class _Paint:
 
 
 class _Cards:
-    def __init__(self, target, client, shift, patients, options, now, total, report_day=None):
+    def __init__(self, target, client, shift, patients, options, now, total, report_day=None, visual_cache=None):
         from .protocol import current_date
         self.report_day=date.fromisoformat(report_day or current_date(client.zone,now))
         from .pdf import visual
@@ -49,7 +50,7 @@ class _Cards:
                     direction = 'L' if kind == 'L' else 'R'
                     break
             return visual(value, direction)
-        self.visual = directed
+        self.visual = visual_cache or lru_cache(maxsize=8192)(directed)
         self.client, self.shift, self.patients = client, shift, patients
         self.now, self.total = now, total
         self.local_draft = options.get('local_draft', False)
@@ -428,11 +429,18 @@ def render_cards(client, shift, supervisor, font_path, options, now, report_day=
     register_font(font_path)
     patients = [p for p in shift['patients'] if supervisor is None or p.get('responsibleSupervisorId') == supervisor]
     require(patients, 'لا يوجد مرضى في التقرير المختار')
-    total = _Cards(BytesIO(), client, shift, patients, options, now, 0, report_day).render()
+    counting = _Cards(BytesIO(), client, shift, patients, options, now, 0, report_day)
     from .report_labels import report_filename
     from .protocol import current_date
-    path = temporary_pdf(report_filename(report_day or current_date(client.zone,now),supervisor,client.doctors.get(supervisor,{}).get('name'),
-        draft=options.get('local_draft',False),demo=bool(getattr(client,'demo',False))))
-    require(_Cards(str(path), client, shift, patients, options, now, total, report_day).render() == total,
-            'تغير عدد صفحات التقرير؛ أعد التصدير')
-    return path
+    try:
+        total = counting.render()
+        path = temporary_pdf(report_filename(report_day or current_date(client.zone,now),supervisor,client.doctors.get(supervisor,{}).get('name'),
+            draft=options.get('local_draft',False),demo=bool(getattr(client,'demo',False))))
+        require(_Cards(str(path), client, shift, patients, options, now, total, report_day,
+                       visual_cache=counting.visual).render() == total,
+                'تغير عدد صفحات التقرير؛ أعد التصدير')
+        return path
+    finally:
+        # Reuse Arabic shaping only inside this report's two rendering passes.
+        # Do not keep patient text in a process-global cache after the report.
+        counting.visual.cache_clear()

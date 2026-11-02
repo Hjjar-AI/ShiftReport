@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-workspace="{{ 'demo' if is_demo else 'live' }}" data-text-size="{{ workspace.preferences.text_size if workspace else '100' }}" data-motion="{{ workspace.preferences.motion if workspace else 'system' }}" data-spacing="{{ workspace.preferences.spacing if workspace else 'normal' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,10 +7,12 @@
   <meta name="csrf-token" content="{{ csrf }}">
   <title>{% block title %}تقرير المناوبة{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/tajawal_regular.ttf') }}" as="font" type="font/ttf" crossorigin>
+  <script src="{{ url_for('static',filename='appearance.js') }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body data-lock-seconds="{{ lock_seconds }}">
+  {% if show_intro %}<div class="intro" data-intro data-remaining="{{ intro_ms }}" role="dialog" aria-label="تقرير المناوبة"><button type="button" data-intro-dismiss aria-label="تجاوز المقدمة"><span class="emblem"><img src="{{ url_for('static',filename='department_emblem.png') }}" alt="شعار شعبة الطب النفسي" width="96" height="96"></span><strong>تقرير المناوبة</strong><small>اضغط للتجاوز • تستمر المهلة أثناء الضغط</small></button></div>{% endif %}
   <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
   <div class="app-shell">
     <aside class="sidebar" aria-label="التنقل الرئيسي">
@@ -25,15 +27,21 @@
         <a href="{{ url_for('pages.tasks') }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>المهام</a>
         <a href="{{ url_for('pages.doctors') }}" {% if page == 'doctors' %}aria-current="page"{% endif %}>الفريق الطبي</a>
         <a href="{{ url_for('features.reports') }}" {% if page == 'reports' %}aria-current="page"{% endif %}>التقارير والتصدير</a>
+        <a href="{{ url_for('features.assignments_export') }}">تصدير توزيع المرضى</a>
+        <details class="nav-group" {% if page in ['data','recycle','sync'] %}open{% endif %}><summary>البيانات والملفات</summary>
         <a href="{{ url_for('features.roster') }}">أطباء المناوبة</a>
         <a href="{{ url_for('features.data') }}" {% if page == 'data' %}aria-current="page"{% endif %}>البيانات والملفات</a>
         <a href="{{ url_for('features.recycle') }}" {% if page == 'recycle' %}aria-current="page"{% endif %}>سلة المحذوفات</a>
         <a href="{{ url_for('features.sync') }}" {% if page == 'sync' %}aria-current="page"{% endif %}>مركز المزامنة</a>
+        </details><details class="nav-group" {% if page in ['identity','connection','settings'] %}open{% endif %}><summary>الإعدادات والإدارة</summary>
+        <a href="{{ url_for('features.settings') }}">إعدادات الوقت والتقارير</a>
         <a href="{{ url_for('features.doctor_manage') }}">إدارة الأطباء والفرق</a>
         <a href="{{ url_for('features.auth') }}" {% if page == 'identity' %}aria-current="page"{% endif %}>الهوية والقفل</a>
         <a href="{{ url_for('features.connect') }}" {% if page == 'connection' %}aria-current="page"{% endif %}>المشروع والاتصال</a>
+        </details><details class="nav-group" {% if page=='about' %}open{% endif %}><summary>المساعدة</summary>
         <a href="{{ url_for('pages.about') }}" {% if page == 'about' %}aria-current="page"{% endif %}>حول التطبيق</a>
         <a href="{{ url_for('features.diagnostics') }}">معلومات التشغيل</a>
+        </details>
       </nav>
       <details class="appearance">
         <summary>المظهر</summary>
@@ -43,6 +51,7 @@
         <select id="accent"><option value="teal">بترولي</option><option value="blue">أزرق</option><option value="rose">وردي</option><option value="amber">عنبري</option></select>
         <label for="text-size">حجم النص</label>
         <select id="text-size"><option value="100">100%</option><option value="115">115%</option><option value="130">130%</option></select>
+        <label for="motion">الحركة</label><select id="motion"><option value="system">حسب النظام</option><option value="reduce">تقليل الحركة</option></select>
       </details>
       <div class="sidebar-footer">
         {% if is_demo %}
@@ -56,6 +65,7 @@
       </div>
     </aside>
     <main id="main" tabindex="-1">
+      <details class="workspace-header panel"><summary><span><strong>تقرير المناوبة</strong><small>{{ 'بيانات تجريبية' if is_demo else workspace.client.config.get('hospitalName','المشروع') }}</small></span><span><strong>{{ 'تجربة محلية' if is_demo else ('جلسة مفتوحة' if workspace.unlocked else 'جلسة مقفلة') }}</strong><small>{{ workspace.client.doctors.get(workspace.actor,{}).get('name','') }}</small></span><span class="header-expand">تفاصيل الحساب والمناوبة</span></summary><div class="editor"><a href="{{ url_for('features.roster') }}">اختيار أطباء المناوبة</a><a href="{{ url_for('features.auth') }}">الهوية والقفل</a><p>القسم مستمر • تاريخ التقرير يتغير عند 08:30</p></div></details>
       <div class="demo-notice"><strong>{{ 'وضع تجريبي' if is_demo else workspace.client.config.get('hospitalName','المشروع') }}</strong><span>{{ 'بيانات وهمية • التعديلات في الذاكرة فقط' if is_demo else ('جلسة مفتوحة • '+workspace.client.doctors.get(workspace.actor,{}).get('name','') if workspace.unlocked else 'الجلسة مقفلة') }}</span></div>
       {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
       {% block content %}{% endblock %}

@@ -9,7 +9,7 @@
 | Rationale / remaining / completed / choices | [Architecture](reference/architecture.md), [Roadmap](status/roadmap.md), [Changelog](status/changelog.md), [UI decisions](decisions/android-ui-options.md) |
 | Multiple sections design | [Owner-review proposal](decisions/multiple-sections.md) |
 | Proposed iPhone client | [iPhone plan](../iphone.plan.md) |
-| Local Flask/Jinja setup (Python 3.8.10+) | [Web client guide and scope](../web/README.md) |
+| Local Flask/Jinja client (Python 3.8.10) | [Setup/source](../web/README.md), [Functional map](reference/flask-capabilities.md), [Implementation status](status/flask-plan.md), [Remaining checks](status/testing-handoff.md#local-flask-client) |
 | Android UI maintenance | [Work guide](guides/android-ui.md), [Style/components](reference/design-catalog.md), [Demo](guides/android-demo.md) |
 | About/splash wording | [Editable content guide](guides/about-splash-content.md) |
 | Telegram setup | [دليل الإعداد](guides/telegram-setup.md) |

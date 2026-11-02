@@ -18,13 +18,49 @@ def home():
     return redirect(url_for('pages.ward'), code=303)
 
 
+@features.post('/intro/dismiss')
+def dismiss_intro():
+    g.workspace.intro_dismissed=True
+    return '',204
+
+
 @features.post('/appearance')
 def appearance():
     themes={'teal':'VANILLA','blue':'SYSTEM','rose':'COASTAL','amber':'CREAM'}
     value=request.form.get('accent')
     require(value in themes,'لون غير صالح')
-    g.workspace.print_accent=themes[value]
+    w=g.workspace
+    w.print_accent=themes[value]
+    text=request.form.get('text_size',w.preferences['text_size'])
+    motion=request.form.get('motion',w.preferences['motion'])
+    require(text in ('100','115','130') and motion in ('system','reduce'),'خيار مظهر غير صالح')
+    choice=dict(text_size=text,motion=motion)
+    w.preferences.update(choice)
+    if not w.demo and not w.store.locked and w.store.state.get('browserAppearance')!=choice:
+        w.ready()
+        w.store.commit(browserAppearance=choice)
     return '',204
+
+
+@features.route('/settings',methods=['GET','POST'])
+def settings():
+    w=g.workspace
+    w.ready()
+    if request.method=='POST':
+        from .core.protocol import ZoneInfo
+        zone=request.form.get('zone','').strip()
+        try:
+            ZoneInfo(zone)
+        except (ValueError,KeyError):
+            raise BridgeError('منطقة زمنية غير صالحة') from None
+        layout=request.form.get('layout','cards')
+        format_name=request.form.get('format','pdf')
+        require(layout in ('cards','table','paragraphs') and format_name in ('pdf','text'),'صيغة تقرير غير صالحة')
+        w.store.commit(browserSettings=dict(zone=zone),reportPreferences=dict(layout=layout,format=format_name))
+        w.client.zone=w.store.zone=zone
+        w.notice='حُفظت الإعدادات '+('في ذاكرة التجربة.' if w.demo else 'محلياً.')
+        return redirect(url_for('features.settings'),code=303)
+    return render_template('settings.html',preferences=w.store.report_preferences(),page='settings')
 
 
 @features.post('/session/touch')
@@ -189,10 +225,15 @@ def creation():
     w = g.workspace
     require(w.creator is not None, 'ابدأ إنشاء المشروع أولاً')
     if request.method == 'POST':
-        if request.form.get('action') == 'verify':
+        if request.form.get('action') == 'resend':
+            require(w.creator.profile is not None,'ابدأ إنشاء المشروع أولاً')
+            w.creator.begin(w.creator.profile)
+            w.notice='تحقق من الرسالة الخاصة؛ يُعاد إرسال الرمز عند انتهاء صلاحيته فقط.'
+        elif request.form.get('action') == 'verify':
             require(w.creator.check_code(request.form.get('code','')), 'رمز الإنشاء غير صحيح')
             token, details = w.creator.review(w.creation_store)
             w.creation_review = token
+            w.creation_details = {key:details[key] for key in ('hospital','group','admin','role','encrypted')}
         elif request.form.get('action') == 'save_connection':
             require(w.creator.verified, 'أثبت هوية المدير أولاً')
             import hashlib
@@ -220,7 +261,8 @@ def creation():
                 shiftId=secrets.token_hex(16),doctors=w.actor,sortSpec='{"levels":[]}',shiftRevision='0',snapshotId='',baseSnapshotId='',deviceId=''),patients=[]))
             return home()
     return render_template('creation.html', verified=w.creator.verified,
-                           hospital=w.creator.client.config['hospitalName'], page='connection')
+                           hospital=w.creator.client.config['hospitalName'], details=getattr(w,'creation_details',None),
+                           connection_saved=getattr(w,'creation_saved',False),page='connection')
 
 
 from . import clinical_views, report_views, data_views

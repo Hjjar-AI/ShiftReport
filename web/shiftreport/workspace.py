@@ -72,6 +72,7 @@ class MemoryStore(EncryptedStore):
         shift = dict(meta=dict(schemaVersion='8', shiftDate=current_date(client.zone),
             shiftId=str(uuid.uuid4()), doctors=','.join(client.doctors), sortSpec='{"levels":[]}',
             shiftRevision='0', snapshotId='', baseSnapshotId='', deviceId=''), patients=patients)
+        ordered(shift, client.doctors, client.zone)
         self.state = dict(project='demo', baseline=None, draft=shift, receipts=[])
         self.published = copy.deepcopy(shift)
 
@@ -94,6 +95,12 @@ class BrowserWorkspace:
         self.actor = self.client._actor
         self.reviews = {}
         self.forms = {}
+        self.rounds = {}
+        self.preferences = dict(text_size='100', motion='system', spacing='normal',
+                                grouping='NONE', card_controls=True, pinning=False)
+        self.pinned = set()
+        self.intro_deadline = None
+        self.intro_dismissed = False
         self.last_activity = time.time()
         self.notice = ''
         self.creator = None
@@ -130,11 +137,19 @@ class BrowserWorkspace:
             store = EncryptedStore(directory, client, passphrase or None)
             from .core.destinations import load_destination
             load_destination(store, client)
+        zone=store.state.get('browserSettings',{}).get('zone',client.zone)
+        from .core.protocol import ZoneInfo
+        ZoneInfo(zone)
+        client.zone=store.zone=zone
         self.client, self.store, self.lock = client, store, mutex
         self.client.require_local_admin=self.local_admin
         self.demo, self.unlocked, self.actor = False, False, None
         self.forms.clear()
         self.reviews.clear()
+        self.rounds.clear()
+        self.pinned.clear()
+        self.preferences.update(text_size='100', motion='system', spacing='normal')
+        self.preferences.update(store.state.get('browserAppearance',{}))
 
     def local_admin(self):
         # A locally enrolled PIN can authorize a local names-only PDF; it never
@@ -149,6 +164,8 @@ class BrowserWorkspace:
                 row = db.execute('SELECT body FROM workspace WHERE id=1').fetchone()
             if row:
                 self.store.state = self.store.decode(row[0])
+                self.client.zone=self.store.zone=self.store.state.get('browserSettings',{}).get('zone',self.client.zone)
+                self.preferences.update(self.store.state.get('browserAppearance',{}))
                 baseline = self.store.state.get('baseline')
                 if baseline:
                     self.client.baseline = copy.deepcopy(baseline)
@@ -166,6 +183,24 @@ class BrowserWorkspace:
         self.client._expires = 0
         self.reviews.clear()
         self.forms.clear()
+        self.rounds.clear()
+
+    def sequence(self, token=None, ids=None):
+        self.ready()
+        shift = self.store.read()
+        if token:
+            value = self.rounds.get(token)
+            require(value is not None and value['actor']==self.actor and
+                    value['shift']==shift['meta']['shiftId'], 'انتهت الجولة؛ افتح قائمة المرضى مجدداً')
+            return token, value['ids']
+        token = secrets.token_urlsafe(18)
+        if len(self.rounds)>=24:
+            active={form['round'] for form in self.forms.values()}
+            victim=next(key for key in self.rounds if key not in active)
+            self.rounds.pop(victim)
+        values = list(ids) if ids is not None else [p['externalId'] for p in shift['patients']]
+        self.rounds[token] = dict(ids=values, actor=self.actor, shift=shift['meta']['shiftId'])
+        return token, values
 
     def snapshot(self):
         self.ready()
@@ -174,6 +209,8 @@ class BrowserWorkspace:
         for row in shift['patients']:
             p = copy.deepcopy(row)
             p['id'] = p['externalId']
+            from datetime import date
+            p['admission_days'] = max(0,(date.fromisoformat(current_date(self.client.zone))-date.fromisoformat(row['admitDate'])).days) if row.get('admitDate') else ''
             p['tasks'] = read_tasks(row)
             p['lab_groups'] = read_groups(row)
             from .core.model import badges_decode
@@ -193,8 +230,9 @@ class BrowserWorkspace:
                     'التحرير متاح للطبيب المسؤول أو المدير')
         return shift, row
 
-    def set_task(self, patient_id, task_id, done):
+    def set_task(self, patient_id, task_id, done, shift_id):
         shift, row = self.require_patient(patient_id, True)
+        require(shift['meta']['shiftId']==shift_id,'تغير القسم؛ أعد فتح لوحة المهام')
         tasks = read_tasks(row)
         task = next((t for t in tasks if t['id'] == task_id), None)
         if task is None:

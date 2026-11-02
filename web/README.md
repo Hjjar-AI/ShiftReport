@@ -1,8 +1,12 @@
 # Local Flask client
 
-Independent **Python 3.8.10+ / Flask / Jinja** browser-client foundation for Windows and Linux. No imports from `desktop/`, no Node toolchain, no CDN assets. The launchers use a separate `web/.venv` and bind Waitress to `127.0.0.1:8765` only. Keep the repository's `samples/` folder beside `web/`.
+Independent **Python 3.8.10 / Flask / Jinja** local browser client for Windows and Linux. No runtime imports from `desktop/`, no Node toolchain and no CDN assets. Launchers use a separate `web/.venv` and bind Waitress to `127.0.0.1:8765` only. Keep the repository's `samples/` folder beside `web/`.
 
-This increment is a **fictional-data demo**, not a production clinical client or full desktop feature replacement. It provides the Arabic RTL ward, full sample clinical/lab/task details, search, supervisor filters, source/name/admission-duration sorting, bulk/individual expansion, team cards, task completion/undo and isolated cosmetic preferences. The 50 food/drink patients and ordered lab groups come directly from the shared CSV8 fixture; only demo IDs/team links are remapped into three linked teams (17/17/16).
+The recorded functional follow-up is implemented. The [functional map](../docs/reference/flask-capabilities.md) maps native desktop functions to browser routes; [current behavior/evidence](../docs/status/current-state.md#local-flask-client) and [remaining verification](../docs/status/testing-handoff.md#local-flask-client) distinguish source coverage from platform/live acceptance. Standalone live Telegram transport with dummy CSV/PDF/text and exact downloaded bytes passed; Windows execution and authenticated cross-client Telegram acceptance are not claimed.
+
+The updated server is running at **http://127.0.0.1:8765/** on exact Python3.8.10 for owner testing. It includes patient forms/recovery/recycle, task/team/roster administration, stored sort and presentation grouping, encrypted local storage/protected project setup/identity, CSV/backups/Fetch/Undo, exact A5 report preview/Save/Share and reviewed publication/delivery/receipts. Extra-copy approvals are durable and single use; local assignment export is independent of report roster changes.
+
+Demo needs no credentials and starts with50 fictional food/drink patients,138 ordered lab groups and six tree doctors. Demo clinical changes stay in server memory. Real-project connections require the protected file/private identity workflow; no default or embedded real credentials are provided.
 
 ## Windows setup
 
@@ -32,23 +36,36 @@ Both launchers open the default browser. Stop the server with **Ctrl+C** in its 
 # From web/, after activating its environment (Windows: .venv\Scripts\python.exe):
 python run.py --no-browser
 python run.py --port 8766
+# Optional separate local storage, including for a disposable check:
+python run.py --no-browser --data-dir /path/to/disposable-directory
 ```
 
-Browse to `http://127.0.0.1:8765/` (or your selected port). Internet access is needed for initial package installation only. The app has no service worker; the Python process serves all pages locally.
+Browse to `http://127.0.0.1:8765/` (or your selected port). Internet access is needed for initial package installation only. The app has no service worker; the Python process serves all pages locally. The new launcher acquires one instance lock per data directory. The current manual8765server was launched from the expanded source and health-checked. Browser refresh does not reload Python code; after future source changes restart the server deliberately.
 
 ## Python compatibility
 
-`requirements.txt` pins the full dependency set, including Flask's `importlib-metadata`/`zipp` on Python <3.10 and Click's Windows-only `colorama`. [Flask 3.0.3](https://pypi.org/project/Flask/3.0.3/) and [Werkzeug 3.0.6](https://pypi.org/project/Werkzeug/3.0.6/) declare Python >=3.8; [Jinja 3.1.6](https://pypi.org/project/Jinja2/3.1.6/) supports >=3.7. [Waitress 3.0.0](https://pypi.org/project/waitress/3.0.0/) supports Python 3.8 and Windows/Linux; later 3.0.1/3.0.2 require Python 3.9. These are compatibility pins, not a claim of current upstream security maintenance. Keep this demo loopback-only; do not expose it as a shared server.
+`requirements.txt` pins the full dependency set, including Flask's `importlib-metadata`/`zipp` on Python <3.10 and Click's Windows-only `colorama`. [Flask 3.0.3](https://pypi.org/project/Flask/3.0.3/) and [Werkzeug 3.0.6](https://pypi.org/project/Werkzeug/3.0.6/) declare Python >=3.8; [Jinja 3.1.6](https://pypi.org/project/Jinja2/3.1.6/) supports >=3.7. [Waitress 3.0.0](https://pypi.org/project/waitress/3.0.0/) supports Python 3.8 and Windows/Linux; later 3.0.1/3.0.2 require Python 3.9. These are compatibility pins, not a claim of current upstream security maintenance. Keep the client loopback-only; do not expose it as a shared server.
 
-No existing app, wire, database, SDK or toolchain version is changed. The pinned set installed successfully in an isolated **CPython3.8.10** environment; dependency consistency, focused Flask requests and the Linux `run.sh`/Waitress real-HTTP workflow passed. Windows CPython3.8.10 x64 wheels resolved, including `colorama`; Windows execution and browser visuals remain unverified. See [remaining checks](../docs/status/testing-handoff.md).
+No existing native app, wire, database, SDK or toolchain version is changed. The full pinned dependency set installed as binary wheels on exact CPython3.8.10 and Windows x64 wheels resolved. Focused offline Flask/crypto/storage/backup/PDF/simulated-transport checks passed for their recorded source snapshots. The final expanded Linux launcher/instance-lock/port/shutdown checks, Python/Jinja/JS/shell/dependency checks, focused Firefox forms/presentation and simulated delivery/recovery checks passed. Full50-patient A5 outputs passed page-bound/DEMO checks. Native OS sharing, Windows execution and live transport remain outside those passes. [Actual evidence/limits](../docs/status/current-state.md#verification-and-limits).
 
-## Data boundaries and extension points
+## Source ownership and data boundaries
 
-- `shiftreport/__init__.py`: application factory, loopback peer/Host checks, same-origin/CSRF guards, no-cache and content-security policy. No debugger or development server in the launcher.
-- `shiftreport/demo.py`: sample loading and bounded, locked, process-memory workspaces. Each browser session gets a separate workspace; task changes preserve source ownership/deadline/priority/stamps. Reset or server stop discards changes. Idle sessions expire after eight hours; at most sixteen are retained. Cookies contain only a signed opaque ID; no clinical data or credentials are stored in cookies.
-- `shiftreport/views.py`: page routes and explicit desired-state task mutations, kept apart from storage and presentation. Clinical fields are read-only in this foundation. There is no real-project file picker or CSV upload route.
-- `shiftreport/templates/`, `static/`: Jinja pages, buildless CSS/JS, bundled Tajawal and the original white-field emblem. Fonts/license and emblem are copied from Android assets, not from `desktop/`. About credits follow `android/app/src/main/res/values/strings_about.xml`.
+| Owner | Responsibility |
+|---|---|
+| `shiftreport/__init__.py` | Application factory, loopback peer/Host/origin/CSRF guards, server session setup, response policy and safe error handling |
+| `shiftreport/workspace.py` | Browser-owned session/identity, per-project lock, encrypted-store refresh, patient mutations and ephemeral review/form owners |
+| `shiftreport/features.py` | Protected connection, creation/private-code/PIN/lock and appearance/activity routes |
+| `shiftreport/clinical_views.py` | Patient editor/draft/recycle, stored sorting/roster, doctor/team reviews and dashboard/details/diagnostics |
+| `shiftreport/data_views.py` | CSV/RPB/SRDRAFT recovery, Fetch/Undo, publication/rollback/advanced administration and receipt resolution |
+| `shiftreport/report_views.py` | Exact preview bytes, report/publication coordinator, downloads, original-artifact recovery, one-use additional-copy approvals and independent assignment exports |
+| `shiftreport/core/` | Current-format headless services adapted from native protocol/crypto/store/PDF code, with native UI functions removed; independent copies, not a runtime dependency on `desktop/` |
+| `shiftreport/demo.py`, `templates/`, `static/` | Shared fictional sample, bounded memory sessions, Jinja and buildless CSS/JS; bundled Tajawal/license and original emblem copied from Android |
+| `run.py`, `shiftreport/instance.py` | Python version gate, local Waitress process and per-data-directory instance lock |
 
-Only demo appearance/accent/text size persist in browser storage under `shiftreport.web.demo.*`. Search, filters, spacing and expansion are presentation state. 08:30 Damascus time changes the displayed report-day label only, never patient rows or stored dates.
+Real-project data defaults to ignored `web/instance/workspaces/`. Clinical state, drafts, enrollment and durable receipts use authenticated encryption; connection keys/tokens are not stored in clinical exports or browser clinical storage. Protected joins carry runtime connections. Unencrypted-network projects still need a protected local storage key: DPAPI on Windows or a Linux passphrase. Runtime passwords/connection secrets are not retained in form drafts/logs.
 
-Real-project provisioning/protected join, encrypted clinical persistence/drafts, identity/PIN/admin/assignment guards, Add/Edit, recycle, backup/restore, reviewed A5 PDF artifacts and Telegram snapshot/receipt workflows are **not implemented**. Any future real-project adapter must preserve the existing below-UI guards, current formats, encryption, last-save-wins rules and reviewed exact-artifact/final-confirmation/UNKNOWN behavior. Do not connect a real project through this demo memory store. A future Vue client can use the same Python service boundary; this increment deliberately uses Jinja only.
+Demo uses no clinical database or transport. Only accent/appearance use browser storage, separately under `shiftreport.web.demo.*` and `shiftreport.web.live.*`. Demo text/motion/time/report settings stay in server memory; live text/motion/time/report defaults are encrypted locally. Demo reset/server stop discards clinical changes. Browser cookies hold an opaque signed session ID; mutable session/clinical/review state stays on the server. Idle sessions expire after eight hours; at most sixteen workspaces are retained in memory.
+
+08:30 Damascus time affects report-day labels only. Source paths use current single-ward formats; no old-app conversion or schema/version change was added. PDF files remain readable, every dummy page is marked DEMO and Save uses retained preview bytes. Additional-copy permission is created for a displayed review and consumed durably with the new UNKNOWN receipt before transport. Replaying confirmation cannot create a fresh permission; the original UNKNOWN remains unresolved.
+
+About wording follows `android/app/src/main/res/values/strings_about.xml`. Native source and unrelated existing edits were preserved. No persistent test suite was created or existing test files changed. The documented live harness was read for scope during the owner-authorized standalone Flask transport check, which sent only labelled dummy data and preserved the existing pin. Native build, packaging, staging and commit were not performed. See the evidence and remaining acceptance checklist above.

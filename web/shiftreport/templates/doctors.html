@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block title %}الفريق الطبي • تقرير المناوبة{% endblock %}
 {% block content %}
-<header class="page-heading"><div><p class="eyebrow">القسم</p><h1>الفريق الطبي</h1><p>أسماء أشجار وهمية • ثلاثة فرق مرتبطة</p></div></header>
+<header class="page-heading"><div><p class="eyebrow">القسم</p><h1>الفريق الطبي</h1><p>{{ 'أسماء أشجار وهمية' if is_demo else 'فرق الأطباء وعضوياتهم الحالية' }}</p></div><a class="button secondary" href="{{ url_for('features.doctor_manage') }}">إدارة الفرق</a></header>
 <section class="teams" aria-label="الفرق الطبية">
 {% for supervisor in doctors if supervisor.role == 'اختصاصي' %}
   <article class="panel team-card"><span class="eyebrow">اختصاصي</span><h2>{{ supervisor.name }}</h2><p>{{ supervisor.patients }} مريض</p>
   {% for resident in doctors if resident.supervisor_id == supervisor.id %}<div class="resident"><span>مقيم</span><h3>{{ resident.name }}</h3><p>{{ resident.patients }} مريض</p></div>{% endfor %}
   <a class="button secondary" href="{{ url_for('pages.ward', team=supervisor.id) }}">عرض مرضى الفريق</a></article>
 {% endfor %}
+{% for resident in doctors if resident.clinicalRole=='RESIDENT' and not resident.supervisor_id %}<article class="panel team-card"><span class="eyebrow">مقيم بدون فريق مرتبط</span><h2>{{ resident.name }}</h2><p>{{ resident.patients }} مريض</p></article>{% endfor %}
 </section>
 {% endblock %}

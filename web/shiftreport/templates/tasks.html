@@ -2,12 +2,13 @@
 {% block title %}المهام • تقرير المناوبة{% endblock %}
 {% block content %}
 <header class="page-heading"><div><p class="eyebrow">القسم</p><h1>المهام</h1><p>قائمة المهام المسجلة • {{ 'التعديلات في الذاكرة' if is_demo else 'الحفظ المحلي مشفر' }}</p></div></header>
+<form class="panel filters" method="get">{% for role,key,label in [('SUPERVISOR','supervisor','الاختصاصي'),('RESIDENT','resident','المقيم')] %}<label>{{ label }}<select name="{{ key }}"><option value="">الكل</option>{% for doctor in doctors if doctor.clinicalRole==role %}<option value="{{ doctor.id }}" {% if (key=='supervisor' and supervisor==doctor.id) or (key=='resident' and resident==doctor.id) %}selected{% endif %}>{{ doctor.name }}</option>{% endfor %}</select></label>{% endfor %}<label>الحالة<select name="status">{% for key,label in [('pending','معلّقة'),('done','مكتملة — تراجع'),('all','الكل')] %}<option value="{{ key }}" {% if status==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><button>تطبيق التصفية</button></form><p class="list-toolbar">{{ entries|length }} مهمة في العرض</p>
 <section class="task-list" aria-label="مهام المرضى">
 {% for patient, task in entries %}
   <article class="task-row panel {% if task.done %}done{% endif %}">
     <div><a href="{{ url_for('pages.ward') }}#{{ patient.id }}">{{ patient.name }}</a><p class="task-text">{{ task.description }}</p><small>{{ 'مكتملة' if task.done else 'معلّقة' }}</small></div>
     <form method="post" action="{{ url_for('pages.update_task', patient_id=patient.id, task_id=task.id) }}">
-      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="done" value="{{ '0' if task.done else '1' }}">
+      <input type="hidden" name="shift_id" value="{{ shift_id }}"><input type="hidden" name="supervisor" value="{{ supervisor }}"><input type="hidden" name="resident" value="{{ resident }}"><input type="hidden" name="status" value="{{ status }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="done" value="{{ '0' if task.done else '1' }}">
       <button type="submit" class="{{ 'secondary' if task.done else '' }}" aria-label="{{ 'إعادة فتح' if task.done else 'إكمال' }} مهمة {{ task.description }} للمريض {{ patient.name }}">{{ 'تراجع' if task.done else 'إكمال' }}</button>
     </form>
   </article>

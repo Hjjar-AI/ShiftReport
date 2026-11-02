@@ -55,7 +55,7 @@ def create_app(data_directory=None):
         g.workspace.refresh()
         if not g.workspace.demo and not g.workspace.unlocked and request.endpoint not in (
             'features.auth', 'features.connect', 'features.create_project', 'features.creation',
-            'features.enter_demo', 'features.join_review', 'pages.about', 'static'):
+            'features.enter_demo', 'features.join_review', 'features.dismiss_intro', 'pages.about', 'static'):
             return redirect(url_for('features.auth'), code=303)
 
     @app.teardown_request
@@ -69,7 +69,9 @@ def create_app(data_directory=None):
     def response_policy(response):
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "no-referrer"
+        # Same-origin form POSTs need a real Origin in Firefox. no-referrer can
+        # turn it into "null", which the origin guard correctly rejects.
+        response.headers["Referrer-Policy"] = "same-origin"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; "
@@ -85,7 +87,12 @@ def create_app(data_directory=None):
         if workspace and not workspace.demo and workspace.unlocked:
             from .core.access import LocalAccess
             lock_seconds=LocalAccess(workspace.store,workspace.client).timeout()
-        return {"csrf": workspace.csrf if workspace else "", "workspace": workspace,
+        import time
+        if workspace and workspace.intro_deadline is None:
+            workspace.intro_deadline=time.time()+3
+        intro_ms=max(0,int((workspace.intro_deadline-time.time())*1000)) if workspace else 0
+        show_intro=bool(workspace and not workspace.intro_dismissed and intro_ms>0)
+        return {"show_intro":show_intro,"intro_ms":intro_ms,"csrf": workspace.csrf if workspace else "", "workspace": workspace,
                 "is_demo": workspace.demo if workspace else True,
                 "notice": workspace.notice if workspace else '',"lock_seconds":lock_seconds}
 
