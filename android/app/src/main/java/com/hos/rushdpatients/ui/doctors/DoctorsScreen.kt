@@ -2,10 +2,7 @@ package com.hos.rushdpatients.ui.doctors
 
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.AppIcons
-import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppIconButton
-import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
-import com.hos.rushdpatients.ui.components.AppDialogHeader
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -16,7 +13,6 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import com.hos.rushdpatients.ui.components.rememberFloatingActionSpace
-import com.hos.rushdpatients.ui.ward.WardFormDialog
 import androidx.compose.foundation.layout.PaddingValues
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.ui.components.AppLoadingState
@@ -43,8 +39,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -308,74 +302,27 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
         )
     }
 
-    if (state.importing) {
-        AppAlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_doctors_screen_024)) },
-            text = { AppLoadingState(uiText(R.string.ui_doctors_screen_025), size = com.hos.rushdpatients.ui.components.AppLoadingSize.SECTION) },
-            confirmButton = {})
-    }
-    state.importError?.let { message ->
-        AppAlertDialog(onDismissRequest = viewModel::dismissImportError,
-            title = { Text(uiText(R.string.ui_doctors_screen_026)) }, text = { Text(message) },
-            confirmButton = { AppTextButton(onClick = viewModel::dismissImportError) { Text(uiText(R.string.ui_settings_screen_006)) } })
-    }
-
     registryAction?.let { action ->
-        WardFormDialog(onDismissRequest = { registryAction = null },
-            title = { AppDialogHeader(if (action == "publish") uiText(R.string.ui_doctors_screen_006) else uiText(R.string.ui_doctors_screen_005)) },
-            text = { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(if (action == "publish") uiText(R.string.ui_doctors_screen_027)
-                    else uiText(R.string.ui_doctors_screen_028))
-                if (action == "publish") {
-                    state.pendingRegistrySummary?.let { Text(it) }
-                    Text(registryReview.joinToString("\n") { it.fullName })
-                    if (registryReview != state.doctors) Text(uiText(R.string.ui_doctors_screen_029))
-                }
-            } }, confirmButton = { AppDialogConfirmAction(
-                text = if (action == "publish") uiText(R.string.ui_doctors_screen_030) else uiText(R.string.ui_doctors_screen_031),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !busy && (action != "publish" || registryReview == state.doctors), onClick = {
+        DoctorRegistryReviewDialog(
+            action = action,
+            pendingSummary = state.pendingRegistrySummary,
+            registryReview = registryReview,
+            reviewCurrent = registryReview == state.doctors,
+            busy = busy,
+            onConfirm = {
                 registryAction = null
                 if (action == "publish") viewModel.publishDoctors(registryReview) else viewModel.fetchDoctors()
-            }) },
-            dismissButton = { AppTextButton(onClick = { registryAction = null }) { Text(uiText(R.string.ui_cancel)) } })
-    }
-    state.importPreview?.takeUnless { state.importing }?.let { preview ->
-        WardFormDialog(
-            onDismissRequest = viewModel::dismissDoctorImport,
-            title = { AppDialogHeader(uiText(R.string.ui_doctors_screen_032)) },
-            text = {
-                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text(uiText(R.string.ui_doctors_screen_033, preview.activeCount))
-                    listOf(uiText(R.string.ui_doctors_screen_034) to preview.added, uiText(R.string.ui_doctors_screen_035) to preview.changed,
-                        uiText(R.string.ui_doctors_screen_036) to preview.unchanged,
-                        uiText(R.string.ui_doctors_screen_037) to preview.retained).forEach { (label, names) ->
-                        Text("$label (${names.size}): " + names.joinToString(uiText(R.string.ui_patient_card_002)).ifBlank { uiText(R.string.ui_doctors_screen_038) })
-                    }
-                    Text(uiText(R.string.ui_doctors_screen_039, preview.adminCount))
-                    Text(uiText(R.string.ui_doctors_screen_040, preview.deletedCount))
-                    if (preview.newWithoutPinCount > 0) {
-                        Text(
-                            uiText(R.string.ui_doctors_screen_041, preview.newWithoutPinCount),
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
-                    Text(
-                        uiText(R.string.ui_doctors_screen_042),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
             },
-            confirmButton = {
-                AppDialogConfirmAction(text = uiText(R.string.ui_doctors_screen_043),
-                    onClick = viewModel::confirmDoctorImport, enabled = !busy, modifier = Modifier.fillMaxWidth())
-            },
-            dismissButton = {
-                AppTextButton(onClick = viewModel::dismissDoctorImport, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
-            }
+            onDismiss = { registryAction = null }
         )
     }
+    DoctorImportDialogs(
+        state = state,
+        busy = busy,
+        onDismissImportError = viewModel::dismissImportError,
+        onDismissDoctorImport = viewModel::dismissDoctorImport,
+        onConfirmDoctorImport = viewModel::confirmDoctorImport
+    )
 }
 
 @Composable

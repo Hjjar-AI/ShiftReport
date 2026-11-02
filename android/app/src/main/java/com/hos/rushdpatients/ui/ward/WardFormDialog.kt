@@ -11,24 +11,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.MaterialTheme
 import com.hos.rushdpatients.ui.components.AppDivider
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 /** Full-screen editor with fixed actions, keeping caller-owned drafts and hinge-safe content. */
@@ -41,45 +30,24 @@ internal fun WardFormDialog(
     dismissButton: @Composable () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    val fold = rememberWardFoldingFeature()
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false,
-            dismissOnClickOutside = false
-        )) {
-            val view = LocalView.current
-            DisposableEffect(view) {
-                // Set native direction before the first layout, matching the Compose content.
-                view.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
-                (view.parent as? DialogWindowProvider)?.window?.decorView?.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
-                onDispose { }
-            }
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                Surface(Modifier.fillMaxSize()) {
-                    WardAdaptivePanes(
-                        enableSplit = false, foldingFeature = fold,
-                        listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
-                        modifier = Modifier.fillMaxSize(), primaryTitle = uiText(R.string.ui_ward_form_dialog_001),
-                        primary = {
-                            Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(), contentAlignment = Alignment.TopCenter) {
-                                Column(Modifier.widthIn(max = UiLayout.patientFormMaxWidth).fillMaxWidth().fillMaxHeight()) {
-                                    Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.tiny)) { title() }
-                                    AppDivider()
-                                    Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.small)) { text() }
-                                    AppDivider()
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.tiny),
-                                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
-                                        verticalAlignment = Alignment.Bottom
-                                    ) {
-                                        Box(Modifier.weight(1f)) { confirmButton() }
-                                        dismissButton()
-                                    }
-                                }
-                            }
-                        }
-                    )
+    WardFullscreenDialog(
+        title = uiText(R.string.ui_ward_form_dialog_001), onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false, dismissOnClickOutside = false)
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.widthIn(max = UiLayout.patientFormMaxWidth).fillMaxWidth().fillMaxHeight()) {
+                Box(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.tiny)) { title() }
+                AppDivider()
+                Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.small)) { text() }
+                AppDivider()
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter, vertical = UiSpacing.tiny),
+                    horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Box(Modifier.weight(1f)) { confirmButton() }
+                    dismissButton()
                 }
             }
         }

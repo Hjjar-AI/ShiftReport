@@ -4,13 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.config.ProjectConfig
 import com.hos.rushdpatients.ui.components.*
@@ -33,12 +30,10 @@ internal fun ResidentsDestinationEditor(state: SettingsUiState, viewModel: Setti
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     Text(text(R.string.residents_destination_hint))
-                    OutlinedTextField(group, { group = it }, label = { Text(text(R.string.residents_group_optional)) },
-                        singleLine = true, enabled = !state.savingResidentsDestination,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(topic, { topic = it }, label = { Text(text(R.string.residents_topic_optional)) },
-                        singleLine = true, enabled = !state.savingResidentsDestination,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    TelegramIdField(group, { group = it }, label = text(R.string.residents_group_optional), signed = true,
+                        enabled = !state.savingResidentsDestination)
+                    TelegramIdField(topic, { topic = it }, label = text(R.string.residents_topic_optional),
+                        enabled = !state.savingResidentsDestination)
                     Text(text(R.string.residents_destination_redistribute))
                     state.residentsDestinationError?.let { AppNotice(it, kind = NoticeKind.ERROR) }
                 }

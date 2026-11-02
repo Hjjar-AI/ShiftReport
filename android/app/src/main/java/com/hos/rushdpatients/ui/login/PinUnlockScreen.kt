@@ -24,11 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.components.LoadingButton
-import com.hos.rushdpatients.ui.components.PasswordField
+import com.hos.rushdpatients.ui.components.PinField
 
 @Composable
 fun PinUnlockScreen(
@@ -72,11 +71,11 @@ fun PinUnlockScreen(
     AppCenteredContent() {
         Text(doctorName, style = MaterialTheme.typography.titleLarge)
         Text(uiText(R.string.ui_pin_unlock_screen_001), modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section))
-        PasswordField(
+        PinField(
             value = pin,
-            onValueChange = { pin = it.filter(Char::isDigit).take(com.hos.rushdpatients.config.AppConstants.PIN_MAX_LENGTH) },
+            onValueChange = { pin = it },
             label = uiText(R.string.ui_local_pin_login_screen_003),
-            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done, enabled = !busy,
+            imeAction = ImeAction.Done, enabled = !busy,
             keyboardActions = KeyboardActions(onDone = { submit() })
         )
         error?.let {

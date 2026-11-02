@@ -18,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -26,7 +25,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.style.TextAlign
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.ui.components.LoadingButton
-import com.hos.rushdpatients.ui.components.PasswordField
+import com.hos.rushdpatients.ui.components.PinField
 
 @Composable
 fun SetPinScreen(
@@ -53,18 +52,18 @@ fun SetPinScreen(
             modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section),
             textAlign = TextAlign.Center
         )
-        PasswordField(
+        PinField(
             value = pin,
-            onValueChange = { pin = it.filter(Char::isDigit).take(8) },
+            onValueChange = { pin = it },
             label = uiText(R.string.ui_set_pin_screen_003),
-            keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next, enabled = !busy,
+            imeAction = ImeAction.Next, enabled = !busy,
             keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Next) })
         )
-        PasswordField(
+        PinField(
             value = confirm,
-            onValueChange = { confirm = it.filter(Char::isDigit).take(8) },
+            onValueChange = { confirm = it },
             label = uiText(R.string.ui_set_pin_screen_004),
-            keyboardType = KeyboardType.NumberPassword, enabled = !busy,
+            enabled = !busy,
             keyboardActions = KeyboardActions(onDone = { if (!busy) onConfirm(pin, confirm) }),
             modifier = Modifier.padding(top = UiSpacing.medium)
         )

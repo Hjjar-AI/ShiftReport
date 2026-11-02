@@ -4,15 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.data.model.PatientTask
 import com.hos.rushdpatients.ui.components.AppIcons
@@ -38,11 +34,9 @@ internal fun PatientTaskEditor(
         tasks.forEach { task ->
             key(task.id) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = task.done, enabled = enabled, onCheckedChange = { done ->
+                    PatientTaskCheckbox(checked = task.done, description = task.description, enabled = enabled, onCheckedChange = { done ->
                         onChange(tasks.map { if (it.id == task.id) it.copy(done = done,
                             completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null) else it })
-                    }, modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget).semantics {
-                        contentDescription = (if (task.done) uiText(R.string.ui_patient_task_editor_008) else uiText(R.string.ui_patient_task_editor_009)) + task.description
                     })
                     AppTextField(value = task.description, enabled = enabled,
                         onValueChange = { text -> onChange(tasks.map { if (it.id == task.id) it.copy(description = text) else it }) },

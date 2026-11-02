@@ -45,7 +45,7 @@ class DemoDataTest {
         val groups = patients.flatMap { it.labGroups }
         assertEquals(104, groups.count { it.date != null })
         assertEquals(34, groups.count { it.date == null })
-        assertEquals(setOf(java.time.LocalDate.of(2026, 10, 26), java.time.LocalDate.of(2026, 10, 27)),
+        assertEquals(setOf("2026-10-26", "2026-10-27"),
             groups.mapNotNull { it.date }.toSet())
         assertTrue(groups.all { it.title.isNotBlank() && it.results.isNotBlank() })
     }

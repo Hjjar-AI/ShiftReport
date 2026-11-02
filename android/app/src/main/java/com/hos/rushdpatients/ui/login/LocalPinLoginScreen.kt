@@ -20,10 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.ui.components.LoadingButton
-import com.hos.rushdpatients.ui.components.PasswordField
+import com.hos.rushdpatients.ui.components.PinField
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @Composable
@@ -55,11 +54,10 @@ fun LocalPinLoginScreen(
             uiText(R.string.ui_local_pin_login_screen_002),
             style = MaterialTheme.typography.bodySmall
         )
-        PasswordField(
+        PinField(
             value = pin,
-            onValueChange = { pin = it.filter(Char::isDigit).take(AppConstants.PIN_MAX_LENGTH) },
+            onValueChange = { pin = it },
             label = uiText(R.string.ui_local_pin_login_screen_003),
-            keyboardType = KeyboardType.NumberPassword,
             keyboardActions = KeyboardActions(onDone = { submit() }),
             enabled = !busy
         )

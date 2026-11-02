@@ -12,6 +12,18 @@ Use an already installed development app. These recipes do not authorize builds,
 
 Use the [build/cache/signing guide](android-build.md) for [offline verification](android-build.md#cached-verification-without-packaging), [account isolation and read-only snapshots](android-build.md#what-is-shared-and-what-is-private), [APK locations](android-build.md#find-the-apk), [version reservation](android-build.md#automatic-app-patch-and-version-code-increments) and [signature mismatch](android-build.md#shared-debug-signing). Inspect the failing path/task before changing settings; preserve caches and pins.
 
+## Existing top-level functions become unresolved
+
+2 November owner `assembleDebug` failed across six changed UI files, including imports whose declarations remain in production source. Read-only inspection of the launcher-selected account output (`~/.gradle/shiftreport-project-cache/build-output/app`) found an82-byte `app_debug.kotlin_module` listing only `ReportPreviewScreenKt`; component class files still existed. Transformed/resource copies held the same incomplete index. This supports an incremental-output metadata problem; its original cause is unproven. The older checkout-local `app/build` is not the launcher-selected output.
+
+With explicit owner approval and the normal build preflight, try one production-only rebuild without incremental Kotlin, packaging or version reservation:
+
+```bash
+./gradlew --offline -Pshiftreport.autoVersion=false -Pkotlin.incremental=false :app:compileDebugKotlin > /tmp/shiftreport-metadata-compile.log 2>&1
+```
+
+This recovery has not been run. Preserve the failure and generated state; do not delete caches or rewrite valid imports to hide missing metadata. A successful compile is still not runtime verification.
+
 ## KSP cannot access FilterOutputStream.out
 
 For unopened `java.io`/`InaccessibleObjectException`, retain `kotlin.daemon.jvmargs=--add-opens=java.base/java.io=ALL-UNNAMED` in `android/gradle.properties` on the **Kotlin daemon** where KSP runs. No toolchain/cache change. [Arguments](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments); earlier owner build passed, not newer-source proof.

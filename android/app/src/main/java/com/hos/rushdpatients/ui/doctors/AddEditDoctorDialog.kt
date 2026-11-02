@@ -1,7 +1,7 @@
 package com.hos.rushdpatients.ui.doctors
 
 import com.hos.rushdpatients.ui.components.AppAlertDialog
-import com.hos.rushdpatients.ui.components.AppFilterChip
+import com.hos.rushdpatients.ui.components.AppChoiceChips
 import com.hos.rushdpatients.ui.components.UiStrings
 
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -13,8 +13,6 @@ import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.ward.DoctorDropdown
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.hos.rushdpatients.ui.components.UiAction
 import com.hos.rushdpatients.ui.components.AppDialogDismissAction
 import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
@@ -26,7 +24,6 @@ import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -50,9 +47,9 @@ import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.util.ArabicNumbers
 import com.hos.rushdpatients.ui.ward.StaleEditReviewDialog
 import com.hos.rushdpatients.domain.doctor.DoctorEditInput
-import com.hos.rushdpatients.ui.components.PasswordField
+import com.hos.rushdpatients.ui.components.PinField
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditDoctorDialog(
     existing: Doctor?,
@@ -129,34 +126,12 @@ fun AddEditDoctorDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                    ) {
-                        AppFilterChip(
-                            enabled = !saving,
-                            selected = gender == Gender.MALE,
-                            onClick = { gender = Gender.MALE },
-                            label = { Text(uiText(R.string.ui_male)) }
-                        )
-                        AppFilterChip(
-                            enabled = !saving,
-                            selected = gender == Gender.FEMALE,
-                            onClick = { gender = Gender.FEMALE },
-                            label = { Text(uiText(R.string.ui_female)) }
-                        )
-                    }
+                    AppChoiceChips(options = listOf(Gender.MALE, Gender.FEMALE), selected = gender,
+                        onSelect = { gender = it }, enabled = !saving,
+                        label = { uiText(if (it == Gender.MALE) R.string.ui_male else R.string.ui_female) })
                     AppSectionHeader(title = uiText(R.string.ui_add_edit_doctor_dialog_006))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        ClinicalRole.entries.forEach { role ->
-                            AppFilterChip(
-                            enabled = !saving,
-                                selected = clinicalRole == role,
-                                onClick = { clinicalRole = role },
-                                label = { Text(role.uiLabel(uiText)) }
-                            )
-                        }
-                    }
+                    AppChoiceChips(options = ClinicalRole.entries.toList(), selected = clinicalRole,
+                        onSelect = { clinicalRole = it }, enabled = !saving, label = { it.uiLabel(uiText) })
                     if (clinicalRole == ClinicalRole.RESIDENT) {
                         DoctorDropdown(label = uiText(R.string.ui_add_edit_doctor_dialog_007), undefinedLabel = uiText(R.string.ui_team_management_dialog_001),
                             selectedId = teamSupervisorId,
@@ -166,10 +141,10 @@ fun AddEditDoctorDialog(
                     }
                     AppSectionHeader(title = uiText(R.string.ui_add_edit_doctor_dialog_009))
                     Text(uiText(R.string.ui_add_edit_doctor_dialog_010))
-                    PasswordField(
-                        keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next,
+                    PinField(
+                        imeAction = ImeAction.Next,
                         value = pin,
-                        onValueChange = { pin = it.filter(Char::isDigit).take(8) },
+                        onValueChange = { pin = it },
                         label = if (existing == null) uiText(R.string.ui_set_pin_screen_003)
                         else uiText(R.string.ui_add_edit_doctor_dialog_011)
                     )

@@ -14,10 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.Doctor
@@ -68,33 +64,31 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>,
     }
     val visible = (rows + completed.values).groupBy { it.patient.id }
     val groups = patients.mapNotNull { patient -> visible[patient.id]?.let { patient to it } }
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Scaffold(Modifier.safeDrawingPadding(), snackbarHost = { AppSnackbarHost(snackbarHost) }) { insets ->
-                Column(Modifier.fillMaxSize().padding(insets)) {
-                    AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
-                        navigation = { AppIconButton(label = uiText(R.string.ui_ward_task_board_001),
-                            icon = AppIcons.Close,
-                            onClick = onDismiss) })
-                    Column(Modifier.padding(horizontal = UiSpacing.screen)) {
-                        Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
-                            style = MaterialTheme.typography.bodySmall)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                            TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
-                            TaskDoctorFilter(uiText(R.string.ui_ward_task_board_004), residents, resident) { resident = it }
-                        }
+    WardFullscreenDialog(title = uiText(R.string.ui_ward_view_options_dialog_004), onDismissRequest = onDismiss) {
+        Scaffold(snackbarHost = { AppSnackbarHost(snackbarHost) }) { insets ->
+            Column(Modifier.fillMaxSize().padding(insets)) {
+                AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
+                    navigation = { AppIconButton(label = uiText(R.string.ui_ward_task_board_001),
+                        icon = AppIcons.Close,
+                        onClick = onDismiss) })
+                Column(Modifier.padding(horizontal = UiSpacing.screen)) {
+                    Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
+                        style = MaterialTheme.typography.bodySmall)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                        TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
+                        TaskDoctorFilter(uiText(R.string.ui_ward_task_board_004), residents, resident) { resident = it }
                     }
-                    LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
-                        contentPadding = PaddingValues(bottom = UiSpacing.screen),
-                        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        if (groups.isEmpty()) item { EmptyState(uiText(R.string.ui_ward_task_board_006), icon = AppIcons.Check) }
-                        items(groups, key = { it.first.id }) { (patient, entries) ->
-                            AppCard(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                    AppTextButton(onClick = { onPatient(patient.id) }) { Text(patient.displayName) }
-                                    entries.sortedBy { task -> patient.tasks.indexOfFirst { it.id == task.task.id } }.forEach { entry ->
-                                        key(entry.task.id) { WardTaskRow(entry, editable, onComplete) }
-                                    }
+                }
+                LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
+                    contentPadding = PaddingValues(bottom = UiSpacing.screen),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    if (groups.isEmpty()) item { EmptyState(uiText(R.string.ui_ward_task_board_006), icon = AppIcons.Check) }
+                    items(groups, key = { it.first.id }) { (patient, entries) ->
+                        AppCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                                AppTextButton(onClick = { onPatient(patient.id) }) { Text(patient.displayName) }
+                                entries.sortedBy { task -> patient.tasks.indexOfFirst { it.id == task.task.id } }.forEach { entry ->
+                                    key(entry.task.id) { WardTaskRow(entry, editable, onComplete) }
                                 }
                             }
                         }
@@ -125,12 +119,10 @@ private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: Str
 @Composable
 internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
     editable: Boolean = false, onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit = {}) {
-    val uiText = rememberUiStrings()
     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-        Checkbox(checked = entry.task.done, enabled = editable && !entry.task.done,
-            onCheckedChange = { onComplete(entry) },
-            modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
-                .semantics { contentDescription = uiText(R.string.ui_patient_task_editor_009) + entry.task.description })
+        PatientTaskCheckbox(checked = entry.task.done, description = entry.task.description,
+            enabled = editable && !entry.task.done,
+            onCheckedChange = { onComplete(entry) })
         Text(entry.task.description, Modifier.weight(1f),
             textDecoration = if (entry.task.done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null)
     }

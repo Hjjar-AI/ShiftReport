@@ -11,23 +11,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.stringArrayResource
@@ -36,15 +28,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.LayoutDirection
 import com.hos.rushdpatients.BuildConfig
 import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.AppTopBar
 
 /** Ordinary spaces between people allow wrapping; nonbreaking spaces keep each name together. */
 internal fun testerNamesParagraph(names: Array<String>): String =
     names.joinToString("، ") { it.trim().replace(' ', '\u00A0') }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IntroAboutScreen(
     splash: Boolean,
@@ -57,12 +48,7 @@ fun IntroAboutScreen(
         return
     }
     Scaffold(topBar = {
-        TopAppBar(title = { Text(stringResource(R.string.about_page_title)) }, navigationIcon = {
-            IconButton(onClick = { onBack?.invoke() }) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.about_back_label),
-                    modifier = Modifier.rotate(if (LocalLayoutDirection.current == LayoutDirection.Rtl) 180f else 0f))
-            }
-        })
+        AppTopBar(title = stringResource(R.string.about_page_title), onBack = { onBack?.invoke() })
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             Column(

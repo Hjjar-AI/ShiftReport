@@ -1,16 +1,13 @@
 package com.hos.rushdpatients.ui.setup
 
-import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import com.hos.rushdpatients.ui.components.AppActionContent
-import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.components.AppSection
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppButton
 import com.hos.rushdpatients.ui.components.AppAlertDialog
@@ -25,16 +22,12 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import com.hos.rushdpatients.ui.theme.UiLayout
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,13 +36,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hos.rushdpatients.ui.components.PasswordField
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectSetupScreen(
     viewModel: ProjectSetupViewModel = hiltViewModel()
@@ -99,170 +89,35 @@ fun ProjectSetupScreen(
                 }
             }
 
-            if (state.mode != ProjectSetupMode.DEMO) {
-                if (state.mode == ProjectSetupMode.JOIN) {
-                    AppSection(uiText(R.string.ui_project_setup_screen_006)) {
-                        Text(
-                            uiText(R.string.ui_project_setup_screen_007),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        AppButton(
-                            onClick = { openProvisioning.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
-                            enabled = !state.busy,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (state.joinFileSelected) uiText(R.string.ui_project_setup_screen_009) else uiText(R.string.ui_project_setup_screen_010)) }
-                        if (state.joinFileSelected && !state.importedProvisioning) Text(uiText(R.string.setup_join_file_selected),
-                            style = MaterialTheme.typography.bodySmall)
-                        PasswordField(
-                            value = state.provisioningPassphrase,
-                            onValueChange = viewModel::setProvisioningPassphrase,
-                            label = uiText(R.string.ui_project_setup_screen_008),
-                            enabled = !state.busy
-                        )
-                        if (!state.importedProvisioning) AppButton(
-                            onClick = viewModel::unlockProvisioning,
-                            enabled = !state.busy && state.joinFileSelected &&
-                                state.provisioningPassphrase.length >= com.hos.rushdpatients.config.ProjectProvisioningManager.MIN_PASSWORD_LENGTH,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(uiText(R.string.setup_unlock_join_file)) }
-                        else Text(uiText(R.string.setup_join_file_unlocked), style = MaterialTheme.typography.bodySmall)
-                    }
-                    if (state.importedProvisioning) {
-                        AppSection(uiText(R.string.ui_project_setup_screen_011)) {
-                            Text(state.hospitalName, fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
-                            Text(uiText(R.string.ui_project_setup_screen_012, com.hos.rushdpatients.ui.components.uiNumber(state.chatId)))
-                            Text(if (state.encryptTelegram) uiText(R.string.ui_project_setup_screen_013) else uiText(R.string.ui_project_setup_screen_014))
-                            Text(uiText(R.string.ui_project_setup_screen_015),
-                                style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-
-                if (state.mode == ProjectSetupMode.CREATE) {
-                    AppNotice(uiText(R.string.setup_create_overview), kind = NoticeKind.ACCENT)
-                    AppSection(uiText(R.string.ui_project_setup_screen_016)) {
-                        AppTextField(
-                            value = state.hospitalName,
-                            onValueChange = viewModel::setHospitalName,
-                            label = { Text(uiText(R.string.ui_project_setup_screen_017)) },
-                            singleLine = true,
-                            enabled = !state.busy,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Text(uiText(R.string.setup_prepare_bot), style = MaterialTheme.typography.bodySmall)
-                        PasswordField(
-                            value = state.botToken,
-                            onValueChange = viewModel::setBotToken,
-                            label = uiText(R.string.ui_project_setup_screen_018),
-                            enabled = !state.busy
-                        )
-                        Text(uiText(R.string.setup_prepare_group), style = MaterialTheme.typography.bodySmall)
-                        NumberField(
-                            value = state.chatId,
-                            onValueChange = viewModel::setChatId,
-                            label = uiText(R.string.ui_project_setup_screen_019),
-                            signed = true,
-                            enabled = !state.busy,
-                            hint = uiText(R.string.setup_group_id_help)
-                        )
-                        Text(uiText(R.string.setup_group_topic_explanation),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                        AppTextButton(onClick = { showTopics = !showTopics }, enabled = !state.busy) {
-                            Text(if (showTopics) uiText(R.string.ui_project_setup_screen_020) else uiText(R.string.ui_project_setup_screen_021))
-                        }
-                        if (showTopics) {
-                            Text(
-                                uiText(R.string.ui_project_setup_screen_022),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            NumberField(state.reportsTopicId, viewModel::setReportsTopicId, uiText(R.string.ui_project_setup_screen_023), enabled = !state.busy,
-                                hint = uiText(R.string.setup_report_topic_help))
-                            NumberField(state.csvTopicId, viewModel::setCsvTopicId, uiText(R.string.ui_project_setup_screen_025), enabled = !state.busy,
-                                hint = uiText(R.string.setup_data_topic_help))
-                            NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, uiText(R.string.ui_project_setup_screen_026), enabled = !state.busy,
-                                hint = uiText(R.string.setup_doctors_topic_help))
-                        }
-                        if (!showTopics && listOf(state.reportsTopicId, state.csvTopicId, state.doctorsTopicId).any { it.isNotBlank() }) {
-                            Text(uiText(R.string.setup_topics_retained), style = MaterialTheme.typography.bodySmall)
-                        }
-                        AppTextButton(onClick = { showResidents = !showResidents }, enabled = !state.busy) {
-                            Text(uiText(if (showResidents) R.string.setup_hide_residents else R.string.setup_show_residents))
-                        }
-                        if (showResidents) {
-                            Text(uiText(R.string.residents_destination_hint), style = MaterialTheme.typography.bodySmall)
-                            NumberField(state.residentsChatId, viewModel::setResidentsChatId,
-                                uiText(R.string.residents_group_optional), signed = true, enabled = !state.busy,
-                                hint = uiText(R.string.setup_residents_group_help))
-                            NumberField(state.residentsTopicId, viewModel::setResidentsTopicId,
-                                uiText(R.string.residents_topic_optional), enabled = !state.busy,
-                                hint = uiText(R.string.setup_residents_topic_help))
-                        } else if (state.residentsChatId.isNotBlank()) {
-                            Text(uiText(R.string.setup_residents_retained), style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
+            if (state.mode == ProjectSetupMode.JOIN) {
+                ProjectJoinSections(
+                    state = state,
+                    onSelectProvisioning = { openProvisioning.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")) },
+                    onSetProvisioningPassphrase = viewModel::setProvisioningPassphrase,
+                    onUnlockProvisioning = viewModel::unlockProvisioning
+                )
             }
-
             if (state.mode == ProjectSetupMode.CREATE) {
-                AppSection(uiText(R.string.ui_project_setup_screen_031)) {
-                    AppTextField(
-                        value = state.adminName,
-                        onValueChange = viewModel::setAdminName,
-                        label = { Text(uiText(R.string.ui_project_setup_screen_032)) },
-                        singleLine = true,
-                        enabled = !state.busy,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    NumberField(
-                        state.adminTelegramId,
-                        viewModel::setAdminTelegramId,
-                        uiText(R.string.ui_project_setup_screen_033),
-                        enabled = !state.busy,
-                        hint = uiText(R.string.setup_admin_id_help)
-                    )
-                    Text(uiText(R.string.ui_patient_demographic_fields_010), style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        AppFilterChip(
-                            selected = state.adminGenderCode == "M",
-                            onClick = { viewModel.setAdminGender("M") },
-                            label = { Text(uiText(R.string.ui_male)) },
-                            enabled = !state.busy
-                        )
-                        AppFilterChip(
-                            selected = state.adminGenderCode == "F",
-                            onClick = { viewModel.setAdminGender("F") },
-                            label = { Text(uiText(R.string.ui_female)) },
-                            enabled = !state.busy
-                        )
-                    }
-                    Text(uiText(R.string.setup_admin_role), style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        AppFilterChip(
-                            selected = state.adminClinicalRoleCode == "RESIDENT",
-                            onClick = { viewModel.setAdminClinicalRole("RESIDENT") },
-                            label = { Text(uiText(R.string.ui_project_setup_screen_034)) },
-                            enabled = !state.busy
-                        )
-                        AppFilterChip(
-                            selected = state.adminClinicalRoleCode == "SUPERVISOR",
-                            onClick = { viewModel.setAdminClinicalRole("SUPERVISOR") },
-                            label = { Text(uiText(R.string.ui_project_setup_screen_035)) },
-                            enabled = !state.busy
-                        )
-                    }
-                }
-                AppSection(uiText(R.string.ui_project_setup_screen_027)) {
-                    AppToggleRow(title = uiText(R.string.ui_project_setup_screen_028), checked = state.encryptTelegram,
-                        onCheckedChange = viewModel::setEncryptTelegram, enabled = !state.busy)
-                    Text(uiText(R.string.ui_project_setup_screen_029),
-                        style = MaterialTheme.typography.bodySmall)
-                    Text(uiText(R.string.ui_project_setup_screen_030),
-                        style = MaterialTheme.typography.bodySmall)
-                }
+                ProjectCreateSections(
+                    state = state,
+                    showTopics = showTopics,
+                    onToggleTopics = { showTopics = !showTopics },
+                    showResidents = showResidents,
+                    onToggleResidents = { showResidents = !showResidents },
+                    onSetHospitalName = viewModel::setHospitalName,
+                    onSetBotToken = viewModel::setBotToken,
+                    onSetChatId = viewModel::setChatId,
+                    onSetReportsTopicId = viewModel::setReportsTopicId,
+                    onSetCsvTopicId = viewModel::setCsvTopicId,
+                    onSetDoctorsTopicId = viewModel::setDoctorsTopicId,
+                    onSetResidentsChatId = viewModel::setResidentsChatId,
+                    onSetResidentsTopicId = viewModel::setResidentsTopicId,
+                    onSetAdminName = viewModel::setAdminName,
+                    onSetAdminTelegramId = viewModel::setAdminTelegramId,
+                    onSetAdminGender = viewModel::setAdminGender,
+                    onSetAdminClinicalRole = viewModel::setAdminClinicalRole,
+                    onSetEncryptTelegram = viewModel::setEncryptTelegram
+                )
             }
             AppTextButton(onClick = { showInstructions = !showInstructions },
                 enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
@@ -329,27 +184,4 @@ private fun InstructionCard(mode: ProjectSetupMode) {
     }
     com.hos.rushdpatients.ui.components.AppNotice(text,
         kind = com.hos.rushdpatients.ui.components.NoticeKind.ACCENT)
-}
-
-@Composable
-private fun NumberField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    signed: Boolean = false,
-    enabled: Boolean,
-    hint: String? = null
-) {
-    AppTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        supportingText = hint?.let { text -> { Text(text) } },
-        singleLine = true,
-        enabled = enabled,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = if (signed) KeyboardType.Text else KeyboardType.Number
-        ),
-        modifier = Modifier.fillMaxWidth()
-    )
 }

@@ -12,7 +12,7 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiPadding
-import com.hos.rushdpatients.ui.components.AppTextField
+import com.hos.rushdpatients.ui.components.TelegramIdField
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppCard
 import androidx.compose.foundation.layout.Arrangement
@@ -89,14 +89,14 @@ internal fun SupervisorGroupEditor(
         verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
     ) {
         Text(supervisor.fullName, style = MaterialTheme.typography.bodyMedium)
-        AppTextField(
+        TelegramIdField(
             value = chatId,
             onValueChange = { value ->
                 chatId = value.filter { it.isDigit() || it == '-' }
             },
-            label = { Text(uiText(R.string.ui_settings_section_layout_001)) },
-            supportingText = { Text("-1001234567890") },
-            singleLine = true,
+            label = uiText(R.string.ui_settings_section_layout_001),
+            hint = "-1001234567890",
+            signed = true,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         )

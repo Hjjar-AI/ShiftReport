@@ -12,12 +12,10 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import com.hos.rushdpatients.ui.components.AppDestinationRow
-import com.hos.rushdpatients.ui.theme.UiDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.components.AppSectionIndex
 import com.hos.rushdpatients.ui.components.activeAppSection
-import com.hos.rushdpatients.ui.components.PasswordField
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.components.AppTextButton
@@ -31,7 +29,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -384,155 +381,73 @@ fun SettingsScreen(
     }
 
     backupDialogMode?.let { mode ->
-        AppAlertDialog(
-            onDismissRequest = {
+        SettingsBackupPasswordDialog(
+            exporting = mode == "export", backupPassword = backupPassword,
+            onPasswordChange = { backupPassword = it },
+            onConfirm = {
+                if (mode == "export") {
+                    viewModel.prepareEncryptedBackup(backupPassword)
+                } else {
+                    pendingRestorePassword = backupPassword
+                    confirmBackupRestore = true
+                }
+                backupPassword = ""
+                backupDialogMode = null
+            },
+            onDismiss = {
                 backupDialogMode = null
                 backupPassword = ""
                 if (mode == "restore") pendingImportUri = null
-            },
-            title = {
-                Text(if (mode == "export") uiText(R.string.ui_settings_screen_014) else uiText(R.string.ui_settings_screen_015))
-            },
-            text = {
-                PasswordField(
-                    value = backupPassword,
-                    onValueChange = { backupPassword = it },
-                    label = uiText(R.string.ui_settings_screen_016)
-                )
-            },
-            confirmButton = {
-                AppTextButton(
-                    enabled = backupPassword.length >= 8,
-                    onClick = {
-                        if (mode == "export") {
-                            viewModel.prepareEncryptedBackup(backupPassword)
-                        } else {
-                            pendingRestorePassword = backupPassword
-                            confirmBackupRestore = true
-                        }
-                        backupPassword = ""
-                        backupDialogMode = null
-                    }
-                ) { Text(if (mode == "export") uiText(R.string.ui_settings_screen_017) else uiText(R.string.ui_restore)) }
-            },
-            dismissButton = {
-                AppTextButton(onClick = {
-                    backupDialogMode = null
-                    backupPassword = ""
-                    if (mode == "restore") pendingImportUri = null
-                }) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }
 
     if (canManageProject && provisioningDialog) {
         val directDownloads = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
-        AppAlertDialog(
-            onDismissRequest = {
-                provisioningDialog = false
-                provisioningPassphrase = ""
+        fun dismissProvisioning() {
+            provisioningDialog = false
+            provisioningPassphrase = ""
+        }
+        SettingsProvisioningDialog(
+            provisioningPassphrase = provisioningPassphrase,
+            busy = state.provisioningBusy, directDownloads = directDownloads,
+            onPassphraseChange = { provisioningPassphrase = it },
+            onShare = {
+                viewModel.prepareProjectProvisioning(provisioningPassphrase, share = true)
+                dismissProvisioning()
             },
-            title = { Text(uiText(R.string.ui_settings_screen_019)) },
-            text = {
-                Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text(uiText(R.string.ui_settings_screen_020))
-                    PasswordField(
-                        value = provisioningPassphrase,
-                        onValueChange = { provisioningPassphrase = it },
-                        label = uiText(R.string.ui_settings_screen_021)
-                    )
-                    Text(if (directDownloads) uiText(R.string.ui_settings_screen_022)
-                        else uiText(R.string.ui_settings_screen_023),
-                        style = MaterialTheme.typography.bodySmall)
-                    if (directDownloads) AppTextButton(
-                        enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
-                        onClick = {
-                            viewModel.prepareProjectProvisioning(provisioningPassphrase, share = true)
-                            provisioningPassphrase = ""
-                            provisioningDialog = false
-                        }, modifier = Modifier.fillMaxWidth()
-                    ) { Text(uiText(R.string.ui_settings_screen_024)) }
-                    AppTextButton(
-                        enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
-                        onClick = {
-                            viewModel.prepareProjectProvisioning(provisioningPassphrase)
-                            provisioningPassphrase = ""
-                            provisioningDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-                    ) { Text(uiText(R.string.ui_settings_screen_025)) }
-                }
+            onSave = {
+                viewModel.prepareProjectProvisioning(provisioningPassphrase)
+                dismissProvisioning()
             },
-            confirmButton = {
-                AppTextButton(
-                    enabled = provisioningPassphrase.length >= 10 && !state.provisioningBusy,
-                    onClick = {
-                        viewModel.prepareProjectProvisioning(provisioningPassphrase,
-                            share = !directDownloads, saveToDownloads = directDownloads)
-                        provisioningPassphrase = ""
-                        provisioningDialog = false
-                    }
-                ) { Text(if (directDownloads) uiText(R.string.ui_settings_screen_026) else uiText(R.string.ui_settings_screen_027)) }
+            onConfirm = {
+                viewModel.prepareProjectProvisioning(provisioningPassphrase,
+                    share = !directDownloads, saveToDownloads = directDownloads)
+                dismissProvisioning()
             },
-            dismissButton = {
-                AppTextButton(onClick = {
-                    provisioningDialog = false
-                    provisioningPassphrase = ""
-                }) { Text(uiText(R.string.ui_cancel)) }
-            }
+            onDismiss = { dismissProvisioning() }
         )
     }
 
     state.publicationReviewText?.let { reviewText ->
-        AppAlertDialog(
-            onDismissRequest = viewModel::cancelPublicationReview,
-            title = { Text(uiText(R.string.ui_settings_screen_028)) },
-            text = {
-                Column(Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text(reviewText)
-                    Text(uiText(R.string.ui_settings_screen_029))
-                }
-            },
-            confirmButton = {
-                AppTextButton(onClick = viewModel::confirmPublication, enabled = !state.syncing) {
-                    Text(uiText(R.string.ui_settings_screen_030))
-                }
-            },
-            dismissButton = {
-                AppTextButton(onClick = viewModel::cancelPublicationReview, enabled = !state.syncing) { Text(uiText(R.string.ui_cancel)) }
-            }
-        )
+        SettingsPublicationReviewDialog(reviewText = reviewText, busy = state.syncing,
+            onConfirm = viewModel::confirmPublication, onDismiss = viewModel::cancelPublicationReview)
     }
 
     if (confirmBackupRestore) {
-        AppAlertDialog(
-            onDismissRequest = {
+        SettingsBackupRestoreDialog(
+            onConfirm = {
+                val uri = pendingImportUri
+                val password = pendingRestorePassword
+                confirmBackupRestore = false
+                pendingImportUri = null
+                pendingRestorePassword = ""
+                if (uri != null) viewModel.restoreEncryptedBackup(uri, password)
+            },
+            onDismiss = {
                 confirmBackupRestore = false
                 pendingRestorePassword = ""
                 pendingImportUri = null
-            },
-            title = { Text(uiText(R.string.ui_settings_screen_031)) },
-            text = {
-                Text(uiText(R.string.ui_settings_screen_032))
-            },
-            confirmButton = {
-                AppTextButton(onClick = {
-                    val uri = pendingImportUri
-                    val password = pendingRestorePassword
-                    confirmBackupRestore = false
-                    pendingImportUri = null
-                    pendingRestorePassword = ""
-                    if (uri != null) viewModel.restoreEncryptedBackup(uri, password)
-                }) { Text(uiText(R.string.ui_settings_screen_033)) }
-            },
-            dismissButton = {
-                AppTextButton(onClick = {
-                    confirmBackupRestore = false
-                    pendingRestorePassword = ""
-                    pendingImportUri = null
-                }) { Text(uiText(R.string.ui_cancel)) }
             }
         )
     }

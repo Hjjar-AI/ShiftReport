@@ -38,11 +38,45 @@ fun AssignAdminDialog(
     saving: Boolean = false
 ) {
     val uiText = rememberUiStrings()
+    AdminDoctorSelectionDialog(
+        candidates = candidates, saving = saving,
+        title = uiText(R.string.ui_assign_admin_dialog_001),
+        emptyText = uiText(R.string.ui_assign_admin_dialog_002),
+        confirmText = uiText(R.string.ui_assign_admin_dialog_003),
+        label = { it.fullName }, onConfirm = onConfirm, onDismiss = onDismiss)
+}
+
+@Composable
+fun RemoveAdminDialog(
+    admins: List<Doctor>,
+    onConfirm: (Doctor) -> Unit,
+    onDismiss: () -> Unit,
+    saving: Boolean = false
+) {
+    val uiText = rememberUiStrings()
+    AdminDoctorSelectionDialog(
+        candidates = admins, saving = saving,
+        title = uiText(R.string.ui_assign_admin_dialog_005),
+        emptyText = uiText(R.string.ui_assign_admin_dialog_006),
+        confirmText = uiText(R.string.ui_assign_admin_dialog_008),
+        label = { uiText(R.string.ui_assign_admin_dialog_007, it.fullName, it.rank) },
+        onConfirm = onConfirm, onDismiss = onDismiss)
+}
+
+/** Reuse the picker layout; each operation supplies its candidates and guarded mutation. */
+@Composable
+private fun AdminDoctorSelectionDialog(
+    candidates: List<Doctor>, saving: Boolean,
+    title: String, emptyText: String, confirmText: String,
+    label: (Doctor) -> String, onConfirm: (Doctor) -> Unit, onDismiss: () -> Unit
+) {
+    val uiText = rememberUiStrings()
+    // Retain the selected snapshot so repository stale-state checks receive what was reviewed.
     var selected by remember { mutableStateOf<Doctor?>(null) }
 
     AppAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(uiText(R.string.ui_assign_admin_dialog_001)) },
+        title = { Text(title) },
         text = {
             Column(
                 modifier = Modifier
@@ -52,7 +86,7 @@ fun AssignAdminDialog(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 if (candidates.isEmpty()) {
-                    Text(uiText(R.string.ui_assign_admin_dialog_002))
+                    Text(emptyText)
                 } else {
                     candidates.forEach { doctor ->
                         val isSelected = selected?.id == doctor.id
@@ -70,7 +104,7 @@ fun AssignAdminDialog(
                                     .fillMaxWidth()
                                     .padding(UiPadding.compact)
                             ) {
-                                AppChoiceRow(label = doctor.fullName, selected = isSelected,
+                                AppChoiceRow(label = label(doctor), selected = isSelected,
                                     onClick = { selected = doctor }, enabled = !saving)
                             }
                         }
@@ -82,67 +116,7 @@ fun AssignAdminDialog(
             AppButton(
                 onClick = { selected?.let { onConfirm(it) } },
                 enabled = selected != null && !saving
-            ) { Text(uiText(R.string.ui_assign_admin_dialog_003)) }
-        },
-        dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !saving) { Text(uiText(R.string.ui_cancel)) }
-        }
-    )
-}
-
-@Composable
-fun RemoveAdminDialog(
-    admins: List<Doctor>,
-    onConfirm: (Doctor) -> Unit,
-    onDismiss: () -> Unit,
-    saving: Boolean = false
-) {
-    val uiText = rememberUiStrings()
-    var selected by remember { mutableStateOf<Doctor?>(null) }
-
-    AppAlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(uiText(R.string.ui_assign_admin_dialog_005)) },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .appDialogBody()
-                    .verticalScroll(rememberScrollState()).selectableGroup(),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-            ) {
-                if (admins.isEmpty()) {
-                    Text(uiText(R.string.ui_assign_admin_dialog_006))
-                } else {
-                    admins.forEach { doctor ->
-                        val isSelected = selected?.id == doctor.id
-                        AppCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected)
-                                    MaterialTheme.colorScheme.primaryContainer
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(UiPadding.compact)
-                            ) {
-                                AppChoiceRow(label = uiText(R.string.ui_assign_admin_dialog_007, doctor.fullName, doctor.rank), selected = isSelected,
-                                    onClick = { selected = doctor }, enabled = !saving)
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            AppButton(
-                onClick = { selected?.let { onConfirm(it) } },
-                enabled = selected != null && !saving
-            ) { Text(uiText(R.string.ui_assign_admin_dialog_008)) }
+            ) { Text(confirmText) }
         },
         dismissButton = {
             AppTextButton(onClick = onDismiss, enabled = !saving) { Text(uiText(R.string.ui_cancel)) }

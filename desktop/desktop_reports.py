@@ -100,14 +100,26 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     from desktop_pdf_settings import appearance_controls
     appearance = appearance_controls(appearance_area, previous)
 
+    columns_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
+    two_column_labs=tk.BooleanVar(value=previous.get('two_column_labs',True))
+    two_column_sections=tk.BooleanVar(value=previous.get('two_column_sections',False))
+    ctk.CTkCheckBox(columns_area,text='الأقسام تحت البيانات الشخصية في عمودين (تجريبي)',
+        variable=two_column_sections,height=48).pack(fill='x',padx=10,pady=3)
+    ctk.CTkCheckBox(columns_area,text='مجموعات التحاليل في عمودين',
+        variable=two_column_labs,height=48).pack(fill='x',padx=10,pady=3)
+    ctk.CTkLabel(columns_area,text='عند تفعيل جميع الأقسام في عمودين، لا تُقسّم محتويات العمود إلى أعمدة أصغر.',
+        wraplength=600,justify='right',anchor='e').pack(fill='x',padx=10,pady=3)
     description=ctk.CTkLabel(area,text='',wraplength=620,justify='right',anchor='e')
     description.pack(fill='x',padx=10,pady=8)
     def refresh_options():
         if format_get()=='pdf':
             appearance.set_layout('assignments' if assignments else layout())
             pdf_area.pack(fill='x',padx=4,pady=3,before=description)
-            if not assignments and layout()=='cards':page_area.pack_forget()
-            elif not page_area.winfo_manager():page_area.pack(fill='x',before=appearance_area)
+            if not assignments and layout()=='cards':
+                page_area.pack_forget()
+                columns_area.pack(fill='x')
+            else:columns_area.pack_forget()
+            if (assignments or layout()!='cards') and not page_area.winfo_manager():page_area.pack(fill='x',before=appearance_area)
             if assignments:
                 text='A4 عمودي · ثلاثة جداول من اليمين إلى اليسار · الترقيم العربي في العمود الأيمن · تتابع الصفحات دون حذف أسماء.'
             else:
@@ -130,7 +142,8 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     result = []
     def read_options():
         return dict(format=format_get(), layout=layout(), paper=paper(), orientation='portrait',
-                    separate=False, ward=previous['ward'], **appearance())
+                    separate=False, ward=previous['ward'], two_column_labs=two_column_labs.get(),
+                    two_column_sections=two_column_sections.get(), **appearance())
     def save_options(options):
         preferences = dict(previous, **appearance()) if assignments else dict(options)
         if force_pdf or settings_only:preferences['format']=previous['format']

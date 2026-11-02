@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -44,9 +45,11 @@ internal fun ReportExportDialog(state: ReportUiState, controller: ReportControll
                 if (choices.size > 1) AppTextButton(onClick = { changeReport = !changeReport }, enabled = !state.isBusy) {
                     Text(text(R.string.report_draft_change_report))
                 }
-                if (changeReport) choices.forEach { (key, label) ->
-                    AppCheckRow(label = label, checked = key == active, enabled = !state.isBusy,
-                        onCheckedChange = { if (it) { selection = key; changeReport = false } })
+                if (changeReport) Column(Modifier.selectableGroup()) {
+                    choices.forEach { (key, label) ->
+                        AppChoiceRow(label = label, selected = key == active, enabled = !state.isBusy,
+                            onClick = { selection = key; changeReport = false })
+                    }
                 }
                 if (reviewed && routes.size == 1) AppTextButton(
                     onClick = { controller.shareExportPdf(routes.single(), draft = true) }, enabled = !state.isBusy) {

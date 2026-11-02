@@ -194,12 +194,21 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 val columnWidth = (right - left - 2 * columnGap) / 3f
                 val introColumns = listOf(
                     Triple("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames, roleSeparator = "\n"), left + columnWidth),
-                    Triple(listOf("القبول", patient.admittanceNumber).filter(String::isNotBlank).joinToString(" "),
+                    Triple("القبول",
                         PdfPatientContent.buildAdmitCell(patient, summary.shiftDate, includeNumber = false), left + 2 * columnWidth + columnGap),
                     Triple("بيانات المريض", PdfPatientContent.buildPatientCell(patient, includeName = false, reportDate = summary.shiftDate), right)
                 )
                 val introLines = introColumns.map { PdfTextWrapper.wrap(it.second, body, columnWidth) }
-                val introTitleLines = introColumns.map { PdfTextWrapper.wrap(it.first, heading, columnWidth) }
+                val admissionPaint = Paint(heading).apply { color = body.color }
+                val admissionNumber = patient.admittanceNumber
+                val admissionOffset = heading.measureText(directed("القبول")) + heading.measureText(" ")
+                val admissionInline = admissionNumber.isNotBlank() && '\n' !in admissionNumber && '\r' !in admissionNumber &&
+                    admissionOffset + admissionPaint.measureText(directed(admissionNumber)) <= columnWidth
+                val introTitleLines = introColumns.mapIndexed { column, value ->
+                    if (column == 1 && admissionNumber.isNotBlank() && !admissionInline)
+                        listOf("القبول") + PdfTextWrapper.wrap(admissionNumber, admissionPaint, columnWidth)
+                    else PdfTextWrapper.wrap(value.first, heading, columnWidth)
+                }
                 val introTitleHeight = introTitleLines.maxOf { it.size } * PdfTextWrapper.lineHeight(heading)
                 val lineHeight = PdfTextWrapper.lineHeight(body)
                 fun introHeadings() {
@@ -208,10 +217,13 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     }
                     introTitleLines.forEachIndexed { column, lines ->
                         lines.forEachIndexed { lineIndex, line ->
+                            val paint = if (column == 1 && lineIndex > 0) admissionPaint else heading
                             canvas.drawText(directed(line), introColumns[column].third,
-                                y + lineIndex * PdfTextWrapper.lineHeight(heading) - heading.fontMetrics.top, heading)
+                                y + lineIndex * PdfTextWrapper.lineHeight(heading) - paint.fontMetrics.top, paint)
                         }
                     }
+                    if (admissionInline) canvas.drawText(directed(admissionNumber), introColumns[1].third - admissionOffset,
+                        y - admissionPaint.fontMetrics.top, admissionPaint)
                     y += introTitleHeight + gap
                 }
                 introHeadings()
@@ -295,17 +307,79 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     usedWidth += (if (badgeRow.size > 1) badgeGap else 0f) + cellWidth
                 }
                 if (badgeRow.isNotEmpty()) drawBadgeRow(badgeRow)
+                val taskSection = Section("المهام (${tasks.size})", taskText, keepTogether = true)
                 val sections = listOf(
                     Section("التشخيص • ${patient.diagnosisType.arabicLabel}", patient.initialDiagnosis, alwaysShow = true),
                     Section(PdfStrings.HEADER_TREATMENT, patient.treatmentPlan, columnCount = 2),
-                    Section("المتابعة", patient.followUp),
-                    Section("المهام (${tasks.size})", taskText, keepTogether = true)
+                    Section("المتابعة", patient.followUp)
                 ) + patient.effectiveLabGroups.map { group ->
                     val label = com.hos.rushdpatients.data.model.PatientLabGroups.heading(group)
                     Section(listOf("التحاليل", label).filter(String::isNotBlank).joinToString(" • "),
                         group.results, keepTogether = true, alwaysShow = label.isNotBlank(), labPanel = true)
                 }
-                sections.filter { section -> section.alwaysShow || section.text.isNotBlank() }.forEach { section ->
+                val orderedSections = sections + taskSection
+                val visibleSections = orderedSections.filter { it.alwaysShow || it.text.isNotBlank() }
+                suspend fun drawPanelColumns(panels: List<Section>) {
+                    val cellWidth = (right - left - sectionColumnGap) / 2f
+                    val panelLineHeight = PdfTextWrapper.lineHeight(body)
+                    val panelGap = 3f
+                    val columnY = floatArrayOf(y, y)
+                    var column = 0
+                    val panelRule = Paint(outline).apply { color = palette.ruleColor; strokeWidth = .5f }
+                    panels.forEach { section ->
+                        val lines = if (section.text.isBlank()) emptyList() else PdfTextWrapper.wrap(section.text, body, cellWidth)
+                        var offset = 0
+                        var first = true
+                        while (first || offset < lines.size) {
+                            coroutineContext.ensureActive()
+                            val labels = PdfTextWrapper.wrap(section.title + if (offset > 0) " (تابع)" else "", heading, cellWidth)
+                            val labelHeight = labels.size * PdfTextWrapper.lineHeight(heading)
+                            val minimum = panelGap + labelHeight + if (offset < lines.size) panelLineHeight else 0f
+                            val freshTop = topMargin + padding +
+                                PdfTextWrapper.wrap(patient.displayName, name, right - left).size * PdfTextWrapper.lineHeight(name) + 2 * titlePadding + gap
+                            val fullHeight = panelGap + labelHeight + (lines.size - offset) * panelLineHeight + panelGap
+                            val required = if (first && section.keepTogether && fullHeight <= bottom - freshTop) fullHeight else minimum
+                            // Read down the right column, then the left; never backfill earlier columns.
+                            while (columnY[column] + required > bottom) {
+                                if (column == 0) column = 1 else {
+                                    newPage(documentLabel, index = false); cardHeader()
+                                    columnY.fill(y)
+                                    column = 0
+                                    check(y + required <= bottom) { "عنوان القسم أطول من مساحة البطاقة" }
+                                }
+                            }
+                            val top = columnY[column] + panelGap
+                            check(top + labelHeight + (if (offset < lines.size) panelLineHeight else 0f) <= bottom) {
+                                "عنوان القسم أطول من مساحة البطاقة"
+                            }
+                            val end = right - column * (cellWidth + sectionColumnGap)
+                            canvas.drawLine(end - cellWidth + 2f, columnY[column], end - 2f, columnY[column], panelRule)
+                            fill.color = palette.teamSubheader
+                            canvas.drawRect(end - cellWidth, top, end, top + labelHeight, fill)
+                            labels.forEachIndexed { index, label ->
+                                canvas.drawText(directed(label), end, top + index * PdfTextWrapper.lineHeight(heading) - heading.fontMetrics.top, heading)
+                            }
+                            val capacity = ((bottom - top - labelHeight) / panelLineHeight).toInt().coerceAtLeast(0)
+                            val take = minOf(capacity, lines.size - offset)
+                            check(offset == lines.size || take > 0) { "لا توجد مساحة لعرض المحتوى" }
+                            repeat(take) { index ->
+                                canvas.drawText(directed(lines[offset + index]), end,
+                                    top + labelHeight + index * panelLineHeight - body.fontMetrics.top, body)
+                            }
+                            offset += take
+                            columnY[column] = top + labelHeight + take * panelLineHeight + panelGap
+                            first = false
+                        }
+                    }
+                    y = columnY.maxOrNull() ?: y
+                }
+                if (options.twoColumnSections) drawPanelColumns(visibleSections)
+                val fullWidthSections = if (options.twoColumnSections) emptyList() else
+                    visibleSections.filterNot { it.labPanel && options.twoColumnLabs }
+                fullWidthSections.forEach { section ->
+                    if (options.twoColumnLabs && section === taskSection) {
+                        drawPanelColumns(visibleSections.filter { it.labPanel })
+                    }
                     val title = section.title
                     val text = section.text
                     val titlePaint = if (section.urgent) urgentHeading else heading
@@ -389,6 +463,9 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                         }
                     }
                     y += gap
+                }
+                if (!options.twoColumnSections && options.twoColumnLabs && taskSection !in visibleSections) {
+                    drawPanelColumns(visibleSections.filter { it.labPanel })
                 }
             }
             entries.forEachIndexed { index, entry ->

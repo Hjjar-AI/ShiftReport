@@ -7,7 +7,6 @@ import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.uiLabel
 
-import com.hos.rushdpatients.domain.report.DeliveryStatus
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -16,7 +15,6 @@ import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.noticeColors
 import com.hos.rushdpatients.ui.components.AppCheckRow
 import com.hos.rushdpatients.ui.components.AppButton
-import com.hos.rushdpatients.ui.components.AppToggleRow
 import com.hos.rushdpatients.ui.components.ReportSendConfirmation
 import com.hos.rushdpatients.ui.components.AppLoadingState
 import com.hos.rushdpatients.ui.components.EmptyState
@@ -36,7 +34,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.hos.rushdpatients.pdf.*
-import com.hos.rushdpatients.ui.components.AppPdfStylePicker
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
@@ -282,51 +279,27 @@ internal fun ReportWorkspace(
                     ReportPreviewList(previews, enabled = !busy && destinationReady, onPreview = ::preview)
                 }
                 if (step == ReportFlowStep.DOCTORS) {
-                    AppSection(title = uiText(R.string.ui_shift_doctor_picker_001), colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ), titleColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-                        if (state.doctors.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_019))
-                        else {
-                            Text(state.doctors.take(2).joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName } +
-                                if (state.doctors.size > 2) " • +${uiNumber(state.doctors.size - 2)}" else "")
-                            if (state.doctors.size > 2) AppTextButton(onClick = { showRosterDetails = !showRosterDetails }) {
-                                Text(if (showRosterDetails) uiText(R.string.ui_report_preview_screen_020) else uiText(R.string.ui_report_preview_screen_021, uiNumber(state.doctors.size)))
-                            }
-                            if (showRosterDetails) state.doctors.forEach { Text("• ${it.fullName}") }
-                        }
-                        AppOutlinedButton(
-                            onClick = { pendingDelivery = null; showShiftDoctors = true },
-                            enabled = !state.isBusy && state.shift != null,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (state.doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_022) else uiText(R.string.ui_report_preview_screen_023)) }
-                    }
+                    ReportDoctorSummary(
+                        doctors = state.doctors, showRosterDetails = showRosterDetails,
+                        enabled = !state.isBusy && state.shift != null,
+                        onToggleDetails = { showRosterDetails = !showRosterDetails },
+                        onSelectDoctors = { pendingDelivery = null; showShiftDoctors = true })
                 }
                 if (step == ReportFlowStep.DOCTORS) {
-                    AppSection(title = uiText(R.string.ui_report_preview_screen_024)) {
-                        AppCheckRow(label = generalDestinationLabel,
-                            checked = generalSelected, enabled = !busy,
-                            onCheckedChange = { generalSelected = it })
-                        val selectableIds = state.supervisorTargets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
-                        AppCheckRow(label = uiText(R.string.ui_report_select_all_destinations),
-                            checked = generalSelected && selectableIds.all { it in selectedSupervisorIds },
-                            enabled = !busy,
-                            onCheckedChange = { checked ->
-                                generalSelected = checked
-                                selectedSupervisorIds = if (checked) selectableIds else emptySet()
-                            })
-                        Text(uiText(R.string.ui_report_destination_checklist_hint), style = MaterialTheme.typography.bodySmall)
-                        state.supervisorTargets.forEach { target ->
-                            AppCheckRow(label = uiText(R.string.ui_report_preview_screen_028, target.doctorName, uiNumber(target.patientCount)) +
-                                if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "",
-                                checked = target.doctorId in selectedSupervisorIds && target.chatId != null,
-                                enabled = !busy && target.chatId != null,
-                                onCheckedChange = { checked -> selectedSupervisorIds = if (checked) selectedSupervisorIds + target.doctorId else selectedSupervisorIds - target.doctorId })
-                        }
-                        if (state.supervisorTargets.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_027),
-                            style = MaterialTheme.typography.bodySmall)
-                        if (generalSelected) AppToggleRow(title = uiText(R.string.ui_report_preview_screen_031), checked = state.reportAsPdf,
-                            onCheckedChange = viewModel::setReportAsPdf, enabled = state.summary != null && !busy)
-                    }
+                    ReportDestinationSelection(
+                        targets = state.supervisorTargets, reportAsPdf = state.reportAsPdf,
+                        canChangeReportFormat = state.summary != null, busy = busy,
+                        generalDestinationLabel = generalDestinationLabel,
+                        generalSelected = generalSelected, selectedSupervisorIds = selectedSupervisorIds,
+                        onGeneralSelected = { generalSelected = it },
+                        onSelectAll = { checked, ids ->
+                            generalSelected = checked
+                            selectedSupervisorIds = if (checked) ids else emptySet()
+                        },
+                        onSupervisorSelected = { id, checked ->
+                            selectedSupervisorIds = if (checked) selectedSupervisorIds + id else selectedSupervisorIds - id
+                        },
+                        onReportAsPdf = viewModel::setReportAsPdf)
                 }
                 if (step == ReportFlowStep.PREVIEW) {
                     state.summary?.let { summary ->
@@ -349,64 +322,16 @@ internal fun ReportWorkspace(
                     }
 
                 }
-                state.publicationOutcome?.let { publication ->
-                    ReportAttemptStatus(publication, state.deliveryOutcome ?: ReportStepOutcome.NOT_STARTED,
-                        busy = busy, onHistory = { showDeliveryLog = true }, onBack = onBack)
-                }
-                if (state.deliveryRecords.any { it.status == DeliveryStatus.UNKNOWN } &&
-                    state.deliveryOutcome != ReportStepOutcome.UNCERTAIN && state.deliveryOutcome != ReportStepOutcome.PARTIAL &&
-                    state.publicationOutcome != ReportStepOutcome.UNCERTAIN) {
-                    AppNotice(uiText(R.string.ui_report_preview_screen_035),
-                        kind = NoticeKind.WARNING, actionLabel = uiText(R.string.ui_ward_workflow_strip_007),
-                        onAction = { showDeliveryLog = true }, actionEnabled = !busy)
-                }
-                state.reviewNotice?.let { notice -> AppNotice(notice, kind = NoticeKind.WARNING) }
-                state.error?.let { err ->
-                    AppSection(title = uiText(R.string.ui_report_preview_screen_036)) {
-                        AppNotice(when (state.doctorRegistryAction) {
-                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH -> uiText(R.string.ui_recovery_doctors_publish)
-                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.FETCH -> uiText(R.string.ui_recovery_doctors_fetch)
-                            null -> err
-                        }, kind = NoticeKind.ERROR,
-                            actionLabel = when (state.retryAction) {
-                                ReportRetryAction.PREVIEW -> uiText(R.string.ui_report_preview_screen_037)
-                                ReportRetryAction.SEND -> uiText(R.string.ui_report_preview_screen_038)
-                                ReportRetryAction.SAVE, ReportRetryAction.SAVE_SUPERVISORS -> uiText(R.string.ui_report_preview_screen_039)
-                                ReportRetryAction.SHARE -> uiText(R.string.ui_report_preview_screen_040)
-                                ReportRetryAction.ASSIGNMENTS -> uiText(R.string.ui_report_preview_screen_041)
-                                null -> null
-                            },
-                            onAction = if (state.retryAction == null) null else ({
-                                if (state.retryAction == ReportRetryAction.SEND) {
-                                    step = ReportFlowStep.PREVIEW
-                                } else if (state.retryAction == ReportRetryAction.PREVIEW) openPreview()
-                                else viewModel.retryLastAction { step = ReportFlowStep.PREVIEW }
-                            }),
-                            actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
-                        when (state.doctorRegistryAction) {
-                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.FETCH ->
-                                AppOutlinedButton(onClick = viewModel::fetchDoctorsForReport, enabled = !busy,
-                                    modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_042)) }
-                            com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH -> {
-                                if (state.isAdmin) AppOutlinedButton(onClick = onOpenDoctors,
-                                    enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_043)) }
-                                else AppNotice(uiText(R.string.ui_report_preview_screen_044))
-                            }
-                            null -> Unit
-                        }
-                        if (state.doctorRegistryAction == com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH) {
-                            AppOutlinedButton(onClick = { viewModel.load() }, enabled = !busy,
-                                modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_recovery_reload_report)) }
-                        }
-                    }
-                }
-                state.deliveryRecords.filter { it.status == DeliveryStatus.UNKNOWN }.forEach { receipt ->
-                    AppSection(title = receipt.label) {
-                        DeliveryQuestion(receipt, !busy, viewModel::resolveDelivery)
-                    }
-                }
-                state.publicationWarning?.let { AppNotice(it, kind = NoticeKind.WARNING) }
-                state.lastOperation?.let { AppNotice(it) }
+                ReportRecoverySection(state = state, busy = busy,
+                    onDeliveryLog = { showDeliveryLog = true }, onBack = onBack,
+                    onRetry = {
+                        if (state.retryAction == ReportRetryAction.SEND) {
+                            step = ReportFlowStep.PREVIEW
+                        } else if (state.retryAction == ReportRetryAction.PREVIEW) openPreview()
+                        else viewModel.retryLastAction { step = ReportFlowStep.PREVIEW }
+                    },
+                    onFetchDoctors = viewModel::fetchDoctorsForReport, onOpenDoctors = onOpenDoctors,
+                    onReload = { viewModel.load() }, onResolveDelivery = viewModel::resolveDelivery)
 
                 if (step == ReportFlowStep.PREVIEW) {
                     state.registryChangeSummary?.let { summary ->
@@ -455,18 +380,10 @@ internal fun ReportWorkspace(
 
                 }
                 if (step == ReportFlowStep.PREVIEW && pdfSelected) {
-                    AppTextButton(onClick = { customizeReport = !customizeReport }, enabled = !busy,
-                        modifier = Modifier.fillMaxWidth()) {
-                        Text(if (customizeReport) uiText(R.string.ui_report_preview_screen_051) else uiText(R.string.ui_report_preview_screen_052))
-                    }
-                    if (customizeReport) AppSection(title = uiText(R.string.ui_report_preview_screen_053)) {
-                        AppPdfStylePicker(selected = state.pdfStyle,
-                            onSelected = { viewModel.setPdfAppearance(it, state.pdfOptions) }, enabled = !busy)
-                        val options = state.pdfOptions
-                        Text(uiText(R.string.pdf_uses_app_theme, options.appTheme.arabicLabel(uiText)),
-                            style = MaterialTheme.typography.bodySmall)
-                        Text(uiText(R.string.ui_report_preview_screen_055), style = MaterialTheme.typography.bodySmall)
-                    }
+                    ReportPdfCustomization(
+                        style = state.pdfStyle, options = state.pdfOptions, busy = busy,
+                        expanded = customizeReport, onToggleExpanded = { customizeReport = !customizeReport },
+                        onAppearanceChange = viewModel::setPdfAppearance)
                 }
 
                 if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
@@ -501,39 +418,14 @@ internal fun ReportWorkspace(
             text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(state.previewMarkdown) } },
             confirmButton = { AppTextButton(onClick = { showTextPreview = false }) { Text(uiText(R.string.ui_close)) } })
     }
-    if (showDeliveryLog) {
-        AppAlertDialog(onDismissRequest = { showDeliveryLog = false }, title = { Text(uiText(R.string.ui_report_preview_screen_081)) }, text = {
-            Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(uiText(R.string.ui_report_preview_screen_082))
-                if (state.deliveryRecords.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_083))
-                state.deliveryRecords.asReversed().forEach { row ->
-                    val label = when (row.status) { DeliveryStatus.UNKNOWN_COPY_ALLOWED -> uiText(R.string.delivery_uncertain_copy_allowed); DeliveryStatus.UNKNOWN -> uiText(R.string.ui_report_preview_screen_084); DeliveryStatus.SENT -> uiText(R.string.ui_report_preview_screen_085); else -> uiText(R.string.ui_report_preview_screen_086) }
-                    Text("${row.label} • ${row.format} • $label")
-                    Text(java.time.Instant.ofEpochMilli(row.at).atZone(java.time.ZoneId.systemDefault())
-                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-                        style = MaterialTheme.typography.bodySmall)
-                    if (row.status == DeliveryStatus.UNKNOWN || row.status == DeliveryStatus.UNKNOWN_COPY_ALLOWED) {
-                        DeliveryQuestion(row, !busy, viewModel::resolveDelivery)
-                    } else if (row.status == DeliveryStatus.SENT) {
-                        Text(uiText(R.string.ui_report_preview_screen_092), style = MaterialTheme.typography.bodySmall)
-                        AppOutlinedButton(onClick = { deliveryDecision = row to DeliveryResolution.ALLOW_COPY }, enabled = !busy) {
-                            Text(uiText(R.string.ui_report_preview_screen_089))
-                        }
-                    }
-                }
-            }
-        }, confirmButton = { AppTextButton(onClick = { showDeliveryLog = false }) { Text(uiText(R.string.ui_close)) } })
-    }
+    if (showDeliveryLog) ReportDeliveryLogDialog(
+        records = state.deliveryRecords, busy = busy, onResolveDelivery = viewModel::resolveDelivery,
+        onAllowCopy = { deliveryDecision = it to DeliveryResolution.ALLOW_COPY },
+        onDismiss = { showDeliveryLog = false })
     deliveryDecision?.let { (row, decision) ->
-        val instruction = when (decision) {
-            DeliveryResolution.RECEIVED -> uiText(R.string.ui_report_preview_screen_090)
-            DeliveryResolution.NOT_RECEIVED -> uiText(R.string.ui_report_preview_screen_091)
-            DeliveryResolution.ALLOW_COPY -> uiText(R.string.ui_report_preview_screen_092)
-        }
-        AppAlertDialog(onDismissRequest = { deliveryDecision = null }, title = { Text(uiText(R.string.ui_report_preview_screen_093)) },
-            text = { Text(row.label + "\n" + instruction) },
-            confirmButton = { AppButton(onClick = { deliveryDecision = null; viewModel.resolveDelivery(row, decision) }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_094)) } },
-            dismissButton = { AppTextButton(onClick = { deliveryDecision = null }) { Text(uiText(R.string.ui_cancel)) } })
+        ReportDeliveryDecisionDialog(row = row, decision = decision, busy = busy,
+            onConfirm = { deliveryDecision = null; viewModel.resolveDelivery(row, decision) },
+            onDismiss = { deliveryDecision = null })
     }
 
     pendingDelivery?.let { review ->
@@ -562,17 +454,5 @@ internal fun ReportWorkspace(
                 viewModel.sendSelectedReports(review.includeGeneral,
                     review.supervisors.mapTo(linkedSetOf()) { it.doctorId }, review.exportPdf)
             }, onDismiss = { pendingDelivery = null })
-    }
-}
-
-@Composable
-private fun DeliveryQuestion(row: ReportDeliveryRecord, enabled: Boolean,
-    resolve: (ReportDeliveryRecord, DeliveryResolution) -> Unit) {
-    val uiText = rememberUiStrings()
-    Text(uiText(R.string.delivery_inline_question))
-    com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_received_explicit)) }
-    com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.NOT_RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_not_received_explicit)) }
-    if (row.status == DeliveryStatus.UNKNOWN) {
-        com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.ALLOW_COPY) }, enabled = enabled) { Text(uiText(R.string.delivery_allow_copy_explicit)) }
     }
 }

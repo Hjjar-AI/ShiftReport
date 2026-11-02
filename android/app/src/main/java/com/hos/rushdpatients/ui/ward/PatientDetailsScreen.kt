@@ -3,10 +3,9 @@ package com.hos.rushdpatients.ui.ward
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.appContentEntrance
 import com.hos.rushdpatients.ui.components.ContentEntrance
-import com.hos.rushdpatients.ui.components.AppFilterChip
+import com.hos.rushdpatients.ui.components.AppSectionIndex
 import com.hos.rushdpatients.ui.components.AppClinicalCard
 import com.hos.rushdpatients.ui.components.AppIconButton
-import com.hos.rushdpatients.ui.theme.UiLayout
 
 import androidx.annotation.StringRes
 
@@ -36,10 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.window.layout.FoldingFeature
 import com.hos.rushdpatients.data.model.Patient
@@ -87,7 +82,7 @@ internal fun PatientDetailsScreen(
     val detailScroll = position.scroll
     val content: @Composable () -> Unit = {
         Scaffold(
-            modifier = (if (embedded) Modifier else Modifier.safeDrawingPadding()).imePadding(),
+            modifier = Modifier.imePadding(),
             topBar = {
                 Column {
                     AppCompactTopBar(
@@ -102,28 +97,20 @@ internal fun PatientDetailsScreen(
                         }
                     )
                     Surface(tonalElevation = UiElevation.raised) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(UiPadding.content),
-                            horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                        ) {
-                            PatientDetailSection.entries.forEach { option ->
+                        AppSectionIndex(
+                            sections = PatientDetailSection.entries.toList(),
+                            selected = section,
+                            onSelect = { section = it },
+                            modifier = Modifier.padding(UiPadding.content),
+                            label = { option ->
                                 val count = when (option) {
                                     PatientDetailSection.TASKS -> patient.tasks.count { !it.done }
                                     PatientDetailSection.WARNINGS -> patient.badges.size
                                     else -> 0
                                 }
-                                AppFilterChip(
-                                    selected = section == option,
-                                    onClick = { section = option },
-                                    label = {
-                                        Text(option.arabicLabel(uiText) + if (count > 0) " ${uiNumber(count)}" else "")
-                                    }
-                                )
+                                option.arabicLabel(uiText) + if (count > 0) " ${uiNumber(count)}" else ""
                             }
-                        }
+                        )
                     }
                 }
             },
@@ -208,14 +195,9 @@ internal fun PatientDetailsScreen(
     if (embedded) {
         Surface(Modifier.fillMaxSize()) { content() }
     } else {
-        Dialog(onDismissRequest = onDismiss,
-            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-            Surface(Modifier.fillMaxSize()) {
-                WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
-                    listFraction = UiLayout.defaultListFraction, onListFractionChange = {}, modifier = Modifier.fillMaxSize(), primaryTitle = uiText(R.string.ui_ward_screen_005),
-                    primary = { content() })
-            }
-        }
+        WardFullscreenDialog(title = uiText(R.string.ui_ward_screen_005), onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+            foldingFeature = foldingFeature, content = content)
     }
 }
 

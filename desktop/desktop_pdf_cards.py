@@ -1,4 +1,4 @@
-"""A5 canvas layout matching Android PdfPatientCardsRenderer, in PDF points."""
+"""A5 cards using Android content/nominal geometry; native renderer metrics can differ."""
 from __future__ import annotations
 from datetime import date
 from io import BytesIO
@@ -53,14 +53,17 @@ class _Cards:
         self.client, self.shift, self.patients = client, shift, patients
         self.now, self.total = now, total
         self.local_draft = options.get('local_draft', False)
+        self.two_column_labs = options.get('two_column_labs', True)
+        self.two_column_sections = options.get('two_column_sections', False)
         self.colors = palette(options)
         title = self.colors['title']
-        self.body = _Paint(11.5, self.colors['text'])
-        self.heading = _Paint(12, title, True)
-        self.name = _Paint(15, '#FFFFFF', True)
+        self.panel_fill = '#' + ''.join('{:02X}'.format(int(int(title[i:i+2], 16)*.12+255*.88)) for i in (1,3,5))
+        self.body = _Paint(12.5, self.colors['text'])
+        self.heading = _Paint(13, title, True)
+        self.name = _Paint(16, '#FFFFFF', True)
         self.nav = _Paint(12, self.colors['text'], True)
         self.footer = _Paint(8.5, self.colors['text'])
-        self.urgent = _Paint(12, '#8B1E1E', True)
+        self.urgent = _Paint(13, '#8B1E1E', True)
         self.canvas = pdfcanvas.Canvas(target, pagesize=(WIDTH, HEIGHT))
         self.canvas.setTitle('DEMO — ShiftReport' if getattr(client, 'demo', False) else 'ShiftReport')
         self.canvas.setAuthor('ShiftReport')
@@ -134,12 +137,12 @@ class _Cards:
         if not index:
             self.bottom = card_bottom - NAV_INSET - self.nav.height - 2 * NAV_PADDING - GAP
         label = ['DEMO — بيانات تجريبية'] if getattr(self.client, 'demo', False) else []
-        if self.local_draft:label.append('مسودة محلية · لم يُعتمد نشرها')
+        if self.local_draft:label.append('مسودة محلية • لم يُعتمد نشرها')
         label += ['ShiftReport', '{}/{}'.format(self.page, self.total)]
         offset = self.now.strftime('%z')
         zone = 'GMT' + offset[:3] + ':' + offset[3:]
         generated = 'أُنشئ في: ' + self.now.strftime('%Y-%m-%d %H:%M ') + zone
-        label = ' · '.join(label + [generated])
+        label = ' • '.join(label + [generated])
         measured = pdfmetrics.stringWidth(self.visual(label), self.footer.font, self.footer.size)
         footer = _Paint(self.footer.size * min(1, (WIDTH - 2 * SIDE) / max(1, measured)), self.footer.color)
         footer_top = HEIGHT - BOTTOM / 2 - footer.height / 2
@@ -186,7 +189,7 @@ class _Cards:
                 self.link(key, (right - cell, nav_top, right, nav_bottom))
 
     def patient_badges(self, index, row):
-        paint = _Paint(11.5, self.body.color, True)
+        paint = _Paint(self.body.size, self.body.color, True)
         x_padding, y_padding, badge_gap = 4, 2, 4
         badges = [(text, priority) for text, priority in badges_decode(row.get('warningDetails', '')) if text.strip()]
         maximum_width = (RIGHT - LEFT - badge_gap) / 2 if len(badges) > 1 else RIGHT - LEFT
@@ -213,7 +216,7 @@ class _Cards:
                         self.canvas.setStrokeColor(HexColor(foreground if high else self.colors['border']))
                         self.canvas.setLineWidth(.5)
                         self.canvas.roundRect(end - width, HEIGHT - self.y - height, width, height, 5, stroke=1, fill=1)
-                        text_paint = _Paint(11.5, foreground, True)
+                        text_paint = _Paint(self.body.size, foreground, True)
                         for n, line in enumerate(chunk):
                             self.draw(line, text_paint, self.y + (height - len(chunk) * paint.height) / 2 + n * paint.height, right=end - x_padding)
                     end -= width + badge_gap
@@ -226,7 +229,7 @@ class _Cards:
             if not value.strip():
                 continue
             high = priority == 'high'
-            label = value + (' · عالية' if high else '')
+            label = value + (' • عالية' if high else '')
             measured = max(pdfmetrics.stringWidth(self.visual(line), paint.font, paint.size) for line in label.split('\n'))
             width = min(maximum_width, measured + 2 * x_padding)
             if cells and used + badge_gap + width > RIGHT - LEFT + .01:
@@ -281,23 +284,70 @@ class _Cards:
             if offset < len(lines):
                 self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
 
+    def panel_columns(self, index, row, sections):
+        width = (RIGHT - LEFT - TREATMENT_COLUMN_GAP) / 2
+        panel_gap = 3
+        column_y = [self.y, self.y]
+        column = 0
+        for title, value, urgent, keep_together, always_show in sections:
+            lines = self.wrap(value, self.body, width) if value.strip() else []
+            offset, initial = 0, True
+            while initial or offset < len(lines):
+                labels = self.wrap(title + (' (تابع)' if offset else ''), self.heading, width)
+                label_height = len(labels) * self.heading.height
+                minimum = panel_gap + label_height + (self.body.height if offset < len(lines) else 0)
+                fresh_top = TOP + PADDING + len(self.wrap(patient_name(row), self.name, RIGHT - LEFT)) * self.name.height + 2 * TITLE_PADDING + GAP
+                full_height = panel_gap + label_height + (len(lines) - offset) * self.body.height + panel_gap
+                required = full_height if initial and keep_together and full_height <= self.bottom - fresh_top else minimum
+                # Source order follows the right column down, then the left, then the next page.
+                while column_y[column] + required > self.bottom:
+                    if column == 0:
+                        column = 1
+                    else:
+                        self.new_page(); self.header(index)
+                        column_y = [self.y, self.y]
+                        column = 0
+                        require(self.y + required <= self.bottom, 'عنوان القسم أطول من مساحة البطاقة')
+                top = column_y[column] + panel_gap
+                require(top + label_height + (self.body.height if offset < len(lines) else 0) <= self.bottom,
+                        'عنوان القسم أطول من مساحة البطاقة')
+                end = RIGHT - column * (width + TREATMENT_COLUMN_GAP)
+                self.canvas.setStrokeColor(HexColor(self.colors['rule']))
+                self.canvas.setLineWidth(.5)
+                self.canvas.line(end - width + 2, HEIGHT - column_y[column], end - 2, HEIGHT - column_y[column])
+                self.canvas.setFillColor(HexColor(self.panel_fill))
+                self.canvas.rect(end - width, HEIGHT - top - label_height, width, label_height, stroke=0, fill=1)
+                for n, label in enumerate(labels):
+                    self.draw(label, self.heading, top + n * self.heading.height, right=end)
+                capacity = max(0, int((self.bottom - top - label_height) / self.body.height))
+                take = min(capacity, len(lines) - offset)
+                require(offset == len(lines) or take > 0, 'لا توجد مساحة لعرض المحتوى')
+                for n in range(take):
+                    self.draw(lines[offset + n], self.body, top + label_height + n * self.body.height, right=end)
+                offset += take
+                column_y[column] = top + label_height + take * self.body.height + panel_gap
+                initial = False
+        self.y = max(column_y)
+
     def content(self, row):
         personal = GENDER.get(row.get('gender', 'M'), 'ذكر')
         birth = row.get('birthDate')
         if birth:
-            personal += '\n{} • {} سنة'.format(birth[:4], max(0, self.report_day.year - int(birth[:4])))
+            birthday = date.fromisoformat(birth) if len(birth) > 4 else date(int(birth), 1, 1)
+            age = max(0, self.report_day.year - birthday.year - ((self.report_day.month, self.report_day.day) < (birthday.month, birthday.day)))
+            personal += '\n{} • {} سنة'.format(birth[:4], age)
         if row.get('isPriority') == 'Y':
             personal += '\n[أولوية]'
         if row.get('hasCompanion') == 'Y':
             personal += '\n(مرافق)'
-        admit = row.get('admitNum', '') + '\n---\n'
+        admit = ''
         if row.get('admitDate'):
             admission = date.fromisoformat(row['admitDate'])
             admit += 'يوم {}\n{}'.format(max(0, (self.report_day - admission).days), admission)
         doctors = self.client.doctors
-        team = '\n---\n'.join(doctors.get(row[key], {}).get('name') or 'طبيب محفوظ' for key in
+        team = '\n'.join(doctors.get(row[key], {}).get('name') or 'طبيب محفوظ' for key in
                                 ['responsibleSupervisorId', 'responsibleResidentId'] if row.get(key))
-        sections = [('التشخيص · ' + DIAGNOSIS[row.get('diagnosisType', 'PSYCHIATRIC')], row.get('initialDiagnosis', ''), False, False, True),
+        sections = [('التشخيص • ' + DIAGNOSIS[row.get('diagnosisType', 'PSYCHIATRIC')], row.get('initialDiagnosis', ''), False, False, True),
                     (TREATMENT_TITLE, row.get('treatmentPlan', ''), False, False, False),
                     ('المتابعة', row.get('followUp', ''), False, False, False)]
         tasks = ordered_for_display(read_tasks(row))
@@ -309,10 +359,10 @@ class _Cards:
             task_lines.append('{} ({})'.format(status, len(group)))
             for task in group:
                 task_lines.append('• ' + task['description'])
-        sections.append(('المهام ({})'.format(len(tasks)), '\n'.join(task_lines), False, True, False))
         for group in read_groups(row):
             label = ' • '.join(value for value in ('التحاليل', lab_heading(group)) if value)
             sections.append((label, group['results'], False, True, bool(lab_heading(group))))
+        sections.append(('المهام ({})'.format(len(tasks)), '\n'.join(task_lines), False, True, False))
         return personal, admit, team, sections
 
     def render(self):
@@ -320,11 +370,11 @@ class _Cards:
         self.index_text('إجمالي المرضى: {} (حالات نفسية: {})'.format(len(self.patients),
             sum(p.get('diagnosisType', 'PSYCHIATRIC') in {'PSYCHIATRIC', 'DUAL'} for p in self.patients)),
             _Paint(15, self.colors['title'], True))
-        self.index_text('{} · {} مرافق'.format(self.report_day.isoformat(),
-            sum(p.get('hasCompanion') == 'Y' for p in self.patients)), self.body)
+        self.index_text('{} • {} مرافق'.format(self.report_day.isoformat(),
+            sum(p.get('hasCompanion') == 'Y' for p in self.patients)), _Paint(11.5, self.body.color))
         doctors = [self.client.doctors[key] for key in self.shift['meta'].get('doctors', '').split(',') if key in self.client.doctors]
         if doctors:
-            self.index_text(roster_label(doctors) + ': ' + ' / '.join(d['name'] for d in doctors), self.body)
+            self.index_text(roster_label(doctors) + ': ' + ' / '.join(d['name'] for d in doctors), _Paint(11.5, self.body.color))
         index_gap, tile_padding, height = 5, 2, 28
         tile_width = (RIGHT - LEFT - 2 * index_gap) / 3
         first = 0
@@ -339,7 +389,7 @@ class _Cards:
             # Fill the rightmost column downward, then move left.
             for offset in range(count):
                 patient = self.patients[first + offset]
-                value = '{} · {}'.format(first + offset + 1, patient_name(patient))
+                value = '{} • {}'.format(first + offset + 1, patient_name(patient))
                 paint = _Paint(14, self.heading.color, True)
                 available_width = tile_width - 2 * tile_padding
                 available_height = height - 2 * tile_padding
@@ -385,12 +435,24 @@ class _Cards:
             intro_columns = [('الفريق المسؤول', team, LEFT + column),
                              ('القبول', admit, LEFT + 2 * column + gap),
                              ('بيانات المريض', personal, RIGHT)]
+            admission_paint = _Paint(self.heading.size, self.body.color, True)
+            admission_number = row.get('admitNum', '')
+            admission_offset = pdfmetrics.stringWidth(self.visual('القبول'), self.heading.font, self.heading.size) + pdfmetrics.stringWidth(' ', self.heading.font, self.heading.size)
+            admission_inline = bool(admission_number.strip()) and '\n' not in admission_number and '\r' not in admission_number and admission_offset + pdfmetrics.stringWidth(self.visual(admission_number), admission_paint.font, admission_paint.size) <= column
+            intro_titles = [self.wrap(title, self.heading, column) for title, _, _ in intro_columns]
+            if admission_number.strip() and not admission_inline:
+                intro_titles[1] = ['القبول'] + self.wrap(admission_number, admission_paint, column)
+            intro_title_height = max(map(len, intro_titles)) * self.heading.height
             def intro_headings():
-                require(self.y + self.heading.height + GAP + self.body.height <= self.bottom,
+                require(self.y + intro_title_height + GAP + self.body.height <= self.bottom,
                         'اسم المريض أطول من مساحة البطاقة')
-                for title, _, end in intro_columns:
-                    self.draw(title, self.heading, self.y, right=end)
-                self.y += self.heading.height + GAP
+                for col, labels in enumerate(intro_titles):
+                    for n, label in enumerate(labels):
+                        paint = admission_paint if col == 1 and n > 0 else self.heading
+                        self.draw(label, paint, self.y + n * self.heading.height, right=intro_columns[col][2])
+                if admission_inline:
+                    self.draw(admission_number, admission_paint, self.y, right=intro_columns[1][2] - admission_offset)
+                self.y += intro_title_height + GAP
             intro_headings()
             intro_lines = [self.wrap(value, self.body, column) for _, value, _ in intro_columns]
             for n in range(max(map(len, intro_lines))):
@@ -402,9 +464,16 @@ class _Cards:
                 self.y += self.body.height
             self.y += GAP
             self.patient_badges(index, row)
-            for title, value, urgent, keep_together, always_show in sections:
+            visible = [section for section in sections if section[4] or section[1].strip()]
+            if self.two_column_sections:
+                self.panel_columns(index, row, visible)
+            full_width = [] if self.two_column_sections else [section for section in visible
+                if not (self.two_column_labs and section[0].startswith('التحاليل'))]
+            for title, value, urgent, keep_together, always_show in full_width:
                 if not always_show and not value.strip():
                     continue
+                if self.two_column_labs and title.startswith('المهام ('):
+                    self.panel_columns(index, row, [section for section in visible if section[0].startswith('التحاليل')])
                 paint = self.urgent if urgent else self.heading
                 lines = self.wrap(value, self.body, RIGHT - LEFT) if value.strip() else []
                 columns = self.treatment_columns(value, len(lines)) if title == TREATMENT_TITLE else None
@@ -413,7 +482,7 @@ class _Cards:
                     require(self.y + len(labels) * paint.height + (self.body.height if lines else 0) <= self.bottom,
                             'عنوان القسم أطول من مساحة البطاقة')
                     if title.startswith('التحاليل'):
-                        self.canvas.setFillColor(HexColor(self.colors['summary']))
+                        self.canvas.setFillColor(HexColor(self.panel_fill))
                         self.canvas.rect(LEFT, HEIGHT - self.y - len(labels) * paint.height,
                                          RIGHT - LEFT, len(labels) * paint.height, stroke=0, fill=1)
                     for line in labels:self.line(line, paint)
@@ -437,6 +506,8 @@ class _Cards:
                             draw_section_heading(title + ' (تابع)')
                         self.line(line, self.body)
                 self.y += GAP
+            if self.two_column_labs and not self.two_column_sections and not any(section[0].startswith('المهام (') for section in visible):
+                self.panel_columns(index, row, [section for section in visible if section[0].startswith('التحاليل')])
         self.canvas.save()
         return self.page
 

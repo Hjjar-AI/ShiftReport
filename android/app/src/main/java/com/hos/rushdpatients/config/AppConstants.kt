@@ -47,6 +47,8 @@ object AppConstants {
     const val SETTING_PDF_RULE_CONTRAST = "pdf_rule_contrast"
     const val SETTING_PDF_ROW_SHADING = "pdf_row_shading"
     const val SETTING_PDF_STYLE = "pdf_style"
+    const val SETTING_PDF_TWO_COLUMN_LABS = "pdf_two_column_labs"
+    const val SETTING_PDF_TWO_COLUMN_SECTIONS = "pdf_two_column_sections"
     const val SETTING_PDF_PATIENT_CARD_STYLE = "pdf_patient_card_style"
     const val SETTING_APP_APPEARANCE = "app_appearance"
     const val SETTING_UI_PREFERENCES = "local_ui_preferences"

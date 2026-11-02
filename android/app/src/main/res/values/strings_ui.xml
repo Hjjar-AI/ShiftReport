@@ -1336,4 +1336,7 @@
     <string name="lab_group_remove">حذف مجموعة التحاليل</string>
     <string name="lab_group_remove_message">حذف هذه المجموعة من النموذج؟ لن يُعتمد الحذف إلا عند حفظ المريض.</string>
     <string name="lab_groups_invalid">مجموعات التحاليل أو تواريخها غير صالحة</string>
+    <string name="pdf_two_column_labs">مجموعات التحاليل في عمودين</string>
+    <string name="pdf_two_column_sections">الأقسام تحت البيانات الشخصية في عمودين (تجريبي)</string>
+    <string name="pdf_two_column_sections_hint">تُقرأ الأقسام من أعلى العمود الأيمن إلى أسفله، ثم العمود الأيسر، مع حفظ ترتيب التشخيص والعلاج والمتابعة والتحاليل ثم المهام. يأخذ كل قسم ارتفاع محتواه، دون أعمدة متداخلة.</string>
 </resources>
