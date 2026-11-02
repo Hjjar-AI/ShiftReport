@@ -26,6 +26,7 @@ REQUIRED = (
     (None, "fcntl", ("flock", "LOCK_EX", "LOCK_NB")),
     (None, "rubicon.objc", ("NSObject", "ObjCClass", "objc_method")),
     (None, "rubicon.objc.runtime", ("SEL",)),
+    (None, "file_system", ("quick_look", "save_as", "share_files", "FilePickerCancellation")),
 )
 RESOURCES = (
     "web/shiftreport/__init__.py",
@@ -41,6 +42,9 @@ RESOURCES = (
     "iphone/templates/base.html",
     "iphone/static/iphone.css",
     "iphone/static/iphone.js",
+    "iphone/static/artifacts.js",
+    "iphone/templates/report_review.html",
+    "iphone/templates/artifact_operation.html",
 )
 
 

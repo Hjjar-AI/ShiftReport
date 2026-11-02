@@ -186,25 +186,33 @@ def report_review(token):
 @features.get('/reports/artifact/<token>/<int:index>')
 def report_artifact(token,index):
     w=g.workspace
+    payload,name=reviewed_artifact(w,token,index,copying=request.args.get('save')=='1')
+    raw=payload['raw']
+    return send_file(io.BytesIO(raw if isinstance(raw,bytes) else raw.encode('utf-8')),mimetype='application/pdf' if payload['format']=='pdf' else 'text/plain; charset=utf-8',
+                     as_attachment=request.args.get('save')=='1',download_name=name)
+
+
+def reviewed_artifact(w,token,index,copying=False,mark_viewed=True):
+    """Shared byte/authority/copy guards; native loading alone never marks viewed."""
     w.ready()
     review=artifact(w,token)
     data=review['value']
     require(0<=index<len(data['payloads']),'الملف غير موجود')
     payload=data['payloads'][index]
-    if request.args.get('save')=='1':
+    if copying:
         require(payload['viewed'],'افتح الملف قبل حفظه')
     require(fingerprint(w.store.read())==data['source'] and fingerprint(w.client.doctors)==data['doctors'], 'تغير المحتوى؛ أعد المعاينة')
     require(w.print_accent==data['options']['app_theme'],'تغير لون التطبيق؛ أعد المعاينة')
-    if request.args.get('save')!='1':
-        payload['viewed']=True
     if data['assignments']:
         w.ready(admin=True)
-    if request.args.get('save')=='1' and data['sending']:
+    if copying and data['sending']:
         require(review['used'] and data.get('copies_enabled') and data.get('all_delivered'),'حفظ النسخة العادية متاح بعد تأكيد التسليم؛ للتصدير المحلي اختر مسودة')
     raw=payload['raw']
+    require(hashlib.sha256(raw if isinstance(raw,bytes) else raw.encode('utf-8')).hexdigest()==payload['sha'],'تغيرت بايتات الملف؛ أعد المعاينة')
+    if not copying and mark_viewed:
+        payload['viewed']=True
     name=('DEMO-' if w.demo else '')+'ShiftReport-'+data['day']+'-'+str(index+1)+('.pdf' if payload['format']=='pdf' else '.txt')
-    return send_file(io.BytesIO(raw if isinstance(raw,bytes) else raw.encode('utf-8')),mimetype='application/pdf' if payload['format']=='pdf' else 'text/plain; charset=utf-8',
-                     as_attachment=request.args.get('save')=='1',download_name=name)
+    return payload,name
 
 
 @features.route('/reports/copy/<token>/<int:receipt_index>',methods=['GET','POST'])

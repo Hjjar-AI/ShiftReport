@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 from .app import create_demo_app
+from .artifacts import ArtifactOperations
 from .launch_gate import LaunchGate, STATUS
 from .runtime import ROOT, StartupError, require_runtime, shared_source
 
@@ -27,6 +28,7 @@ class LocalHost:
         self.server = None
         self.instance_lock = None
         self.failed = False
+        self.artifacts = ArtifactOperations()
 
     def start(self):
         self.runtime = require_runtime()
@@ -43,7 +45,7 @@ class LocalHost:
             raise StartupError("توجد جلسة أخرى تملك مشغّل iPhone. عد إليها أو أغلقها من Pyto ثم أعد المحاولة؛ لم يُنهَ أي مستمع آخر.") from None
         try:
             self.gate = LaunchGate(None)
-            app = create_demo_app(self.directory, self.gate.cookie_name + "_session")
+            app = create_demo_app(self.directory, self.gate.cookie_name + "_session", self.artifacts)
             self.gate.application = app
             self.server = create_server(
                 self.gate, host="127.0.0.1", port=0, threads=4,
@@ -112,7 +114,13 @@ class LocalHost:
     def stop(self):
         if self.finished.is_set():
             return True
+        if self.artifacts.pending():
+            return False
         if not self.gate.drain(timeout=8):
+            return False
+        if self.artifacts.pending():
+            with self.gate.condition:
+                self.gate.closing = False
             return False
         self.stopping.set()
         self.thread.join(timeout=7)

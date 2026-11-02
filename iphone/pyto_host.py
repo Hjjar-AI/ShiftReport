@@ -204,6 +204,42 @@ class SessionScreen:
                     epoch = self.epoch
                 self._update("تعذّر إكمال التحقق. احتُفظ بالصفحة دون إعادة تحميل أو حفظ تلقائي.", epoch)
 
+    def file_work(self, script_path):
+        from .native_files import perform
+        if script_path is not None:
+            threading.current_thread().script_path = script_path
+        operations = self.host.artifacts
+        with operations.lock:
+            operations.worker_active = True
+        try:
+            while not self.stopped.is_set():
+                with self.guard:
+                    active = self.active
+                if not active or operations.queue.empty():
+                    self.stopped.wait(0.25)
+                    continue
+                if not self._owned(self._url()):
+                    self.stopped.wait(0.25)
+                    continue
+                claimed = operations.claim()
+                if claimed is None:
+                    self.stopped.wait(0.25)
+                    continue
+                key, operation = claimed
+                if self.host.failed or self.host.finished.is_set() or self.stopped.is_set():
+                    operations.finish(key, 'failed')
+                    continue
+                try:
+                    perform(operations, key, operation)
+                except Exception:
+                    operations.finish(key, 'failed')
+        except Exception:
+            # Do not leak native exception text from an uncaught worker traceback.
+            pass
+        finally:
+            with operations.lock:
+                operations.worker_active = False
+
     def close(self):
         self.stopped.set()
         if self.activity is not None:
@@ -218,10 +254,15 @@ def present(host):
 
     screen = SessionScreen(host, ui, mainthread)
     worker = None
+    file_worker = None
     try:
         root = screen.sync(screen.build)
         worker = threading.Thread(target=screen.work, name="ShiftReport-iPhone-UI", daemon=True)
         worker.start()
+        script_path = getattr(threading.current_thread(), 'script_path', None)
+        file_worker = threading.Thread(target=screen.file_work, args=(script_path,),
+                                       name="ShiftReport-iPhone-files", daemon=True)
+        file_worker.start()
         # Pyto's blocking presentation API runs on this script thread.
         ui.show_view(root, ui.PresentationMode.SHEET)
     finally:
@@ -229,3 +270,5 @@ def present(host):
         screen.sync(screen.close)
         if worker is not None:
             worker.join(timeout=2)
+        if file_worker is not None:
+            file_worker.join(timeout=2)

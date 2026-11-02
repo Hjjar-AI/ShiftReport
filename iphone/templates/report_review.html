@@ -1,0 +1,12 @@
+{% extends 'shared/report_review.html' %}
+{% block artifact_actions scoped %}
+{% set artifact_index = loop.index0 %}
+<div class="actions">
+{% for mode,label in [('preview','فتح المعاينة الأصلية'),('save','حفظ البايتات المعاينة في Files'),('share','مشاركة البايتات المعاينة')] %}
+{% if mode == 'preview' or (payload.viewed and (not data.sending or data.get('copies_enabled'))) %}
+<form method="post" action="{{ url_for('iphone.artifact_start') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="review" value="{{ token }}"><input type="hidden" name="index" value="{{ artifact_index }}"><button name="mode" value="{{ mode }}" {% if mode != 'preview' %}class="secondary"{% endif %}>{{ label }}</button></form>
+{% endif %}{% endfor %}
+{% for key,item in iphone_operations if item.index == artifact_index %}<a class="button secondary" href="{{ url_for('iphone.artifact_operation',key=key) }}">حالة عملية الملف {{ loop.index }}</a>{% endfor %}
+</div>
+{% if payload.viewed %}<p>أُكدت مراجعة هذه المعاينة.</p>{% else %}<p>فتح النافذة وحده لا يعتمد المراجعة. أكّد ظهور الملف ومراجعته بعد إغلاق المعاينة.</p>{% endif %}
+{% endblock %}

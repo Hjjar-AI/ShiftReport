@@ -1,0 +1,12 @@
+{% extends 'base.html' %}{% block content %}
+<section class="panel editor" data-native-file-operation data-status-url="{{ url_for('iphone.artifact_status',key=key) }}" data-state="{{ operation.state }}">
+<h1>عملية ملف PDF</h1><p data-native-file-status role="status">{{ message }}</p>
+<form method="post" data-native-file-review {% if operation.state != 'review' %}hidden{% endif %}>
+<input type="hidden" name="csrf" value="{{ csrf }}"><label class="check"><input type="checkbox" name="closed" value="1" required>أغلقت نافذة المعاينة الأصلية</label>
+<div class="actions"><button name="action" value="reviewed">ظهر الملف وراجعته كاملاً</button><button name="action" value="not_viewed" class="secondary">لم تظهر المعاينة أو لم أراجعها</button></div></form>
+<form method="post" data-native-file-closed {% if operation.state not in ['share_requested','uncertain','failed_open'] %}hidden{% endif %}>
+<input type="hidden" name="csrf" value="{{ csrf }}"><label class="check"><input type="checkbox" name="closed" value="1" required>أغلقت نافذة الملف الأصلية</label><button name="action" value="closed">متابعة دون افتراض نجاح التصدير أو التسليم</button></form>
+<form method="post" data-native-file-cancel {% if operation.state != 'queued' %}hidden{% endif %}><input type="hidden" name="csrf" value="{{ csrf }}"><button name="action" value="cancel" class="secondary">إلغاء الطلب الذي لم يبدأ</button></form>
+<div class="actions"><a class="button secondary" href="{{ url_for('iphone.artifact_operation',key=key) }}">تحديث الحالة فقط</a><a class="button" href="{{ url_for('features.report_review',token=operation.review) }}">العودة إلى مراجعة التقرير</a></div>
+<p>هذه ملفات وهمية موسومة DEMO. لا تعِد طلباً انقطع دون مراجعة حالته.</p>
+</section>{% endblock %}

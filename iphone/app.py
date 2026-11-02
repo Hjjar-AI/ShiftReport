@@ -6,7 +6,7 @@ from .runtime import shared_source
 
 
 # An explicit set keeps new shared controllers unavailable until reviewed here.
-# Native artifacts stay pending: an HTTP load must not mark a PDF as previewed.
+# Raw artifact/download routes remain blocked; native requests use reviewed bytes.
 DEMO_ENDPOINTS = frozenset((
     "static", "pages.ward", "pages.tasks", "pages.update_task", "pages.doctors",
     "pages.about", "pages.reset", "pages.presentation", "pages.pin",
@@ -17,10 +17,12 @@ DEMO_ENDPOINTS = frozenset((
     "features.dashboard", "features.patient_details", "features.diagnostics",
     "features.data", "features.sync",
     "iphone.static", "iphone.session_state",
+    "features.reports", "features.report_review", "features.assignments_export",
+    "iphone.artifact_start", "iphone.artifact_operation", "iphone.artifact_status",
 ))
 
 
-def create_demo_app(directory, cookie_name):
+def create_demo_app(directory, cookie_name, operations):
     shared_source()
     from flask import Blueprint, g, jsonify, render_template, request
     from jinja2 import ChoiceLoader, FileSystemLoader, PrefixLoader
@@ -51,21 +53,27 @@ def create_demo_app(directory, cookie_name):
         ready = matches and workspace.demo and workspace.unlocked and not workspace.store.locked
         return jsonify(ready=bool(ready)), 200 if ready else 409
 
+    from .artifact_views import register_routes
+    register_routes(native, operations)
     app.register_blueprint(native)
 
     @app.context_processor
     def host_context():
         workspace = getattr(g, "workspace", None)
-        return {"iphone_page_identity": page_identity(workspace) if workspace else ""}
+        token = (request.view_args or {}).get('token')
+        return {"iphone_page_identity": page_identity(workspace) if workspace else "",
+                "iphone_operations": operations.for_review(workspace, token) if workspace and token else []}
 
     @app.before_request
     def demo_boundary():
         workspace = getattr(g, "workspace", None)
+        if request.endpoint == 'pages.reset' and operations.pending():
+            return render_template('operation_error.html', message='أكمل أو ألغِ عملية الملف الأصلية قبل إعادة التجربة.'), 400
         if (request.endpoint not in DEMO_ENDPOINTS
                 or (workspace is not None and not workspace.demo) or request.files):
             return render_template(
                 "operation_error.html",
-                message="نسخة iPhone الأولية للتجربة الوهمية فقط. الاتصال بمشروع واستيراد الملفات ومعاينة التقارير ومشاركتها قيد التنفيذ.",
+                message="نسخة iPhone الأولية للبيانات الوهمية فقط. الاتصال بمشروع واستيراد الملفات غير متاحين؛ ملفات PDF تُفتح عبر أزرار المعاينة الأصلية.",
             ), 403
 
     return app
