@@ -283,8 +283,6 @@ class ReportPreviewViewModel @Inject constructor(
             try {
                 settingsRepository.putAll(mapOf(
                     AppConstants.SETTING_PDF_STYLE to style.name,
-                    AppConstants.SETTING_PDF_TWO_COLUMN_LABS to options.twoColumnLabs.toString(),
-                    AppConstants.SETTING_PDF_TWO_COLUMN_SECTIONS to options.twoColumnSections.toString(),
                     AppConstants.SETTING_PDF_PAPER_SIZE to options.paperSize.name,
                 ))
                 clearPdfReviews()

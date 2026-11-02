@@ -839,7 +839,7 @@
     <string name="ui_app_pdf_appearance_controls_005">"معاينة الفواصل: %1$s، %2$s، %3$s"</string>
     <string name="ui_app_pdf_appearance_controls_006" formatted="false">"التظليل يتناوب بين صفوف المرضى، ولا يعتمد على الفرق. بطاقات A5 تبقى دون تظليل."</string>
     <string name="ui_app_pdf_style_picker_001" formatted="false">"نمط PDF"</string>
-    <string name="ui_app_pdf_style_picker_002" formatted="false">"بطاقات طولية ملونة بحجم A5 عمودي مع فهرس قابل للضغط؛ اضغط اسم المريض للعودة إلى الفهرس."</string>
+    <string name="ui_app_pdf_style_picker_002" formatted="false">"بطاقات A5 عمودية بعمودين أسفل البيانات الشخصية، مع فهرس قابل للضغط؛ اضغط اسم المريض للعودة إلى الفهرس."</string>
     <string name="ui_app_pdf_style_picker_003" formatted="false">"جدول كلاسيكي مضغوط يحافظ على كامل المحتوى؛ يمكن اختيار حجم الورق والاتجاه."</string>
     <string name="ui_app_value_comparison_001" formatted="false">"فارغ"</string>
     <string name="ui_app_value_comparison_002">"%1$s: %2$s"</string>
@@ -1336,7 +1336,5 @@
     <string name="lab_group_remove">حذف مجموعة التحاليل</string>
     <string name="lab_group_remove_message">حذف هذه المجموعة من النموذج؟ لن يُعتمد الحذف إلا عند حفظ المريض.</string>
     <string name="lab_groups_invalid">مجموعات التحاليل أو تواريخها غير صالحة</string>
-    <string name="pdf_two_column_labs">مجموعات التحاليل في عمودين</string>
-    <string name="pdf_two_column_sections">الأقسام تحت البيانات الشخصية في عمودين (تجريبي)</string>
     <string name="pdf_two_column_sections_hint">تُقرأ الأقسام من أعلى العمود الأيمن إلى أسفله، ثم العمود الأيسر، مع حفظ ترتيب التشخيص والعلاج والمتابعة والتحاليل ثم المهام. يأخذ كل قسم ارتفاع محتواه، دون أعمدة متداخلة.</string>
 </resources>

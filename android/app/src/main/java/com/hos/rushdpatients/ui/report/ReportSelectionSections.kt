@@ -88,14 +88,6 @@ internal fun ReportPdfCustomization(
         AppPdfStylePicker(selected = style,
             onSelected = { onAppearanceChange(it, options) }, enabled = !busy)
         if (style == PdfStyle.CARDS) {
-            AppCheckRow(label = uiText(R.string.pdf_two_column_sections),
-                checked = options.twoColumnSections, enabled = !busy,
-                onCheckedChange = { onAppearanceChange(style,
-                    options.copy(twoColumnSections = it)) })
-            AppCheckRow(label = uiText(R.string.pdf_two_column_labs),
-                checked = options.twoColumnLabs, enabled = !busy && !options.twoColumnSections,
-                onCheckedChange = { onAppearanceChange(style,
-                    options.copy(twoColumnLabs = it)) })
             Text(uiText(R.string.pdf_two_column_sections_hint), style = MaterialTheme.typography.bodySmall)
         }
         Text(uiText(R.string.pdf_uses_app_theme, options.appTheme.arabicLabel(uiText)),

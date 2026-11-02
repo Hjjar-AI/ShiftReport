@@ -96,8 +96,6 @@ internal class ReportPdfWorkspace(
         hospitalName = projectConfigStore.current().hospitalName,
         wardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
         paperSize = PdfPaperSize.A5,
-        twoColumnLabs = settingsRepository.get(AppConstants.SETTING_PDF_TWO_COLUMN_LABS) != "false",
-        twoColumnSections = settingsRepository.get(AppConstants.SETTING_PDF_TWO_COLUMN_SECTIONS) == "true",
         appTheme = com.hos.rushdpatients.ui.theme.AppThemePreset.fromSetting(
             settingsRepository.get(AppConstants.SETTING_APP_THEME)
         ),

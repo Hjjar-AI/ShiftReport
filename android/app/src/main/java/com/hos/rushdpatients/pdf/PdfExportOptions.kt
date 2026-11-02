@@ -60,7 +60,5 @@ data class PdfExportOptions(
     val ruleWeight: PdfRuleWeight = PdfRuleWeight.MEDIUM,
     val ruleContrast: PdfRuleContrast = PdfRuleContrast.MEDIUM,
     val rowShading: PdfRowShading = PdfRowShading.ZEBRA,
-    val appTheme: com.hos.rushdpatients.ui.theme.AppThemePreset = com.hos.rushdpatients.ui.theme.AppThemePreset.VANILLA,
-    val twoColumnLabs: Boolean = true,
-    val twoColumnSections: Boolean = false
+    val appTheme: com.hos.rushdpatients.ui.theme.AppThemePreset = com.hos.rushdpatients.ui.theme.AppThemePreset.VANILLA
 )
