@@ -32,7 +32,7 @@ def build_window(owner, root, settings, demo):
     owner.zone = tk.StringVar(value=settings.get('TIMEZONE') or 'Asia/Damascus')
     header=ctk.CTkFrame(root,fg_color='transparent');header.pack(fill='x',padx=12,pady=6)
     header.grid_columnconfigure(0,weight=1);header.grid_columnconfigure(1,weight=1)
-    owner.header_app=ctk.CTkLabel(header,text='تقرير المناوبة',font=('Arial',18,'bold'),anchor='e',justify='right',wraplength=440)
+    owner.header_app=ctk.CTkLabel(header,text='تقرير المناوبة',font=(ctk.UI_FONT_FAMILY,18,'bold'),anchor='e',justify='right',wraplength=440)
     owner.header_app.grid(row=0,column=1,sticky='ew',padx=6)
     account=ctk.CTkFrame(header,fg_color='transparent');account.grid(row=0,column=0,sticky='ew',padx=6)
     ctk.CTkButton(account,text='الحساب',height=48,width=80,command=lambda:owner.open_tool_window(owner.security_window)).pack(side='left',padx=4)
@@ -49,6 +49,7 @@ def build_window(owner, root, settings, demo):
         return panel.content
     from desktop_dashboard import handover_dashboard
     from desktop_workflow import task_board
+    ctk.CTkLabel(sidebar,text='إجراءات سريعة',font=(ctk.UI_FONT_FAMILY,16,'bold'),anchor='e').pack(fill='x',padx=8,pady=4)
     button(sidebar,'ملخص الجناح',lambda:owner.run(lambda:handover_dashboard(owner)))
     button(sidebar,'أطباء المناوبة',lambda:owner.run(owner.roster))
     button(sidebar,'مهام الجناح',lambda:owner.run(lambda:task_board(owner)))
@@ -124,14 +125,18 @@ def build_window(owner, root, settings, demo):
     owner.supervisor=ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right',height=48)
     if not demo:
         owner.report_publish_button=button(reports,'رفع للشبكة وإرسال تقرير',lambda:owner.run(owner.report))
-        button(reports,'رفع البيانات فقط للشبكة',lambda:owner.run(publish_data_only))
+        button(reports,'رفع البيانات للشبكة فقط',lambda:owner.run(publish_data_only))
         owner.assignments_button=ctk.CTkButton(reports,text='تصدير توزيع المرضى (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
         button(data_area,'سجل العمليات والتسليم',lambda:owner.run(owner.resolve))
-    exports=section('تصدير',expanded=False,parent=reports)
+    ctk.CTkLabel(reports,text='البيانات والملفات',font=(ctk.UI_FONT_FAMILY,16,'bold'),anchor='e').pack(fill='x',padx=8,pady=4)
+    exports=section('تصدير',expanded=True,parent=reports)
     button(exports,'تصدير مسودة',lambda:owner.run(lambda:owner.report(export_only=True)))
     button(exports,'حفظ PDF مستقل لكل مشرف',lambda:owner.run(lambda:owner.report(export_only=True,separate=True)))
     if not demo:button(exports,'مراجعة وإرسال تقارير المشرفين',lambda:owner.run(owner.report_batch))
     if demo:
+        from desktop_demo import simulate_transfer
+        button(reports,'رفع للشبكة وإرسال تقرير',lambda:owner.run(lambda:simulate_transfer(owner,'report')))
+        button(reports,'رفع البيانات للشبكة فقط',lambda:owner.run(lambda:simulate_transfer(owner,'upload')))
         owner.assignments_button=button(reports,'تصدير توزيع المرضى (PDF)',lambda:owner.run(owner.export_assignments))
     button(sidebar,'مركز المزامنة',owner.open_data_tools)
     destination_row(data_area,'المسودات وسلة المحذوفات','استئناف الإدخال أو استعادة مريض',lambda:owner.open_tool_window(owner.local_data_window))
@@ -177,7 +182,7 @@ def build_window(owner, root, settings, demo):
     root.protocol('WM_DELETE_WINDOW',owner.close)
     if demo:
         from desktop_demo import DemoClient, DemoWorkspace
-        owner.client=DemoClient();owner.store=DemoWorkspace(owner.client)
+        owner.client=DemoClient();owner.store=DemoWorkspace(owner.client,settings.get('demoAppearance'))
         apply_appearance(owner,appearance_preferences(owner))
         owner.zone.set(owner.client.zone);owner.set_doctors()
         owner.status.set('DEMO — وضع تجريبي في الذاكرة. الإغلاق يحذف التجربة. يسمح بحفظ PDF تجريبي محلي فقط.')

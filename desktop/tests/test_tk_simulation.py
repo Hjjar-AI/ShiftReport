@@ -9,10 +9,16 @@ import unittest
                      'Set SHIFTREPORT_TK_SIMULATION=1 on an isolated display for real Tk checks')
 class TkSimulationTests(unittest.TestCase):
     def setUp(self):
+        from concurrent.futures import ThreadPoolExecutor
         import desktop_widgets as ctk
         from desktop_gui import Window
+        from desktop_platform import register_ui_fonts
+        from desktop_appearance import set_palette_theme
         self.ctk=ctk;ctk.set_widget_scaling(1);ctk.set_appearance_mode('Light')
+        with ThreadPoolExecutor(max_workers=1) as worker:worker.submit(register_ui_fonts).result()
+        set_palette_theme()
         self.root=ctk.CTk()
+        ctk.configure_system_fonts(self.root)
         try:self.owner=Window(self.root,{},demo=True)
         except Exception:self.root.destroy();raise
         self.addCleanup(self.close_display_root)
@@ -86,13 +92,19 @@ class TkSimulationTests(unittest.TestCase):
 
     def test_light_clinical_fields_have_visible_edges_and_all_card_sections_are_present(self):
         from desktop_appearance import LIGHT_FIELD,LIGHT_BORDER
+        from desktop_labs import read_groups
+        from tkinter import font as tkfont
         def all_children(widget):
             for child in widget.winfo_children():
                 yield child
                 yield from all_children(child)
-        labels='\n'.join(getattr(widget,'logical_text','') for widget in all_children(self.owner.patients))
         patient=self.owner.store.read()['patients'][0]
-        for field in ('initialDiagnosis','treatmentPlan','followUp','labs'):self.assertIn(patient[field],labels)
+        self.owner.cards.toggle_expansion(patient['externalId']);self.owner.render();self.settle()
+        labels='\n'.join(getattr(widget,'logical_text','') for widget in all_children(self.owner.patients))
+        for field in ('initialDiagnosis','treatmentPlan','followUp'):self.assertIn(patient[field],labels)
+        for group in read_groups(patient):self.assertIn(group['results'],labels)
+        header=self.owner.header_app._label
+        self.assertEqual('Tajawal',tkfont.Font(root=header,font=header.cget('font')).actual('family'))
         failures=[]
         def inspect():
             window=next(child for child in self.root.winfo_children() if isinstance(child,self.ctk.CTkToplevel) and child.title()=='تحرير المريض')
@@ -107,7 +119,43 @@ class TkSimulationTests(unittest.TestCase):
             except Exception as error:failures.append(error)
             finally:
                 next(widget for widget in all_children(window) if isinstance(widget,self.ctk.CTkButton) and widget.logical_text=='حفظ المريض').invoke()
+                if window.winfo_exists():
+                    failures.append(AssertionError('Saving the unchanged dummy patient left the editor open'))
+                    window.destroy()
         self.root.after(150,inspect);self.owner.edit(patient)
+        self.assertEqual([],failures)
+
+        before=self.owner.store.read()
+        def inspect_details():
+            from desktop_sections import SectionPages
+            from desktop_tasks import read_tasks
+            from desktop_model import badges_decode,patient_text
+            window=next(child for child in self.root.winfo_children()
+                        if isinstance(child,self.ctk.CTkToplevel) and child.title()=='ملف المريض الكامل — جولة قراءة')
+            try:
+                sections=next(child for child in all_children(window) if isinstance(child,SectionPages))
+                self.assertEqual('الملف السريري',sections.get())
+                expected=sum(not task.get('done') for task in read_tasks(patient))
+                self.assertEqual('المهام'+(' '+str(expected) if expected else ''),sections.buttons['المهام'][0].logical_text)
+                badges=len(badges_decode(patient.get('warningDetails','')))
+                self.assertEqual('الشارة'+(' '+str(badges) if badges else ''),sections.buttons['الشارة'][0].logical_text)
+                clinical=next(child for child in all_children(sections.tab('الملف السريري')) if isinstance(child,self.ctk.CTkTextbox))
+                self.assertEqual(patient_text(patient,self.owner.client.doctors,self.owner.client.zone),clinical._readonly_source)
+                self.settle();clinical.yview_moveto(.3);self.settle();position=clinical.yview()[0]
+                sections.set('المهام');self.settle()
+                task_text=next(child for child in all_children(sections.tab('المهام')) if isinstance(child,self.ctk.CTkTextbox))._readonly_source
+                for task in read_tasks(patient):self.assertIn(task['description'],task_text)
+                next(child for child in all_children(window) if isinstance(child,self.ctk.CTkButton) and child.logical_text=='التالي').invoke();self.settle()
+                next(child for child in all_children(window) if isinstance(child,self.ctk.CTkButton) and child.logical_text=='السابق').invoke();self.settle()
+                self.assertEqual('المهام',sections.get())
+                sections.set('الملف السريري');self.settle()
+                self.assertAlmostEqual(position,clinical.yview()[0],delta=.03)
+                sections.set('الشارة');self.settle()
+                self.assertEqual('الشارة',self.owner.detail_selected_sections[patient['externalId']])
+                self.assertEqual(before,self.owner.store.read())
+            except Exception as error:failures.append(error)
+            finally:window.destroy()
+        self.root.after(150,inspect_details);self.owner.details(patient)
         self.assertEqual([],failures)
 
     def test_arabic_editor_wheel_scrolls_over_fields_and_hands_off_at_text_boundaries(self):
@@ -175,6 +223,9 @@ class TkSimulationTests(unittest.TestCase):
             finally:
                 next(child for child in descendants(window) if isinstance(child,self.ctk.CTkButton)
                      and child.logical_text=='حفظ المريض').invoke()
+                if window.winfo_exists():
+                    failures.append(AssertionError('Saving the dummy editor left its window open'))
+                    window.destroy()
         with patch('desktop_widgets._VISUAL',shaped):
             self.root.after(150,inspect);self.owner.edit(patient)
             self.settle()

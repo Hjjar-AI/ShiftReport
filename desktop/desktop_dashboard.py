@@ -62,6 +62,8 @@ def handover_dashboard(owner):
         current()
         apply_filter(owner, key)
         window.destroy()
+    from desktop_layout import transfer_controls
+    transfer_controls(area,owner,before_action=lambda:(current(),window.destroy()))
     shift_label = ctk.CTkLabel(area, text='', anchor='e', justify='right', wraplength=600)
     shift_label.pack(fill='x', padx=10, pady=6)
     section_heading(area, 'يحتاج انتباهك')
@@ -104,7 +106,7 @@ def handover_dashboard(owner):
         shift = current()
         actor = local_identity(owner.store, owner.client)
         values = summary(shift['patients'], (actor or {}).get('uid'), owner.client.zone)
-        update(shift_label, 'مناوبة {} · الملخص يشمل جميع المرضى قبل التصفية'.format(current_date(owner.client.zone)))
+        update(shift_label, 'مناوبة {} • الملخص يشمل جميع المرضى قبل التصفية'.format(current_date(owner.client.zone)))
         for key, tile in tiles.items():
             update(tile, '{}: {}'.format(FILTERS[key][0], values[key]))
             if key in {'urgent'}:

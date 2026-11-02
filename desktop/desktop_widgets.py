@@ -13,6 +13,7 @@ import unicodedata
 import arabic_reshaper
 from bidi.algorithm import get_display
 import customtkinter as native
+from desktop_tokens import UI_FONT_FAMILY
 
 _VISUAL = sys.platform.startswith('linux')
 _SHAPER = arabic_reshaper.ArabicReshaper(configuration={
@@ -75,8 +76,21 @@ def wrapped_text(text, measure, width):
 
 
 def _font(kwargs):
-    kwargs.setdefault('font', ('DejaVu Sans' if sys.platform.startswith('linux') else 'Arial', 14))
+    kwargs.setdefault('font', (UI_FONT_FAMILY, 14))
     return kwargs
+
+
+def configure_system_fonts(root):
+    """Set Tk text-dialog fonts before the splash's first layout."""
+    available=set(tkfont.names(root=root))
+    for name in ('TkDefaultFont','TkTextFont','TkMenuFont','TkHeadingFont',
+                 'TkCaptionFont','TkSmallCaptionFont','TkIconFont','TkTooltipFont'):
+        if name in available:tkfont.nametofont(name,root=root).configure(family=UI_FONT_FAMILY)
+
+
+class CTkTextbox(native.CTkTextbox):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **_font(kwargs))
 
 
 class CTkLabel(native.CTkLabel):

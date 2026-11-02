@@ -27,12 +27,12 @@ def workflow_status(client, store, demo=False):
     if downloaded.get('at'):
         stamp=datetime.fromtimestamp(downloaded['at']/1000,ZoneInfo(client.zone)).strftime('%Y-%m-%d %H:%M')
         if downloaded.get('snapshot')!=shift['meta'].get('snapshotId',''):stamp+=' (لنسخة سابقة)'
-    label='DEMO — بيانات في الذاكرة' if demo else ('محفوظ على الجهاز · حالة النشر غير معروفة' if remote is None else 'تعديلات لم تُنشر' if dirty else 'مطابق لآخر نسخة معروفة على هذا الجهاز')
+    label='DEMO — بيانات في الذاكرة' if demo else ('محفوظ على الجهاز • حالة النشر غير معروفة' if remote is None else 'تعديلات لم تُنشر' if dirty else 'مطابق لآخر نسخة معروفة على هذا الجهاز')
     entry=next((item for item in baseline.get('state',{}).get('publicationJournal',[])
                 if remote and item.get('snapshotId')==remote['meta'].get('snapshotId')),None)
     published=datetime.fromtimestamp(entry['at']/1000,ZoneInfo(client.zone)).strftime('%Y-%m-%d %H:%M') if entry and entry.get('at') else 'غير معروف'
-    text='مناوبة {} · {}\nآخر نشر معروف: {} · آخر جلب: {}'.format(current_date(client.zone),label,published,stamp)
-    if unknown:text+=' · {} عمليات غير محسومة'.format(len(unknown))
+    text='مناوبة {} • {}\nآخر نشر معروف: {} • آخر جلب: {}'.format(current_date(client.zone),label,published,stamp)
+    if unknown:text+=' • {} عمليات غير محسومة'.format(len(unknown))
     return text, WorkflowAction.DEMO if demo else WorkflowAction.DELIVERY_HISTORY if unknown else WorkflowAction.REVIEW_PUBLICATION if dirty else WorkflowAction.DOWNLOAD
 
 
@@ -104,7 +104,7 @@ def task_board(owner):
             key=patient['externalId']
             if key not in groups:
                 groups[key]=ctk.CTkFrame(area);groups[key].pack(fill='x',padx=6,pady=4)
-                ctk.CTkLabel(groups[key],text=patient_name(patient),wraplength=650,justify='right',anchor='e',font=('Arial',16,'bold')).pack(fill='x',padx=8,pady=5)
+                ctk.CTkLabel(groups[key],text=patient_name(patient),wraplength=650,justify='right',anchor='e',font=(ctk.UI_FONT_FAMILY,16,'bold')).pack(fill='x',padx=8,pady=5)
                 button(groups[key],'تحرير المريض',guarded(open_patient))
             frame=ctk.CTkFrame(groups[key],fg_color='transparent');frame.pack(fill='x',padx=4,pady=3)
             ctk.CTkLabel(frame,text=task['description'],wraplength=650,justify='right',anchor='e').pack(fill='x',padx=8,pady=3)

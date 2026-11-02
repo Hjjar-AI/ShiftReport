@@ -63,7 +63,7 @@ class PdfContinuationTests(unittest.TestCase):
         path=render_report(owner,source,font_path=str(Path(__file__).resolve().parents[1]/'fonts/Tajawal-Regular.ttf'),
                            options=dict(paper='A5',layout='cards',local_draft=True),report_day='2026-10-27')
         self.addCleanup(shutil.rmtree,path.parent,True)
-        text=subprocess.run(['pdftotext','-layout',str(path),'-'],capture_output=True,check=True,timeout=30).stdout.decode()
+        text=subprocess.run(['pdftotext','-raw',str(path),'-'],capture_output=True,check=True,timeout=30).stdout.decode()
         pages=[page for page in text.split('\f') if page.strip()]
         self.assertGreater(len(pages),2)
         for marker in markers:self.assertEqual(1,text.count(marker),'Lost or duplicated lab result '+marker)

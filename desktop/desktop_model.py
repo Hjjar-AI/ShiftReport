@@ -51,7 +51,7 @@ def badges_encode(badges):
 
 
 def patient_name(row):
-    return row.get('name') or 'مريض بلا اسم · '+row['externalId'][:8]
+    return row.get('name') or 'مريض بلا اسم • '+row['externalId'][:8]
 
 
 def new_patient(zone):
@@ -99,7 +99,7 @@ def patient_text(row, doctors, zone, clinical_only=False):
     from desktop_teams import is_cross_team_cover
     if is_cross_team_cover(row,doctors):lines.append('تغطية فردية من فريق آخر؛ عضوية الفريق الثابتة لا تتغير')
     for text, level in badges_decode(row.get('warningDetails', '')):
-        lines.append('شارة: ' + text + ' · ' + BADGE_PRIORITY[level])
+        lines.append('شارة: ' + text + ' • ' + BADGE_PRIORITY[level])
     for task in ordered_for_display(read_tasks(row)):
         lines.append('مهمة: ' + task_text(task))
     return '\n'.join(lines)

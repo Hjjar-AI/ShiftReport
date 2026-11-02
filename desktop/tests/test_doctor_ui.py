@@ -43,20 +43,31 @@ class DoctorWorkspaceTests(unittest.TestCase):
         with patch('desktop_intro.set_emblem'):find(self.root,'حول التطبيق').invoke()
         self.assertEqual(before,self.owner.store.read())
 
-    def test_patient_cards_show_direct_actions_without_expansion_or_move_controls(self):
-        frame=next(value[1] for key,value in self.owner.patient_widgets.items() if key[0]=='patient')
+    def test_patient_cards_keep_actions_and_full_content_through_individual_and_bulk_expansion(self):
+        before=self.owner.store.read();row=before['patients'][0];key=row['externalId']
+        frame=self.owner.patient_widgets[('patient',key)][1]
         primary=next(child for child in frame.children if any(grandchild.cget('text')=='تحرير' for grandchild in child.children))
-        self.assertEqual(['تحرير','تثبيت للعرض','حذف'],[child.cget('text') for child in primary.children if child.winfo_manager()=='grid'])
-        self.assertFalse(any(widget.cget('text')=='الملف الكامل' for widget in descendants(frame)))
-        self.assertEqual({0,1,2},{child.layout['column'] for child in primary.children if child.winfo_manager()=='grid'})
-        self.assertFalse(any(widget.cget('text') in {'طي','توسيع','توسيع الكل','طي الكل','نقل لأعلى','نقل لأسفل','المزيد'} for widget in descendants(self.root)))
-        row=self.owner.store.read()['patients'][0]
+        self.assertEqual(['تحرير','التفاصيل','تثبيت للعرض','حذف'],[child.cget('text') for child in primary.children if child.winfo_manager()=='grid'])
+        self.assertEqual({0,1,2,3},{child.layout['column'] for child in primary.children if child.winfo_manager()=='grid'})
+        self.assertFalse(any(widget.cget('text') in {'نقل لأعلى','نقل لأسفل','المزيد'} for widget in descendants(frame)))
         with patch.object(self.owner,'edit') as edit:
-            find(frame,'تحرير').invoke()
-            edit.assert_called_once_with(row)
+            find(frame,'تحرير').invoke();edit.assert_called_once_with(row)
+        self.assertFalse(self.owner.cards.expanded(key));find(frame,'توسيع').invoke()
+        frame=self.owner.patient_widgets[('patient',key)][1]
+        self.assertTrue(self.owner.cards.expanded(key))
         text='\n'.join(widget.cget('text') or '' for widget in descendants(frame))
-        for field in ('initialDiagnosis','treatmentPlan','followUp','labs'):self.assertIn(row[field],text)
+        for field in ('initialDiagnosis','treatmentPlan','followUp'):self.assertIn(row[field],text)
+        from desktop_labs import read_groups
+        for group in read_groups(row):self.assertIn(group['results'],text)
         for task in json.loads(row['tasksJson']):self.assertIn(task['description'],text)
+        self.owner.expand_cards_button.invoke()
+        self.assertTrue(all(self.owner.cards.expanded(patient['externalId']) for patient in before['patients']))
+        self.owner.expand_cards_button.invoke()
+        self.assertFalse(any(self.owner.cards.expanded(patient['externalId']) for patient in before['patients']))
+        self.assertEqual({},self.owner.cards.expansion);self.assertEqual(before,self.owner.store.read())
+        frame=self.owner.patient_widgets[('patient',key)][1]
+        with patch.object(self.owner,'details') as details:
+            find(frame,'التفاصيل').invoke();details.assert_called_once_with(row)
 
     def test_pinning_changes_only_presentation_and_keeps_full_content(self):
         before=self.owner.store.read();key=before['patients'][-1]['externalId']
@@ -154,7 +165,9 @@ class DoctorWorkspaceTests(unittest.TestCase):
         before=self.owner.store.read();row=before['patients'][0];task=json.loads(row['tasksJson'])[0]
         scope=(self.owner.client.project_id,before['meta']['shiftId'],row['externalId'],task['id'])
         set_task_done(self.owner,*scope,True,False)
-        changed=self.owner.store.read();changed['patients'][0]['labs']='new clinical result'
+        changed=self.owner.store.read()
+        from desktop_labs import apply
+        apply(changed['patients'][0],[dict(id='changed-result',title='',date=None,results='new clinical result')])
         self.owner.store.commit(draft=changed)
         set_task_done(self.owner,*scope,False,True)
         after=self.owner.store.read()
@@ -184,7 +197,8 @@ class DoctorWorkspaceTests(unittest.TestCase):
         before=self.owner.store.read()
         def interact(window):
             controls=[widget for widget in descendants(window) if widget.cget('text')=='إتمام المهمة']
-            self.assertEqual(6,len(controls))
+            from desktop_model import pending_task_count
+            self.assertEqual(pending_task_count(before['patients']),len(controls))
             controls[0].invoke()
             self.assertTrue(json.loads(self.owner.store.read()['patients'][0]['tasksJson'])[0]['done'])
             self.assertEqual([2000],list(window.delays.values()))

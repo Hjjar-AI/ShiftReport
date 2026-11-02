@@ -27,7 +27,7 @@ def ordered_for_display(tasks):
 
 
 def status_label(task):
-    return 'مكتملة' if task.get('done') else 'معلقة'
+    return 'مكتملة' if task.get('done') else 'معلّقة'
 
 
 def task_text(task):

@@ -10,7 +10,7 @@ def doctor_groups(doctors, keys=None):
         if key not in doctors:return 'اختيار محفوظ غير متاح'
         if doctor.get('clinicalRole') == 'SUPERVISOR':return 'المشرفون'
         supervisor = doctor.get('teamSupervisorId')
-        return 'فريق ' + doctor_label(doctors, supervisor) if supervisor else 'المقيمون · دون فريق'
+        return 'فريق ' + doctor_label(doctors, supervisor) if supervisor else 'المقيمون • دون فريق'
     for key in sorted(candidates, key=lambda key: (doctors.get(key, {}).get('clinicalRole') != 'SUPERVISOR', group(key), doctor_label(doctors, key))):
         groups.setdefault(group(key), []).append(key)
     return groups

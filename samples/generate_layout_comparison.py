@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render disposable A5 layout comparisons from the fictional sample, without app/network access."""
+"""Render the current fixed two-column A5 layout from the fictional sample, without app/network access."""
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -33,20 +33,17 @@ def generate():
     now = datetime.now(ZoneInfo(client.zone))
     output = ROOT / 'samples/layout-comparison'
     output.mkdir(exist_ok=True)
-    layouts = [('a5-current-stacked.pdf', False, False),
-               ('a5-lab-groups-two-columns.pdf', True, False),
-               ('a5-all-sections-two-columns.pdf', True, True)]
-    for name, labs, sections in layouts:
-        options = normalize_options(dict(two_column_labs=labs, two_column_sections=sections))
-        temporary = render_cards(client, shift, None, ROOT / 'desktop/fonts/Tajawal-Regular.ttf',
-                                 options, now, report_day=shift['meta']['shiftDate'])
-        shutil.copy2(temporary, output / name)
-        print(output / name)
+    name='a5-current-two-columns.pdf'
+    options=normalize_options()
+    temporary=render_cards(client,shift,None,ROOT/'desktop/fonts/Tajawal-Regular.ttf',
+                           options,now,report_day=shift['meta']['shiftDate'])
+    shutil.copy2(temporary,output/name)
+    print(output/name)
     (output / 'README.md').write_text(
-        '# A5 layout comparison\n\n'
-        'The same six fictional sample patients in three layouts, with a filled follow-up on the first card '
-        '(four filled/two empty follow-ups total): current stacked panels, lab groups '
-        'in two columns, and all clinical sections in two columns. Demographics remain full width; '
+        '# A5 layout samples\n\n'
+        'The current fixed layout is `a5-current-two-columns.pdf`, using the same six fictional patients '
+        '(four filled/two empty follow-ups). Earlier optional-layout PDFs are retained as historical evidence; '
+        'the current renderer no longer offers their switches. Demographics remain full width; '
         'each section uses its own content height. Read down the right column, then down the left, '
         'then continue on the next page. Diagnosis, treatment, follow-up, ordered lab groups and finally tasks '
         'retain their source order, with independent thin inset separators. No nested '

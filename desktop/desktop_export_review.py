@@ -15,7 +15,7 @@ from desktop_protocol import require, fingerprint, current_date
 from desktop_reports import options_dialog, report_text
 
 
-DRAFT_LABEL = 'مسودة محلية · لم يُعتمد نشرها'
+DRAFT_LABEL = 'مسودة محلية • لم يُعتمد نشرها'
 
 
 def export_content(shift, doctors, all_doctors=False):
@@ -37,9 +37,11 @@ class ExportReview:
         self.prepared=None
 
     def identity(self, shift=None, doctors=None):
+        from desktop_appearance import preferences
         owner=self.owner
         owner.ready(False)
         value=dict(project=owner.client.project_id,config=copy.deepcopy(owner.client.config),actor=owner.client._actor,
+            options=self.options,app_theme=preferences(owner)['accent'],
             content=export_content(shift if shift is not None else owner.store.read(),
                                    doctors if doctors is not None else owner.client.doctors, self.assignments))
         return owner.io(lambda:fingerprint(value))
@@ -62,7 +64,8 @@ class ExportReview:
         supervisor=owner.selected_supervisor() if not self.assignments else None
         groups=list(dict.fromkeys(p.get('responsibleSupervisorId') or None for p in local['patients'])) if self.separate else [supervisor]
         require(groups,'لا يوجد مرضى للتصدير')
-        options=dict(self.options,local_draft=draft)
+        from desktop_appearance import preferences
+        options=dict(self.options,local_draft=draft,app_theme=preferences(owner)['accent'])
         for group in groups:
             subset=copy.deepcopy(local)
             if self.separate:

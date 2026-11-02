@@ -6,7 +6,40 @@ import shutil
 import subprocess
 import sys
 import threading
+from functools import lru_cache
 from desktop_protocol import BridgeError, require
+
+
+@lru_cache(maxsize=1)
+def register_ui_fonts():
+    """Register bundled faces for this process before creating Tk; run off-main."""
+    import ctypes
+    fonts=[Path(__file__).resolve().parent/'fonts'/('Tajawal-'+face+'.ttf') for face in ('Regular','Bold')]
+    require(all(font.is_file() for font in fonts),'ملفات خط Tajawal غير موجودة؛ احتفظ بمجلد fonts بجانب التطبيق')
+    try:
+        if os.name=='nt':
+            library=ctypes.WinDLL('gdi32',use_last_error=True)
+            add=library.AddFontResourceExW
+            add.argtypes=[ctypes.c_wchar_p,ctypes.c_uint,ctypes.c_void_p]
+            add.restype=ctypes.c_int
+            for font in fonts:
+                require(add(str(font),0x10,None)>0,'تعذر تحميل خط Tajawal الخاص بالتطبيق')
+        else:
+            require(sys.platform.startswith('linux'),'هذا التطبيق يدعم Windows وLinux')
+            library=ctypes.CDLL('libfontconfig.so.1')
+            current=library.FcConfigGetCurrent
+            current.argtypes=[];current.restype=ctypes.c_void_p
+            add=library.FcConfigAppFontAddFile
+            add.argtypes=[ctypes.c_void_p,ctypes.c_char_p];add.restype=ctypes.c_int
+            config=current()
+            require(config,'تعذر تهيئة خطوط التطبيق')
+            for font in fonts:
+                require(add(config,os.fsencode(font)),'تعذر تحميل خط Tajawal الخاص بالتطبيق')
+        # Keep the native library available for the lifetime of Tk; do not
+        # install fonts, update system caches or modify the user's font files.
+        return library
+    except (OSError,AttributeError):
+        raise BridgeError('تعذر تحميل خط Tajawal الخاص بالتطبيق؛ تحقق من ملفات الخط ودعم الخطوط في النظام') from None
 
 
 def data_directory():

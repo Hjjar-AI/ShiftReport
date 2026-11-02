@@ -48,9 +48,9 @@ def doctor_form(owner, doctor=None, registry=None):
 def registry_text(doctors, permissions=False):
     lines=[]
     for key,doctor in doctors.items():
-        text=doctor_label(doctors,key)+'\n'+GENDER[doctor['gender']]+' · '+('مشرف' if doctor['clinicalRole']=='SUPERVISOR' else 'مقيم')
-        if permissions:text+=' · رتبة '+str(rank(doctor))+(' · مدير دائم' if permanent(doctor) else '')
-        text+='\nحساب تليجرام: '+str(doctor.get('telegram_id') or 'غير مرتبط')+' · مجموعة التقارير: '+str(doctor.get('destination') or 'بدون')
+        text=doctor_label(doctors,key)+'\n'+GENDER[doctor['gender']]+' • '+('مشرف' if doctor['clinicalRole']=='SUPERVISOR' else 'مقيم')
+        if permissions:text+=' • رتبة '+str(rank(doctor))+(' • مدير دائم' if permanent(doctor) else '')
+        text+='\nحساب تليجرام: '+str(doctor.get('telegram_id') or 'غير مرتبط')+' • مجموعة التقارير: '+str(doctor.get('destination') or 'بدون')
         if doctor.get('teamSupervisorId'):text+='\nمشرف الفريق: '+doctor_label(doctors,doctor['teamSupervisorId'])
         lines.append(text)
     return '\n\n'.join(lines)

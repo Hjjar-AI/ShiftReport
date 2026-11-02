@@ -23,12 +23,12 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     insertion_expected=fingerprint(insertion_source)
     tasks = json.loads(row.get('tasksJson') or '[]')
     badges = badges_decode(row.get('warningDetails', ''))
-    window = modal(owner, 'مريض جديد' if is_new else 'تحرير المريض')
+    window = modal(owner, 'مريض جديد' if is_new else 'تحرير المريض', '1150x760')
     controls = ctk.CTkFrame(window); controls.pack(side='bottom', fill='x')
     save_status=ctk.CTkLabel(controls,text='',anchor='e',justify='right',wraplength=500)
     save_status.grid(row=0,column=0,columnspan=2,sticky='ew',padx=10,pady=4)
     advance=[False]
-    identity=ctk.CTkLabel(window,text='',anchor='e',justify='right',font=('Arial',18,'bold'),wraplength=700)
+    identity=ctk.CTkLabel(window,text='',anchor='e',justify='right',font=(ctk.UI_FONT_FAMILY,18,'bold'),wraplength=700)
     identity.pack(fill='x',padx=12,pady=4)
     section_hint=ctk.CTkLabel(window,text='',anchor='e')
     section_hint.pack(fill='x',padx=12)
@@ -78,7 +78,9 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     for key, mapping in [('gender',GENDER),('hasCompanion',YES),('diagnosisType',DIAGNOSIS)]:
         getters[key] = combo(areas['البيانات الشخصية'], LABELS[key], mapping, row[key])
     ctk.CTkLabel(areas['البيانات الشخصية'], text='سنة الميلاد أو العمر (يحوّل العمر إلى سنة تقديرية)', anchor='e').pack(fill='x', padx=10)
+    ctk.CTkLabel(areas['البيانات الشخصية'],text='أو',anchor='center').pack(fill='x',padx=10,pady=2)
     age = entry(areas['البيانات الشخصية'], 'العمر — اختياري')
+    age.configure(validate='key',validatecommand=numeric)
     def apply_age():
         require(age.get().strip().isdecimal(), 'أدخل العمر بالأرقام')
         year = datetime.now(ZoneInfo(owner.client.zone)).year-int(age.get())
@@ -102,7 +104,7 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
         for child in badge_area.winfo_children(): child.destroy()
         for index,(text,level) in enumerate(badges):
             frame = ctk.CTkFrame(badge_area); frame.pack(fill='x',padx=6,pady=4)
-            ctk.CTkLabel(frame,text=text+' · '+BADGE_PRIORITY[level],wraplength=440,anchor='e').pack(fill='x',padx=8)
+            ctk.CTkLabel(frame,text=text+' • '+BADGE_PRIORITY[level],wraplength=440,anchor='e').pack(fill='x',padx=8)
             button(frame,'حذف الشارة',lambda i=index: remove_badge(i))
         badge_text = entry(badge_area,'نص الشارة',multiline=True)
         level = combo(badge_area,'المستوى',BADGE_PRIORITY,'none')

@@ -12,6 +12,61 @@ from desktop_protocol import ZoneInfo, fingerprint, require
 from desktop_settings import raw_config
 
 
+def protected_join_form(owner, selected_path=None):
+    """File/password stay in this dialog; unlock precedes project review."""
+    import tkinter as tk
+    from desktop_protocol import open_join
+    window=modal(owner,'الانضمام إلى مشروع','740x580')
+    actions=ctk.CTkFrame(window);actions.pack(side='bottom',fill='x')
+    area=ctk.CTkScrollableFrame(window);area.pack(fill='both',expand=True)
+    ctk.CTkLabel(area,text='اختر ملف الانضمام المحمي وكلمة مروره بأي ترتيب، ثم افتحه لمراجعة المشروع.',
+        anchor='e',justify='right',wraplength=600).pack(fill='x',padx=10,pady=8)
+    chosen=[Path(selected_path) if selected_path else None]
+    path_label=ctk.CTkLabel(area,text=chosen[0].name if chosen[0] else 'لم يُحدد ملف',anchor='e',wraplength=600)
+    password=tk.StringVar()
+    def refresh(*args):
+        if not window.winfo_exists():return
+        unlock.configure(state='normal' if chosen[0] and password.get() else 'disabled')
+    def pick():
+        path=filedialog.askopenfilename(parent=window,title='ملف الانضمام المحمي',filetypes=[('ShiftReport join','*.srjoin.json')])
+        if path:chosen[0]=Path(path);path_label.configure(text=chosen[0].name)
+        refresh()
+    file_button=button(area,'اختيار ملف الانضمام',pick)
+    path_label.pack(fill='x',padx=10,pady=4)
+    ctk.CTkLabel(area,text='كلمة مرور ملف الانضمام',anchor='e').pack(fill='x',padx=10,pady=(8,2))
+    password_entry=ctk.CTkEntry(area,textvariable=password,show='*',height=48,justify='right')
+    password_entry.pack(fill='x',padx=10,pady=4)
+    result=[];opening=[False]
+    def close():
+        if not opening[0]:window.destroy()
+    def unlock_file():
+        require(chosen[0] is not None and password.get(),'اختر الملف وأدخل كلمة مروره')
+        secret=password.get();opening[0]=True
+        file_button.configure(state='disabled');password_entry.configure(state='disabled');unlock.configure(state='disabled')
+        try:config=owner.io(lambda:open_join(chosen[0],secret))
+        finally:
+            secret=None;opening[0]=False;password.set('')
+            if window.winfo_exists():
+                file_button.configure(state='normal');password_entry.configure(state='normal')
+        if not window.winfo_exists():return
+        review='المشفى: '+config['hospitalName']+'\nتشفير بيانات تليجرام: '+('مفعّل' if config.get('encryptTelegram') else 'غير مفعّل')
+        review+='\nوجهة المقيمين: '+('مجموعة منفصلة' if config.get('residentsChatId') else 'مجموعة المشروع')
+        review+='\n\nستُفحص هوية المشروع والمفتاح والمواضيع قبل استبدال الاتصال القائم.'
+        if not owner.text_dialog('مراجعة مشروع الانضمام',review,approve=True,approval_label='متابعة الاتصال بالمشروع'):
+            if window.winfo_exists():window.grab_set()
+            return
+        result.append(config);window.destroy()
+    buttons=dialog_actions(actions,primary=('فتح الملف ومراجعة المشروع',guarded(unlock_file)),cancel=('إلغاء',close))
+    window.protocol('WM_DELETE_WINDOW',close)
+    unlock=buttons['فتح الملف ومراجعة المشروع']
+    trace=password.trace_add('write',refresh)
+    refresh()
+    try:owner.root.wait_window(window)
+    finally:
+        password.trace_remove('write',trace);password.set('');chosen.clear()
+    return result[0] if result else None
+
+
 def first_admin_form(owner, previous=None):
     previous = previous or {}
     window = modal(owner, 'إنشاء مشروع جديد — المدير الأول', '780x650')

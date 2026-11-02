@@ -130,7 +130,7 @@ Leave `PDF_FONT` unset for bundled Tajawal; an override is external/EXE-relative
 |---|---|
 | Optional `.env` | Beside the EXE; not embedded |
 | Relative `JOIN_FILE`, `DATA_DIR` or explicit `PDF_FONT` in `.env` | Resolved relative to the EXE directory |
-| Default Arabic PDF fonts | Bundled `fonts/Tajawal-Regular.ttf` and `Tajawal-Bold.ttf` |
+| Default Arabic UI/PDF fonts | Bundled `fonts/Tajawal-Regular.ttf` and `Tajawal-Bold.ttf`; UI registration is process-private before the first window, with no system font installation |
 | Default Windows clinical workspace | `%LOCALAPPDATA%\ShiftReportDesktop` |
 | Generated packaging files | `%LOCALAPPDATA%\ShiftReportBuild` in this guide |
 

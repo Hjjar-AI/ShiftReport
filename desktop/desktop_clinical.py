@@ -39,9 +39,18 @@ def save_clinical(workspace, client, candidate, expected):
             else previous.get('assignmentChangedOn', ''))
         tasks = read_tasks(row)
         validate_tasks(tasks)
+        previous_tasks={task['id']:task for task in read_tasks(previous or {})}
         for task in tasks:
             task['description'] = task['description'].strip()
-            task.update(dict.fromkeys(COMPLETION))
+            previous_task=previous_tasks.get(task['id'])
+            if previous_task is None or bool(task.get('done'))!=bool(previous_task.get('done')):
+                task.update(dict.fromkeys(COMPLETION))
+            else:
+                # Retain hidden stored stamps on unrelated saves, without
+                # accepting new attribution from a candidate form/snapshot.
+                for field in COMPLETION:
+                    if field in previous_task:task[field]=previous_task[field]
+                    else:task.pop(field,None)
         row['tasksJson'] = packed(tasks)
         validate_patient(row,client.doctors,client.zone)
         row.update(lastEditedByDoctorId='', lastEditedBy='', updatedAt='0',

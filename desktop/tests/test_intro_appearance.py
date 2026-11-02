@@ -23,15 +23,15 @@ class IntroTests(unittest.TestCase):
         for credit in (SUPERVISOR,*CONTRIBUTORS,ORIGINAL_AUTHOR):self.assertIn(credit,text)
         self.assertNotIn('الإصدار',text)
 
-    def test_automatic_dismissal_uses_original_five_second_deadline(self):
-        self.clock=104;self.intro.expire();self.ready.assert_not_called()
-        self.assertEqual(105,self.intro.deadline)
-        self.clock=105;self.intro.expire();self.ready.assert_called_once()
+    def test_automatic_dismissal_uses_three_second_deadline(self):
+        self.clock=102;self.intro.expire();self.ready.assert_not_called()
+        self.assertEqual(103,self.intro.deadline)
+        self.clock=103;self.intro.expire();self.ready.assert_called_once()
         self.assertFalse(self.intro.frame.winfo_exists())
 
     def test_expired_hold_waits_only_until_release_without_extending_deadline(self):
         self.intro.press();self.clock=106;self.intro.expire();self.ready.assert_not_called()
-        self.intro.release();self.ready.assert_called_once();self.assertEqual(105,self.intro.deadline)
+        self.intro.release();self.ready.assert_called_once();self.assertEqual(103,self.intro.deadline)
 
     def test_quick_tap_and_duplicate_timeout_create_workspace_once(self):
         self.intro.press();self.intro.release();self.intro.expire();self.intro.finish()
@@ -64,7 +64,9 @@ class LightThemeTests(unittest.TestCase):
             appearance.set_palette_theme(accent);theme=appearance.native.ThemeManager.theme
             with self.subTest(accent=accent):
                 self.assertEqual(appearance.LIGHT_BACKGROUND,theme['CTk']['fg_color'][0])
-                self.assertNotEqual('#FFFFFF',theme['CTkFrame']['fg_color'][0])
+                self.assertEqual(appearance.LIGHT_SURFACE,theme['CTkFrame']['fg_color'][0])
+                self.assertNotEqual(theme['CTk']['fg_color'][0],theme['CTkFrame']['fg_color'][0])
+                self.assertEqual('Tajawal',theme['CTkFont']['family'])
                 self.assertNotEqual(appearance.LIGHT_FIELD,theme['CTkFrame']['fg_color'][0])
                 for name in ('CTkEntry','CTkTextbox','CTkComboBox'):
                     self.assertEqual(appearance.LIGHT_FIELD,theme[name]['fg_color'][0])

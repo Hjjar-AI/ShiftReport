@@ -53,8 +53,6 @@ class _Cards:
         self.client, self.shift, self.patients = client, shift, patients
         self.now, self.total = now, total
         self.local_draft = options.get('local_draft', False)
-        self.two_column_labs = options.get('two_column_labs', True)
-        self.two_column_sections = options.get('two_column_sections', False)
         self.colors = palette(options)
         title = self.colors['title']
         self.panel_fill = '#' + ''.join('{:02X}'.format(int(int(title[i:i+2], 16)*.12+255*.88)) for i in (1,3,5))
@@ -239,51 +237,6 @@ class _Cards:
         if cells:
             draw_row(cells)
 
-    def treatment_columns(self, value, full_line_count):
-        paragraphs = value.replace('\r\n', '\n').replace('\r', '\n').split('\n')
-        if sum(bool(p.strip()) for p in paragraphs) < 4:
-            return None
-        width = (RIGHT - LEFT - TREATMENT_COLUMN_GAP) / 2
-        lines, boundaries = [], []
-        for paragraph in paragraphs:
-            lines.extend(self.wrap(paragraph, self.body, width))
-            boundaries.append(len(lines))
-        height = min(max(n, len(lines) - n) for n in boundaries[:-1])
-        return (lines, boundaries, width) if height < full_line_count else None
-
-    def draw_treatment_columns(self, index, title, paint, columns):
-        lines, boundaries, width = columns
-        offset = 0
-        while offset < len(lines):
-            capacity = int((self.bottom - self.y) / self.body.height)
-            if capacity < 1:
-                self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
-                capacity = int((self.bottom - self.y) / self.body.height)
-            require(capacity > 0, 'لا توجد مساحة لعرض العلاج')
-            limit = min(len(lines), offset + 2 * capacity)
-            # Prefer leaving unused space over splitting an original line between columns.
-            end, split = limit, None
-            for candidate_end in reversed(boundaries):
-                if not offset < candidate_end <= limit:
-                    continue
-                count = candidate_end - offset
-                candidates = [n - offset for n in boundaries if max(1, count - capacity) <= n - offset <= min(capacity, count)]
-                if candidates:
-                    end = candidate_end
-                    split = min(candidates, key=lambda n: (abs(2 * n - count), -n))
-                    break
-            count = end - offset
-            if split is None:
-                split = min(capacity, (count + 1) // 2)
-            top = self.y
-            for column, chunk in enumerate([lines[offset:offset + split], lines[offset + split:end]]):
-                for n, line in enumerate(chunk):
-                    self.draw(line, self.body, top + n * self.body.height, right=RIGHT - column * (width + TREATMENT_COLUMN_GAP))
-            self.y = top + max(split, count - split) * self.body.height
-            offset = end
-            if offset < len(lines):
-                self.new_page(); self.header(index); self.line(title + ' (تابع)', paint)
-
     def panel_columns(self, index, row, sections):
         width = (RIGHT - LEFT - TREATMENT_COLUMN_GAP) / 2
         panel_gap = 3
@@ -465,49 +418,7 @@ class _Cards:
             self.y += GAP
             self.patient_badges(index, row)
             visible = [section for section in sections if section[4] or section[1].strip()]
-            if self.two_column_sections:
-                self.panel_columns(index, row, visible)
-            full_width = [] if self.two_column_sections else [section for section in visible
-                if not (self.two_column_labs and section[0].startswith('التحاليل'))]
-            for title, value, urgent, keep_together, always_show in full_width:
-                if not always_show and not value.strip():
-                    continue
-                if self.two_column_labs and title.startswith('المهام ('):
-                    self.panel_columns(index, row, [section for section in visible if section[0].startswith('التحاليل')])
-                paint = self.urgent if urgent else self.heading
-                lines = self.wrap(value, self.body, RIGHT - LEFT) if value.strip() else []
-                columns = self.treatment_columns(value, len(lines)) if title == TREATMENT_TITLE else None
-                def draw_section_heading(label):
-                    labels = self.wrap(label, paint, RIGHT - LEFT)
-                    require(self.y + len(labels) * paint.height + (self.body.height if lines else 0) <= self.bottom,
-                            'عنوان القسم أطول من مساحة البطاقة')
-                    if title.startswith('التحاليل'):
-                        self.canvas.setFillColor(HexColor(self.panel_fill))
-                        self.canvas.rect(LEFT, HEIGHT - self.y - len(labels) * paint.height,
-                                         RIGHT - LEFT, len(labels) * paint.height, stroke=0, fill=1)
-                    for line in labels:self.line(line, paint)
-
-                needed = GAP + len(self.wrap(title, paint, RIGHT - LEFT)) * paint.height + len(lines) * self.body.height + GAP
-                fresh_top = TOP + PADDING + len(self.wrap(patient_name(row), self.name, RIGHT - LEFT)) * self.name.height + 2 * TITLE_PADDING + GAP
-                move_group = keep_together and needed <= self.bottom - fresh_top and self.y + needed > self.bottom
-                if move_group or self.y + GAP + len(self.wrap(title, paint, RIGHT - LEFT)) * paint.height + (self.body.height if lines else 0) > self.bottom:
-                    self.new_page(); self.header(index)
-                self.canvas.setStrokeColor(HexColor(self.colors['rule']))
-                self.canvas.setLineWidth(self.colors['rule_width'])
-                self.canvas.line(LEFT, HEIGHT - self.y, RIGHT, HEIGHT - self.y)
-                self.y += GAP
-                draw_section_heading(title)
-                if columns is not None:
-                    self.draw_treatment_columns(index, title, paint, columns)
-                else:
-                    for line in lines:
-                        if self.y + self.body.height > self.bottom:
-                            self.new_page(); self.header(index)
-                            draw_section_heading(title + ' (تابع)')
-                        self.line(line, self.body)
-                self.y += GAP
-            if self.two_column_labs and not self.two_column_sections and not any(section[0].startswith('المهام (') for section in visible):
-                self.panel_columns(index, row, [section for section in visible if section[0].startswith('التحاليل')])
+            self.panel_columns(index, row, visible)
         self.canvas.save()
         return self.page
 

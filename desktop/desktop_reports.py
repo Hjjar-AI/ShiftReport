@@ -25,9 +25,11 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     import desktop_widgets as ctk
     from desktop_forms import button, combo, modal, guarded, dialog_actions
     from desktop_pdf_content import normalize_options
+    from desktop_appearance import preferences as appearance_preferences
     from desktop_layout import Disclosure
     if settings_only:export_only=True
-    previous = normalize_options(dict(DEFAULTS, **owner.io(owner.store.report_preferences)))
+    previous = normalize_options(dict(dict(DEFAULTS, **owner.io(owner.store.report_preferences)),
+        app_theme=appearance_preferences(owner)['accent']))
     window = modal(owner, 'مراجعة التقرير وإرساله' if review_send else 'إعدادات PDF' if settings_only else 'توزيع المرضى بالأسماء فقط' if assignments else 'خيارات التقرير', '740x680')
     actions = ctk.CTkFrame(window); actions.pack(side='bottom', fill='x')
     area = ctk.CTkScrollableFrame(window); area.pack(fill='both', expand=True)
@@ -44,7 +46,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
                     'تغير المشروع أو المناوبة؛ أعد فتح خيارات التقرير')
             names=[doctor_label(owner.client.doctors,key) for key in shift['meta'].get('doctors','').split(',') if key]
             shown=names[:2]
-            summary=' / '.join(shown)+(' · +'+str(len(names)-2) if len(names)>2 else '')
+            summary=' / '.join(shown)+(' • +'+str(len(names)-2) if len(names)>2 else '')
             roster.configure(text='أطباء المناوبة: '+(summary or 'لم تحدد بعد'))
             return shift
         def choose_roster():
@@ -80,7 +82,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
             doctor=owner.client.doctors.get(key,{})
             available=doctor.get('clinicalRole')=='SUPERVISOR' and bool(doctor.get('destination'))
             variable=tk.BooleanVar(value=available)
-            ctk.CTkCheckBox(area,text=doctor_label(owner.client.doctors,key)+' — '+str(count)+' مريض'+('' if available else ' · لا توجد وجهة'),
+            ctk.CTkCheckBox(area,text=doctor_label(owner.client.doctors,key)+' — '+str(count)+' مريض'+('' if available else ' • لا توجد وجهة'),
                 variable=variable,state='normal' if available else 'disabled',height=48).pack(fill='x',padx=10,pady=3)
             if available:batch_targets[key]=variable
     formats = {'pdf':'PDF', 'text':'نص'}
@@ -92,41 +94,18 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     layout = (lambda:previous['layout']) if assignments else combo(advanced.content, 'نمط PDF',
         {'table':'جدول كلاسيكي', 'cards':'بطاقات ملونة مع فهرس', 'paragraphs':'فقرات'},
         previous['layout'], on_change=lambda:refresh_options())
-    page_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
-    page_area.pack(fill='x')
-    paper = (lambda:'A4') if assignments else combo(page_area, 'حجم الورق', {key:key for key in ('A4','A5')}, previous['paper'])
-    appearance_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
-    appearance_area.pack(fill='x')
-    from desktop_pdf_settings import appearance_controls
-    appearance = appearance_controls(appearance_area, previous)
-
-    columns_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
-    two_column_labs=tk.BooleanVar(value=previous.get('two_column_labs',True))
-    two_column_sections=tk.BooleanVar(value=previous.get('two_column_sections',False))
-    ctk.CTkCheckBox(columns_area,text='الأقسام تحت البيانات الشخصية في عمودين (تجريبي)',
-        variable=two_column_sections,height=48).pack(fill='x',padx=10,pady=3)
-    ctk.CTkCheckBox(columns_area,text='مجموعات التحاليل في عمودين',
-        variable=two_column_labs,height=48).pack(fill='x',padx=10,pady=3)
-    ctk.CTkLabel(columns_area,text='عند تفعيل جميع الأقسام في عمودين، لا تُقسّم محتويات العمود إلى أعمدة أصغر.',
-        wraplength=600,justify='right',anchor='e').pack(fill='x',padx=10,pady=3)
     description=ctk.CTkLabel(area,text='',wraplength=620,justify='right',anchor='e')
     description.pack(fill='x',padx=10,pady=8)
     def refresh_options():
         if format_get()=='pdf':
-            appearance.set_layout('assignments' if assignments else layout())
             pdf_area.pack(fill='x',padx=4,pady=3,before=description)
-            if not assignments and layout()=='cards':
-                page_area.pack_forget()
-                columns_area.pack(fill='x')
-            else:columns_area.pack_forget()
-            if (assignments or layout()!='cards') and not page_area.winfo_manager():page_area.pack(fill='x',before=appearance_area)
             if assignments:
-                text='A4 عمودي · ثلاثة جداول من اليمين إلى اليسار · الترقيم العربي في العمود الأيمن · تتابع الصفحات دون حذف أسماء.'
+                text='A5 عمودي • ثلاثة جداول من اليمين إلى اليسار • الترقيم العربي في العمود الأيمن • تتابع الصفحات دون حذف أسماء.'
             else:
                 text={
-                    'cards':'بطاقات A5 عمودي مع فهرس؛ حجم الورق والاتجاه ثابتان لهذا النمط.',
-                    'table':'جدول كلاسيكي مضغوط يحافظ على كامل المحتوى.',
-                    'paragraphs':'فقرات متتابعة تحافظ على كامل المحتوى.'
+                    'cards':'بطاقات A5 عمودي مع فهرس؛ الأقسام السريرية في عمودين من اليمين إلى اليسار، والمهام أخيراً.',
+                    'table':'جدول كلاسيكي A5 عمودي بتظليل متناوب يحافظ على كامل المحتوى.',
+                    'paragraphs':'فقرات متتابعة A5 عمودي تحافظ على كامل المحتوى.'
                 }[layout()]
         else:
             pdf_area.pack_forget()
@@ -141,11 +120,10 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     refresh_options()
     result = []
     def read_options():
-        return dict(format=format_get(), layout=layout(), paper=paper(), orientation='portrait',
-                    separate=False, ward=previous['ward'], two_column_labs=two_column_labs.get(),
-                    two_column_sections=two_column_sections.get(), **appearance())
+        return normalize_options(dict(format=format_get(), layout=layout(), paper='A5',
+            ward=previous['ward'], app_theme=appearance_preferences(owner)['accent']))
     def save_options(options):
-        preferences = dict(previous, **appearance()) if assignments else dict(options)
+        preferences = dict(previous) if assignments else dict(options)
         if force_pdf or settings_only:preferences['format']=previous['format']
         owner.io(lambda:owner.store.save_report_preferences(preferences))
         if scope_get is not None and window.winfo_exists():owner.supervisor.set(scopes[scope_get()])

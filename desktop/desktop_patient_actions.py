@@ -59,7 +59,7 @@ def recycle_bin(owner):
     records=owner.io(owner.store.deleted_patients)
     require(records,'لا توجد سجلات محذوفة محليا لهذه المناوبة؛ الحذف على أجهزة أخرى لا يظهر في هذه السلة')
     choice=owner.choose('استعادة مريض محذوف',
-        [item['patient']['name']+' · '+item['patient']['admitNum'] for item in records],
+        [item['patient']['name']+' • '+item['patient']['admitNum'] for item in records],
         notice=None if owner.demo else 'تُحذف عناصر السلة محلياً بعد نحو أسبوع. قد يتأخر التنظيف إذا كان التطبيق مغلقاً.')
     if choice is None:return
     row=records[choice]['patient']

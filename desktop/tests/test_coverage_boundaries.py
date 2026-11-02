@@ -155,8 +155,8 @@ class LocalExportBoundaryTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory(); self.addCleanup(self.directory.cleanup)
         self.client = client(); self.client._actor = 'cedar'
         self.local = shift()
-        self.owner = SimpleNamespace(client=self.client, store=SimpleNamespace(read=lambda:copy.deepcopy(self.local)),
-            ready=Mock(), io=lambda action:action(), status=Mock(), demo=False, selected_supervisor=lambda:None)
+        self.owner = SimpleNamespace(client=self.client, store=SimpleNamespace(read=lambda:copy.deepcopy(self.local),state={}),
+            settings={},ready=Mock(), io=lambda action:action(), status=Mock(), demo=False, selected_supervisor=lambda:None)
         self.review = ExportReview(self.owner, dict(format='text'))
         self.review.preview(True, None)
         for item in self.review.prepared['files']: item['opened'] = True
@@ -180,14 +180,16 @@ class LocalExportBoundaryTests(unittest.TestCase):
 
     def test_actor_project_and_lock_changes_during_chooser_prevent_write(self):
         target = Path(self.directory.name)/'draft.txt'
-        for change in ('actor', 'project', 'lock'):
+        for change in ('actor', 'project', 'lock', 'accent'):
             with self.subTest(change=change):
                 self.client._actor='cedar'; self.client.project_id='a'*64; self.owner.ready.side_effect=None
+                self.owner.store.state={}
                 self.review.preview(True,None)
                 self.review.prepared['files'][0]['opened']=True
                 def choose(**kwargs):
                     if change=='actor': self.client._actor='oak'
                     elif change=='project': self.client.project_id='b'*64
+                    elif change=='accent': self.owner.store.state['appearance']={'accent':'SYSTEM'}
                     else: self.owner.ready.side_effect=BridgeError('synthetic locked')
                     return str(target)
                 with patch('desktop_export_review.filedialog.asksaveasfilename', side_effect=choose):

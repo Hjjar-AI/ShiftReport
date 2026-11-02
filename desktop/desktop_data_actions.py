@@ -80,7 +80,7 @@ def import_draft(owner):
 def text_dialog(owner,title,text,approve=False,approval_label='راجعت النسخة المعروضة وأوافق على النشر',publication_plan=None):
     window=modal(owner,title,'920x680')
     controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
-    widget=ctk.CTkTextbox(window,wrap='word',font=('Arial',15));widget.pack(fill='both',expand=True,padx=8,pady=8)
+    widget=ctk.CTkTextbox(window,wrap='word',font=(ctk.UI_FONT_FAMILY,15));widget.pack(fill='both',expand=True,padx=8,pady=8)
     copy_original=set_readonly_text(widget,text)
     if publication_plan is not None:
         ctk.CTkLabel(controls,text='التأكيد ينشر النسخة المحلية الكاملة مكان بيانات المناوبة المنشورة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.',

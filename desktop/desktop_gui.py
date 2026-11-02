@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import filedialog
 from desktop_widgets import messagebox, simpledialog
 import desktop_widgets as ctk
-from desktop_protocol import BridgeError, MissingProjectIndex, Client, ZoneInfo, current_date, fingerprint, is_admin, open_join, require
+from desktop_protocol import BridgeError, MissingProjectIndex, Client, ZoneInfo, current_date, fingerprint, is_admin, require
 from desktop_model import doctor_label
 from desktop_settings import raw_config
 from desktop_connection_files import discover_connections
@@ -131,12 +131,18 @@ class Window:
 
     def open_demo(self):
         if self.locked:return
-        window=ctk.CTkToplevel(self.root)
-        Window(window,{},demo=True)
+        import subprocess
+        command=[sys.executable]
+        if not getattr(sys,'frozen',False):command.append(str(Path(__file__).resolve()))
+        # A separate process also isolates Tk's global theme/scaling from the
+        # real workspace; --demo never discovers a connection or clinical store.
+        subprocess.Popen(command+['--demo'],stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
     def reset_demo(self):
         require(self.demo,'هذا الإجراء للوضع التجريبي فقط')
         self.store.reset(self.client);self.plan=None;self.raw_draft=None
+        apply_appearance(self,appearance_preferences(self))
 
     def note_activity(self,event=None):
         if not self.locked:self.last_activity=time.monotonic()
@@ -256,13 +262,9 @@ class Window:
             path=self.settings.get('JOIN_FILE') if self.client is None else None
             if path:
                 path=Path(path); path=path if path.is_absolute() else BASE/path
-            if not path or not Path(path).is_file():
-                path=filedialog.askopenfilename(title='ملف الانضمام الحالي',filetypes=[('ShiftReport join','*.srjoin.json')])
-            if not path:return
-            password=simpledialog.askstring('ملف الانضمام','كلمة مرور ملف الانضمام:',show='*',parent=self.root)
-            if password is None:return
-            try: config=self.io(lambda:open_join(path,password))
-            finally: password=None
+            from desktop_onboarding import protected_join_form
+            config=protected_join_form(self,path)
+            if config is None:return
         zone=self.zone.get().strip(); ZoneInfo(zone)
         candidate=Client(config,zone,admin_only=raw); candidate.telegram.runner=self.io
         if raw:
@@ -507,9 +509,18 @@ def main():
         settings,candidates,notice = ({}, [], '') if args.demo else discover_connections(BASE,args.env)
         ctk.configure_rendering(settings.get('TEXT_RENDERING') or 'auto')
         ctk.set_appearance_mode(settings.get('APPEARANCE') or 'System')
-        from desktop_appearance import set_palette_theme
-        set_palette_theme()
+        from desktop_appearance import set_palette_theme, load_demo_appearance
+        from desktop_platform import register_ui_fonts
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            executor.submit(register_ui_fonts).result()
+            if args.demo:
+                settings['demoAppearance']=executor.submit(load_demo_appearance).result()
+        cosmetic=settings.get('demoAppearance',{})
+        mode=cosmetic.get('mode','System')
+        set_palette_theme(cosmetic.get('accent','VANILLA'),mode)
+        if args.demo:ctk.set_appearance_mode('Dark' if mode=='AMOLED' else mode)
         root=ctk.CTk()
+        ctk.configure_system_fonts(root)
         from desktop_intro import LaunchIntro
         LaunchIntro(root,lambda:Window(root,settings,demo=args.demo,connection_candidates=candidates,startup_notice=notice))
         root.mainloop()

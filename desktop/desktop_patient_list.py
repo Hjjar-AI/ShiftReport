@@ -29,6 +29,7 @@ def render(owner):
         has_shift = connected and owner.store.state.get('draft') is not None
         owner.login_button.configure(state='normal' if connected and not owner.busy else 'disabled')
         owner.fetch_button.configure(state='normal' if authenticated and not owner.busy else 'disabled')
+        owner.upload_button.configure(state='normal' if authenticated and has_shift and not owner.busy else 'disabled')
         owner.send_report_button.configure(state='normal' if authenticated and has_shift and not owner.busy else 'disabled')
     actor=owner.client.doctors.get(owner.client._actor) if owner.client else None
     if actor and is_admin(actor) and time.time()<owner.client._expires:
@@ -56,12 +57,12 @@ def render(owner):
     else:owner.empty_start_button.pack_forget()
     active=filter_summary(owner)
     grouping=owner.grouping.get()
-    view_summary=' · '.join(active + ([grouping] if grouping!=GROUPS['NONE'] else []))
+    view_summary=' • '.join(active + ([grouping] if grouping!=GROUPS['NONE'] else []))
     owner.view_controls.refresh('خيارات العرض' + (' ({})'.format(len(active)) if active else ''))
     owner.view_summary.configure(text=view_summary)
     owner.reset_view_button.configure(state='normal' if active and not owner.busy else 'disabled')
     summary,action=workflow_status(owner.client,owner.store,owner.demo)
-    owner.workflow.configure(text=summary.split('\n',1)[0].split(' · ',1)[-1])
+    owner.workflow.configure(text=summary.split('\n',1)[0].split(' • ',1)[-1])
     owner.workflow_details.configure(text=summary)
     if owner.show_workflow_details:owner.workflow_details.grid(row=2,column=0,columnspan=3,sticky='ew',padx=8,pady=4)
     else:owner.workflow_details.grid_forget()
@@ -86,11 +87,15 @@ def render(owner):
         owner.metrics.configure(text='اجلب بيانات الجناح المنشورة للبدء.');return
     draft=owner.store.read(); rows=draft['patients']; pending=pending_task_count(rows)
     owner.cards.select((owner.client.project_id,draft['meta']['shiftId']),{row['externalId'] for row in rows})
+    all_expanded=bool(rows) and all(owner.cards.expanded(row['externalId']) for row in rows)
+    owner.expand_cards_button.configure(text='طي الكل' if all_expanded else 'توسيع الكل',
+        command=lambda value=not all_expanded:owner.run(lambda:set_card_expansion(owner,value)))
+    owner.card_expansion.set(all_expanded)
     owner.sort_status.configure(text=sort_description(draft))
     display=owner.patient_display(draft)
     roster_names=[owner.client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in draft['meta'].get('doctors','').split(',') if key]
-    roster=' / '.join(roster_names[:2])+(' · +'+str(len(roster_names)-2) if len(roster_names)>2 else '')
-    metrics='{} من {} مريض · {} مهمة معلقة · أطباء المناوبة: {}'.format(len(display),len(rows),pending,len(roster_names))
+    roster=' / '.join(roster_names[:2])+(' • +'+str(len(roster_names)-2) if len(roster_names)>2 else '')
+    metrics='{} من {} مريض • {} مهمة معلقة • أطباء المناوبة: {}'.format(len(display),len(rows),pending,len(roster_names))
     if owner.show_workflow_details:metrics+='\n'+(roster or 'لم يحدد أطباء المناوبة')
     owner.metrics.configure(text=metrics)
     owner.update_patient_list(display,draft)
@@ -110,6 +115,8 @@ def update_patient_list(owner,display,draft):
     if filtered and not getattr(owner,'list_filtered',False):owner.unfiltered_scroll=scroll
     if not filtered and getattr(owner,'list_filtered',False):scroll=getattr(owner,'unfiltered_scroll',0)
     owner.list_filtered=filtered
+    from desktop_appearance import preferences
+    appearance=preferences(owner)
     entries=[];last_group=None;current_group=None
     for heading,index,row in display:
         if heading is not None:current_group=heading
@@ -119,7 +126,8 @@ def update_patient_list(owner,display,draft):
         key=row['externalId']
         # Day-dependent presentation changes only at the shared 08:30 boundary.
         signature=(row,index,len(draft['patients']),key in owner.cards.pinned,
-                   owner.client.doctors,owner.client.zone,owner.card_density.get(),current_date(owner.client.zone))
+                   owner.cards.expanded(key),owner.client.doctors,owner.client.zone,owner.card_density.get(),
+                   appearance['mode'],appearance['accent'],current_date(owner.client.zone))
         entries.append((('patient',key),signature,(row,index)))
     if not entries:
         text=('لا توجد نتائج مطابقة. امسح التصفية أو غيّر البحث.' if draft and draft['patients']
@@ -140,12 +148,12 @@ def update_patient_list(owner,display,draft):
             widget=patient_card(owner,owner.patients,row,index)
         else:
             widget=ctk.CTkLabel(owner.patients,text=signature,anchor='e',justify='right',
-                wraplength=ctk.logical_width(owner.content,padding=40,minimum=180),font=('Arial',18,'bold') if key[0]=='group' else ('Arial',14))
+                wraplength=ctk.logical_width(owner.content,padding=40,minimum=180),font=(ctk.UI_FONT_FAMILY,18,'bold') if key[0]=='group' else (ctk.UI_FONT_FAMILY,14))
         owner.patient_widgets[key]=(copy.deepcopy(signature),widget)
         changed=True
     if changed:
         for _,widget in owner.patient_widgets.values():widget.pack_forget()
-        for key in order:owner.patient_widgets[key][1].pack(fill='x',padx=3,pady=2 if owner.card_density.get()=='مضغوطة' else 4)
+        for key in order:owner.patient_widgets[key][1].pack(fill='x',padx=3,pady=4 if owner.card_density.get()=='مريحة' else 2)
         owner.list_order=order
         def restore_scroll():
             if owner.patients.winfo_exists() and owner.list_scope==scope:
@@ -176,4 +184,10 @@ def patient_display(owner,draft):
 def toggle_card(owner,key):
     owner.ready(False)
     owner.cards.toggle(key)
+    owner.render()
+
+
+def set_card_expansion(owner,value):
+    owner.ready(False)
+    owner.cards.set_expanded(value)
     owner.render()

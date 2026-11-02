@@ -24,6 +24,11 @@ class SectionPages(ctk.CTkFrame):
 
     def get(self):return self.selected
 
+    def set_label(self,title,label):
+        control,_=self.buttons[title]
+        self.buttons[title]=(control,label)
+        control.configure(text=label)
+
     def set(self,title):
         if title not in self.pages:return
         for page in self.pages.values():page.pack_forget()

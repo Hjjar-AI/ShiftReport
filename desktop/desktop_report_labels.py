@@ -17,6 +17,6 @@ def report_filename(report_day, supervisor=None, supervisor_name=None, assignmen
 
 def report_caption(shift, doctors, report_day, supervisor=None):
     names=[doctors.get(key,{}).get('name','') for key in shift['meta'].get('doctors','').split(',') if key]
-    title='تقرير المناوبة: '+report_day+' · أطباء المناوبة: '+' / '.join(names)
+    title='تقرير المناوبة: '+report_day+' • أطباء المناوبة: '+' / '.join(names)
     if supervisor is not None:title+='\nمرضى المشرف: '+doctors.get(supervisor,{}).get('name','')
     return title

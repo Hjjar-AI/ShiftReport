@@ -69,7 +69,7 @@ def groups(rows, mode, doctors):
 
 def sort_description(shift):
     levels=levels_for(shift)
-    return 'الترتيب المحفوظ: '+(' ← '.join(FIELDS[level['field']]+' '+('↓' if level.get('direction')=='DESC' else '↑') for level in levels) if levels else 'يدوي')+' · الأولوية أولاً'
+    return 'الترتيب المحفوظ: '+(' ← '.join(FIELDS[level['field']]+' '+('↓' if level.get('direction')=='DESC' else '↑') for level in levels) if levels else 'يدوي')+' • الأولوية أولاً'
 
 
 def sorting_editor(owner, body, controls, on_saved, embedded=False):
@@ -88,14 +88,50 @@ def sorting_editor(owner, body, controls, on_saved, embedded=False):
         'name': ('حسب الاسم', [dict(field='NAME',direction='ASC')]),
         'admission': ('مدة القبول — الأطول أولاً', [dict(field='DAYS_OF_ADMITTANCE',direction='DESC'),dict(field='NAME',direction='ASC')]),
         'workbook': ('ترتيب ملف Excel', WORKBOOK_LEVELS),
+        'supervisor': ('حسب فريق المشرف', [dict(field='SUPERVISOR',direction='ASC'),dict(field='NAME',direction='ASC')]),
     }
     selected=next((key for key,(_,levels) in presets.items() if levels==existing),None)
     if selected is None:
         presets['current']=('الترتيب الحالي المستورد',existing)
         selected='current'
-    choice=combo(body,'الترتيب',{key:value[0] for key,value in presets.items()},selected)
+    levels=[dict(level) for level in existing]
+    readers=[]
+    editor=ctk.CTkFrame(body,fg_color='transparent')
+    def capture():
+        levels[:]=[dict(field=field(),direction=direction()) for field,direction in readers]
+    def render_levels():
+        readers.clear()
+        for child in editor.winfo_children():child.destroy()
+        for index,level in enumerate(levels):
+            line=ctk.CTkFrame(editor);line.pack(fill='x',padx=4,pady=4)
+            ctk.CTkLabel(line,text='المستوى '+str(index+1),anchor='e').pack(fill='x',padx=8)
+            field=combo(line,'الحقل',FIELDS,level['field'])
+            direction=combo(line,'الاتجاه',{'ASC':'تصاعدي','DESC':'تنازلي'},level.get('direction','ASC'))
+            readers.append((field,direction))
+            actions=ctk.CTkFrame(line,fg_color='transparent');actions.pack(fill='x')
+            for column,(label,delta) in enumerate([('نقل لأعلى',-1),('نقل لأسفل',1),('حذف المستوى',0)]):
+                actions.grid_columnconfigure(column,weight=1)
+                ctk.CTkButton(actions,text=label,height=48,width=80,
+                    state='disabled' if delta and not 0<=index+delta<len(levels) else 'normal',
+                    command=lambda i=index,d=delta:change_level(i,d)).grid(row=0,column=2-column,sticky='ew',padx=2,pady=2)
+    def change_level(index,delta):
+        capture()
+        item=levels.pop(index)
+        if delta:levels.insert(index+delta,item)
+        render_levels()
+    def preset_changed():
+        levels[:]=[dict(level) for level in presets[choice()][1]]
+        render_levels()
+    choice=combo(body,'الترتيب',{key:value[0] for key,value in presets.items()},selected,preset_changed)
+    editor.pack(fill='x')
+    def add_level():
+        capture()
+        if len(levels)<len(FIELDS):levels.append(dict(field='NAME',direction='ASC'))
+        render_levels()
+    ctk.CTkButton(body,text='إضافة مستوى ترتيب',height=48,command=add_level).pack(fill='x',padx=8,pady=4)
+    render_levels()
     def save():
-        levels=[dict(level) for level in presets[choice()][1]]
+        capture()
         ordered(draft,owner.client.doctors,owner.client.zone,levels)
         owner.save_draft(draft,expected);on_saved()
     callback=guarded(lambda:owner.run(save)) if embedded else guarded(save)

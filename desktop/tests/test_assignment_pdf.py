@@ -26,30 +26,36 @@ class AssignmentPdfTests(unittest.TestCase):
 
     def words(self,page):return page.findall('.//{http://www.w3.org/1999/xhtml}word')
 
-    def assert_centered(self,page):
-        words=[word for word in self.words(page) if float(word.attrib['yMax'])<800]
-        top=min(float(word.attrib['yMin']) for word in words)
-        bottom=max(float(word.attrib['yMax']) for word in words)
-        self.assertLess(abs((top+bottom)/2-419),25,'Complete content block should center in printable A4 area')
+    def assert_a5_geometry(self,page):
+        self.assertAlmostEqual(420,float(page.attrib['width']),delta=1)
+        self.assertAlmostEqual(595,float(page.attrib['height']),delta=1)
+        words=self.words(page)
+        self.assertLess(min(float(word.attrib['yMin']) for word in words),30,'Compact title should stay at the top')
+        for word in words:
+            self.assertGreaterEqual(float(word.attrib['xMin']),0)
+            self.assertLessEqual(float(word.attrib['xMax']),420)
+            self.assertGreaterEqual(float(word.attrib['yMin']),0)
+            self.assertLessEqual(float(word.attrib['yMax']),595)
 
-    def test_short_sheet_centers_content_with_timestamp_and_demo_mark_on_every_page(self):
-        path,pages=self.render(self.local)
+    def test_short_a5_sheet_has_top_header_timestamp_and_demo_mark(self):
+        source=copy.deepcopy(self.local);source['patients']=source['patients'][:6]
+        path,pages=self.render(source)
         self.assertTrue(path.name.endswith('_DEMO.pdf'));self.assertEqual(1,len(pages))
-        self.assert_centered(pages[0]);self.assertIn('DEMO',' '.join(word.text or '' for word in self.words(pages[0])))
+        self.assert_a5_geometry(pages[0]);self.assertIn('DEMO',' '.join(word.text or '' for word in self.words(pages[0])))
 
-    def test_long_sheet_retains_all_patients_and_centers_each_page_with_demo_footer(self):
+    def test_long_a5_sheet_retains_all_patients_with_repeated_headers_and_demo_footer(self):
         source=copy.deepcopy(self.local);template=source['patients'][0]
         source['patients']=[]
         for index in range(110):
             row=copy.deepcopy(template);row.update(externalId='dummy-'+str(index),name='PAT{:03d}'.format(index),assignmentChangedOn='2026-10-26')
             source['patients'].append(row)
+        before=copy.deepcopy(source)
         _,pages=self.render(source);self.assertGreater(len(pages),1)
         all_text=' '.join(word.text or '' for page in pages for word in self.words(page))
         for index in range(110):self.assertEqual(1,all_text.count('PAT{:03d}'.format(index)))
         for page in pages:
-            self.assert_centered(page);self.assertIn('DEMO',' '.join(word.text or '' for word in self.words(page)))
-            self.assertAlmostEqual(595,float(page.attrib['width']),delta=1)
-            self.assertAlmostEqual(842,float(page.attrib['height']),delta=1)
+            self.assert_a5_geometry(page);self.assertIn('DEMO',' '.join(word.text or '' for word in self.words(page)))
+        self.assertEqual(before,source)
 
     def test_empty_roster_is_allowed_without_changing_stored_identity_or_assignments(self):
         source=copy.deepcopy(self.local);source['meta']['doctors']='';before=copy.deepcopy(source)

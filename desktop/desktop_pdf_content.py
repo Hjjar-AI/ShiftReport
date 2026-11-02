@@ -6,8 +6,8 @@ from desktop_protocol import require, current_date
 from desktop_tasks import read_tasks, ordered_for_display, task_text
 
 PAPERS = {'A4': (595, 842), 'A5': (420, 595)}
-DEFAULT_OPTIONS = dict(two_column_labs=True, two_column_sections=False, layout='cards', paper='A5', orientation='portrait', color='teal', dark=False,
-                       separate=False, local_draft=False, ward='', rule_weight='medium', rule_contrast='medium', row_shading='auto')
+DEFAULT_OPTIONS = dict(layout='cards', paper='A5', orientation='portrait', app_theme='VANILLA', dark=False,
+                       separate=False, local_draft=False, ward='', rule_weight='medium', rule_contrast='medium', row_shading='zebra')
 
 RULE_WEIGHTS = {'thin': .75, 'medium': 1.5, 'thick': 2.25}
 RULE_CONTRASTS = {'light': ('#CBD5E1', '#475569'), 'medium': ('#94A3B8', '#64748B'),
@@ -22,14 +22,13 @@ PRESENTATION_PRESETS = {
 def normalize_options(options=None):
     result = dict(DEFAULT_OPTIONS, **(options or {}))
     require(result['layout'] in {'table','cards','paragraphs'} and result['paper'] in PAPERS and
-            result['orientation'] in {'portrait','landscape'} and result['color'] in
-            {'teal','blue','green','purple','pastel'}, 'خيارات PDF غير صالحة')
-    require(type(result['dark']) is bool and type(result['separate']) is bool and type(result['local_draft']) is bool, 'خيارات PDF غير صالحة')
-    require(type(result['two_column_labs']) is bool and type(result['two_column_sections']) is bool, 'خيارات أعمدة PDF غير صالحة')
-    require(result['rule_weight'] in RULE_WEIGHTS and result['rule_contrast'] in RULE_CONTRASTS and
-            result['row_shading'] in {'auto','zebra','none'}, 'خيارات فواصل PDF غير صالحة')
-    # Current reports use portrait/light with fixed separators.
-    result.update(rule_weight='medium', rule_contrast='medium', separate=False, orientation='portrait', dark=False)
+            result['app_theme'] in {'VANILLA','SYSTEM','COASTAL','CREAM'}, 'خيارات PDF غير صالحة')
+    require(type(result['local_draft']) is bool, 'خيارات PDF غير صالحة')
+    # Ignore retired presentation overrides without changing stored clinical data.
+    for key in ('two_column_labs','two_column_sections','color'):
+        result.pop(key,None)
+    result.update(paper='A5', rule_weight='medium', rule_contrast='medium', row_shading='zebra',
+                  separate=False, orientation='portrait', dark=False)
     return result
 
 
@@ -39,37 +38,19 @@ def roster_label(doctors):
 
 
 def row_backgrounds(patients, colors):
-    """Contiguous supervisor groups use group/cream stripes; other orders use zebra."""
-    if colors['shading']=='none':return [colors['page'] for _ in patients]
-    if colors['shading']=='zebra':return [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(patients))]
-    seen=set();last=object();group=-1;position=0;grouped=True
-    for patient in patients:
-        key=patient.get('responsibleSupervisorId') or ''
-        if key!=last:
-            if key in seen:grouped=False;break
-            seen.add(key);last=key
-    if not grouped:return [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(patients))]
-    result=[];last=object()
-    for patient in patients:
-        key=patient.get('responsibleSupervisorId') or ''
-        if key!=last:group+=1;position=0;last=key
-        result.append(colors['groups'][group%len(colors['groups'])] if position%2==0 else colors['cream'])
-        position+=1
-    return result
+    """Classic tables always alternate neutral rows, independent of team order."""
+    return [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(patients))]
 
 
 def palette(options):
-    # Same colors and group sequence as Android PdfPalette.resolve.
+    # Android PdfPalette uses the app accent's light face in every appearance.
     options=normalize_options(options)
     rules=dict(rule=RULE_CONTRASTS[options['rule_contrast']][0],
                rule_width=RULE_WEIGHTS[options['rule_weight']],shading=options['row_shading'])
-    title, header = {'teal':('#0D5663','#146474'), 'blue':('#123F70','#174A7E'),
-                     'green':('#214D39','#285943'), 'purple':('#493269','#563D7C'),
-                     'pastel':('#8F2450','#4E568F')}[options['color']]
+    from desktop_tokens import ACCENTS
+    title = ACCENTS[options['app_theme']][1]
     groups = ['#CFE8F0','#D8EEE2','#F0F0D2','#FAE3DC','#E0E2F4']
-    if options['color'] == 'pastel':
-        groups = ['#FFADAD','#FFD6A5','#FDFFB6','#CAFFBF','#9BF6FF','#A0C4FF','#BDB2FF','#FFC6FF','#FFFFFC']
-    return dict(title=title, header=header, summary='#F8FAFC',
+    return dict(title=title, header=title, summary='#F8FAFC',
                 page='#FFFFFF', text='#1E293B', border='#E2E8F0', zebra='#F8FAFC', cream='#FFFFFF', groups=groups, **rules)
 
 
@@ -107,7 +88,7 @@ def patient_content(row, doctors, zone, now, report_day=None):
     personal = ('[أولوية] ' if row.get('isPriority')=='Y' else '')+patient_name(row)
     personal += '\n'+GENDER[row['gender']]
     if row.get('birthDate'):
-        personal += '\n{} · {} سنة'.format(row['birthDate'], day.year-int(row['birthDate'][:4]))
+        personal += '\n{} • {} سنة'.format(row['birthDate'], day.year-int(row['birthDate'][:4]))
     if row['hasCompanion']=='Y': personal+='\n(مرافق)'
     admit = row.get('admitNum','')
     if row.get('admitDate'):
@@ -115,7 +96,7 @@ def patient_content(row, doctors, zone, now, report_day=None):
     diagnosis = [DIAGNOSIS[row['diagnosisType']]]
     for text, priority in badges_decode(row.get('warningDetails','')):
         level = {'low':'منخفضة','medium':'متوسطة','high':'عالية'}.get(priority)
-        diagnosis.append('تنبيه: '+text+(' · أولوية '+level if level else ''))
+        diagnosis.append('تنبيه: '+text+(' • أولوية '+level if level else ''))
     diagnosis.append(row.get('initialDiagnosis',''))
     team = '\n---\n'.join(filter(None,[doctor('responsibleSupervisorId'),doctor('responsibleResidentId')]))
     from desktop_teams import is_cross_team_cover

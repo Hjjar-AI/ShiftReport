@@ -325,7 +325,7 @@ class _LogicalTextbox(native.CTkTextbox):
         self._variable = kwargs.pop('textvariable', None)
         self._trace = None
         kwargs.pop('justify', None); kwargs.pop('placeholder_text', None)
-        kwargs.setdefault('font', ('DejaVu Sans', 15))
+        kwargs.setdefault('font', (widgets.UI_FONT_FAMILY, 15))
         kwargs['wrap'] = 'none'
         kwargs['activate_scrollbars'] = multiline
         super().__init__(master, **kwargs)
@@ -389,4 +389,4 @@ def ArabicEntry(master, **kwargs):
 
 
 def ArabicTextbox(master, **kwargs):
-    return _LogicalTextbox(master, **kwargs) if widgets._VISUAL else native.CTkTextbox(master, **kwargs)
+    return _LogicalTextbox(master, **kwargs) if widgets._VISUAL else widgets.CTkTextbox(master, **kwargs)

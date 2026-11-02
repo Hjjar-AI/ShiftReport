@@ -15,7 +15,7 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
     option_widgets=[]
     review_area=ctk.CTkFrame(area)
     ctk.CTkLabel(review_area,text='مراجعة البيانات والتقرير',anchor='e').pack(fill='x',padx=8,pady=4)
-    text=ctk.CTkTextbox(review_area,height=260,wrap='word',font=('Arial',15))
+    text=ctk.CTkTextbox(review_area,height=260,wrap='word',font=(ctk.UI_FONT_FAMILY,15))
     text.pack(fill='x',padx=8,pady=4)
     set_readonly_text(text,'اختر الوجهة والخيارات، ثم اضغط معاينة. ستظهر تغييرات النشر هنا قبل التأكيد النهائي.')
     ctk.CTkLabel(review_area,text='تأكيد الإرسال ينشر النسخة المحلية الكاملة مكان المنشورة؛ آخر نشر ناجح هو المعتمد.',

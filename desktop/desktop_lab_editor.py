@@ -66,7 +66,16 @@ def lab_groups_editor(parent, source):
         for child in rows.winfo_children():child.destroy()
         for index,group in enumerate(groups):
             frame=ctk.CTkFrame(rows); frame.pack(fill='x',padx=4,pady=6)
-            section_heading(frame,'مجموعة تحاليل {}'.format(index+1))
+            heading=ctk.CTkFrame(frame,fg_color='transparent');heading.pack(fill='x',padx=4,pady=2)
+            ctk.CTkLabel(heading,text='مجموعة تحاليل {}'.format(index+1),anchor='e').pack(side='right',fill='x',expand=True)
+            for label,action,enabled in [
+                ('↑ أعلى',lambda i=index:move(i,-1),index>0),
+                ('↓ أسفل',lambda i=index:move(i,1),index<len(groups)-1),
+                ('حذف',lambda i=index:remove(i),True)]:
+                control=ctk.CTkButton(heading,text=label,width=48,height=48,command=action,
+                    state='normal' if enabled else 'disabled')
+                control.pack(side='left',padx=2)
+
             title=entry(frame,'عنوان المجموعة — اختياري',group['title'])
             chosen=[group['date']]
             def choose(chosen=chosen, frame=frame):
@@ -79,9 +88,6 @@ def lab_groups_editor(parent, source):
             picker=button(frame,'تاريخ التحاليل: '+(chosen[0] or 'اختياري'),choose)
             results=entry(frame,'النتائج',group['results'],True)
             controls.append(dict(id=group['id'],title=title,date=chosen,results=results,button=picker))
-            if index>0:button(frame,'نقل المجموعة لأعلى',lambda i=index:move(i,-1))
-            if index<len(groups)-1:button(frame,'نقل المجموعة لأسفل',lambda i=index:move(i,1))
-            button(frame,'حذف المجموعة',lambda i=index:remove(i))
     def add():
         change(lambda:groups.append(dict(id=str(uuid.uuid4()),title='',date=None,results='')))
     button(area,'إضافة مجموعة تحاليل',add)

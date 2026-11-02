@@ -5,11 +5,18 @@ SPACE = dict(xxs=1, xs=2, s=4, half_step=6, m=8, l=12, xl=16, xxl=24)
 TARGET = 48
 WRAP = dict(narrow=440, dialog=560, page=650, wide=820)
 FONT_ROLES = dict(caption=13, body=14, title=16, headline=18, display=23)
+UI_FONT_FAMILY = 'Tajawal'
 CLINICAL_URGENT = ('#B3261E', '#FFB4AB')
 CLINICAL_WARNING = ('#8A5100', '#FFC45C')
 CLINICAL_PENDING = ('#6750A4', '#D0BCFF')
 STATUS_EDGE = 4
 WARNING_CONTAINER = ('#FFF3CD', '#493C19')
+ACCENTS = {
+    'VANILLA': ('بترولي', '#0D5663', '#A3C9CF'),
+    'SYSTEM': ('أزرق', '#405B83', '#B4C6DE'),
+    'COASTAL': ('وردي', '#944C70', '#DDB3C8'),
+    'CREAM': ('عنبري', '#805B34', '#D8C0A3'),
+}
 
 
 class ButtonStyle(Enum):

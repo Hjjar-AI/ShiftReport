@@ -42,16 +42,8 @@ def build_ward_controls(window):
     window.operation_notice_text.pack(fill='x',padx=8,pady=3)
     ctk.CTkButton(window.operation_notice,text='مراجعة سجل العمليات والتسليم',height=48,
         command=lambda:window.run(window.resolve)).pack(fill='x',padx=8,pady=4)
-    if not window.demo:
-        actions = ctk.CTkFrame(parent)
-        actions.pack(fill='x',padx=5,pady=4)
-        for column in range(2):actions.grid_columnconfigure(column,weight=1,uniform='daily')
-        window.fetch_button=ctk.CTkButton(actions,text='جلب البيانات',height=48,
-            command=lambda:window.run(window.download))
-        window.fetch_button.grid(row=0,column=1,sticky='ew',padx=3,pady=4)
-        window.send_report_button=ctk.CTkButton(actions,text='رفع للشبكة وإرسال تقرير',height=48,
-            command=lambda:window.run(window.report))
-        window.send_report_button.grid(row=0,column=0,sticky='ew',padx=3,pady=4)
+    actions,buttons=transfer_controls(parent,window)
+    window.fetch_button,window.upload_button,window.send_report_button=buttons
     status = ctk.CTkFrame(parent)
     status.pack(fill='x', padx=5, pady=4)
     window.workflow = ctk.CTkLabel(status, text='', anchor='e', justify='right', wraplength=650)
@@ -91,7 +83,7 @@ def build_ward_controls(window):
     window.options_tabs=SectionPages(options)
     window.options_tabs.pack(fill='x',expand=True)
     sections={}
-    for label in ['التصفية','التجميع','البطاقات','الترتيب']:
+    for label in ['الترتيب','التصفية','التجميع','البطاقات']:
         window.options_tabs.add(label)
         sections[label]=window.options_tabs.tab(label)
     for name, label, values in [
@@ -100,8 +92,8 @@ def build_ward_controls(window):
         ('task_filter', 'المهام', TASK_FILTERS),
         ('grouping', 'التجميع للعرض فقط', list(GROUPS.values()))
     ]:
-        parent=sections['التجميع'] if name=='grouping' else sections['التصفية']
-        row = ctk.CTkFrame(parent, fg_color='transparent')
+        filter_parent=sections['التجميع'] if name=='grouping' else sections['التصفية']
+        row = ctk.CTkFrame(filter_parent, fg_color='transparent')
         row.pack(fill='x', pady=2)
         ctk.CTkLabel(row, text=label, anchor='e', width=110).pack(side='right', padx=4)
         control = ctk.CTkComboBox(row, values=values, state='readonly', justify='right', height=48,
@@ -115,10 +107,17 @@ def build_ward_controls(window):
     window.reset_view_button.pack(fill='x',padx=4,pady=2)
     window.card_density=tk.StringVar(value='عادية')
     from desktop_appearance import set_density
-    ctk.CTkLabel(sections['البطاقات'],text='مسافات البطاقات · تفضيل محلي',anchor='e').pack(fill='x',padx=8)
-    ctk.CTkComboBox(sections['البطاقات'],values=['عادية','مضغوطة'],variable=window.card_density,
+    ctk.CTkLabel(sections['البطاقات'],text='مسافات البطاقات • تفضيل محلي',anchor='e').pack(fill='x',padx=8)
+    ctk.CTkComboBox(sections['البطاقات'],values=['عادية','مريحة'],variable=window.card_density,
         state='readonly',justify='right',height=48,
         command=lambda value:window.run(lambda:set_density(window,value))).pack(fill='x',padx=4,pady=2)
+    window.card_expansion=tk.BooleanVar(value=False)
+    from desktop_patient_list import set_card_expansion
+    ctk.CTkCheckBox(sections['البطاقات'],text='توسيع جميع البطاقات',variable=window.card_expansion,height=48,
+        command=lambda:window.run(lambda:set_card_expansion(window,window.card_expansion.get()))).pack(fill='x',padx=8,pady=4)
+    window.expand_cards_button=ctk.CTkButton(toolbar,text='توسيع الكل',height=48,width=100,
+        command=lambda:window.run(lambda:set_card_expansion(window,True)))
+    layout_ward_toolbar(window,window.content.winfo_width(),force=True)
     sort_area=ctk.CTkFrame(sections['الترتيب']);sort_area.pack(fill='x')
     sort_controls=ctk.CTkFrame(sections['الترتيب']);sort_controls.pack(fill='x')
     def edit_sort():
@@ -138,16 +137,19 @@ def build_ward_controls(window):
     window.search.trace_add('write', refresh_search)
 
 
-def layout_ward_toolbar(window,width):
+def layout_ward_toolbar(window,width,force=False):
     scale=getattr(window.add_patient_button,'_get_widget_scaling',lambda:1)()
     narrow=width<620*scale
-    if getattr(window,'toolbar_narrow',None)==narrow:return
+    if not force and getattr(window,'toolbar_narrow',None)==narrow:return
     window.toolbar_narrow=narrow
     for widget in (window.search_box,window.add_patient_button,window.view_controls.toggle_button):widget.grid_forget()
-    window.ward_toolbar.grid_columnconfigure(1,weight=1)
-    window.search_box.grid(row=0,column=0 if narrow else 1,columnspan=3 if narrow else 1,sticky='ew',padx=4,pady=3)
-    window.add_patient_button.grid(row=int(narrow),column=2,sticky='e',padx=3,pady=3)
+    for column in range(4):window.ward_toolbar.grid_columnconfigure(column,weight=1 if column==2 else 0)
+    window.search_box.grid(row=0,column=0 if narrow else 2,columnspan=4 if narrow else 1,sticky='ew',padx=4,pady=3)
+    window.add_patient_button.grid(row=int(narrow),column=3,sticky='e',padx=3,pady=3)
     window.view_controls.toggle_button.grid(row=int(narrow),column=0,columnspan=2 if narrow else 1,sticky='w',padx=3,pady=3)
+    if hasattr(window,'expand_cards_button'):
+        window.expand_cards_button.grid_forget()
+        window.expand_cards_button.grid(row=int(narrow),column=2 if narrow else 1,sticky='e',padx=3,pady=3)
 
 
 def filter_summary(window):
@@ -158,3 +160,32 @@ def filter_summary(window):
         if value != default:labels.append(value)
     if window.search.get().strip():labels.append('بحث: '+window.search.get().strip())
     return labels
+
+
+def transfer_controls(parent,owner,before_action=None):
+    """The list and dashboard share the same three reviewed transfer routes."""
+    import time
+    from desktop_forms import guarded
+    frame=ctk.CTkFrame(parent);frame.pack(fill='x',padx=5,pady=4)
+    def invoke(kind):
+        if before_action:before_action()
+        def action():
+            if owner.demo:
+                from desktop_demo import simulate_transfer
+                return simulate_transfer(owner,kind)
+            if kind=='fetch':return owner.download()
+            if kind=='report':return owner.report()
+            owner.plan=None;return owner.publish()
+        # Dashboard dialogs are already inside Window.run; their guarded callbacks
+        # keep that existing operation owner rather than starting a nested run.
+        if before_action:action()
+        else:owner.run(action)
+    labels=[('fetch','جلب البيانات'),('upload','رفع البيانات للشبكة فقط'),('report','رفع للشبكة وإرسال تقرير')]
+    buttons=[]
+    authenticated=owner.client is not None and owner.client._actor is not None and time.time()<owner.client._expires
+    for index,(kind,label) in enumerate(labels):
+        frame.grid_columnconfigure(index,weight=1,uniform='transfer')
+        widget=ctk.CTkButton(frame,text=label,height=48,width=90,command=guarded(lambda k=kind:invoke(k)),
+            state='normal' if owner.demo or authenticated else 'disabled')
+        widget.grid(row=0,column=2-index,sticky='ew',padx=3,pady=4);buttons.append(widget)
+    return frame,buttons

@@ -28,7 +28,8 @@ class LabGroupEditorTests(unittest.TestCase):
     def test_reorder_preserves_unsubmitted_title_results_and_dates_by_group_identity(self):
         self.edit(self.fields('عنوان المجموعة — اختياري')[0],'عنوان غير محفوظ')
         self.edit(self.fields('النتائج')[0],'نتيجة\nغير محفوظة')
-        find(self.root,'نقل المجموعة لأعلى').invoke()
+        next(widget for widget in descendants(self.root)
+             if widget.cget('text')=='↑ أعلى' and widget.cget('state')=='normal').invoke()
         groups=self.read()
         self.assertEqual(['renal','cbc'],[g['id'] for g in groups])
         self.assertEqual('عنوان غير محفوظ',groups[1]['title'])
@@ -42,7 +43,8 @@ class LabGroupEditorTests(unittest.TestCase):
             picker.call_args.args[2]('2026-11-02')
         self.assertEqual('2024-02-29',self.read()[0]['date'])
         self.assertEqual('2026-11-02',self.read()[1]['date'])
-        find(self.root,'نقل المجموعة لأعلى').invoke()
+        next(widget for widget in descendants(self.root)
+             if widget.cget('text')=='↑ أعلى' and widget.cget('state')=='normal').invoke()
         self.assertEqual(('renal','2026-11-02'),(self.read()[0]['id'],self.read()[0]['date']))
         self.assertEqual(self.before,self.source)
 
@@ -66,12 +68,12 @@ class LabGroupEditorTests(unittest.TestCase):
 
     def test_remove_requires_confirmation_and_final_removal_cannot_revive_old_results(self):
         with patch('desktop_lab_editor.messagebox.askyesno',return_value=False) as confirm:
-            find(self.root,'حذف المجموعة').invoke()
+            find(self.root,'حذف').invoke()
             confirm.assert_called_once();self.assertEqual(panels(),self.read())
         with patch('desktop_lab_editor.messagebox.askyesno',return_value=True):
-            find(self.root,'حذف المجموعة').invoke()
+            find(self.root,'حذف').invoke()
             self.assertEqual([panels()[1]],self.read())
-            find(self.root,'حذف المجموعة').invoke()
+            find(self.root,'حذف').invoke()
         self.assertEqual([],self.read())
         captured=copy.deepcopy(self.source);apply(captured,self.read())
         self.assertEqual('',captured['labs']);self.assertEqual('[]',captured['labGroupsJson'])

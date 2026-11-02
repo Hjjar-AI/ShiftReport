@@ -1,4 +1,4 @@
-"""Shared desktop branding and credits, with a five-second skippable intro."""
+"""Shared desktop branding and credits, with a three-second skippable intro."""
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
@@ -8,6 +8,7 @@ import desktop_widgets as ctk
 
 SUPERVISOR='الطبيب محمد علي حجار'
 CONTRIBUTORS=('أيهم شيخة','محمد زاهر شقير')
+TESTERS=('أسامة .....','بنان جمعة','ديا خلوف','محمد نور السيد','نور الهندي','هلا فارس','يزن شاهين')
 ORIGINAL_AUTHOR='الطبيب الاختصاصي نديم العباس'
 
 
@@ -18,16 +19,17 @@ def load_emblem():
         return source.copy()
 
 
-def credits(parent,emblem=None):
-    ctk.CTkLabel(parent,text='تقرير المناوبة',font=('Arial',24,'bold'),anchor='center').pack(fill='x',padx=12,pady=(12,3))
-    ctk.CTkLabel(parent,text='للطب النفسي',anchor='center').pack(fill='x',padx=12,pady=3)
+def credits(parent,emblem=None,splash=False):
+    ctk.CTkLabel(parent,text='تقرير المناوبة',font=(ctk.UI_FONT_FAMILY,24,'bold'),anchor='center').pack(fill='x',padx=12,pady=(12,3))
+    if not splash:ctk.CTkLabel(parent,text='(للطب النفسي)',anchor='center').pack(fill='x',padx=12,pady=3)
     logo=ctk.CTkLabel(parent,text='شعار شعبة الطب النفسي',fg_color='#FFFFFF',width=158,height=158,corner_radius=16)
     logo.pack(padx=12,pady=10)
     if emblem is not None:set_emblem(logo,emblem)
-    for title,names in [('إشراف وتطوير',SUPERVISOR),('مساهمة تقنية · الأطباء','\n'.join(CONTRIBUTORS)),
+    for title,names in [('إشراف وتطوير',SUPERVISOR),('مساهمة تقنية • الأطباء','\n'.join(CONTRIBUTORS)),
+                        ('اختبار التطبيق','، '.join(name.replace(' ','\u00a0') for name in TESTERS)),
                         ('فكرة Excel الأولية وبنية التقرير الأساسي',ORIGINAL_AUTHOR)]:
         ctk.CTkLabel(parent,text=title,anchor='center',justify='center',wraplength=480).pack(fill='x',padx=12,pady=(8,1))
-        ctk.CTkLabel(parent,text=names,font=('Arial',17,'bold'),anchor='center',justify='center',wraplength=480).pack(fill='x',padx=12,pady=(1,5))
+        ctk.CTkLabel(parent,text=names,font=(ctk.UI_FONT_FAMILY,17,'bold'),anchor='center',justify='center',wraplength=480).pack(fill='x',padx=12,pady=(1,5))
     return logo
 
 
@@ -43,7 +45,7 @@ def about(owner):
     actions=ctk.CTkFrame(window);actions.pack(side='bottom',fill='x')
     area=ctk.CTkScrollableFrame(window);area.pack(fill='both',expand=True,padx=8,pady=8)
     credits(area,owner.io(load_emblem))
-    ctk.CTkLabel(area,text='ShiftReport Desktop · Windows / Linux',anchor='center').pack(fill='x',padx=12,pady=12)
+    ctk.CTkLabel(area,text='ShiftReport Desktop • Windows / Linux',anchor='center').pack(fill='x',padx=12,pady=12)
     dialog_actions(actions,cancel=('إغلاق',window.destroy))
     owner.root.wait_window(window)
 
@@ -51,18 +53,18 @@ def about(owner):
 class LaunchIntro:
     def __init__(self,root,on_ready):
         self.root,self.on_ready=root,on_ready
-        self.deadline=time.monotonic()+5
+        self.deadline=time.monotonic()+3
         self.held=False;self.finished=False;self.poll_id=None
         root.title('ShiftReport');root.geometry('900x720');root.minsize(580,430)
         self.frame=ctk.CTkFrame(root);self.frame.pack(fill='both',expand=True)
         actions=ctk.CTkFrame(self.frame,fg_color='transparent');actions.pack(side='bottom',fill='x')
-        ctk.CTkButton(actions,text='دخول التطبيق',height=48,command=self.finish).pack(fill='x',padx=16,pady=10)
+        ctk.CTkButton(actions,text='تخطي المقدمة',height=48,command=self.finish).pack(fill='x',padx=16,pady=10)
         area=ctk.CTkScrollableFrame(self.frame);area.pack(fill='both',expand=True,padx=12,pady=12)
-        self.logo=credits(area)
+        self.logo=credits(area,splash=True)
         events={'<ButtonPress-1>':self.press,'<ButtonRelease-1>':self.release,
                 '<Return>':lambda event:self.finish(),'<Escape>':lambda event:self.finish()}
         self.key_bindings={event:root.bind(event,callback,add='+') for event,callback in events.items()}
-        self.timer_id=root.after(5000,self.expire)
+        self.timer_id=root.after(3000,self.expire)
         self.executor=ThreadPoolExecutor(max_workers=1)
         self.future=self.executor.submit(load_emblem)
         self.poll_id=root.after(20,self.poll_emblem)

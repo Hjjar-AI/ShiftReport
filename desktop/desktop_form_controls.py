@@ -47,7 +47,8 @@ def dialog_actions(parent, primary=None, cancel=None, secondary=()):
 
 
 def section_heading(parent, title, summary=None):
-    ctk.CTkLabel(parent,text=title,font=('Arial',FONT_ROLES['title'],'bold'),anchor='e').pack(fill='x',padx=10,pady=(10,3))
+    ctk.CTkLabel(parent,text=title,font=(ctk.UI_FONT_FAMILY,FONT_ROLES['title'],'bold'),anchor='e',justify='right',
+        wraplength=WRAP['dialog'],fg_color=('#E8EEF2','#394655'),corner_radius=4).pack(fill='x',padx=10,pady=(10,3))
     if summary:
         ctk.CTkLabel(parent,text=summary,anchor='e',justify='right',wraplength=WRAP['dialog']).pack(fill='x',padx=10,pady=2)
 
@@ -118,7 +119,7 @@ def scroll_field_or_form(widget):
 def entry(parent, label, value='', multiline=False):
     ctk.CTkLabel(parent, text=label, anchor='e').pack(fill='x', padx=10, pady=(6, 0))
     if multiline:
-        widget = ArabicTextbox(parent, height=115, wrap='word', font=('Arial', 15))
+        widget = ArabicTextbox(parent, height=115, wrap='word', font=(ctk.UI_FONT_FAMILY, 15))
         widget.insert('1.0', value)
         widget.tag_config('rtl', justify='right'); widget.tag_add('rtl', '1.0', 'end')
         widget.bind('<KeyRelease>', lambda event: widget.tag_add('rtl', '1.0', 'end'))
