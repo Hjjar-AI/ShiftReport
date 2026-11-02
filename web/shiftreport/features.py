@@ -104,6 +104,7 @@ def auth():
         require(not w.demo, 'التجربة لا تحتاج تسجيل الدخول')
         action = request.form.get('action')
         if action == 'request_code':
+            w.lock_session()
             w.client.begin_login(request.form.get('doctor',''))
             w.notice = 'أُرسل رمز خاص إلى حسابك؛ أدخله هنا. لا تشاركه.'
         elif action == 'verify_code':
@@ -130,6 +131,7 @@ def auth():
             access = LocalAccess(w.store, w.client)
             require(access.verify(key, request.form.get('pin','')), 'PIN غير صحيح')
             w.actor, w.unlocked, w.store.locked = key, True, False
+            w.client._actor,w.client._verified_telegram,w.client._expires=None,None,0
             w.store.local_actor = key
             w.last_activity = time.time()
             return home()

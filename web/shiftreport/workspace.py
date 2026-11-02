@@ -109,6 +109,8 @@ class BrowserWorkspace:
             require(actor is not None, 'أثبت هوية الطبيب أولاً')
             if online:
                 actor = self.client.require_local_identity()
+                require(self.client._actor==self.actor and actor.get('uid')==self.actor,
+                        'تغيرت هوية المنفذ؛ أعد تسجيل الدخول')
             else:
                 record = self.store.state.get('localAccess', {}).get('pins', {}).get(self.actor)
                 linked = record and record['telegram'] == actor.get('telegram_id')
