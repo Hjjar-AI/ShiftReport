@@ -100,6 +100,7 @@ class BrowserWorkspace:
         self.pending_config = None
         self.creation_store = None
         self.attempt = None
+        self.print_accent = 'VANILLA'
 
     def ready(self, online=False, admin=False):
         require(self.unlocked and not self.store.locked, 'الجلسة مقفلة؛ افتحها من صفحة الهوية')

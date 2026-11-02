@@ -119,3 +119,28 @@
     apply(); accent.addEventListener("change", apply);
   }
 })();
+
+(() => {
+  const accent = document.getElementById("accent");
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+  if (accent && csrf) {
+    const sync = async () => {
+      const body = new FormData(); body.set("csrf", csrf); body.set("accent", accent.value);
+      try { await fetch("/appearance", {method:"POST",body,credentials:"same-origin"}); } catch (_) { /* A future preview captures the selected color again. */ }
+    };
+    sync(); accent.addEventListener("change", sync);
+  }
+})();
+
+(() => {
+  const copy = document.querySelector("[data-copy-patient]");
+  if (copy) {
+    const patient = document.querySelector("details.patient");
+    if (patient) patient.open = true;
+    copy.addEventListener("click", async () => {
+      const content = [...patient.querySelectorAll("summary,.clinical-grid section")].map(node => node.innerText).join("\n\n");
+      try { await navigator.clipboard.writeText(content); copy.textContent = "نُسخ النص"; }
+      catch (_) { copy.textContent = "حدّد النص وانسخه من المتصفح"; }
+    });
+  }
+})();

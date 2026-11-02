@@ -15,7 +15,7 @@ def create_app(data_directory=None):
         SESSION_COOKIE_NAME="shiftreport_web_demo",
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Strict",
-        MAX_CONTENT_LENGTH=9 * 1024 * 1024,
+        MAX_CONTENT_LENGTH=65 * 1024 * 1024,
         DATA_DIRECTORY=data_directory,
     )
     app.extensions["demo_sessions"] = DemoSessions()

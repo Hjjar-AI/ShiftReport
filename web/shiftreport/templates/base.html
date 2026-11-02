@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
+  <meta name="csrf-token" content="{{ csrf }}">
   <title>{% block title %}تقرير المناوبة{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/tajawal_regular.ttf') }}" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
@@ -19,6 +20,7 @@
       </a>
       <p class="nav-caption">مساحة العمل</p>
       <nav>
+        <a href="{{ url_for('features.dashboard') }}">ملخص القسم</a>
         <a href="{{ url_for('pages.ward') }}" {% if page == 'ward' %}aria-current="page"{% endif %}>قائمة المرضى</a>
         <a href="{{ url_for('pages.tasks') }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>المهام</a>
         <a href="{{ url_for('pages.doctors') }}" {% if page == 'doctors' %}aria-current="page"{% endif %}>الفريق الطبي</a>
@@ -31,6 +33,7 @@
         <a href="{{ url_for('features.auth') }}" {% if page == 'identity' %}aria-current="page"{% endif %}>الهوية والقفل</a>
         <a href="{{ url_for('features.connect') }}" {% if page == 'connection' %}aria-current="page"{% endif %}>المشروع والاتصال</a>
         <a href="{{ url_for('pages.about') }}" {% if page == 'about' %}aria-current="page"{% endif %}>حول التطبيق</a>
+        <a href="{{ url_for('features.diagnostics') }}">معلومات التشغيل</a>
       </nav>
       <details class="appearance">
         <summary>المظهر</summary>

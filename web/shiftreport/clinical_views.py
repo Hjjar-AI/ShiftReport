@@ -202,7 +202,14 @@ def doctor_manage():
                 service.publish(payload)
         token=w.review('doctors',payload,summary,commit)
         return redirect(url_for('features.confirm_review',token=token),code=303)
-    return render_template('doctor_manage.html',doctors=w.client.doctors,page='doctors')
+    chosen=request.args.get('key')
+    existing=w.client.doctors.get(chosen,{})
+    name=existing.get('name','')
+    if name.startswith('د.'):
+        name=name[2:].strip()
+    parts=name.split(' ',1)
+    return render_template('doctor_manage.html',doctors=w.client.doctors,existing=existing,
+                           first=parts[0],last=parts[1] if len(parts)>1 else '',page='doctors')
 
 
 @features.route('/review/<token>', methods=['GET','POST'])
@@ -217,3 +224,41 @@ def confirm_review(token):
         w.notice='اكتملت العملية محلياً.' if w.demo else 'اكتملت العملية. راجع سجل العمليات عند أي نتيجة غير مؤكدة.'
         return home()
     return render_template('review.html',review=review,page='review')
+
+@features.get('/dashboard')
+def dashboard():
+    w=g.workspace
+    patients,doctors=w.snapshot()
+    from .core.reports import readiness_warnings
+    totals=dict(patients=len(patients),tasks=sum(sum(not t['done'] for t in p['tasks']) for p in patients),
+                companions=sum(p.get('hasCompanion')=='Y' for p in patients),priority=sum(p.get('isPriority')=='Y' for p in patients))
+    groups=[]
+    for d in doctors:
+        if d['clinicalRole']=='SUPERVISOR':
+            rows=[p for p in patients if p.get('responsibleSupervisorId')==d['uid']]
+            groups.append(dict(id=d['uid'],name=d['name'],patients=len(rows),tasks=sum(sum(not t['done'] for t in p['tasks']) for p in rows)))
+    return render_template('dashboard.html',totals=totals,groups=groups,page='dashboard')
+
+
+@features.get('/patients/<key>')
+def patient_details(key):
+    w=g.workspace
+    shift,row=w.require_patient(key)
+    rows,_=w.snapshot()
+    patient=next(p for p in rows if p['id']==key)
+    names={k:d['name'] for k,d in w.client.doctors.items()}
+    patient.update(resident=names.get(patient.get('responsibleResidentId'),''),supervisor=names.get(patient.get('responsibleSupervisorId'),''),pending=sum(not t['done'] for t in patient['tasks']))
+    sequence=[p['externalId'] for p in shift['patients']]
+    index=sequence.index(key)
+    return render_template('patient_details.html',patient=patient,previous=sequence[index-1] if index else None,
+                           successor=sequence[index+1] if index+1<len(sequence) else None,page='ward')
+
+
+@features.get('/diagnostics')
+def diagnostics():
+    import platform,sys
+    w=g.workspace
+    w.ready()
+    import importlib.metadata
+    versions={name:importlib.metadata.version(name) for name in ('Flask','Werkzeug','cryptography','reportlab','waitress')}
+    return render_template('diagnostics.html',python=sys.version.split()[0],system=platform.system(),versions=versions,page='about')

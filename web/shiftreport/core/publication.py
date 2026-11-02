@@ -55,8 +55,6 @@ def prepare(owner, plan):
     for row in shift['patients']:
         validate_patient(row, doctors, owner.zone)
         tasks = read_tasks(row)
-        for task in tasks:
-            task.update(dict.fromkeys(COMPLETION))
         row['tasksJson'] = packed(tasks)
         row['warningFlags'] = '|'.join(level for _,level in badges_decode(row.get('warningDetails', '')) if level != 'none')
         validate_wire_patient(row)

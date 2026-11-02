@@ -18,6 +18,15 @@ def home():
     return redirect(url_for('pages.ward'), code=303)
 
 
+@features.post('/appearance')
+def appearance():
+    themes={'teal':'VANILLA','blue':'SYSTEM','rose':'COASTAL','amber':'CREAM'}
+    value=request.form.get('accent')
+    require(value in themes,'لون غير صالح')
+    g.workspace.print_accent=themes[value]
+    return '',204
+
+
 def data_directory():
     root=current_app.config.get('DATA_DIRECTORY')
     path = (Path(root) if root else Path(current_app.root_path).parent / 'instance') / 'workspaces'
@@ -25,7 +34,7 @@ def data_directory():
     return path
 
 
-def uploaded(limit=8*1024*1024):
+def uploaded(limit=8*1024*1024+64):
     file = request.files.get('file')
     require(file is not None and bool(file.filename), 'اختر الملف أولاً')
     raw = file.read(limit+1)

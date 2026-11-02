@@ -115,6 +115,7 @@ def reports():
             day=current_date(w.client.zone)
         from .core.pdf_content import normalize_options
         options=normalize_options(dict(layout=request.form.get('layout','cards'),app_theme=request.form.get('app_theme','VANILLA'),local_draft=not sending and not assignments))
+        w.print_accent=options['app_theme']
         payloads=[]
         for target in targets:
             raw=render_pdf(w,reviewed,target,options,assignments,day) if format_name=='pdf' or assignments else report_text(w.client,reviewed,target,day)
@@ -123,7 +124,8 @@ def reports():
         source=fingerprint(w.store.read())
         summary=publication_review(delivery.plan,w.client.zone) if delivery and delivery.needs_publish else 'راجع التقرير كاملاً قبل الحفظ أو التأكيد النهائي.'
         token=w.review('report',dict(payloads=payloads,delivery=delivery,owner=owner,source=source,options=options,
-            day=day,sending=sending,assignments=assignments,simulation=action=='send' and w.demo),summary,None)
+            day=day,sending=sending,assignments=assignments,simulation=action=='send' and w.demo,
+            doctors=fingerprint(w.client.doctors)),summary,None)
         return redirect(url_for('features.report_review',token=token),code=303)
     return render_template('reports.html',doctors=w.client.doctors,selected=w.store.read()['meta'].get('doctors','').split(','),page='reports')
 
@@ -139,6 +141,7 @@ def report_review(token):
         require(request.form.get('confirm')=='1','الموافقة النهائية مطلوبة')
         require(all(p['viewed'] for p in data['payloads']),'افتح كل ملف من المعاينات أولاً')
         require(fingerprint(w.store.read())==data['source'],'تغير المحتوى؛ أعد المعاينة')
+        require(fingerprint(w.client.doctors)==data['doctors'] and w.print_accent==data['options']['app_theme'],'تغير الأطباء أو لون التقرير؛ أعد المعاينة')
         if data['sending']:
             w.ready(online=True)
             # Bind resolved destination and exact bytes to the explicitly reviewed artifact.
@@ -155,7 +158,9 @@ def report_review(token):
                               lambda target:request.form.get('repeat')=='1')
             except Exception:
                 data['owner'].report_attempt.failed(w.client.baseline)
+                data['source']=fingerprint(w.store.read())
                 raise
+            data['source']=fingerprint(w.store.read())
             w.notice='أكد تليجرام التسليم. الحفظ المحلي ينسخ ملفات المعاينة نفسها.'
         elif data['simulation']:
             w.store.published=copy.deepcopy(w.store.read())
@@ -176,12 +181,14 @@ def report_artifact(token,index):
     payload=data['payloads'][index]
     if request.args.get('save')=='1':
         require(payload['viewed'],'افتح الملف قبل حفظه')
+        require(fingerprint(w.store.read())==data['source'] and fingerprint(w.client.doctors)==data['doctors'], 'تغير المحتوى؛ أعد المعاينة')
+        require(w.print_accent==data['options']['app_theme'],'تغير لون التطبيق؛ أعد المعاينة')
     else:
         payload['viewed']=True
     if data['assignments']:
         w.ready(admin=True)
     if request.args.get('save')=='1' and data['sending']:
-        require(review['used'] and data['owner'].report_attempt.delivery=='CONFIRMED','حفظ النسخة العادية متاح بعد تأكيد التسليم؛ للتصدير المحلي اختر مسودة')
+        require(review['used'] and data['owner'] is not None and data['owner'].report_attempt.delivery=='CONFIRMED','حفظ النسخة العادية متاح بعد تأكيد التسليم؛ للتصدير المحلي اختر مسودة')
     raw=payload['raw']
     name=('DEMO-' if w.demo else '')+'ShiftReport-'+data['day']+('.pdf' if payload['format']=='pdf' else '.txt')
     return send_file(io.BytesIO(raw if isinstance(raw,bytes) else raw.encode('utf-8')),mimetype='application/pdf' if payload['format']=='pdf' else 'text/plain; charset=utf-8',
@@ -204,6 +211,7 @@ def report_copy(token,receipt_index):
     require(tuple(report_destination(w.client,w.client.doctors,payload['target']))==(binding['chat'],binding['topic']),'تغيرت الوجهة؛ النسخة الإضافية محظورة')
     if request.method=='POST':
         require(request.form.get('confirm')=='1','الموافقة الصريحة على نسخة إضافية مطلوبة')
+        require(payload['viewed'],'افتح الملف الأصلي قبل الموافقة على النسخة الإضافية')
         require(w.store.state['receipts'][receipt_index]==receipt,'تغير الإيصال الأصلي')
         permit=secrets.token_hex(24)
         permissions=copy.deepcopy(w.store.state.get('reportCopyPermits',{}))
@@ -225,4 +233,33 @@ def report_copy(token,receipt_index):
         w.store.confirm_indexed_receipt(copy_index[0],result['message_id'])
         w.notice='أكد تليجرام النسخة الإضافية؛ بقي الإيصال الأصلي غير محسوم حتى تفحصه.'
         return redirect(url_for('features.sync'),code=303)
-    return render_template('copy_review.html',token=token,index=receipt_index,page='reports')
+    return render_template('copy_review.html',token=token,index=receipt_index,
+                           artifact_index=data['payloads'].index(payload),page='reports')
+
+@features.route('/receipts/<int:receipt_index>/artifact',methods=['GET','POST'])
+def recover_artifact(receipt_index):
+    from .features import uploaded
+    from types import SimpleNamespace
+    w=g.workspace
+    require(not w.demo,'استرداد ملف الإرسال لمشروع حقيقي فقط')
+    w.ready(online=True)
+    w.store.require_receipt_resolution(receipt_index,w.client)
+    binding=w.store.state.get('reportArtifacts',{}).get(str(receipt_index))
+    require(binding and binding['actor']==w.actor and binding['telegram']==w.client._verified_telegram,
+            'يتطلب الملف هوية المرسل الأصلي')
+    if request.method=='POST':
+        raw=uploaded()
+        require(hashlib.sha256(raw).hexdigest()==binding['sha256'],'الملف ليس نفس البايتات الأصلية؛ لن تُقبل نسخة أعيد توليدها')
+        snapshot=w.client.fetch()
+        w.client.authorize(snapshot['doctors'])
+        require(list(pointer(snapshot['state']))==binding['pointer'] and list(doctor_pointer(snapshot['state']))==binding['registry'],'تغيرت النسخة المنشورة؛ افحص الإيصال قبل أي إرسال')
+        require(len(snapshot['bundle'])==1,'القسم الأصلي غير متاح')
+        value=raw if binding['format']=='pdf' else raw.decode('utf-8')
+        payload=dict(target=binding['supervisor'],format=binding['format'],raw=value,sha=binding['sha256'],viewed=False)
+        key=w.review('report',dict(payloads=[payload],sending=True,assignments=False,simulation=False,day=binding['day'],
+            delivery=SimpleNamespace(reviewed=snapshot['bundle'][0]),owner=None,source=fingerprint(w.store.read()),
+            options=dict(app_theme=w.print_accent),doctors=fingerprint(w.client.doctors)),
+            'استُعيد الملف الأصلي بفحص بصمته. النسخة الإضافية تحتاج موافقة مستقلة ولا تحسم الإيصال الأصلي.',None)
+        w.reviews[key]['used']=True
+        return redirect(url_for('features.report_copy',token=key,receipt_index=receipt_index),code=303)
+    return render_template('recover_artifact.html',page='reports')

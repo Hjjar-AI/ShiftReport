@@ -35,6 +35,27 @@ def data():
             password=request.form.get('password','')
             require(password==request.form.get('confirmation',''),'كلمتا المرور غير متطابقتين')
             return download(encode(shift,password),'ShiftReport.rpb')
+        if action=='workspace_export':
+            require(not w.demo,'ملف الاسترداد غير متاح في التجربة')
+            from tempfile import TemporaryDirectory
+            from pathlib import Path
+            with TemporaryDirectory(prefix='ShiftReportRecovery_') as directory:
+                path=Path(directory)/'workspace.srdraft'
+                w.store.export(path)
+                return download(path.read_bytes(),'workspace.srdraft')
+        if action=='workspace_restore':
+            require(not w.demo,'ملف الاسترداد غير متاح في التجربة')
+            value=w.store.decode(uploaded(64*1024*1024))
+            require(value.get('draft') is not None and value.get('baseline') is not None,'ملف استرداد فارغ')
+            require(value['draft']['meta'].get('schemaVersion')=='8','مطلوب ملف الاسترداد الحالي')
+            from .core.backup import validate_restore
+            validate_restore(w.store,w.client,value['draft'],expected)
+            def apply():
+                w.ready()
+                validate_restore(w.store,w.client,value['draft'],expected)
+                w.store.commit(draft=value['draft'],recycle=value.get('recycle',[]),patientForm=None)
+                w.forms.clear()
+            return reviewed_action('workspace_restore',value,'استعادة مرضى القسم والسلة محلياً فقط؛ يحتفظ هذا الجهاز بهويته وإيصالاته واتصاله.\n\n'+shift_text(value['draft'],w.client.doctors,w.client.zone),apply)
         if action in ('restore','import_csv'):
             require(not w.demo,'لا يمكن إدخال بيانات حقيقية إلى التجربة')
             raw=uploaded()
@@ -168,6 +189,6 @@ def sync():
                 w.store.resolve_unknown(index,not_sent,w.client)
             return reviewed_action('receipt',row,'تأكيد فحص الوجهة: '+('لم تصل النسخة السابقة.' if not_sent else 'وصلت النسخة السابقة؛ لا تُكرّر.'),apply)
         require(False,'عملية مزامنة غير صالحة')
-    receipts=[dict(index=i,operation=row[0],status=row[2],at=row[6]) for i,row in w.store.receipts()]
+    receipts=[dict(index=i,operation=row[0],status=row[2],at=row[6],can_copy=str(i) in w.store.state.get('reportArtifacts',{})) for i,row in w.store.receipts()]
     journal=(w.store.state.get('baseline') or {}).get('state',{}).get('publicationJournal',[])
     return render_template('sync.html',receipts=receipts,journal=journal,page='sync')
