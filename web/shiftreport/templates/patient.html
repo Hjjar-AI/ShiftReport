@@ -11,6 +11,7 @@
     </span>
   </summary>
   <div class="clinical-grid">
+    <div class="actions"><a class="button secondary" href="{{ url_for('features.patient_edit',key=patient.id) }}">تحرير</a><form action="{{ url_for('features.patient_delete',key=patient.id) }}" method="post" data-confirm="نقل هذا المريض وكامل مهامه وشاراته إلى السلة المحلية؟"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">حذف</button></form></div>
     <section><h2>التشخيص</h2><p class="multiline" dir="auto">{{ patient.initialDiagnosis or '—' }}</p></section>
     <section><h2>العلاج</h2><p class="multiline" dir="auto">{{ patient.treatmentPlan or '—' }}</p></section>
     <section><h2>المتابعة</h2><p class="multiline" dir="auto">{{ patient.followUp or '—' }}</p></section>

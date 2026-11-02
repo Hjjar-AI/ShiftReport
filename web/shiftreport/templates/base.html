@@ -22,6 +22,14 @@
         <a href="{{ url_for('pages.ward') }}" {% if page == 'ward' %}aria-current="page"{% endif %}>قائمة المرضى</a>
         <a href="{{ url_for('pages.tasks') }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>المهام</a>
         <a href="{{ url_for('pages.doctors') }}" {% if page == 'doctors' %}aria-current="page"{% endif %}>الفريق الطبي</a>
+        <a href="{{ url_for('features.reports') }}" {% if page == 'reports' %}aria-current="page"{% endif %}>التقارير والتصدير</a>
+        <a href="{{ url_for('features.roster') }}">أطباء المناوبة</a>
+        <a href="{{ url_for('features.data') }}" {% if page == 'data' %}aria-current="page"{% endif %}>البيانات والملفات</a>
+        <a href="{{ url_for('features.recycle') }}" {% if page == 'recycle' %}aria-current="page"{% endif %}>سلة المحذوفات</a>
+        <a href="{{ url_for('features.sync') }}" {% if page == 'sync' %}aria-current="page"{% endif %}>مركز المزامنة</a>
+        <a href="{{ url_for('features.doctor_manage') }}">إدارة الأطباء والفرق</a>
+        <a href="{{ url_for('features.auth') }}" {% if page == 'identity' %}aria-current="page"{% endif %}>الهوية والقفل</a>
+        <a href="{{ url_for('features.connect') }}" {% if page == 'connection' %}aria-current="page"{% endif %}>المشروع والاتصال</a>
         <a href="{{ url_for('pages.about') }}" {% if page == 'about' %}aria-current="page"{% endif %}>حول التطبيق</a>
       </nav>
       <details class="appearance">
@@ -34,16 +42,19 @@
         <select id="text-size"><option value="100">100%</option><option value="115">115%</option><option value="130">130%</option></select>
       </details>
       <div class="sidebar-footer">
+        {% if is_demo %}
         <span class="demo-label" lang="en" dir="ltr">DEMO</span>
         <p>بيانات وهمية في الذاكرة فقط.</p>
         <form action="{{ url_for('pages.reset') }}" method="post" data-confirm="إعادة البيانات التجريبية وحذف تغييرات هذه الجلسة؟">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <button class="secondary" type="submit">إعادة التجربة</button>
         </form>
+        {% else %}<p>بيانات محلية مشفرة • النشر بعد المراجعة</p>{% endif %}
       </div>
     </aside>
     <main id="main" tabindex="-1">
-      <div class="demo-notice"><strong>وضع تجريبي</strong><span>بيانات وهمية • تُحذف التغييرات عند إيقاف الخادم • للاطلاع فقط على الحقول السريرية</span></div>
+      <div class="demo-notice"><strong>{{ 'وضع تجريبي' if is_demo else workspace.client.config.get('hospitalName','المشروع') }}</strong><span>{{ 'بيانات وهمية • التعديلات في الذاكرة فقط' if is_demo else ('جلسة مفتوحة • '+workspace.client.doctors.get(workspace.actor,{}).get('name','') if workspace.unlocked else 'الجلسة مقفلة') }}</span></div>
+      {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

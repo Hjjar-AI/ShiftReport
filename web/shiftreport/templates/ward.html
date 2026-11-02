@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <header class="page-heading">
-  <div><p class="eyebrow">تقرير المناوبة</p><h1>قائمة المرضى</h1><p>عرض واحد مستمر للقسم</p></div>
+  <div><p class="eyebrow">تقرير المناوبة</p><h1>قائمة المرضى</h1><p>عرض واحد مستمر للقسم</p><a class="button" href="{{ url_for('features.patient_edit') }}">إضافة مريض</a></div>
   <div class="day-label"><span>يوم التقرير</span><bdi>{{ day }}</bdi><small>يتغير العرض عند 08:30</small></div>
 </header>
 <section class="stats" aria-label="ملخص القسم">
   <div><span>المرضى</span><strong>{{ totals.patients }}</strong></div>
   <div><span>المهام المعلّقة</span><strong>{{ totals.tasks }}</strong></div>
-  <div><span>الفرق الطبية</span><strong>3</strong></div>
+  <div><span>الفرق الطبية</span><strong>{{ totals.teams }}</strong></div>
 </section>
 <form class="filters panel" action="{{ url_for('pages.ward') }}" method="get" role="search">
   <label class="search-field" for="search">بحث في الملف والمهام<input id="search" type="search" name="q" value="{{ query }}" placeholder="الاسم، القبول، التشخيص أو التحاليل" maxlength="200"></label>
@@ -19,13 +19,10 @@
 <div class="list-toolbar"><p><strong>{{ patients|length }}</strong> مريض في العرض</p><button type="button" class="secondary" data-expand-all>توسيع الكل</button></div>
 <details class="view-options panel">
   <summary>خيارات عرض القسم</summary>
-  <form action="{{ url_for('pages.ward') }}" method="get" class="view-settings">
-    <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="team" value="{{ team }}">
-    {% if pending_only %}<input type="hidden" name="pending" value="1">{% endif %}
-    <label for="sort">الترتيب<select id="sort" name="sort"><option value="manual" {% if sort == 'manual' %}selected{% endif %}>ترتيب العينة</option><option value="name" {% if sort == 'name' %}selected{% endif %}>الاسم</option><option value="admission" {% if sort == 'admission' %}selected{% endif %}>مدة القبول</option></select></label>
-    <button type="submit">تطبيق الترتيب</button>
+  <div class="view-settings">
+    <a class="button secondary" href="{{ url_for('features.ward_options') }}">الترتيب المحفوظ</a>
     <label for="spacing">التباعد<select id="spacing"><option value="normal">عادي</option><option value="comfortable">مريح</option></select></label>
-  </form>
+  </div>
 </details>
 <section class="patient-list" aria-label="المرضى">
 {% for patient in patients %}

@@ -21,7 +21,7 @@ def patient_context():
 @pages.get("/")
 def ward():
     patients, doctors = patient_context()
-    totals = {"patients": len(patients), "tasks": sum(p["pending"] for p in patients)}
+    totals = {"patients": len(patients), "tasks": sum(p["pending"] for p in patients), "teams": sum(d['role']=='اختصاصي' for d in doctors)}
     query = request.args.get("q", "").strip()[:200]
     team = request.args.get("team", "")
     pending_only = request.args.get("pending") == "1"
@@ -37,10 +37,6 @@ def ward():
         patients = [p for p in patients if p["responsibleSupervisorId"] == team]
     if pending_only:
         patients = [p for p in patients if p["pending"]]
-    if sort == "name":
-        patients.sort(key=lambda p: p["name"])
-    elif sort == "admission":
-        patients.sort(key=lambda p: (not bool(p["admitDate"]), p["admitDate"]))
     return render_template("ward.html", patients=patients, doctors=doctors, totals=totals,
                            query=query, team=team, sort=sort, pending_only=pending_only,
                            day=report_day(), page="ward")

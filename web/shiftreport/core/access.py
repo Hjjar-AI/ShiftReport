@@ -51,7 +51,7 @@ class LocalAccess:
         digest=hashlib.pbkdf2_hmac('sha256',value.encode('ascii'),bytes.fromhex(record['salt']),600000).hex()
         success=valid_format and hmac.compare_digest(digest,record['digest'])
         failures=0 if success else state.get('failures',0)+1
-        delay=0 if failures<5 else min(900,30*2**min(5,failures-5))
+        delay=0 if failures<5 else 300 if failures<10 else 900 if failures<15 else 3600
         state.update(failures=failures,until=0 if success else now+delay)
         self.workspace.commit(localAccess=state)
         if success:self.workspace.local_actor = key

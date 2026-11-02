@@ -1,0 +1,6 @@
+{% extends 'base.html' %}{% block content %}
+<header class="page-heading"><div><h1>المشروع والاتصال</h1><p>الانضمام بملف محمي فقط • كلمة المرور لا تُحفظ</p></div></header>
+<form class="panel editor" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ csrf }}"><h2>انضمام أو إعادة اتصال</h2><label>ملف الانضمام <input type="file" name="file" accept=".srjoin.json" required></label><label>كلمة مرور الملف<input type="password" name="password" autocomplete="off" required></label><label class="check"><input type="checkbox" name="offline" value="1">فتح مشروع سبق التحقق منه دون اتصال</label><button>فتح الملف ومراجعة المشروع</button></form>
+<section class="panel editor"><h2>مجموعة جديدة</h2><p>إنشاء اتصال وأول مدير، مع تحقق خاص ومراجعة قبل أي نشر.</p><a class="button secondary" href="{{ url_for('features.create_project') }}">إنشاء مشروع</a></section>
+{% if not is_demo %}<form class="panel editor" action="{{ url_for('features.enter_demo') }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><p>الانتقال للتجربة يغلق الجلسة الحالية ويُبقي البيانات المشفرة على الجهاز.</p><button class="secondary">فتح التجربة</button></form>{% endif %}
+{% endblock %}

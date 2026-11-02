@@ -4,6 +4,7 @@ import argparse
 import sys
 import threading
 import webbrowser
+from pathlib import Path
 
 
 def main():
@@ -12,6 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description="ShiftReport local browser client")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--data-dir", type=Path, default=Path(__file__).resolve().parent/'instance')
     options = parser.parse_args()
     if not 1024 <= options.port <= 65535:
         parser.error("--port must be between 1024 and 65535")
@@ -19,13 +21,15 @@ def main():
     try:
         from waitress import create_server
         from shiftreport import create_app
+        from shiftreport.instance import acquire
     except ModuleNotFoundError:
         raise SystemExit(
             "Dependencies are missing. Use this Python environment to run "
             "python -m pip install -r requirements.txt from web/."
         ) from None
 
-    app = create_app()
+    instance_lock=acquire(options.data_dir)
+    app = create_app(options.data_dir)
     try:
         server = create_server(app, host="127.0.0.1", port=options.port, threads=4)
     except OSError:
@@ -40,6 +44,7 @@ def main():
         pass
     finally:
         server.close()
+        instance_lock.close()
 
 
 if __name__ == "__main__":

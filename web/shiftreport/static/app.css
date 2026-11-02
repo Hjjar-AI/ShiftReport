@@ -141,3 +141,21 @@ input[type="checkbox"] { accent-color: var(--accent); width: 22px; height: 22px;
 }
 @media (max-width: 420px) { .stats { grid-template-columns: minmax(0, 1fr); } .stats > div { flex-direction: row; } .task-row { flex-wrap: wrap; } .patient-heading { flex-wrap: wrap; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+/* Shared workflow forms and reviews. */
+.editor { padding: 24px; margin-block: 18px; display: grid; gap: 16px; min-width: 0; }
+.editor h2 { margin-top: 8px; padding-block: 5px; }
+.editor label { color: var(--ink); }
+.editor input:not([type="checkbox"]), .editor select, .editor textarea { width: 100%; }
+textarea { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-height: 100px; resize: vertical; }
+.form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.form-section { display: grid; gap: 14px; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+.form-section > h2 { background: var(--neutral); padding: 8px 12px; border-radius: 6px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.actions form { margin: 0; }
+.repeat-row { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-block: 12px; display: grid; gap: 12px; }
+.editor-actions { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 14px 0; display: grid; gap: 10px; }
+.review-text { font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 65vh; overflow: auto; padding: 12px; background: var(--neutral); border-radius: 8px; }
+.receipt, .artifact { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.notice { padding: 12px; margin-top: 12px; border-inline-start: 3px solid var(--accent); background: var(--accent-soft); border-radius: 6px; }
+.or { text-align: center; color: var(--muted); }
+@media(max-width:650px) { .form-grid { grid-template-columns: minmax(0,1fr); } .editor { padding: 16px; } }

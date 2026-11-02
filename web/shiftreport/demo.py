@@ -55,30 +55,7 @@ def demo_doctors():
     ]
 
 
-class DemoWorkspace:
-    def __init__(self):
-        self.csrf = secrets.token_hex(32)
-        self.lock = threading.RLock()
-        self.last_used = time.monotonic()
-        self.patients = sample_patients()
-        self.doctors = demo_doctors()
-
-    def snapshot(self):
-        with self.lock:
-            return copy.deepcopy(self.patients), copy.deepcopy(self.doctors)
-
-    def set_task(self, patient_id, task_id, done):
-        with self.lock:
-            for patient in self.patients:
-                if patient["id"] == patient_id:
-                    for task in patient["tasks"]:
-                        if task["id"] == task_id:
-                            # Explicit desired state makes repeated submissions idempotent.
-                            # Stored ownership/deadline/stamps are deliberately untouched.
-                            task["done"] = done
-                            patient["tasksJson"] = json.dumps(patient["tasks"], ensure_ascii=False)
-                            return True
-        return False
+from .workspace import BrowserWorkspace as DemoWorkspace
 
 
 class DemoSessions:

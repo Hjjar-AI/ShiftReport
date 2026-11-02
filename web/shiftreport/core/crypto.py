@@ -12,8 +12,11 @@ from .protocol_common import MAGIC, LIMIT, BridgeError, require
 
 def open_join(path, password):
     try:
-        with open(path, 'rb') as stream:
-            raw = stream.read(1024 * 1024 + 1)
+        if isinstance(path, bytes):
+            raw = path
+        else:
+            with open(path, 'rb') as stream:
+                raw = stream.read(1024 * 1024 + 1)
         require(len(raw) <= 1024 * 1024, 'ملف الانضمام كبير جدا')
         envelope = json.loads(raw.decode('utf-8-sig'))
         require(envelope['format'] == 'ShiftReportJoin', 'مطلوب ملف الانضمام JSON الحالي')

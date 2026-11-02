@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}المهام • تقرير المناوبة{% endblock %}
 {% block content %}
-<header class="page-heading"><div><p class="eyebrow">القسم</p><h1>المهام</h1><p>قائمة المهام المسجلة • التعديلات تجريبية في الذاكرة</p></div></header>
+<header class="page-heading"><div><p class="eyebrow">القسم</p><h1>المهام</h1><p>قائمة المهام المسجلة • {{ 'التعديلات في الذاكرة' if is_demo else 'الحفظ المحلي مشفر' }}</p></div></header>
 <section class="task-list" aria-label="مهام المرضى">
 {% for patient, task in entries %}
   <article class="task-row panel {% if task.done %}done{% endif %}">

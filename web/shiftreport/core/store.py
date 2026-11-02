@@ -135,9 +135,6 @@ class Workspace:
         require(not self.locked, 'الجلسة مقفلة')
         self.commit(draft=copy.deepcopy(shift))
 
-    def save_clinical_draft(self, client, shift, expected):
-        from .clinical import save_clinical
-        save_clinical(self,client,shift,expected)
 
     def report_preferences(self):
         require(not self.locked, 'الجلسة مقفلة')

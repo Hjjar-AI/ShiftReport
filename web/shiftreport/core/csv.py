@@ -121,37 +121,3 @@ def import_summary(before, after, incoming):
     return '\n\n'.join(label+' ('+str(len(keys))+'):\n'+('\n'.join(doctor_label(after,key) for key in keys) or 'لا يوجد') for label,keys in groups)
 
 
-def csv_tools(owner, choice=None):
-    from tkinter import filedialog
-    from .doctors import Administration
-    from .admin_ui import registry_text
-    owner.ready(False)
-    require(not owner.demo,'الوضع التجريبي يسمح بتصدير PDF فقط')
-    if choice is None:choice=owner.choose('أدوات CSV',['تصدير مرضى المناوبة','تصدير الأطباء (مدير)','استيراد الأطباء — مراجعة ونشر (مدير)'])
-    if choice is None:return
-    require(choice in {0,1,2},'اختر نوع ملف صالحاً')
-    if choice==0:
-        shift=owner.store.read();raw=owner.io(lambda:patient_csv(shift));name='Ward_Patients_'+shift['meta']['shiftDate']+'.csv'
-    else:
-        owner.ready();service=Administration(owner.client,owner.store);snapshot=owner.io(service.fetch)
-        if choice==2:
-            owner.status.set('استيراد سجل الأطباء: اختر ملفاً، ثم راجع التغييرات قبل تأكيد الحفظ والنشر.')
-            path=filedialog.askopenfilename(title='اختيار CSV الأطباء للمراجعة',filetypes=[('CSV','*.csv')])
-            if not path:
-                owner.status.set('أُلغي اختيار ملف الأطباء؛ لم يبدأ استيراد أو نشر.');return
-            def read():
-                with Path(path).open('rb') as stream:return decode_doctors(stream.read(4*1024*1024+1))
-            owner.status.set('جار قراءة ملف الأطباء وإعداد مراجعة التغييرات؛ لم يبدأ النشر.')
-            incoming=owner.io(read)
-            plan=owner.io(lambda:service.review(snapshot,'import',values=incoming))
-            if not owner.show_review('مراجعة التغييرات — التأكيد يحفظ وينشر السجل الكامل إلى المشروع.\nاستيراد الأطباء يضيف ويحدّث ولا يحذف الغائبين. بعد الموافقة يُنشر السجل الكامل على تليجرام. لا ينقل PIN.\n\n'+import_summary(snapshot['doctors'],plan['doctors'],incoming)+'\n\nقبل:\n'+registry_text(snapshot['doctors'],permissions=True)+'\n\nبعد:\n'+registry_text(plan['doctors'],permissions=True)):
-                owner.status.set('أُلغيت مراجعة استيراد الأطباء؛ لم يبدأ النشر.');return
-            service.approve(plan);owner.plan=None;owner.raw_draft=None
-            owner.io(lambda:service.publish(plan));owner.set_doctors();owner.status.set('نُشر استيراد الأطباء وتأكد الفهرس.')
-            return
-        raw=owner.io(lambda:doctor_csv(snapshot['doctors']));name='shiftreport-doctors.csv'
-    path=filedialog.asksaveasfilename(title='حفظ CSV',initialfile=name,defaultextension='.csv',filetypes=[('CSV','*.csv')])
-    if path:
-        owner.ready(choice!=0)
-        if choice!=0:owner.io(owner.client.require_admin)
-        owner.io(lambda:Path(path).write_bytes(raw));owner.status.set('حُفظ ملف CSV محلياً.')
