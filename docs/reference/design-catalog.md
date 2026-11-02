@@ -1,21 +1,19 @@
 # Android style and component guide
 
-Source defaults (not measurements). [UI guide](../guides/android-ui.md) · [Current behavior/verification](../status/current-state.md#shared-android-presentation).
+Source defaults, not measurements. [UI workflow](../guides/android-ui.md) · [Behavior/evidence](../status/current-state.md#shared-android-presentation).
 
 ## Source map
 
 | Area | Source |
 |---|---|
-| Basic spacing | [UiSpacing.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSpacing.kt) |
-| Control/icon sizes | [UiSize.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSize.kt) |
-| General/field padding | [UiPadding.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiPadding.kt) |
-| Card density, borders, elevation, opacity, motion, dialog/layout roles | [UiTokens.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) |
-| Selectable profile definitions | [UiStyleCatalog.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiStyleCatalog.kt) |
+| Spacing / sizes / padding | [UiSpacing.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSpacing.kt), [UiSize.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiSize.kt), [UiPadding.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiPadding.kt) |
+| Density/borders/elevation/opacity/motion/dialog/layout | [UiTokens.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) |
+| Internal profiles | [UiStyleCatalog.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiStyleCatalog.kt) |
 | Typography | [Type.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/Type.kt) |
 | Theme surfaces, accent and shapes | [Theme.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/Theme.kt) |
 | Clinical badge severity | [PatientBadgeColors.kt](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/PatientBadgeColors.kt) |
 
-UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common actions, numbered placeholders, `rememberUiStrings`, `UiLabels`, `uiNumber` and `uiPlural`. Model/interchange codes keep their own ownership. Never rewrite saved clinical text for display; labs use content-aware LTR/monospace, other clinical text content-aware RTL.
+Arabic: `res/values/strings_ui.xml`/`strings.xml`; reuse actions, numbered placeholders, `rememberUiStrings`, `UiLabels`, `uiNumber`, `uiPlural`. Keep model/interchange codes separate. Never rewrite saved text: labs use content-aware LTR/monospace, other clinical text content-aware RTL.
 
 ## Metrics
 
@@ -35,11 +33,11 @@ UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common a
 | Panes | Split width 760; primary/support minima 320/360; fold width/height 360/360 and clearance 8dp. Medium support ≥520×640, height 240dp. |
 | Rail / gestures | Rail window ≥600×480dp; patient transfer tap/long press opens review; rounds swipe ≥64dp and 20% width. |
 
-Keep purpose-specific tokens independent; whole-row controls own selection/toggle semantics, labels wrap. Severity differs from accent/density; diagnoses are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) is authoritative for layout/border/motion constants.
+Keep tokens independent, row selection/toggle semantics explicit and labels wrapping. Severity is independent of accent/density; diagnosis is not an error. Source tokens are authoritative.
 
 ## Internal profiles and local overrides
 
-Profile definitions remain internal/compatible; Appearance exposes theme/text size/normal spacing/reduced motion. Retired overrides normalize to current profile, comfortable controls, visible navigation, compact Add and explicit expansion. `LocalUiStyle` owns spacing/motion; `UiPreferences` stays encrypted/device-local (demo memory). Accent/PDF independent; reduced motion zeroes app-owned animation, platform sheets/ripples follow Android.
+Appearance exposes theme/text size/reduced motion; spacing follows shared defaults and compatible profiles stay internal. Retired overrides normalize to current profile, comfortable controls, visible navigation, compact Add and explicit expansion. `LocalUiStyle` owns spacing/motion; live `UiPreferences` is encrypted/device-local, demo memory-only except [accent/appearance](../guides/android-demo.md#isolation-and-lifecycle). PDF colors follow app accent; reduced motion zeroes app animation, platform sheets/ripples follow Android.
 
 ```kotlin
 ProvideUiPreferences(UiPreferences(reducedMotion = true)) {
@@ -47,7 +45,7 @@ ProvideUiPreferences(UiPreferences(reducedMotion = true)) {
 }
 ```
 
-Use `ProvideUiDefaults` for a local size/density override without a new saved setting.
+Use `ProvideUiDefaults` for local size/density without a saved setting.
 
 ## Typography and font provenance
 
@@ -60,19 +58,23 @@ Use `ProvideUiDefaults` for a local size/density override without a new saved se
 | Label large | 14/22 | Bold |
 | Label medium / small | 13/20 · 13/20 | Medium |
 
-Tajawal Regular 400/Medium 500/Bold 700 is bundled and loaded asynchronously; PDFs resolve the same resources on IO. Upstream has no SemiBold 600; emphasized roles use real Bold. Small app scale and combined lower bound are .92; combined upper bound 2.0. Keep patient names bold in their context; font size need not match every screen.
+Bundled Tajawal Regular 400/Medium 500/Bold 700 loads before first text layout; PDF resolution runs on IO. No upstream SemiBold 600; emphasis uses real Bold. Small app/combined lower scale: .92; combined upper: 2.0. Names stay bold; sizes may differ by context.
 
-[Upstream Tajawal](https://github.com/google/fonts/tree/main/ofl/tajawal); license: `android/app/src/main/assets/fonts/OFL.txt`. Medium SHA-256: `1ff8bd943a261c9dd7906bdb1993cab87b6d925a7fb5f848cdb51ed301531090`. No runtime font download; technical/lab fields retain system monospace.
+[Tajawal](https://github.com/google/fonts/tree/main/ofl/tajawal), license `android/app/src/main/assets/fonts/OFL.txt`. Medium SHA-256: `1ff8bd943a261c9dd7906bdb1993cab87b6d925a7fb5f848cdb51ed301531090`. No runtime download; technical/lab fields keep system monospace.
 
 ## Component ownership
 
 | Need | Shared owner | Caller retains |
 |---|---|---|
-| Fields/pickers/auth layouts | `AppTextField`, `AppPickerField`, `PasswordField`, `AppCenteredContent` | Draft, validation, keyboard and busy state. |
-| Actions/identity/clinical text | `UiAction`, `AppActionLabel`, `PatientIdentityText`, `AppClinicalSection` | Patient/revision, full content and explicit mutations. |
-| Chips/choices/sections | `AppChip`, `AppFilterChip`, `AppChoiceChips`, `AppSelectableSurface`, `AppSectionHeader` | Informational vs selectable semantics and selection. |
+| Fields/pickers/auth | `AppTextField`, `AppPickerField`, `PasswordField`, `AppCenteredContent` | Draft/validation/keyboard/busy state. |
+| PIN / Telegram ID | `PinField` owns digit limit/numeric-password input; `TelegramIdField` owns signed/numeric keyboards | Memory-only PIN, ID validation and stale-value guards. |
+| Actions/identity/text | `UiAction`, `AppActionLabel`, `PatientIdentityText`, `AppClinicalSection` | Patient/revision, full content, mutations. |
+| Chips/choices/sections | `AppChip`, `AppFilterChip`, `AppChoiceChips`, `AppChoiceRow`, `AppSelectableSurface`, `AppSectionHeader` | Selection/grouping and informational/selectable intent. |
 | Clinical/neutral containers | `ContainerColors`, `toneColors`, `patientBadgeColors`, `AppNotice`, `AppMetricGrid` | Severity, counts and actions; pending is a semantic tone. |
-| Dialogs/transient UI | `AppAlertDialog`, dialog action helpers, `AppSheet`, `AppMenu`, `AppSnackbarHost` | Body scrolling, confirmation, stale review, dismissal and permissions. |
+| Dialogs/transient UI | `AppAlertDialog`, action helpers, `AppSheet`, `AppMenu`, `AppSnackbarHost` | Scrolling/confirmation/stale review/dismissal/permissions. |
+| Ward full-screen frame | `WardFullscreenDialog`: native/Compose RTL, safeDrawing/IME/fold handling | Content/actions/properties/dismissal and state. |
 | Icon/text/loading/list chrome | `AppIcons`, `AppText`, `AppLoadingState`, `AppStateHost`, `AppListToolbar` | Labels, retry/operation lifecycle and navigation. |
 
-Visible text makes adjacent icons decorative. Generic actions (Edit/Full record/ Restore/Review/«إرسال تقرير»/Save/Cancel) must not hide specific consequences such as recycle removal or previous-shift fetch. Specialized clinical/report reviews retain their detailed callbacks and fixed keyboard-safe controls. Previews use dummy data and do not alter system bars. Selected device/layout checks passed; full rendered accessibility remains in [Remaining checks](../status/testing-handoff.md).
+Reuse a component when it owns repeated behavior/semantics; extract substantial feature sections locally. Avoid pass-through wrappers or moving drafts/launchers/review state to gain reuse. Single-choice rows use `selectableGroup()`; caller owns the selected value.
+
+Icons beside visible labels are decorative. Actions (Edit/Full record/Restore/Review/«إرسال تقرير»/Save/Cancel) must reveal consequences, including recycle removal or pending-edit replacement on Fetch. Clinical/report reviews keep detailed callbacks/fixed keyboard-safe controls. Previews use dummy data, preserving system bars. Historical layout passes do not establish full [rendered accessibility](../status/testing-handoff.md).

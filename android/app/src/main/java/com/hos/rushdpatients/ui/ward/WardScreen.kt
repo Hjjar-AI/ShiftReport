@@ -208,7 +208,6 @@ private fun WardWorkspaceContent(
     val anyCardsExpanded = remember(state.patients, allCardsExpanded, expandedIds, collapsedIds) {
         state.patients.any { patient -> if (allCardsExpanded) patient.id !in collapsedIds else patient.id in expandedIds }
     }
-    fun toggleAllCards() = setAllPatientsExpanded(!anyCardsExpanded)
     val visiblePatients = remember(state.patients, filters, currentDoctorId, dayLabel, searchIndex, patientFilterIds) {
         filterWardPatients(state.patients, filters, currentDoctorId, dayLabel, emptySet(), searchIndex)
             .filter { patientFilterIds == null || it.id in patientFilterIds }
@@ -452,7 +451,8 @@ private fun WardWorkspaceContent(
                     onBackToPreview = onBackToPreview,
                     header = {
                         WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
-                            onMenu = { scope.launch { drawerState.open() } }, onToggleCards = ::toggleAllCards,
+                            onMenu = { scope.launch { drawerState.open() } },
+                            onToggleCards = { setAllPatientsExpanded(!anyCardsExpanded) },
                             showAddAction = !showAddFloatingAction,
                             onAdd = { editor.openAdd(state.patients) }, onSearch = {
                                 if (patientDestination && showSearch && searchQuery.isBlank()) {

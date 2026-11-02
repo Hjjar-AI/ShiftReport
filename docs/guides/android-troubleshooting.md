@@ -1,40 +1,42 @@
 # Android troubleshooting
 
-[Current state and verification limits](../status/current-state.md) · [Windows/Linux desktop troubleshooting](desktop-troubleshooting.md) · [Windows EXE packaging guide](windows-exe-packaging.md)
+[Behavior/evidence](../status/current-state.md) · [Build/cache/signing](android-build.md) · [Remaining checks](../status/testing-handoff.md).
 
-Use an already installed development app. These recipes do not authorize builds, compilation, test-suite work, migrations, destructive device actions or data resets; follow [AGENTS.md](../../AGENTS.md). Keep clinical captures local and redacted. A clean Logcat is not proof that an operation succeeded.
+Use an installed development app under [AGENTS permissions](../../AGENTS.md); these recipes grant no build/test/migration/destructive-device/reset authority. Keep captures local/redacted. Clean Logcat does not prove success.
 
 ## Doctor registry needs attention
 
-«جلب سجل الأطباء» retrieves; «نشر سجل الأطباء» reviews/publishes local doctors/teams/permissions/destinations. «عرض التعديلات» shows portable changes, excluding local PIN/unchanged saves. Unrelated registry edits need not block patient publication; unpublished invalid roster/assignment references must be published/corrected first (admin registry shortcut). Fetch invalidates previews; review again. Publication replaces the complete reviewed local shift, last-write-wins; check destination/UNKNOWN before retry.
+«جلب سجل الأطباء» retrieves; «نشر سجل الأطباء» reviews/publishes doctors/teams/permissions/destinations. «عرض التعديلات» excludes local PIN/unchanged saves. Unrelated edits need not block patient publication; publish/correct invalid unpublished roster/assignment references first through the admin shortcut. Fetch invalidates previews. Publication replaces the complete reviewed shift, last-write-wins; check destination/UNKNOWN before retry.
 
 ## Build, cache and signing failures
 
-Use the [build/cache/signing guide](android-build.md) for [offline verification](android-build.md#cached-verification-without-packaging), [account isolation and read-only snapshots](android-build.md#what-is-shared-and-what-is-private), [APK locations](android-build.md#find-the-apk), [version reservation](android-build.md#automatic-app-patch-and-version-code-increments) and [signature mismatch](android-build.md#shared-debug-signing). Inspect the failing path/task before changing settings; preserve caches and pins.
+Use [offline verification](android-build.md#cached-verification-without-packaging), [account/cache isolation](android-build.md#what-is-shared-and-what-is-private), [APK paths](android-build.md#find-the-apk), [version reservation](android-build.md#automatic-app-patch-and-version-code-increments) or [signing](android-build.md#shared-debug-signing). Inspect the failing path/task; preserve caches/pins.
 
 ## Existing top-level functions become unresolved
 
-2 November owner `assembleDebug` failed across six changed UI files, including imports whose declarations remain in production source. Read-only inspection of the launcher-selected account output (`~/.gradle/shiftreport-project-cache/build-output/app`) found an82-byte `app_debug.kotlin_module` listing only `ReportPreviewScreenKt`; component class files still existed. Transformed/resource copies held the same incomplete index. This supports an incremental-output metadata problem; its original cause is unproven. The older checkout-local `app/build` is not the launcher-selected output.
+2 November owner `assembleDebug`: six changed UI files failed despite existing declarations. Read-only inspection of launcher-selected `~/.gradle/shiftreport-project-cache/build-output/app` found 82-byte `app_debug.kotlin_module` indexing only `ReportPreviewScreenKt`, with component classes still present; transformed/resource copies matched. This suggests incomplete incremental metadata, cause unproven. Checkout-local `app/build` was older, not selected.
 
-With explicit owner approval and the normal build preflight, try one production-only rebuild without incremental Kotlin, packaging or version reservation:
+With explicit approval/build preflight, try one production-only non-incremental compile without packaging/version reservation:
 
 ```bash
 ./gradlew --offline -Pshiftreport.autoVersion=false -Pkotlin.incremental=false :app:compileDebugKotlin > /tmp/shiftreport-metadata-compile.log 2>&1
 ```
 
-This recovery has not been run. Preserve the failure and generated state; do not delete caches or rewrite valid imports to hide missing metadata. A successful compile is still not runtime verification.
+Recovery unrun. Preserve failure/generated state; do not delete caches or rewrite valid imports. A compile cannot establish runtime behavior.
 
 ## KSP cannot access FilterOutputStream.out
 
-For unopened `java.io`/`InaccessibleObjectException`, retain `kotlin.daemon.jvmargs=--add-opens=java.base/java.io=ALL-UNNAMED` in `android/gradle.properties` on the **Kotlin daemon** where KSP runs. No toolchain/cache change. [Arguments](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments); earlier owner build passed, not newer-source proof.
+For `java.io`/`InaccessibleObjectException`, retain `kotlin.daemon.jvmargs=--add-opens=java.base/java.io=ALL-UNNAMED` in `android/gradle.properties` on the **Kotlin daemon** running KSP. Preserve toolchain/caches. [Arguments](https://kotlinlang.org/docs/gradle-compilation-and-caches.html#setting-kotlin-daemon-s-jvm-arguments); earlier owner build passed, not newer-source proof.
 
 ## KSP lookup cache cannot be read
 
-`NegativeArraySizeException` in `IOUtil.readString`/`LookupSymbolExternalizer`/`FileToSymbolsMap`: capture trace/output path; cause unproven. With owner approval/no writers, quarantine only affected account’s generated `app/kspCaches/debug` to unique sibling, preserving diagnosis. Never clear dependencies/app data/others’ output. Earlier targeted repair passed an owner build. [Tracking](https://kotlinlang.org/docs/ksp-incremental.html).
+`NegativeArraySizeException` in `IOUtil.readString`/`LookupSymbolExternalizer`/`FileToSymbolsMap`: capture trace/path; cause unproven. With approval/no writers, quarantine only the affected account's generated `app/kspCaches/debug` to a unique sibling. Preserve dependencies/app data/others' output. Earlier targeted repair passed an owner build. [Tracking](https://kotlinlang.org/docs/ksp-incremental.html).
 
 ## Capture one failure
 
-Use installed platform-tools, USB debugging/unlocked authorized phone; check Windows driver/Linux udev. From repo root capture below, reproduce once, record exact Arabic action/error, stop Ctrl+C; do not clear prior logs. CSV errors may exist only in snackbar. Keep captures ignored/redacted (`git check-ignore -v local-debug/reproduction.txt`). App-only capture: `adb shell pidof com.hos.rushdpatients`, then `adb logcat --pid=THE_PID -v threadtime`; refresh PID after restart. Do **not** run hierarchy dumps alongside instrumentation. Wait for native search results to settle before selecting exact file; picker timeout alone is not import failure.
+Use installed platform-tools and an unlocked/authorized USB-debugging phone; check Windows drivers/Linux udev. From repo root, capture below, reproduce once, record exact Arabic action/error, stop Ctrl+C; preserve prior logs. CSV errors may appear only in a snackbar. Verify ignored/redacted captures with `git check-ignore -v local-debug/reproduction.txt`.
+
+App-only: `adb shell pidof com.hos.rushdpatients`, then `adb logcat --pid=THE_PID -v threadtime`; refresh PID after restart. No hierarchy dumps during instrumentation. Wait for settled native search results; select the exact file. Picker timeout alone is not import failure.
 
 ```bash
 adb devices -l
@@ -63,30 +65,30 @@ rg -n -i 'Rushd|AndroidRuntime|FATAL EXCEPTION|ANR|SecurityException|IOException
 | Background work delayed | `adb shell dumpsys jobscheduler` and `adb shell dumpsys deviceidle`; record battery restrictions before changing them. |
 | Memory/jank | `adb shell dumpsys meminfo com.hos.rushdpatients` and `adb shell dumpsys gfxinfo com.hos.rushdpatients`. |
 
-Do not clear app data, uninstall, delete its database, force-publish, or restore a backup merely to collect evidence. SQLCipher files are private clinical data; copying them does not produce a readable SQLite database. Bug reports and UI dumps may contain staff/patient information. No token, PIN, passphrase or raw record belongs in a public issue.
+Evidence collection must not clear data, uninstall, delete databases, force-publish or restore backups. SQLCipher copies stay encrypted/private. Bug reports/UI dumps may expose staff/patients; never publish tokens/PIN/passphrases/raw records.
 
 ## Current files
 
 | File/data | Required representation |
 |---|---|
-| Patient CSV | Schema 7, exact named columns and quoted shift metadata; tasks are explicit JSON |
+| Patient CSV | Schema 8, 24 named columns/quoted shift metadata; explicit task JSON and ordered lab-group JSON |
 | Telegram patient snapshot | Bundle 1 referenced by pinned sync-state v4; not an XLSX document |
 | Doctor spreadsheet | Schema 1, UTF-8 with/without BOM, exact header below |
 | Join | Password-encrypted `.srjoin.json`; connection/topics/key inside ciphertext |
 | Backup | Password-encrypted `.rpb` |
 | Encrypted Telegram data | `SRDATA1` files / `SRMSG1:` text; readable PDFs are intentional |
 
-Ordinary Excel Save as CSV is not a substitute for app metadata or current bundle encoding. Do not open both clients against an old XLSX-pinning workflow. See [the protocol](../reference/telegram-protocol.md).
+Excel Save as CSV cannot replace app metadata/bundle encoding; old XLSX-pinning workflows are unsupported. [Protocol](../reference/telegram-protocol.md).
 
 ## Joining and empty exports
 
-Protected join/password only; zero bytes invalid. Android10+ prefers verified JSON in `Downloads/ShiftReport`, optional share/picker; older Android primarily shares. Record save result/retry fresh local export; original empty-provider cause unknown. Doctor/backup encrypted staging keeps random IDs/counts across recreation; cancel/verification failure cleans owned output, expired admin needs new login/export.
+Protected join/password only; zero bytes invalid. Android 10+ prefers verified JSON in `Downloads/ShiftReport`, optionally share/picker; older Android primarily shares. Record save result; retry a fresh local export. Original empty-provider cause unknown. Doctor/backup encrypted staging retains random IDs/counts through recreation; cancel/verification failure cleans owned output. Expired admin needs new login/export.
 
-Wrong keys/passwords/tampering fail; recover correct key rather than replacing it. Pre-login same-project file reconnect preserves state and blocks changed project/key/topics; same-bot token revocation belongs to BotFather. Existing enrolled admin may use PIN; erased devices require join/enrollment.
+Wrong keys/passwords/tampering fail; recover the correct key. Pre-login reconnect preserves state and rejects changed project/key/topics. BotFather revokes tokens. Enrolled admin may use PIN; erased devices need join/enrollment.
 
 ## Doctor CSV import
 
-Check the exact selected file/provider timestamp. Export an untouched registry from the same installed app as a control. Import has separate preparation, review and commit phases; “saved locally, sync failed” means investigate sync rather than repeat the mutation. Full registry/actor changes can invalidate the reviewed plan.
+Check selected file/provider timestamp; use an untouched same-app registry export as control. Import separates preparation/review/commit; “saved locally, sync failed” needs sync diagnosis, not repeated mutation. Registry/actor changes can invalidate review.
 
 Required header:
 
@@ -96,7 +98,7 @@ schema_version,id,first_name,last_name,full_name,gender,clinical_role,supervisor
 
 ### Local file validation
 
-This check does not modify the file and does not print doctor data:
+Read-only; prints counts, never doctor records:
 
 ```bash
 python3 - <<'PY'
@@ -132,9 +134,9 @@ print("rows_with_extra_columns:", sum(None in row for row in rows))
 PY
 ```
 
-The legacy `blank_required_count` diagnostic includes name parts, now optional; only schema/ID blanks are required-field errors.
+`blank_required_count` includes optional name parts; only schema/ID blanks are required-field errors.
 
-Also check encoding and the first bytes without printing the records:
+Inspect encoding/size/first bytes without printing records:
 
 ```bash
 file -bi doctors-import.local.csv
@@ -142,7 +144,7 @@ wc -c doctors-import.local.csv
 xxd -l 16 doctors-import.local.csv
 ```
 
-UTF-8 with or without a UTF-8 BOM is accepted. A UTF-16 spreadsheet export is not.
+UTF-8 BOM is optional; UTF-16 is unsupported.
 
 ### Spreadsheet pitfalls
 
@@ -150,14 +152,14 @@ CSV UTF-8 (BOM optional), exact header/schema1; no ANSI/UTF16/XLSX. Preserve num
 
 ## Tasks and reports
 
-Tasks are explicit text/done records, never parsed notes; pending counts exclude completed tasks. Legacy ownership/deadlines/stamps remain storage-only. No overdue counters, minute refresh or rollover;08:30 labels the continuing ward day.
+Tasks are explicit text/done records; pending excludes completed. Stored ownership/deadlines/stamps remain storage-only. No parsed notes/overdue counters/minute refresh/rollover; 08:30 labels the continuing ward.
 
-Use dummy DEMO PDF: mixed Arabic/Latin,long content/tasks,badges,order/continuations/headings/footer. Acrobat/browser: search/copy/selection,index/name/Previous/Next,print. A5≈420×595pt; `pdfinfo`/`pdftotext -enc UTF-8` do not establish viewer behavior. [Remaining](../status/testing-handoff.md).
+Use dummy DEMO PDFs: Arabic/Latin, long text/tasks/badges, order/continuations/headings/footer. Android A5 cards always place two clinical columns below demographics/badges. In Acrobat/browser inspect search/copy/selection/index/name/Previous/Next/print. A5≈420×595pt; `pdfinfo`/`pdftotext -enc UTF-8` cannot establish viewer behavior. [Remaining checks](../status/testing-handoff.md).
 
 ## Appearance and navigation
 
-Check independent appearance/accent and neutral diagnosis/shared severity; field focus/error/disabled,large Arabic wrapping,48dp,IME-safe actions,fold-safe regions and last-row dock clearance. Bulk immediate/individual brief. In filtered/pinned demo rounds, only successful Save-next advances; invalid/discard/no-successor must not. See [actual limits](../status/current-state.md#verification-and-limits).
+Inspect appearance/accent independence, neutral diagnosis/shared severity, field focus/error/disabled, large Arabic wrapping, 48dp targets, IME/fold/dock clearance. Bulk expansion immediate, individual brief. Filtered/pinned demo rounds advance only after successful Save-next, never invalid/discard/no-successor. [Limits](../status/current-state.md#verification-and-limits).
 
 ## Report a problem
 
-Record app/source/OS/device/viewer,steps,expected/actual,error,file/provider facts,local-save versus remote-send and redacted timestamps. Distinguish static/build/device/live evidence. Keep logs/reports ignored/private; no credentials/clinical records.
+Record app/source/OS/device/viewer, steps, expected/actual/error, file/provider facts, local-save/remote-send and redacted timestamps. Separate static/build/device/live evidence; keep logs private/ignored, without credentials/clinical records.

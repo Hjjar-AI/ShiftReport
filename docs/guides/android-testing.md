@@ -2,24 +2,24 @@
 
 [Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md) · [Device procedures](device-coverage.md) · [Desktop/live](deep-testing.md)
 
-Inventory, executed results and exact limits live in [Current state](../status/current-state.md#verification-and-limits). Source inventory, focused passes and device runtime are separate evidence. Keep opt-in/manual checks and owner skips explicit; overlapping full/focused/method runs are not additional unique coverage.
+Inventory/results/limits belong in Current state; handoff alone lists remaining checks. Separate source inventory, focused passes and device runtime. Record opt-ins/owner skips; overlapping runs add no unique coverage. This guide grants no test/build permission.
 
 ## Coverage map
 
 | Area | Existing coverage |
 |---|---|
-| Clinical/tasks/lab groups | Optional profiles, validation/search/filter/counts, last-save-wins clinical writes with existence/deletion/section/assignment guards, plain checklists, grouped-lab codec/mapper/draft/search/review/wire contracts, rollback, sorting and report/export; legacy metadata round trips remain covered |
-| Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, explicit7→8 lab migration row-preservation case (device execution status in Current state), same-project reconnect, key/topic protection, cancellation and secret cleanup |
+| Clinical/tasks/lab groups | Optional profiles, validation/search/filter/counts, guarded last-save-wins, checklists, grouped-lab codec/mapper/draft/search/review/wire, rollback/sort/report/export and stored metadata round trips |
+| Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, 7→8 lab row-preservation case (execution in Current state), same-project reconnect, key/topic protection, cancellation/secret cleanup |
 | Sync/delivery | Reviewed uploads/download Undo, pointer/history/mutex races, independent clients, UNKNOWN receipts, duplicate permission, write failure and actor revocation |
-| Reports/Telegram | Readiness/fingerprints, exact PDF review, Room snapshot consistency, long Markdown/Unicode chunks, retry/rate-limit/cancellation and intercepted transport |
-| Device/UI | Production navigation, privacy/recreation/picker results, editor/task/roster controls, setup 200% text/scrolling, adaptive/synthetic folds, clipboard/splash, native PDF/process-kill and scrolling |
-| Shared fixtures | `Fixtures`, `ViewModelFixture`, `DeliveryFixture`; device database/repository/sync/production-UI fixtures. Each case owns isolated state. |
+| Reports/Telegram | Readiness/fingerprints, exact PDF review, Room consistency, long Markdown/Unicode chunks, retry/rate-limit/cancellation/intercepted transport |
+| Device/UI | Production navigation, privacy/recreation/pickers, editor/tasks/roster, setup 200% text/scrolling, adaptive/synthetic folds, clipboard/splash/native PDF/process-kill/scrolling |
+| Shared fixtures | `Fixtures`, `ViewModelFixture`, `DeliveryFixture`; device DB/repository/sync/production UI, isolated per case |
 
 ## Run deliberately
 
-[AGENTS.md](../../AGENTS.md) requires explicit build/test authorization and active-build, RAM/swap and durable-toolchain/cache checks before every Gradle attempt. Do not stop others' work, clear caches, download temporary toolchains or change versions. Installed Gradle 8.7/Java 21 have been used with Java/Kotlin target 17 and SDK 34.
+[AGENTS.md](../../AGENTS.md#authorization-and-execution) requires separate build/test approval and preflight before every Gradle attempt. Preserve others' work/caches/versions; use durable tools. Recorded environment: Gradle 8.7/Java 21, Java/Kotlin target 17, SDK 34.
 
-From `android/`, define this helper in the current shell; it preserves offline, one-worker, in-process Kotlin and disabled version reservation for every command:
+From `android/`, define this shell helper: offline, one worker, in-process Kotlin, no version reservation.
 
 ```sh
 srgradle() {
@@ -32,11 +32,9 @@ srgradle :app:compileDebugKotlin :app:compileDebugUnitTestKotlin \
 srgradle :app:testDebugUnitTest > /tmp/shiftreport-jvm.log 2>&1
 ```
 
-For a focused JVM run, add one or more `--tests 'fully.qualified.ClassName'` filters. The delivery-fixture scope is `domain.report.ReportDeliveryLedgerTest`, `domain.report.ReportDeliveryLedgerSafetyTest` and `network.ReportSenderTest`, all under `com.hos.rushdpatients`.
+Focus JVM with `--tests 'fully.qualified.ClassName'`. Delivery fixtures: `domain.report.ReportDeliveryLedgerTest`, `domain.report.ReportDeliveryLedgerSafetyTest`, `network.ReportSenderTest`, prefixed `com.hos.rushdpatients`.
 
-Device checks build/install debug app/test APKs. Compile first, then run on the owner-selected connected device; exclude the automatic Desktop export task:
-
-The helper's `shiftreport.isolatedTests=true` gives debug builds the separate application ID `com.hos.rushdpatients.verification` and package-relative document-provider authorities. This keeps test application startup, database/preferences/keystore storage and WorkManager jobs separate from the installed clinical app, in addition to the per-case fixtures below. Normal debug/release IDs and version values are unchanged. Keep this property consistent through compilation and device execution; use the verification package when pulling artifacts or inspecting its test-owned storage.
+Device checks build/install debug app/test APKs: compile first, use the owner-selected phone and exclude Desktop export. Keep `shiftreport.isolatedTests=true` through compile/execution: debug ID `com.hos.rushdpatients.verification` and package-relative provider authorities isolate startup/DB/preferences/keystore/WorkManager from the clinical app, alongside per-case fixtures. Normal IDs/versions stay unchanged. Pull/inspect only the verification package's artifacts/storage.
 
 ```sh
 srgradle :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin \
@@ -46,10 +44,12 @@ srgradle -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
   > /tmp/shiftreport-device.log 2>&1
 ```
 
-To focus the device command, add `-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest` (or another fully qualified class, comma-separated classes, or `Class#method`). Select one phone with `ANDROID_SERIAL` when multiple devices are connected. Opt-in prerequisites/flags are in [Device procedures](device-coverage.md).
+Focus with `-Pandroid.testInstrumentationRunnerArguments.class=com.hos.rushdpatients.ui.ProjectSetupOverrideTest`; accepts other classes, comma-separated classes or `Class#method`. Select `ANDROID_SERIAL` for multiple phones. [Device procedures](device-coverage.md) owns opt-ins/prerequisites.
 
-Count failures/errors/skips from JUnit XML, not duplicated console messages. Default output: `~/.gradle/shiftreport-project-cache/build-output/app/`; JVM XML: `test-results/testDebugUnitTest/`; device XML: `outputs/androidTest-results/connected/debug/`. Archive exact source/device/API, XML and failure details in ignored `local/verification/`; update Current state.
+Count failures/errors/skips from JUnit XML, not console duplicates. Default root: `~/.gradle/shiftreport-project-cache/build-output/app/`; JVM: `test-results/testDebugUnitTest/`; device: `outputs/androidTest-results/connected/debug/`. Archive source/device/API/XML/failures in ignored `local/verification/`; update Current state.
 
 ## Fixture rules
 
-Use synthetic beverage patients/tree doctors, fresh isolated Room/preferences/files and intercepted HTTP; never open installed clinical storage or use real credentials. Use deferred barriers/virtual clocks rather than scheduling sleeps. Cancel ViewModel collectors, close databases and remove only fixture-owned temporary files. Device method names use camelCase; spaced backticks can produce D8-invalid coroutine names. PDF/FileProvider fixtures use `IsolatedPdfContext` with the verification app’s configured cache roots and uniquely owned preview files; a per-case overridden cache root cannot define a different root for the same cached provider authority. Never broaden provider paths for a fixture. Native hardware/provider/live probes remain opt-in; a skip is not verification. Do not convert the [remaining limits](../status/testing-handoff.md) into an edge-case backlog.
+Use beverage patients/tree doctors, isolated Room/preferences/files and intercepted HTTP; never clinical storage/real credentials. Prefer deferred barriers/virtual clocks to sleeps. Cancel collectors, close DBs, remove only owned temporary files. Device methods use camelCase; spaced backticks can yield D8-invalid coroutine names.
+
+PDF/FileProvider fixtures use `IsolatedPdfContext`, verification-app cache roots and unique owned previews. Per-case overrides cannot change roots for one cached provider authority; never broaden provider paths. Hardware/provider/live probes remain opt-in; skips are not verification. [Remaining limits](../status/testing-handoff.md) are no edge-case backlog.

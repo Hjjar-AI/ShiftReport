@@ -1,34 +1,34 @@
 # Android demo workspace
 
-Choose Demo on setup to use the app screens with isolated temporary data, without joining or creating a project.
+Choose Demo on setup for shared app screens with isolated dummy data; no project join/create is needed.
 
 ## Shared screens
 
 | Destination | Shared behavior |
 |---|---|
-| Patients/Dashboard | Production `WardWorkspace`: navigation, search/filter/cards/details/forms/tasks/sort/dashboard, including simulated transfer controls and canonical pending counts. |
-| Doctors | Production `DoctorsWorkspace`: search/filter/cards/Add/Edit/delete/team management and registry review. Registry Publish/Fetch are memory-only; CSV import/export are disabled. |
-| Report | Production `ReportWorkspace`: shift doctors, General/supervisor selection, PDF/text preview, readiness links, final confirmation and receipt display. Publish/send only update the in-memory snapshot/receipts. |
-| Assignments | Production `AssignmentsExportWorkspace`: sidebar action, preview then save, no roster/upload prerequisite; shared `PdfAssignmentRenderer` uses A5 portrait with three team tables per row, dummy data and DEMO on every page. |
-| About | Production `IntroAboutScreen`: logo, app/version information and credits. |
-| Appearance | Production `SettingsAppearanceSection` with palette/font/reduced-motion controls and no patient preview; only accent/appearance persist locally. Connection/security/project administration is outside the demo. |
-| Drawer | Production `WardDrawer` with a demo-only session slot for actor selection, download Undo, reset and exit. |
+| Patients/Dashboard | `WardWorkspace`: navigation, search/filter/cards/details/forms/tasks/sort/dashboard, simulated transfers and canonical pending counts. |
+| Doctors | `DoctorsWorkspace`: search/filter/cards/Add/Edit/delete/teams/registry review; memory-only Publish/Fetch, no CSV import/export. |
+| Report | `ReportWorkspace`: shift doctors, General/supervisor choice, PDF/text/readiness, confirmation/receipts; publication/delivery are simulated. |
+| Assignments | `AssignmentsExportWorkspace`: sidebar Preview→Save without roster/upload prerequisites; A5 portrait, three team tables per row. |
+| About | `IntroAboutScreen`: logo, app/version and credits. |
+| Appearance | `SettingsAppearanceSection`: palette/font/reduced motion, no patient preview. Only accent/appearance persist. |
+| Drawer | `WardDrawer`: demo session slot for actor, Fetch Undo, reset and exit. |
 
-The ward, report and doctor screens display demo identification. Report screens explicitly state that transfer/delivery is simulated. The screens, drawer layout and exhaustive drawer dispatcher are shared. Changes inside these shared components apply automatically in both modes. New destinations must supply explicit navigation callbacks; `onOpenAssignments` has no silent default. New data/action contracts still require a memory adapter or simulated result; UI sharing cannot invent those behaviors.
+Ward/report/doctors identify demo mode; reports label simulated delivery. Shared UI changes reach both modes, including the fixed two-column A5 cards below full-width demographics/badges. Setup/login, connection/security and project administration remain outside demo. New actions need memory adapters; new destinations need explicit callbacks (`onOpenAssignments` has no default).
 
 ## Isolation and lifecycle
 
-`DemoWardViewModel` injects `InMemoryDemoWardRepository`, pure text/PDF builders (including the assignments renderer) and an explicit PDF saver. It never constructs production clinical/settings/session/Telegram services. `WardController`, `ReportController` and `DoctorsController` select production or demo operations below the shared UI; production authorization and durable delivery rules stay in their existing ViewModels/services.
+`DemoWardViewModel` uses `InMemoryDemoWardRepository`, pure text/PDF builders and an explicit PDF saver; never production clinical/settings/session/Telegram services. `WardController`/`ReportController`/`DoctorsController` choose operations below shared UI; live authorization/durable delivery stay in production ViewModels/services.
 
-The 50 fictional food/drink patients come from `samples/synthetic-patients-50-expanded.csv`; tree doctors, actor/roster/teams, drafts, fake remote snapshot and delivery receipts exist only in memory. Entered doctor PIN/Telegram identity values are discarded. Fetch uses the fake published snapshot; pending replacement uses the production chooser/review dialogs, with local demo Undo. Reset/exit/process death discards the clinical session. Demo accent and appearance are the explicit cosmetic exception: `DemoAppearanceStore` keeps only these two enum choices in private, unencrypted `demo_appearance` preferences, with IO off-main. They are loaded before demo rendering and survive exit/reset; no clinical, credential or live-project settings enter this file. The day label refreshes at08:30/foreground; report review captures its own day.
+Fifty food/drink patients come from `samples/synthetic-patients-50-expanded.csv`. Tree doctors, actor/roster/teams, drafts, remote snapshot and receipts are memory-only; entered doctor PIN/Telegram identities are discarded. Fetch uses the fake snapshot and production replacement/review dialogs with local Undo. Reset/exit/process death discards the session. Only `DemoAppearanceStore` persists accent/appearance enums in private, unencrypted `demo_appearance` preferences, off-main and loaded before rendering; these survive reset/exit. No clinical/credential/live settings enter that file. The day label refreshes at 08:30/foreground; review captures its own day.
 
 ## Explicit local files
 
-PDF preview uses the production renderer with **DEMO on every page**, including Cards. Save/Share copies the opened general preview; supervisor Save requires each supervisor preview to have been opened. PDF generation/copy runs off-main; private previews are removed on invalidation/reset/exit/ViewModel disposal. User-saved copies remain. Names-only assignments save as `Assignments_YYYYMMDD_DEMO.pdf`, using the captured review day, including with an empty shift roster. Save checks the current dummy snapshot and the hash of the opened preview; regeneration invalidates the prior opening. No CSV exports, real admin operations, real upload or Telegram delivery.
+Production renderers put **DEMO on every page**, including Cards/assignments. Save/Share copies the opened General preview; each supervisor preview must be opened before its Save. Save checks the current dummy snapshot and opened-preview hash; regeneration invalidates that opening. Generation/copy runs off-main; invalidation/reset/exit/ViewModel disposal removes private previews, never user-saved copies. Assignments use the captured review day in `Assignments_YYYYMMDD_DEMO.pdf`, including with an empty roster. No CSV export, real administration/upload/Telegram delivery.
 
 ## Keeping new features shared
 
-Implement presentation and user flows in controller-driven workspaces, then let the live route supply its Hilt controller and the demo supply a memory controller. Keep destination dispatch in `WardNavigation.openDrawerAction`, not a separate demo action switch. Keep PDF layout in renderers shared by both modes; production authorization wraps those renderers and is never disabled for demo. Demo must use only dummy snapshots and every-page DEMO labels. Network/session/persistence operations stay in the production adapters; the demo simulates only their visible results. Update memory adapters when action/state contracts change, rather than copying screens or hiding supported local actions.
+Use controller-driven workspaces: live supplies its Hilt controller, demo a memory controller. Keep exhaustive drawer dispatch in `WardNavigation.openDrawerAction`, PDF layout in shared renderers and network/session/persistence in production adapters. Preserve live authorization; demo simulates visible results with dummy snapshots. Update memory adapters when contracts change; reuse screens and supported local actions.
 
 ## Source ownership
 
@@ -36,8 +36,8 @@ Implement presentation and user flows in controller-driven workspaces, then let 
 - [Ward adapter](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardViewModel.kt), [report adapter](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoReportController.kt), [doctor adapter](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoDoctorsController.kt).
 - [Memory repository](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/InMemoryDemoWardRepository.kt) and [dummy data](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoData.kt).
 
-The sample is embedded in generated `DemoSamplePatients.kt` and decoded once using the current production CSV codec; no runtime file/Room/network access is added. Run `python3 samples/generate_android_demo.py` after editing the fictional expanded CSV, then rebuild normally. All 50 rows retain the sample demographics, stored dates, clinical text, badges/tasks and priority. Lab groups use the sample’s explicit panel headings and retained results:104 panels have fictional26–27 October2026 dates and34 intentionally have no date; the same add/remove/reorder/calendar editor is used in live/demo. Treatment examples contain mostly individual medicine/dose lines followed by a few short notes; they are fictional layout data. Demo supplies its own patient IDs and fictional resident/supervisor assignments, spread approximately equally across three linked resident/supervisor teams (17/17/16 patients). The source checksum is recorded in the generated file.
+`DemoSamplePatients.kt` embeds the CSV and checksum; the production codec decodes it once without runtime file/Room/network access. After fictional CSV edits, run `python3 samples/generate_android_demo.py`; rebuilding requires [approval](../../AGENTS.md). All 50 rows retain demographics/dates/text/badges/tasks/priority. Explicit lab headings/results include 104 panels dated 26–27 October 2026 and 34 undated; live/demo share add/remove/reorder/calendar controls. Medicine/dose lines and short treatment notes are fictional layout data. Demo assigns its own IDs and three linked resident/supervisor teams (17/17/16 patients).
 
 ## Evidence
 
-26 October PPA-LX2/API29 focused tests passed selected memory-only edit/fetch/Undo/reset, discarded credential inputs, shared report/assignments navigation/recreation, simulated receipts and exact reviewed-byte Save/Share with stale-data rejection. Five dummy PDFs/31pages passed rendering, every-page DEMO and continuation-content checks with92 valid Fit links; changed-assignment marking and sampled visuals checked. Xodo read-grant launch passed. These selected results do not establish physical printing, all viewer/glyph behavior or full UI-matrix acceptance. [Current evidence](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md).
+26 October, PPA-LX2/API29: selected edit/Fetch/Undo/reset, discarded credentials, shared navigation/recreation, simulated receipts and exact-byte/stale-reject Save/Share passed. Five dummy PDFs/31 pages passed rendering, every-page DEMO, continuation content and 92 Fit links; changed-assignment marking, sampled visuals and Xodo read-grant launch passed. This predates later edits and does not establish printing/all viewers/glyphs/full UI acceptance. [Current evidence](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md).

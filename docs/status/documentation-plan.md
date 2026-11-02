@@ -1,5 +1,5 @@
 # Documentation consolidation plan
 
-Remaining authorized work: none. [Results/limits](changelog.md#documentation-consolidation) · [Document owners](../README.md).
+Remaining authorized documentation work: none. [Results/limits](changelog.md#documentation-consolidation) · [Document owners](../README.md).
 
-Scope retained: repository Markdown only; commands, permission/safety/product rules, unresolved evidence, proposals and private VBA/credentials preserved. Local audit: `local/verification/documentation-2026-10-25/`. No source/build/test-suite/migration/version work.
+Scope: root `AGENTS.md` and Android guides/reference/decisions; retain commands, permission/product rules, proposals and unresolved evidence. No desktop/build/test-suite/migration/version work. Earlier audit: `local/verification/documentation-2026-10-25/`.
