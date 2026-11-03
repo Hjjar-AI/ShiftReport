@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="guide_title">دليل الاستخدام</string>
+    <string name="guide_intro">تعرّف على دلالات ألوان بطاقة المريض ورموزها. تتبع الأمثلة مظهر التطبيق ولون السمة المختار.</string>
     <string name="guide_card_stripe_title">الشريط الجانبي لبطاقة المريض</string>
     <string name="guide_card_stripe_intro">يعكس لون الشريط الجانبي علامة الأولوية أو مستوى الشارات أو وجود مهام غير مكتملة.</string>
     <string name="guide_card_red">الأحمر</string>

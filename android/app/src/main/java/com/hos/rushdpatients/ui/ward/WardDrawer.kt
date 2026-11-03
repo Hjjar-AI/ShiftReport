@@ -51,7 +51,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal enum class WardDrawerAction {
     REPORT, ASSIGNMENTS, SETTINGS, DATA_MANAGEMENT,
-    RECYCLE_BIN, ADMIN, PROJECT, ABOUT,
+    RECYCLE_BIN, ADMIN, PROJECT, ABOUT, GUIDE,
     FILES, BACKUP, INVITATIONS, DESTINATIONS, RESET, DIAGNOSTICS
 }
 
@@ -158,6 +158,7 @@ internal fun WardDrawer(
                     }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_026), AppIcons.HelpOutline, helpMenuExpanded,
                         onToggle = { helpMenuExpanded = !helpMenuExpanded }) {
+                        WardDrawerRow(uiText(R.string.guide_title), AppIcons.HelpOutline) { onAction(WardDrawerAction.GUIDE) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_027), AppIcons.Build) { onAction(WardDrawerAction.DIAGNOSTICS) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_028), AppIcons.Info) { onAction(WardDrawerAction.ABOUT) }
                     }

@@ -19,6 +19,7 @@ import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.migration.VbaImportScreen
 import com.hos.rushdpatients.ui.admin.AdminScreen
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
+import com.hos.rushdpatients.ui.guide.GuideScreen
 import com.hos.rushdpatients.ui.doctors.DoctorsScreen
 import com.hos.rushdpatients.ui.report.ReportPreviewScreen
 import com.hos.rushdpatients.ui.report.AssignmentsExportScreen
@@ -55,6 +56,7 @@ fun WardNavHost(
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                onOpenGuide = { navController.navigate(Routes.GUIDE) },
                 onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
                 onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) })
             )
@@ -90,6 +92,7 @@ fun WardNavHost(
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                     onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                    onOpenGuide = { navController.navigate(Routes.GUIDE) },
                     onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
                     onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) }))
         }
@@ -156,6 +159,9 @@ fun WardNavHost(
 
         composable(Routes.ABOUT) {
             IntroAboutScreen(splash = false, onBack = { navController.popBackStack() })
+        }
+        composable(Routes.GUIDE) {
+            GuideScreen(onBack = { navController.popBackStack() })
         }
     }
 }

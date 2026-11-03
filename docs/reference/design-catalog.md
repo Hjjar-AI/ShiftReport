@@ -22,6 +22,7 @@ Arabic: `res/values/strings_ui.xml`/`strings.xml`; reuse actions, numbered place
 | Numeric spacing | `UiSpace`: 1/2/4/6/8/12/16/24/32dp; semantic aliases: gutter/card/section 8, block 12, control gap 4. |
 | Targets / controls | Always ≥48dp interactive; visual compact/standard/comfortable minima 32/40/48dp, growing for text. |
 | Patient density | Compact padding 4h/2v, gap 4; normal 12h/8v, gap 8; list gap 8dp. Density changes spacing, not fonts/targets. |
+| Button labels | Shared buttons default to centered text; action/loading labels wrap centered between symmetric progress slots so idle/busy states share the same text center. Dialog action placement remains caller-owned. |
 | Padding | Content 4h/2v; compact 2h/1v; fields 4h/8top/2bottom; chips 8h/2v (dp). |
 | Surfaces / fields | Light: muted gray-green canvas/off-white panels; Dark: slate layers; AMOLED: black canvas/near-black panels. Neutral outlines separate layers; shared text/picker fill blends surface→surfaceVariant85%. Accent and severity retain separate roles. |
 | Borders | Hairline .5, normal 1, strong 1.5, selected/focused 2dp. Neutral cards blend surface→outline65%; selected/focused retain accent. |

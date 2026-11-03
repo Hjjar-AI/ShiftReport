@@ -20,6 +20,7 @@ import com.hos.rushdpatients.ui.doctors.DoctorsWorkspace
 import com.hos.rushdpatients.ui.report.ReportWorkspace
 import com.hos.rushdpatients.ui.report.AssignmentsExportWorkspace
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
+import com.hos.rushdpatients.ui.guide.GuideScreen
 import com.hos.rushdpatients.ui.theme.*
 import com.hos.rushdpatients.ui.ward.*
 
@@ -67,6 +68,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
         onOpenDoctors = { tab = DemoDestination.TEAM },
         onOpenSettings = { tab = DemoDestination.SETTINGS },
         onOpenAbout = { tab = DemoDestination.ABOUT },
+        onOpenGuide = { tab = DemoDestination.GUIDE },
         onOpenProject = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
         onOpenDataManagement = { viewModel.controller.bringLatestData() },
         onOpenWorkspace = { viewModel.message(uiText(R.string.ui_demo_local_only)) }
@@ -126,6 +128,9 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 }
                 tab == DemoDestination.ABOUT -> IntroAboutScreen(splash = false,
                     onBack = { tab = DemoDestination.PATIENTS })
+                tab == DemoDestination.GUIDE -> pages.SaveableStateProvider("guide") {
+                    GuideScreen(onBack = { tab = DemoDestination.PATIENTS })
+                }
                 tab == DemoDestination.TEAM -> pages.SaveableStateProvider("doctors-${state.shiftId}") {
                     DoctorsWorkspace(onBack = { tab = DemoDestination.PATIENTS }, viewModel = viewModel.doctors)
                 }

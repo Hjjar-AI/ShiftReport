@@ -6,10 +6,6 @@
 
 Owner protected production key/certificate required. Local/CI inputs exist without debug fallback; signed release unverified. [Inputs](../guides/android/build.md#production-release-signing).
 
-## Deferred — guide shortcut
-
-The standalone [Android guide page](../../android/app/src/main/java/com/hos/rushdpatients/ui/guide/GuideScreen.kt) now contains the patient-card stripe/outline legend. The owner explicitly deferred its shortcut/navigation wiring; leave it unlinked until that work is resumed.
-
 ## Far future — optional voice dictation
 
 Field-by-field diagnosis/treatment/follow-up → guided sections → optional whole-handoff suggestions. Prefer local; retain typing/editable drafts/visual review/Save. Evaluate Syrian/mixed Arabic-English,drug names/doses,available languages,device/storage needs.

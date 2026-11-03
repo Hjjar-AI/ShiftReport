@@ -19,10 +19,13 @@ import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 enum class AppButtonStyle { PRIMARY, TONAL, OUTLINED, TEXT, DESTRUCTIVE }
@@ -42,18 +45,21 @@ fun AppButton(
     val active = enabled && LocalFieldEnabled.current
     val shape = MaterialTheme.shapes.small
     val target = modifier.minimumInteractiveComponentSize().heightIn(min = size.visualHeight(UiSpacing.touchTarget))
+    val centeredContent: @Composable RowScope.() -> Unit = {
+        ProvideTextStyle(LocalTextStyle.current.copy(textAlign = TextAlign.Center)) { content() }
+    }
     when (style) {
         AppButtonStyle.OUTLINED -> OutlinedButton(onClick, target, active, shape = shape,
-            colors = colors ?: ButtonDefaults.outlinedButtonColors(), contentPadding = contentPadding, content = content)
+            colors = colors ?: ButtonDefaults.outlinedButtonColors(), contentPadding = contentPadding, content = centeredContent)
         AppButtonStyle.TEXT -> TextButton(onClick, target, active, shape = shape,
-            colors = colors ?: ButtonDefaults.textButtonColors(), contentPadding = contentPadding, content = content)
+            colors = colors ?: ButtonDefaults.textButtonColors(), contentPadding = contentPadding, content = centeredContent)
         else -> Button(onClick, target, active, shape = shape,
             colors = colors ?: when (style) {
                 AppButtonStyle.TONAL -> ButtonDefaults.filledTonalButtonColors()
                 AppButtonStyle.DESTRUCTIVE -> ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
                 else -> ButtonDefaults.buttonColors()
-            }, contentPadding = contentPadding, content = content)
+            }, contentPadding = contentPadding, content = centeredContent)
     }
 }
 

@@ -8,6 +8,7 @@ class WardNavigation(
     val onOpenAdmin: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenAbout: () -> Unit,
+    val onOpenGuide: () -> Unit,
     val onOpenProject: () -> Unit,
     val onOpenDataManagement: () -> Unit,
     val onOpenWorkspace: (SettingsWorkspace) -> Unit,
@@ -34,5 +35,6 @@ internal fun WardNavigation.openDrawerAction(
         WardDrawerAction.ADMIN -> if (isAdmin) onOpenAdmin() else Unit
         WardDrawerAction.PROJECT -> onOpenProject()
         WardDrawerAction.ABOUT -> onOpenAbout()
+        WardDrawerAction.GUIDE -> onOpenGuide()
     }
 }

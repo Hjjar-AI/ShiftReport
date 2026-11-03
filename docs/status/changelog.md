@@ -4,6 +4,9 @@
 
 | Date | Changes |
 |---|---|
+| 3 Nov 2026 | Styled the Android guide with shared cards, accent introduction, inset stripe examples, priority-star icon and accent-outline example. Added Guide under the shared Help and app information drawer group, wired through live ward/review and isolated demo navigation with Back actions. Removed the completed shortcut deferral from the roadmap. Production-source/navigation/resource/whitespace checks only; no build, tests or device execution. |
+| 3 Nov 2026 | Updated the shared Android About/splash tester credits: completed «أسامة اليحيى», removed «محمد نور السيد» and «محمد الشعار», and added «محمد دغمان» in alphabetical order. XML/whitespace checks only; no build or device execution. |
+| 3 Nov 2026 | Fixed shared Android action-label alignment behind the demo-exit report: balanced leading/trailing progress space, centered flexible/wrapped labels and centered default text in all shared button styles. Retained action-row layout, callbacks, colors and busy/validation guards. Source/callback/whitespace checks only; no build, tests or device execution. |
 | 3 Nov 2026 | Made Android drawer Data/files collapsible through the existing shared group, initially collapsed with saveable expansion state. Retained its four action labels/icons/callbacks and shared live/demo behavior; Quick actions stay visible. Source/callback/whitespace checks only; no build, tests or device execution. |
 | 3 Nov 2026 | Removed the redundant Android Home All shortcut after confirming it shares Reset’s filter-clearing behavior. Kept Reset, remaining shortcuts, dashboard totals/navigation and existing filter state. Source/whitespace checks only; no build, tests or device execution. |
 | 3 Nov 2026 | Doubled Android patient-card status stripes from4dp to8dp; added4dp start clearance and retained status precedence/colors. Guide swatches reuse the same token. Source/whitespace checks only; no build, tests or device execution. |

@@ -14,6 +14,7 @@ object Routes {
     const val DIAGNOSTICS = "diagnostics"
     const val VBA_IMPORT = "vba_import"
     const val ABOUT = "about"
+    const val GUIDE = "guide"
 
     fun settingsWorkspace(workspace: String) = "settings/$workspace"
 

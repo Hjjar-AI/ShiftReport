@@ -12,6 +12,7 @@ import com.hos.rushdpatients.ui.ward.*
 internal enum class DemoDestination(@StringRes private val titleRes: Int) {
     PATIENTS(R.string.ui_patients), DASHBOARD(R.string.ui_ward_drawer_010),
     ASSIGNMENTS(R.string.assignments_export_title), ABOUT(R.string.ui_ward_drawer_028),
+    GUIDE(R.string.guide_title),
     TEAM(R.string.ui_doctors_screen_001), REPORT(R.string.ui_demo_navigation_009), SETTINGS(R.string.ui_settings);
     fun title(uiText: UiStrings): String = uiText(titleRes)
 }

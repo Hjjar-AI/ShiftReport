@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -21,7 +22,7 @@ fun AppBusyIndicator(modifier: Modifier = Modifier, size: Dp = UiSize.iconSmall,
     CircularProgressIndicator(modifier = modifier.size(size), color = color, strokeWidth = UiSize.progressStroke)
 }
 
-/** Reserve the progress slot in both states so busy transitions do not move the label. */
+/** Symmetric progress slots keep the label centered in both idle and busy states. */
 @Composable
 fun AppActionContent(text: String, loading: Boolean, color: Color = LocalContentColor.current,
     style: TextStyle = MaterialTheme.typography.labelLarge) {
@@ -31,6 +32,8 @@ fun AppActionContent(text: String, loading: Boolean, color: Color = LocalContent
         Box(Modifier.size(UiSize.iconSmall), contentAlignment = Alignment.Center) {
             if (loading) AppBusyIndicator(color = color)
         }
-        Text(text, color = color, style = style)
+        Text(text, modifier = Modifier.weight(1f, fill = false), color = color, style = style,
+            textAlign = TextAlign.Center)
+        Box(Modifier.size(UiSize.iconSmall))
     }
 }
