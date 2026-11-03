@@ -1,17 +1,37 @@
-<details class="patient panel" id="{{ patient.id }}">
+<details class="patient panel{% if patient.status_edge %} status-{{ patient.status_edge }}{% endif %}" id="{{ patient.id }}">
   <summary>
-    <span class="patient-heading"><strong>{{ patient.name }}</strong><span class="disclosure">تفاصيل الملف</span></span>
+    <span class="patient-heading"><strong>{% if patient.isPriority == 'Y' %}<span class="priority-star" aria-label="أولوية">★ </span>{% endif %}{% if patient.editable %}<a href="{{ url_for('features.patient_edit',key=patient.id,round=round_token|default(None)) }}">{{ patient.name }}</a>{% else %}{{ patient.name }}{% endif %}</strong><span class="disclosure">تفاصيل الملف</span></span>
     <span class="demographics"><span><b>القبول</b> <bdi>{{ patient.admitNum }}</bdi></span><span><b>التاريخ</b> <bdi>{{ patient.admitDate }}</bdi></span><span><b>الميلاد</b> <bdi>{{ patient.birthDate }}</bdi></span><span>{{ patient.get('admission_days','') }} يوم</span><span>{{ 'أنثى' if patient.gender == 'F' else 'ذكر' }}</span></span>
     <span class="team-line"><span><b>الاختصاصي</b> {{ patient.supervisor }}</span><span><b>المقيم</b> {{ patient.resident }}</span></span>
     <span class="badge-row">
+      <span class="badge diagnosis">{{ patient.diagnosis_label }}</span>
       {% if patient.pending %}<span class="badge task-count">{{ patient.pending }} مهام معلّقة</span>{% endif %}
       {% if patient.isPriority == 'Y' %}<span class="badge priority">أولوية</span>{% endif %}
       {% if patient.hasCompanion == 'Y' %}<span class="badge">مع مرافق</span>{% endif %}
-      {% for badge in patient.badges %}<span class="badge severity-{{ badge.priority }}">{{ badge.text }}</span>{% endfor %}
+      {% for badge in patient.badges %}<span class="badge severity-{{ badge.priority }}">{{ badge.text }}{% if badge.priority in ['high','medium','low'] %} • {{ {'high':'عالية','medium':'متوسطة','low':'منخفضة'}[badge.priority] }}{% endif %}</span>{% endfor %}
+      {% if patient.cross_team %}<span class="badge">تغطية من فريق آخر</span>{% endif %}
     </span>
+    {% if patient.initialDiagnosis %}<span class="diagnosis-preview multiline" dir="auto">{{ patient.initialDiagnosis }}</span>{% endif %}
   </summary>
-  <div class="clinical-grid">
-    <div class="actions"><a class="button secondary" href="{{ url_for('features.patient_details',key=patient.id,round=round_token|default(None)) }}">فتح الملف والجولة</a>{% if workspace.preferences.card_controls or details_view|default(False) %}<a class="button secondary" href="{{ url_for('features.patient_edit',key=patient.id,round=round_token|default(None)) }}">تحرير</a><form action="{{ url_for('features.patient_delete',key=patient.id,round=round_token|default(None)) }}" method="post" data-confirm="نقل هذا المريض وكامل مهامه وشاراته إلى السلة المحلية؟"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">حذف</button></form>{% endif %}{% if workspace.preferences.pinning and not details_view|default(False) %}<form action="{{ url_for('pages.pin',key=patient.id) }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">{{ 'إلغاء التثبيت' if patient.id in workspace.pinned else 'تثبيت للعرض' }}</button></form>{% endif %}</div>
+  <template data-patient-copy>{{ patient.copy_text }}</template>
+  <div class="clinical-grid{% if workspace.preferences.two_column %} clinical-columns{% endif %}">
+    <div class="actions">
+      {% if patient.editable %}<a class="button" href="{{ url_for('features.patient_edit',key=patient.id,round=round_token|default(None)) }}">تحرير ومتابعة الجولة</a>{% endif %}
+      <a class="button secondary" href="{{ url_for('features.patient_details',key=patient.id,round=round_token|default(None)) }}">قراءة الملف</a>
+      {% if workspace.preferences.card_controls or details_view|default(False) %}
+      <button type="button" class="secondary" data-copy-patient="{{ patient.id }}">نسخ النص</button>
+      {% if patient.editable %}
+      <a class="button secondary" href="{{ url_for('features.patient_edit',key=patient.id,round=round_token|default(None)) }}">تحرير</a>
+      {% if iphone_page_identity is not defined %}<form action="{{ url_for('features.patient_priority',key=patient.id) }}" method="post">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="shift_id" value="{{ shift_id }}"><input type="hidden" name="priority" value="{{ '0' if patient.isPriority=='Y' else '1' }}">
+        <input type="hidden" name="round" value="{{ round_token|default('') }}">
+        <button class="secondary">{{ 'إلغاء الأولوية' if patient.isPriority=='Y' else 'تحديد أولوية' }}</button>
+      </form>{% endif %}
+      {% if iphone_page_identity is not defined %}<form action="{{ url_for('features.patient_move_top',key=patient.id) }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="shift_id" value="{{ shift_id }}"><input type="hidden" name="round" value="{{ round_token|default('') }}"><button class="secondary">نقل للأعلى — ترتيب يدوي</button></form>{% endif %}
+      <form action="{{ url_for('features.patient_delete',key=patient.id,round=round_token|default(None)) }}" method="post" data-confirm="نقل هذا المريض وكامل مهامه وشاراته إلى السلة المحلية؟"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">حذف</button></form>
+      {% endif %}{% endif %}
+      {% if workspace.preferences.pinning and not details_view|default(False) %}<form action="{{ url_for('pages.pin',key=patient.id) }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">{{ 'إلغاء التثبيت' if patient.id in workspace.pinned else 'تثبيت للعرض' }}</button></form>{% endif %}
+    </div>
     <section id="diagnosis-{{ patient.id }}"><h2>التشخيص</h2><p class="multiline" dir="auto">{{ patient.initialDiagnosis or '—' }}</p></section>
     <section id="treatment-{{ patient.id }}"><h2>العلاج</h2><p class="multiline" dir="auto">{{ patient.treatmentPlan or '—' }}</p></section>
     <section id="followup-{{ patient.id }}"><h2>المتابعة</h2><p class="multiline" dir="auto">{{ patient.followUp or '—' }}</p></section>

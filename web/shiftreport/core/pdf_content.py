@@ -37,6 +37,20 @@ def roster_label(doctors):
     return 'طبيبات المناوبة' if doctors and all(d.get('gender')=='F' for d in doctors) else 'أطباء المناوبة'
 
 
+def roster_lines(doctors, separator=' / '):
+    """Android ReportRosterLabel: alphabetical residents, then named supervisors."""
+    residents=sorted((d for d in doctors if d.get('clinicalRole')!='SUPERVISOR'),key=lambda d:d['name'])
+    supervisors=sorted((d for d in doctors if d.get('clinicalRole')=='SUPERVISOR'),key=lambda d:d['name'])
+    lines=[]
+    if residents:
+        lines.append(roster_label(residents)+': '+separator.join(d['name'] for d in residents))
+    if supervisors:
+        label=('مشرفة المناوبة' if supervisors[0].get('gender')=='F' else 'مشرف المناوبة') if len(supervisors)==1 else (
+            'مشرفات المناوبة' if all(d.get('gender')=='F' for d in supervisors) else 'مشرفو المناوبة')
+        lines.append(label+': '+separator.join(d['name'] for d in supervisors))
+    return lines or [roster_label([])+': ']
+
+
 def row_backgrounds(patients, colors):
     """Classic tables always alternate neutral rows, independent of team order."""
     return [colors['page'] if i%2==0 else colors['zebra'] for i in range(len(patients))]

@@ -177,7 +177,7 @@ def render_report(client, shift, supervisor=None, font_path=None, options=None, 
 def _render_report(client, shift, supervisor, font_path, options, now, report_day=None):
     from .protocol import current_date
     report_day=report_day or current_date(client.zone, now)
-    from .pdf_content import normalize_options, palette, PAPERS, context_lines, patient_content, row_backgrounds, roster_label, created_at
+    from .pdf_content import normalize_options, palette, PAPERS, context_lines, patient_content, row_backgrounds, roster_lines, created_at
     options = normalize_options(options)
     colors = palette(options)
     if options['layout']=='cards':
@@ -193,21 +193,21 @@ def _render_report(client, shift, supervisor, font_path, options, now, report_da
     heading_color=HexColor(colors['title'])
     def text(value,size=11,color=None,**kwargs):return RTLText(value,size,color=color or text_color,**kwargs)
     context=context_lines(client,shift,options,now,report_day=report_day)
-    roster=' / '.join(client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in shift['meta'].get('doctors','').split(',') if key)
-    roster_heading=roster_label([client.doctors.get(key,{}) for key in shift['meta'].get('doctors','').split(',') if key])
+    doctors=[client.doctors[key] for key in shift['meta'].get('doctors','').split(',') if key in client.doctors]
+    roster=roster_lines(doctors,' + ' if options['layout']=='table' else ' / ')
     pending=pending_task_count(patients)
     summary='إجمالي المرضى: {} (حالات نفسية: {}) • المرافقون: {} • مهام معلقة: {}'.format(
         len(patients),sum(p['diagnosisType'] in {'PSYCHIATRIC','DUAL'} for p in patients),
         sum(p['hasCompanion']=='Y' for p in patients),pending)
     story=[]
     if options['layout']=='table':
-        heading=styled_table([[text(roster_heading+': '+roster,11,white,bold=True,align='center')],
-                              [text(' • '.join(context),8.5,white,align='center')]],[width],colors,
-                             backgrounds=[colors['title'],colors['title']])
-        heading.setStyle(TableStyle([('TOPPADDING',(0,0),(-1,-1),1.5),('BOTTOMPADDING',(0,0),(-1,-1),1.5),
-                                     ('LINEBELOW',(0,0),(-1,0),0,HexColor(colors['title']))]))
+        heading=styled_table([[text(line,11,white,bold=True,align='center')] for line in roster],
+                             [width],colors,backgrounds=[colors['title']]*len(roster))
+        heading.setStyle(TableStyle([('TOPPADDING',(0,0),(-1,-1),1.5),('BOTTOMPADDING',(0,0),(-1,-1),1.5)]))
         story.append(heading)
-        story.append(styled_table([[text(summary,10)]],[width],colors,backgrounds=[colors['summary']]))
+        overview='تاريخ المناوبة: {} • المرضى: {} • نفسية: {} • المرافقون: {}'.format(report_day,len(patients),
+            sum(p['diagnosisType'] in {'PSYCHIATRIC','DUAL'} for p in patients),sum(p['hasCompanion']=='Y' for p in patients))
+        story.append(styled_table([[text(overview,10,bold=True,align='center')]],[width],colors,backgrounds=[colors['summary']]))
         headers=['#','المريض','التشخيص / التنبيهات','رقم القبول الحالي\nالتاريخ / الأيام','الاختصاصي / المقيم','الخطة العلاجية','المتابعة / التحاليل']
         data=[[[text(label,9.5,white,bold=True,align='center')] for label in reversed(headers)]]
         backgrounds=[colors['header']]
@@ -221,8 +221,9 @@ def _render_report(client, shift, supervisor, font_path, options, now, report_da
         story.append(styled_table(data,[width*w/sum(weights) for w in weights],colors,repeat=1,backgrounds=backgrounds,guides=True))
         story.append(styled_table([[text(summary,10)]],[width],colors,backgrounds=[colors['summary']]))
     else:
-        story.extend([text('تقرير المناوبة',16,heading_color,bold=True,align='center'),text(' • '.join(context),9),
-                      text(roster_heading+': '+roster,11),text(summary,10)])
+        story.extend([text('تقرير المناوبة',16,heading_color,bold=True,align='center'),text(' • '.join(context),9)])
+        story.extend(text(line,11) for line in roster)
+        story.append(text(summary,10))
         for index,patient in enumerate(patients,1):
             content=patient_content(patient,client.doctors,client.zone,now,report_day=report_day)
             divider=HRFlowable(width='100%',thickness=colors['rule_width'],color=HexColor(colors['rule']),spaceBefore=8,spaceAfter=6)

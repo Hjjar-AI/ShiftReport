@@ -21,16 +21,16 @@ def patient_context():
 @pages.get("/")
 def ward():
     patients, doctors = patient_context()
-    totals = {"patients": len(patients), "tasks": sum(p["pending"] for p in patients), "teams": sum(d['role']=='اختصاصي' for d in doctors)}
     query = request.args.get("q", "").strip()[:200]
     team = request.args.get("team", "")
     pending_only = request.args.get("pending") == "1"
-    from .core.patient_filters import matches_patient, CLINICAL_FILTERS
+    from .core.patient_filters import matches_patient, ward_summary, CLINICAL_FILTERS
     from .core.sort import groups
     w = g.workspace
-    clinical = request.args.get('clinical','الكل')
-    if clinical not in CLINICAL_FILTERS:
-        clinical = 'الكل'
+    totals = ward_summary(patients,w.actor,w.client.zone)
+    totals['teams'] = sum(d['role']=='اختصاصي' for d in doctors)
+    clinical = list(dict.fromkeys(value for value in request.args.getlist('clinical')
+                                 if value in CLINICAL_FILTERS and value != 'الكل'))
     mine = request.args.get('mine')=='1'
     patients = [p for p in patients if (not team or p['responsibleSupervisorId']==team) and
                 matches_patient(p,query,clinical,'مهام معلقة' if pending_only else 'كل المهام',
@@ -43,11 +43,16 @@ def ward():
         items.sort(key=lambda pair:pair[1]['id'] not in w.pinned)
         rows = [row for _,row in items]
         display.append((label,rows))
-    round_token,_ = w.sequence(ids=[row['id'] for _,rows in display for row in rows])
+    return_to=url_for('pages.ward',q=query or None,team=team or None,clinical=clinical,
+                      pending='1' if pending_only else None,mine='1' if mine else None)
+    round_token,_ = w.sequence(ids=[row['id'] for _,rows in display for row in rows],return_to=return_to)
     from .core.protocol import current_date
     return render_template("ward.html",patients=patients,doctors=doctors,totals=totals,
         query=query,team=team,pending_only=pending_only,clinical=clinical,mine=mine,
-        clinical_filters=CLINICAL_FILTERS,grouped=display,round_token=round_token,
+        clinical_filters=CLINICAL_FILTERS[1:],grouped=display,round_token=round_token,
+        filters_active=bool(query or team or pending_only or clinical or mine),
+        shift_id=w.store.read()['meta']['shiftId'],
+        local_pending=w.pending_publication(),
         day=current_date(w.client.zone),page="ward")
 
 
@@ -81,18 +86,36 @@ def update_task(patient_id, task_id):
         resident=request.form.get('resident',''),status=request.form.get('status','pending')),code=303)
 
 
-@pages.get("/doctors")
+@pages.route("/doctors",methods=['GET','POST'])
 def doctors():
     patients, roster = patient_context()
+    from .core.patient_filters import normalize_search
+    from .core.protocol import is_admin
+    # Search may contain a Telegram account ID: keep it out of navigation URLs.
+    values = request.form if request.method == 'POST' else request.args
+    query = values.get('q','').strip()[:200]
+    role = values.get('role','all')
+    if role not in ('all','RESIDENT','SUPERVISOR','admin'):
+        role = 'all'
     for doctor in roster:
+        doctor['admin'] = is_admin(doctor)
         doctor["patients"] = sum(doctor["id"] in (p["responsibleResidentId"], p["responsibleSupervisorId"])
                                  for p in patients)
-    return render_template("doctors.html", doctors=roster, page="doctors")
+    visible = [doctor for doctor in roster if any(normalize_search(query) in normalize_search(value)
+               for value in (doctor['name'],str(doctor.get('telegram_id') or ''))) and
+               (role == 'all' or role == 'admin' and is_admin(doctor) or doctor['clinicalRole'] == role)]
+    visible.sort(key=lambda doctor:(not is_admin(doctor),doctor['clinicalRole']!='SUPERVISOR',doctor['name']))
+    return render_template("doctors.html", doctors=roster, visible=visible, query=query, role=role, page="doctors")
 
 
 @pages.get("/about")
 def about():
     return render_template("about.html", page="about")
+
+
+@pages.get('/guide')
+def guide():
+    return render_template('guide.html',page='guide')
 
 
 @pages.post("/demo/reset")
@@ -112,7 +135,7 @@ def presentation():
     spacing=request.form.get('spacing','normal')
     require(group in GROUPS and spacing in ('normal','comfortable'),'خيار عرض غير صالح')
     w.preferences.update(grouping=group,spacing=spacing,card_controls=request.form.get('controls')=='1',
-                         pinning=request.form.get('pinning')=='1')
+                         pinning=request.form.get('pinning')=='1',two_column=request.form.get('two_column')=='1')
     return redirect(url_for('pages.ward'),code=303)
 
 

@@ -11,7 +11,7 @@ The application uses Jetpack Compose, Room with SQLCipher, Hilt, WorkManager, Ko
 | [`android/`](android) | Android Studio/Gradle project, app source, wrapper and Android-local settings |
 | [`old/desktop/`](old/desktop/README.md) | Archived Python CustomTkinter client for Windows and Linux, setup and launch scripts |
 | [`old/excel/`](old/excel/README.md) | Archived Excel/VBA client, workbook generator and setup |
-| [`web/`](web/README.md) | Independent local Flask/Jinja client on Python 3.8.10; local workflows and dummy demo; [functional map](docs/reference/web-capabilities.md) |
+| [`web/`](web/README.md) | Independent local Flask/Jinja client on Python 3.8.10 following Android functionality; local workflows and dummy demo; [functional map](docs/reference/web-capabilities.md) |
 | [`iphone/`](iphone/README.md) | Initial dummy-only Pyto host reusing `web/`; iPhone runtime/adapters remain in development |
 | [`docs/`](docs/README.md) | Shared architecture, current state, guides and roadmap |
 | [`samples/`](samples/README.md) | Fictional CSV data, generators and A5 preview sources |

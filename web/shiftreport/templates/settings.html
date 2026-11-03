@@ -1,1 +1,24 @@
-{% extends 'base.html' %}{% block content %}<header class="page-heading"><h1>إعدادات الوقت والتقارير</h1></header><form method="post" class="panel editor"><input type="hidden" name="csrf" value="{{ csrf }}"><label>المنطقة الزمنية لهذا الجهاز<input name="zone" value="{{ workspace.client.zone }}" dir="ltr" required list="zones"><datalist id="zones"><option value="Asia/Damascus"><option value="Asia/Beirut"><option value="Europe/London"><option value="UTC"></datalist></label><p>08:30 تحدد يوم التقرير المعروض فقط. لا تبدأ قسماً جديداً ولا تقفل التحرير. استخدم المنطقة نفسها على الأجهزة.</p><p>التقارير بصيغة PDF؛ مزامنة بيانات المشروع بصيغة CSV.</p><label>التنسيق الافتراضي<select name="layout">{% for key,label in [('cards','بطاقات A5 بعمودين سريريين'),('table','جدول A5'),('paragraphs','فقرات A5')] %}<option value="{{ key }}" {% if preferences.get('layout')==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><p>لون PDF يتبع لون التطبيق. تقسيم المشرفين يُختار لكل تصدير محلي من صفحته.</p><button>حفظ الإعدادات</button></form>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<header class="page-heading"><h1>الإعدادات</h1><button type="button" class="secondary" data-settings-toggle aria-expanded="false" aria-controls="settings-search" hidden>بحث في الإعدادات</button></header>
+<section class="panel editor" id="settings-search" data-settings-search aria-labelledby="settings-search-title">
+  <h2 id="settings-search-title">بحث في الإعدادات</h2>
+  <label>اسم الإعداد<input type="search" data-settings-query maxlength="200" placeholder="المظهر، القفل، النسخ الاحتياطية…"></label>
+  <nav aria-label="وجهات الإعدادات">
+    {% for destination in destinations %}<a href="{{ destination.href }}" data-settings-keywords="{{ destination.keywords }}"><strong>{{ destination.title }}</strong><small>{{ destination.description }}</small></a>{% endfor %}
+  </nav>
+  <p data-settings-empty role="status" hidden>لا توجد إعدادات مطابقة</p>
+  <button type="button" class="secondary" data-settings-close hidden>إغلاق البحث</button>
+</section>
+<form method="post" class="panel editor" id="report-settings">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>الوقت والتقارير</h2>
+  <label>المنطقة الزمنية لهذا الجهاز<input name="zone" value="{{ workspace.client.zone }}" dir="ltr" required list="zones"><datalist id="zones"><option value="Asia/Damascus"><option value="Asia/Beirut"><option value="Europe/London"><option value="UTC"></datalist></label>
+  <p>08:30 تحدد يوم التقرير المعروض فقط. لا تبدأ قسماً جديداً ولا تقفل التحرير. استخدم المنطقة نفسها على الأجهزة.</p>
+  <p>التقارير بصيغة PDF؛ مزامنة بيانات المشروع بصيغة CSV.</p>
+  <label>التنسيق الافتراضي<select name="layout">{% for key,label in [('cards','بطاقات A5 بعمودين سريريين'),('table','جدول A5'),('paragraphs','فقرات A5')] %}<option value="{{ key }}" {% if preferences.get('layout')==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <p>لون PDF يتبع لون التطبيق. تقسيم المشرفين يُختار لكل تصدير محلي من صفحته.</p>
+  <button>حفظ الإعدادات</button>
+</form>
+<section class="panel editor"><h2>مساحات الإعدادات</h2><div class="actions">{% for destination in destinations %}<a class="button secondary" href="{{ destination.href }}">{{ destination.title }}</a>{% endfor %}</div></section>
+{% endblock %}

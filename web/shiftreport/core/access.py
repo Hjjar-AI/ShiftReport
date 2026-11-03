@@ -29,7 +29,7 @@ class LocalAccess:
         pin=normalize_pin(pin)
         # The desktop Client supplies live clinician authorization, not admin-only enrollment.
         require(pin.isascii() and pin.isdigit() and 4<=len(pin)<=12,'PIN يجب أن يكون 4–12 رقماً')
-        require(minutes in {1,5,15},'مدة قفل غير صالحة')
+        require(minutes in {1,5,15,30},'مدة قفل غير صالحة')
         key=actor['uid'];salt=secrets.token_hex(16)
         digest=hashlib.pbkdf2_hmac('sha256',pin.encode('ascii'),bytes.fromhex(salt),600000).hex()
         state=copy.deepcopy(self.workspace.state.get('localAccess',{}));pins=state.setdefault('pins',{})
@@ -60,6 +60,12 @@ class LocalAccess:
     def timeout(self):
         return self.workspace.state.get('localAccess',{}).get('minutes',5)*60
 
+    def set_timeout(self, minutes):
+        require(type(minutes) is int and minutes in {1,5,15,30},'مدة قفل غير صالحة')
+        require(not self.workspace.locked and self.workspace.local_actor in self.client.doctors,'افتح الجلسة أولاً')
+        state=copy.deepcopy(self.workspace.state.get('localAccess',{}))
+        state['minutes']=minutes
+        self.workspace.commit(localAccess=state)
 
 
 

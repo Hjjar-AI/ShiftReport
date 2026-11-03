@@ -86,7 +86,7 @@ def patient_edit(key=None):
                 return '',204
             if action=='cancel':
                 w.forms.pop(token,None)
-                return home()
+                return home(state['round'],None if state['new'] else key)
             values = form_values(request.form)
             values['tasks'] = [t for t in values['tasks'] if t['description'].strip()]
             values['badges'] = [(text.strip(),level) for text,level in values['badges'] if text.strip()]
@@ -103,7 +103,7 @@ def patient_edit(key=None):
             index = sequence.index(key) if key in sequence else len(sequence)
             if index+1<len(sequence):
                 return redirect(url_for('features.patient_edit',key=sequence[index+1],round=state['round']),code=303)
-        return home()
+        return home(state['round'],key)
     if pending and request.args.get('resume')!='1':
         return render_template('draft_recovery.html',pending=pending,page='ward')
     if request.args.get('resume')=='1':
@@ -158,6 +158,48 @@ def patient_delete(key):
     if pending and pending.get('patientId')==key:
         w.store.save_patient_form(None)
     return home()
+
+
+@features.post('/patients/<key>/priority')
+def patient_priority(key):
+    require(request.form.get('priority') in ('0','1'),'خيار أولوية غير صالح')
+    round_token=request.form.get('round')
+    if round_token:
+        _,sequence=g.workspace.sequence(round_token)
+        require(key in sequence,'المريض ليس ضمن هذه الجولة')
+    w=g.workspace
+    shift,row=w.require_patient(key,True)
+    previous=row.get('isPriority')=='Y'
+    priority=request.form['priority']=='1'
+    w.set_priority(key,priority,request.form.get('shift_id'))
+    w.priority_undo=w.review('priority_undo',dict(patient=key,shift=shift['meta']['shiftId'],
+        previous=previous,priority=priority,round=round_token),'',None)
+    return home(round_token,key)
+
+
+@features.post('/patients/priority/undo/<token>')
+def priority_undo(token):
+    import time
+    w=g.workspace
+    w.ready()
+    review=w.reviewed(token,'priority_undo')
+    require(time.time()-review['created']<8,'انتهت مهلة التراجع')
+    value=review['value']
+    w.set_priority(value['patient'],value['previous'],value['shift'])
+    review['used']=True
+    w.priority_undo=None
+    return home(value['round'],value['patient'])
+
+
+@features.post('/patients/<key>/move-top')
+def patient_move_top(key):
+    w=g.workspace
+    round_token=request.form.get('round')
+    if round_token:
+        _,sequence=w.sequence(round_token)
+        require(key in sequence,'المريض ليس ضمن هذه الجولة')
+    w.move_patient_to_top(key,request.form.get('shift_id'))
+    return home(round_token,key)
 
 
 @features.route('/recycle', methods=['GET','POST'])
@@ -280,18 +322,14 @@ def confirm_review(token):
 def dashboard():
     w=g.workspace
     patients,doctors=w.snapshot()
-    from .core.reports import readiness_warnings
-    totals=dict(patients=len(patients),tasks=sum(sum(not t['done'] for t in p['tasks']) for p in patients),
-                companions=sum(p.get('hasCompanion')=='Y' for p in patients),priority=sum(p.get('isPriority')=='Y' for p in patients))
-    totals.update(badges=sum(bool(p['badges']) for p in patients),
-        urgent=sum(p.get('isPriority')=='Y' or any(b['priority']=='high' for b in p['badges']) for p in patients),
-        admissions=sum(p.get('admitDate')==current_date(w.client.zone) for p in patients))
+    from .core.patient_filters import ward_summary
+    totals=ward_summary(patients,w.actor,w.client.zone)
     groups=[]
     for d in doctors:
         if d['clinicalRole']=='SUPERVISOR':
             rows=[p for p in patients if p.get('responsibleSupervisorId')==d['uid']]
             groups.append(dict(id=d['uid'],name=d['name'],patients=len(rows),tasks=sum(sum(not t['done'] for t in p['tasks']) for p in rows)))
-    return render_template('dashboard.html',totals=totals,groups=groups,page='dashboard')
+    return render_template('dashboard.html',totals=totals,groups=groups,local_pending=w.pending_publication(),page='dashboard')
 
 
 @features.get('/patients/<key>')
@@ -306,7 +344,8 @@ def patient_details(key):
     require(key in sequence,'المريض ليس ضمن هذه الجولة')
     index=sequence.index(key)
     return render_template('patient_details.html',patient=patient,previous=sequence[index-1] if index else None,
-                           successor=sequence[index+1] if index+1<len(sequence) else None,round_token=round_token,page='ward')
+                           successor=sequence[index+1] if index+1<len(sequence) else None,round_token=round_token,
+                           shift_id=shift['meta']['shiftId'],page='ward')
 
 
 @features.get('/diagnostics')
@@ -316,4 +355,9 @@ def diagnostics():
     w.ready()
     import importlib.metadata
     versions={name:importlib.metadata.version(name) for name in ('Flask','Werkzeug','cryptography','reportlab','waitress')}
-    return render_template('diagnostics.html',python=sys.version.split()[0],system=platform.system(),versions=versions,page='about')
+    shift=w.store.read()
+    storage=dict(patients=len(shift['patients']),deleted=len(w.store.deleted_patients()),
+                 doctors=len(w.client.doctors),schema=shift['meta']['schemaVersion'],
+                 bytes=None if w.demo else w.store.path.stat().st_size)
+    return render_template('diagnostics.html',python=sys.version.split()[0],system=platform.system(),versions=versions,
+                           storage=storage,page='diagnostics')

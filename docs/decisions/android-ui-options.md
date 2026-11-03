@@ -4,7 +4,6 @@ Unselected; choose IDs/subsets. [Completed](../status/changelog.md) · [Behavior
 
 | ID | Optional choice |
 |---|---|
-| F1 | Flask settings search matching Android; identified in the parity comparison, not selected for implementation. |
 | O2 | More haptics; border interpolation/chevron/tab motion implemented. |
 | O3 | Skeleton cards instead of the labelled spinner; static under reduced motion. |
 | O5 | Animate removal; group expansion/collapse height animation implemented. |

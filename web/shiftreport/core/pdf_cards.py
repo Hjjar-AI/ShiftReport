@@ -9,7 +9,7 @@ from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.lib.colors import HexColor
 from .protocol import require
 from .model import patient_name, DIAGNOSIS, GENDER, badges_decode
-from .pdf_content import palette, roster_label
+from .pdf_content import palette, roster_lines
 from .labs import read_groups, heading as lab_heading
 from .tasks import read_tasks, ordered_for_display, status_label
 
@@ -95,13 +95,15 @@ class _Cards:
             lines.append(current)
         return lines or ['']
 
-    def draw(self, text, paint, top, right=RIGHT, center=None, underline=False):
+    def draw(self, text, paint, top, right=RIGHT, center=None, underline=False, left=None):
         c = self.canvas
         c.setFont(paint.font, paint.size)
         c.setFillColor(HexColor(paint.color))
         value = self.visual(text)
         baseline = HEIGHT - top - paint.above
-        if center is None:
+        if left is not None:
+            c.drawString(left,baseline,value)
+        elif center is None:
             c.drawRightString(right, baseline, value)
         else:
             c.drawCentredString(center, baseline, value)
@@ -127,7 +129,16 @@ class _Cards:
         page_top = 10 * 72 / 25.4 if index else TOP
         if index:
             title = _Paint(15, self.heading.color, True)
-            self.draw('فهرس المرضى', title, (page_top - title.height) / 2)
+            column_width=(RIGHT-LEFT-GAP)/2
+            title_lines=self.wrap('فهرس المرضى',title,column_width)
+            date_lines=self.wrap(self.report_day.isoformat(),title,column_width)
+            header_height=max(len(title_lines),len(date_lines))*title.height
+            page_top=max(page_top,header_height+2*TITLE_PADDING)
+            header_top=(page_top-header_height)/2
+            for n,line in enumerate(title_lines):
+                self.draw(line,title,header_top+n*title.height)
+            for n,line in enumerate(date_lines):
+                self.draw(line,title,header_top+n*title.height,left=LEFT)
         c.setFillColor(HexColor(self.colors['page']))
         c.roundRect(SIDE, BOTTOM, WIDTH - 2 * SIDE, HEIGHT - page_top - BOTTOM, 4, stroke=1, fill=1)
         self.y = page_top + PADDING
@@ -156,7 +167,7 @@ class _Cards:
             if self.y + paint.height > self.bottom:
                 self.new_page(index=True)
             self.line(line, paint)
-        self.y += 3
+        self.y += 2
 
     def header(self, index):
         lines = self.wrap(patient_name(self.patients[index]), self.name, RIGHT - LEFT)
@@ -321,14 +332,13 @@ class _Cards:
 
     def render(self):
         self.new_page(index=True)
-        self.index_text('إجمالي المرضى: {} (حالات نفسية: {})'.format(len(self.patients),
-            sum(p.get('diagnosisType', 'PSYCHIATRIC') in {'PSYCHIATRIC', 'DUAL'} for p in self.patients)),
-            _Paint(15, self.colors['title'], True))
-        self.index_text('{} • {} مرافق'.format(self.report_day.isoformat(),
-            sum(p.get('hasCompanion') == 'Y' for p in self.patients)), _Paint(11.5, self.body.color))
+        self.index_text('المرضى: {} (حالات نفسية: {}) • المرافقون: {}'.format(len(self.patients),
+            sum(p.get('diagnosisType', 'PSYCHIATRIC') in {'PSYCHIATRIC', 'DUAL'} for p in self.patients),
+            sum(p.get('hasCompanion') == 'Y' for p in self.patients)),self.heading)
         doctors = [self.client.doctors[key] for key in self.shift['meta'].get('doctors', '').split(',') if key in self.client.doctors]
         if doctors:
-            self.index_text(roster_label(doctors) + ': ' + ' / '.join(d['name'] for d in doctors), _Paint(11.5, self.body.color))
+            for line in roster_lines(doctors):
+                self.index_text(line,_Paint(11.5,self.body.color))
         index_gap, tile_padding, height = 5, 2, 28
         tile_width = (RIGHT - LEFT - 2 * index_gap) / 3
         first = 0
@@ -344,13 +354,13 @@ class _Cards:
             for offset in range(count):
                 patient = self.patients[first + offset]
                 value = '{} • {}'.format(first + offset + 1, patient_name(patient))
-                paint = _Paint(14, self.heading.color, True)
+                paint = _Paint(15, self.heading.color, True)
                 available_width = tile_width - 2 * tile_padding
                 available_height = height - 2 * tile_padding
                 def fits(paint):
                     return len(self.wrap(value, paint, available_width)) * paint.height <= available_height
                 if not fits(paint):
-                    low, high = 1, 14
+                    low, high = 1, 15
                     for _ in range(18):
                         candidate = _Paint((low + high) / 2, self.heading.color, True)
                         if fits(candidate):
@@ -366,6 +376,9 @@ class _Cards:
                 self.canvas.bookmarkPage('entry-' + str(first + offset), fit='Fit')
                 self.canvas.setStrokeColor(HexColor(self.colors['border']))
                 self.canvas.setLineWidth(.5)
+                if col==1:
+                    self.canvas.setFillColor(HexColor(self.panel_fill))
+                    self.canvas.roundRect(end-tile_width,HEIGHT-top-height,tile_width,height,3,stroke=0,fill=1)
                 self.canvas.roundRect(end - tile_width, HEIGHT - top - height, tile_width, height, 3, stroke=1, fill=0)
                 self.canvas.saveState()
                 clip = self.canvas.beginPath()

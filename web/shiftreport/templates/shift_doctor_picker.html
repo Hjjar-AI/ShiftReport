@@ -1,0 +1,12 @@
+<section data-roster-picker>
+  <label data-roster-search hidden>بحث عن طبيب المناوبة<input type="search" data-roster-query maxlength="200" autocomplete="off"></label>
+  <p data-roster-count role="status">{{ selected|reject('equalto','')|list|length }} مختار</p>
+  {% for role in ['RESIDENT','SUPERVISOR'] %}
+  <div data-roster-group>
+    {% if role=='SUPERVISOR' %}<h3>المشرفون</h3>{% endif %}
+    <div class="form-grid">{% for key,d in doctors.items()|sort(attribute='1.name') if d.clinicalRole==role %}<label class="check" data-roster-name="{{ d.name }}"><input type="checkbox" name="doctor" value="{{ key }}" {% if key in selected %}checked{% endif %}>{{ d.name }}</label>{% endfor %}</div>
+  </div>
+  {% endfor %}
+  {% if not doctors %}{% if can_manage_project %}<a class="button" href="{{ url_for('features.doctor_manage') }}">إضافة أطباء</a>{% else %}<a class="button secondary" href="{{ url_for('pages.doctors') }}">الفريق الطبي — اطلب من المدير إضافة الأطباء</a>{% endif %}{% endif %}
+  <p data-roster-empty role="status" hidden>لا يوجد طبيب مطابق للبحث؛ امسح البحث لعرض القائمة كاملة.</p>
+</section>

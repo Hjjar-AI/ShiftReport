@@ -6,7 +6,7 @@
 <section class="task-list" aria-label="مهام المرضى">
 {% for patient, task in entries %}
   <article class="task-row panel {% if task.done %}done{% endif %}">
-    <div><a href="{{ url_for('pages.ward') }}#{{ patient.id }}">{{ patient.name }}</a><p class="task-text">{{ task.description }}</p><small>{{ 'مكتملة' if task.done else 'معلّقة' }}</small></div>
+    <div><a href="{{ url_for('features.patient_edit',key=patient.id) if patient.editable else url_for('pages.ward',_anchor=patient.id) }}">{{ patient.name }}</a><p class="task-text">{{ task.description }}</p><small>{{ 'مكتملة' if task.done else 'معلّقة' }}</small></div>
     <form method="post" action="{{ url_for('pages.update_task', patient_id=patient.id, task_id=task.id) }}">
       <input type="hidden" name="shift_id" value="{{ shift_id }}"><input type="hidden" name="supervisor" value="{{ supervisor }}"><input type="hidden" name="resident" value="{{ resident }}"><input type="hidden" name="status" value="{{ status }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="done" value="{{ '0' if task.done else '1' }}">
       <button type="submit" class="{{ 'secondary' if task.done else '' }}" aria-label="{{ 'إعادة فتح' if task.done else 'إكمال' }} مهمة {{ task.description }} للمريض {{ patient.name }}">{{ 'تراجع' if task.done else 'إكمال' }}</button>

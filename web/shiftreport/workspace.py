@@ -97,7 +97,7 @@ class BrowserWorkspace:
         self.forms = {}
         self.rounds = {}
         self.preferences = dict(text_size='100', motion='system', spacing='normal',
-                                grouping='NONE', card_controls=True, pinning=False)
+                                grouping='NONE', card_controls=True, pinning=False,two_column=False)
         self.pinned = set()
         self.intro_deadline = None
         self.intro_dismissed = False
@@ -108,6 +108,7 @@ class BrowserWorkspace:
         self.creation_store = None
         self.attempt = None
         self.print_accent = 'VANILLA'
+        self.priority_undo = None
 
     def ready(self, online=False, admin=False):
         require(self.unlocked and not self.store.locked, 'الجلسة مقفلة؛ افتحها من صفحة الهوية')
@@ -185,7 +186,7 @@ class BrowserWorkspace:
         self.forms.clear()
         self.rounds.clear()
 
-    def sequence(self, token=None, ids=None):
+    def sequence(self, token=None, ids=None, return_to='/'):
         self.ready()
         shift = self.store.read()
         if token:
@@ -199,7 +200,7 @@ class BrowserWorkspace:
             victim=next(key for key in self.rounds if key not in active)
             self.rounds.pop(victim)
         values = list(ids) if ids is not None else [p['externalId'] for p in shift['patients']]
-        self.rounds[token] = dict(ids=values, actor=self.actor, shift=shift['meta']['shiftId'])
+        self.rounds[token] = dict(ids=values, actor=self.actor, shift=shift['meta']['shiftId'],return_to=return_to)
         return token, values
 
     def snapshot(self):
@@ -215,10 +216,28 @@ class BrowserWorkspace:
             p['lab_groups'] = read_groups(row)
             from .core.model import badges_decode
             p['badges'] = [dict(text=text, priority=level) for text, level in badges_decode(row.get('warningDetails', ''))]
+            p['status_edge'] = ('urgent' if row.get('isPriority') == 'Y' or any(b['priority']=='high' for b in p['badges'])
+                                else 'warning' if any(b['priority']=='medium' for b in p['badges'])
+                                else 'pending' if any(not t['done'] for t in p['tasks']) else '')
+            from .core.model import DIAGNOSIS
+            from .core.teams import is_cross_team_cover
+            p['diagnosis_label'] = DIAGNOSIS[row['diagnosisType']]
+            p['cross_team'] = is_cross_team_cover(row,self.client.doctors)
+            from .core.model import patient_text
+            p['copy_text'] = patient_text(row,self.client.doctors,self.client.zone)
+            p['editable'] = self.demo or is_admin(self.client.doctors.get(self.actor,{})) or self.actor in (
+                row.get('responsibleResidentId'),row.get('responsibleSupervisorId'))
             rows.append(p)
         doctors = [dict(d, id=key, role='مقيم' if d['clinicalRole']=='RESIDENT' else 'اختصاصي',
                         supervisor_id=d.get('teamSupervisorId')) for key, d in self.client.doctors.items()]
         return rows, doctors
+
+    def pending_publication(self):
+        self.ready()
+        if not self.demo:
+            return self.store.has_pending_changes()
+        from .core.reports import publication_content
+        return fingerprint(publication_content(self.store.read())) != fingerprint(publication_content(self.store.published))
 
     def require_patient(self, key, mutate=False):
         actor = self.ready()
@@ -241,6 +260,24 @@ class BrowserWorkspace:
         row['tasksJson'] = packed(tasks)
         self.store.commit(draft=shift)
         return True
+
+    def set_priority(self, patient_id, priority, shift_id):
+        shift,row = self.require_patient(patient_id,True)
+        require(shift['meta']['shiftId']==shift_id,'تغير القسم؛ أعد فتح قائمة المرضى')
+        row['isPriority'] = 'Y' if priority else 'N'
+        ordered(shift,self.client.doctors,self.client.zone)
+        self.store.commit(draft=shift)
+
+    def move_patient_to_top(self, patient_id, shift_id):
+        shift,row = self.require_patient(patient_id,True)
+        require(shift['meta']['shiftId']==shift_id,'تغير القسم؛ أعد فتح قائمة المرضى')
+        ordered(shift,self.client.doctors,self.client.zone)
+        rest=[patient for patient in shift['patients'] if patient['externalId']!=patient_id]
+        shift['patients']=([row]+rest if row.get('isPriority')=='Y' else
+                           [patient for patient in rest if patient.get('isPriority')=='Y']+[row]+
+                           [patient for patient in rest if patient.get('isPriority')!='Y'])
+        shift['meta']['sortSpec']=packed(dict(levels=[]))
+        self.store.commit(draft=shift)
 
     def save_patient(self, key, submitted, shift_id, is_new=False, position=None):
         self.ready()

@@ -29,23 +29,24 @@
         <a href="{{ url_for('pages.tasks') }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>المهام</a>
         <a href="{{ url_for('pages.doctors') }}" {% if page == 'doctors' %}aria-current="page"{% endif %}>الفريق الطبي</a>
         <a href="{{ url_for('features.reports') }}" {% if page == 'reports' %}aria-current="page"{% endif %}>التقارير والتصدير</a>
-        <a href="{{ url_for('features.assignments_export') }}">تصدير توزيع المرضى</a>
+        {% if can_manage_project %}<a href="{{ url_for('features.assignments_export') }}">تصدير توزيع المرضى</a>{% endif %}
         <details class="nav-group" {% if page in ['data','recycle','sync'] %}open{% endif %}><summary>البيانات والملفات</summary>
         <a href="{{ url_for('features.roster') }}">أطباء المناوبة</a>
         <a href="{{ url_for('features.data') }}" {% if page == 'data' %}aria-current="page"{% endif %}>البيانات والملفات</a>
         <a href="{{ url_for('features.recycle') }}" {% if page == 'recycle' %}aria-current="page"{% endif %}>سلة المحذوفات</a>
         <a href="{{ url_for('features.sync') }}" {% if page == 'sync' %}aria-current="page"{% endif %}>مركز المزامنة</a>
         </details><details class="nav-group" {% if page in ['identity','connection','settings'] %}open{% endif %}><summary>الإعدادات والإدارة</summary>
-        <a href="{{ url_for('features.settings') }}">إعدادات الوقت والتقارير</a>
-        <a href="{{ url_for('features.doctor_manage') }}">إدارة الأطباء والفرق</a>
+        <a href="{{ url_for('features.settings') }}" {% if page == 'settings' %}aria-current="page"{% endif %}>الإعدادات والبحث</a>
+        {% if can_manage_project %}<a href="{{ url_for('features.doctor_manage') }}">إدارة الأطباء والفرق</a>{% endif %}
         <a href="{{ url_for('features.auth') }}" {% if page == 'identity' %}aria-current="page"{% endif %}>الهوية والقفل</a>
         <a href="{{ url_for('features.connect') }}" {% if page == 'connection' %}aria-current="page"{% endif %}>المشروع والاتصال</a>
-        </details><details class="nav-group" {% if page=='about' %}open{% endif %}><summary>المساعدة</summary>
+        </details><details class="nav-group" {% if page in ['about','guide','diagnostics'] %}open{% endif %}><summary>المساعدة</summary>
+        {% if iphone_page_identity is not defined %}<a href="{{ url_for('pages.guide') }}" {% if page == 'guide' %}aria-current="page"{% endif %}>دليل الاستخدام</a>{% endif %}
         <a href="{{ url_for('pages.about') }}" {% if page == 'about' %}aria-current="page"{% endif %}>حول التطبيق</a>
         <a href="{{ url_for('features.diagnostics') }}">معلومات التشغيل</a>
         </details>
       </nav>
-      <details class="appearance">
+      <details class="appearance" id="appearance-options">
         <summary>المظهر</summary>
         <label for="appearance">السمة</label>
         <select id="appearance"><option value="system">النظام</option><option value="light">فاتح</option><option value="dark">داكن</option><option value="amoled">أسود</option></select>
@@ -70,6 +71,7 @@
       <details class="workspace-header panel"><summary><span><strong>تقرير المناوبة</strong><small>{{ 'بيانات تجريبية' if is_demo else workspace.client.config.get('hospitalName','المشروع') }}</small></span><span><strong>{{ 'تجربة محلية' if is_demo else ('جلسة مفتوحة' if workspace.unlocked else 'جلسة مقفلة') }}</strong><small>{{ workspace.client.doctors.get(workspace.actor,{}).get('name','') }}</small></span><span class="header-expand">تفاصيل الحساب والمناوبة</span></summary><div class="editor"><a href="{{ url_for('features.roster') }}">اختيار أطباء المناوبة</a><a href="{{ url_for('features.auth') }}">الهوية والقفل</a><p>القسم مستمر • تاريخ التقرير يتغير عند 08:30</p></div></details>
       <div class="demo-notice"><strong>{{ 'وضع تجريبي' if is_demo else workspace.client.config.get('hospitalName','المشروع') }}</strong><span>{{ 'بيانات وهمية • التعديلات في الذاكرة فقط' if is_demo else ('جلسة مفتوحة • '+workspace.client.doctors.get(workspace.actor,{}).get('name','') if workspace.unlocked else 'الجلسة مقفلة') }}</span></div>
       {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+      {% if priority_undo_token %}<div class="notice actions" data-priority-notice data-remaining="{{ priority_undo_ms }}" role="status"><span>تم تغيير أولوية المريض</span><form method="post" action="{{ url_for('features.priority_undo',token=priority_undo_token) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">تراجع</button></form><button type="button" class="secondary" data-dismiss-priority>إغلاق</button></div>{% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

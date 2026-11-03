@@ -1,4 +1,9 @@
 /* Only cosmetic preferences persist. Clinical/session state stays on the server. */
+const normalizeArabicSearch = value => value.normalize("NFKC").toLowerCase()
+  .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
+  .replace(/[أإآىؤئة]/g, char => ({أ:"ا",إ:"ا",آ:"ا",ى:"ي",ؤ:"و",ئ:"ي",ة:"ه"})[char])
+  .replace(/\s+/g," ").trim();
+
 (() => {
   "use strict";
   const root = document.documentElement;
@@ -57,10 +62,12 @@
   }
   function revealPatient() {
     const target = document.getElementById(window.location.hash.slice(1));
-    if (target && target.matches("details.patient")) {
-      target.open = true;
-      target.scrollIntoView({ block: "start" });
+    if (!target) return;
+    if (target.matches("details")) target.open = true;
+    for (let parent = target.parentElement; parent; parent = parent.parentElement) {
+      if (parent.matches("details")) parent.open = true;
     }
+    target.scrollIntoView({ block: "start" });
   }
   revealPatient();
   window.addEventListener("hashchange", revealPatient);
@@ -159,15 +166,84 @@
 })();
 
 (() => {
-  const copy = document.querySelector("[data-copy-patient]");
-  if (copy) {
-    const patient = document.querySelector("details.patient");
-    if (patient) patient.open = true;
+  for (const copy of document.querySelectorAll("[data-copy-patient]")) {
+    const patient = document.getElementById(copy.dataset.copyPatient);
+    if (!patient) continue;
     copy.addEventListener("click", async () => {
-      const content = [...patient.querySelectorAll("summary,.clinical-grid section")].map(node => node.innerText).join("\n\n");
+      const content = patient.querySelector("[data-patient-copy]").content.textContent;
       try { await navigator.clipboard.writeText(content); copy.textContent = "نُسخ النص"; }
       catch (_) { copy.textContent = "حدّد النص وانسخه من المتصفح"; }
     });
+  }
+  if (document.querySelector(".section-index")) {
+    const patient = document.querySelector("details.patient");
+    if (patient) patient.open = true;
+  }
+})();
+
+(() => {
+  const toggle = document.querySelector("[data-settings-toggle]");
+  const panel = document.querySelector("[data-settings-search]");
+  if (!toggle || !panel) return;
+  const query = panel.querySelector("[data-settings-query]");
+  const close = panel.querySelector("[data-settings-close]");
+  const links = [...panel.querySelectorAll("[data-settings-keywords]")];
+  const show = visible => {
+    panel.hidden = !visible;
+    toggle.setAttribute("aria-expanded", String(visible));
+    if (visible) query.focus(); else toggle.focus();
+  };
+  toggle.hidden = close.hidden = false;
+  panel.hidden = true;
+  toggle.addEventListener("click", () => show(panel.hidden));
+  close.addEventListener("click", () => show(false));
+  panel.addEventListener("keydown", event => {
+    if (event.key === "Escape") { event.preventDefault(); show(false); }
+  });
+  query.addEventListener("input", () => {
+    const needle = normalizeArabicSearch(query.value);
+    links.forEach(link => { link.hidden = !link.dataset.settingsKeywords.includes(needle); });
+    panel.querySelector("[data-settings-empty]").hidden = links.some(link => !link.hidden);
+  });
+  for (const link of links) link.addEventListener("click", event => {
+    const url = new URL(link.href);
+    if (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+        url.origin !== location.origin || url.pathname !== location.pathname || !url.hash) return;
+    // Keep the current form mounted, including unsaved time/report choices.
+    event.preventDefault(); show(false);
+    location.hash = url.hash;
+    const target = document.getElementById(url.hash.slice(1));
+    if (target) {
+      if (target.matches("details")) target.open = true;
+      target.scrollIntoView({block:"start"});
+      target.querySelector("input,select,button")?.focus();
+    }
+  });
+})();
+
+(() => {
+  for (const picker of document.querySelectorAll("[data-roster-picker]")) {
+    const query = picker.querySelector("[data-roster-query]");
+    const groups = [...picker.querySelectorAll("[data-roster-group]")];
+    const rows = [...picker.querySelectorAll("[data-roster-name]")];
+    picker.querySelector("[data-roster-search]").hidden = false;
+    const update = () => {
+      const needle = normalizeArabicSearch(query.value);
+      rows.forEach(row => { row.hidden = !normalizeArabicSearch(row.dataset.rosterName).includes(needle); });
+      groups.forEach(group => { group.hidden = ![...group.querySelectorAll("[data-roster-name]")].some(row => !row.hidden); });
+      // Filtering hides rows without disabling or clearing selected doctors.
+      picker.querySelector("[data-roster-count]").textContent = `${picker.querySelectorAll('input[name="doctor"]:checked').length} مختار`;
+      picker.querySelector("[data-roster-empty]").hidden = !rows.length || rows.some(row => !row.hidden);
+    };
+    query.addEventListener("input",update);
+    picker.addEventListener("change",update);
+    update();
+  }
+  const notice = document.querySelector("[data-priority-notice]");
+  if (notice) {
+    const dismiss = () => notice.remove();
+    notice.querySelector("[data-dismiss-priority]").addEventListener("click",dismiss);
+    setTimeout(dismiss,Number(notice.dataset.remaining));
   }
 })();
 

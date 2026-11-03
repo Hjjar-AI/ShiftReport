@@ -14,8 +14,15 @@ from .core.project import ProjectCreator
 features = Blueprint('features', __name__)
 
 
-def home():
-    return redirect(url_for('pages.ward'), code=303)
+def home(round_token=None, patient=None):
+    destination=url_for('pages.ward')
+    if round_token:
+        g.workspace.sequence(round_token)
+        destination=g.workspace.rounds[round_token].get('return_to',destination)
+    if patient:
+        from urllib.parse import quote
+        destination+='#'+quote(patient,safe='')
+    return redirect(destination, code=303)
 
 
 @features.post('/intro/dismiss')
@@ -59,7 +66,31 @@ def settings():
         w.client.zone=w.store.zone=zone
         w.notice='حُفظت الإعدادات '+('في ذاكرة التجربة.' if w.demo else 'محلياً.')
         return redirect(url_for('features.settings'),code=303)
-    return render_template('settings.html',preferences=w.store.report_preferences(),page='settings')
+    # Only public destination labels are searchable, never connection/form values.
+    destinations=[
+        ('المظهر','السمة واللون وحجم النص وتقليل الحركة','features.settings','appearance-options'),
+        ('عرض القسم','التباعد والتجميع والبطاقات بعمودين والترتيب والمرشحات','pages.ward','ward-options'),
+        ('الوقت والتقارير','المنطقة الزمنية وتنسيق PDF الافتراضي','features.settings','report-settings'),
+        ('الهوية والقفل','تسجيل الدخول ورمز تليجرام وPIN والقفل التلقائي','features.auth',None),
+        ('مركز المزامنة','جلب ورفع البيانات والتراجع عن الجلب','features.sync',None),
+        ('الملفات والنسخ الاحتياطية','تصدير واستيراد CSV واسترداد ونسخة مشفرة','features.data',None),
+        ('المشروع والاتصال','الانضمام المحمي وإعادة الاتصال واستبدال التوكن','features.connect',None),
+        ('التشخيص','معلومات التشغيل والتخزين','features.diagnostics',None),
+    ]
+    if is_admin(w.ready()):
+        destinations.extend([
+            ('الأطباء والإدارة','الفرق والصلاحيات ونقل الإدارة الدائمة','features.doctor_manage',None),
+            ('الدعوات','تصدير ملف انضمام محمي','features.data','invitations'),
+            ('الوجهات','وجهة تقارير المقيمين','features.sync','destinations'),
+        ])
+        from .core.doctors import permanent
+        if permanent(w.client.doctors[w.actor]):
+            destinations.append(('الإدارة المتقدمة','البداية الفارغة','features.sync','advanced-administration'))
+    from .core.patient_filters import normalize_search
+    destinations=[dict(title=title,description=description,href=url_for(endpoint,_anchor=anchor),
+                       keywords=normalize_search(title+' '+description))
+                  for title,description,endpoint,anchor in destinations]
+    return render_template('settings.html',preferences=w.store.report_preferences(),destinations=destinations,page='settings')
 
 
 @features.post('/session/touch')
@@ -174,13 +205,20 @@ def auth():
             w.ready(online=True)
             LocalAccess(w.store, w.client).enroll(request.form.get('pin',''), int(request.form.get('minutes','5')))
             w.notice = 'حُفظ PIN مشفراً لهذا الجهاز والحساب.'
+        elif action == 'timeout':
+            w.ready()
+            minutes=request.form.get('minutes','')
+            require(minutes in ('1','5','15','30'),'مدة قفل غير صالحة')
+            LocalAccess(w.store,w.client).set_timeout(int(minutes))
+            w.notice='حُفظت مدة القفل التلقائي لهذا الجهاز.'
         elif action == 'lock':
             w.lock_session()
         else:
             require(False, 'عملية هوية غير صالحة')
     roster = [dict(d,id=k) for k,d in w.client.doctors.items()]
     eligible = [] if w.demo else LocalAccess(w.store,w.client).eligible()
-    return render_template('identity.html', doctors=roster, eligible=eligible, page='identity')
+    minutes=5 if w.demo else LocalAccess(w.store,w.client).timeout()//60
+    return render_template('identity.html', doctors=roster, eligible=eligible, minutes=minutes, page='identity')
 
 
 @features.post('/demo/enter')

@@ -4,6 +4,7 @@
   <div><p class="eyebrow">تقرير المناوبة</p><h1>قائمة المرضى</h1><p>عرض واحد مستمر للقسم</p><a class="button" href="{{ url_for('features.patient_edit') }}">+ إضافة</a></div>
   <div class="day-label"><span>يوم التقرير</span><bdi>{{ day }}</bdi><small>يتغير العرض عند 08:30</small></div>
 </header>
+{% include 'sync_status.html' %}
 <div class="transfer-bar actions"><form action="{{ url_for('features.data') }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary" name="action" value="fetch">جلب البيانات</button></form><form action="{{ url_for('features.sync') }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary" name="action" value="publish">رفع البيانات</button></form><a class="button" href="{{ url_for('features.reports') }}">رفع للشبكة وإرسال تقرير</a></div>
 <section class="stats" aria-label="ملخص القسم">
   <div><span>المرضى</span><strong>{{ totals.patients }}</strong></div>
@@ -14,12 +15,18 @@
   <label class="search-field" for="search">بحث في الملف والمهام<input id="search" type="search" name="q" value="{{ query }}" placeholder="الاسم، القبول، التشخيص أو التحاليل" maxlength="200"></label>
   <label for="team">الفريق<select id="team" name="team"><option value="">كل الفرق</option>{% for doctor in doctors if doctor.role == 'اختصاصي' %}<option value="{{ doctor.id }}" {% if team == doctor.id %}selected{% endif %}>{{ doctor.name }}</option>{% endfor %}</select></label>
   <label class="check" for="pending"><input id="pending" type="checkbox" name="pending" value="1" {% if pending_only %}checked{% endif %}>لديه مهام معلّقة</label>
-  <label>حالة المريض<select name="clinical">{% for label in clinical_filters %}<option {% if label==clinical %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <fieldset class="filter-clinical"><legend>حالة المريض — يمكن الجمع</legend>{% for label in clinical_filters %}<label class="check"><input type="checkbox" name="clinical" value="{{ label }}" {% if label in clinical %}checked{% endif %}>{{ label }}</label>{% endfor %}</fieldset>
   <label class="check"><input type="checkbox" name="mine" value="1" {% if mine %}checked{% endif %}>مرضاي</label>
-  <button type="submit">بحث</button><a class="button secondary" href="{{ url_for('pages.ward') }}">مسح</a>
+  <button type="submit">بحث</button>{% if filters_active %}<a class="button secondary" href="{{ url_for('pages.ward') }}">إعادة ضبط المرشحات</a>{% else %}<button type="button" class="secondary" disabled>إعادة ضبط المرشحات</button>{% endif %}
 </form>
+<nav class="actions ward-shortcuts" aria-label="اختصارات تصفية المرضى">
+  <a class="button secondary" href="{{ url_for('pages.ward',mine='1') }}">مرضاي • {{ totals.mine }}</a>
+  <a class="button secondary" href="{{ url_for('pages.ward',clinical='عاجل') }}">عاجل • {{ totals.urgent }}</a>
+  <a class="button secondary" href="{{ url_for('pages.ward',clinical='غير مسند') }}">غير مسند • {{ totals.unassigned }}</a>
+  <a class="button secondary" href="{{ url_for('pages.ward',pending='1') }}">مهام معلّقة • {{ totals.tasks }}</a>
+</nav>
 <div class="list-toolbar"><p><strong>{{ patients|length }}</strong> مريض في العرض</p><button type="button" class="secondary" data-expand-all>توسيع الكل</button></div>
-<details class="view-options panel">
+<details class="view-options panel" id="ward-options">
   <summary>خيارات عرض القسم</summary>
   <div class="view-settings">
     <a class="button secondary" href="{{ url_for('features.ward_options') }}">الترتيب المحفوظ</a>
@@ -27,7 +34,8 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label>التجميع للعرض<select name="grouping">{% for key,label in [('NONE','دون تجميع'),('SUPERVISOR','حسب الاختصاصي'),('RESIDENT','حسب المقيم'),('DIAGNOSIS','حسب التصنيف'),('GENDER','حسب الجنس'),('ADMISSION_DATE','حسب تاريخ القبول')] %}<option value="{{ key }}" {% if workspace.preferences.grouping==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
     <label>التباعد<select name="spacing"><option value="normal">عادي</option><option value="comfortable" {% if workspace.preferences.spacing=='comfortable' %}selected{% endif %}>مريح</option></select></label>
-    <label class="check"><input type="checkbox" name="controls" value="1" {% if workspace.preferences.card_controls %}checked{% endif %}>أزرار تحرير وحذف البطاقات</label>
+    <label class="check"><input type="checkbox" name="controls" value="1" {% if workspace.preferences.card_controls %}checked{% endif %}>أزرار إجراءات البطاقات</label>
+    <label class="check"><input type="checkbox" name="two_column" value="1" {% if workspace.preferences.two_column %}checked{% endif %}>التفاصيل السريرية بعمودين عند توفر المساحة</label>
     <label class="check"><input type="checkbox" name="pinning" value="1" {% if workspace.preferences.pinning %}checked{% endif %}>تثبيت للعرض فقط</label><button class="secondary">تطبيق العرض</button>
     </form>
   </div>

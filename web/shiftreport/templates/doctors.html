@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% block title %}الفريق الطبي • تقرير المناوبة{% endblock %}
 {% block content %}
-<header class="page-heading"><div><p class="eyebrow">القسم</p><h1>الفريق الطبي</h1><p>{{ 'أسماء أشجار وهمية' if is_demo else 'فرق الأطباء وعضوياتهم الحالية' }}</p></div><a class="button secondary" href="{{ url_for('features.doctor_manage') }}">إدارة الفرق</a></header>
+<header class="page-heading"><div><p class="eyebrow">القسم</p><h1>الفريق الطبي</h1><p>{{ 'أسماء أشجار وهمية' if is_demo else 'فرق الأطباء وعضوياتهم الحالية' }}</p></div>{% if can_manage_project %}<a class="button secondary" href="{{ url_for('features.doctor_manage') }}">إدارة الفرق</a>{% endif %}</header>
+<form class="filters panel" method="post" role="search"><input type="hidden" name="csrf" value="{{ csrf }}"><label class="search-field">بحث باسم الطبيب أو معرّف تليجرام<input type="search" name="q" value="{{ query }}" maxlength="200" autocomplete="off"></label><label>الدور<select name="role">{% for key,label in [('all','الكل'),('RESIDENT','المقيمون'),('SUPERVISOR','الاختصاصيون'),('admin','المديرون')] %}<option value="{{ key }}" {% if role==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><button>بحث</button><a class="button secondary" href="{{ url_for('pages.doctors') }}">إعادة الضبط</a></form>
+{% if query or role!='all' %}
+<p class="list-toolbar">{{ visible|length }} طبيب في العرض</p><section class="teams" aria-label="نتائج بحث الأطباء">
+{% for doctor in visible %}<article class="panel team-card"><span class="eyebrow">{{ doctor.role }}{% if doctor.admin %} • مدير{% endif %}</span><h2>{{ doctor.name }}</h2><p>{{ doctor.patients }} مريض</p>{% if can_manage_project %}<a class="button secondary" href="{{ url_for('features.doctor_manage',key=doctor.id) }}">فتح السجل</a>{% endif %}</article>{% else %}<p class="empty panel">لا يوجد أطباء مطابقون للبحث.</p>{% endfor %}
+</section>
+{% else %}
 <section class="teams" aria-label="الفرق الطبية">
 {% for supervisor in doctors if supervisor.role == 'اختصاصي' %}
   <article class="panel team-card"><span class="eyebrow">اختصاصي</span><h2>{{ supervisor.name }}</h2><p>{{ supervisor.patients }} مريض</p>
@@ -10,4 +16,5 @@
 {% endfor %}
 {% for resident in doctors if resident.clinicalRole=='RESIDENT' and not resident.supervisor_id %}<article class="panel team-card"><span class="eyebrow">مقيم بدون فريق مرتبط</span><h2>{{ resident.name }}</h2><p>{{ resident.patients }} مريض</p></article>{% endfor %}
 </section>
+{% endif %}
 {% endblock %}

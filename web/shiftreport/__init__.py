@@ -83,16 +83,23 @@ def create_app(data_directory=None):
     @app.context_processor
     def page_context():
         workspace = getattr(g, "workspace", None)
+        from .core.protocol import is_admin
+        from .core.doctors import permanent
+        actor=workspace.client.doctors.get(workspace.actor,{}) if workspace and workspace.unlocked else {}
         lock_seconds=0
         if workspace and not workspace.demo and workspace.unlocked:
             from .core.access import LocalAccess
             lock_seconds=LocalAccess(workspace.store,workspace.client).timeout()
         import time
+        undo=workspace.reviews.get(workspace.priority_undo) if workspace and workspace.priority_undo else None
+        undo_ms=max(0,int((undo['created']+8-time.time())*1000)) if undo and not undo['used'] and undo['actor']==workspace.actor and undo['project']==workspace.client.project_id else 0
         if workspace and workspace.intro_deadline is None:
             workspace.intro_deadline=time.time()+3
         intro_ms=max(0,int((workspace.intro_deadline-time.time())*1000)) if workspace else 0
         show_intro=bool(workspace and not workspace.intro_dismissed and intro_ms>0)
         return {"show_intro":show_intro,"intro_ms":intro_ms,"csrf": workspace.csrf if workspace else "", "workspace": workspace,
+                "can_manage_project":is_admin(actor),"is_permanent_admin":permanent(actor),
+                "priority_undo_token":workspace.priority_undo if undo_ms else None,"priority_undo_ms":undo_ms,
                 "is_demo": workspace.demo if workspace else True,
                 "notice": workspace.notice if workspace else '',"lock_seconds":lock_seconds}
 

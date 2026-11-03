@@ -191,4 +191,4 @@ def sync():
         require(False,'عملية مزامنة غير صالحة')
     receipts=[dict(index=i,operation=row[0],status=row[2],at=row[6],can_copy=str(i) in w.store.state.get('reportArtifacts',{})) for i,row in w.store.receipts()]
     journal=(w.store.state.get('baseline') or {}).get('state',{}).get('publicationJournal',[])
-    return render_template('sync.html',receipts=receipts,journal=journal,page='sync')
+    return render_template('sync.html',receipts=receipts,journal=journal,local_pending=w.pending_publication(),page='sync')
