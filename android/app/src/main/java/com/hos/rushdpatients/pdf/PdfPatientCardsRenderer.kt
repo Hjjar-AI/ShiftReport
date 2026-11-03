@@ -61,6 +61,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private var isIndexPage = true
     private var pageTotal = 0
     private var generatedLabel = ""
+    private var shiftDateLabel = ""
     private var y = margin
     private val canvas: Canvas get() = checkNotNull(page).canvas
 
@@ -89,6 +90,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     ): Int {
         pageTotal = totalPages
         generatedLabel = PdfReportContext.createdAt(options)
+        shiftDateLabel = summary.shiftDate.toString()
         // A5 portrait is enforced here for every caller, independently of saved table options.
         palette = PdfPalette.resolve(options)
         body.color = palette.text
@@ -104,11 +106,11 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         try {
             newPage(documentLabel, index = true)
             val metadataPaint = Paint(body).apply { textSize = 11.5f }
-            val totalPaint = Paint(heading).apply { textSize = 15f }
-            indexText("إجمالي المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})", totalPaint, documentLabel)
-            indexText("${summary.shiftDate} • ${summary.escortCount} مرافق", metadataPaint, documentLabel)
-            if (doctors.isNotEmpty()) indexText(ReportRosterLabel.forDoctors(doctors) + ": " +
-                doctors.joinToString(" / ") { it.fullName }, metadataPaint, documentLabel)
+            indexText("المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})" +
+                " • المرافقون: ${summary.escortCount}", heading, documentLabel)
+            if (doctors.isNotEmpty()) ReportRosterLabel.linesForDoctors(doctors, " / ").forEach { line ->
+                indexText(line, metadataPaint, documentLabel)
+            }
             val indexGap = 5f
             val tilePadding = 2f
             val rowHeight = 28f
@@ -146,6 +148,10 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     val top = gridTop + (offset % rows) * (rowHeight + 1f)
                     val end = right - column * (tileWidth + indexGap)
                     val rect = RectF(end - tileWidth, top, end, top + rowHeight)
+                    if (column == 1) {
+                        fill.color = palette.teamSubheader
+                        canvas.drawRoundRect(rect, 3f, 3f, fill)
+                    }
                     canvas.drawRoundRect(rect, 3f, 3f, outline)
                     val textHeight = wrapped.size * PdfTextWrapper.lineHeight(paint)
                     canvas.save()
@@ -413,11 +419,23 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         page = document.startPage(PdfDocument.PageInfo.Builder(width, height, pageIndex + 1).create())
         canvas.drawColor(palette.pageBackground)
         fill.color = palette.pageBackground
-        val pageTop = if (index) 10f * 72f / 25.4f else topMargin
+        var pageTop = if (index) 10f * 72f / 25.4f else topMargin
         if (index) {
             val titlePaint = Paint(heading).apply { textSize = 15f }
-            val titleBaseline = pageTop / 2f - (titlePaint.fontMetrics.top + titlePaint.fontMetrics.bottom) / 2f
-            canvas.drawText(directed("فهرس المرضى"), right, titleBaseline, titlePaint)
+            val datePaint = Paint(titlePaint).apply { textAlign = Paint.Align.LEFT }
+            val headerColumnWidth = (right - left - gap) / 2f
+            val titleLines = PdfTextWrapper.wrap("فهرس المرضى", titlePaint, headerColumnWidth)
+            val dateLines = PdfTextWrapper.wrap(shiftDateLabel, datePaint, headerColumnWidth)
+            val lineHeight = PdfTextWrapper.lineHeight(titlePaint)
+            val headerHeight = maxOf(titleLines.size, dateLines.size) * lineHeight
+            pageTop = maxOf(pageTop, headerHeight + 2 * titlePadding)
+            val firstBaseline = (pageTop - headerHeight) / 2f - titlePaint.fontMetrics.top
+            titleLines.forEachIndexed { line, value ->
+                canvas.drawText(directed(value), right, firstBaseline + line * lineHeight, titlePaint)
+            }
+            dateLines.forEachIndexed { line, value ->
+                canvas.drawText(directed(value), left, firstBaseline + line * lineHeight, datePaint)
+            }
         }
         val card = RectF(margin, pageTop, width - margin, cardBottom)
         canvas.drawRoundRect(card, 4f, 4f, fill)
@@ -454,7 +472,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             if (y + PdfTextWrapper.lineHeight(paint) > bottom) newPage(documentLabel, index = true)
             drawLine(line, paint)
         }
-        y += 3f
+        y += 2f
     }
 
     private fun drawLine(text: String, paint: Paint) {

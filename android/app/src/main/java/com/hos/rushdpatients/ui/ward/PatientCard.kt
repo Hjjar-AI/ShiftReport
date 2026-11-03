@@ -165,7 +165,6 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     if (showViewControls) {
                         if (canExpand) add(CustomAccessibilityAction(if (expanded) uiText(R.string.ui_patient_card_011) else uiText(R.string.ui_patient_card_012)) { onExpandToggle(); true })
                         add(CustomAccessibilityAction(if (pinned) uiText(R.string.ui_patient_card_013) else uiText(R.string.ui_patient_card_014)) { onPinToggle(); true })
-                        add(CustomAccessibilityAction(uiText(R.string.ui_patient_card_015)) { onClick(); true })
                         if (!readOnly) {
                             add(CustomAccessibilityAction(uiText(R.string.ui_edit_patient_dialog_001)) { onEdit(); true })
                             add(CustomAccessibilityAction(if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) { onPriorityChange(!patient.isPriority); true })
@@ -176,7 +175,8 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 }
             }
             .combinedClickable(enabled = showViewControls, role = androidx.compose.ui.semantics.Role.Button,
-                onClickLabel = uiText(R.string.ui_patient_card_015), onClick = onClick,
+                onClickLabel = uiText(if (!readOnly) R.string.ui_edit_patient_dialog_001
+                    else if (expanded) R.string.ui_patient_card_011 else R.string.ui_patient_card_012), onClick = onClick,
                 onLongClickLabel = if (readOnly) null else uiText(R.string.ui_edit_patient_dialog_001),
                 onLongClick = if (readOnly) null else onLongClick),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = cardColor),
@@ -193,7 +193,8 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     }
                 }
                 .animateContentSize(sizeAnimation)
-                .padding(cardDensity.padding),
+                .padding(cardDensity.padding)
+                .padding(start = if (statusEdge != null) UiSpacing.small else com.hos.rushdpatients.ui.theme.UiSpace.none),
             verticalArrangement = Arrangement.spacedBy(sectionGap)
         ) {
             if (showIdentity) PatientIdentityHeader(
@@ -301,10 +302,6 @@ private fun PatientIdentityHeader(
         showPersonal = expanded && !showViewControls, showOrdinal = true, showDemographics = true,
         trailingContent = {
             if (showViewControls) Row(verticalAlignment = Alignment.CenterVertically) {
-                if (!readOnly) AppIconButton(
-                    label = if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018),
-                    icon = if (patient.isPriority) AppIcons.Star else AppIcons.StarBorder,
-                    onClick = { onPriorityChange(!patient.isPriority) })
                 if (canExpand) AppIconButton(
                     label = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028),
                     icon = AppIcons.ExpandMore,

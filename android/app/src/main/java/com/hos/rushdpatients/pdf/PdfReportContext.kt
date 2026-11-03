@@ -8,6 +8,11 @@ import java.util.Locale
 
 /** Public report context only; never takes connection settings or credentials. */
 internal object PdfReportContext {
+    /** Compact date/totals row; callers measure and wrap it. */
+    fun overview(summary: ReportSummary): String =
+        "${PdfStrings.DATE_LABEL}: ${summary.shiftDate} • المرضى: ${summary.patientCount}" +
+            " • نفسية: ${summary.psychoCount} • المرافقون: ${summary.escortCount}"
+
     fun lines(summary: ReportSummary, includeShiftDate: Boolean = true): List<String> =
         if (includeShiftDate) listOf("تاريخ المناوبة: ${summary.shiftDate}") else emptyList()
 

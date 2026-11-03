@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guide_title">دليل الاستخدام</string>
+    <string name="guide_card_stripe_title">الشريط الجانبي لبطاقة المريض</string>
+    <string name="guide_card_stripe_intro">يعكس لون الشريط الجانبي علامة الأولوية أو مستوى الشارات أو وجود مهام غير مكتملة.</string>
+    <string name="guide_card_red">الأحمر</string>
+    <string name="guide_card_red_meaning">المريض محدد كأولوية، أو لديه شارة ذات أولوية مرتفعة.</string>
+    <string name="guide_card_amber">العنبري أو البني</string>
+    <string name="guide_card_amber_meaning">توجد شارة ذات أولوية متوسطة.</string>
+    <string name="guide_card_purple">البنفسجي</string>
+    <string name="guide_card_purple_meaning">توجد مهمة واحدة على الأقل غير مكتملة.</string>
+    <string name="guide_card_no_stripe">من دون شريط: لا توجد علامة أولوية أو شارة مرتفعة أو متوسطة الأولوية أو مهام غير مكتملة.</string>
+    <string name="guide_card_stripe_precedence">عند اجتماع أكثر من سبب، يُختار اللون بهذا الترتيب: الأحمر، ثم العنبري أو البني، ثم البنفسجي.</string>
+    <string name="guide_card_theme_shades">قد تختلف درجة اللون بين الأوضاع الفاتح والداكن والليلي، وتبقى دلالته ثابتة.</string>
+    <string name="guide_card_star_title">نجمة الأولوية</string>
+    <string name="guide_card_star_meaning">تظهر النجمة الممتلئة فقط عندما يكون المريض محدداً كأولوية. لتغيير ذلك، افتح قائمة النقاط الثلاث في البطاقة واختر «تحديد أولوية» أو «إلغاء الأولوية».</string>
+    <string name="guide_card_outline_title">الإطار المحيط بالبطاقة</string>
+    <string name="guide_card_outline_normal">يكون الإطار عادةً بلون محايد لتمييز البطاقة عن الخلفية.</string>
+    <string name="guide_card_outline_highlight">تمييز مؤقت بلون السمة</string>
+    <string name="guide_card_outline_highlight_meaning">عند العودة إلى البطاقة بعد الحفظ أو إظهارها من لوحة المهام، قد يتلون إطارها وخلفيتها بلون السمة المختار لفترة قصيرة لمساعدتك على العثور عليها.</string>
+</resources>

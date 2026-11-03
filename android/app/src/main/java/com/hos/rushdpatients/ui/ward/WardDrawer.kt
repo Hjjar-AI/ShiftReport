@@ -70,6 +70,7 @@ internal fun WardDrawer(
 ) {
     val uiText = rememberUiStrings()
     val dayLabel = LocalWardDayLabel.current
+    var dataFilesMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var preferencesMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var helpMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -139,11 +140,13 @@ internal fun WardDrawer(
                     }
 
                     com.hos.rushdpatients.ui.components.AppDivider()
-                    DrawerSectionLabel(uiText(R.string.drawer_data_files))
-                    WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
-                    WardDrawerRow(uiText(R.string.drawer_exports_imports), AppIcons.FolderOpen) { onAction(WardDrawerAction.FILES) }
-                    WardDrawerRow(uiText(R.string.ui_settings_section_layout_031), AppIcons.Backup) { onAction(WardDrawerAction.BACKUP) }
-                    WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
+                    DrawerToolGroup(uiText(R.string.drawer_data_files), AppIcons.FolderOpen, dataFilesMenuExpanded,
+                        onToggle = { dataFilesMenuExpanded = !dataFilesMenuExpanded }) {
+                        WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
+                        WardDrawerRow(uiText(R.string.drawer_exports_imports), AppIcons.FolderOpen) { onAction(WardDrawerAction.FILES) }
+                        WardDrawerRow(uiText(R.string.ui_settings_section_layout_031), AppIcons.Backup) { onAction(WardDrawerAction.BACKUP) }
+                        WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
+                    }
 
                     DrawerToolGroup(uiText(R.string.drawer_settings_administration), AppIcons.Settings, preferencesMenuExpanded,
                         onToggle = { preferencesMenuExpanded = !preferencesMenuExpanded }) {

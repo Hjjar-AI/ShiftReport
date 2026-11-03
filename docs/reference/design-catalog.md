@@ -23,10 +23,11 @@ Arabic: `res/values/strings_ui.xml`/`strings.xml`; reuse actions, numbered place
 | Targets / controls | Always ≥48dp interactive; visual compact/standard/comfortable minima 32/40/48dp, growing for text. |
 | Patient density | Compact padding 4h/2v, gap 4; normal 12h/8v, gap 8; list gap 8dp. Density changes spacing, not fonts/targets. |
 | Padding | Content 4h/2v; compact 2h/1v; fields 4h/8top/2bottom; chips 8h/2v (dp). |
+| Surfaces / fields | Light: muted gray-green canvas/off-white panels; Dark: slate layers; AMOLED: black canvas/near-black panels. Neutral outlines separate layers; shared text/picker fill blends surface→surfaceVariant85%. Accent and severity retain separate roles. |
 | Borders | Hairline .5, normal 1, strong 1.5, selected/focused 2dp. Neutral cards blend surface→outline65%; selected/focused retain accent. |
 | Elevation / opacity | Flat/low/raised/overlay 0/1/2/6dp; navigation/action 2/3dp. Enabled 1, disabled content .38/container .12. |
 | Motion | Expand/collapse/highlight 160/130/220ms; indicator 160, placement 200, fast token 90. Bulk/reduced motion immediate. |
-| Shapes / sizes | Corners 4/8/12/16/24dp; icons 12/16/20/24/32/40dp; progress/loading 40dp, stroke 2; severity edge 4dp. |
+| Shapes / sizes | Corners 4/8/12/16/24dp; icons 12/16/20/24/32/40dp; progress/loading 40dp, stroke 2; severity edge 8dp; colored patient cards add4dp start clearance. |
 | Dialogs | Viewport fraction .85; compact/standard/review/sheet caps 260/420/440/640dp. Preserve incoming minimums/scroll/actions. |
 | Content widths | General 720; patient form 840; empty ward 520; dock 480; rail 80dp. |
 | Adaptive thresholds | Fields/grid 360; card columns 440; toolbar actions 240; metric pair 280dp. Fields/toolbar/metrics account for font scale. |

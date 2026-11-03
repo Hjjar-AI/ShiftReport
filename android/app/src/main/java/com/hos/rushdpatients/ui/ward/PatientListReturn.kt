@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
-internal data class PatientReturnTarget(val id: String, val previousRevision: Long)
+/** Saves wait for the committed revision; inline read-only reveals use the current row. */
+internal data class PatientReturnTarget(val id: String, val previousRevision: Long? = null)
 
 /** Count the same header/group/patient items emitted by the ward grid. */
 internal fun patientGridReturnIndex(

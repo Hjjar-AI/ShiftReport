@@ -38,10 +38,12 @@ private fun accent(preset: AppThemePreset) = when (preset) {
 
 private data class Surfaces(val background: Color, val surface: Color, val variant: Color)
 
+// Separate canvas, cards/dialogs and inset controls without large pure-white surfaces.
+// AMOLED keeps the canvas black; near-black panels keep fields and cards distinguishable.
 private fun surfaces(dark: Boolean, amoled: Boolean): Surfaces = when {
-    amoled -> Surfaces(Color.Black, Color.Black, Color(0xFF15171B))
-    dark -> Surfaces(Color(0xFF171D24), Color(0xFF252F3A), Color(0xFF394655))
-    else -> Surfaces(Color(0xFFEDF1F5), Color.White, Color(0xFFE8EEF2))
+    amoled -> Surfaces(Color.Black, Color(0xFF11191D), Color(0xFF29383F))
+    dark -> Surfaces(Color(0xFF151C23), Color(0xFF26323C), Color(0xFF3A4B57))
+    else -> Surfaces(Color(0xFFD9E0DE), Color(0xFFEEF1ED), Color(0xFFCBD7D3))
 }
 
 /** Used by palette controls to preview the actual selected appearance. */
@@ -82,10 +84,11 @@ fun RushdPatientsTheme(
             secondaryContainer = Color(0xFF3B4852), onSecondaryContainer = Color(0xFFDFE5ED),
             tertiary = Color(0xFFD0BCFF), onTertiary = Color(0xFF33264D),
             tertiaryContainer = Color(0xFF4A3D65), onTertiaryContainer = Color(0xFFEADDFF),
-            background = surfaces.background, onBackground = Color(0xFFE8EDF4),
-            surface = surfaces.surface, onSurface = Color(0xFFE8EDF4),
-            surfaceVariant = surfaces.variant, onSurfaceVariant = Color(0xFFC8CFD8),
-            outline = Color(0xFF8B999F), outlineVariant = Color(0xFF465359),
+            background = surfaces.background, onBackground = Color(0xFFE1E7EC),
+            surface = surfaces.surface, onSurface = Color(0xFFE1E7EC),
+            surfaceVariant = surfaces.variant, onSurfaceVariant = Color(0xFFC3CDD3),
+            outline = if (amoled) Color(0xFF9AAAB2) else Color(0xFFA1AFB6),
+            outlineVariant = if (amoled) Color(0xFF4D626C) else Color(0xFF61747F),
             inverseSurface = Color(0xFFE8EDF4), inverseOnSurface = Color(0xFF253238),
             inversePrimary = a.primary, surfaceTint = if (amoled) Color.Black else a.darkPrimary,
             error = Color(0xFFFFB4AB), onError = Color(0xFF690005),
@@ -101,7 +104,7 @@ fun RushdPatientsTheme(
             background = surfaces.background, onBackground = Color(0xFF202832),
             surface = surfaces.surface, onSurface = Color(0xFF202832),
             surfaceVariant = surfaces.variant, onSurfaceVariant = Color(0xFF485360),
-            outline = Color(0xFF72838B), outlineVariant = Color(0xFFD0DADD),
+            outline = Color(0xFF647875), outlineVariant = Color(0xFFA3B3AE),
             inverseSurface = Color(0xFF29353B), inverseOnSurface = Color(0xFFF0F5F7),
             inversePrimary = a.darkPrimary, surfaceTint = a.primary,
             error = Color(0xFFB3261E), onError = Color.White,

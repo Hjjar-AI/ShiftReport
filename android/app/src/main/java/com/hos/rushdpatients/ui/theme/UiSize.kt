@@ -8,7 +8,7 @@ object UiSize {
     val splashEmblem = 240.dp
     val aboutEmblemCompact = 128.dp
     val aboutEmblem = 180.dp
-    val statusEdge = 4.dp
+    val statusEdge = 8.dp
     val patientOrdinal = 32.dp
     val fieldMinHeight = UiSpacing.touchTarget
     // Keep floating labels clear of the outline even with compact layout gaps.

@@ -21,7 +21,7 @@ class PatientCardActions(
     val onPinToggle: () -> Unit, val onExpandToggle: () -> Unit
 ) {
     companion object {
-        /** Explicitly inert for read-only previews and the details renderer. */
+        /** Explicitly inert for read-only previews. */
         val None = PatientCardActions({}, {}, {}, {}, {}, {}, {}, {})
     }
 }

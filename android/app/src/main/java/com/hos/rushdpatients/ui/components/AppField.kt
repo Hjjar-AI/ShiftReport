@@ -136,7 +136,7 @@ internal fun AppFieldDecoration(
 ) {
     val surface = MaterialTheme.colorScheme.surface
     val variant = MaterialTheme.colorScheme.surfaceVariant
-    val fill = remember(surface, variant) { lerp(surface, variant, .65f) }
+    val fill = remember(surface, variant) { lerp(surface, variant, .85f) }
     val shape = MaterialTheme.shapes.small
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val colors = OutlinedTextFieldDefaults.colors(

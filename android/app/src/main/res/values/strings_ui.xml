@@ -169,7 +169,6 @@
     <string name="ui_ward_screen_002" formatted="false">"التنقل الرئيسي"</string>
     <string name="ui_ward_screen_003" formatted="false">"لوحة القسم"</string>
     <string name="ui_ward_screen_004" formatted="false">"جاهزية التقرير"</string>
-    <string name="ui_ward_screen_005" formatted="false">"ملف المريض"</string>
     <string name="ui_ward_screen_006" formatted="false">"جار تحميل بيانات القسم…"</string>
     <string name="ui_ward_screen_007">"تعذر تحميل بيانات القسم\n%1$s"</string>
     <string name="ui_ward_screen_008">"بحث: %1$s"</string>
@@ -219,7 +218,6 @@
     <string name="ui_patient_card_012" formatted="false">"توسيع تفاصيل المريض"</string>
     <string name="ui_patient_card_013" formatted="false">"إلغاء التثبيت المؤقت"</string>
     <string name="ui_patient_card_014" formatted="false">"نقل إلى بداية مجموعة الأولوية"</string>
-    <string name="ui_patient_card_015" formatted="false">"فتح تفاصيل المريض"</string>
     <string name="ui_patient_card_016" formatted="false">"تعديل شارات المريض"</string>
     <string name="ui_patient_card_017" formatted="false">"إلغاء الأولوية"</string>
     <string name="ui_patient_card_018" formatted="false">"تحديد أولوية"</string>
@@ -371,13 +369,6 @@
     <string name="ui_patient_demographic_fields_013" formatted="false">"يوجد مرافق"</string>
     <string name="ui_ward_patient_grid_001" formatted="false">"لا توجد نتائج مطابقة"</string>
     <string name="ui_ward_patient_grid_002" formatted="false">"لا يطابق أي مريض البحث والتصفية الحالية"</string>
-    <string name="ui_patient_details_screen_001" formatted="false">"إغلاق ملف المريض"</string>
-    <string name="ui_patient_details_screen_002" formatted="false">"مهام المريض"</string>
-    <string name="ui_patient_details_screen_003" formatted="false">"لا توجد مهام مسجلة"</string>
-    <string name="ui_patient_details_screen_004" formatted="false">"شارة المريض"</string>
-    <string name="ui_patient_details_screen_005">" • أولوية %1$s"</string>
-    <string name="ui_patient_details_screen_006" formatted="false">"لا توجد شارات"</string>
-    <string name="ui_patient_details_screen_007" formatted="false">"السجل الزمني المهم"</string>
     <string name="ui_copy" formatted="false">"نسخ"</string>
     <string name="ui_patient_details_screen_009" formatted="false">"لا توجد بيانات مسجلة"</string>
     <string name="ui_patients" formatted="false">"المرضى"</string>
@@ -926,11 +917,6 @@
     <string name="ui_ward_save_guard_013" formatted="false">"بيانات المهام غير صالحة"</string>
     <string name="ui_ward_save_guard_014" formatted="false">"المقيم والمشرف يجب أن يكونا مختلفين"</string>
     <string name="ui_ward_save_guard_015" formatted="false">"بيانات المريض غير صحيحة"</string>
-    <string name="ui_patient_details_screen_010" formatted="false">"\nقبل: "</string>
-    <string name="ui_patient_details_screen_011" formatted="false">"\nبعد: "</string>
-    <string name="ui_patient_details_screen_012" formatted="false">"آخر تعديل محلي • "</string>
-    <string name="ui_patient_details_screen_013" formatted="false">"\nالمريض محدد كأولوية"</string>
-    <string name="ui_patient_details_screen_014" formatted="false">"\nشارات: "</string>
     <string name="ui_patient_form_validation_001" formatted="false">"اختر تاريخ الدخول"</string>
     <string name="ui_patient_form_validation_002" formatted="false">"تاريخ الدخول لا يمكن أن يكون في المستقبل"</string>
     <string name="ui_patient_form_validation_003" formatted="false">"العمر يجب أن يكون بين 0 و120 سنة"</string>
@@ -1140,9 +1126,6 @@
     <string name="ui_ward_patient_list_controls_011" formatted="false">"البطاقات"</string>
     <string name="ui_ward_patient_list_controls_012" formatted="false">"الترتيب"</string>
     <string name="ui_patient_form_sections_001" formatted="false">"السريري"</string>
-    <string name="ui_patient_details_screen_015" formatted="false">"الملف السريري"</string>
-    <string name="ui_patient_details_screen_016" formatted="false">"الشارة"</string>
-    <string name="ui_patient_details_screen_017" formatted="false">"السجل"</string>
     <string name="ui_app_appearance_001" formatted="false">"حسب النظام"</string>
     <string name="ui_app_appearance_002" formatted="false">"فاتح"</string>
     <string name="ui_app_appearance_003" formatted="false">"داكن"</string>

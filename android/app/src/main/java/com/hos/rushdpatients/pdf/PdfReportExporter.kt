@@ -48,7 +48,6 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
     private var palette = PdfPalette.resolve(PdfExportOptions())
     private val bidiFormatter = BidiFormatter.getInstance()
 
-    private val titleBandHeight = 20f
     private val summaryBandHeight: Float
         get() = PdfTextWrapper.lineHeight(summaryPaint) + 2 * cellPadding
     private val headerMinHeight = 14f
@@ -133,15 +132,15 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
 
                 var y = marginTop
 
-                val rosterTitle = "${ReportRosterLabel.forDoctors(doctors)}: " + doctors.joinToString(" + ") { it.fullName }
-                val contextPaint = Paint(titlePaint).apply { textSize = 8.5f }
-                val contextLines = PdfTextWrapper.wrap(PdfReportContext.lines(summary).joinToString(" • "),
-                    contextPaint, contentWidth - 2 * cellPadding)
-                val contextHeight = contextLines.size * PdfTextWrapper.lineHeight(contextPaint) + 2 * cellPadding
-                val titleLines = PdfTextWrapper.wrap(rosterTitle, titlePaint, contentWidth - 2 * cellPadding)
+                val overviewLines = PdfTextWrapper.wrap(PdfReportContext.overview(summary),
+                    summaryPaint, contentWidth - 2 * cellPadding)
+                val overviewHeight = overviewLines.size * PdfTextWrapper.lineHeight(summaryPaint) + 2 * cellPadding
+                val titleLines = ReportRosterLabel.linesForDoctors(doctors, " + ").flatMap { line ->
+                    PdfTextWrapper.wrap(line, titlePaint, contentWidth - 2 * cellPadding)
+                }
                 val titleLineHeight = PdfTextWrapper.lineHeight(titlePaint)
                 val titleLinesPerPage = ((pageHeight - marginTop - marginBottom -
-                    2 * summaryBandHeight - headerMinHeight - contextHeight - 4 * cellPadding) / titleLineHeight)
+                    summaryBandHeight - headerMinHeight - overviewHeight - 4 * cellPadding) / titleLineHeight)
                     .toInt().coerceAtLeast(1)
                 titleLines.chunked(titleLinesPerPage).forEachIndexed { index, lines ->
                     if (index > 0) {
@@ -153,12 +152,9 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
                         drawPageBackground(canvas)
                         y = marginTop
                     }
-                    y += drawTitleBand(canvas, y, lines)
+                    y += drawHeaderBand(canvas, y, lines, titlePaint, palette.titleHeader)
                 }
-                y += drawTitleBand(canvas, y, contextLines, contextPaint)
-
-                drawSummaryBand(canvas, y, summary)
-                y += summaryBandHeight
+                y += drawHeaderBand(canvas, y, overviewLines, summaryPaint, palette.summary)
 
                 val headerHeight = drawHeaderRow(canvas, y)
                 y += headerHeight
@@ -270,10 +266,10 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
         }
     }
 
-    private fun drawTitleBand(canvas: Canvas, y: Float, lines: List<String>, paint: Paint = titlePaint): Float {
+    private fun drawHeaderBand(canvas: Canvas, y: Float, lines: List<String>, paint: Paint, background: Int): Float {
         val lineHeight = PdfTextWrapper.lineHeight(paint)
-        val height = maxOf(if (paint === titlePaint) titleBandHeight else 0f, lines.size * lineHeight + 2 * cellPadding)
-        fillPaint.color = palette.titleHeader
+        val height = lines.size * lineHeight + 2 * cellPadding
+        fillPaint.color = background
         canvas.drawRect(contentLeft, y, contentRight, y + height, fillPaint)
         lines.forEachIndexed { index, line ->
             drawCenteredFittedText(

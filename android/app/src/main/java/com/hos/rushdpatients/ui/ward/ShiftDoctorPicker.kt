@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.data.model.Doctor
+import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
@@ -48,6 +49,7 @@ fun ShiftDoctorPicker(
     var query by remember { mutableStateOf("") }
     val activeDoctors = allDoctors.filterNot { it.isDeleted }
     val matchingDoctors = activeDoctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
+        .sortedWith(compareBy<Doctor> { it.clinicalRole == ClinicalRole.SUPERVISOR }.thenBy { it.fullName })
 
     var confirmDiscard by remember { mutableStateOf(false) }
     val requestDismiss: () -> Unit = {
@@ -76,14 +78,15 @@ fun ShiftDoctorPicker(
                         EmptyState(title = if (activeDoctors.isEmpty()) uiText(R.string.ui_shift_doctor_picker_005) else uiText(R.string.ui_shift_doctor_picker_006),
                             actionLabel = if (query.isBlank()) null else uiText(R.string.ui_shift_doctor_picker_007), onAction = { query = "" })
                     }
-                    doctorChoiceGroups(uiText, matchingDoctors, activeDoctors).forEach { (team, members) ->
-                        AppSectionHeader(team)
-                        members.forEach { doctor ->
-                            AppCheckRow(label = doctor.fullName, checked = doctor.id in selected, enabled = !saving,
-                                onCheckedChange = { checked ->
-                                    selected = if (checked) (selected + doctor.id).distinct() else selected - doctor.id
-                                })
+                    matchingDoctors.forEachIndexed { index, doctor ->
+                        if (doctor.clinicalRole == ClinicalRole.SUPERVISOR &&
+                            (index == 0 || matchingDoctors[index - 1].clinicalRole != ClinicalRole.SUPERVISOR)) {
+                            AppSectionHeader(uiText(R.string.ui_doctor_choice_groups_001))
                         }
+                        AppCheckRow(label = doctor.fullName, checked = doctor.id in selected, enabled = !saving,
+                            onCheckedChange = { checked ->
+                                selected = if (checked) (selected + doctor.id).distinct() else selected - doctor.id
+                            })
                     }
                 }
             }

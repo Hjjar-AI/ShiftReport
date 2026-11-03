@@ -85,7 +85,7 @@ internal fun WardPatientListControls(
                 Row(Modifier.horizontalScroll(chipScroll),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
-                    listOf(DashboardFilter.ALL to uiText(R.string.ui_all), DashboardFilter.MINE to uiText(R.string.ui_handover_dashboard_011),
+                    listOf(DashboardFilter.MINE to uiText(R.string.ui_handover_dashboard_011),
                         DashboardFilter.URGENT to uiText(R.string.ui_ward_patient_list_controls_007),
                         DashboardFilter.UNASSIGNED to uiText(R.string.ui_ward_screen_010), DashboardFilter.TASK_PENDING to uiText(R.string.ui_ward_screen_011)
                     ).forEach { (preset, label) -> AppFilterChip(selectedPreset == preset, { onPreset(preset) },

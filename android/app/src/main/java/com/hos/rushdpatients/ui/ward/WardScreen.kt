@@ -58,7 +58,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
@@ -155,7 +154,6 @@ private fun WardWorkspaceContent(
     val haptics = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     val foldingFeature = rememberWardFoldingFeature()
-    val detailStateHolder = rememberSaveableStateHolder()
     var listFraction by rememberSaveable { mutableStateOf(UiLayout.defaultListFraction) }
     var showSupportingSheet by overlays::showSupportingSheet
     val configuration = LocalConfiguration.current
@@ -167,7 +165,6 @@ private fun WardWorkspaceContent(
     }
     val patientGridState = rememberLazyGridState()
     val editor = viewModel.editor
-    var detailsTargetId by rememberSaveable { mutableStateOf<String?>(null) }
     var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
     var recentlyEditedId by remember { mutableStateOf<String?>(null) }
     var confirmLatest by overlays::confirmLatest
@@ -229,9 +226,7 @@ private fun WardWorkspaceContent(
     }
 
     val patientDestination = viewMode == WardViewMode.ALL || viewMode == WardViewMode.MINE
-    val selectedPatient = state.patients.firstOrNull { it.id == detailsTargetId }
     val showAddFloatingAction = state.shift != null && !state.isReadOnly &&
-        (!patientDestination || selectedPatient == null) &&
         (!patientDestination || state.patients.isNotEmpty())
     val addActionSpace = rememberFloatingActionSpace(showAddFloatingAction)
     val roundsPatients = remember(state.groupByMode, state.groupedPatients, visiblePatients, visibleIds) {
@@ -241,14 +236,13 @@ private fun WardWorkspaceContent(
             }.distinctBy { it.id }
         } else visiblePatients
     }
-    val roundsNavigation = detailsTargetId?.let { patientRoundsNavigation(roundsPatients.map { it.id }, it) }
 
     LaunchedEffect(returnTarget, state.patients, state.groupedPatients, visiblePatients, state.loading, state.saving, state.error, patientDestination) {
         val target = returnTarget ?: return@LaunchedEffect
         if (!patientDestination || state.loading || state.saving || state.error != null) return@LaunchedEffect
         val saved = state.patients.firstOrNull { it.id == target.id } ?: return@LaunchedEffect
         // Repository flow can arrive after the success callback. Reveal the saved revision.
-        if (saved.revision <= target.previousRevision) return@LaunchedEffect
+        if (target.previousRevision != null && saved.revision <= target.previousRevision) return@LaunchedEffect
         if (visiblePatients.none { it.id == target.id }) {
             returnTarget = null
             scope.launch { snackbarHost.showSnackbar(uiText(R.string.ui_ward_screen_001, saved.name)) }
@@ -292,42 +286,20 @@ private fun WardWorkspaceContent(
             }
         },
         onDismiss = { showWardTasks = false }, onPatient = { id ->
-            if (!state.saving && !state.syncing && !editor.showAdd && editor.editTarget == null && editor.copyTarget == null && state.patients.any { it.id == id }) {
+            if (!state.saving && !state.syncing && editor.dialog == null && state.patients.any { it.id == id }) {
                 showWardTasks = false
                 filtersState.applyPreset(DashboardFilter.ALL)
-                detailsTargetId = id
+                val patient = state.patients.first { it.id == id }
+                if (state.isReadOnly) {
+                    expandedPatientIds = (expandedPatientIds + id).distinct()
+                    collapsedPatientIds = collapsedPatientIds - id
+                    returnTarget = PatientReturnTarget(id)
+                } else editor.editTarget = patient
             }
         })
-    val detailContent: @Composable (Boolean) -> Unit = { embedded ->
-        if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) {
-            detailStateHolder.SaveableStateProvider("patient-details") {
-                PatientDetailsScreen(
-                    patient = selectedPatient, doctorNames = doctorNames,
-                    readOnly = state.isReadOnly,
-                    onEdit = { editor.editTarget = selectedPatient },
-                    onCopy = { editor.copyTarget = selectedPatient },
-                    onPriorityChange = { viewModel.setPriority(selectedPatient, it) },
-                    onDismiss = { detailsTargetId = null }, embedded = embedded, foldingFeature = foldingFeature,
-                    roundsNavigation = roundsNavigation,
-                    navigationEnabled = !state.saving && !editor.showAdd,
-                    onNavigateToPatient = { id ->
-                        if (!state.saving && !editor.showAdd && editor.editTarget == null && editor.copyTarget == null && roundsPatients.any { it.id == id }) {
-                            detailsTargetId = id
-                        }
-                    }
-                )
-            }
-        }
-    }
     BackHandler(enabled = !patientDestination) { viewMode = WardViewMode.ALL }
-    BackHandler(enabled = patientDestination && detailsTargetId != null && editor.editTarget == null && editor.copyTarget == null) {
-        detailsTargetId = null
-    }
     LaunchedEffect(viewMode) {
         if (viewMode == WardViewMode.ACTIVITY) viewMode = WardViewMode.ALL
-    }
-    LaunchedEffect(state.loading, state.shift?.id, patientIds) {
-        if (!state.loading && selectedPatient == null) detailsTargetId = null
     }
 
     fun applyDashboardFilter(filter: DashboardFilter) {
@@ -378,13 +350,17 @@ private fun WardWorkspaceContent(
                 twoColumn = state.twoColumn,
                 doctorNames = doctorNames,
                 readOnly = state.isReadOnly || state.saving || state.syncing,
-                selected = detailsTargetId == patient.id,
                 recentlyEdited = recentlyEditedId == patient.id,
                 pinned = false,
                 compact = state.compactCards),
             actions = remember(patient, allCardsExpanded, state.isReadOnly, state.saving, state.syncing, viewModel, editor, haptics) {
                 PatientCardActions(
-                    onOpen = { detailsTargetId = patient.id },
+                    onOpen = {
+                        if (!state.saving && !state.syncing && editor.dialog == null) {
+                            if (state.isReadOnly) toggleCard(patient.id)
+                            else editor.editTarget = patient
+                        }
+                    },
                     onLongPress = {
                         if (!state.isReadOnly && !state.saving && !state.syncing && editor.dialog == null) {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -403,7 +379,9 @@ private fun WardWorkspaceContent(
                             scope.launch {
                                 snackbarHost.currentSnackbarData?.dismiss()
                                 if (snackbarHost.showSnackbar(uiText(R.string.priority_changed),
-                                        actionLabel = uiText(R.string.ui_task_undo)) == androidx.compose.material3.SnackbarResult.ActionPerformed)
+                                        actionLabel = uiText(R.string.ui_task_undo),
+                                        withDismissAction = true,
+                                        duration = androidx.compose.material3.SnackbarDuration.Short) == androidx.compose.material3.SnackbarResult.ActionPerformed)
                                     viewModel.setPriority(patient, patient.isPriority)
                             }
                         }
@@ -443,7 +421,7 @@ private fun WardWorkspaceContent(
                     state = state, isAdmin = isAdmin, liveProject = viewModel.liveProject,
                     showBackOnline = showBackOnline,
                     fetchReminderEnabled = !state.loading && !state.saving && !state.syncing &&
-                        !state.isReadOnly && editor.dialog == null && detailsTargetId == null,
+                        !state.isReadOnly && editor.dialog == null,
                     onOpenDoctors = navigation.onOpenDoctors,
                     onReviewPatients = { state.shift?.id?.let(onOpenReport) },
                     onRetry = viewModel::retryLastAction, onReload = viewModel::reloadWard,
@@ -475,13 +453,13 @@ private fun WardWorkspaceContent(
                     transferActions = {
                         if (viewModel.synchronizationAvailable && (patientDestination || viewMode == WardViewMode.DASHBOARD)) WardTransferBar(
                             fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
-                                editor.dialog == null && detailsTargetId == null && !confirmLatest,
+                                editor.dialog == null && !confirmLatest,
                             reportEnabled = state.shift != null && !state.isReadOnly && !state.loading && !state.syncing && !state.saving &&
-                                editor.dialog == null && detailsTargetId == null,
+                                editor.dialog == null,
                             onFetch = { confirmLatest = true },
                             uploadEnabled = state.shift != null && (!viewModel.liveProject || online) &&
                                 !state.loading && !state.isReadOnly && !state.saving && !state.syncing &&
-                                editor.dialog == null && detailsTargetId == null && !confirmLatest,
+                                editor.dialog == null && !confirmLatest,
                             onUpload = viewModel::reviewPendingPublication,
                             onReport = { state.shift?.id?.let(onOpenReport) })
                     })
@@ -538,23 +516,20 @@ private fun WardWorkspaceContent(
                 }
                 WardAdaptivePanes(
                     enableSplit = patientDestination,
-                    allowMediumSupport = selectedPatient == null,
+                    allowMediumSupport = true,
                     foldingFeature = foldingFeature,
                     listFraction = listFraction,
                     onListFractionChange = { listFraction = it },
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     primaryTitle = if (patientDestination) uiText(R.string.ui_handover_dashboard_004) else if (viewMode == WardViewMode.ACTIVITY) uiText(R.string.ui_ward_activity_screen_003) else uiText(R.string.ui_ward_screen_003),
-                    supportingTitle = if (selectedPatient == null) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_screen_005),
+                    supportingTitle = uiText(R.string.ui_ward_screen_004),
                     supporting = {
-                        Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)
-                            .appContentEntrance(selectedPatient?.id to (editor.editTarget == null && editor.copyTarget == null))) {
-                            if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) detailContent(true)
-                            else WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
+                        Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
+                            WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
                                 showSynchronization = viewModel.synchronizationAvailable, onOpenSyncCenter = onOpenDataManagement,
                                 onActivity = { viewMode = WardViewMode.ACTIVITY })
                         }
                     },
-                    compactOverlay = { if (patientDestination) detailContent(false) },
                     primary = { dualPane ->
                         Box(Modifier.fillMaxSize().appContentEntrance(viewMode)) {
                             if (state.loading && state.shift == null) {
@@ -670,7 +645,6 @@ private fun WardWorkspaceContent(
             if (next != null) {
                 returnTarget = null
                 editor.editTarget = next
-                if (detailsTargetId != null) detailsTargetId = next.id
             } else {
                 returnTarget = PatientReturnTarget(draft.id, draft.revision)
                 editor.editTarget = null
