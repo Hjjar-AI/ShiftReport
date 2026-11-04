@@ -23,6 +23,7 @@ import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.AppFieldPair
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.ConfirmDialog
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -59,15 +60,21 @@ internal fun PatientLabGroupsEditor(
                         AppIconButton(label = uiText(R.string.lab_group_remove) + " • " + groupLabel,
                             icon = AppIcons.Delete, enabled = enabled, onClick = { removing = group.id })
                     }
-                    AppTextField(value = group.title, onValueChange = { update(group.copy(title = it)) },
-                        label = { Text(uiText(R.string.lab_group_title)) }, enabled = enabled,
-                        modifier = Modifier.fillMaxWidth(), textStyle = textStyle)
-                    DateField(value = group.date?.let(LocalDate::parse),
-                        onValueChange = { update(group.copy(date = it.toString())) },
-                        label = uiText(R.string.lab_group_date), supportingText = null, enabled = enabled,
-                        onClear = { update(group.copy(date = null)) }, modifier = Modifier.fillMaxWidth())
                     MultilineField(group.results, { update(group.copy(results = it)) },
                         uiText(R.string.lab_group_results), textStyle)
+                    AppFieldPair(
+                        first = { fieldModifier ->
+                            DateField(value = group.date?.let(LocalDate::parse),
+                                onValueChange = { update(group.copy(date = it.toString())) },
+                                label = uiText(R.string.lab_group_date), supportingText = null, enabled = enabled,
+                                onClear = { update(group.copy(date = null)) }, modifier = fieldModifier)
+                        },
+                        second = { fieldModifier ->
+                            AppTextField(value = group.title, onValueChange = { update(group.copy(title = it)) },
+                                label = { Text(uiText(R.string.lab_group_title)) }, enabled = enabled,
+                                modifier = fieldModifier, textStyle = textStyle)
+                        }
+                    )
 
                 }
             }

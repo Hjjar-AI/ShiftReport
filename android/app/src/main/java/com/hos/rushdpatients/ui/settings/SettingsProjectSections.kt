@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -28,13 +29,13 @@ internal fun SettingsConnectionContent(canManageProject: Boolean) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun SettingsResetContent(state: SettingsUiState, viewModel: SettingsViewModel) {
+internal fun SettingsResetContent(state: SettingsUiState, onPrepareEmptyStart: () -> Unit) {
     val uiText = rememberUiStrings()
     if (state.isPermanentAdmin) {
         SettingsSubheading(uiText(R.string.ui_settings_project_sections_002))
         Text(uiText(R.string.ui_settings_project_sections_003),
             style = MaterialTheme.typography.bodySmall)
-        AppOutlinedButton(onClick = viewModel::prepareEmptyStart,
+        AppOutlinedButton(onClick = onPrepareEmptyStart,
             enabled = !state.emptyStartBusy && !state.syncing && !state.backupBusy && !state.provisioningBusy,
             modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_project_sections_004), color = MaterialTheme.colorScheme.error) }
         AppDivider()
@@ -62,9 +63,13 @@ internal fun SettingsInvitationsContent(state: SettingsUiState, onCreateInvitati
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun SettingsDestinationsContent(state: SettingsUiState, viewModel: SettingsViewModel, onOpenDoctors: () -> Unit) {
+internal fun SettingsDestinationsContent(
+    supervisors: List<Doctor>, savingSupervisorGroupId: String?,
+    onSaveSupervisorGroup: (Doctor, String) -> Unit, onOpenDoctors: () -> Unit,
+    residentsEditor: @Composable () -> Unit
+) {
     val uiText = rememberUiStrings()
-    ResidentsDestinationEditor(state, viewModel)
+    residentsEditor()
     AppDivider()
     AppOutlinedButton(onClick = onOpenDoctors) { Text(uiText(R.string.ui_settings_project_sections_008)) }
     Text(uiText(R.string.ui_settings_project_sections_009), style = MaterialTheme.typography.labelMedium)
@@ -73,21 +78,19 @@ internal fun SettingsDestinationsContent(state: SettingsUiState, viewModel: Sett
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    if (state.supervisors.isEmpty()) {
+    if (supervisors.isEmpty()) {
         Text(
             uiText(R.string.ui_settings_project_sections_011),
             style = MaterialTheme.typography.bodySmall
         )
     } else {
-        state.supervisors.forEach { supervisor ->
+        supervisors.forEach { supervisor ->
             androidx.compose.runtime.key(supervisor.id) {
                 SupervisorGroupEditor(
                     supervisor = supervisor,
-                    saving = state.savingSupervisorGroupId == supervisor.id,
-                    enabled = state.savingSupervisorGroupId == null,
-                    onSave = { expected, value ->
-                        viewModel.setSupervisorGroupChatId(expected, value)
-                    }
+                    saving = savingSupervisorGroupId == supervisor.id,
+                    enabled = savingSupervisorGroupId == null,
+                    onSave = onSaveSupervisorGroup
                 )
             }
         }

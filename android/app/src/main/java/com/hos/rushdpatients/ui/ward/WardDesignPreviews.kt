@@ -40,14 +40,12 @@ private fun WardDesignGallery() {
                     PatientCard(
         state = PatientCardState(patient = patient,
             expanded = false,
-            twoColumn = false,
             doctorNames = names),
         actions = PatientCardActions.None
     )
                     PatientCard(
         state = PatientCardState(patient = patient,
             expanded = true,
-            twoColumn = false,
             doctorNames = names),
         actions = PatientCardActions.None
     )

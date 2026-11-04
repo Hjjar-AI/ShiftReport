@@ -19,20 +19,22 @@ internal fun DemoPreferencesContent(
     appearance: AppAppearance, onAppearance: (AppAppearance) -> Unit,
     accent: AppThemePreset, onAccent: (AppThemePreset) -> Unit,
     font: AppFontScale, onFont: (AppFontScale) -> Unit,
-    expanded: Boolean, twoColumn: Boolean, compact: Boolean,
+    expanded: Boolean, compact: Boolean,
     uiPreferences: com.hos.rushdpatients.ui.theme.UiPreferences,
     onUiPreferences: (com.hos.rushdpatients.ui.theme.UiPreferences) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiText = rememberUiStrings()
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        AppNotice(uiText(R.string.ui_demo_secondary_screens_013))
-        AppSection(uiText(R.string.ui_demo_secondary_screens_014)) {
-            SettingsAppearanceSection(SettingsUiState(appearance = appearance, appTheme = accent, uiPreferences = uiPreferences,
-                fontScale = font, patientDetailsExpanded = expanded,
-                patientTwoColumn = twoColumn, patientCompactDensity = compact),
-                onAppearance = onAppearance, onTheme = onAccent, onFont = onFont, onUiPreferences = onUiPreferences)
+    AppReadingPane(modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            AppNotice(uiText(R.string.ui_demo_secondary_screens_013))
+            AppSection(uiText(R.string.ui_demo_secondary_screens_014)) {
+                SettingsAppearanceSection(SettingsUiState(appearance = appearance, appTheme = accent, uiPreferences = uiPreferences,
+                    fontScale = font, patientDetailsExpanded = expanded,
+                    patientCompactDensity = compact),
+                    onAppearance = onAppearance, onTheme = onAccent, onFont = onFont, onUiPreferences = onUiPreferences)
+            }
         }
     }
 }

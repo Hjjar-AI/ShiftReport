@@ -20,22 +20,25 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-internal fun SettingsSecurityContent(state: SettingsUiState, viewModel: SettingsViewModel, onSignOut: () -> Unit) {
+internal fun SettingsSecurityContent(
+    biometricAvailable: Boolean, biometricEnabled: Boolean, autoLockMinutes: Int,
+    onBiometric: (Boolean) -> Unit, onAutoLockMinutes: (Int) -> Unit, onSignOut: () -> Unit
+) {
     val uiText = rememberUiStrings()
     AppToggleRow(
         title = uiText(R.string.ui_settings_preference_sections_014),
-        subtitle = if (state.biometricAvailable) uiText(R.string.ui_settings_preference_sections_015)
+        subtitle = if (biometricAvailable) uiText(R.string.ui_settings_preference_sections_015)
         else uiText(R.string.ui_settings_preference_sections_016),
-        checked = state.biometricEnabled,
-        onCheckedChange = if (state.biometricAvailable) viewModel::setBiometric else null
+        checked = biometricEnabled,
+        onCheckedChange = if (biometricAvailable) onBiometric else null
     )
 
     Text(uiText(R.string.ui_settings_preference_sections_017), style = MaterialTheme.typography.labelMedium)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         listOf(1, 5, 15, 30).forEach { minutes ->
             AppFilterChip(
-                selected = state.autoLockMinutes == minutes,
-                onClick = { viewModel.setAutoLockMinutes(minutes) },
+                selected = autoLockMinutes == minutes,
+                onClick = { onAutoLockMinutes(minutes) },
                 label = { Text(uiText(R.string.ui_settings_preference_sections_018, minutes)) }
             )
         }

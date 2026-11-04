@@ -138,7 +138,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                     snackbarHost = { AppSnackbarHost(snackbar) }) { padding ->
                     pages.SaveableStateProvider("settings") {
                         DemoPreferencesContent(appearance, viewModel::setDemoAppearance, accent, viewModel::setDemoAccent,
-                            font, { font = it }, ward.patientDetailsExpanded, ward.twoColumn, ward.compactCards,
+                            font, { font = it }, ward.patientDetailsExpanded, ward.compactCards,
                             uiPreferences, { uiPreferencesSetting = it.encode() },
                             Modifier.fillMaxSize().padding(padding).padding(UiPadding.screen))
                     }

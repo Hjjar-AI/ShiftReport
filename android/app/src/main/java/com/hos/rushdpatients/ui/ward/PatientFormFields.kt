@@ -5,20 +5,13 @@ import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import com.hos.rushdpatients.ui.components.AppSearchField
 import com.hos.rushdpatients.ui.components.AppChoiceRow
-import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppPickerField
-import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.LocalFieldEnabled
 import com.hos.rushdpatients.ui.components.AppTextButton
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DatePicker
@@ -35,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDirection
 import com.hos.rushdpatients.data.model.Doctor
-import com.hos.rushdpatients.ui.theme.UiSpacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -136,22 +128,20 @@ internal fun DoctorDropdown(
         enabled = enabled, isError = isError, errorMessage = errorMessage, supportingText = supportingText)
     if (expanded && enabled) AppAlertDialog(onDismissRequest = { expanded = false },
         title = { Text(label) }, text = {
-            Column(Modifier.appDialogBody(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_shift_doctor_picker_003))
-                Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                    AppChoiceRow(label = undefinedLabel, selected = selectedId == null,
+            val matching = doctors.filter { !it.isDeleted && ArabicSearchNormalizer.matches(query, it.fullName) }
+            DoctorSelectionList(
+                query = query, onQueryChange = { query = it },
+                groups = doctorChoiceGroups(uiText, matching, registry).map { (team, members) ->
+                    DoctorSelectionGroup(team, members)
+                },
+                selectedIds = setOfNotNull(selectedId), enabled = enabled,
+                onSelected = { doctor, _ -> onSelected(doctor.id); expanded = false },
+                emptyText = uiText(R.string.ui_shift_doctor_picker_006),
+                modifier = Modifier.appDialogBody(),
+                leadingContent = {
+                    AppChoiceRow(label = undefinedLabel, selected = selectedId == null, enabled = enabled,
                         onClick = { onSelected(null); expanded = false })
-                    val matching = doctors.filter { !it.isDeleted && ArabicSearchNormalizer.matches(query, it.fullName) }
-                    if (matching.isEmpty()) EmptyState(uiText(R.string.ui_shift_doctor_picker_006),
-                        actionLabel = if (query.isBlank()) null else uiText(R.string.ui_shift_doctor_picker_007), onAction = { query = "" })
-                    doctorChoiceGroups(uiText, matching, registry).forEach { (team, members) ->
-                        AppSectionHeader(team)
-                        members.forEach { doctor ->
-                            AppChoiceRow(label = doctor.fullName, selected = selectedId == doctor.id,
-                                onClick = { onSelected(doctor.id); expanded = false })
-                        }
-                    }
                 }
-            }
+            )
         }, confirmButton = { AppTextButton(onClick = { expanded = false }) { Text(uiText(R.string.ui_back)) } })
 }

@@ -27,14 +27,6 @@ internal class WardPreferences(
                 }
         }
         viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_PATIENT_TWO_COLUMN)
-                .collect { stored ->
-                    _state.update {
-                        it.copy(twoColumn = stored?.toBooleanStrictOrNull() ?: false)
-                    }
-                }
-        }
-        viewModelScope.launch {
             settingsRepository.observe(AppConstants.SETTING_GROUP_BY_MODE)
                 .collect { stored ->
                     val mode = GroupByMode.fromSetting(stored)
@@ -58,13 +50,6 @@ internal class WardPreferences(
         _state.update { it.copy(patientDetailsExpanded = expanded) }
         viewModelScope.launch {
             settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED, expanded)
-        }
-    }
-
-    fun setTwoColumn(enabled: Boolean) {
-        _state.update { it.copy(twoColumn = enabled) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_TWO_COLUMN, enabled)
         }
     }
 

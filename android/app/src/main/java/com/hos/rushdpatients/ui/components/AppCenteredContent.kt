@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +16,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.theme.UiSpacing
+
+/** Bound reading width within the available pane; callers retain scrolling and state. */
+@Composable
+fun AppReadingPane(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    Box(modifier, contentAlignment = Alignment.TopCenter) {
+        Box(Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.contentMaxWidth).fillMaxSize(),
+            content = content)
+    }
+}
 
 /** Center short authentication pages while keeping long content reachable above the keyboard. */
 @Composable

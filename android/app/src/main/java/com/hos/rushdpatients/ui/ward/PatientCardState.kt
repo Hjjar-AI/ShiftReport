@@ -7,7 +7,7 @@ internal val LocalWardDayLabel = androidx.compose.runtime.compositionLocalOf { c
 /** Display snapshots; callers replace patient/list/map values rather than mutating collections in place. */
 @androidx.compose.runtime.Immutable
 data class PatientCardState(
-    val patient: Patient, val expanded: Boolean = false, val twoColumn: Boolean = false,
+    val patient: Patient, val expanded: Boolean = false,
     val doctorNames: Map<String, String> = emptyMap(), val readOnly: Boolean = false,
     val selected: Boolean = false, val recentlyEdited: Boolean = false, val pinned: Boolean = false,
     val showViewControls: Boolean = true, val showIdentity: Boolean = true,

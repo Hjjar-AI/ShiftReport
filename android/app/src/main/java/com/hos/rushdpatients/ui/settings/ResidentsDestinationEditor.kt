@@ -15,10 +15,13 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 /** Connection identifiers stay in memory only, never in saved UI state. */
 @Composable
-internal fun ResidentsDestinationEditor(state: SettingsUiState, viewModel: SettingsViewModel) {
+internal fun ResidentsDestinationEditor(
+    state: SettingsUiState, onReadConfig: () -> ProjectConfig,
+    onSave: (ProjectConfig, String, String, () -> Unit) -> Unit
+) {
     val text = rememberUiStrings()
     var expected by remember(state.isAdmin) { mutableStateOf<ProjectConfig?>(null) }
-    AppOutlinedButton(onClick = { expected = viewModel.residentsDestinationConfig() },
+    AppOutlinedButton(onClick = { expected = onReadConfig() },
         enabled = state.isAdmin && !state.savingResidentsDestination && !state.syncing && !state.provisioningBusy,
         modifier = Modifier.fillMaxWidth()) { Text(text(R.string.residents_destination_title)) }
     expected?.let { config ->
@@ -40,7 +43,7 @@ internal fun ResidentsDestinationEditor(state: SettingsUiState, viewModel: Setti
             },
             confirmButton = {
                 LoadingButton(text = text(R.string.ui_save), loading = state.savingResidentsDestination,
-                    onClick = { viewModel.saveResidentsDestination(config, group, topic) { expected = null } })
+                    onClick = { onSave(config, group, topic) { expected = null } })
             },
             dismissButton = { AppTextButton(onClick = { expected = null }, enabled = !state.savingResidentsDestination) { Text(text(R.string.ui_cancel)) } }
         )

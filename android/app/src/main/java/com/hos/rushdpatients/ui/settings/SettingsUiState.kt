@@ -37,7 +37,6 @@ data class SettingsUiState(
     val appTheme: AppThemePreset = AppThemePreset.VANILLA,
     val fontScale: AppFontScale = AppFontScale.NORMAL,
     val patientDetailsExpanded: Boolean = false,
-    val patientTwoColumn: Boolean = false,
     val patientCompactDensity: Boolean = false,
     val supervisors: List<Doctor> = emptyList(),
     val savingResidentsDestination: Boolean = false,

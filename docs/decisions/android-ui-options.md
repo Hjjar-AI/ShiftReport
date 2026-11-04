@@ -9,7 +9,6 @@ Unselected; choose IDs/subsets. [Completed](../status/changelog.md) · [Behavior
 | O5 | Animate removal; group expansion/collapse height animation implemented. |
 | O7 | Desktop attention hero/task progress; Android attention actions applied25 October. |
 | O8 | Collapse Add presentation with scrolling; retain a labelled 48dp target. |
-| O9 | Cap dashboard/settings reading width on wide screens. |
 | O12 | Tappable earlier report steps retaining review/validation gates. |
 | O14 | Undo without initial reversible-delete confirmation; optional per-task draft Undo. |
 | O15 | Desktop one-tap priority toggle; Android applied25 October with Undo. |

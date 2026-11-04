@@ -19,7 +19,7 @@ import com.hos.rushdpatients.sync.CsvSchema
 
 @Composable
 internal fun SettingsSyncOverview(
-    state: SettingsUiState, viewModel: SettingsViewModel, canManageDoctors: Boolean,
+    state: SettingsUiState, canManageDoctors: Boolean, onUpload: () -> Unit,
     onOpenDoctors: () -> Unit, onRetry: () -> Unit
 ) {
     val uiText = rememberUiStrings()
@@ -41,7 +41,7 @@ internal fun SettingsSyncOverview(
             },
             onAction = when {
                 doctorRecovery && canManageDoctors -> onOpenDoctors
-                state.syncRecovery == SettingsSyncRecovery.PATIENTS -> viewModel::uploadCurrent
+                state.syncRecovery == SettingsSyncRecovery.PATIENTS -> onUpload
                 state.syncRecovery == null -> onRetry
                 else -> null
             }, actionEnabled = idle
@@ -56,7 +56,7 @@ internal fun SettingsSyncOverview(
 
 @Composable
 internal fun SettingsSyncContent(
-    state: SettingsUiState, viewModel: SettingsViewModel, showRecovery: Boolean,
+    state: SettingsUiState, showRecovery: Boolean, onUpload: () -> Unit, onLoadHistory: () -> Unit,
     onToggleRecovery: () -> Unit, onUndoRequested: () -> Unit, onFetchRequested: () -> Unit
 ) {
     val uiText = rememberUiStrings()
@@ -80,7 +80,7 @@ internal fun SettingsSyncContent(
     LoadingButton(
         text = uiText(R.string.sync_upload_data_only), outlined = true,
         loading = state.syncing, enabled = idle && state.online,
-        onClick = viewModel::uploadCurrent, modifier = Modifier.fillMaxWidth()
+        onClick = onUpload, modifier = Modifier.fillMaxWidth()
     )
     if (state.canUndoDownload) {
         AppTextButton(onClick = onToggleRecovery, enabled = idle) {
@@ -92,7 +92,7 @@ internal fun SettingsSyncContent(
                 modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_data_sections_008)) }
         }
     }
-    SettingsPublicationHistory(state, viewModel)
+    SettingsPublicationHistory(state, onLoadHistory)
 }
 
 @Composable
@@ -115,7 +115,7 @@ internal fun SettingsDoctorSyncContent(state: SettingsUiState, canManageDoctors:
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun SettingsFilesContent(state: SettingsUiState, viewModel: SettingsViewModel, canManageProject: Boolean, onOpenVbaImport: () -> Unit, showHeading: Boolean = true) {
+internal fun SettingsFilesContent(state: SettingsUiState, onExportCsv: () -> Unit, canManageProject: Boolean, onOpenVbaImport: () -> Unit, showHeading: Boolean = true) {
     val uiText = rememberUiStrings()
     if (showHeading) SettingsSubheading(uiText(R.string.ui_ward_drawer_014))
     Text(uiText(R.string.ui_settings_data_sections_009), style = MaterialTheme.typography.bodySmall)
@@ -123,7 +123,7 @@ internal fun SettingsFilesContent(state: SettingsUiState, viewModel: SettingsVie
         text = uiText(R.string.ui_settings_data_sections_010),
         outlined = true,
         loading = state.exportingCsv,
-        onClick = viewModel::exportCsv,
+        onClick = onExportCsv,
         modifier = Modifier.fillMaxWidth(),
         enabled = !state.syncing && !state.backupBusy
     )

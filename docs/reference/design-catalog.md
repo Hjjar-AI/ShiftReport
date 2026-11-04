@@ -30,8 +30,8 @@ Arabic: `res/values/strings_ui.xml`/`strings.xml`; reuse actions, numbered place
 | Motion | Expand/collapse/highlight 160/130/220ms; indicator 160, placement 200, fast token 90. Bulk/reduced motion immediate. |
 | Shapes / sizes | Corners 4/8/12/16/24dp; icons 12/16/20/24/32/40dp; progress/loading 40dp, stroke 2; severity edge 8dp; colored patient cards add4dp start clearance. |
 | Dialogs | Viewport fraction .85; compact/standard/review/sheet caps 260/420/440/640dp. Preserve incoming minimums/scroll/actions. |
-| Content widths | General 720; patient form 840; empty ward 520; dock 480; rail 80dp. |
-| Adaptive thresholds | Fields/grid 360; card columns 440; toolbar actions 240; metric pair 280dp. Fields/toolbar/metrics account for font scale. |
+| Content widths | General/settings/dashboard 720; patient form 840; empty ward 520; dock 480; rail 80dp. |
+| Adaptive thresholds | Fields/grid 360; transfer actions 360; toolbar actions 240; metric pair 280dp. Fields/transfer actions/toolbar/metrics account for font scale. On-screen clinical cards always use one column; PDF columns are independent. |
 | Panes | Split width 760; primary/support minima 320/360; fold width/height 360/360 and clearance 8dp. Medium support ≥520×640, height 240dp. |
 | Rail / gestures | Rail window ≥600×480dp; patient transfer tap/long press opens review; rounds swipe ≥64dp and 20% width. |
 
@@ -69,6 +69,8 @@ Bundled Tajawal Regular 400/Medium 500/Bold 700 loads before first text layout; 
 | Need | Shared owner | Caller retains |
 |---|---|---|
 | Fields/pickers/auth | `AppTextField`, `AppPickerField`, `PasswordField`, `AppCenteredContent` | Draft/validation/keyboard/busy state. |
+| Reading panes | `AppReadingPane` centers settings/dashboard content within the available pane, capped at720dp | Scroll state, section offsets and overlays. |
+| Doctor selection | Ward-local `DoctorSelectionList` shares search/list/empty states and radio/checkbox rows | Eligibility/grouping, selection drafts, immediate assignment versus roster Save/discard. |
 | PIN / Telegram ID | `PinField` owns digit limit/numeric-password input; `TelegramIdField` owns signed/numeric keyboards | Memory-only PIN, ID validation and stale-value guards. |
 | Actions/identity/text | `UiAction`, `AppActionLabel`, `PatientIdentityText`, `AppClinicalSection` | Patient/revision, full content, mutations. |
 | Chips/choices/sections | `AppChip`, `AppFilterChip`, `AppChoiceChips`, `AppChoiceRow`, `AppSelectableSurface`, `AppSectionHeader` | Selection/grouping and informational/selectable intent. |

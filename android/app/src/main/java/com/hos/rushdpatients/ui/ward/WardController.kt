@@ -38,7 +38,6 @@ internal interface WardController {
     fun setPatientDetailsExpanded(expanded: Boolean)
     fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit)
     fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit = {})
-    fun setTwoColumn(enabled: Boolean)
     fun movePatientToTop(patient: Patient) {}
     fun updatePatient(patient: Patient, onUnavailable: (Patient?) -> Unit = {},
         onSuccess: () -> Unit = {})
@@ -74,7 +73,6 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun setPatientDetailsExpanded(expanded: Boolean) { viewModel.setPatientDetailsExpanded(expanded) }
     override fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) { viewModel.setTaskDone(patient, taskId, done, onSuccess) }
     override fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit) { viewModel.setPriority(patient, priority, onSuccess) }
-    override fun setTwoColumn(enabled: Boolean) { viewModel.setTwoColumn(enabled) }
     override fun movePatientToTop(patient: Patient) { viewModel.movePatientToTop(patient) }
     override fun updatePatient(patient: Patient, onUnavailable: (Patient?) -> Unit, onSuccess: () -> Unit) { viewModel.updatePatient(patient, onUnavailable, onSuccess) }
 }

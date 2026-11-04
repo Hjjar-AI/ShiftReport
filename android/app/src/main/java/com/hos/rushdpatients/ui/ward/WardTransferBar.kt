@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.UiLayout
+import com.hos.rushdpatients.ui.theme.uiLayoutScale
 
 /** A tap opens confirmation/review, never publishes directly. Long press remains an equivalent shortcut. */
 @Composable
@@ -35,12 +38,21 @@ internal fun WardTransferBar(fetchEnabled: Boolean, reportEnabled: Boolean,
     onFetch: () -> Unit, onReport: () -> Unit,
     uploadEnabled: Boolean = false, onUpload: () -> Unit = {}) {
     val uiText = rememberUiStrings()
-    Column(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen),
-        verticalArrangement = Arrangement.spacedBy(UiSpacing.micro)) {
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            TransferAction(uiText(R.string.ui_patient_fetch_reminder_003), AppIcons.CloudDownload, fetchEnabled, onFetch, Modifier.weight(1f))
-            TransferAction(uiText(R.string.sync_upload_data_only), AppIcons.CloudUpload, uploadEnabled, onUpload, Modifier.weight(1f))
-            TransferAction(uiText(R.string.ui_report_send_confirmation_001), AppIcons.PictureAsPdf, reportEnabled, onReport, Modifier.weight(1f))
+    val scale = uiLayoutScale()
+    val actions: @Composable (Modifier) -> Unit = { actionModifier ->
+        TransferAction(uiText(R.string.ui_patient_fetch_reminder_003), AppIcons.CloudDownload, fetchEnabled, onFetch, actionModifier)
+        TransferAction(uiText(R.string.sync_upload_data_only), AppIcons.CloudUpload, uploadEnabled, onUpload, actionModifier)
+        TransferAction(uiText(R.string.ui_report_send_confirmation_001), AppIcons.PictureAsPdf, reportEnabled, onReport, actionModifier)
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen)) {
+        if (maxWidth < UiLayout.transferActionsMinWidth * scale) {
+            Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                actions(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                actions(Modifier.weight(1f).fillMaxHeight())
+            }
         }
     }
 }
@@ -49,11 +61,11 @@ internal fun WardTransferBar(fetchEnabled: Boolean, reportEnabled: Boolean,
 @Composable
 private fun TransferAction(label: String, icon: ImageVector, enabled: Boolean, onOpen: () -> Unit, modifier: Modifier) {
     val haptics = LocalHapticFeedback.current
-    Surface(modifier = modifier.fillMaxHeight(), shape = MaterialTheme.shapes.small,
+    Surface(modifier = modifier, shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = if (enabled) MaterialTheme.colorScheme.onSecondaryContainer
             else MaterialTheme.colorScheme.onSurfaceVariant) {
-        Box(Modifier.fillMaxHeight().combinedClickable(enabled = enabled, role = Role.Button,
+        Box(Modifier.combinedClickable(enabled = enabled, role = Role.Button,
             onClickLabel = label, onClick = onOpen,
             onLongClickLabel = label, onLongClick = {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)

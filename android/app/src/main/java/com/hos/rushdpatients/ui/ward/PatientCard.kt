@@ -12,8 +12,6 @@ import com.hos.rushdpatients.ui.components.AppChip
 import com.hos.rushdpatients.ui.theme.ContainerColors
 import com.hos.rushdpatients.ui.components.ClinicalTextKind
 import com.hos.rushdpatients.ui.components.AppClinicalSection
-import com.hos.rushdpatients.ui.theme.UiLayout
-import com.hos.rushdpatients.ui.theme.UiBorder
 import com.hos.rushdpatients.ui.theme.UiPatientCard
 import com.hos.rushdpatients.ui.components.uiDateTime
 import com.hos.rushdpatients.ui.components.uiNumber
@@ -34,7 +32,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -84,7 +81,6 @@ import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: Modifier = Modifier) {
     val patient = state.patient
     val expanded = state.expanded
-    val twoColumn = state.twoColumn
     val doctorNames = state.doctorNames
     val readOnly = state.readOnly
     val selected = state.selected
@@ -255,11 +251,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
             if (expanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(sectionGap)) {
                     AppDivider()
-                    if (twoColumn) {
-                        TwoColumnDetail(patient = patient, spacing = sectionGap)
-                    } else {
-                        SingleColumnDetail(patient = patient, spacing = sectionGap)
-                    }
+                    SingleColumnDetail(patient = patient, spacing = sectionGap)
                     if (patient.tasks.isNotEmpty()) AppClinicalSection(uiText(R.string.ui_tasks),
                         PatientTasks.summary(patient.tasks))
                 }
@@ -325,57 +317,6 @@ private fun SingleColumnDetail(patient: Patient, spacing: Dp) {
         sections.forEachIndexed { index, (title, content, kind) ->
             if (index > 0) AppDivider()
             AppClinicalSection(title, content, kind = kind)
-        }
-    }
-}
-
-@Composable
-private fun TwoColumnDetail(patient: Patient, spacing: Dp) {
-    val uiText = rememberUiStrings()
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth < UiLayout.patientCardColumnsMinWidth) {
-            SingleColumnDetail(patient, spacing)
-            return@BoxWithConstraints
-        }
-        val dividerColor = MaterialTheme.colorScheme.outlineVariant
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .drawBehind {
-                    drawLine(dividerColor, Offset(size.width / 2, 0f),
-                        Offset(size.width / 2, size.height), UiBorder.normalWidth.toPx())
-                },
-            horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium)
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(spacing)
-            ) {
-            if (patient.treatmentPlan.isNotBlank()) {
-                AppClinicalSection(uiText(R.string.ui_patient_form_dialog_011), patient.treatmentPlan)
-            }
-        }
-
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(spacing)
-        ) {
-            if (patient.followUp.isNotBlank()) {
-                AppClinicalSection(uiText(R.string.ui_patient_form_dialog_012), patient.followUp)
-            }
-            if (patient.labText.isNotBlank()) {
-                if (patient.followUp.isNotBlank()) AppDivider()
-                AppClinicalSection(uiText(R.string.ui_labs), patient.labText, kind = ClinicalTextKind.LABS)
-            }
-            if (patient.followUp.isBlank() && patient.labText.isBlank()) {
-                Text(
-                    text = uiText(R.string.ui_patient_card_029),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            }
         }
     }
 }

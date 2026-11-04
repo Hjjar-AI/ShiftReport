@@ -98,8 +98,6 @@ internal fun WardViewOptionsDialog(
                     Text(uiText(R.string.ui_ward_view_options_dialog_008), style = MaterialTheme.typography.titleSmall)
                     AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_009), checked = cardsExpanded,
                         onCheckedChange = onSetAllExpanded)
-                    AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_010), checked = state.twoColumn,
-                        onCheckedChange = viewModel::setTwoColumn)
                 }
                 if (selectedViewOption == WardViewOption.SORT) {
                     Text(uiText(R.string.ui_ward_view_options_dialog_012), style = MaterialTheme.typography.titleSmall)

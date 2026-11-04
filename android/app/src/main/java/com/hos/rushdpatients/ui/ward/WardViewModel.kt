@@ -274,9 +274,6 @@ class WardViewModel @Inject constructor(
 
     fun setPatientDetailsExpanded(expanded: Boolean) = preferences.setPatientDetailsExpanded(expanded)
 
-    fun setTwoColumn(enabled: Boolean) = preferences.setTwoColumn(enabled)
-
-
     fun setGroupByMode(mode: GroupByMode) = preferences.setGroupByMode(mode)
 
     fun exportCsv() = shiftOperations.exportCsv()

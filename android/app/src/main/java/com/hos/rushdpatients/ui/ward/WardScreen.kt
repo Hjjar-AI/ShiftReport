@@ -347,7 +347,6 @@ private fun WardWorkspaceContent(
             state = PatientCardState(patient = patient,
                 expanded = if (allCardsExpanded) patient.id !in collapsedIds else patient.id in expandedIds,
                 animateExpansion = animatedPatientId == patient.id,
-                twoColumn = state.twoColumn,
                 doctorNames = doctorNames,
                 readOnly = state.isReadOnly || state.saving || state.syncing,
                 recentlyEdited = recentlyEditedId == patient.id,

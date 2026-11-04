@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
+import com.hos.rushdpatients.ui.components.AppReadingPane
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.theme.UiTypography
@@ -23,7 +24,6 @@ import com.hos.rushdpatients.ui.components.AppCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -259,7 +259,7 @@ fun SettingsScreen(
         },
         snackbarHost = { AppSnackbarHost(snackbar) }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        AppReadingPane(Modifier.fillMaxSize().padding(padding)) {
         Column(Modifier.fillMaxSize()) {
             if (sections.size > 1 && selectedWorkspace != SettingsWorkspace.DATA) {
                 val activeSection = activeAppSection(sectionTitles, sectionOffsets, settingsScroll)
@@ -312,7 +312,8 @@ fun SettingsScreen(
                 )
 
                 if (selectedWorkspace == SettingsWorkspace.DATA) SettingsSyncOverview(
-                    state, viewModel, canManageProject, onOpenDoctors, retryTransfer)
+                    state = state, canManageDoctors = canManageProject, onUpload = viewModel::uploadCurrent,
+                    onOpenDoctors = onOpenDoctors, onRetry = retryTransfer)
 
                 if (selectedWorkspace == SettingsWorkspace.DATA && canManageProject) AppTextButton(
                     onClick = viewModel::prepareRollback, enabled = !state.syncing && state.online) {
@@ -335,18 +336,33 @@ fun SettingsScreen(
                                 onUiPreferences = viewModel::setUiPreferences,
                                 onFont = viewModel::setFontScale
                             )
-                            SettingsSectionId.REPORT -> SettingsReportContent(state, viewModel)
+                            SettingsSectionId.REPORT -> SettingsReportContent(
+                                reportAsPdf = state.reportAsPdf, pdfStyle = state.pdfStyle, appTheme = state.appTheme,
+                                onReportAsPdf = viewModel::setReportAsPdf, onPdfStyle = viewModel::setPdfStyle)
                             SettingsSectionId.SYNC -> SettingsSyncContent(
-                                state, viewModel, showRecovery, { showRecovery = !showRecovery },
-                                { confirmUndoDownload = true }, { confirmFetch = true })
+                                state = state, showRecovery = showRecovery, onUpload = viewModel::uploadCurrent,
+                                onLoadHistory = viewModel::loadPublicationHistory,
+                                onToggleRecovery = { showRecovery = !showRecovery },
+                                onUndoRequested = { confirmUndoDownload = true }, onFetchRequested = { confirmFetch = true })
                             SettingsSectionId.DOCTORS -> SettingsDoctorSyncContent(state, canManageProject, onOpenDoctors)
-                            SettingsSectionId.FILES -> SettingsFilesContent(state, viewModel, canManageProject, onOpenVbaImport, showHeading = false)
+                            SettingsSectionId.FILES -> SettingsFilesContent(
+                                state = state, onExportCsv = viewModel::exportCsv, canManageProject = canManageProject,
+                                onOpenVbaImport = onOpenVbaImport, showHeading = false)
                             SettingsSectionId.BACKUP -> SettingsBackupContent(state, { backupPassword = ""; backupDialogMode = "export" }, { openBackup.launch(arrayOf("application/octet-stream", "*/*")) }, showHeading = false)
                             SettingsSectionId.CONNECTION -> SettingsConnectionContent(canManageProject)
-                            SettingsSectionId.RESET -> SettingsResetContent(state, viewModel)
+                            SettingsSectionId.RESET -> SettingsResetContent(state, onPrepareEmptyStart = viewModel::prepareEmptyStart)
                             SettingsSectionId.INVITATIONS -> SettingsInvitationsContent(state, { provisioningPassphrase = ""; provisioningDialog = true })
-                            SettingsSectionId.DESTINATIONS -> SettingsDestinationsContent(state, viewModel, onOpenDoctors)
-                            SettingsSectionId.SECURITY -> SettingsSecurityContent(state, viewModel, onSignOut)
+                            SettingsSectionId.DESTINATIONS -> SettingsDestinationsContent(
+                                supervisors = state.supervisors, savingSupervisorGroupId = state.savingSupervisorGroupId,
+                                onSaveSupervisorGroup = viewModel::setSupervisorGroupChatId, onOpenDoctors = onOpenDoctors,
+                                residentsEditor = {
+                                    ResidentsDestinationEditor(state, onReadConfig = viewModel::residentsDestinationConfig,
+                                        onSave = viewModel::saveResidentsDestination)
+                                })
+                            SettingsSectionId.SECURITY -> SettingsSecurityContent(
+                                biometricAvailable = state.biometricAvailable, biometricEnabled = state.biometricEnabled,
+                                autoLockMinutes = state.autoLockMinutes, onBiometric = viewModel::setBiometric,
+                                onAutoLockMinutes = viewModel::setAutoLockMinutes, onSignOut = onSignOut)
                             SettingsSectionId.STORAGE -> SettingsStorageContent(state)
                         }
                     }

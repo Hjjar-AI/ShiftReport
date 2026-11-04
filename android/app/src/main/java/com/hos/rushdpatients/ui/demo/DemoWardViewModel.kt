@@ -45,7 +45,7 @@ internal data class DemoWardState(
     val shiftId: String = "demo-${java.util.UUID.randomUUID()}",
     val createdAt: Instant = Instant.now(),
     val revision: Long = 0,
-    val expanded: Boolean = false, val twoColumn: Boolean = false, val compact: Boolean = true,
+    val expanded: Boolean = false, val compact: Boolean = true,
     val groupBy: GroupByMode = GroupByMode.NONE, val draft: PatientDraft? = null,
     val fetchChoiceRequired: Boolean = false, val publicationReviewText: String? = null
 ) {
@@ -142,7 +142,7 @@ class DemoWardViewModel @Inject constructor(
         patients = snapshot.ordered, doctors = snapshot.doctors, deletedPatients = snapshot.deleted,
         groupedPatients = groupPatients(uiText, snapshot.ordered, snapshot.doctors, snapshot.groupBy),
         sortSpec = snapshot.sort, groupByMode = snapshot.groupBy, patientDraft = snapshot.draft, patientDraftLoaded = true,
-        patientDetailsExpanded = snapshot.expanded, twoColumn = snapshot.twoColumn,
+        patientDetailsExpanded = snapshot.expanded,
         compactCards = snapshot.compact, snackbar = snapshot.message
     )
     private val workspace = _state.map(::wardState).stateIn(viewModelScope,
@@ -210,7 +210,6 @@ class DemoWardViewModel @Inject constructor(
             if (save(latest.copy(isPriority = priority))) onSuccess()
         }
         override fun setPatientDetailsExpanded(expanded: Boolean) { _state.update { it.copy(expanded = expanded) } }
-        override fun setTwoColumn(enabled: Boolean) { _state.update { it.copy(twoColumn = enabled) } }
         override fun setGroupByMode(mode: GroupByMode) { _state.update { it.copy(groupBy = mode) } }
         override fun dismissSnackbar() { dismissMessage() }
         override fun loadRecycleBin() { }

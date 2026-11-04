@@ -189,10 +189,6 @@ class SettingsViewModel @Inject constructor(
                             AppConstants.SETTING_PATIENT_DETAILS_EXPANDED,
                             false
                         ),
-                        patientTwoColumn = settingsRepository.getBoolean(
-                            AppConstants.SETTING_PATIENT_TWO_COLUMN,
-                            false
-                        ),
                         patientCompactDensity = settingsRepository.getBoolean(
                             AppConstants.SETTING_PATIENT_COMPACT_DENSITY,
                             false

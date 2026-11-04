@@ -13,19 +13,19 @@ import java.time.Instant
 
 /** Publication receipts belong to sync; this never loads the retired clinical audit log. */
 @Composable
-internal fun SettingsPublicationHistory(state: SettingsUiState, viewModel: SettingsViewModel) {
+internal fun SettingsPublicationHistory(state: SettingsUiState, onLoadHistory: () -> Unit) {
     if (!state.isAdmin) return
     val text = rememberUiStrings()
     var expanded by rememberSaveable { mutableStateOf(false) }
     AppTextButton(onClick = {
         expanded = !expanded
-        if (expanded) viewModel.loadPublicationHistory()
+        if (expanded) onLoadHistory()
     }) { Text(text(R.string.publication_history_title)) }
     if (expanded) Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         if (state.publicationHistoryLoading) Text(text(R.string.ui_ward_activity_screen_004))
         state.publicationHistoryError?.let { error ->
             AppNotice(error, kind = NoticeKind.ERROR, actionLabel = text(R.string.ui_retry),
-                onAction = viewModel::loadPublicationHistory, actionEnabled = !state.publicationHistoryLoading)
+                onAction = onLoadHistory, actionEnabled = !state.publicationHistoryLoading)
         }
         if (!state.publicationHistoryLoading && state.publicationHistoryError == null && state.publicationHistory.isEmpty())
             Text(text(R.string.ui_ward_activity_screen_007))
