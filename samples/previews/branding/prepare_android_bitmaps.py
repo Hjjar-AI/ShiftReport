@@ -27,7 +27,7 @@ def launcher_bitmap(wordmark, size):
 
 def main():
     source = Image.open(SOURCE).convert("RGBA")
-    alpha = source.getchannel("A").point(lambda value: 0 if value <= 16 else (255 if value >= 240 else value))
+    alpha = source.getchannel("A").point(lambda value: 0 if value <= 32 else (255 if value >= 240 else value))
     source.putalpha(alpha)
     # Zero hidden RGB as well, so transparency previews cannot expose old residue.
     pixels = source.load()
