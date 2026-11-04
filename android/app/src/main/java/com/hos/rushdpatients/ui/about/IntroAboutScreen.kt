@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.hos.rushdpatients.BuildConfig
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.AppTopBar
+import com.hos.rushdpatients.ui.components.AppBrandMark
 
 /** Ordinary spaces between people allow wrapping; nonbreaking spaces keep each name together. */
 internal fun testerNamesParagraph(names: Array<String>): String =
@@ -77,9 +78,7 @@ private fun AppVersion() {
 
 @Composable
 private fun IntroCredits(compact: Boolean) {
-    Text(stringResource(R.string.about_app_title), style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.primary, modifier = Modifier.semantics { heading() })
+    AppBrandMark(modifier = Modifier.semantics { heading() })
     val subtitle = stringResource(R.string.about_subtitle)
     if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)

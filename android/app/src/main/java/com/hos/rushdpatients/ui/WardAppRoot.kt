@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui
 
 import com.hos.rushdpatients.ui.components.UiStrings
+import com.hos.rushdpatients.ui.components.AppBrandMark
 
 import com.hos.rushdpatients.R
 
@@ -251,9 +252,7 @@ fun WardAppRoot(
         current == null -> LoginScreen()
         !unlockDecisionReady -> Column(Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            androidx.compose.foundation.Image(
-                androidx.compose.ui.res.painterResource(R.drawable.app_emblem_transparent), contentDescription = null,
-                modifier = Modifier.padding(com.hos.rushdpatients.ui.theme.UiSpace.xxxl))
+            AppBrandMark(modifier = Modifier.padding(com.hos.rushdpatients.ui.theme.UiSpace.xxxl))
         }
         needsUnlock -> PinUnlockScreen(
             doctorName = current.doctorName,

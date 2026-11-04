@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">تقرير المناوبة</string>
+    <string name="app_name">مناوب</string>
     <plurals name="patient_badges">
         <item quantity="zero">لا شارات</item>
         <item quantity="one">شارة واحدة</item>

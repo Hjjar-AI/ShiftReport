@@ -43,6 +43,8 @@ class SharedTelegramServer {
                 val result = when (method) {
                     "getChat" -> envelope(buildJsonObject {
                         put("id", -100); put("type", "supergroup")
+                        // Independent clients configure topics for this synthetic group.
+                        put("is_forum", true)
                         put("pinned_message", bootstrapPin?.let { json.encodeToJsonElement(it) }
                             ?: buildJsonObject { put("message_id", 1); put("text", json.encodeToString(state)) })
                     }).toByteArray()

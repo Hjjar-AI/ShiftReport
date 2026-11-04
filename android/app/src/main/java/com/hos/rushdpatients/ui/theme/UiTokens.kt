@@ -78,6 +78,7 @@ object UiOpacity {
 }
 
 object UiMotion {
+    const val splashWordmarkMillis = 650
     const val contentFadeMillis = 150
     const val reportStepMillis = 180
     const val placementMillis = 200

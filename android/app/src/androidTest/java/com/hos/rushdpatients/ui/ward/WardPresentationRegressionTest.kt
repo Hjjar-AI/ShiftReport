@@ -76,6 +76,6 @@ class WardPresentationRegressionTest : ProductionUiFixture() {
             .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
         compose.waitForIdle()
         compose.onNodeWithContentDescription(top).assertDoesNotExist()
-        compose.onNodeWithText("شاي").assertIsDisplayed()
+        compose.onNodeWithText("1 • شاي").assertIsDisplayed()
     }
 }

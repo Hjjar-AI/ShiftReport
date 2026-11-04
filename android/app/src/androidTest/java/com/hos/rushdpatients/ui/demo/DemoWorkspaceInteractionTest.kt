@@ -67,7 +67,7 @@ class DemoWorkspaceInteractionTest {
             .performScrollTo().performClick()
         compose.waitUntil(10000) { !vm.report.state.value.reportAsPdf }
         compose.onNodeWithText(text(R.string.ui_report_preview_screen_017, text(R.string.ui_report_review_send_step))).performClick()
-        val preview = hasText(text(R.string.report_preview_destination, text(R.string.ui_report_preview_screen_025))) and
+        val preview = hasText(text(R.string.report_preview_destination, text(R.string.project_report_label))) and
             hasClickAction()
         compose.onAllNodes(preview).onFirst().performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.ui_close)).performClick()

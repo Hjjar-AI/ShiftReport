@@ -71,7 +71,7 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
             .performScrollTo().performClick()
         compose.waitUntil(10000) { !report.state.value.reportAsPdf && !report.state.value.isBusy }
         next(R.string.ui_report_review_send_step)
-        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
+        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.project_report_label))) and
             hasClickAction()).onFirst().performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText(label(R.string.ui_close)).performClick()
         compose.onNodeWithText(label(R.string.ui_send_report)).assertIsEnabled().performClick()
@@ -107,7 +107,7 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         compose.onNode(hasText(label(R.string.ui_report_send_confirmation_001)) and
             hasAnyAncestor(isDialog()) and hasClickAction().not()).assertDoesNotExist()
         compose.onNode(hasText(label(R.string.ui_send_report)) and hasClickAction()).assertDoesNotExist()
-        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
+        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.project_report_label))) and
             hasClickAction()).onFirst().assertIsEnabled()
         assertTrue(server.deliveredTexts.isEmpty())
     }

@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.onClick
@@ -24,17 +23,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
 import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.AppBrandMark
 import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.UiSize
+import com.hos.rushdpatients.ui.theme.UiMotion
 import com.hos.rushdpatients.ui.theme.LocalUiPreferences
 import com.hos.rushdpatients.ui.theme.LocalUiStyle
 import com.hos.rushdpatients.ui.theme.uiContentGap
@@ -68,7 +70,7 @@ internal fun SplashIntroScreen(
         .semantics { onClick(label = skipLabel) { onSkip(); true } }
         .safeDrawingPadding().padding(UiSpacing.section), contentAlignment = Alignment.Center) {
         // Keep the credits reachable on short windows and with enlarged text.
-        val emblemSize = minOf(com.hos.rushdpatients.ui.theme.UiSize.splashEmblem, maxHeight * 0.25f)
+        val wordmarkWidth = minOf(UiSize.appWordmark, maxWidth - UiSpacing.pageSection * 2, maxHeight * 0.5f)
             .coerceAtLeast(96.dp)
         Column(Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.splashMaxWidth)
             .fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -76,19 +78,8 @@ internal fun SplashIntroScreen(
             verticalArrangement = Arrangement.spacedBy(UiSpacing.largeSection)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Box(Modifier.matchParentSize().then(splashEntrance(entered, order = 0, initialScale = 0.88f))
-                        .graphicsLayer { scaleX = 1.35f; scaleY = 1.35f }
-                        .background(Brush.radialGradient(listOf(colors.primary.copy(alpha = 0.15f), Color.Transparent))))
-                    Surface(modifier = splashEntrance(entered, order = 0, initialScale = 0.92f),
-                        color = Color.White, shape = MaterialTheme.shapes.extraLarge,
-                        border = BorderStroke(LocalUiStyle.current.normalBorder, colors.outlineVariant)) {
-                        Image(painterResource(R.drawable.app_emblem_transparent), contentDescription = stringResource(R.string.about_emblem_description),
-                            contentScale = ContentScale.Fit, modifier = Modifier.size(emblemSize).padding(UiSpacing.screen))
-                    }
-                }
-                Text(stringResource(R.string.about_app_title), style = MaterialTheme.typography.headlineMedium, color = colors.primary,
-                    textAlign = TextAlign.Center, modifier = splashEntrance(entered, order = 1).semantics { heading() })
+                AppBrandMark(modifier = Modifier.width(wordmarkWidth)
+                    .then(splashEntrance(entered, order = 0, horizontal = true)).semantics { heading() })
                 val subtitle = stringResource(R.string.about_splash_subtitle)
                 if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.titleMedium,
                     color = colors.onSurfaceVariant, textAlign = TextAlign.Center,
@@ -116,24 +107,26 @@ internal fun SplashIntroScreen(
 
 /** One entrance per splash instance; layers preserve layout, scrolling and touch targets. */
 @Composable
-private fun splashEntrance(entered: Boolean, order: Int, initialScale: Float = 1f): Modifier {
+private fun splashEntrance(entered: Boolean, order: Int, horizontal: Boolean = false): Modifier {
     val reducedMotion = LocalUiPreferences.current.reducedMotion
+    val direction = if (LocalLayoutDirection.current == LayoutDirection.Rtl) 1f else -1f
     val target = if (entered || reducedMotion) 1f else 0f
     val opacity by animateFloatAsState(targetValue = target,
-        animationSpec = tween(durationMillis = if (reducedMotion) 0 else 420,
+        animationSpec = tween(durationMillis = if (reducedMotion) 0 else if (horizontal) UiMotion.splashWordmarkMillis else 420,
             delayMillis = if (reducedMotion) 0 else order * 65), label = "splashOpacity$order")
     val progress by animateFloatAsState(targetValue = target,
-        animationSpec = tween(durationMillis = if (reducedMotion) 0 else 900,
+        animationSpec = tween(durationMillis = if (reducedMotion) 0 else if (horizontal) UiMotion.splashWordmarkMillis else 900,
             delayMillis = if (reducedMotion) 0 else order * 65,
             easing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)), label = "splashEntrance$order")
-    val travel = with(LocalDensity.current) { UiSpacing.medium.toPx() }
+    val travel = with(LocalDensity.current) {
+        (if (horizontal) UiSpacing.pageSection else UiSpacing.medium).toPx()
+    }
 
     return Modifier.graphicsLayer {
         val fraction = if (reducedMotion) 1f else progress
         alpha = if (reducedMotion) 1f else opacity
-        translationY = travel * (1f - fraction)
-        scaleX = initialScale + (1f - initialScale) * fraction
-        scaleY = scaleX
+        translationX = if (horizontal) direction * travel * (1f - fraction) else 0f
+        translationY = if (horizontal) 0f else travel * (1f - fraction)
     }
 }
 

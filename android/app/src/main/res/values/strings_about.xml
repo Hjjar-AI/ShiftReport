@@ -2,7 +2,7 @@
 <resources>
     <!-- Editable About/splash content. Edit values; keep resource names unchanged.
          Guide: docs/guides/about-splash-content.md. Rebuild the app after editing. -->
-    <string name="about_app_title">تقرير المناوبة</string>
+    <string name="about_app_title">مناوب</string>
     <string name="about_subtitle">(للطب النفسي)</string>
     <!-- Empty means no subtitle on the splash screen. -->
     <string name="about_splash_subtitle"></string>
@@ -15,6 +15,7 @@
     <!-- Add/remove an item for each technical contributor; both screens share this list. -->
     <string-array name="about_technical_contributors">
         <item>أيهم شيخة</item>
+        <item>شفان شمسي</item>
         <item>محمد زاهر شقير</item>
     </string-array>
     <string name="about_testers_role">اختبار التطبيق</string>

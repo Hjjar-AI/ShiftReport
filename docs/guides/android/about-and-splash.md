@@ -27,3 +27,17 @@ Add/remove `<item>` lines within existing arrays; do not duplicate arrays. Prese
 Use UTF-8 Arabic, intact XML tags, `&amp;` for `&`, `&lt;` for `<`, `\n` for line breaks, `\'` for literal apostrophes and `\"` for literal double quotes.
 
 Version comes from `android/gradle/app-version.properties`; artwork, typography, spacing, animation and three-second splash timing remain in screen/resource code.
+
+## App wordmark and launcher bitmaps
+
+The launcher label and accessible app title use plain «مناوب»; the bitmap contains «مُنَاوِبْ» with spaced vowel marks, black lettering, white glyph outlines and transparent surroundings. [Branding source and prompts](../../../samples/previews/branding/README.md) retain the selected artwork and earlier candidates.
+
+`AppBrandMark` displays `drawable-nodpi/app_wordmark.png` at its natural aspect ratio in splash, About and the temporary privacy screen. About separately retains the original hospital emblem on white and all credits. `app_launcher_bitmap.png` supplies the API26+ bitmap wrappers; five density folders contain regular/round lossless WebP icons, with padding for circular masks. Neither artwork is tinted by the selected theme.
+
+To regenerate only these image resources with Pillow already available:
+
+```bash
+python3 samples/previews/branding/prepare_android_bitmaps.py
+```
+
+`SplashIntroScreen.kt` fades the wordmark in while sliding it horizontally from the RTL start edge (right) over `UiMotion.splashWordmarkMillis` (650ms). Reduced motion shows it immediately. Entrance state survives recreation; `LaunchSplashState` still owns the independent three-second deadline, tap skip and expired-hold release behavior. No white backing card surrounds the wordmark.

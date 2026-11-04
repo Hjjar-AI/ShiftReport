@@ -56,8 +56,8 @@ class DemoWorkflowDeviceTest {
             assertTrue(vm.save(before.copy(labs = "نتيجة محلية تجريبية", labGroups = emptyList())))
             vm.controller.bringLatestData()
         }
-        assertTrue(vm.state.value.fetchChoiceRequired)
-        main { vm.controller.replaceAndFetch() }
+        assertFalse(vm.state.value.fetchChoiceRequired)
+        assertTrue(vm.canUndoFetch)
         assertEquals(before.labs, vm.state.value.patients.single { it.id == before.id }.labs)
         main { vm.undoFetch() }
         assertEquals("نتيجة محلية تجريبية", vm.state.value.patients.single { it.id == before.id }.labs)

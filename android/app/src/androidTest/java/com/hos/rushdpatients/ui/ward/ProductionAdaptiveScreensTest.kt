@@ -25,7 +25,7 @@ class ProductionAdaptiveScreensTest : ProductionUiFixture() {
     @Test fun narrowLargeFontDrawerStillNavigatesToRealSettings() {
         startNarrow()
         compose.onNodeWithContentDescription(label(R.string.ui_ward_navigation_chrome_004)).performClick()
-        compose.onNodeWithText(label(R.string.ui_ward_drawer_017)).performScrollTo().performClick()
+        compose.onNodeWithText(label(R.string.drawer_settings_administration)).performScrollTo().performClick()
         compose.onNodeWithText(label(R.string.ui_ward_drawer_018)).performScrollTo().assertIsDisplayed().performClick()
         compose.waitUntil(10000) { route == Routes.SETTINGS && settingsVm.state.value.doctorName.isNotEmpty() }
         compose.onNodeWithText(client.actor.fullName).assertExists()

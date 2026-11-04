@@ -8,6 +8,7 @@ Fictional data and layout examples for demos and disposable projects. These valu
 | [`data/history/`](data/history/original-patients.metadata.json) | Metadata for the earlier sample; its CSV/PDF are no longer present |
 | `generators/` | Python tools for patient CSVs, embedded native demos and A5 previews |
 | [`previews/a5/`](previews/a5/README.md) | A5 preview source selection, renderer notes and generated PDFs when available |
+| [`previews/branding/`](previews/branding/README.md) | Android wordmark source, image-generation prompts and bitmap derivation |
 
 ## Current dataset
 
