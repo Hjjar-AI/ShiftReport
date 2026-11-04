@@ -31,24 +31,29 @@ class WardPreferencesTest {
     }
     @Test fun missingPreferencesUseCompactSafeWardDefaults() = runTest {
         observe(backgroundScope); runCurrent()
-        assertFalse(state.value.patientDetailsExpanded); assertFalse(state.value.twoColumn)
+        assertFalse(state.value.patientDetailsExpanded)
         assertTrue(state.value.compactCards)
         assertEquals(GroupByMode.SUPERVISOR, state.value.groupByMode)
     }
     @Test fun malformedBooleanPreferencesDoNotEnableActions() = runTest {
         expanded.value = "TRUE"; columns.value = "1"; compact.value = "yes"
         observe(backgroundScope); runCurrent()
-        assertFalse(state.value.patientDetailsExpanded); assertFalse(state.value.twoColumn)
+        assertFalse(state.value.patientDetailsExpanded)
         assertTrue(state.value.compactCards)
     }
-    @Test fun eachObservedPreferenceUpdatesIndependently() = runTest {
+    @Test fun retiredColumnPreferenceCannotOverrideExpansionOrClinicalContent() = runTest {
+        val patient = Fixtures.patient(labs = "نتيجة")
+        state.value = state.value.copy(patients = listOf(patient))
         observe(backgroundScope); runCurrent()
         columns.value = "true"; runCurrent()
-        assertTrue(state.value.twoColumn); assertTrue(state.value.compactCards)
+        assertFalse(state.value.patientDetailsExpanded)
         compact.value = "true"; expanded.value = "true"; runCurrent()
         assertTrue(state.value.compactCards); assertTrue(state.value.patientDetailsExpanded)
         columns.value = "false"; runCurrent()
-        assertFalse(state.value.twoColumn); assertTrue(state.value.compactCards)
+        assertTrue(state.value.patientDetailsExpanded)
+        assertEquals(listOf(patient), state.value.patients)
+        verify(exactly = 0) { settings.observe(AppConstants.SETTING_PATIENT_TWO_COLUMN) }
+        coVerify(exactly = 0) { settings.putBoolean(AppConstants.SETTING_PATIENT_TWO_COLUMN, any()) }
     }
     @Test fun groupingPreferenceRegroupsCurrentPatientsWithoutLosingClinicalContent() = runTest {
         val patient = Fixtures.patient(labs = "نتيجة", responsibleResidentId = "tree")

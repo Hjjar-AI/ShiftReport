@@ -43,8 +43,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -52,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.key
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -229,6 +232,25 @@ private fun WardWorkspaceContent(
     val showAddFloatingAction = state.shift != null && !state.isReadOnly &&
         (!patientDestination || state.patients.isNotEmpty())
     val addActionSpace = rememberFloatingActionSpace(showAddFloatingAction)
+    val patientScrollPositions = remember(state.groupByMode, state.groupedPatients, visiblePatients, visibleIds, collapsedGroups) {
+        val displayed = if (state.groupByMode != GroupByMode.NONE && state.groupedPatients.isNotEmpty()) {
+            state.groupedPatients.filter { (it.key ?: "none") !in collapsedGroups }
+                .flatMap { group -> group.patients.filter { it.id in visibleIds } }
+        } else visiblePatients
+        displayed.mapIndexed { index, patient -> patient.id to index }.toMap()
+    }
+    val listScrolledDown by remember(patientGridState, patientScrollPositions) {
+        derivedStateOf {
+            val firstPatientId = patientGridState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.contentType == "patient" }?.key as? String
+            (firstPatientId?.let { patientScrollPositions[it] } ?: -1) >= 6
+        }
+    }
+    val showBackToTop = patientDestination && state.patients.isNotEmpty() && listScrolledDown
+    val backToTopActionSpace = rememberFloatingActionSpace(showBackToTop)
+    val floatingActionColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+        contentColor = MaterialTheme.colorScheme.onPrimary)
     val roundsPatients = remember(state.groupByMode, state.groupedPatients, visiblePatients, visibleIds) {
         if (state.groupByMode != GroupByMode.NONE && state.groupedPatients.isNotEmpty()) {
             state.groupedPatients.flatMap { group ->
@@ -470,6 +492,7 @@ private fun WardWorkspaceContent(
                         enabled = !state.loading && !state.saving && !state.syncing &&
                             !editor.showAdd && editor.editTarget == null && editor.copyTarget == null,
                         contentPadding = UiPadding.content,
+                        colors = floatingActionColors,
                         modifier = addActionSpace.measure
                             .sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
                             .semantics { contentDescription = uiText(R.string.ui_add_patient) }
@@ -487,7 +510,7 @@ private fun WardWorkspaceContent(
             val layoutDirection = LocalLayoutDirection.current
             // Draw behind the transparent pill gutters; reserve its height in scroll content instead.
             val navigationClearance = if (expandedWindow) com.hos.rushdpatients.ui.theme.UiSpace.none else padding.calculateBottomPadding()
-            val scrollBottomClearance = addActionSpace.bottomPadding + navigationClearance
+            val scrollBottomClearance = maxOf(addActionSpace.bottomPadding, backToTopActionSpace.bottomPadding) + navigationClearance
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -584,6 +607,22 @@ private fun WardWorkspaceContent(
                                     onPreset = ::applyDashboardFilter, onOptions = { showFilters = true },
                                     onQueryChange = { searchQuery = it }, onFocusRequested = { requestSearchFocus = false },
                                     patientCard = patientCardContent)
+                                if (showBackToTop) Box(
+                                    Modifier.align(Alignment.BottomStart)
+                                        .padding(start = UiSpacing.largeSection, bottom = navigationClearance + UiSpacing.largeSection)
+                                ) {
+                                    AppButton(
+                                        onClick = { scope.launch { patientGridState.scrollToItem(0) } },
+                                        contentPadding = UiPadding.content,
+                                        colors = floatingActionColors,
+                                        modifier = backToTopActionSpace.measure
+                                            .sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
+                                            .semantics { contentDescription = uiText(R.string.ui_back_to_top) }
+                                    ) {
+                                        Icon(AppIcons.ArrowUpward, contentDescription = null,
+                                            modifier = Modifier.size(UiSize.iconMedium))
+                                    }
+                                }
                             }
                         }
                     }

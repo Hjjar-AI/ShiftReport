@@ -34,7 +34,7 @@ import androidx.compose.ui.semantics.semantics
 private enum class WardDestination(
     @StringRes val label: Int, val outlined: ImageVector, val filled: ImageVector
 ) {
-    PATIENTS(R.string.ui_patients, AppIcons.OutlinedViewAgenda, AppIcons.ViewAgenda),
+    PATIENTS(R.string.ui_patients, AppIcons.OutlinedPatientBed, AppIcons.PatientBed),
     DASHBOARD(R.string.ui_ward_components_002, AppIcons.OutlinedDashboard, AppIcons.Dashboard);
 
     fun selected(view: WardViewMode): Boolean = when (this) {

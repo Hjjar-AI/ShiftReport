@@ -6,13 +6,10 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import com.hos.rushdpatients.ui.theme.UiLayout
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,11 +21,6 @@ import com.hos.rushdpatients.ui.theme.LocalUiStyle
 import com.hos.rushdpatients.ui.theme.LocalUiPreferences
 import com.hos.rushdpatients.ui.components.AppIcons
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material3.Text
-import com.hos.rushdpatients.ui.components.AppTextButton
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -82,18 +74,8 @@ internal fun WardPatientGrid(
             if (reducedMotion) target else height
         }
     }
-    val scope = rememberCoroutineScope()
-    val showBackToTop by remember(patientGridState) {
-        derivedStateOf { patientGridState.firstVisibleItemIndex >= 8 }
-    }
     Column(Modifier.fillMaxSize()) {
         controlsContent()
-        if (showBackToTop) Row(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter),
-            horizontalArrangement = Arrangement.End) {
-            AppTextButton(onClick = { scope.launch { patientGridState.scrollToItem(0) } }) {
-                Text(uiText(R.string.ui_back_to_top))
-            }
-        }
         LazyVerticalGrid(
             columns = if (dualPane) GridCells.Fixed(1) else GridCells.Adaptive(minSize = UiLayout.patientGridMinWidth),
             state = patientGridState,

@@ -57,14 +57,13 @@ class PatientGridScrollTest {
         }
         compose.waitForIdle()
     }
-    @Test fun collapsedCardsScrollThroughLargeWardAndReturnToTop() {
+    @Test fun collapsedCardsScrollThroughLargeWardWithoutAnEmbeddedBackToTopBar() {
         show(false)
         repeat(6) { compose.onNodeWithTag("patient-grid").performTouchInput { swipeUp(durationMillis = 180) } }
         compose.runOnIdle { assertTrue("List did not advance", index > 0) }
+        // The workspace owns the floating action; the reusable grid only owns scrolling.
         compose.onNodeWithText(compose.activity.getString(com.hos.rushdpatients.R.string.ui_back_to_top))
-            .assertIsDisplayed().performClick()
-        compose.waitUntil(10000) { index == 0 }
-        compose.runOnIdle { assertEquals(0, index) }
+            .assertDoesNotExist()
     }
     @Test fun expandedCardsRemainScrollableAtLargeFontAndProduceReviewArtifact() {
         show(true, 1.8f)

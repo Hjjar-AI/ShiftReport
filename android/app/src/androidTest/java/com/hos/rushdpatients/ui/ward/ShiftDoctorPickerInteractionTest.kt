@@ -13,6 +13,7 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.data.model.Gender
+import com.hos.rushdpatients.data.model.ClinicalRole
 import java.time.LocalDate
 import org.junit.Assert.*
 import org.junit.Rule
@@ -45,6 +46,29 @@ class ShiftDoctorPickerInteractionTest {
         show()
         compose.onNodeWithText(label(R.string.ui_save)).assertIsNotEnabled()
         compose.runOnIdle { assertNull(confirmed); assertEquals(0, dismissed) }
+    }
+    @Test fun residentsSortAlphabeticallyBeforeOneFinalSupervisorSection() {
+        val supervisor = doctor("pine", "صنوبر").copy(clinicalRole = ClinicalRole.SUPERVISOR)
+        show(doctors = listOf(supervisor, oak, cedar))
+        val cedarTop = compose.onNodeWithText(cedar.fullName).getUnclippedBoundsInRoot().top
+        val oakTop = compose.onNodeWithText(oak.fullName).getUnclippedBoundsInRoot().top
+        val heading = compose.onNodeWithText(label(R.string.ui_doctor_choice_groups_001))
+        val supervisorTop = compose.onNodeWithText(supervisor.fullName).getUnclippedBoundsInRoot().top
+        assertTrue(cedarTop < oakTop)
+        assertTrue(oakTop < heading.getUnclippedBoundsInRoot().top)
+        assertTrue(heading.getUnclippedBoundsInRoot().top < supervisorTop)
+        compose.onAllNodesWithText(label(R.string.ui_doctor_choice_groups_001)).assertCountEquals(1)
+        compose.onNodeWithText(supervisor.fullName).performClick()
+        compose.onNodeWithText(label(R.string.ui_save)).performClick()
+        compose.runOnIdle { assertEquals(listOf(supervisor.id), confirmed) }
+    }
+    @Test fun residentOnlyRosterOmitsSupervisorHeadingAndKeepsSelectionThroughSearch() {
+        show(selected = listOf(oak.id))
+        compose.onNodeWithText(label(R.string.ui_doctor_choice_groups_001)).assertDoesNotExist()
+        compose.onNode(hasSetTextAction()).performTextInput("لا توجد شجرة")
+        compose.onNodeWithText(cedar.fullName).assertDoesNotExist()
+        compose.onNodeWithText(label(R.string.ui_save)).assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(listOf(oak.id), confirmed) }
     }
     @Test fun checkingDoctorEnablesSaveAndConfirmsExplicitSelection() {
         show()

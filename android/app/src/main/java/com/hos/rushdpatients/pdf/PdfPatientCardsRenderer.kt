@@ -106,8 +106,9 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         try {
             newPage(documentLabel, index = true)
             val metadataPaint = Paint(body).apply { textSize = 11.5f }
+            // Nonbreaking padding survives the wrapper's ordinary-space normalization.
             indexText("المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})" +
-                " • المرافقون: ${summary.escortCount}", heading, documentLabel)
+                " \u00a0•\u00a0 المرافقون: ${summary.escortCount}", heading, documentLabel)
             if (doctors.isNotEmpty()) ReportRosterLabel.linesForDoctors(doctors, " / ").forEach { line ->
                 indexText(line, metadataPaint, documentLabel)
             }

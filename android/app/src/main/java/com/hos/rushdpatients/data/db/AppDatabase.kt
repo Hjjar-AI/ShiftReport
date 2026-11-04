@@ -63,7 +63,6 @@ abstract class AppDatabase : RoomDatabase() {
                 DATABASE_NAME
             )
                 .openHelperFactory(factory)
-                .addMigrations(*Migrations.ALL)
                 .build()
         }
     }

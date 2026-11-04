@@ -40,7 +40,7 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface,
             border = UiBorder.stroke(), shadowElevation = com.hos.rushdpatients.ui.theme.LocalUiStyle.current.navigationElevation) {
-            Row(Modifier.padding(UiSpacing.small).selectableGroup(),
+            Row(Modifier.padding(UiSpacing.tiny).selectableGroup(),
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 items.forEachIndexed { index, item ->
                     val selected = index == selectedIndex
@@ -50,22 +50,18 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                         targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                         animationSpec = tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.indicatorMillis), label = "navigationIndicator")
                     val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    Column(Modifier.weight(1f).heightIn(min = UiSpacing.touchTarget)
+                    Box(Modifier.weight(1f).heightIn(min = UiSpacing.touchTarget)
                         .clip(MaterialTheme.shapes.medium)
+                        .background(indicator)
                         .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
-                        .padding(vertical = UiSpacing.small, horizontal = UiSpacing.small),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                        .padding(vertical = UiSpacing.tiny, horizontal = UiSpacing.small),
+                        contentAlignment = Alignment.Center) {
                         (if (selected) item.selectedIcon else item.icon)?.let { icon ->
-                            Box(Modifier.clip(MaterialTheme.shapes.extraLarge).background(indicator)
-                                .padding(horizontal = UiSpacing.section, vertical = UiSpacing.tiny),
-                                contentAlignment = Alignment.Center) {
-                                Icon(icon, contentDescription = null,
-                                    tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else color,
-                                    modifier = Modifier.size(UiSize.icon).graphicsLayer { scaleX = iconScale; scaleY = iconScale })
-                            }
+                            Icon(icon, contentDescription = null,
+                                tint = color.copy(alpha = if (selected) 0.10f else 0.07f),
+                                modifier = Modifier.size(UiSize.iconXl).graphicsLayer { scaleX = iconScale; scaleY = iconScale })
                         }
-                        Text(item.label, textAlign = TextAlign.Center, color = color,
+                        Text(item.label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = color,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (selected) UiTypography.emphasizedWeight else FontWeight.Medium)
                     }

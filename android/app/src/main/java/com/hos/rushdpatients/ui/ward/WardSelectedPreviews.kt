@@ -82,7 +82,7 @@ private fun SelectedWardPreview(preferences: UiPreferences, appearance: AppAppea
                                     PatientCardActions.None, modifier)
                             })
                     }
-                    AppTabBar(listOf(AppTabItem(uiText(R.string.ui_all), AppIcons.ViewAgenda),
+                    AppTabBar(listOf(AppTabItem(uiText(R.string.ui_all), AppIcons.PatientBed),
                         AppTabItem(uiText(R.string.ui_ward_navigation_chrome_002), AppIcons.Dashboard)), 0, {})
                 }
             }

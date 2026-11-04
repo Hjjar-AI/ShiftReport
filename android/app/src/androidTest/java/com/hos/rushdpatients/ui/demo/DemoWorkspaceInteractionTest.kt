@@ -45,6 +45,20 @@ class DemoWorkspaceInteractionTest {
     private fun drawerButton(label: String) = compose.onNode(hasText(label) and hasClickAction() and
         hasAnyAncestor(SemanticsMatcher.keyIsDefined(SemanticsProperties.PaneTitle)))
 
+    @Test fun sharedBulkFoldAndUnfoldRepeatAndRetainCollapsedStateAfterRecreation() {
+        repeat(3) {
+            compose.onNodeWithContentDescription(text(R.string.ui_ward_navigation_chrome_006)).performClick()
+            compose.onAllNodesWithContentDescription(text(R.string.ui_patient_card_027)).onFirst().assertExists()
+            compose.onNodeWithContentDescription(text(R.string.ui_ward_navigation_chrome_005)).performClick()
+            compose.onAllNodesWithContentDescription(text(R.string.ui_patient_card_027)).assertCountEquals(0)
+            compose.onAllNodesWithContentDescription(text(R.string.ui_patient_card_028)).onFirst().assertExists()
+        }
+        scenario!!.recreate()
+        compose.onNodeWithContentDescription(text(R.string.ui_ward_navigation_chrome_006)).assertExists()
+        compose.onAllNodesWithContentDescription(text(R.string.ui_patient_card_027)).assertCountEquals(0)
+        assertTrue(vm.report.state.value.deliveryRecords.isEmpty())
+    }
+
     @Test fun sharedTwoStepReportReviewSurvivesRecreationWithoutSending() {
         drawer()
         drawerButton(text(R.string.ui_send_report)).performScrollTo().performClick()

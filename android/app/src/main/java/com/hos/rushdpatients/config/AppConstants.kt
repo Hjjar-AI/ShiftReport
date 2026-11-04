@@ -4,7 +4,8 @@ object AppConstants {
 
     // Database
     const val DATABASE_NAME = "rushd_patients.db"
-    const val DATABASE_VERSION = 8
+    // Initial schema baseline; future schema changes start their migrations here.
+    const val DATABASE_VERSION = 1
 
     // Table limits
     const val MAX_PATIENTS_PER_SHIFT = 200

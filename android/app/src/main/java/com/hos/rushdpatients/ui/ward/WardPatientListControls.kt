@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.UiControlSize
 
 /** View-only list controls. Saved sorting remains an explicit, separate action. */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -88,8 +89,10 @@ internal fun WardPatientListControls(
                     listOf(DashboardFilter.MINE to uiText(R.string.ui_handover_dashboard_011),
                         DashboardFilter.URGENT to uiText(R.string.ui_ward_patient_list_controls_007),
                         DashboardFilter.UNASSIGNED to uiText(R.string.ui_ward_screen_010), DashboardFilter.TASK_PENDING to uiText(R.string.ui_ward_screen_011)
-                    ).forEach { (preset, label) -> AppFilterChip(selectedPreset == preset, { onPreset(preset) },
-                        "$label ${uiNumber(presetCounts[preset] ?: 0)}") }
+                    ).forEach { (preset, label) -> AppFilterChip(
+                        selected = selectedPreset == preset, onClick = { onPreset(preset) },
+                        label = { Text("$label ${uiNumber(presetCounts[preset] ?: 0)}") },
+                        size = UiControlSize.COMPACT) }
                 }
             }
             BadgedBox(badge = { if (activeFilters.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.primaryContainer,

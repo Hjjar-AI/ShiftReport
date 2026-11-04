@@ -7,7 +7,7 @@
     <!-- Empty means no subtitle on the splash screen. -->
     <string name="about_splash_subtitle"></string>
 
-    <string name="about_supervisor_role">إشراف وتطوير</string>
+    <string name="about_supervisor_role">طور باستعمال الذكاء الاصطناعي بإشراف:</string>
     <string name="about_supervisor_name">الطبيب محمد علي حجار</string>
     <string name="about_technical_role">مساهمة تقنية</string>
     <string name="about_splash_technical_role">مساهمة تقنية • الأطباء</string>

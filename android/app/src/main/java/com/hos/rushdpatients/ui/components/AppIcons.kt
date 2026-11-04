@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
@@ -61,6 +62,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.outlined.Dashboard as OutlinedDashboardIcon
 import androidx.compose.material.icons.outlined.History as OutlinedHistoryIcon
+import androidx.compose.material.icons.outlined.Hotel as OutlinedHotelIcon
 import androidx.compose.material.icons.outlined.ViewAgenda as OutlinedViewAgendaIcon
 
 /** One registry for app symbols; protected About artwork remains independently owned. */
@@ -98,6 +100,7 @@ object AppIcons {
     val Groups get() = Icons.Filled.Groups
     val HelpOutline get() = Icons.Filled.HelpOutline
     val History get() = Icons.Filled.History
+    val PatientBed get() = Icons.Filled.Hotel
     val Info get() = Icons.Filled.Info
     val Link get() = Icons.Filled.Link
     val Lock get() = Icons.Filled.Lock
@@ -125,5 +128,6 @@ object AppIcons {
     val WifiOff get() = Icons.Filled.WifiOff
     val OutlinedDashboard get() = Icons.Outlined.OutlinedDashboardIcon
     val OutlinedHistory get() = Icons.Outlined.OutlinedHistoryIcon
+    val OutlinedPatientBed get() = Icons.Outlined.OutlinedHotelIcon
     val OutlinedViewAgenda get() = Icons.Outlined.OutlinedViewAgendaIcon
 }

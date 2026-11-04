@@ -9,7 +9,7 @@ Inventory/results/limits belong in Current state; handoff alone lists remaining 
 | Area | Existing coverage |
 |---|---|
 | Clinical/tasks/lab groups | Optional profiles, validation/search/filter/counts, guarded last-save-wins, checklists, grouped-lab codec/mapper/draft/search/review/wire, rollback/sort/report/export and stored metadata round trips |
-| Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, 7→8 lab row-preservation case (execution in Current state), same-project reconnect, key/topic protection, cancellation/secret cleanup |
+| Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, current initial-schema persistence (historical upgrade cases removed at owner request), same-project reconnect, key/topic protection, cancellation/secret cleanup |
 | Sync/delivery | Reviewed uploads/download Undo, pointer/history/mutex races, independent clients, UNKNOWN receipts, duplicate permission, write failure and actor revocation |
 | Reports/Telegram | Readiness/fingerprints, exact PDF review, Room consistency, long Markdown/Unicode chunks, retry/rate-limit/cancellation/intercepted transport |
 | Device/UI | Production navigation, privacy/recreation/pickers, editor/tasks/roster, setup 200% text/scrolling, adaptive/synthetic folds, clipboard/splash/native PDF/process-kill/scrolling |
