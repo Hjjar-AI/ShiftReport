@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Editable About/splash content. Edit values; keep resource names unchanged.
-         Guide: docs/guides/about-splash-content.md. Rebuild the app after editing. -->
+         Guide: docs/guides/android/about-and-splash.md. Rebuild the app after editing. -->
     <string name="about_app_title">مناوب</string>
     <string name="about_subtitle">(للطب النفسي)</string>
     <!-- Empty means no subtitle on the splash screen. -->
