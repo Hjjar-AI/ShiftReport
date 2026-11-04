@@ -36,6 +36,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
     @Before fun configureTransport() {
         coEvery { telegram.validateReportDestination(any(), any(), any()) } just Runs
         coEvery { telegram.getMe() } returns TgUser(12345, isBot = true)
+        coEvery { telegram.getChatMetadata(-100) } returns TgChat(-100, "supergroup")
         coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup")
         every { projects.current() } returns ProjectConfig()
         coEvery { seeder.seed(any()) } returns BootstrapSeeder.Result.Success(1, 1)
@@ -87,11 +88,11 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         val vm = validCreate(); vm.setHospitalName("  مشفى تجريبي  "); vm.setReportsTopicId("12"); vm.initialize()
         verify { projects.saveDraft(match { it.hospitalName == "مشفى تجريبي" && it.botToken == token &&
             it.chatId == -100L && it.reportsTopicId == 12L && it.telegramDataKey.isEmpty() }) }
-        coVerifyOrder { telegram.getMe(); telegram.getChat(-100); seeder.seed(); bootstrap.bootstrap(1) }
+        coVerifyOrder { telegram.getMe(); telegram.getChatMetadata(-100); seeder.seed(); bootstrap.bootstrap(1) }
         verifyOrder { projects.saveDraft(any()); sessions.clear(); projects.markInitialized() }
     }
     @Test fun existingPinnedMessageOffersConfirmationBeforeSeeding() {
-        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(10))
+        coEvery { telegram.getChatMetadata(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(10))
         val vm = validCreate(); vm.initialize()
         assertNull(vm.state.value.error)
         assertTrue(vm.state.value.confirmPinnedProjectReplacement)
@@ -100,7 +101,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         assertNoInitialization()
     }
     private fun existingPin(): TgMessage = TgMessage(10, text = "synthetic previous project").also {
-        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = it)
+        coEvery { telegram.getChatMetadata(-100) } returns TgChat(-100, "supergroup", pinnedMessage = it)
     }
     @Test fun confirmedReplacementSeedsOnlyReviewedPinAndBootstrapsNewRegistry() {
         val pin = existingPin()
@@ -138,7 +139,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         val pin = existingPin()
         coEvery { seeder.seed(any()) } returns BootstrapSeeder.Result.Failure("synthetic changed pin")
         val vm = validCreate(); vm.initialize()
-        coEvery { telegram.getChat(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(20))
+        coEvery { telegram.getChatMetadata(-100) } returns TgChat(-100, "supergroup", pinnedMessage = TgMessage(20))
         vm.confirmPinnedProjectReplacement()
         assertEquals("synthetic changed pin", vm.state.value.error)
         coVerify(exactly = 1) { seeder.seed(BootstrapSeeder.PinReview(-100, pin)) }
@@ -171,7 +172,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         assertNoInitialization()
     }
     @Test fun privateChatCannotBeInitialized() {
-        coEvery { telegram.getChat(-100) } returns TgChat(-100, "private")
+        coEvery { telegram.getChatMetadata(-100) } returns TgChat(-100, "private")
         val vm = validCreate(); vm.initialize()
         assertNotNull(vm.state.value.error)
         coVerify(exactly = 0) { seeder.seed(any()) }
@@ -182,7 +183,7 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         coEvery { telegram.getMe() } returns TgUser(12345, isBot = false)
         val vm = validCreate(); vm.initialize()
         assertNotNull(vm.state.value.error)
-        coVerify(exactly = 0) { telegram.getChat(any()) }
+        coVerify(exactly = 0) { telegram.getChatMetadata(any()) }
         assertNoInitialization()
     }
     @Test fun seedFailureDoesNotBootstrapOrInitialize() {

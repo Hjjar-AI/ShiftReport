@@ -10,6 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.config.ProjectProvisioningManager
 import com.hos.rushdpatients.sync.CsvBundleCodec
+import com.hos.rushdpatients.testutil.ensureLabGroup
 import com.hos.rushdpatients.testutil.ProductionUiFixture
 import com.hos.rushdpatients.ui.navigation.Routes
 import com.hos.rushdpatients.ui.report.ReportStepOutcome
@@ -47,7 +48,8 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
     }
     private fun editLabs(value: String, recreate: Boolean = false) {
         openPatientEditor()
-        val field = hasSetTextAction() and hasText(label(R.string.ui_labs), substring = true)
+        compose.ensureLabGroup()
+        val field = hasSetTextAction() and hasText(label(R.string.lab_group_results), substring = true)
         compose.onNode(field).performScrollTo().performTextInput(value)
         if (recreate) {
             recreateActivity()
@@ -69,8 +71,8 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
             .performScrollTo().performClick()
         compose.waitUntil(10000) { !report.state.value.reportAsPdf && !report.state.value.isBusy }
         next(R.string.ui_report_review_send_step)
-        compose.onNode(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
-            hasClickAction() and hasAnyAncestor(hasScrollAction()).not()).assertIsDisplayed().performClick()
+        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
+            hasClickAction()).onFirst().performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText(label(R.string.ui_close)).performClick()
         compose.onNodeWithText(label(R.string.ui_send_report)).assertIsEnabled().performClick()
         compose.onNode(hasText(label(R.string.ui_report_send_confirmation_001)) and
@@ -87,7 +89,8 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         onMain { setup.setMode(ProjectSetupMode.JOIN); setup.setProvisioningPassphrase("synthetic password"); setup.importProvisioning(Uri.fromFile(file)) }
         compose.waitUntil(10000) { setup.state.value.importedProvisioning && !setup.state.value.busy }
         compose.onNodeWithText(label(R.string.ui_project_setup_screen_039)).assertIsDisplayed().performClick()
-        compose.waitUntil(15000) { client.projects.current().initialized }
+        compose.waitUntil(15000) { client.projects.current().initialized || setup.state.value.error != null }
+        assertNull("Protected join failed", setup.state.value.error)
         loginThroughUi(); editLabs("نتيجة رحلة تجريبية", recreate = true)
         openReportThroughDrawer(); reviewAndOpenConfirmation()
         compose.onNode(hasText(label(R.string.ui_report_send_confirmation_008)) and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
@@ -104,15 +107,16 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         compose.onNode(hasText(label(R.string.ui_report_send_confirmation_001)) and
             hasAnyAncestor(isDialog()) and hasClickAction().not()).assertDoesNotExist()
         compose.onNode(hasText(label(R.string.ui_send_report)) and hasClickAction()).assertDoesNotExist()
-        compose.onNode(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
-            hasClickAction() and hasAnyAncestor(hasScrollAction()).not()).assertIsEnabled()
+        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.ui_report_preview_screen_025))) and
+            hasClickAction()).onFirst().assertIsEnabled()
         assertTrue(server.deliveredTexts.isEmpty())
     }
     @Test fun backgroundAndResumeWhileEditingRetainsDraftWithoutSavingOrSending() = runBlocking<Unit> {
         launch(); awaitWard()
         val before = requireNotNull(client.patients.getById("tea"))
         openPatientEditor()
-        val field = hasSetTextAction() and hasText(label(R.string.ui_labs), substring = true)
+        compose.ensureLabGroup()
+        val field = hasSetTextAction() and hasText(label(R.string.lab_group_results), substring = true)
         compose.onNode(field).performScrollTo().performTextInput("مسودة قبل الخلفية")
         scenario!!.moveToState(Lifecycle.State.CREATED)
         scenario!!.moveToState(Lifecycle.State.RESUMED)

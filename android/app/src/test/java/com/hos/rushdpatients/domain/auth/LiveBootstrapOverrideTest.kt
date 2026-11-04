@@ -3,6 +3,7 @@ package com.hos.rushdpatients.domain.auth
 import com.hos.rushdpatients.config.*
 import com.hos.rushdpatients.network.telegram.*
 import com.hos.rushdpatients.sync.DoctorsRegistryCodec
+import com.hos.rushdpatients.sync.SyncState
 import com.hos.rushdpatients.util.DefaultDispatcherProvider
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
@@ -72,7 +73,10 @@ class LiveBootstrapOverrideTest {
             created += seeded.messageId; record("created=${seeded.messageId}")
             val pinned = requireNotNull(client.getChat(config.chatId).pinnedMessage)
             assertEquals(seeded.messageId, pinned.messageId)
-            val remote = client.getFile(requireNotNull(pinned.document).fileId)
+            val state = Json.decodeFromString<SyncState>(requireNotNull(pinned.text))
+            assertTrue(state.isRecognized)
+            record("created-registry=${requireNotNull(state.doctorsMessageId)}")
+            val remote = client.getFile(requireNotNull(state.doctorsFileId))
             client.downloadFile(requireNotNull(remote.filePath), downloaded)
             val doctors = DoctorsRegistryCodec.decode(downloaded.readText()).doctors
             assertEquals(config.initialAdmin.telegramId, doctors.single().telegramId)

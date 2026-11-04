@@ -9,6 +9,7 @@ import java.io.IOException
 import java.nio.file.Files
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.*
 import com.hos.rushdpatients.data.repository.*
 import com.hos.rushdpatients.domain.auth.*
@@ -33,6 +34,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReportPreviewViewModelTest {
     private val store = ViewModelStore()
+    private val modelJobs = mutableListOf<Job>()
     private val text = mockk<UiStrings> { every { this@mockk.invoke(any(), *anyVararg()) } returns "رسالة تجريبية" }
     private val context = mockk<Context>()
     private val directory = Files.createTempDirectory("report_delivery_copies_").toFile()
@@ -82,8 +84,22 @@ class ReportPreviewViewModelTest {
     }
     private fun viewModel() = ReportPreviewViewModel(text, SavedStateHandle(mapOf("shiftId" to shift.id)), context,
         reports, TextReportBuilder(), sender, mockk(), cards, mockk(), saver, settings, doctors, shifts,
-        mockk(), sessions, mockk(), sync, projects, ledger).also { store.put("report", it) }
-    @After fun cleanup() { store.clear(); Dispatchers.resetMain(); unmockkObject(NetworkStatus); unmockkStatic(FileProvider::class); directory.deleteRecursively() }
+        mockk(), sessions, mockk(), sync, projects, ledger).also {
+            modelJobs += requireNotNull(it.viewModelScope.coroutineContext[Job])
+            store.put("report", it)
+        }
+    @After fun cleanup() {
+        try {
+            store.clear()
+            // Real IO must finish cancellation before Main and shared mocks disappear.
+            runBlocking { withTimeout(10000) { modelJobs.joinAll() } }
+        } finally {
+            Dispatchers.resetMain()
+            unmockkObject(NetworkStatus)
+            unmockkStatic(FileProvider::class)
+            directory.deleteRecursively()
+        }
+    }
     @Test fun `loading review never sends and explicit send publishes before delivery`() {
         val vm = viewModel()
         assertFalse(vm.state.value.loading)

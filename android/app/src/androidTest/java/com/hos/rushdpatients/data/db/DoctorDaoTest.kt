@@ -94,15 +94,16 @@ class DoctorDaoTest {
     }
 
     @Test
-    fun duplicateFullNameDoesNotInsertOrOverwriteDoctor() = runBlocking<Unit> {
+    fun duplicateFullNameRetainsDistinctIdsAndTelegramBindings() = runBlocking<Unit> {
         val original = entity("d1", fullName = "د. أحمد", telegramId = 100L)
+        val second = entity("d2", fullName = "د. أحمد", telegramId = 200L)
         dao.upsert(original)
-        dao.upsert(entity("d2", fullName = "د. أحمد", telegramId = 200L))
+        dao.upsert(second)
         assertEquals(original, dao.getById("d1"))
-        assertEquals(original, dao.getByFullName("د. أحمد"))
-        assertNull(dao.getById("d2"))
-        assertNull(dao.getByTelegramId(200L))
-        assertEquals(1, dao.countAll())
+        assertEquals(original, dao.getByTelegramId(100L))
+        assertEquals(second, dao.getById("d2"))
+        assertEquals(second, dao.getByTelegramId(200L))
+        assertEquals(2, dao.countAll())
     }
 
     @Test

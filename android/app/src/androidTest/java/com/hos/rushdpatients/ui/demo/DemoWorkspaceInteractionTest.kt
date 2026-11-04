@@ -68,15 +68,15 @@ class DemoWorkspaceInteractionTest {
         compose.waitUntil(10000) { !vm.report.state.value.reportAsPdf }
         compose.onNodeWithText(text(R.string.ui_report_preview_screen_017, text(R.string.ui_report_review_send_step))).performClick()
         val preview = hasText(text(R.string.report_preview_destination, text(R.string.ui_report_preview_screen_025))) and
-            hasClickAction() and hasAnyAncestor(hasScrollAction()).not()
-        compose.onNode(preview).performClick()
+            hasClickAction()
+        compose.onAllNodes(preview).onFirst().performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.ui_close)).performClick()
         compose.onNode(hasText(text(R.string.ui_send_report)) and hasClickAction()).performClick()
         compose.onNode(hasText(text(R.string.ui_report_send_confirmation_001)) and hasAnyAncestor(isDialog()) and hasClickAction().not()).assertExists()
         assertTrue(vm.report.state.value.deliveryRecords.isEmpty())
         scenario!!.recreate()
         compose.onNode(isDialog()).assertDoesNotExist()
-        compose.onNode(preview).assertIsEnabled().assertIsDisplayed()
+        compose.onAllNodes(preview).onFirst().assertIsEnabled().assertIsDisplayed()
         assertTrue(vm.report.state.value.deliveryRecords.isEmpty())
         assertTrue(context.filesDir.listFiles().orEmpty().isEmpty())
     }

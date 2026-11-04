@@ -53,7 +53,7 @@ class DemoWorkflowDeviceTest {
         val sentinel = File(context.filesDir, "sentinel").apply { writeText("unchanged") }
         val before = vm.state.value.patients.first()
         main {
-            assertTrue(vm.save(before.copy(labs = "نتيجة محلية تجريبية")))
+            assertTrue(vm.save(before.copy(labs = "نتيجة محلية تجريبية", labGroups = emptyList())))
             vm.controller.bringLatestData()
         }
         assertTrue(vm.state.value.fetchChoiceRequired)

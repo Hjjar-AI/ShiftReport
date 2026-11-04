@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.R
+import com.hos.rushdpatients.testutil.ensureLabGroup
 import com.hos.rushdpatients.testutil.ProductionUiFixture
 import com.hos.rushdpatients.ui.navigation.Routes
 import kotlinx.coroutines.runBlocking
@@ -99,7 +100,8 @@ class ProductionAdaptiveScreensTest : ProductionUiFixture() {
             hasAnyDescendant(hasText("شاي", substring = true))
         val actions = compose.onNode(card, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.CustomActions]
         compose.runOnIdle { assertTrue(actions.first { it.label == label(R.string.ui_edit_patient_dialog_001) }.action()) }
-        val field = hasSetTextAction() and hasText(label(R.string.ui_labs), substring = true)
+        compose.ensureLabGroup()
+        val field = hasSetTextAction() and hasText(label(R.string.lab_group_results), substring = true)
         compose.onNode(field).performScrollTo().performClick().performTextInput("مسودة نافذة ضيقة")
         compose.onNode(field).assertIsFocused()
         onMain { widthDp = 480; heightDp = 420 }

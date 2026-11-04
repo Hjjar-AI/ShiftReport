@@ -53,6 +53,10 @@ class SharedTelegramServer {
                     }).toByteArray()
                     "pinChatMessage" -> {
                         bootstrapPin = requireNotNull(uploadedMessages[field("message_id").toLong()])
+                        bootstrapPin?.text?.let { text ->
+                            runCatching { json.decodeFromString<SyncState>(text) }.getOrNull()
+                                ?.takeIf { it.isRecognized }?.let { state = it }
+                        }
                         envelope(JsonPrimitive(true)).toByteArray()
                     }
                     "getChatMember" -> envelope(buildJsonObject {
@@ -75,11 +79,20 @@ class SharedTelegramServer {
                         }).toByteArray()
                     }
                     "editMessageText" -> {
-                        state = json.decodeFromString<SyncState>(field("text"))
-                        envelope(buildJsonObject { put("message_id", 1); put("text", field("text")) }).toByteArray()
+                        val messageId = field("message_id").toLong()
+                        val text = field("text")
+                        val index = json.decodeFromString<SyncState>(text)
+                        if (bootstrapPin?.messageId == messageId || bootstrapPin == null && messageId == 1L) state = index
+                        val edited = TgMessage(messageId, text = text)
+                        uploadedMessages[messageId] = edited
+                        if (bootstrapPin?.messageId == messageId) bootstrapPin = edited
+                        envelope(buildJsonObject { put("message_id", messageId); put("text", text) }).toByteArray()
                     }
                     "sendMessage" -> {
-                        deliveredTexts += field("text")
+                        val text = field("text")
+                        val index = runCatching { json.decodeFromString<SyncState>(text) }.getOrNull()?.takeIf { it.isRecognized }
+                        if (index == null) deliveredTexts += text
+                        uploadedMessages[nextMessage] = TgMessage(nextMessage, text = text)
                         envelope(buildJsonObject { put("message_id", nextMessage++); put("date", 1800000000) }).toByteArray()
                     }
                     else -> if (method.endsWith(".bin")) requireNotNull(files[method.removeSuffix(".bin")])

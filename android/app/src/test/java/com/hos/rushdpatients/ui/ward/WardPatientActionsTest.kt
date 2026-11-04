@@ -26,13 +26,47 @@ class WardPatientActionsTest {
     private val shifts = mockk<ShiftRepository> { coEvery { getById(shift.id) } returns shift }
     private val patients = mockk<PatientRepository>()
     private val mutations = mockk<WardMutationRepository>()
-    private val settings = mockk<SettingsRepository>(relaxed = true)
+    private val settings = mockk<SettingsRepository>(relaxed = true).also { repository ->
+        coEvery { repository.get(any()) } returns null
+    }
     private val sessions = mockk<SessionManager> { every { current() } returns null }
     private fun actions(scope: CoroutineScope) = WardPatientActions(text, state, scope, shifts, patients,
         mutations, settings, sessions, Json, WardSaveGuard(text, state))
 
-    @Test fun `draft debounce persists only latest clinical draft`() = runTest {
+    private fun TestScope.loadedActions(): WardPatientActions = actions(this).also { actions ->
+        actions.loadDraft()
+        listOf(row.id, "tea", "coffee").distinct().forEach { id ->
+            actions.loadEditDraft(id) { it.getOrThrow() }
+        }
+        runCurrent()
+    }
+
+    @Test fun `unloaded drafts cannot overwrite recoverable storage`() = runTest {
         val actions = actions(this)
+        actions.saveDraft(PatientDraft(name = "شاي"))
+        actions.saveEditDraft(row.id, PatientDraft(name = "قهوة"))
+        advanceUntilIdle()
+        coVerify(exactly = 0) { settings.put(any(), any()) }
+        assertNull(state.value.patientDraft)
+    }
+
+    @Test fun `unreadable edit draft blocks autosave until explicit successful recovery`() = runTest {
+        val key = AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + row.id
+        coEvery { settings.get(key) } throws java.io.IOException("synthetic unreadable draft")
+        val actions = actions(this)
+        var failed = false
+        actions.loadEditDraft(row.id) { failed = it.isFailure }; runCurrent()
+        assertTrue(failed)
+        actions.saveEditDraft(row.id, PatientDraft(name = "قهوة")); advanceUntilIdle()
+        coVerify(exactly = 0) { settings.put(key, any()) }
+        coEvery { settings.get(key) } returns null
+        actions.loadEditDraft(row.id) { it.getOrThrow() }; runCurrent()
+        actions.saveEditDraft(row.id, PatientDraft(name = "قهوة")); advanceUntilIdle()
+        coVerify(exactly = 1) { settings.put(key, any()) }
+    }
+
+    @Test fun `draft debounce persists only latest clinical draft`() = runTest {
+        val actions = loadedActions()
         actions.saveDraft(PatientDraft(name = "شاي")); advanceTimeBy(200)
         actions.saveDraft(PatientDraft(name = "قهوة", labDraft = "نتيجة")); advanceTimeBy(351)
         val encoded = slot<String>()
@@ -40,10 +74,12 @@ class WardPatientActionsTest {
         val saved = Json.decodeFromString<PatientDraft>(encoded.captured)
         assertEquals("قهوة", saved.name); assertEquals("نتيجة", saved.labDraft)
     }
-    @Test fun `empty draft deletes persisted copy instead of retaining stale clinical text`() = runTest {
-        actions(this).saveDraft(PatientDraft()); advanceTimeBy(351)
-        coVerify { settings.delete(AppConstants.SETTING_PATIENT_DRAFT) }
-        assertNull(state.value.patientDraft)
+    @Test fun `empty draft replaces persisted content instead of retaining stale clinical text`() = runTest {
+        loadedActions().saveDraft(PatientDraft()); advanceTimeBy(351)
+        val encoded = slot<String>()
+        coVerify { settings.put(AppConstants.SETTING_PATIENT_DRAFT, capture(encoded)) }
+        assertEquals(PatientDraft(), Json.decodeFromString<PatientDraft>(encoded.captured))
+        assertEquals(PatientDraft(), state.value.patientDraft)
     }
     @Test fun `failed save keeps draft and never calls success`() = runTest {
         val draft = PatientDraft(name = "شاي", labDraft = "مسودة")
@@ -94,13 +130,14 @@ class WardPatientActionsTest {
     }
     @Test fun `scope cancellation drops pending draft persistence`() = runTest {
         val scope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+        state.value = state.value.copy(patientDraftLoaded = true)
         actions(scope).saveDraft(PatientDraft(name = "مسودة")); scope.cancel(); advanceTimeBy(1000)
         coVerify(exactly = 0) { settings.put(any(), any()) }
     }
     @Test fun `failed autosave retains add input and successful retry clears its warning`() = runTest {
         val draft = PatientDraft(name = "شاي", labDraft = "نتيجة\n☕")
         coEvery { settings.put(AppConstants.SETTING_PATIENT_DRAFT, any()) } throws java.io.IOException("synthetic full disk")
-        val actions = actions(this)
+        val actions = loadedActions()
         actions.saveDraft(draft); advanceUntilIdle()
         assertEquals(draft, state.value.patientDraft)
         assertNotNull(state.value.draftSaveIssue)
@@ -112,7 +149,7 @@ class WardPatientActionsTest {
     }
     @Test fun `edit warning is patient scoped and another successful autosave cannot clear it`() = runTest {
         coEvery { settings.put(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + "tea", any()) } throws java.io.IOException("synthetic failure")
-        val actions = actions(this)
+        val actions = loadedActions()
         actions.saveEditDraft("tea", PatientDraft(name = "شاي")); advanceUntilIdle()
         assertEquals("tea", state.value.draftSaveIssue?.patientId)
         actions.saveEditDraft("coffee", PatientDraft(name = "قهوة")); advanceUntilIdle()
@@ -122,7 +159,7 @@ class WardPatientActionsTest {
         assertNull(state.value.draftSaveIssue)
     }
     @Test fun `switching patients persists each exact draft independently`() = runTest {
-        val actions = actions(this)
+        val actions = loadedActions()
         val tea = PatientDraft(name = "شاي", treatmentDraft = "دواء 123\n💊")
         val coffee = PatientDraft(name = "قهوة", labDraft = "سطر آخر")
         actions.saveEditDraft("tea", tea); advanceTimeBy(100)
@@ -131,7 +168,7 @@ class WardPatientActionsTest {
         coVerify(exactly = 1) { settings.put(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + "coffee", Json.encodeToString(PatientDraft.serializer(), coffee)) }
     }
     @Test fun `discard cancels queued edit autosave without recreating draft`() = runTest {
-        val actions = actions(this)
+        val actions = loadedActions()
         actions.saveEditDraft(row.id, PatientDraft(name = "شاي"))
         actions.discardEditDraft(row.id); advanceUntilIdle()
         coVerify(exactly = 0) { settings.put(any(), any()) }
@@ -139,7 +176,7 @@ class WardPatientActionsTest {
     }
     @Test fun `successful clinical save drains queued autosave before atomic draft cleanup`() = runTest {
         coEvery { mutations.updatePatientFromForm(row, shift.id) } returns row.copy(revision = 8)
-        val actions = actions(this)
+        val actions = loadedActions()
         actions.saveEditDraft(row.id, PatientDraft(name = "شاي"))
         var successes = 0
         actions.updatePatient(row, onSuccess = { successes++ }); advanceUntilIdle()
@@ -152,7 +189,7 @@ class WardPatientActionsTest {
     }
     @Test fun `draft load failure cannot replace retained add input`() = runTest {
         val retained = PatientDraft(name = "شاي", labDraft = "مسودة")
-        state.value = state.value.copy(patientDraft = retained)
+        state.value = state.value.copy(patientDraft = retained, patientDraftLoaded = false)
         coEvery { settings.get(AppConstants.SETTING_PATIENT_DRAFT) } throws java.io.IOException("synthetic read failure")
         actions(this).loadDraft(); advanceUntilIdle()
         assertEquals(retained, state.value.patientDraft)
@@ -160,7 +197,7 @@ class WardPatientActionsTest {
     }
     @Test fun `cancelled autosave never creates a storage warning`() = runTest {
         coEvery { settings.put(any(), any()) } throws CancellationException("synthetic cancellation")
-        actions(this).saveDraft(PatientDraft(name = "شاي")); advanceUntilIdle()
+        loadedActions().saveDraft(PatientDraft(name = "شاي")); advanceUntilIdle()
         assertNull(state.value.draftSaveIssue)
     }
     @Test fun `recycle observation distinguishes loading empty error and successful retry`() = runTest {
@@ -214,7 +251,7 @@ class WardPatientActionsTest {
     @Test fun `double restore enters repository once and failure releases controls`() = runTest {
         val release = CompletableDeferred<Unit>()
         coEvery { mutations.restorePatient(row, shift.id) } coAnswers { release.await(); throw java.io.IOException("synthetic restore failure") }
-        val actions = actions(this)
+        val actions = loadedActions()
         actions.restorePatient(row); actions.restorePatient(row); runCurrent()
         assertTrue(state.value.saving)
         coVerify(exactly = 1) { mutations.restorePatient(row, shift.id) }
@@ -228,7 +265,7 @@ class WardPatientActionsTest {
     @Test fun `discard waits for in flight autosave before deleting persisted draft`() = runTest {
         val release = CompletableDeferred<Unit>()
         coEvery { settings.put(any(), any()) } coAnswers { withContext(NonCancellable) { release.await() } }
-        val actions = actions(this)
+        val actions = loadedActions()
         actions.saveEditDraft(row.id, PatientDraft(name = "شاي")); advanceTimeBy(351)
         actions.discardEditDraft(row.id); runCurrent()
         coVerify(exactly = 0) { settings.delete(any()) }
@@ -242,7 +279,7 @@ class WardPatientActionsTest {
         val release = CompletableDeferred<Unit>()
         coEvery { settings.put(any(), any()) } coAnswers { withContext(NonCancellable) { release.await() } }
         coEvery { mutations.updatePatientFromForm(row, shift.id) } returns row
-        val actions = actions(this)
+        val actions = loadedActions()
         actions.saveEditDraft(row.id, PatientDraft(name = "شاي")); advanceTimeBy(351)
         var saved = false
         actions.updatePatient(row, onSuccess = { saved = true }); runCurrent()
@@ -261,7 +298,7 @@ class WardPatientActionsTest {
         coEvery { settings.put(any(), any()) } answers { persisted[firstArg()] = secondArg(); Unit }
         coEvery { mutations.addPatientFromForm(row, shift.id, null) } throws java.io.IOException("synthetic clinical write failure")
         coEvery { mutations.updatePatientFromForm(row, shift.id) } throws java.io.IOException("synthetic clinical write failure")
-        val actions = actions(this)
+        val actions = loadedActions()
         val add = PatientDraft(name = "قهوة", labDraft = "latest add input")
         actions.saveDraft(add)
         actions.addPatient(row, onSuccess = { fail("Failed add claimed success") }); advanceUntilIdle()

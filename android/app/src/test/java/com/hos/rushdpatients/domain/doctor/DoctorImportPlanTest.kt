@@ -12,10 +12,18 @@ class DoctorImportPlanTest {
         val old = Fixtures.doctor(id = "a", fullName = "أرز")
         val retained = Fixtures.doctor(id = "b", fullName = "بلوط")
         val added = Fixtures.doctor(id = "c", fullName = "صنوبر")
-        val unchanged = old.copy(updatedAt = Instant.EPOCH, extraOptions = setOf("pin:synthetic", "syncAlias:old"))
+        val unchanged = old.copy(updatedAt = Instant.EPOCH, extraOptions = setOf("pin:synthetic"))
         val plan = DoctorImportPlan(listOf(unchanged, added), listOf(old, retained), "a", listOf(unchanged, added))
         assertEquals(DoctorImportChanges(listOf("صنوبر"), emptyList(), listOf("أرز"), listOf("بلوط")), plan.changes())
         val changed = old.copy(clinicalRole = ClinicalRole.SUPERVISOR)
         assertEquals(listOf("أرز"), plan.copy(reviewedChanges = listOf(changed)).changes().changed)
+    }
+
+    @Test fun `portable option changes remain visible in import review`() {
+        val before = Fixtures.doctor(id = "cedar", fullName = "أرز")
+        val incoming = before.copy(extraOptions = setOf("teamSupervisor:oak"))
+        val plan = DoctorImportPlan(listOf(incoming), listOf(before), before.id, listOf(incoming))
+        assertEquals(listOf(before.fullName), plan.changes().changed)
+        assertTrue(plan.changes().unchanged.isEmpty())
     }
 }

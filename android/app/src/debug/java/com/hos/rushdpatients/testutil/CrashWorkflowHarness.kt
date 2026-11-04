@@ -34,10 +34,10 @@ internal class CrashWorkflowHarness(val context: Context, val db: AppDatabase) {
     suspend fun signIn() {
         if (doctors.getById("crash-doctor") == null) {
             doctors.upsert(Doctor(id = "crash-doctor", fullName = "د. سدر شجرة", firstName = "سدر",
-                lastName = "شجرة", gender = Gender.MALE))
+                lastName = "شجرة", gender = Gender.MALE, telegramId = 123L))
         }
         val actor = requireNotNull(doctors.getById("crash-doctor"))
-        sessions.start(Session(actor.id, actor.fullName, null, actor.role, Instant.now()))
+        sessions.start(Session(actor.id, actor.fullName, actor.telegramId, actor.role, Instant.now()))
     }
 
     suspend fun receiptAndDie(confirm: Boolean, die: () -> Nothing) {

@@ -135,6 +135,7 @@ class ProcessDeathWorkflowTest {
     }
 
     private suspend fun seed(core: CrashWorkflowHarness): Patient {
+        core.signIn()
         core.shifts.upsert(Shift(id = "crash-shift", date = ShiftDate.current(), doctorIds = emptyList(), revision = 7))
         core.patients.upsert(Patient(id = "crash-patient", name = "شاي", admittanceNumber = "12",
             admittanceDate = LocalDate.of(2020, 1, 1), birthDate = LocalDate.of(1990, 1, 1), initialDiagnosis = "تشخيص تجريبي",

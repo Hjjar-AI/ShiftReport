@@ -8,6 +8,7 @@ import com.hos.rushdpatients.testutil.Fixtures
 import com.hos.rushdpatients.ui.components.UiStrings
 import com.hos.rushdpatients.ui.ward.PatientDraft
 import io.mockk.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -23,7 +24,13 @@ class DemoWardViewModelTest {
     private val store = ViewModelStore()
     private val repository = InMemoryDemoWardRepository()
     private val text = mockk<UiStrings> { every { this@mockk.invoke(any(), *anyVararg()) } returns "رسالة تجريبية" }
-    private val context = mockk<Context>()
+    private val preferences = mockk<android.content.SharedPreferences> {
+        every { getString(any(), any()) } returns null
+    }
+    private val context = mockk<Context> {
+        every { applicationContext } returns this@mockk
+        every { getSharedPreferences("demo_appearance", Context.MODE_PRIVATE) } returns preferences
+    }
     private val pdf = mockk<PdfReportExporter>()
     private lateinit var vm: DemoWardViewModel
 
@@ -31,6 +38,10 @@ class DemoWardViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         vm = DemoWardViewModel(text, context, repository, pdf, mockk(), mockk(), com.hos.rushdpatients.domain.report.TextReportBuilder())
         store.put("demo", vm)
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.withTimeout(5000) { vm.demoAppearance.first { it != null } }
+        }
+        clearMocks(context, answers = false, recordedCalls = true, childMocks = false)
     }
     @After fun cleanup() { store.clear(); Dispatchers.resetMain() }
     private fun patient() = vm.state.value.patients.first()
@@ -39,7 +50,7 @@ class DemoWardViewModelTest {
     @Test fun `save advances bookkeeping without creating actor stamps`() {
         val before = patient()
         val revision = vm.state.value.revision
-        assertTrue(vm.save(before.copy(labs = "نتيجة معدلة")))
+        assertTrue(vm.save(before.copy(labs = "نتيجة معدلة", labGroups = emptyList())))
         val after = saved(before.id)
         assertEquals("نتيجة معدلة", after.labs)
         assertEquals(before.revision + 1, after.revision)
@@ -51,9 +62,9 @@ class DemoWardViewModelTest {
 
     @Test fun `last clinical save wins without revision conflict`() {
         val old = patient()
-        vm.save(old.copy(labs = "محفوظ"))
+        vm.save(old.copy(labs = "محفوظ", labGroups = emptyList()))
         val revision = saved(old.id).revision
-        assertTrue(vm.save(old.copy(labs = "آخر حفظ")) { fail("Revision conflict callback") })
+        assertTrue(vm.save(old.copy(labs = "آخر حفظ", labGroups = emptyList())) { fail("Revision conflict callback") })
         assertEquals("آخر حفظ", saved(old.id).labs)
         assertEquals(revision + 1, saved(old.id).revision)
     }
@@ -150,7 +161,7 @@ class DemoWardViewModelTest {
 
     @Test fun `duplicate add never overwrites saved clinical content`() {
         val row = patient()
-        vm.controller.addPatient(row.copy(labs = "overwrite"), null) { fail("Unexpected success") }
+        vm.controller.addPatient(row.copy(labs = "overwrite", labGroups = emptyList()), null) { fail("Unexpected success") }
         assertEquals(row, saved(row.id))
     }
 
@@ -166,6 +177,7 @@ class DemoWardViewModelTest {
     }
 
     @Test fun `positioned add stores consecutive positions and clears saved draft`() {
+        repository.state.value = repository.state.value.copy(patients = repository.state.value.patients.map { it.copy(isPriority = false) })
         vm.controller.saveDraft(PatientDraft(name = "مسودة"))
         val fresh = Fixtures.patient(id = "new-demo")
         var called = false
@@ -177,9 +189,20 @@ class DemoWardViewModelTest {
         assertNull(vm.state.value.draft)
     }
 
+    @Test fun `positioned normal patient remains below existing priority patients`() {
+        val priorityIds = vm.state.value.ordered.filter { it.isPriority }.map { it.id }
+        assertTrue(priorityIds.isNotEmpty())
+        val fresh = Fixtures.patient(id = "new-normal")
+        vm.controller.addPatient(fresh, 2) { }
+        val ordered = vm.state.value.ordered
+        assertEquals(priorityIds, ordered.take(priorityIds.size).map { it.id })
+        assertEquals(fresh.id, ordered[priorityIds.size].id)
+        assertEquals((1..ordered.size).toList(), ordered.map { it.sortOrder })
+    }
+
     @Test fun `delete does not require revision match and rejects repeated deletion`() {
         val old = patient()
-        vm.save(old.copy(labs = "جديد"))
+        vm.save(old.copy(labs = "جديد", labGroups = emptyList()))
         val before = vm.state.value.revision
         var called = false
         vm.controller.deletePatient(old) { called = true }
