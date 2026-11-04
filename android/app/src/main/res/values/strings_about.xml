@@ -3,8 +3,8 @@
     <!-- Editable About/splash content. Edit values; keep resource names unchanged.
          Guide: docs/guides/android/about-and-splash.md. Rebuild the app after editing. -->
     <string name="about_app_title">مناوب</string>
-    <string name="about_subtitle">(للطب النفسي)</string>
-    <!-- Empty means no subtitle on the splash screen. -->
+    <!-- Both subtitles are empty so About and splash show the same app identity. -->
+    <string name="about_subtitle"></string>
     <string name="about_splash_subtitle"></string>
 
     <string name="about_supervisor_role">طور باستعمال الذكاء الاصطناعي بإشراف:</string>

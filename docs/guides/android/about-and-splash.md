@@ -7,7 +7,7 @@ Change text inside the tags; preserve resource names:
 | Resource | Appears in |
 |---|---|
 | `about_app_title` | Main title on both screens |
-| `about_subtitle`, `about_splash_subtitle` | About/splash subtitles; empty hides them (splash currently empty) |
+| `about_subtitle`, `about_splash_subtitle` | About/splash subtitles; both currently empty, so neither screen shows a specialty subtitle |
 | `about_supervisor_role`, `about_supervisor_name` | Shared supervision/development credit |
 | `about_technical_role`, `about_splash_technical_role` | About/splash technical-credit headings |
 | `about_contributors_prefix` | About prefix above contributor names; may be empty |
