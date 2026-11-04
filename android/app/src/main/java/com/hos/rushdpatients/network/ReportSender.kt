@@ -146,7 +146,7 @@ class ReportSender @Inject constructor(
             if (supervisor == null) return
             val live = doctorRepository.getActiveById(supervisor.doctor.id)
             val route = live?.let { com.hos.rushdpatients.domain.report.SupervisorDestination.resolve(it, topics.reportsChatId) }
-            require(live == supervisor.doctor && route?.chatId == chatId && route?.topicId == topicId) {
+            require(live == supervisor.doctor && route?.chatId == chatId && route.topicId == topicId) {
                 context.getString(R.string.report_supervisor_destination_changed)
             }
         }

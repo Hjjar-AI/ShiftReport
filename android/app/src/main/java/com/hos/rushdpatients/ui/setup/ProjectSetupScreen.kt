@@ -48,7 +48,6 @@ fun ProjectSetupScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showTopics by rememberSaveable(state.mode) { mutableStateOf(false) }
     var showInstructions by rememberSaveable(state.mode) { mutableStateOf(false) }
-    var showResidents by rememberSaveable(state.mode) { mutableStateOf(false) }
     val openProvisioning = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let(viewModel::selectProvisioning) }
@@ -102,8 +101,6 @@ fun ProjectSetupScreen(
                     state = state,
                     showTopics = showTopics,
                     onToggleTopics = { showTopics = !showTopics },
-                    showResidents = showResidents,
-                    onToggleResidents = { showResidents = !showResidents },
                     onSetHospitalName = viewModel::setHospitalName,
                     onSetBotToken = viewModel::setBotToken,
                     onSetChatId = viewModel::setChatId,

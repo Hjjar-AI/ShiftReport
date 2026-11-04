@@ -60,8 +60,6 @@ internal fun ProjectCreateSections(
     state: ProjectSetupUiState,
     showTopics: Boolean,
     onToggleTopics: () -> Unit,
-    showResidents: Boolean,
-    onToggleResidents: () -> Unit,
     onSetHospitalName: (String) -> Unit,
     onSetBotToken: (String) -> Unit,
     onSetChatId: (String) -> Unit,
@@ -78,7 +76,7 @@ internal fun ProjectCreateSections(
 ) {
     val uiText = rememberUiStrings()
     AppNotice(uiText(R.string.setup_create_overview), kind = NoticeKind.ACCENT)
-    AppSection(uiText(R.string.ui_project_setup_screen_016)) {
+    AppSection(uiText(R.string.setup_project_bot_section)) {
         AppTextField(
             value = state.hospitalName,
             onValueChange = onSetHospitalName,
@@ -94,6 +92,8 @@ internal fun ProjectCreateSections(
             label = uiText(R.string.ui_project_setup_screen_018),
             enabled = !state.busy
         )
+    }
+    AppSection(uiText(R.string.ui_project_setup_screen_016)) {
         Text(uiText(R.string.setup_prepare_group), style = MaterialTheme.typography.bodySmall)
         TelegramIdField(
             value = state.chatId,
@@ -124,24 +124,23 @@ internal fun ProjectCreateSections(
         if (!showTopics && listOf(state.csvTopicId, state.doctorsTopicId).any { it.isNotBlank() }) {
             Text(uiText(R.string.setup_topics_retained), style = MaterialTheme.typography.bodySmall)
         }
-        AppTextButton(onClick = onToggleResidents, enabled = !state.busy) {
-            Text(uiText(if (showResidents) R.string.setup_hide_residents else R.string.setup_show_residents))
-        }
-        if (showResidents) {
-            Text(uiText(R.string.residents_destination_hint), style = MaterialTheme.typography.bodySmall)
-            TelegramIdField(state.residentsChatId, onSetResidentsChatId,
-                uiText(R.string.residents_group_optional), signed = true, enabled = !state.busy,
-                hint = uiText(R.string.setup_residents_group_help))
+    }
+    AppSection(uiText(R.string.setup_residents_section)) {
+        Text(uiText(R.string.setup_residents_purpose), style = MaterialTheme.typography.bodySmall)
+        TelegramIdField(state.residentsChatId, onSetResidentsChatId,
+            uiText(R.string.residents_group_optional), signed = true, enabled = !state.busy,
+            hint = uiText(R.string.setup_residents_group_help))
+        if (state.residentsChatId.isNotBlank() || state.residentsTopicId.isNotBlank()) {
             TelegramIdField(state.residentsTopicId, onSetResidentsTopicId,
                 uiText(R.string.residents_topic_optional), enabled = !state.busy,
                 hint = uiText(R.string.setup_residents_topic_help))
-            if (state.residentsChatId.isBlank() || state.reportsTopicId.isNotBlank()) {
-                TelegramIdField(state.reportsTopicId, onSetReportsTopicId, uiText(R.string.ui_project_setup_screen_023),
-                    enabled = !state.busy, hint = uiText(R.string.setup_report_topic_help))
-            }
-        } else if (state.residentsChatId.isNotBlank() || state.reportsTopicId.isNotBlank()) {
-            Text(uiText(R.string.setup_residents_retained), style = MaterialTheme.typography.bodySmall)
         }
+        if (state.residentsChatId.isBlank() || state.reportsTopicId.isNotBlank()) {
+            TelegramIdField(state.reportsTopicId, onSetReportsTopicId, uiText(R.string.ui_project_setup_screen_023),
+                enabled = !state.busy, hint = uiText(R.string.setup_report_topic_help))
+        }
+        Text(uiText(R.string.setup_supervisors_later), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     AppSection(uiText(R.string.ui_project_setup_screen_031)) {
         AppTextField(

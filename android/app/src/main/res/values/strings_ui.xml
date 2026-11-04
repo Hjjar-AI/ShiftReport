@@ -796,7 +796,7 @@
     <string name="ui_project_setup_screen_013" formatted="false">"تشفير بيانات تليجرام: مفعّل"</string>
     <string name="ui_project_setup_screen_014" formatted="false">"تشفير بيانات تليجرام: غير مفعّل"</string>
     <string name="ui_project_setup_screen_015" formatted="false">"تم استيراد إعدادات الاتصال والمواضيع تلقائياً؛ لا يلزم إدخال معرّفات المواضيع."</string>
-    <string name="ui_project_setup_screen_016" formatted="false">1. ربط المجموعة الإدارية</string>
+    <string name="ui_project_setup_screen_016" formatted="false">2. المجموعة الإدارية — بيانات المشروع</string>
     <string name="ui_project_setup_screen_017" formatted="false">"اسم المستشفى أو المشروع"</string>
     <string name="ui_project_setup_screen_018" formatted="false">"رمز البوت من BotFather"</string>
     <string name="ui_project_setup_screen_019" formatted="false">معرّف المجموعة الإدارية (Chat ID)</string>
@@ -806,11 +806,11 @@
     <string name="ui_project_setup_screen_023" formatted="false">موضوع PDF الافتراضي في المجموعة الإدارية — اختياري</string>
     <string name="ui_project_setup_screen_025" formatted="false">موضوع CSV المرضى — اختياري</string>
     <string name="ui_project_setup_screen_026" formatted="false">موضوع سجل الأطباء — اختياري</string>
-    <string name="ui_project_setup_screen_027" formatted="false">"3. اختيار حماية البيانات"</string>
+    <string name="ui_project_setup_screen_027" formatted="false">5. حماية البيانات</string>
     <string name="ui_project_setup_screen_028" formatted="false">"تشفير ملفات البيانات على تليجرام"</string>
     <string name="ui_project_setup_screen_029" formatted="false">"اختياري عند إنشاء المشروع. يُنشأ مفتاح عشوائي ويُنقل للأعضاء داخل ملف الانضمام المحمي. يفك التطبيق البيانات محلياً؛ التقارير النصية تُرسل كملفات مشفرة. استخدم PDF للقراءة في تليجرام."</string>
     <string name="ui_project_setup_screen_030" formatted="false">"احتفظ بملف الانضمام وعبارة مروره؛ استعادة البيانات المشفرة تحتاج مفتاح المشروع."</string>
-    <string name="ui_project_setup_screen_031" formatted="false">"2. تعريف المدير الأول"</string>
+    <string name="ui_project_setup_screen_031" formatted="false">4. المدير الأول</string>
     <string name="ui_project_setup_screen_032" formatted="false">"الاسم الكامل"</string>
     <string name="ui_project_setup_screen_033" formatted="false">"رقم حسابك الشخصي في تليجرام (User ID)"</string>
     <string name="ui_project_setup_screen_034" formatted="false">"مقيم"</string>
