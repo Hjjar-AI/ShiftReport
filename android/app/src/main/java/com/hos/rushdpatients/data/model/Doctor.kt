@@ -21,6 +21,7 @@ data class Doctor(
     val deletedAt: Instant? = null
 ) {
     val options: DoctorOptions get() = DoctorOptions.from(extraOptions)
+    val supervisorTopicId: Long? get() = options.supervisorTopicId
     val teamSupervisorId: String?
         get() = options.teamSupervisorId
     val isDeleted: Boolean get() = deletedAt != null

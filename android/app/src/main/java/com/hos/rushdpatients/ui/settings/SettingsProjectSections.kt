@@ -65,7 +65,7 @@ internal fun SettingsInvitationsContent(state: SettingsUiState, onCreateInvitati
 @Composable
 internal fun SettingsDestinationsContent(
     supervisors: List<Doctor>, savingSupervisorGroupId: String?,
-    onSaveSupervisorGroup: (Doctor, String) -> Unit, onOpenDoctors: () -> Unit,
+    onSaveSupervisorGroup: (Doctor, String, String) -> Unit, onOpenDoctors: () -> Unit,
     residentsEditor: @Composable () -> Unit
 ) {
     val uiText = rememberUiStrings()

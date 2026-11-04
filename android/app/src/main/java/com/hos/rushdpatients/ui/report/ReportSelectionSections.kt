@@ -62,7 +62,7 @@ internal fun ReportDestinationSelection(
         Text(uiText(R.string.ui_report_destination_checklist_hint), style = MaterialTheme.typography.bodySmall)
         targets.forEach { target ->
             AppCheckRow(label = uiText(R.string.ui_report_preview_screen_028, target.doctorName, uiNumber(target.patientCount)) +
-                if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "",
+                if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "\n" + target.destinationLabel(uiText),
                 checked = target.doctorId in selectedSupervisorIds && target.chatId != null,
                 enabled = !busy && target.chatId != null,
                 onCheckedChange = { checked -> onSupervisorSelected(target.doctorId, checked) })

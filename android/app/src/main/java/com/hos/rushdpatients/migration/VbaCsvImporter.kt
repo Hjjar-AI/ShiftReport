@@ -9,7 +9,6 @@ import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.sync.CsvCodec
 import com.hos.rushdpatients.util.DispatcherProvider
-import com.hos.rushdpatients.util.ShiftDate
 import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
@@ -105,9 +104,10 @@ class VbaCsvImporter @Inject constructor(
                 // Upsert intentionally implements last-write-wins for matching patient IDs.
                 patientRepository.upsertAll(toUpsert, shift.id)
             }
-            if (preview.shiftDate == ShiftDate.current()) {
-                settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
-            }
+            // The file date is retained metadata. Even an unchanged import must
+            // select its ward so the reviewed patients appear on returning home.
+            shiftRepository.selectCurrent(shift.id)
+            settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
             ImportResult(
                 shiftId = shift.id,
                 inserted = preview.newPatients.size,

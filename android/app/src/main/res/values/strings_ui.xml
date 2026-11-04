@@ -392,7 +392,7 @@
     <string name="ui_settings_data_sections_008" formatted="false">"مراجعة الاستعادة المحلية"</string>
     <string name="ui_settings_data_sections_009" formatted="false">"الاستيراد: اختيار ملف ← مراجعة التغييرات ← تأكيد الحفظ المحلي. النشر إلى المشروع خطوة مستقلة."</string>
     <string name="ui_settings_data_sections_010" formatted="false">"حفظ بيانات المرضى CSV"</string>
-    <string name="ui_settings_data_sections_011" formatted="false">"استيراد بيانات من الإكسل"</string>
+    <string name="ui_settings_data_sections_011" formatted="false">استيراد المرضى من CSV</string>
     <string name="ui_settings_data_sections_012" formatted="false">"لحفظ بيانات المناوبة في ملف أو استعادتها محلياً؛ النشر إلى المشروع خطوة مستقلة."</string>
     <string name="ui_settings_data_sections_013" formatted="false">"إنشاء نسخة مشفرة"</string>
     <string name="ui_settings_data_sections_014" formatted="false">"استعادة نسخة مشفرة"</string>
@@ -406,10 +406,10 @@
     <string name="ui_settings_data_sections_022">"معرّف الجهاز: %1$s"</string>
     <string name="ui_settings_data_sections_023" formatted="false">"لم تُنشأ نسخة بعد"</string>
     <string name="ui_settings_data_sections_024">"آخر نسخة مشفرة: %1$s"</string>
-    <string name="ui_settings_section_layout_001" formatted="false">"معرف مجموعة تليجرام"</string>
+    <string name="ui_settings_section_layout_001" formatted="false">معرّف مجموعة المشرف — اختياري</string>
     <string name="ui_settings_section_layout_002" formatted="false">"تغيّر سجل المشرف؛ راجع النسخة المحفوظة قبل الحفظ"</string>
     <string name="ui_settings_section_layout_003" formatted="false">"تحميل النسخة المحفوظة"</string>
-    <string name="ui_settings_section_layout_004" formatted="false">"إزالة المعرف"</string>
+    <string name="ui_settings_section_layout_004" formatted="false">تعطيل وجهة المشرف</string>
     <string name="ui_settings_appearance_section_001" formatted="false">"المظهر"</string>
     <string name="ui_settings_appearance_section_002" formatted="false">"اللون الأساسي"</string>
     <string name="ui_settings_appearance_section_003" formatted="false">"حجم الخط"</string>
@@ -495,8 +495,8 @@
     <string name="ui_settings_project_sections_006" formatted="false">"أنشئ ملفاً مشفراً يعبئ إعدادات المستشفى والبوت على جهاز العضو. أرسل عبارة المرور إليه عبر قناة منفصلة."</string>
     <string name="ui_settings_project_sections_007" formatted="false">"إنشاء ملف انضمام مشفر"</string>
     <string name="ui_settings_project_sections_008" formatted="false">"سجل الأطباء — مراجعة ونشر الوجهات المحفوظة"</string>
-    <string name="ui_settings_project_sections_009" formatted="false">"مجموعات المشرفين"</string>
-    <string name="ui_settings_project_sections_010" formatted="false">"معرّفات مجموعات تليجرام لاستقبال تقارير كل مشرف."</string>
+    <string name="ui_settings_project_sections_009" formatted="false">وجهات تقارير المشرفين — اختيارية</string>
+    <string name="ui_settings_project_sections_010" formatted="false">لكل مشرف مجموعة وموضوع اختياريان. مجموعة فقط: الإرسال إلى المجموعة. مجموعة وموضوع: الإرسال إلى موضوعها. موضوع فقط: داخل مجموعة المقيمين. اترك الحقلين فارغين لتعطيل إرسال تقريره.</string>
     <string name="ui_settings_project_sections_011" formatted="false">"لا يوجد مشرفون"</string>
     <string name="ui_report_preview_screen_001" formatted="false">"انتظر انتهاء العملية الحالية"</string>
     <string name="ui_report_preview_screen_002" formatted="false">"تعذر تحميل المناوبة؛ أعد فتح التقرير"</string>
@@ -523,10 +523,10 @@
     <string name="ui_report_preview_screen_023" formatted="false">"تعديل أطباء المناوبة"</string>
     <string name="ui_report_preview_screen_024" formatted="false">"وجهة التقرير وصيغته"</string>
     <string name="ui_report_preview_screen_025" formatted="false">"التقرير العام"</string>
-    <string name="ui_report_preview_screen_026" formatted="false">"ملف PDF مستقل لكل مجموعة مختارة. عاين كل ملف قبل الإرسال."</string>
+    <string name="ui_report_preview_screen_026" formatted="false">ملف PDF مستقل لكل وجهة مشرف مختارة. عاين كل ملف قبل الإرسال.</string>
     <string name="ui_report_preview_screen_027" formatted="false">"لا يوجد مشرفون مرتبطون بمرضى هذه المناوبة"</string>
     <string name="ui_report_preview_screen_028">"%1$s • %2$s مريض"</string>
-    <string name="ui_report_preview_screen_029" formatted="false">" • لا توجد مجموعة"</string>
+    <string name="ui_report_preview_screen_029" formatted="false"> • لا توجد وجهة إرسال</string>
     <string name="ui_report_preview_screen_030" formatted="false">"جميع مرضى المناوبة • مجموعة المشروع"</string>
     <string name="ui_report_preview_screen_031" formatted="false">"إرسال كملف PDF"</string>
     <string name="ui_report_preview_screen_032" formatted="false">"ملخص التقرير"</string>
@@ -698,7 +698,7 @@
     <string name="ui_doctors_screen_012" formatted="false">"مطوية"</string>
     <string name="ui_doctors_screen_013" formatted="false">"نقل سجل الأطباء"</string>
     <string name="ui_doctors_screen_014" formatted="false">"الاستيراد: اختيار ملف ← مراجعة التغييرات ← تأكيد الحفظ والنشر إلى المشروع. التصدير يحفظ ملفاً محلياً فقط."</string>
-    <string name="ui_doctors_screen_015" formatted="false">"استيراد CSV"</string>
+    <string name="ui_doctors_screen_015" formatted="false">استيراد الأطباء من CSV</string>
     <string name="ui_doctors_screen_016" formatted="false">"تصدير CSV"</string>
     <string name="ui_doctors_screen_017" formatted="false">"لا يوجد أطباء"</string>
     <string name="ui_doctors_screen_018" formatted="false">"لا توجد نتائج"</string>
@@ -792,20 +792,20 @@
     <string name="ui_project_setup_screen_009" formatted="false">"اختيار ملف انضمام آخر"</string>
     <string name="ui_project_setup_screen_010" formatted="false">"اختيار ملف الانضمام"</string>
     <string name="ui_project_setup_screen_011" formatted="false">"٢. مراجعة المشروع"</string>
-    <string name="ui_project_setup_screen_012">"المجموعة: %1$s"</string>
+    <string name="ui_project_setup_screen_012">المجموعة الإدارية: %1$s</string>
     <string name="ui_project_setup_screen_013" formatted="false">"تشفير بيانات تليجرام: مفعّل"</string>
     <string name="ui_project_setup_screen_014" formatted="false">"تشفير بيانات تليجرام: غير مفعّل"</string>
     <string name="ui_project_setup_screen_015" formatted="false">"تم استيراد إعدادات الاتصال والمواضيع تلقائياً؛ لا يلزم إدخال معرّفات المواضيع."</string>
-    <string name="ui_project_setup_screen_016" formatted="false">"1. ربط مجموعة المشروع"</string>
+    <string name="ui_project_setup_screen_016" formatted="false">1. ربط المجموعة الإدارية</string>
     <string name="ui_project_setup_screen_017" formatted="false">"اسم المستشفى أو المشروع"</string>
     <string name="ui_project_setup_screen_018" formatted="false">"رمز البوت من BotFather"</string>
-    <string name="ui_project_setup_screen_019" formatted="false">"رقم مجموعة المشروع (Chat ID)"</string>
+    <string name="ui_project_setup_screen_019" formatted="false">معرّف المجموعة الإدارية (Chat ID)</string>
     <string name="ui_project_setup_screen_020" formatted="false">"إخفاء تخصيص المواضيع"</string>
-    <string name="ui_project_setup_screen_021" formatted="false">"تخصيص مواضيع داخل المجموعة — اختياري"</string>
-    <string name="ui_project_setup_screen_022" formatted="false">"هذه مواضيع داخل مجموعة المشروع نفسها، وليست مجموعات جديدة. فعّل المواضيع في تليجرام أولاً إن أردت استخدامها. أدخل رقم كل موضوع فقط؛ اترك أي حقل فارغاً لاستخدام المحادثة الرئيسية / عام."</string>
-    <string name="ui_project_setup_screen_023" formatted="false">"رقم موضوع التقارير — اختياري"</string>
-    <string name="ui_project_setup_screen_025" formatted="false">"رقم موضوع بيانات المرضى — اختياري"</string>
-    <string name="ui_project_setup_screen_026" formatted="false">"رقم موضوع سجل الأطباء — اختياري"</string>
+    <string name="ui_project_setup_screen_021" formatted="false">مواضيع البيانات داخل المجموعة الإدارية — اختياري</string>
+    <string name="ui_project_setup_screen_022" formatted="false">هذه مواضيع داخل المجموعة الإدارية نفسها. ملف CSV المرضى وسجل الأطباء يمكن إرسالهما إلى موضوعين أو إلى المحادثة الرئيسية / عام عند تركهما فارغين.</string>
+    <string name="ui_project_setup_screen_023" formatted="false">موضوع PDF الافتراضي في المجموعة الإدارية — اختياري</string>
+    <string name="ui_project_setup_screen_025" formatted="false">موضوع CSV المرضى — اختياري</string>
+    <string name="ui_project_setup_screen_026" formatted="false">موضوع سجل الأطباء — اختياري</string>
     <string name="ui_project_setup_screen_027" formatted="false">"3. اختيار حماية البيانات"</string>
     <string name="ui_project_setup_screen_028" formatted="false">"تشفير ملفات البيانات على تليجرام"</string>
     <string name="ui_project_setup_screen_029" formatted="false">"اختياري عند إنشاء المشروع. يُنشأ مفتاح عشوائي ويُنقل للأعضاء داخل ملف الانضمام المحمي. يفك التطبيق البيانات محلياً؛ التقارير النصية تُرسل كملفات مشفرة. استخدم PDF للقراءة في تليجرام."</string>
@@ -822,7 +822,7 @@
     <string name="ui_project_setup_screen_040" formatted="false">"التحقق من الاتصال وإنشاء المشروع"</string>
     <string name="ui_project_setup_screen_041" formatted="false">"شاهد التطبيق فوراً بـ 50 مريضاً وهمياً من ملف العينة، بأسماء أطعمة ومشروبات وأطباء بأسماء الأشجار. لا يحتاج رمز بوت، ولا يحفظ أو يزامن أي بيانات. يمكنك الخروج والعودة للتهيئة الحقيقية في أي وقت."</string>
     <string name="ui_project_setup_screen_042" formatted="false">"اطلب ملف الانضمام من المدير وعبارة مروره عبر قناة منفصلة. يستورد الملف بيانات الاتصال والمواضيع ومفتاح المشروع إن كان التشفير مفعلاً. راجع اسم المشروع ثم اضغط التحقق والانضمام."</string>
-    <string name="ui_project_setup_screen_043" formatted="false">"ابدأ بمجموعة واحدة فقط\n1. في BotFather أنشئ بوتاً وانسخ رمز API كاملاً، وليس اسم البوت.\n2. أنشئ مجموعة تليجرام أو اختر مجموعتك، وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل. يجب أن يكون حسابك أيضاً مديراً فيها.\n3. أدخل رقم المجموعة السالب. اسم المجموعة ورابط الدعوة ليسا رقم المجموعة.\n\nما الفرق بين المجموعة والموضوع؟\nالمجموعة هي المكان الأساسي للمشروع. الموضوع قسم داخل المجموعة لتنظيم الرسائل؛ لا تحتاج إليه للبدء. إن تركت أرقام المواضيع فارغة، يستخدم التطبيق المحادثة الرئيسية / عام.\n\nكيف تقرأ رابط رسالة؟\nمثال توضيحي فقط: t.me/c/1234567890/45 يشير إلى المجموعة ذات الرقم -1001234567890؛ العدد 45 هو رقم الرسالة، وليس رقم موضوع. في رابط مثل t.me/c/1234567890/12/45 يكون 12 رقم الموضوع داخل المجموعة نفسها. هذه الأمثلة تخص روابط الرسائل الخاصة بهذا الشكل؛ لا تنطبق على روابط الدعوة أو الروابط ذات أسماء المستخدمين.\n\nالمدير الأول\nأدخل رقم حسابك الشخصي، لا رقم الهاتف ولا رقم البوت.\n\nبعد الإنشاء\nصدّر ملف الانضمام المحمي من إعدادات المدير وشاركه مع الأعضاء؛ أرسل عبارة مروره عبر قناة منفصلة. لا يحتاج الأعضاء إلى إدخال أرقام المجموعات أو المواضيع. إذا كانت في المجموعة رسالة مثبّتة، سيطلب التطبيق مراجعة تأكيد البدء قبل المتابعة."</string>
+    <string name="ui_project_setup_screen_043" formatted="false">"ابدأ بمجموعة واحدة فقط\n1. في BotFather أنشئ بوتاً وانسخ رمز API كاملاً، وليس اسم البوت.\n2. أنشئ مجموعة تليجرام أو اختر مجموعتك، وأضف البوت مديراً بصلاحيات إرسال الرسائل والملفات وتثبيت الرسائل. يجب أن يكون حسابك أيضاً مديراً فيها.\n3. أدخل رقم المجموعة السالب. اسم المجموعة ورابط الدعوة ليسا رقم المجموعة.\n\nما الفرق بين المجموعة والموضوع؟\nالمجموعة الإدارية لملفات CSV وسجل الأطباء والفهرس. مجموعة المقيمين لتقارير PDF، ويمكن أن تكون المجموعة نفسها أو مجموعة أخرى. وجهات المشرفين اختيارية وتدعم مجموعة أو موضوعاً. الموضوع قسم داخل المجموعة لتنظيم الرسائل؛ لا تحتاج إليه للبدء. إن تركت أرقام المواضيع فارغة، يستخدم التطبيق المحادثة الرئيسية / عام.\n\nكيف تقرأ رابط رسالة؟\nمثال توضيحي فقط: t.me/c/1234567890/45 يشير إلى المجموعة ذات الرقم -1001234567890؛ العدد 45 هو رقم الرسالة، وليس رقم موضوع. في رابط مثل t.me/c/1234567890/12/45 يكون 12 رقم الموضوع داخل المجموعة نفسها. هذه الأمثلة تخص روابط الرسائل الخاصة بهذا الشكل؛ لا تنطبق على روابط الدعوة أو الروابط ذات أسماء المستخدمين.\n\nالمدير الأول\nأدخل رقم حسابك الشخصي، لا رقم الهاتف ولا رقم البوت.\n\nبعد الإنشاء\nصدّر ملف الانضمام المحمي من إعدادات المدير وشاركه مع الأعضاء؛ أرسل عبارة مروره عبر قناة منفصلة. لا يحتاج الأعضاء إلى إدخال أرقام المجموعات أو المواضيع. إذا كانت في المجموعة رسالة مثبّتة، سيطلب التطبيق مراجعة تأكيد البدء قبل المتابعة."</string>
     <string name="ui_app_pdf_appearance_controls_001" formatted="false">"اختيار سريع"</string>
     <string name="ui_app_pdf_appearance_controls_002" formatted="false">"سماكة الفواصل الأفقية"</string>
     <string name="ui_app_pdf_appearance_controls_003" formatted="false">"وضوح الفواصل"</string>
@@ -946,8 +946,8 @@
     <string name="ui_settings_project_operations_003" formatted="false">"تعذر إكمال البداية الفارغة؛ افحص النسخة الحالية قبل الإعادة"</string>
     <string name="ui_settings_project_operations_004" formatted="false">"هذه الإعدادات متاحة للمدير فقط"</string>
     <string name="ui_settings_project_operations_005" formatted="false">"معرف مجموعة تليجرام يجب أن يكون رقماً سالباً"</string>
-    <string name="ui_settings_project_operations_006" formatted="false">"حُفظت وجهة المشرف محلياً؛ افتح سجل الأطباء واختر «نشر سجل الأطباء» لمشاركتها"</string>
-    <string name="ui_settings_project_operations_007" formatted="false">"تعذر حفظ معرف المجموعة"</string>
+    <string name="ui_settings_project_operations_006" formatted="false">حُفظت وجهة المشرف محلياً؛ انشر سجل الأطباء لتطبيقها على بقية الأجهزة.</string>
+    <string name="ui_settings_project_operations_007" formatted="false">تعذر حفظ وجهة المشرف</string>
     <string name="ui_settings_project_operations_008">"تم حفظ ملف الانضمام والتحقق من %1$s بايت في التنزيلات/ShiftReport. شارك عبارة المرور عبر قناة منفصلة."</string>
     <string name="ui_settings_project_operations_009" formatted="false">"فشل تجهيز ملف الانضمام"</string>
     <string name="ui_settings_project_operations_010" formatted="false">"تعذر فتح المشاركة؛ جرّب حفظ الملف من نافذة إنشاء ملف الانضمام"</string>
@@ -973,7 +973,7 @@
     <string name="ui_settings_section_layout_019" formatted="false">"نسخة مشفرة • استعادة نسخة محفوظة"</string>
     <string name="ui_settings_section_layout_020" formatted="false">"إعادة الاتصال بالمشروع الحالي"</string>
     <string name="ui_settings_section_layout_021" formatted="false">"ملف انضمام محمي بكلمة مرور"</string>
-    <string name="ui_settings_section_layout_022" formatted="false">"وجهة تقرير كل مشرف"</string>
+    <string name="ui_settings_section_layout_022" formatted="false">مجموعة المقيمين ووجهات PDF المشرفين</string>
     <string name="ui_settings_section_layout_023" formatted="false">"المدير الدائم فقط • مراجعة وتأكيد"</string>
     <string name="ui_settings_section_layout_024">"قفل تلقائي: %1$s د • "</string>
     <string name="ui_settings_section_layout_025" formatted="false">"البصمة مفعلة"</string>
@@ -1161,7 +1161,7 @@
     <string name="ui_settings_screen_043" formatted="false">"حفظ نسخة مشفرة أو استعادة نسخة محفوظة."</string>
     <string name="ui_settings_screen_044" formatted="false">"إعادة الاتصال بالمشروع الحالي. لا تتغير بيانات المرضى عند إعادة الاتصال."</string>
     <string name="ui_settings_screen_045" formatted="false">"إنشاء ملف انضمام محمي لأحد أعضاء المشروع."</string>
-    <string name="ui_settings_screen_046" formatted="false">"تحديد مجموعة استقبال تقرير كل مشرف."</string>
+    <string name="ui_settings_screen_046" formatted="false">مجموعة المقيمين لتقارير PDF، ووجهة اختيارية لكل مشرف.</string>
     <string name="ui_settings_screen_047" formatted="false">"مسح المرضى والمناوبات بعد تأكيد المدير الدائم."</string>
     <string name="ui_settings_screen_048" formatted="false">"معلومات التخزين والجهاز للمساعدة في التشخيص."</string>
     <string name="ui_report_ui_state_001" formatted="false">"لم يبدأ"</string>

@@ -69,13 +69,19 @@
     <string name="admin_transfer_prepare_failed">تعذرت مراجعة النقل. تحقّق من الاتصال وصلاحية المدير الدائم، وزامن سجل الأطباء، ثم أعد المراجعة.</string>
     <string name="admin_transfer_uncertain">لم يتأكد النقل محلياً. قد يكون نُشر؛ اجلب سجل الأطباء من الشبكة وتحقق من المدير الدائم قبل أي محاولة جديدة.</string>
     <string name="admin_transfer_success">تأكد نقل الإدارة الدائمة؛ احتفظ المدير السابق بصلاحية مدير عادي.</string>
-    <string name="residents_group_optional">مجموعة المقيمين — اختياري</string>
-    <string name="residents_topic_optional">موضوع المقيمين — اختياري</string>
-    <string name="residents_destination_title">وجهة تقارير المقيمين</string>
-    <string name="residents_destination_hint">اترك مجموعة المقيمين فارغة لإرسال التقارير إلى مجموعة المشروع. يمكنك تحديد مجموعة أخرى وموضوع اختياري فيها. تبقى بيانات الإدارة في مجموعة المشروع، ورموز الدخول في الخاص.</string>
+    <string name="residents_group_optional">معرّف مجموعة المقيمين — اختياري</string>
+    <string name="residents_topic_optional">موضوع PDF في مجموعة المقيمين — اختياري</string>
+    <string name="residents_destination_title">مجموعة المقيمين — تقارير PDF</string>
+    <string name="residents_destination_hint">المجموعة الإدارية لملفات CSV وسجل الأطباء وفهرس المشروع. مجموعة المقيمين لتقارير PDF؛ اتركها فارغة لاستخدام المجموعة الإدارية، أو أدخل مجموعة أخرى وموضوعاً اختيارياً فيها. وجهات تقارير المشرفين اختيارية ومستقلة.</string>
     <string name="residents_destination_saved">حُفظت الوجهة على هذا الجهاز. صدّر ملف انضمام جديداً وأعد الاتصال به على الأجهزة الأخرى لتطبيق الوجهة نفسها.</string>
     <string name="residents_destination_failed">تعذر حفظ الوجهة</string>
-    <string name="residents_destination_redistribute">التعديل لهذا الجهاز. لتطبيقه على الأجهزة الأخرى، صدّر ملف انضمام جديداً وأعد الاتصال به عليها. تغيير الوجهة يتطلب معاينة التقارير مجدداً.</string>
+    <string name="residents_destination_redistribute">موضوع المشرف دون مجموعة يستخدم مجموعة المقيمين؛ تغييرها يغيّر وجهته أيضاً. التعديل لهذا الجهاز؛ صدّر ملف انضمام جديداً وأعد الاتصال به على الأجهزة الأخرى. تغيير الوجهة يتطلب معاينة التقارير مجدداً.</string>
     <string name="residents_report_label">مجموعة المقيمين — تقرير المناوبة الكامل</string>
-    <string name="project_report_label">مجموعة المشروع — تقرير المناوبة الكامل</string>
+    <string name="project_report_label">المجموعة الإدارية — تقرير المقيمين</string>
+    <string name="supervisor_topic_optional">معرّف موضوع المشرف — اختياري</string>
+    <string name="supervisor_topic_invalid">معرّف موضوع المشرف يجب أن يكون عدداً موجباً</string>
+    <string name="supervisor_destination_hint">مجموعة فقط: إلى المجموعة. مجموعة وموضوع: إلى موضوعها. موضوع فقط: داخل مجموعة المقيمين (أو المجموعة الإدارية عند عدم تخصيص مجموعة للمقيمين). الحقلان فارغان: لا إرسال.</string>
+    <string name="supervisor_route_group">مجموعة المشرف</string>
+    <string name="supervisor_route_residents">مجموعة المقيمين</string>
+    <string name="supervisor_route_topic">موضوع %1$s</string>
 </resources>

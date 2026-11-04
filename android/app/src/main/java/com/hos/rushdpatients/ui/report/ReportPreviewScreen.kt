@@ -435,7 +435,7 @@ internal fun ReportWorkspace(
             review.exportPdf == (exportPdf && pdfSelected)
         val destinations = buildList {
             if (review.includeGeneral) add(generalDestinationLabel)
-            review.supervisors.forEach { add(uiText(R.string.ui_report_preview_screen_095, it.doctorName, uiNumber(it.patientCount))) }
+            review.supervisors.forEach { add(uiText(R.string.ui_report_preview_screen_095, it.doctorName, uiNumber(it.patientCount)) + " • " + it.destinationLabel(uiText)) }
         }
         val format = if (!review.includeGeneral || review.generalAsPdf) "PDF"
             else if (review.supervisors.isEmpty()) uiText(R.string.ui_report_preview_screen_015)

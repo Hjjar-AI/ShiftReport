@@ -129,7 +129,8 @@ class DoctorRepository @Inject constructor(
                         if (old.customTitle.orEmpty() != next.customTitle.orEmpty()) add("اللقب")
                         if (old.clinicalRole != next.clinicalRole) add("الدور السريري")
                         if (old.teamSupervisorId != next.teamSupervisorId) add("الفريق")
-                        if (old.supervisorGroupChatId != next.supervisorGroupChatId) add("وجهة التقرير")
+                        if (old.supervisorGroupChatId != next.supervisorGroupChatId ||
+                            old.supervisorTopicId != next.supervisorTopicId) add("وجهة التقرير")
                         if (old.rank != next.rank || old.isPermanentAdmin != next.isPermanentAdmin) add("صلاحية التطبيق")
                     }
                     if (fields.isNotEmpty()) add("${next.fullName}: ${fields.joinToString("، ")}")

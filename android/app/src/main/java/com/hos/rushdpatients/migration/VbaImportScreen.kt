@@ -1,6 +1,8 @@
 package com.hos.rushdpatients.migration
 
 import android.net.Uri
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.ui.components.rememberUiStrings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hos.rushdpatients.util.ShiftDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +49,7 @@ fun VbaImportScreen(
     onBack: () -> Unit,
     viewModel: VbaImportViewModel = hiltViewModel()
 ) {
+    val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     var confirmApply by remember { mutableStateOf(false) }
 
@@ -58,7 +60,7 @@ fun VbaImportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("استيراد من الإكسل") },
+                title = { Text(uiText(R.string.ui_settings_data_sections_011)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "رجوع")
@@ -115,6 +117,7 @@ fun VbaImportScreen(
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("تم الاستيراد", style = MaterialTheme.typography.titleMedium)
+                                Text("تم اختيار القائمة المستوردة لعرضها في الشاشة الرئيسية. لم تُنشر على الشبكة.")
                                 Text("جديد: ${result.inserted}")
                                 Text("محدث: ${result.updated}")
                                 Text("بدون تغيير: ${result.skipped}")
@@ -131,7 +134,6 @@ fun VbaImportScreen(
                     }
 
                     state.preview?.let { preview ->
-                        val archivedImport = preview.shiftDate != ShiftDate.current()
                         Divider()
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(
@@ -151,20 +153,7 @@ fun VbaImportScreen(
                             }
                         }
 
-                        if (archivedImport) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = androidx.compose.material3.CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                )
-                            ) {
-                                Text(
-                                    text = "هذه مناوبة سابقة. ستُستعاد محلياً كنسخة محفوظة للعرض فقط ولن تُنشر كمناوبة حالية.",
-                                    modifier = Modifier.padding(12.dp),
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                        }
+                        Text("بعد التأكيد ستظهر هذه القائمة في الشاشة الرئيسية. تاريخ الملف محفوظ ولا يمنع استخدامها؛ لا تُنشر تلقائياً على الشبكة.")
 
                         if (preview.warnings.isNotEmpty()) {
                             Card(
@@ -219,7 +208,7 @@ fun VbaImportScreen(
                                 onClick = { confirmApply = true },
                                 modifier = Modifier.weight(1f),
                                 enabled = preview.totalPatients > 0
-                            ) { Text(if (archivedImport) "استعادة النسخة" else "تطبيق") }
+                            ) { Text("تطبيق") }
                             OutlinedButton(
                                 onClick = viewModel::reset,
                                 modifier = Modifier.weight(1f)

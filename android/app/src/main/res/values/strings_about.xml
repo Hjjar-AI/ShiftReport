@@ -33,7 +33,6 @@
 
     <string name="about_page_title">حول التطبيق</string>
     <string name="about_version_label">الإصدار</string>
-    <string name="about_emblem_description">شعار شعبة الطب النفسي</string>
     <string name="about_splash_skip_label">تخطي المقدمة</string>
     <string name="about_back_label">رجوع</string>
 </resources>

@@ -6,6 +6,10 @@
 
 Owner protected production key/certificate required. Local/CI inputs exist without debug fallback; signed release unverified. [Inputs](../guides/android/build.md#production-release-signing).
 
+## Web project creation — existing pins
+
+Deferred by owner on 4 November 2026; document only, no implementation now. Web creation currently rejects a group with an existing pinned message. Remove the requirement to manually unpin it: creation should review the existing pin and require explicit confirmation before creating and pinning the new project index, retaining live group-admin/configuration/changed-pin guards. Existing group messages and files must remain; clearing the group is not required.
+
 ## Far future — optional voice dictation
 
 Field-by-field diagnosis/treatment/follow-up → guided sections → optional whole-handoff suggestions. Prefer local; retain typing/editable drafts/visual review/Save. Evaluate Syrian/mixed Arabic-English,drug names/doses,available languages,device/storage needs.

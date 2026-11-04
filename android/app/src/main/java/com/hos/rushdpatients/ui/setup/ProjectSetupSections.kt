@@ -116,14 +116,12 @@ internal fun ProjectCreateSections(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            TelegramIdField(state.reportsTopicId, onSetReportsTopicId, uiText(R.string.ui_project_setup_screen_023), enabled = !state.busy,
-                hint = uiText(R.string.setup_report_topic_help))
             TelegramIdField(state.csvTopicId, onSetCsvTopicId, uiText(R.string.ui_project_setup_screen_025), enabled = !state.busy,
                 hint = uiText(R.string.setup_data_topic_help))
             TelegramIdField(state.doctorsTopicId, onSetDoctorsTopicId, uiText(R.string.ui_project_setup_screen_026), enabled = !state.busy,
                 hint = uiText(R.string.setup_doctors_topic_help))
         }
-        if (!showTopics && listOf(state.reportsTopicId, state.csvTopicId, state.doctorsTopicId).any { it.isNotBlank() }) {
+        if (!showTopics && listOf(state.csvTopicId, state.doctorsTopicId).any { it.isNotBlank() }) {
             Text(uiText(R.string.setup_topics_retained), style = MaterialTheme.typography.bodySmall)
         }
         AppTextButton(onClick = onToggleResidents, enabled = !state.busy) {
@@ -137,7 +135,11 @@ internal fun ProjectCreateSections(
             TelegramIdField(state.residentsTopicId, onSetResidentsTopicId,
                 uiText(R.string.residents_topic_optional), enabled = !state.busy,
                 hint = uiText(R.string.setup_residents_topic_help))
-        } else if (state.residentsChatId.isNotBlank()) {
+            if (state.residentsChatId.isBlank() || state.reportsTopicId.isNotBlank()) {
+                TelegramIdField(state.reportsTopicId, onSetReportsTopicId, uiText(R.string.ui_project_setup_screen_023),
+                    enabled = !state.busy, hint = uiText(R.string.setup_report_topic_help))
+            }
+        } else if (state.residentsChatId.isNotBlank() || state.reportsTopicId.isNotBlank()) {
             Text(uiText(R.string.setup_residents_retained), style = MaterialTheme.typography.bodySmall)
         }
     }

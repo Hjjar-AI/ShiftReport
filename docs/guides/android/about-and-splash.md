@@ -32,7 +32,7 @@ Version comes from `android/gradle/app-version.properties`; artwork, typography,
 
 The launcher label and accessible app title use plain «مناوب»; the bitmap contains «مُنَاوِبْ» with spaced vowel marks, black lettering, white glyph outlines and transparent surroundings. [Branding source and prompts](../../../samples/previews/branding/README.md) retain the selected artwork and earlier candidates.
 
-`AppBrandMark` displays `drawable-nodpi/app_wordmark.png` at its natural aspect ratio in splash, About and the temporary privacy screen. About separately retains the original hospital emblem on white and all credits. `app_launcher_bitmap.png` supplies the API26+ bitmap wrappers; five density folders contain regular/round lossless WebP icons, with padding for circular masks. Neither artwork is tinted by the selected theme.
+`AppBrandMark` displays `drawable-nodpi/app_wordmark.png` at its natural aspect ratio in splash, About and the temporary privacy screen. About keeps the new app wordmark and all credits; the old hospital emblem and both old emblem images have been removed from Android build resources. `app_launcher_bitmap.png` supplies the API26+ bitmap wrappers; five density folders contain regular/round lossless WebP icons, with padding for circular masks. Neither artwork is tinted by the selected theme.
 
 To regenerate only these image resources with Pillow already available:
 

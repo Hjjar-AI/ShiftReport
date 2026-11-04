@@ -16,6 +16,8 @@ Use [offline verification](build.md#cached-verification-without-packaging), [acc
 
 2 November owner `assembleDebug`: six changed UI files failed despite existing declarations. Read-only inspection of launcher-selected `~/.gradle/shiftreport-project-cache/build-output/app` found 82-byte `app_debug.kotlin_module` indexing only `ReportPreviewScreenKt`, with component classes still present; transformed/resource copies matched. This suggests incomplete incremental metadata, cause unproven. Checkout-local `app/build` was older, not selected.
 
+4 November recurrence: owner `assembleDebug -Pshiftreport.autoVersion=false` failed at root/About/splash/theme callers. All reported declarations/packages exist. Read-only inspection of the work account's launcher-selected output found a24-byte module index with no package entries, alongside all eight relevant facade classes. The terminal account was not supplied; this does not establish another account's cache contents. Snapshot/hash inventory: `local/verification/kotlin-metadata-2026-11-04/`. Incomplete incremental metadata remains the likely cause; no production-source rewrite is indicated by these errors.
+
 With explicit approval/build preflight, try one production-only non-incremental compile without packaging/version reservation:
 
 ```bash
@@ -61,6 +63,7 @@ rg -n -i 'Rushd|AndroidRuntime|FATAL EXCEPTION|ANR|SecurityException|IOException
 | Crash or freeze | Capture the full reproduction; `adb logcat -b crash -d` and `adb shell dumpsys activity lastanr`. |
 | Unexpected restart/navigation | Record rotation, backgrounding, lock state and active form; `adb shell dumpsys activity activities`. |
 | File picker/write failure | Provider, selected filename, nonzero bytes and exact error; retry local Downloads. Never infer success from file existence alone. |
+| Patient CSV completes but Home stays empty | Check narrow `VBA import: parsed`/`applied` diagnostics and file metadata date without logging patient rows. Earlier builds imported into the date-matched ward without selecting it, including all-unchanged imports. The source fix selects the imported ward on confirmation; build/device acceptance is tracked in the handoff. Do not change CSV dates/IDs or clear app data as a workaround. |
 | Network/sync failure | Connectivity, bot membership/admin/pin rights, project topics/key, exact sync state and pending/conflict indicator. Connectivity alone does not mean data is current. |
 | Background work delayed | `adb shell dumpsys jobscheduler` and `adb shell dumpsys deviceidle`; record battery restrictions before changing them. |
 | Memory/jank | `adb shell dumpsys meminfo com.hos.rushdpatients` and `adb shell dumpsys gfxinfo com.hos.rushdpatients`. |

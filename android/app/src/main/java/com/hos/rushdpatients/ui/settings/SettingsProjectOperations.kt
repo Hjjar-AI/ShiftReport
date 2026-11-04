@@ -71,7 +71,7 @@ internal class SettingsProjectOperations(
         }
     }
 
-    fun setSupervisorGroupChatId(expected: Doctor, rawValue: String) {
+    fun setSupervisorGroupChatId(expected: Doctor, rawValue: String, rawTopic: String) {
         if (_state.value.savingSupervisorGroupId != null) return
         val session = sessionManager.current()
         if (session?.isAdmin != true) {
@@ -86,10 +86,16 @@ internal class SettingsProjectOperations(
             }
             return
         }
+        val topicText = rawTopic.trim()
+        val topicId = topicText.takeIf { it.isNotEmpty() }?.toLongOrNull()
+        if (topicText.isNotEmpty() && (topicId == null || topicId <= 0L)) {
+            _state.update { it.copy(snackbar = uiText(R.string.supervisor_topic_invalid)) }
+            return
+        }
         _state.update { it.copy(savingSupervisorGroupId = expected.id, snackbar = null) }
         viewModelScope.launch {
             try {
-                doctorMutations.setSupervisorGroup(expected, chatId)
+                doctorMutations.setSupervisorGroup(expected, chatId, topicId)
                 _state.update { it.copy(savingSupervisorGroupId = null,
                     snackbar = uiText(R.string.ui_settings_project_operations_006)) }
             } catch (e: CancellationException) {

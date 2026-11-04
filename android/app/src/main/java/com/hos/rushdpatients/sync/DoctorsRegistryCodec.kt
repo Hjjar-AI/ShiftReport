@@ -13,7 +13,7 @@ import com.hos.rushdpatients.domain.doctor.DoctorNaming
  * the VBA workbook.
  *
  * Wire format:
- *   #,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId|...@lastId
+ *   #,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId,teamSupervisorId[,supervisorTopicId]|...@lastId
  *
  * `options` string:
  *   - "a<rank>"  → regular admin at rank <rank>
@@ -34,12 +34,14 @@ object DoctorsRegistryCodec {
 
     fun encode(doctors: List<Doctor>): String {
         DoctorTeams.validate(doctors)
+        val includeTopics = doctors.any { !it.isDeleted && it.supervisorTopicId != null }
         val body = buildString {
             append(HEADER)
+            if (includeTopics) append(",supervisorTopicId")
             for (d in doctors) {
                 if (d.isDeleted) continue
                 append(ROW_SEP)
-                append(encodeRow(d))
+                append(encodeRow(d, includeTopics))
             }
         }
         val lastId = doctors.asSequence()
@@ -51,7 +53,7 @@ object DoctorsRegistryCodec {
         return "$body$ID_SEP$lastId"
     }
 
-    private fun encodeRow(d: Doctor): String {
+    private fun encodeRow(d: Doctor, includeTopics: Boolean): String {
         require(d.id.isNotBlank() && d.id.none { it in ",|@\n\r\"" }) {
             "معرّف الطبيب غير صالح لصيغة سجل الأطباء"
         }
@@ -70,7 +72,7 @@ object DoctorsRegistryCodec {
             d.clinicalRole.code,
             d.supervisorGroupChatId?.toString().orEmpty(),
             d.teamSupervisorId.orEmpty()
-        )
+        ) + if (includeTopics) listOf(d.supervisorTopicId?.toString().orEmpty()) else emptyList()
         return fields.joinToString(",")
     }
 
@@ -121,6 +123,7 @@ object DoctorsRegistryCodec {
         val clinicalRoleIdx = header.indexOf("clinicalrole")
         val supervisorGroupChatIdIdx = header.indexOf("supervisorgroupchatid")
         val teamSupervisorIdIdx = header.indexOf("teamsupervisorid")
+        val supervisorTopicIdIdx = header.indexOf("supervisortopicid")
         require(listOf(rankIdx, uidIdx, nameIdx, genderIdx, idIdx, titleIdx, optionsIdx,
             clinicalRoleIdx, supervisorGroupChatIdIdx, teamSupervisorIdIdx).all { it >= 0 }) {
             "سجل الأطباء لا يحتوي جميع الأعمدة المطلوبة"
@@ -163,6 +166,10 @@ object DoctorsRegistryCodec {
 
             val stableId = cols[uidIdx]
             require(stableId.isNotBlank()) { "معرّف الطبيب مفقود" }
+            val topicText = cols.getOrNull(supervisorTopicIdIdx).orEmpty()
+            val supervisorTopicId = topicText.takeIf { it.isNotBlank() }?.toLongOrNull()
+            require(topicText.isBlank() || supervisorTopicId != null && supervisorTopicId > 0L &&
+                clinicalRole == ClinicalRole.SUPERVISOR) { "معرّف موضوع المشرف غير صالح" }
 
             Doctor(
                 id = stableId,
@@ -177,8 +184,8 @@ object DoctorsRegistryCodec {
                 customTitle = title,
                 rank = parsedRank,
                 isPermanentAdmin = parsedOptions.isPermanent,
-                extraOptions = cols[teamSupervisorIdIdx].takeIf { it.isNotBlank() }
-                    ?.let { DoctorOptions.from(emptySet()).withTeamSupervisor(it) }.orEmpty()
+                extraOptions = DoctorOptions.from(DoctorOptions.from(emptySet()).withTeamSupervisor(
+                    cols[teamSupervisorIdIdx].takeIf { it.isNotBlank() })).withSupervisorTopic(supervisorTopicId)
             )
         }
 

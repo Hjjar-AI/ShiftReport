@@ -38,7 +38,9 @@ object ReportReview {
         add(doctors.size.toString())
         doctors.forEach { doctor ->
             add(doctor.id); add(doctor.fullName); add(doctor.gender.name); add(doctor.clinicalRole.name)
-            add(doctor.supervisorGroupChatId?.toString().orEmpty()); add(doctor.telegramId?.toString().orEmpty())
+            add(doctor.supervisorGroupChatId?.toString().orEmpty())
+            doctor.supervisorTopicId?.let { add("supervisor-topic"); add(it.toString()) }
+            add(doctor.telegramId?.toString().orEmpty())
             add(doctor.rank.toString()); add(doctor.isPermanentAdmin.toString()); add(doctor.isDeleted.toString())
         }
         add(report.textChunks.size.toString()); addAll(report.textChunks)

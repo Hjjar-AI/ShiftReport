@@ -1,26 +1,20 @@
 package com.hos.rushdpatients.ui.about
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.semantics.heading
@@ -57,7 +51,7 @@ fun IntroAboutScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.UiSpacing.largeSection)
             ) {
-                IntroCredits(compact = false)
+                IntroCredits()
                 AppVersion()
             }
         }
@@ -77,17 +71,12 @@ private fun AppVersion() {
 }
 
 @Composable
-private fun IntroCredits(compact: Boolean) {
+private fun IntroCredits() {
     AppBrandMark(modifier = Modifier.semantics { heading() })
     val subtitle = stringResource(R.string.about_subtitle)
     if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     CreditBlock(stringResource(R.string.about_supervisor_role), stringResource(R.string.about_supervisor_name), prominent = true)
-    Surface(color = Color.White, shape = MaterialTheme.shapes.large) {
-        Image(painterResource(R.drawable.app_emblem_transparent),
-            contentDescription = stringResource(R.string.about_emblem_description), contentScale = ContentScale.Fit,
-            modifier = Modifier.size(if (compact) com.hos.rushdpatients.ui.theme.UiSize.aboutEmblemCompact else com.hos.rushdpatients.ui.theme.UiSize.aboutEmblem).padding(com.hos.rushdpatients.ui.theme.UiSpacing.screen))
-    }
     CreditBlock(stringResource(R.string.about_technical_role),
         listOf(stringResource(R.string.about_contributors_prefix),
             stringArrayResource(R.array.about_technical_contributors).joinToString("\n"))

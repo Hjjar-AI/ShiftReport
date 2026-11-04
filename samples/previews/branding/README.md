@@ -8,7 +8,7 @@ Selected source: [`munawib-wordmark-transparent-v6.png`](munawib-wordmark-transp
 python3 samples/previews/branding/prepare_android_bitmaps.py
 ```
 
-[`AppBrandMark`](../../../android/app/src/main/java/com/hos/rushdpatients/ui/components/AppBrandMark.kt) owns untinted, aspect-preserving display in Android. The [About/splash guide](../../../docs/guides/android/about-and-splash.md#app-wordmark-and-launcher-bitmaps) maps the runtime resources and entrance behavior. Android integration does not replace the institutional emblem retained in About or alter the other clients' branding.
+[`AppBrandMark`](../../../android/app/src/main/java/com/hos/rushdpatients/ui/components/AppBrandMark.kt) owns untinted, aspect-preserving display in Android. The [About/splash guide](../../../docs/guides/android/about-and-splash.md#app-wordmark-and-launcher-bitmaps) maps the runtime resources and entrance behavior. About displays the selected app wordmark and credits without the old hospital emblem. Both old emblem images have been removed from Android build resources; other clients' branding is unchanged.
 
 PNG transparency, resource XML and circular-mask geometry were inspected locally. Android compilation/device appearance and animation acceptance are tracked only in the [handoff](../../../docs/status/testing-handoff.md).
 

@@ -17,8 +17,15 @@ data class SupervisorReportTarget(
     val doctorId: String,
     val doctorName: String,
     val chatId: Long?,
-    val patientCount: Int
-)
+    val patientCount: Int,
+    val topicId: Long? = null,
+    val usesResidentsGroup: Boolean = false
+) {
+    fun destinationLabel(uiText: UiStrings): String = uiText(
+        if (usesResidentsGroup) R.string.supervisor_route_residents else R.string.supervisor_route_group
+    ) + topicId?.let { " • " + uiText(R.string.supervisor_route_topic,
+        com.hos.rushdpatients.ui.components.uiNumber(it)) }.orEmpty()
+}
 
 internal data class ReportDestinationReview(
     val includeGeneral: Boolean,

@@ -75,13 +75,14 @@ internal fun SupervisorGroupEditor(
     supervisor: Doctor,
     saving: Boolean,
     enabled: Boolean,
-    onSave: (Doctor, String) -> Unit
+    onSave: (Doctor, String, String) -> Unit
 ) {
     val uiText = rememberUiStrings()
     var baseline by remember(supervisor.id) { mutableStateOf(supervisor) }
     var chatId by remember(supervisor.id) {
         mutableStateOf(supervisor.supervisorGroupChatId?.toString().orEmpty())
     }
+    var topicId by remember(supervisor.id) { mutableStateOf(supervisor.supervisorTopicId?.toString().orEmpty()) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -100,19 +101,30 @@ internal fun SupervisorGroupEditor(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         )
+        TelegramIdField(
+            value = topicId,
+            onValueChange = { topicId = it.filter(Char::isDigit) },
+            label = uiText(R.string.supervisor_topic_optional),
+            signed = false,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(uiText(R.string.supervisor_destination_hint), style = MaterialTheme.typography.bodySmall)
         if (supervisor != baseline) {
             AppNotice(uiText(R.string.ui_settings_section_layout_002), kind = com.hos.rushdpatients.ui.components.NoticeKind.WARNING)
             AppTextButton(onClick = {
                 baseline = supervisor
                 chatId = supervisor.supervisorGroupChatId?.toString().orEmpty()
+                topicId = supervisor.supervisorTopicId?.toString().orEmpty()
             }, enabled = enabled) { Text(uiText(R.string.ui_settings_section_layout_003)) }
         }
         LoadingButton(
             outlined = true,
-            text = if (chatId.isBlank()) uiText(R.string.ui_settings_section_layout_004) else uiText(R.string.ui_save),
+            text = if (chatId.isBlank() && topicId.isBlank()) uiText(R.string.ui_settings_section_layout_004) else uiText(R.string.ui_save),
             loading = saving,
-            onClick = { onSave(baseline, chatId) },
-            enabled = enabled && supervisor == baseline && chatId.trim() != supervisor.supervisorGroupChatId?.toString().orEmpty(),
+            onClick = { onSave(baseline, chatId, topicId) },
+            enabled = enabled && supervisor == baseline && (chatId.trim() != supervisor.supervisorGroupChatId?.toString().orEmpty() ||
+                topicId.trim() != supervisor.supervisorTopicId?.toString().orEmpty()),
             modifier = Modifier.fillMaxWidth()
         )
     }

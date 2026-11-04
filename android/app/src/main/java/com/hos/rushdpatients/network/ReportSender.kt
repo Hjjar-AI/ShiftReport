@@ -43,6 +43,7 @@ class ReportSender @Inject constructor(
     private val topics: Topics,
     private val shiftRepository: ShiftRepository,
     private val auditRepository: AuditRepository,
+    private val doctorRepository: com.hos.rushdpatients.data.repository.DoctorRepository,
     private val deliveryLedger: ReportDeliveryLedger
 ) {
 
@@ -62,8 +63,8 @@ class ReportSender @Inject constructor(
             if (pdf) "PDF" else "TEXT", topics.threadId(Topic.REPORTS))
     }
 
-    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long, pdfFile: File) = withContext(Dispatchers.IO) {
-        deliveryLedger.check(shift.id, chatId, pdfContentKey(contentKey, pdfFile), "PDF")
+    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long, pdfFile: File, topicId: Long? = null) = withContext(Dispatchers.IO) {
+        deliveryLedger.check(shift.id, chatId, pdfContentKey(contentKey, pdfFile), "PDF", topicId)
     }
 
     suspend fun sendTextReport(
@@ -116,7 +117,7 @@ class ReportSender @Inject constructor(
 
     private sealed interface PdfDestination {
         object General : PdfDestination
-        data class Supervisor(val doctor: Doctor, val chatId: Long) : PdfDestination
+        data class Supervisor(val doctor: Doctor, val chatId: Long, val topicId: Long?) : PdfDestination
     }
 
     suspend fun sendPdfReport(
@@ -126,9 +127,9 @@ class ReportSender @Inject constructor(
 
     suspend fun sendSupervisorPdfReport(
         shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, supervisor: Doctor,
-        chatId: Long, contentKey: String, fileName: String? = null
+        chatId: Long, contentKey: String, fileName: String? = null, topicId: Long? = null
     ): SendResult = sendPdf(shift, pdfFile, caption, actor, contentKey, fileName,
-        PdfDestination.Supervisor(supervisor, chatId))
+        PdfDestination.Supervisor(supervisor, chatId, topicId))
 
     private suspend fun sendPdf(
         shift: Shift, pdfFile: File, caption: String?, actor: Doctor?, contentKey: String,
@@ -140,9 +141,19 @@ class ReportSender @Inject constructor(
         if (supervisor != null) require(chatId < 0L) { context.getString(R.string.report_supervisor_chat_invalid) }
         require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
         val label = supervisor?.doctor?.fullName ?: context.getString(R.string.report_general_route_label)
-        val topicId = if (destination == PdfDestination.General) topics.threadId(Topic.REPORTS) else null
+        val topicId = if (destination == PdfDestination.General) topics.threadId(Topic.REPORTS) else supervisor?.topicId
+        suspend fun requireSupervisorDestination() {
+            if (supervisor == null) return
+            val live = doctorRepository.getActiveById(supervisor.doctor.id)
+            val route = live?.let { com.hos.rushdpatients.domain.report.SupervisorDestination.resolve(it, topics.reportsChatId) }
+            require(live == supervisor.doctor && route?.chatId == chatId && route?.topicId == topicId) {
+                context.getString(R.string.report_supervisor_destination_changed)
+            }
+        }
+        requireSupervisorDestination()
         deliveryLedger.deliver(shift.id, chatId, pdfContentKey(contentKey, pdfFile), "PDF", label, actor?.id, topicId = topicId) { receipt ->
             check(connectionUnchanged()) { "تغيرت وجهة التقرير؛ أعد المعاينة" }
+            requireSupervisorDestination()
             val titleParts = com.hos.rushdpatients.domain.report.ReportChunking.captionParts(caption.orEmpty())
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = chatId, file = pdfFile, fileName = fileName, caption = titleParts.firstOrNull(),

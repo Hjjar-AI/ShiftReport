@@ -16,6 +16,7 @@ object DoctorTeams {
     fun validate(doctors: List<Doctor>) {
         val active = doctors.filterNot { it.isDeleted }.associateBy { it.id }
         active.values.forEach { doctor ->
+            com.hos.rushdpatients.domain.report.SupervisorDestination.validate(doctor)
             val links = doctor.options.teamSupervisorIds
             require(links.size <= 1 && links.none { it.isBlank() }) { "لكل مقيم مشرف فريق واحد فقط" }
             doctor.teamSupervisorId?.let { id ->
@@ -33,7 +34,8 @@ object DoctorTeams {
             resident.teamSupervisorId != patientSupervisorId
 
     fun sharedOptions(local: Set<String>, incoming: Doctor): Set<String> =
-        DoctorOptions.from(local).withSharedTeam(incoming.options)
+        DoctorOptions.from(DoctorOptions.from(local).withSharedTeam(incoming.options))
+            .withSupervisorTopic(incoming.supervisorTopicId)
 
     /** Map explicit spreadsheet-import matches to the current local team IDs. */
     fun remap(doctors: List<Doctor>, aliases: Map<String, String>): List<Doctor> = doctors.map { doctor ->

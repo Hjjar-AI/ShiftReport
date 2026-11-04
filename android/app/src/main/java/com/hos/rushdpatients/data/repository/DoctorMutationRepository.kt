@@ -108,8 +108,9 @@ class DoctorMutationRepository @Inject constructor(
                 supervisorGroupChatId = current.supervisorGroupChatId.takeIf { input.clinicalRole == ClinicalRole.SUPERVISOR },
                 telegramId = input.telegramId,
                 customTitle = input.customTitle?.takeIf { it.isNotBlank() },
-                extraOptions = if (pinHash == null) current.extraOptions else
-                    current.options.withPinHash(pinHash)
+                extraOptions = DoctorOptions.from(if (pinHash == null) current.extraOptions else
+                    current.options.withPinHash(pinHash)).withSupervisorTopic(
+                        current.supervisorTopicId.takeIf { input.clinicalRole == ClinicalRole.SUPERVISOR })
             ), input.teamSupervisorId.takeIf { input.clinicalRole == ClinicalRole.RESIDENT })
             requireUnique(updated)
             doctors.upsert(updated)
@@ -166,6 +167,7 @@ class DoctorMutationRepository @Inject constructor(
         require(imported.isNotEmpty() && imported.size <= AppConstants.MAX_DOCTORS) { "عدد سجلات الاستيراد غير صالح" }
         require(imported.map { it.id }.distinct().size == imported.size) { "معرّفات مستوردة مكررة" }
         imported.forEach {
+            com.hos.rushdpatients.domain.report.SupervisorDestination.validate(it)
             require(it.id.isNotBlank() && it.rank >= 0 && (!it.isPermanentAdmin || it.rank > 0)) { "هوية أو صلاحية مستوردة غير صالحة" }
             require(DoctorValidator.validate(it.firstName, it.lastName, it.customTitle) is DoctorValidationResult.Valid) { "اسم أو لقب مستورد غير صالح" }
             require(it.supervisorGroupChatId == null ||
@@ -278,16 +280,17 @@ class DoctorMutationRepository @Inject constructor(
         }
     }
 
-    suspend fun setSupervisorGroup(expected: Doctor, chatId: Long?) = withContext(dispatchers.io) {
+    suspend fun setSupervisorGroup(expected: Doctor, chatId: Long?, topicId: Long? = expected.supervisorTopicId) = withContext(dispatchers.io) {
         require(chatId == null || chatId < 0) { "معرف مجموعة تليجرام يجب أن يكون رقماً سالباً" }
+        require(topicId == null || topicId > 0) { "معرّف الموضوع يجب أن يكون عدداً موجباً" }
         database.withTransaction {
             val actor = authorizer.requireAdmin()
             val current = requireCurrent(expected)
             require(current.clinicalRole == ClinicalRole.SUPERVISOR) { "يمكن ربط مجموعة بالمشرفين فقط" }
-            doctors.upsert(current.copy(supervisorGroupChatId = chatId))
+            doctors.upsert(current.copy(supervisorGroupChatId = chatId,
+                extraOptions = current.options.withSupervisorTopic(topicId)))
             audit.record(actor.id, actor.fullName, AppConstants.AUDIT_DOCTOR_EDITED,
-                "supervisor_group:${current.id}", beforeValue = current.supervisorGroupChatId?.toString().orEmpty(),
-                afterValue = chatId?.toString().orEmpty())
+                "supervisor_destination:${current.id}")
         }
     }
 

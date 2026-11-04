@@ -157,7 +157,7 @@ object DoctorCsvCodec {
                 extraOptions = DoctorOptions.from(row.value("extra_options").split(';').map(String::trim).filter(String::isNotBlank).toSet()).portable,
                 updatedAt = updatedAt,
                 deletedAt = deletedAt
-            )
+            ).also { com.hos.rushdpatients.domain.report.SupervisorDestination.validate(it) }
         }
 
         require(doctors.isNotEmpty()) { "ملف الأطباء لا يحتوي سجلات" }

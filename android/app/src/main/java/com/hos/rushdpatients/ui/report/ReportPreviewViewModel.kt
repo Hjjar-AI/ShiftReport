@@ -419,7 +419,7 @@ class ReportPreviewViewModel @Inject constructor(
                 }
                 for (target in selected) {
                     reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId),
-                        requireNotNull(target.chatId), checkedPdf(reviewed, target.doctorId))
+                        requireNotNull(target.chatId), checkedPdf(reviewed, target.doctorId), target.topicId)
                 }
                 publishReviewedSnapshot(reviewed)
                 val built = reviewed
@@ -427,7 +427,8 @@ class ReportPreviewViewModel @Inject constructor(
                 val targets = selected
                 for (target in targets) {
                     val live = doctorRepository.getActiveById(target.doctorId)
-                    require(live != null && live.supervisorGroupChatId == target.chatId && live.clinicalRole.canBeSupervisor()) {
+                    val route = live?.let { supervisorDestination(it) }
+                    require(live != null && route?.chatId == target.chatId && route?.topicId == target.topicId && live.clinicalRole.canBeSupervisor()) {
                         uiText(R.string.report_supervisor_destination_changed)
                     }
                 }
@@ -546,9 +547,11 @@ class ReportPreviewViewModel @Inject constructor(
                 fileName = reportFileName(built.summary.shiftDate), caption = caption, actor = actor,
                 contentKey = ReportReview.fingerprint(built))
         } else {
+            val destination = requireNotNull(target)
             reportSender.sendSupervisorPdfReport(shift = built.shift, pdfFile = file, caption = caption, actor = actor,
                 fileName = pdfWorkspace.reportFileName(built.summary.shiftDate, "supervisor:${supervisor.id}", supervisorName = supervisor.fullName),
-                supervisor = supervisor, chatId = requireNotNull(requireNotNull(target).chatId),
+                supervisor = supervisor, chatId = requireNotNull(destination.chatId),
+                topicId = destination.topicId,
                 contentKey = ReportReview.supervisorFingerprint(built, supervisor.id))
         }
     }
@@ -565,15 +568,21 @@ class ReportPreviewViewModel @Inject constructor(
                 val doctor = built.registryDoctors.firstOrNull { it.id == id && !it.isDeleted }
                     ?: return@mapNotNull null
                 if (!doctor.clinicalRole.canBeSupervisor()) return@mapNotNull null
+                val destination = supervisorDestination(doctor)
                 SupervisorReportTarget(
                     doctorId = doctor.id,
                     doctorName = doctor.fullName,
-                    chatId = doctor.supervisorGroupChatId,
-                    patientCount = patients.size
+                    chatId = destination?.chatId,
+                    patientCount = patients.size,
+                    topicId = destination?.topicId,
+                    usesResidentsGroup = doctor.supervisorGroupChatId == null
                 )
             }
             .sortedBy { it.doctorName }
 
     private fun reportFileName(date: java.time.LocalDate): String = pdfWorkspace.reportFileName(date)
+
+    private fun supervisorDestination(doctor: Doctor) = com.hos.rushdpatients.domain.report.SupervisorDestination.resolve(
+        doctor, projectConfigStore.current().let { it.residentsChatId.takeIf { id -> id != 0L } ?: it.chatId })
 
 }

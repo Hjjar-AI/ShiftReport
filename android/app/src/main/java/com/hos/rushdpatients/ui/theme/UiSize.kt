@@ -6,8 +6,6 @@ import androidx.compose.ui.unit.dp
 object UiSize {
     val pdfAppearancePreview = 72.dp
     val appWordmark = 320.dp
-    val aboutEmblemCompact = 128.dp
-    val aboutEmblem = 180.dp
     val statusEdge = 8.dp
     val patientOrdinal = 32.dp
     val fieldMinHeight = UiSpacing.touchTarget

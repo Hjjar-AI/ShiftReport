@@ -288,7 +288,7 @@ class SettingsViewModel @Inject constructor(
     fun setReportWardName(value: String) = preferences.setReportWardName(value)
 
 
-    fun setSupervisorGroupChatId(expected: Doctor, rawValue: String) = projectOperations.setSupervisorGroupChatId(expected, rawValue)
+    fun setSupervisorGroupChatId(expected: Doctor, rawValue: String, rawTopic: String) = projectOperations.setSupervisorGroupChatId(expected, rawValue, rawTopic)
 
     fun setBiometric(value: Boolean) = preferences.setBiometric(value)
 
