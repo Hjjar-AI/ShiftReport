@@ -14,7 +14,7 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
-/** Presentation only: the controller still owns the exact artifact and successful viewer opening. */
+/** Presentation only: PDF viewing is optional; the controller owns exact artifacts. */
 internal data class ReportPreviewItem(val key: String, val label: String, val reviewed: Boolean)
 
 @Composable
@@ -22,6 +22,7 @@ internal fun ReportPreviewList(items: List<ReportPreviewItem>, enabled: Boolean,
     onPreview: (ReportPreviewItem) -> Unit) {
     val uiText = rememberUiStrings()
     AppSection(title = uiText(R.string.ui_report_preview_screen_058)) {
+        Text(uiText(R.string.report_pdf_preview_optional), style = MaterialTheme.typography.bodySmall)
         Text(uiText(R.string.report_preview_progress, uiNumber(items.count { it.reviewed }), uiNumber(items.size)),
             style = MaterialTheme.typography.bodySmall)
         Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {

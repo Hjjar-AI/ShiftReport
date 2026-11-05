@@ -27,7 +27,7 @@ enum class PatientSyncStatus(@StringRes private val arabicLabelRes: Int) {
     fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }
 
-enum class WardSyncRecovery { PUBLISH_DOCTORS, FETCH_DOCTORS, PUBLISH_PATIENTS }
+enum class WardSyncRecovery { PUBLISH_DOCTORS, FETCH_DOCTORS, PUBLISH_PATIENTS, SELECT_SHIFT_DOCTORS }
 
 enum class WardRetryAction { FETCH_LATEST, PUBLISH, EXPORT_CSV }
 

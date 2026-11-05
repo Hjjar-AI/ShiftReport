@@ -97,7 +97,7 @@ class BrowserWorkspace:
         self.forms = {}
         self.rounds = {}
         self.preferences = dict(text_size='100', motion='system', spacing='normal',
-                                grouping='NONE', card_controls=True, pinning=False,two_column=False)
+                                grouping='NONE', card_controls=True, pinning=False)
         self.pinned = set()
         self.intro_deadline = None
         self.intro_dismissed = False

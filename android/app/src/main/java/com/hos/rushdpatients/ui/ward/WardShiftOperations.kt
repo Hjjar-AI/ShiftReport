@@ -34,7 +34,8 @@ internal class WardShiftOperations(
     fun reviewPendingPublication() {
         val shift = _state.value.shift ?: return
         if (_state.value.syncing || _state.value.saving) return
-        _state.update { it.copy(syncing = true, syncProgressRes = R.string.ui_progress_prepare_publication) }
+        _state.update { it.copy(syncing = true, syncProgressRes = R.string.ui_progress_prepare_publication,
+            syncIssue = null, syncRecovery = null, retryAction = null, snackbar = null) }
         viewModelScope.launch {
             try {
                 val review = syncService.prepareCsvPublication(shift.id)
@@ -110,6 +111,7 @@ internal class WardShiftOperations(
                 if (error.action == com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH)
                     WardSyncRecovery.PUBLISH_DOCTORS else WardSyncRecovery.FETCH_DOCTORS
             is com.hos.rushdpatients.sync.LocalPatientChangesPendingException -> WardSyncRecovery.PUBLISH_PATIENTS
+            is com.hos.rushdpatients.domain.report.ShiftDoctorsRequiredException -> WardSyncRecovery.SELECT_SHIFT_DOCTORS
             else -> null
         }
         _state.update { it.copy(syncing = false, snackbar = null,

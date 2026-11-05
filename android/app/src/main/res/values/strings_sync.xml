@@ -30,7 +30,7 @@
     <string name="doctors_registry_invalid_rank" formatted="false">"رتبة المدير أو الصلاحية الدائمة غير صالحة"</string>
     <string name="doctors_registry_duplicate_rank" formatted="false">"رتب المديرين مكررة؛ راجع تعارض إسناد الرتبة"</string>
     <string name="doctors_registry_path_unavailable" formatted="false">"تعذر الحصول على سجل الأطباء"</string>
-    <string name="patients_publication_absent" formatted="false">"لا يوجد ملف منشور بعد"</string>
+    <string name="patients_publication_absent" formatted="false">"لم تُنشر بيانات المرضى في هذا المشروع بعد؛ لا توجد نسخة لجلبها. لنشر البيانات المحلية، اختر «رفع البيانات للشبكة فقط» وراجع النسخة ثم أكّد النشر."</string>
     <string name="sync_file_path_unavailable" formatted="false">"تعذر الحصول على مسار الملف"</string>
     <string name="patients_local_changed_download" formatted="false">"تغيرت البيانات المحلية أثناء التنزيل؛ أعد المزامنة لنشر التعديلات بأمان"</string>
     <string name="sync_list_separator" formatted="false">"، "</string>

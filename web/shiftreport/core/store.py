@@ -99,6 +99,7 @@ class Workspace:
         if downloaded:
             from .protocol import fingerprint
             changes['downloadUndo']=dict(before=copy.deepcopy(self.state.get('draft')),after=fingerprint(shift)) if self.state.get('draft') is not None else None
+            changes['pendingImport']=None
         self.commit(**changes)
 
     def undo_download(self, client, expected):
@@ -121,6 +122,7 @@ class Workspace:
         from .reports import publication_content
         from .protocol import fingerprint
         draft=self.read()
+        if self.state.get('pendingImport')==draft['meta']['shiftId']:return True
         known=next((shift for shift in (self.state.get('baseline') or {}).get('bundle',[])
                     if shift['meta']['shiftId']==draft['meta']['shiftId']),None)
         empty=not draft['patients'] and not draft['meta'].get('doctors')

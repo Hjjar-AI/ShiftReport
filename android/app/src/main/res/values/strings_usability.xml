@@ -82,6 +82,7 @@
     <string name="report_preview_destination">معاينة: %1$s</string>
     <string name="report_preview_progress">تمت معاينة %1$s من %2$s</string>
     <string name="report_preview_opened">تم فتح المعاينة</string>
+    <string name="report_pdf_preview_optional">معاينة ملفات PDF اختيارية؛ يمكنك إرسال التقارير دون فتحها.</string>
     <string name="backup_saved_bookkeeping_warning">حُفظت النسخة الاحتياطية، لكن تعذر تحديث معلومات التخزين المحلية. الملف المحفوظ صالح؛ لا حاجة لإعادة التصدير.</string>
     <string name="report_share_launch_failed">تعذر فتح نافذة المشاركة. الملف محفوظ للمعاينة؛ حاول المشاركة مجدداً.</string>
     <string name="sync_fetch_bookkeeping_warning">تم جلب البيانات واستبدال النسخة المحلية، لكن تعذر تنظيف الذاكرة المؤقتة. يمكنك التراجع إلى النسخة المحلية السابقة؛ لا حاجة لإعادة الجلب.</string>

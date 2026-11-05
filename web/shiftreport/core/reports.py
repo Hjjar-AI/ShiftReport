@@ -28,10 +28,8 @@ def report_destination(client, doctors, supervisor=None):
         if client.config.get('residentsChatId'):
             return client.config['residentsChatId'], client.config.get('residentsTopicId') or None
         return client.config['chatId'], client.config.get('reportsTopicId') or None
-    doctor = doctors.get(supervisor)
-    require(doctor and doctor['clinicalRole'] == 'SUPERVISOR' and doctor.get('destination'),
-            'وجهة المشرف غير متاحة')
-    return doctor['destination'], None
+    from .supervisor_routes import resolve_route
+    return resolve_route(client.config, doctors.get(supervisor, {}))
 
 
 def report_text(client, shift, supervisor=None, report_day=None):
@@ -90,7 +88,7 @@ def prepare_delivery(client, local):
     return plan,plan.shift if needs_publish else remote,needs_publish
 
 
-def publication_review(plan, zone):
+def publication_review(plan, zone, report_day=None):
     from .model import patient_text, patient_name
     before=max(plan.bundle,key=lambda s:s['meta']['shiftDate'],default={'patients':[]})
     old={p['externalId']:p for p in before['patients']};new={p['externalId']:p for p in plan.shift['patients']}
@@ -103,7 +101,7 @@ def publication_review(plan, zone):
         lines+=['\nالمريض: '+patient_name(new.get(key,old.get(key,{}))),
                 '\nقبل:\n'+patient_text(old.get(key),plan.remote['doctors'],zone),
                 '\nبعد:\n'+patient_text(new.get(key),plan.remote['doctors'],zone)]
-    lines+=['\nالنسخة الكاملة التي ستنشر:\n'+shift_text(plan.shift,plan.remote['doctors'],zone)]
+    lines+=['\nالنسخة الكاملة التي ستنشر:\n'+shift_text(plan.shift,plan.remote['doctors'],zone,report_day)]
     return '\n'.join(lines)
 
 

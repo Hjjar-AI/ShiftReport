@@ -55,53 +55,82 @@ internal class ReportLocalActions(
             openedPdfUris = it.openedPdfUris - listOfNotNull(it.pdfReviewUris[key]).toSet(),
             pdfReviewUris = it.pdfReviewUris - key) }
         viewModelScope.launch {
-            var temporary: File? = null
             try {
                 val built = reviewedSnapshot() ?: throw PdfReviewRequiredException(uiText)
-                validateExport(built, true) // Viewing never requires publication.
-                val prepared = withContext(Dispatchers.IO) {
-                    checkRoute(built, route)
-                    val selected = when {
-                        route.startsWith("supervisor:") -> pdfWorkspace.supervisorPdfReport(built, route.removePrefix("supervisor:"))
-                        route == "unassigned" -> {
-                            val patients = built.patients.filter { it.responsibleSpecialistId == null }
-                            built.copy(patients = patients, summary = built.summary.copy(patientCount = patients.size,
-                                psychoCount = patients.count { it.diagnosisType != com.hos.rushdpatients.data.model.DiagnosisType.ADDICTION },
-                                escortCount = patients.count { it.hasCompanion }))
-                        }
-                        else -> built
-                    }
-                    val options = pdfWorkspace.loadPdfOptions()
-                    val style = PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE))
-                    val dir = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
-                    val file = File.createTempFile(if (draft) "draft_report_" else "reviewed_report_", ".pdf", dir)
-                    temporary = file
-                    val label = if (draft) uiText(R.string.report_local_draft_label) else null
-                    if (route == "assignments") assignmentPdfExporter.export(built.patients, built.doctorNames,
-                        built.registryDoctors, built.summary, options, file, documentLabel = label)
-                    else pdfWorkspace.renderPdf(selected.patients, selected.doctors, selected.summary,
-                        selected.doctorNames, selected.doctorNames, options, file, style, documentLabel = label)
-                    ReviewedPdf(file, pdfWorkspace.pdfDigest(file), ReportReview.exportFingerprint(built), options, style, built)
-                }
-                validateExport(built, true)
-                check(_state.value.pdfReviewGeneration == generation) { uiText(R.string.ui_report_local_actions_001) }
-                val displayName = pdfWorkspace.reportFileName(built.summary.shiftDate, route, draft,
-                    built.registryDoctors.firstOrNull { route == "supervisor:${it.id}" }?.fullName)
-                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", prepared.file, displayName)
-                pdfWorkspace.replaceReview(key, prepared)
-                temporary = null
-                _state.update { it.copy(previewingPdf = false, pdfPreviewUri = uri,
-                    pdfReviewUris = it.pdfReviewUris + (key to uri.toString())) }
+                val uri = preparePdf(built, route, draft, generation)
+                _state.update { it.copy(previewingPdf = false, pdfPreviewUri = uri) }
             } catch (e: CancellationException) {
-                pdfWorkspace.removeReview(key)
                 _state.update { it.copy(previewingPdf = false) }
                 throw e
             } catch (e: Exception) {
-                pdfWorkspace.removeReview(key)
                 _state.update { it.copy(previewingPdf = false, error = e.message, retryAction = null) }
-            } finally {
-                temporary?.let { ClinicalPdfCache.delete(listOf(it)) }
             }
+        }
+    }
+
+    /** Prepare all selected PDFs before publication; opened files keep their exact bytes. */
+    suspend fun prepareDeliveryPdfs(built: BuiltReport, routes: Set<String>) {
+        val generation = _state.value.pdfReviewGeneration
+        for (route in routes) {
+            check(route == "general" || route.startsWith("supervisor:"))
+            checkRoute(built, route)
+            if (_state.value.pdfReviewUris[route] == null) preparePdf(built, route, false, generation, forDelivery = true)
+            pdfWorkspace.checkedExportPdf(built, route, draft = false)
+        }
+        check(_state.value.pdfReviewGeneration == generation) { uiText(R.string.ui_report_local_actions_001) }
+    }
+
+    private suspend fun preparePdf(built: BuiltReport, route: String, draft: Boolean, generation: Long,
+        forDelivery: Boolean = false): Uri {
+        val key = pdfWorkspace.exportKey(route, draft)
+        var temporary: File? = null
+        try {
+            // Delivery renders the captured review; later local clinical edits remain pending.
+            if (!forDelivery) validateExport(built, true)
+            val prepared = withContext(Dispatchers.IO) {
+                checkRoute(built, route)
+                val selected = when {
+                    route.startsWith("supervisor:") -> pdfWorkspace.supervisorPdfReport(built, route.removePrefix("supervisor:"))
+                    route == "unassigned" -> {
+                        val patients = built.patients.filter { it.responsibleSpecialistId == null }
+                        built.copy(patients = patients, summary = built.summary.copy(patientCount = patients.size,
+                            psychoCount = patients.count { it.diagnosisType != com.hos.rushdpatients.data.model.DiagnosisType.ADDICTION },
+                            escortCount = patients.count { it.hasCompanion }))
+                    }
+                    else -> built
+                }
+                val options = pdfWorkspace.loadPdfOptions()
+                val style = PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE))
+                val current = _state.value
+                check(style == current.pdfStyle && options.copy(generatedAtEpochMillis = 0) ==
+                    current.pdfOptions.copy(generatedAtEpochMillis = 0)) { uiText(R.string.report_export_changed) }
+                val dir = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
+                val file = File.createTempFile(if (draft) "draft_report_" else "reviewed_report_", ".pdf", dir)
+                temporary = file
+                val label = if (draft) uiText(R.string.report_local_draft_label) else null
+                if (route == "assignments") assignmentPdfExporter.export(built.patients, built.doctorNames,
+                    built.registryDoctors, built.summary, options, file, documentLabel = label)
+                else pdfWorkspace.renderPdf(selected.patients, selected.doctors, selected.summary,
+                    selected.doctorNames, selected.doctorNames, options, file, style, documentLabel = label)
+                ReviewedPdf(file, pdfWorkspace.pdfDigest(file), ReportReview.exportFingerprint(built), options, style, built)
+            }
+            if (!forDelivery) validateExport(built, true)
+            check(_state.value.pdfReviewGeneration == generation) { uiText(R.string.ui_report_local_actions_001) }
+            val displayName = pdfWorkspace.reportFileName(built.summary.shiftDate, route, draft,
+                built.registryDoctors.firstOrNull { route == "supervisor:${it.id}" }?.fullName)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", prepared.file, displayName)
+            pdfWorkspace.replaceReview(key, prepared)
+            temporary = null
+            _state.update { it.copy(pdfReviewUris = it.pdfReviewUris + (key to uri.toString())) }
+            return uri
+        } catch (e: CancellationException) {
+            pdfWorkspace.removeReview(key)
+            throw e
+        } catch (e: Exception) {
+            pdfWorkspace.removeReview(key)
+            throw e
+        } finally {
+            temporary?.let { ClinicalPdfCache.delete(listOf(it)) }
         }
     }
 

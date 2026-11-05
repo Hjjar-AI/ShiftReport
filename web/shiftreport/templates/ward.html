@@ -35,7 +35,6 @@
     <label>التجميع للعرض<select name="grouping">{% for key,label in [('NONE','دون تجميع'),('SUPERVISOR','حسب الاختصاصي'),('RESIDENT','حسب المقيم'),('DIAGNOSIS','حسب التصنيف'),('GENDER','حسب الجنس'),('ADMISSION_DATE','حسب تاريخ القبول')] %}<option value="{{ key }}" {% if workspace.preferences.grouping==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
     <label>التباعد<select name="spacing"><option value="normal">عادي</option><option value="comfortable" {% if workspace.preferences.spacing=='comfortable' %}selected{% endif %}>مريح</option></select></label>
     <label class="check"><input type="checkbox" name="controls" value="1" {% if workspace.preferences.card_controls %}checked{% endif %}>أزرار إجراءات البطاقات</label>
-    <label class="check"><input type="checkbox" name="two_column" value="1" {% if workspace.preferences.two_column %}checked{% endif %}>التفاصيل السريرية بعمودين عند توفر المساحة</label>
     <label class="check"><input type="checkbox" name="pinning" value="1" {% if workspace.preferences.pinning %}checked{% endif %}>تثبيت للعرض فقط</label><button class="secondary">تطبيق العرض</button>
     </form>
   </div>

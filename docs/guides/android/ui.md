@@ -3,6 +3,7 @@
 [Behavior/evidence](../../status/current-state.md) · [Tokens/components](../../reference/design-catalog.md) · [Unselected choices](../../decisions/android-ui-options.md) · [Implementation roadmap](../../status/roadmap.md).
 
 - ViewModels own mutations; retain exclusive drafts/overlays, clinical last-save-wins and privileged [write/review guards](../../status/current-state.md#clinical-write-safety).
+- General/supervisor PDF viewing is optional before Send; keep the report-summary review and final destination confirmation. Prepare unopened files from the captured report before publication and reuse/check existing exact artifacts. General-text and standalone local-export previews retain their existing requirements.
 - Card tap/long press→guarded Edit directly; Save/Cancel return to the list and Save and next stays in Edit when a successor exists. Read-only card taps expand/collapse inline content. Preserve expansion/copy/delete/stored order, separate Add, roster-first exact-artifact reporting, visible UNKNOWN/recovery and service authorization.
 - Reuse RTL/wrapping/≥48dp/fold-safe components; keep feature sections local and state with existing owners. Preserve semantic colors/full clinical text/Tajawal/emblem/credits/splash and [demo isolation](demo.md).
 

@@ -75,7 +75,7 @@ internal class PatientRetrievalCoordinator(
         withContext(dispatchers.io) {
             try {
                 val state = remoteState.readState()
-                    ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.patients_publication_absent)))
+                    ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.sync_index_unavailable)))
                 val snapshot = state.currentCsvSnapshot()
                 if (snapshot == null) {
                     val message = context.getString(R.string.patients_publication_absent)

@@ -53,7 +53,7 @@ def data():
             def apply():
                 w.ready()
                 validate_restore(w.store,w.client,value['draft'],expected)
-                w.store.commit(draft=value['draft'],recycle=value.get('recycle',[]),patientForm=None)
+                w.store.commit(draft=value['draft'],recycle=value.get('recycle',[]),patientForm=None,pendingImport=value['draft']['meta']['shiftId'])
                 w.forms.clear()
             return reviewed_action('workspace_restore',value,'استعادة مرضى القسم والسلة محلياً فقط؛ يحتفظ هذا الجهاز بهويته وإيصالاته واتصاله.\n\n'+shift_text(value['draft'],w.client.doctors,w.client.zone),apply)
         if action in ('restore','import_csv'):
@@ -69,14 +69,16 @@ def data():
             def apply():
                 w.ready()
                 restore(w.store,w.client,candidate,expected)
-            return reviewed_action('restore',candidate,'استعادة محلية فقط؛ لا نشر ولا تغيير لإيصالات التسليم.\n\n'+shift_text(candidate,w.client.doctors,w.client.zone),apply)
+                w.forms.clear()
+                w.notice='تم الاستيراد محلياً. تظهر القائمة على الرئيسية وتبقى بانتظار الرفع؛ لم تُنشر تلقائياً.'
+            return reviewed_action('restore',candidate,'ستظهر القائمة المستوردة على الرئيسية مع الاحتفاظ بمعرّفاتها وتواريخها. استبدال محلي كامل بعد حفظ نسخة استرداد؛ تبقى بانتظار الرفع دون نشر تلقائي أو تغيير لإيصالات التسليم.\n\n'+shift_text(candidate,w.client.doctors,w.client.zone),apply)
         if action=='undo':
             undo=w.store.state.get('downloadUndo')
             require(undo and undo.get('before') is not None,'لا يوجد جلب للتراجع عنه')
             require(expected==undo['after'],'تغيرت البيانات منذ الجلب؛ لن تُستبدل التعديلات')
             def apply():
                 require(fingerprint(w.store.read())==expected,'تغيرت البيانات؛ أعد المراجعة')
-                changes=dict(draft=undo['before'],downloadUndo=None)
+                changes=dict(draft=undo['before'],downloadUndo=None,pendingImport=undo.get('pending_before'))
                 if undo.get('baseline_before') is not None:
                     changes['baseline']=undo['baseline_before']
                     w.client.baseline=copy.deepcopy(undo['baseline_before'])
@@ -98,13 +100,18 @@ def data():
                     require(all(k in snapshot['doctors'] for k in filter(None,shift['meta'].get('doctors','').split(','))),'استخدم الجلب الكامل؛ أطباء المناوبة غير متاحين')
                     source=shift
                 else:
-                    require(len(snapshot['bundle'])==1,'لا توجد نسخة قسم منشورة')
+                    if not snapshot['bundle']:
+                        w.notice='لم تُنشر بيانات المرضى بعد. راجع رفع البيانات من مركز المزامنة لنشر القائمة المحلية دون إرسال PDF.'
+                        return redirect(url_for('features.sync'),code=303)
+                    require(len(snapshot['bundle'])==1,'نسخة القسم المنشورة غير صالحة')
                     source=copy.deepcopy(snapshot['bundle'][0])
             def apply():
                 w.ready(online=not w.demo)
                 require(fingerprint(w.store.read())==expected,'تغيرت البيانات المحلية؛ أعد مراجعة الجلب')
-                undo=dict(before=shift,after=fingerprint(source),baseline_before=copy.deepcopy(w.store.state.get('baseline')))
-                changes=dict(draft=source,downloadUndo=undo,patientForm=None)
+                undo=dict(before=shift,after=fingerprint(source),baseline_before=copy.deepcopy(w.store.state.get('baseline')),
+                          pending_before=w.store.state.get('pendingImport'))
+                changes=dict(draft=source,downloadUndo=undo,patientForm=None,
+                             pendingImport=w.store.state.get('pendingImport') if action=='doctors_fetch' else None)
                 if snapshot is not None:
                     fresh=w.client.fetch()
                     w.client.authorize(fresh['doctors'])
@@ -137,6 +144,9 @@ def sync():
         action=request.form.get('action')
         if action=='publish':
             local=w.store.read()
+            if not local['meta'].get('doctors'):
+                w.notice='اختر أطباء المناوبة أولاً، ثم عد إلى مركز المزامنة لمراجعة رفع البيانات دون إرسال تقرير.'
+                return redirect(url_for('features.roster'),code=303)
             expected=fingerprint(local)
             if w.demo:
                 def apply():

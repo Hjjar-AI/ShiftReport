@@ -6,7 +6,6 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import com.hos.rushdpatients.ui.components.AppChoiceRow
-import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.ui.components.AppTextField
 import com.hos.rushdpatients.ui.components.AppPickerField
@@ -14,6 +13,7 @@ import com.hos.rushdpatients.ui.components.LocalFieldEnabled
 import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDirection
 import com.hos.rushdpatients.data.model.Doctor
+import com.hos.rushdpatients.ui.theme.UiDialog
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -137,7 +138,9 @@ internal fun DoctorDropdown(
                 selectedIds = setOfNotNull(selectedId), enabled = enabled,
                 onSelected = { doctor, _ -> onSelected(doctor.id); expanded = false },
                 emptyText = uiText(R.string.ui_shift_doctor_picker_006),
-                modifier = Modifier.appDialogBody(),
+                // The popup already reserves its title/actions. Use that remaining
+                // viewport directly so a short filtered list can expose its last row.
+                modifier = Modifier.heightIn(max = UiDialog.bodyMaxHeight),
                 leadingContent = {
                     AppChoiceRow(label = undefinedLabel, selected = selectedId == null, enabled = enabled,
                         onClick = { onSelected(null); expanded = false })

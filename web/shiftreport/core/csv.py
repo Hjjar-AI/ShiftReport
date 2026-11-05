@@ -31,7 +31,9 @@ def doctor_csv(doctors):
         writer.writerow(['1',key,parts[0],parts[1] if len(parts)>1 else '',name,doctor['gender'],
                          doctor['clinicalRole'],doctor.get('destination') or '',doctor.get('telegram_id') or '',
                          '',doctor.get('title',''),rank(doctor),str(permanent(doctor)).lower(),
-                         'teamSupervisor:'+doctor['teamSupervisorId'] if doctor.get('teamSupervisorId') else '',
+                         ';'.join(filter(None, [
+                             'teamSupervisor:'+doctor['teamSupervisorId'] if doctor.get('teamSupervisorId') else '',
+                             'supervisorTopicId:'+str(doctor['supervisorTopicId']) if doctor.get('supervisorTopicId') else ''])),
                          datetime.now(timezone.utc).isoformat(),''])
     return stream.getvalue().encode('utf-8-sig')
 
@@ -61,11 +63,18 @@ def decode_doctors(raw):
             require(0<=number<=2147483647 and (not is_permanent or number>0),'رتبة مدير غير صالحة')
             # PIN/syncAlias are intentionally never accepted from a portable file.
             extras=[item.strip() for item in source['extra_options'].split(';') if item.strip()]
-            require(all(item.startswith(('pin:','syncAlias:','teamSupervisor:')) for item in extras),
+            require(all(item.startswith(('pin:','syncAlias:','teamSupervisor:','supervisorTopicId:')) for item in extras),
                     'خيارات إضافية غير مدعومة في سجل تليجرام؛ لن تُحذف ضمنياً')
             teams=[item[len('teamSupervisor:'):] for item in extras if item.startswith('teamSupervisor:')]
             require(len(teams)<=1 and all(teams),'أكثر من مشرف لفريق المقيم أو معرّف مشرف فارغ')
             candidate['teamSupervisorId']=teams[0] if teams else ''
+            topics=[item[len('supervisorTopicId:'):] for item in extras if item.startswith('supervisorTopicId:')]
+            require(len(topics)<=1 and all(re.fullmatch(r'[0-9]+', topic) for topic in topics),
+                    'معرّف موضوع المشرف يجب أن يكون عدداً موجباً واحداً')
+            if topics:
+                candidate['supervisorTopicId']=int(topics[0])
+            from .supervisor_routes import validate_route
+            validate_route(candidate)
             candidate.update({'#':str(number),'options':('A' if is_permanent else 'a')+str(number) if number else ''})
             candidate['_deleted']=bool(source['deleted_at'].strip())
             for field in ('updated_at','deleted_at'):
@@ -119,5 +128,4 @@ def import_summary(before, after, incoming):
             ('صفوف مستوردة دون تغيير', [key for key in after if key in incoming_keys and key in before and after[key]==before[key]]),
             ('سجلات غائبة عن الملف محفوظة كما هي', [key for key in before if key not in incoming_keys])]
     return '\n\n'.join(label+' ('+str(len(keys))+'):\n'+('\n'.join(doctor_label(after,key) for key in keys) or 'لا يوجد') for label,keys in groups)
-
 

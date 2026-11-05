@@ -58,7 +58,7 @@ class Client:
         snapshot = self.fetch()
         doctor = snapshot['doctors'].get(doctor_id)
         require(doctor is not None and doctor.get('telegram_id'), 'اختر طبيبا ذا حساب تليجرام مرتبط')
-        if self._nonce and self._nonce['doctor']==doctor_id and time.time()-self._nonce['started']<180:
+        if self._nonce and self._nonce['doctor']==doctor_id and time.time()-self._nonce['started']<300:
             return  # Reuse an unexpired code after a cancelled input dialog; do not spam DMs.
         require(not self._nonce or time.time()-self._nonce['started']>=30, 'انتظر 30 ثانية قبل طلب رمز جديد')
         code = str(secrets.randbelow(900000)+100000)
@@ -68,7 +68,7 @@ class Client:
                        'telegram':doctor['telegram_id'],'started':time.time(),'attempts':0}
         try:
             self.telegram.call('sendMessage', {'chat_id':doctor['telegram_id'],
-                'text':'ShiftReport Web\nرمز تحقق تسجيل الدخول: '+code+'\nصالح ثلاث دقائق. لا تشاركه مع أحد.',
+                'text':'ShiftReport Web\nرمز تحقق تسجيل الدخول: '+code+'\nصالح خمس دقائق. لا تشاركه مع أحد.',
                 'disable_notification':'false'})
         except UncertainDelivery:
             raise BridgeError('قد يكون رمز التحقق وصل؛ افحص البوت واضغط إثبات الهوية مجددا لإدخاله دون إرسال رمز آخر') from None
@@ -79,7 +79,7 @@ class Client:
 
     def check_login(self, code):
         challenge=self._nonce
-        require(challenge is not None and time.time()-challenge['started']<180, 'انتهت صلاحية رمز التحقق')
+        require(challenge is not None and time.time()-challenge['started']<300, 'انتهت صلاحية رمز التحقق')
         require(challenge['attempts']<5, 'انتهت محاولات الرمز؛ انتظر انتهاءه ثم اطلب رمزا جديدا')
         challenge['attempts']+=1
         import unicodedata

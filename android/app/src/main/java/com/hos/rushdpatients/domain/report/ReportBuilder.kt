@@ -58,7 +58,7 @@ class ReportBuilder @Inject constructor(
             val allDoctors = doctorRepository.getAllIncludingDeleted()
             val doctorsById = allDoctors.associateBy { it.id }
             val shiftDoctors = shift.doctorIds.mapNotNull { doctorsById[it] }
-            if (requireRoster) require(shiftDoctors.isNotEmpty()) { "حدد أطباء المناوبة قبل إنشاء التقرير" }
+            if (requireRoster && shiftDoctors.isEmpty()) throw ShiftDoctorsRequiredException()
 
             val doctorNames = allDoctors.associate { it.id to it.fullName }
             val sortSpec = SortSpecCodec.decode(shift.sortSpecJson)

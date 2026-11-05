@@ -23,6 +23,7 @@ internal fun WardStatusHeader(
 ) {
     val uiText = rememberUiStrings()
     Column {
+        header()
         state.syncIssue?.let { issue ->
             val recovery = state.syncRecovery
             val doctorAction = recovery == WardSyncRecovery.PUBLISH_DOCTORS || recovery == WardSyncRecovery.FETCH_DOCTORS
@@ -30,18 +31,21 @@ internal fun WardStatusHeader(
                 WardSyncRecovery.PUBLISH_DOCTORS -> uiText(R.string.ui_recovery_doctors_publish)
                 WardSyncRecovery.FETCH_DOCTORS -> uiText(R.string.ui_recovery_doctors_fetch)
                 WardSyncRecovery.PUBLISH_PATIENTS -> uiText(R.string.ui_recovery_patients_publish)
+                WardSyncRecovery.SELECT_SHIFT_DOCTORS -> issue
                 null -> issue
             } + if (doctorAction && !isAdmin) "\n" + uiText(R.string.ui_recovery_ask_admin) else "",
                 kind = NoticeKind.WARNING,
                 actionLabel = when {
                     doctorAction && isAdmin -> uiText(R.string.ui_recovery_open_doctors)
                     recovery == WardSyncRecovery.PUBLISH_PATIENTS -> uiText(R.string.ui_recovery_review_patients)
+                    recovery == WardSyncRecovery.SELECT_SHIFT_DOCTORS -> uiText(R.string.ui_report_preview_screen_022)
                     recovery == null && state.retryAction != null -> uiText(R.string.ui_retry)
                     else -> null
                 },
                 onAction = when {
                     doctorAction && isAdmin -> onOpenDoctors
                     recovery == WardSyncRecovery.PUBLISH_PATIENTS -> onReviewPatients
+                    recovery == WardSyncRecovery.SELECT_SHIFT_DOCTORS -> onReviewPatients
                     recovery == null && state.retryAction != null -> onRetry
                     else -> null
                 }, actionEnabled = !state.syncing && !state.saving)
@@ -50,7 +54,6 @@ internal fun WardStatusHeader(
                 Text(uiText(R.string.ui_recovery_retry_after_fix))
             }
         }
-        header()
         onBackToPreview?.let { back -> AppTextButton(onClick = back) { Text(uiText(R.string.report_readiness_return)) } }
         if (liveProject && showBackOnline) AppNotice(
             uiText(R.string.back_online_fetch), actionLabel = uiText(R.string.ui_patient_fetch_reminder_003),

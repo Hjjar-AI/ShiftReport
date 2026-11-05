@@ -1,1 +1,41 @@
-{% extends 'base.html' %}{% block content %}<header class="page-heading"><h1>مراجعة التقرير</h1></header><section class="panel editor"><pre class="review-text">{{ review.summary }}</pre><p>يوم التقرير الملتقط: <bdi>{{ data.day }}</bdi></p>{% for payload in data.payloads %}<div class="artifact"><p>{{ payload.label|default(workspace.client.doctors.get(payload.target,{}).get('name','التقرير العام')) }} • {{ payload.format }}</p>{% block artifact_actions scoped %}<div class="actions"><a class="button" target="_blank" rel="noopener" href="{{ url_for('features.report_artifact',token=token,index=loop.index0) }}">فتح المعاينة {{ loop.index }}</a>{% if not data.sending or data.get('copies_enabled') %}<a class="button secondary" href="{{ url_for('features.report_artifact',token=token,index=loop.index0,save='1') }}">حفظ نسخة من المعاينة</a><button type="button" class="secondary" data-share-artifact="{{ url_for('features.report_artifact',token=token,index=loop.index0,save='1') }}" data-filename="ShiftReport-{{ data.day }}-{{ loop.index }}.{{ 'pdf' if payload.format=='pdf' else 'txt' }}">مشاركة الملف المعاين</button>{% endif %}</div>{% endblock %}</div>{% endfor %}<p>بعد فتح كل معاينة، حدّث هذه الصفحة ثم أكد العملية. الحفظ ينسخ البايتات نفسها دون إعادة توليد.</p>{% if data.sending or data.simulation %}{% if not review.used %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><label class="check"><input name="confirm" value="1" type="checkbox" required>راجعت الملفات والنسخة الكاملة والوجهات وأوافق على النشر ثم الإرسال</label><label class="check"><input name="repeat" value="1" type="checkbox">أوافق صراحةً على نسخة إضافية إذا كانت هناك نسخة مؤكدة سابقة</label><label class="check"><input name="local_copy" value="1" type="checkbox">إتاحة حفظ ومشاركة الملفات المعاينة بعد تأكيد جميع التسليمات</label><button>التأكيد النهائي — {{ 'محاكاة في الذاكرة' if is_demo else 'رفع للشبكة وإرسال تقرير' }}</button></form>{% else %}<p>انتهت محاولة هذه المراجعة. راجع الإيصالات قبل أي إعادة.</p>{% endif %}{% endif %}{% if workspace.attempt %}<pre class="review-text">{{ workspace.attempt.summary() }}</pre>{% endif %}{% for receipt in receipts %}<a class="button secondary" href="{{ url_for('features.report_copy',token=token,receipt_index=receipt.index) }}">مراجعة إذن نسخة إضافية بعد نتيجة غير مؤكدة</a>{% endfor %}</section>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<header class="page-heading"><h1>مراجعة التقرير</h1></header>
+<section class="panel editor">
+  <h2>ملخص التقرير والوجهات</h2>
+  <p>يوم التقرير الملتقط: <bdi>{{ data.day }}</bdi></p>
+  {% if data.patient_count is defined %}<p>المرضى: {{ data.patient_count }} • المرافقون: {{ data.companion_count }}</p>{% endif %}
+  {% if data.roster %}<p>أطباء المناوبة: {{ data.roster|join(' • ') }}</p>{% endif %}
+  {% for destination in data.destinations|default([]) %}<p>{{ destination }}</p>{% endfor %}
+  {% if workspace.attempt %}<pre class="review-text">{{ workspace.attempt.summary() }}</pre>{% endif %}
+  {% for receipt in receipts %}<a class="button secondary" href="{{ url_for('features.report_copy',token=token,receipt_index=receipt.index) }}">مراجعة إذن نسخة إضافية بعد نتيجة غير مؤكدة</a>{% endfor %}
+  <details><summary>اكتمال البيانات والتغييرات والنسخة الكاملة</summary><pre class="review-text">{{ review.summary }}</pre></details>
+  {% if data.sending or data.simulation %}
+    <p>فتح ملفات PDF أدناه اختياري. يجهّز التأكيد الملفات من المحتوى الملتقط ويستخدم أي ملف تمت معاينته كما هو.</p>
+    {% if not review.used %}
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="check"><input name="confirm" value="1" type="checkbox" required>راجعت ملخص التقرير والنسخة الكاملة والوجهات وأوافق على النشر ثم الإرسال</label>
+      <label class="check"><input name="repeat" value="1" type="checkbox">أوافق صراحةً على نسخة إضافية إذا كانت هناك نسخة مؤكدة سابقة</label>
+      <label class="check"><input name="local_copy" value="1" type="checkbox" checked>إتاحة حفظ ومشاركة الملفات بعد تأكيد جميع التسليمات وفتح معاينتها</label>
+      <button>التأكيد النهائي — {{ 'محاكاة في الذاكرة' if is_demo else 'رفع للشبكة وإرسال تقرير' }}</button>
+    </form>
+    {% else %}<p>انتهت محاولة هذه المراجعة. راجع الإيصالات قبل أي إعادة.</p>{% endif %}
+  {% else %}<p>افتح المعاينة قبل الحفظ أو المشاركة. الحفظ ينسخ البايتات نفسها دون إعادة توليد.</p>{% endif %}
+  <h2>{{ 'معاينات PDF — اختياري للإرسال' if data.sending or data.simulation else 'معاينة الملف وحفظه' }}</h2>
+  {% for payload in data.payloads %}
+  <div class="artifact">
+    <p>{{ payload.label|default(workspace.client.doctors.get(payload.target,{}).get('name','التقرير العام')) }} • {{ payload.format }}</p>
+    {% block artifact_actions scoped %}
+    <div class="actions">
+      <a class="button" target="_blank" rel="noopener" href="{{ url_for('features.report_artifact',token=token,index=loop.index0) }}">فتح المعاينة {{ loop.index }}</a>
+      {% if not data.sending or data.get('copies_enabled') %}
+      <a class="button secondary" href="{{ url_for('features.report_artifact',token=token,index=loop.index0,save='1') }}">حفظ نسخة من المعاينة</a>
+      <button type="button" class="secondary" data-share-artifact="{{ url_for('features.report_artifact',token=token,index=loop.index0,save='1') }}" data-filename="ShiftReport-{{ data.day }}-{{ loop.index }}.{{ 'pdf' if payload.format=='pdf' else 'txt' }}">مشاركة الملف المعاين</button>
+      {% endif %}
+    </div>
+    {% endblock %}
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

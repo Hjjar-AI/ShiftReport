@@ -208,13 +208,7 @@ textarea { font: inherit; color: var(--ink); background: var(--surface); border:
 .diagnosis-preview { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-top:8px; }
 .patient[open] .diagnosis-preview { display:none; }
 .patient { container-type:inline-size; }
-@container (min-width:560px) {
-  .clinical-columns { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .clinical-columns > .actions, .clinical-columns > section[id^="diagnosis-"], .clinical-columns > .patient-tasks { grid-column:1/-1; }
-  .clinical-columns > section[id^="treatment-"] { grid-column:1; grid-row:3/span 2; }
-  .clinical-columns > section[id^="followup-"] { grid-column:2; grid-row:3; }
-  .clinical-columns > section[id^="labs-"] { grid-column:2; grid-row:4; }
-}
+
 .filter-clinical { display:flex; flex-wrap:wrap; gap:4px 16px; flex:1 1 100%; border:1px solid var(--line); border-radius:8px; min-width:0; }
 .filter-clinical legend { padding-inline:8px; color:var(--muted); }
 .ward-shortcuts { margin-top:12px; }

@@ -273,7 +273,7 @@ def doctor_manage():
                     if d['clinicalRole']=='RESIDENT' and 'team_'+key in request.form and
                     request.form['team_'+key]!=(d.get('teamSupervisorId') or '')}
         else:
-            values={field:request.form.get(field,'') for field in ('first','last','gender','clinicalRole','telegram_id','destination','teamSupervisorId')}
+            values={field:request.form.get(field,'') for field in ('first','last','gender','clinicalRole','telegram_id','destination','supervisorTopicId','teamSupervisorId')}
             values['title']=source['doctors'].get(key,{}).get('title','')
         if w.demo:
             proposed=service.propose(source,action,key,values)
@@ -281,6 +281,10 @@ def doctor_manage():
         else:
             payload=service.review(source,action,key,values)
         summary='سجل الأطباء بعد العملية:\n'+'\n'.join(d['name']+' • '+d['clinicalRole'] for d in payload['doctors'].values())
+        if action in ('add','edit') and values['clinicalRole']=='SUPERVISOR':
+            summary+='\n\nوجهة المشرف: '+('المجموعة المحددة' if values['destination'] else 'مجموعة المقيمين' if values['supervisorTopicId'] else 'غير مفعّلة')
+            if values['destination'] or values['supervisorTopicId']:
+                summary+=' • '+('موضوع المشرف المحدد' if values['supervisorTopicId'] else 'المحادثة الرئيسية')
         if action=='teams':
             names={uid:d['name'] for uid,d in source['doctors'].items()}
             summary='تغييرات عضوية الفرق؛ لا تتغير تعيينات المرضى:\n'+'\n\n'.join(
@@ -314,7 +318,10 @@ def confirm_review(token):
         require(request.form.get('confirm')=='1','الموافقة النهائية مطلوبة')
         review['used']=True
         review['action']()
-        w.notice='اكتملت العملية محلياً.' if w.demo else 'اكتملت العملية. راجع سجل العمليات عند أي نتيجة غير مؤكدة.'
+        if review['kind']=='restore':
+            w.notice='تم الاستيراد محلياً. تظهر القائمة على الرئيسية وتبقى بانتظار الرفع؛ لم تُنشر تلقائياً.'
+        else:
+            w.notice='اكتملت العملية محلياً.' if w.demo else 'اكتملت العملية. راجع سجل العمليات عند أي نتيجة غير مؤكدة.'
         return home()
     return render_template('review.html',review=review,page='review')
 

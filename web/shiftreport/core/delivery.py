@@ -16,6 +16,7 @@ class ReportDelivery:
         self.report_connection = (owner.client.config.get('residentsChatId', 0), owner.client.config.get('residentsTopicId', 0))
         self.plan, self.reviewed, self.needs_publish = owner.io(
             lambda: prepare_delivery(owner.client, local))
+        self.needs_publish = self.needs_publish or owner.store.state.get('pendingImport') == local['meta']['shiftId']
         self.require_unchanged()
         self.snapshot = self.plan.remote
         owner.client.doctors = copy.deepcopy(self.snapshot['doctors'])
@@ -79,6 +80,7 @@ class ReportDelivery:
 
             def before(chat, topic):
                 self.require_connection()
+                require((chat, topic) == expected_destination, 'تغيرت وجهة التقرير؛ أعد المراجعة')
                 owner.store.receipt_start(key, 'report', chat, topic, owner.client._actor,
                                           repeat=repeat, report_shift=self.reviewed['meta']['shiftId'])
                 if hasattr(owner, 'bind_artifact'):
@@ -88,6 +90,7 @@ class ReportDelivery:
                 owner.show_report_attempt()
 
             send = owner.client.send_pdf if format_name == 'pdf' else owner.client.send_text
+            expected_destination = (chat, topic)
             result = owner.io(lambda: send(payload, self.reviewed, supervisor, pointer(self.snapshot['state']),
                                           doctor_pointer(self.snapshot['state']), before, report_day=self.report_day))
             owner.report_attempt.delivery = 'CONFIRMED'

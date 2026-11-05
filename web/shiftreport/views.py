@@ -135,7 +135,7 @@ def presentation():
     spacing=request.form.get('spacing','normal')
     require(group in GROUPS and spacing in ('normal','comfortable'),'خيار عرض غير صالح')
     w.preferences.update(grouping=group,spacing=spacing,card_controls=request.form.get('controls')=='1',
-                         pinning=request.form.get('pinning')=='1',two_column=request.form.get('two_column')=='1')
+                         pinning=request.form.get('pinning')=='1')
     return redirect(url_for('pages.ward'),code=303)
 
 

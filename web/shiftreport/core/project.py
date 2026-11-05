@@ -78,7 +78,7 @@ class ProjectCreator:
         require(not self._attempted, 'بدأت محاولة إنشاء بالفعل؛ افحص تليجرام وأعد الاتصال دون تكرار الإنشاء')
         profile = self.validate_profile(profile)
         now = time.time()
-        if self._challenge and self._profile == profile and (self.verified or now-self._challenge['started'] < 180):
+        if self._challenge and self._profile == profile and (self.verified or now-self._challenge['started'] < 300):
             self._available()
             return  # Reuse an outstanding challenge after a cancelled entry dialog.
         require(self._last_request is None or now-self._last_request >= 30, 'انتظر 30 ثانية قبل طلب رمز آخر')
@@ -93,7 +93,7 @@ class ProjectCreator:
             self.client.telegram.call('sendMessage', {
                 'chat_id': profile['telegram_id'], 'disable_notification': 'false',
                 'text': 'ShiftReport Web\nرمز إنشاء مشروع جديد: '+code+
-                        '\nصالح ثلاث دقائق. لا تشاركه مع أحد. لم يُنشأ المشروع بعد.'})
+                        '\nصالح خمس دقائق. لا تشاركه مع أحد. لم يُنشأ المشروع بعد.'})
         except UncertainDelivery:
             raise BridgeError('قد يكون رمز الإنشاء وصل؛ أعد فتح الإنشاء لإدخاله دون إرسال رمز جديد') from None
         except BridgeError:
@@ -108,7 +108,7 @@ class ProjectCreator:
 
     def check_code(self, code):
         challenge = self._challenge
-        require(challenge is not None and time.time()-challenge['started'] < 180, 'انتهت صلاحية رمز الإنشاء')
+        require(challenge is not None and time.time()-challenge['started'] < 300, 'انتهت صلاحية رمز الإنشاء')
         require(challenge.get('profile') == fingerprint(self._profile), 'تغيّرت بيانات المدير؛ اطلب رمزاً جديداً')
         require(challenge['attempts'] < 5, 'انتهت محاولات الرمز؛ انتظر انتهاءه ثم اطلب رمزاً جديداً')
         challenge['attempts'] += 1

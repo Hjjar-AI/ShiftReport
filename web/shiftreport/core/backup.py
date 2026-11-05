@@ -39,9 +39,12 @@ def validate_restore(workspace,client,shift,expected):
     require(workspace.project==client.project_id, 'النسخة لا تخص المشروع المفتوح')
     current=workspace.read()
     require(fingerprint(current)==expected, 'تغيرت المسودة؛ أعد مراجعة الاستعادة')
-    # RUSHDBK1 has no project identifier: bind it to a known shift in this project.
-    require(all(shift['meta'][k]==current['meta'][k] for k in ('shiftId','shiftDate')),
-            'اختر أولاً المناوبة نفسها من المشروع؛ لن تخلط نسخة مناوبة أو مشروع آخر بالمسودة')
+    # Like Android, current CSV/RPB files retain their captured ward ID/date.
+    # They carry no project identity; validate references, never infer a project.
+    if shift['meta']['shiftId'] != current['meta']['shiftId']:
+        existing={row['externalId'] for row in current['patients']}
+        require(not any(row['externalId'] in existing for row in shift['patients']),
+                'معرّف مريض مستخدم في قسم آخر')
     doctors=client.doctors
     require(all(uid in doctors for uid in filter(None,shift['meta'].get('doctors','').split(','))),
             'تحتاج النسخة إلى أطباء غير موجودين؛ حدّث سجل الأطباء أولاً')
@@ -56,10 +59,7 @@ def restore(workspace,client,shift,expected):
     candidate=copy.deepcopy(shift)
     workspace.export(workspace.path.with_suffix('.previous.srdraft'),replace=True)
     validate_restore(workspace,client,candidate,expected)
-    form=workspace.state.get('patientForm')
-    workspace.commit(draft=candidate,
-                     patientForm=form if form and form['shiftId']!=candidate['meta']['shiftId'] else None)
-
+    workspace.commit(draft=candidate,patientForm=None,pendingImport=candidate['meta']['shiftId'])
 
 
 

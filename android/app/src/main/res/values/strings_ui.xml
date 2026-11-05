@@ -554,7 +554,7 @@
     <string name="ui_report_preview_screen_052" formatted="false">"تخصيص PDF (اختياري)"</string>
     <string name="ui_report_preview_screen_053" formatted="false">"تخصيص PDF"</string>
     <string name="ui_report_preview_screen_054" formatted="false">"حجم الورق والاتجاه"</string>
-    <string name="ui_report_preview_screen_055" formatted="false">"بعد تغيير المظهر، عاين PDF مجدداً قبل الإرسال."</string>
+    <string name="ui_report_preview_screen_055" formatted="false">"معاينة PDF اختيارية، حتى بعد تغيير المظهر."</string>
     <string name="ui_report_preview_screen_056" formatted="false">"عاين كل تقرير مختار وافحص الوجهات أدناه، ثم أكّد الإرسال."</string>
     <string name="ui_report_preview_screen_057" formatted="false">"افتح التقرير وافحص محتواه، ثم انتقل إلى مراجعة الإرسال."</string>
     <string name="ui_report_preview_screen_058" formatted="false">"معاينة التقارير المختارة"</string>

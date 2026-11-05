@@ -139,51 +139,61 @@ internal class DemoReportController(
             openedPdfUris = it.openedPdfUris - listOfNotNull(it.pdfReviewUris[artifactKey]).toSet(),
             pdfReviewUris = it.pdfReviewUris - artifactKey) }
         fileJob = scope.launch {
-            var temporary: File? = null
             try {
-                requireSnapshot()
-                val file = withContext(Dispatchers.IO) {
-                    val directory = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
-                    val output = File.createTempFile("DEMO_", ".pdf", directory)
-                    temporary = output
-                    val patients = snapshot.ordered.filter { if (route == "unassigned") it.responsibleSpecialistId == null
-                        else supervisor == null || it.responsibleSpecialistId == supervisor }
-                    val doctors = if (supervisor == null) snapshot.shiftDoctors else snapshot.doctors.filter { it.id == supervisor }
-                    val options = current.pdfOptions.copy(hospitalName = uiText(R.string.ui_demo_navigation_001))
-                    val label = listOfNotNull(uiText(R.string.demo_document_label),
-                        if (draft) uiText(R.string.report_local_draft_label) else null).joinToString(" • ")
-                    if (route == "assignments") {
-                        check(current.isAdmin)
-                        assignmentRenderer.export(snapshot.ordered, snapshot.names, snapshot.doctors,
-                            snapshot.summary.copy(shiftDate = capturedDay), options, output, documentLabel = label)
-                    } else {
-                        require(patients.isNotEmpty() && doctors.isNotEmpty()) { uiText(R.string.ui_demo_ward_view_model_006) }
-                        val summary = requireNotNull(current.summary).copy(patientCount = patients.size,
-                            psychoCount = patients.count { it.diagnosisType == com.hos.rushdpatients.data.model.DiagnosisType.PSYCHIATRIC ||
-                                it.diagnosisType == com.hos.rushdpatients.data.model.DiagnosisType.DUAL },
-                            escortCount = patients.count { it.hasCompanion }, doctors = doctors)
-                        exporter.export(patients, doctors, summary, snapshot.names, snapshot.names, options,
-                            elegant = current.pdfStyle == PdfStyle.CARDS, outputFile = output, documentLabel = label)
-                    }
-                    check(output.length() > 0)
-                    output
-                }
-                val fileHash = withContext(Dispatchers.IO) { digest(file) }
-                if (token != generation) return@launch
-                requireSnapshot()
-                val displayName = ReportFileNames.pdf(capturedDay, route, draft,
-                    snapshot.doctors.firstOrNull { route == "supervisor:${it.id}" }?.fullName, demo = true)
-                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file, displayName)
-                files.put(artifactKey, file)?.let { previous -> ClinicalPdfCache.delete(listOf(previous)) }
-                fileDigests[artifactKey] = fileHash
-                temporary = null
-                _state.update { it.copy(pdfPreviewUri = uri, pdfReviewUris = it.pdfReviewUris + (artifactKey to uri.toString())) }
+                val uri = preparePdf(route, draft, snapshot, current, token, capturedDay)
+                _state.update { it.copy(pdfPreviewUri = uri) }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _state.update { it.copy(error = e.message) } }
-            finally {
-                withContext(NonCancellable + Dispatchers.IO) { temporary?.delete() }
-                _state.update { it.copy(previewingPdf = false) }
+            finally { _state.update { it.copy(previewingPdf = false) } }
+        }
+    }
+
+    private suspend fun preparePdf(route: String, draft: Boolean, snapshot: DemoWardState,
+        current: ReportUiState, token: Long, capturedDay: java.time.LocalDate): Uri {
+        val supervisor = route.takeIf { it.startsWith("supervisor:") }?.removePrefix("supervisor:")
+        val artifactKey = if (draft) "draft:$route" else route
+        var temporary: File? = null
+        try {
+            requireSnapshot()
+            val file = withContext(Dispatchers.IO) {
+                val directory = File(context.cacheDir, "pdf_previews").apply { mkdirs() }
+                val output = File.createTempFile("DEMO_", ".pdf", directory)
+                temporary = output
+                val patients = snapshot.ordered.filter { if (route == "unassigned") it.responsibleSpecialistId == null
+                    else supervisor == null || it.responsibleSpecialistId == supervisor }
+                val doctors = if (supervisor == null) snapshot.shiftDoctors else snapshot.doctors.filter { it.id == supervisor }
+                val options = current.pdfOptions.copy(hospitalName = uiText(R.string.ui_demo_navigation_001))
+                val label = listOfNotNull(uiText(R.string.demo_document_label),
+                    if (draft) uiText(R.string.report_local_draft_label) else null).joinToString(" • ")
+                if (route == "assignments") {
+                    check(current.isAdmin)
+                    assignmentRenderer.export(snapshot.ordered, snapshot.names, snapshot.doctors,
+                        snapshot.summary.copy(shiftDate = capturedDay), options, output, documentLabel = label)
+                } else {
+                    require(patients.isNotEmpty() && doctors.isNotEmpty()) { uiText(R.string.ui_demo_ward_view_model_006) }
+                    val summary = requireNotNull(current.summary).copy(patientCount = patients.size,
+                        psychoCount = patients.count { it.diagnosisType == com.hos.rushdpatients.data.model.DiagnosisType.PSYCHIATRIC ||
+                            it.diagnosisType == com.hos.rushdpatients.data.model.DiagnosisType.DUAL },
+                        escortCount = patients.count { it.hasCompanion }, doctors = doctors)
+                    exporter.export(patients, doctors, summary, snapshot.names, snapshot.names, options,
+                        elegant = current.pdfStyle == PdfStyle.CARDS, outputFile = output, documentLabel = label)
+                }
+                check(output.length() > 0)
+                output
             }
+            val fileHash = withContext(Dispatchers.IO) { digest(file) }
+            check(token == generation) { uiText(R.string.demo_review_changed) }
+            requireSnapshot()
+            val displayName = ReportFileNames.pdf(capturedDay, route, draft,
+                snapshot.doctors.firstOrNull { route == "supervisor:${it.id}" }?.fullName, demo = true)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file, displayName)
+            files.put(artifactKey, file)?.let { previous -> ClinicalPdfCache.delete(listOf(previous)) }
+            fileDigests[artifactKey] = fileHash
+            temporary = null
+            _state.update { it.copy(pdfReviewUris = it.pdfReviewUris + (artifactKey to uri.toString())) }
+            return uri
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) { temporary?.delete() }
         }
     }
     override fun onPdfPreviewOpened(uri: Uri) {
@@ -203,10 +213,10 @@ internal class DemoReportController(
         }
         hash.digest().joinToString("") { "%02x".format(it) }
     }
-    private suspend fun checkedFile(route: String): File = withContext(Dispatchers.IO) {
+    private suspend fun checkedFile(route: String, requirePreview: Boolean = true): File = withContext(Dispatchers.IO) {
         requireSnapshot()
         val current = _state.value
-        check(current.pdfReviewUris[route] in current.openedPdfUris) { uiText(R.string.ui_report_pdf_workspace_003) }
+        if (requirePreview) check(current.pdfReviewUris[route] in current.openedPdfUris) { uiText(R.string.ui_report_pdf_workspace_003) }
         val file = checkNotNull(files[route])
         check(file.isFile && digest(file) == fileDigests[route]) { uiText(R.string.ui_report_local_actions_004) }
         file
@@ -244,22 +254,25 @@ internal class DemoReportController(
         _state.update { it.copy(exportingLocalPdf = true, error = null) }
         fileJob = scope.launch {
             try {
-                requireExport(draft, routes)
-                val copies = routes.map { it to checkedFile(if (draft) "draft:$it" else it) }
-                check(copies.isNotEmpty())
-                for ((route, file) in copies) {
-                    requireExport(draft, routes)
-                    checkedFile(if (draft) "draft:$route" else route)
-                    checkNotNull(saver.savePdf(context, file,
-                        ReportFileNames.pdf(reportDay, route, draft,
-                            requireSnapshot().doctors.firstOrNull { route == "supervisor:${it.id}" }?.fullName, demo = true), verifyContents = true)) {
-                        uiText(R.string.report_pdf_save_failed)
-                    }
-                }
+                savePdfCopies(routes, draft, requirePreview = true)
                 _state.update { it.copy(snackbar = uiText(R.string.ui_demo_ward_view_model_011)) }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _state.update { it.copy(error = e.message) } }
             finally { _state.update { it.copy(exportingLocalPdf = false) } }
+        }
+    }
+    private suspend fun savePdfCopies(routes: Set<String>, draft: Boolean, requirePreview: Boolean) {
+        requireExport(draft, routes)
+        val copies = routes.map { it to checkedFile(if (draft) "draft:$it" else it, requirePreview) }
+        check(copies.isNotEmpty())
+        for ((route, file) in copies) {
+            requireExport(draft, routes)
+            checkedFile(if (draft) "draft:$route" else route, requirePreview)
+            checkNotNull(saver.savePdf(context, file,
+                ReportFileNames.pdf(reportDay, route, draft,
+                    requireSnapshot().doctors.firstOrNull { route == "supervisor:${it.id}" }?.fullName, demo = true), verifyContents = true)) {
+                uiText(R.string.report_pdf_save_failed)
+            }
         }
     }
     override fun exportAssignments() = saveExportPdfs(setOf("assignments"), draft = false)
@@ -272,8 +285,15 @@ internal class DemoReportController(
                 val current = _state.value
                 val targets = current.supervisorTargets.filter { it.doctorId in supervisorIds }
                 check(targets.size == supervisorIds.size && (includeGeneral || targets.isNotEmpty()))
-                if (includeGeneral && current.reportAsPdf) checkedFile("general")
-                targets.forEach { checkedFile(key(it.doctorId)) }
+                val pdfRoutes = buildSet {
+                    if (includeGeneral && current.reportAsPdf) add("general")
+                    targets.forEach { add(key(it.doctorId)) }
+                }
+                for (route in pdfRoutes) {
+                    if (_state.value.pdfReviewUris[route] == null)
+                        preparePdf(route, false, snapshot, current, generation, reportDay)
+                    checkedFile(route, requirePreview = false)
+                }
                 requireSnapshot()
                 val destinations = buildList {
                     if (includeGeneral) add("general" to uiText(R.string.ui_report_preview_screen_097))
@@ -286,15 +306,14 @@ internal class DemoReportController(
                 repository.receipts.update { it + receipts }
                 repository.publish(snapshot)
                 exportPublished = snapshot
-                _state.update { it.copy(sending = false, exportUploadConfirmed = true, publicationOutcome = ReportStepOutcome.CONFIRMED,
+                _state.update { it.copy(sending = exportPdf, exportUploadConfirmed = true, publicationOutcome = ReportStepOutcome.CONFIRMED,
                     deliveryOutcome = ReportStepOutcome.CONFIRMED, deliveryRecords = repository.receipts.value,
                     snackbar = uiText(R.string.demo_send_complete)) }
                 if (exportPdf) {
-                    val routes = buildSet {
-                        if (includeGeneral && current.reportAsPdf) add("general")
-                        targets.forEach { add(key(it.doctorId)) }
-                    }
-                    if (routes.isNotEmpty()) saveExportPdfs(routes, false)
+                    try {
+                        if (pdfRoutes.isNotEmpty()) savePdfCopies(pdfRoutes, false, requirePreview = false)
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { _state.update { it.copy(error = uiText(R.string.report_delivered_local_save_failed)) } }
                 }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { _state.update { it.copy(error = e.message) } }

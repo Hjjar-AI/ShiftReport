@@ -14,7 +14,7 @@ def parse_doctors(raw):
         rows = body.split('|')
         header = rows.pop(0).split(',')
         expected = '#,uid,name,gender,id,title,options,clinicalRole,supervisorGroupChatId,teamSupervisorId'.split(',')
-        require(header == expected, 'مطلوب سجل الأطباء الحالي')
+        require(header in (expected, expected + ['supervisorTopicId']), 'مطلوب سجل الأطباء الحالي')
         result = {}
         for line in rows:
             values = line.split(',')
@@ -25,7 +25,12 @@ def parse_doctors(raw):
             row['telegram_id'] = int(row['id']) if row['id'] else None
             require(row['telegram_id'] is None or row['telegram_id'] > 0, 'هوية تليجرام غير صالحة')
             row['destination'] = int(row['supervisorGroupChatId']) if row['supervisorGroupChatId'] else None
-            require(row['destination'] is None or row['clinicalRole'] == 'SUPERVISOR' and row['destination'] < 0, 'وجهة مشرف غير صالحة')
+            topic = row.pop('supervisorTopicId', '')
+            if topic:
+                require(re.fullmatch(r'[0-9]+', topic), 'معرّف موضوع المشرف غير صالح')
+                row['supervisorTopicId'] = int(topic)
+            from .supervisor_routes import validate_route
+            validate_route(row)
             result[row['uid']] = row
         require(result, 'سجل الأطباء فارغ')
         from .teams import validate_teams
@@ -113,4 +118,3 @@ def encode_bundle(shifts):
     result = (BUNDLE + '\n' + ('\n' + BOUNDARY + '\n').join(parts) + '\n').encode()
     require(len(result) <= LIMIT, 'الحزمة الناتجة أكبر من الحد')
     return result
-

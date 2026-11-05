@@ -298,11 +298,8 @@ class ReportPreviewViewModel @Inject constructor(
     }
 
     private suspend fun publishReviewedSnapshot(reviewed: BuiltReport) {
-        val actor = activeSendingActor()
-        val reviewer = reviewedActor
-        require(reviewer != null && actor.id == reviewer.doctorId && actor.telegramId == reviewer.telegramId) { "تغير حساب المراجع؛ افتح التقرير بالحساب الذي راجعه" }
+        val actor = reviewedSendingActor()
         val publicationProject = projectConfigStore.current()
-        check(publicationProject == reviewedProject) { uiText(R.string.report_export_changed) }
         val exportKey = ReportReview.exportFingerprint(reviewed)
         if (exportApproval == ExportApproval(exportKey, actor.id, actor.telegramId, publicationProject)) {
             syncService.validatePublishedReport(reviewed, actor.id, actor.telegramId)
@@ -347,6 +344,16 @@ class ReportPreviewViewModel @Inject constructor(
         val session = sessionManager.current() ?: error(uiText(R.string.report_login_required))
         return doctorRepository.getActiveById(session.doctorId)
             ?: error(uiText(R.string.report_actor_inactive))
+    }
+
+    private suspend fun reviewedSendingActor(): Doctor {
+        val actor = activeSendingActor()
+        val reviewer = reviewedActor
+        require(reviewer != null && actor.id == reviewer.doctorId && actor.telegramId == reviewer.telegramId) {
+            "تغير حساب المراجع؛ افتح التقرير بالحساب الذي راجعه"
+        }
+        check(projectConfigStore.current() == reviewedProject) { uiText(R.string.report_export_changed) }
+        return actor
     }
 
     private fun reloadChangedReport(error: ReportChangedSinceReviewException) {
@@ -412,6 +419,12 @@ class ReportPreviewViewModel @Inject constructor(
             var delivered = 0
             var deliveryConfirmed = false
             try {
+                reviewedSendingActor()
+                val pdfRoutes = buildSet {
+                    if (includeGeneral && current.reportAsPdf) add("general")
+                    selected.forEach { add("supervisor:${it.doctorId}") }
+                }
+                localActions.prepareDeliveryPdfs(reviewed, pdfRoutes)
                 // Check every selected route/artifact before publishing or sending any copy.
                 if (includeGeneral) {
                     reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf,

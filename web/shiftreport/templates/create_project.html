@@ -1,1 +1,34 @@
-{% extends 'base.html' %}{% block content %}<header class="page-heading"><h1>إنشاء مشروع جديد</h1></header><form method="post" class="panel editor" autocomplete="off"><input type="hidden" name="csrf" value="{{ csrf }}"><h2>1 • الاتصال</h2><label>اسم المشفى<input name="hospital" required maxlength="200"></label><label>توكن البوت<input name="token" type="password" required autocomplete="off"></label><label>معرّف المجموعة السالب<input name="chatId" required placeholder="-…"></label><details><summary>المواضيع ووجهة المقيمين — اختياري</summary>{% for key,label in [('reportsTopicId','موضوع التقارير'),('csvTopicId','موضوع CSV'),('doctorsTopicId','موضوع الأطباء'),('residentsChatId','مجموعة المقيمين السالبة'),('residentsTopicId','موضوع المقيمين')] %}<label>{{ label }}<input name="{{ key }}" {% if key!='residentsChatId' %}inputmode="numeric"{% endif %}></label>{% endfor %}</details><h2>2 • المدير الأول</h2><label>اسم المدير<input name="name" required></label><label>معرّف حساب المدير<input name="telegram_id" inputmode="numeric" required></label><label>الجنس<select name="gender"><option value="M">ذكر</option><option value="F">أنثى</option></select></label><label>الدور<select name="role"><option value="SUPERVISOR">اختصاصي</option><option value="RESIDENT">مقيم</option></select></label><h2>3 • الحماية</h2><label class="check"><input type="checkbox" name="encrypted" value="1" checked>تشفير ملفات المشروع على تليجرام (يُختار عند الإنشاء)</label><label>كلمة حماية محلية لـ Linux إذا ألغيت تشفير الشبكة<input type="password" name="local_password" autocomplete="off"></label><p>يجب أن تكون مدير المجموعة والبوت مديراً بصلاحية التثبيت. يُرسل هذا الزر رمز تحقق خاصاً فقط؛ النشر يحتاج مراجعة وتأكيداً لاحقاً.</p><button>التحقق من الاتصال وإرسال رمز الإنشاء</button></form>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<header class="page-heading"><h1>إنشاء مشروع جديد</h1></header>
+<form method="post" class="panel editor" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>1 • المشروع والبوت</h2>
+  <label>اسم المشفى<input name="hospital" required maxlength="200"></label>
+  <label>توكن البوت<input name="token" type="password" required autocomplete="off"></label>
+  <h2>2 • المجموعة الإدارية</h2>
+  <p>تحفظ ملفات CSV وسجل الأطباء وفهرس المشروع المثبت في هذه المجموعة.</p>
+  <label>معرّف المجموعة الإدارية السالب<input name="chatId" required placeholder="-…" dir="ltr"></label>
+  <details><summary>مواضيع البيانات الإدارية — اختياري</summary>
+    <p>يمكن تركها فارغة للمحادثة الرئيسية. طي هذه الخيارات لا يمسح القيم المدخلة.</p>
+    <label>موضوع CSV<input name="csvTopicId" inputmode="numeric" dir="ltr"></label>
+    <label>موضوع سجل الأطباء<input name="doctorsTopicId" inputmode="numeric" dir="ltr"></label>
+  </details>
+  <h2>3 • وجهة تقارير المقيمين</h2>
+  <p>وجهة PDF العام مستقلة عن ملفات البيانات. اترك المجموعة فارغة لاستخدام المجموعة الإدارية.</p>
+  <label>مجموعة المقيمين السالبة — اختياري<input name="residentsChatId" dir="ltr" placeholder="-…"></label>
+  <label>موضوع المقيمين — عند تحديد مجموعة مستقلة<input name="residentsTopicId" inputmode="numeric" dir="ltr"></label>
+  <label>موضوع PDF في المجموعة الإدارية — عند ترك مجموعة المقيمين فارغة<input name="reportsTopicId" inputmode="numeric" dir="ltr"></label>
+  <p>موضوع فارغ يعني المحادثة الرئيسية؛ لا حاجة لإنشاء مواضيع للمجموعة.</p>
+  <h2>4 • المدير الأول</h2>
+  <label>اسم المدير<input name="name" required></label>
+  <label>معرّف حساب المدير<input name="telegram_id" inputmode="numeric" required dir="ltr"></label>
+  <label>الجنس<select name="gender"><option value="M">ذكر</option><option value="F">أنثى</option></select></label>
+  <label>الدور<select name="role"><option value="SUPERVISOR">اختصاصي</option><option value="RESIDENT">مقيم</option></select></label>
+  <h2>5 • الحماية</h2>
+  <label class="check"><input type="checkbox" name="encrypted" value="1" checked>تشفير ملفات المشروع على تليجرام (يُختار عند الإنشاء)</label>
+  <label>كلمة حماية محلية لـ Linux إذا ألغيت تشفير الشبكة<input type="password" name="local_password" autocomplete="off"></label>
+  <p>يجب أن تكون مدير المجموعة والبوت مديراً بصلاحية التثبيت. يُرسل هذا الزر رمز تحقق خاصاً فقط؛ النشر يحتاج مراجعة وتأكيداً لاحقاً.</p>
+  <button>التحقق من الاتصال وإرسال رمز الإنشاء</button>
+</form>
+{% endblock %}

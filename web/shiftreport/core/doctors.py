@@ -21,11 +21,16 @@ def permanent(doctor):
 
 def encode_doctors(doctors):
     from .teams import validate_teams
+    from .supervisor_routes import validate_route
     validate_teams(doctors)
     require(0 < len(doctors) <= 500, 'عدد الأطباء يجب أن يكون بين 1 و500')
+    header = HEADER + (',supervisorTopicId' if any(d.get('supervisorTopicId') is not None for d in doctors.values()) else '')
     rows, names, accounts, ranks = [], set(), set(), set()
     for key, doctor in doctors.items():
-        values = [str(doctor.get(field, '')) for field in HEADER.split(',')]
+        validate_route(doctor)
+        values = [str(doctor.get(field, '')) for field in header.split(',')]
+        if header != HEADER:
+            values[-1] = str(doctor.get('supervisorTopicId') or '')
         require(key == doctor['uid'] and all(not any(c in value for c in ',|@\n\r"') for value in values),
                 'بيانات الطبيب تحتوي رموزاً لا يدعمها السجل')
         require(doctor['gender'] in {'M', 'F'} and doctor['name'].strip(), 'اسم أو جنس غير صالح')
@@ -42,7 +47,7 @@ def encode_doctors(doctors):
         values[4] = str(identity) if identity else ''
         values[8] = str(doctor['destination']) if doctor.get('destination') else ''
         rows.append(','.join(values))
-    raw = (HEADER+'|'+ '|'.join(rows)+'@'+str(max(ranks or {0}))).encode('utf-8')
+    raw = (header+'|'+ '|'.join(rows)+'@'+str(max(ranks or {0}))).encode('utf-8')
     parse_doctors(raw)
     return raw
 
@@ -57,11 +62,15 @@ def profile(values, existing=None):
     require(values.get('gender') in {'M', 'F'} and values.get('clinicalRole') in {'RESIDENT', 'SUPERVISOR'},
             'الجنس أو التصنيف السريري غير صالح')
     identity, destination = str(values.get('telegram_id', '')).strip(), str(values.get('destination', '')).strip()
+    topic = str(values.get('supervisorTopicId', (existing or {}).get('supervisorTopicId') or '')).strip()
     require(not identity or re.fullmatch(r'[0-9]+', identity) and 0 < int(identity) < 2**52,
             'معرّف حساب تليجرام يجب أن يكون رقماً موجباً')
     require(not destination or values['clinicalRole'] == 'SUPERVISOR' and
             re.fullmatch(r'-[0-9]+', destination) and -(2**63) <= int(destination) < 0,
             'مجموعة التقارير متاحة للمشرف ويجب أن يكون معرّفها سالباً')
+    require(not topic or values['clinicalRole'] == 'SUPERVISOR' and
+            re.fullmatch(r'[0-9]+', topic) and 0 < int(topic) < 2**63,
+            'موضوع التقارير متاح للمشرف ويجب أن يكون معرّفه موجباً')
     unnamed = not first and not last
     generated_id = (existing or {}).get('uid') or str(uuid.uuid4())
     name = 'د. بلا اسم '+generated_id[:8] if unnamed else 'د. '+' '.join(filter(None,[first,last]))
@@ -71,6 +80,9 @@ def profile(values, existing=None):
                   telegram_id=int(identity) if identity else None, destination=int(destination) if destination else None)
     result['id'] = identity
     result['supervisorGroupChatId'] = destination
+    result.pop('supervisorTopicId', None)
+    if topic:
+        result['supervisorTopicId'] = int(topic)
     result['teamSupervisorId'] = str(values.get('teamSupervisorId', (existing or {}).get('teamSupervisorId','')) or '').strip() if values['clinicalRole']=='RESIDENT' else ''
     return result
 

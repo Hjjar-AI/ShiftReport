@@ -5,7 +5,7 @@ from .protocol import BridgeError, current_date, doctor_pointer, encode_bundle, 
 from .doctors import permanent
 
 CLINICAL_KEYS = ('baseline', 'draft', 'recycle', 'restored', 'localCompletions',
-                 'patientForm', 'downloadUndo', 'downloads')
+                 'patientForm', 'downloadUndo', 'downloads', 'pendingImport')
 
 
 def local_signature(store):
@@ -62,11 +62,10 @@ class EmptyStart:
             # Re-check local changes after transport; never discard work that appeared in flight.
             self.authorize(current)
             self.store.commit(baseline=baseline, draft=copy.deepcopy(self.shift), recycle=[], restored=[],
-                localCompletions=[], patientForm=None, downloadUndo=None, downloads={})
+                localCompletions=[], patientForm=None, downloadUndo=None, downloads={}, pendingImport=None)
             self.client.baseline = copy.deepcopy(baseline)
             self.client.doctors = copy.deepcopy(current['doctors'])
             self.store.receipt_finish(uploaded)
         except Exception:
             raise BridgeError('تليجرام أكد البداية الفارغة؛ تعذر تحديث العرض المحلي. لا تعد العملية؛ راجع سجل العمليات والنسخة الحالية') from None
-
 

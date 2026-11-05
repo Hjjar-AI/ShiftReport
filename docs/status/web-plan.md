@@ -1,6 +1,6 @@
 # Flask client — remaining implementation
 
-Android is the main client and behavior reference (owner request,3November2026). The earlier Flask follow-up and the confirmed Android-led source gaps are implemented and mapped in [Flask capabilities](../reference/web-capabilities.md). Completion/evidence belong to the [changelog](changelog.md) and [current state](current-state.md#local-flask-client).
+Android is the main client and behavior reference (owner request,3November2026). The earlier Flask follow-up and the5November Android-led gaps (supervisor topics, optional send previews, current imports/pending state, ward cards, setup and code expiry) are implemented and mapped in [Flask capabilities](../reference/web-capabilities.md). Completion/evidence belong to the [changelog](changelog.md) and [current state](current-state.md#local-flask-client).
 
 No confirmed source item remains from this pass. This is not complete runtime parity: browser/Windows/PDF-renderer/live cross-client acceptance remains solely in the [handoff](testing-handoff.md#local-flask-client). Newly evidenced implementation gaps belong here until resolved.
 

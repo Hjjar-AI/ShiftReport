@@ -27,7 +27,8 @@ internal fun reportFlowGate(
         }
     }
     val hasDestination = previewReadiness.isNotEmpty()
-    val previewReady = hasDestination && previewReadiness.values.all { it }
+    // PDF viewing is optional; only the general text report still needs its text review.
+    val previewReady = hasDestination && (!includeGeneral || state.reportAsPdf || previewReadiness["general"] == true)
     val destinationReady = state.summary != null && hasDestination
     val nextDisabledReason = when {
         busy -> R.string.ui_report_preview_screen_001
@@ -37,14 +38,14 @@ internal fun reportFlowGate(
             if (!hasDestination) R.string.ui_report_no_destination
             else R.string.ui_report_preview_screen_005
         step == ReportFlowStep.PREVIEW && !previewReady ->
-            R.string.ui_report_preview_each_selected
+            R.string.ui_report_preview_screen_007
         else -> null
     }
     val sendDisabledReason = when {
         busy -> R.string.ui_report_preview_screen_001
         state.summary == null -> if (state.doctors.isEmpty()) R.string.ui_report_preview_screen_003 else R.string.ui_report_preview_screen_009
         !hasDestination -> R.string.ui_report_no_destination
-        !previewReady -> R.string.ui_report_preview_each_selected
+        !previewReady -> R.string.ui_report_preview_screen_007
         else -> null
     }
     return ReportFlowGate(busy, previewReady, destinationReady, nextDisabledReason, sendDisabledReason, previewReadiness)

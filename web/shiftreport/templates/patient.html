@@ -14,7 +14,7 @@
     {% if patient.initialDiagnosis %}<span class="diagnosis-preview multiline" dir="auto">{{ patient.initialDiagnosis }}</span>{% endif %}
   </summary>
   <template data-patient-copy>{{ patient.copy_text }}</template>
-  <div class="clinical-grid{% if workspace.preferences.two_column %} clinical-columns{% endif %}">
+  <div class="clinical-grid">
     <div class="actions">
       {% if patient.editable %}<a class="button" href="{{ url_for('features.patient_edit',key=patient.id,round=round_token|default(None)) }}">تحرير ومتابعة الجولة</a>{% endif %}
       <a class="button secondary" href="{{ url_for('features.patient_details',key=patient.id,round=round_token|default(None)) }}">قراءة الملف</a>

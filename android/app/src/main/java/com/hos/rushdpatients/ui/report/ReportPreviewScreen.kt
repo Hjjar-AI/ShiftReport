@@ -227,7 +227,7 @@ internal fun ReportWorkspace(
                     val disabledReason = when {
                         step == ReportFlowStep.DOCTORS -> nextDisabledReason
                         !destinationReady -> sendDisabledReason
-                        previewNeeded -> null // The primary action opens the next required preview directly.
+                        previewNeeded -> null // Only a selected general text report requires opening its preview.
                         else -> sendDisabledReason
                     }
                     disabledReason?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -275,9 +275,6 @@ internal fun ReportWorkspace(
                     .verticalScroll(contentScroll),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
-                if (step == ReportFlowStep.PREVIEW) {
-                    ReportPreviewList(previews, enabled = !busy && destinationReady, onPreview = ::preview)
-                }
                 if (step == ReportFlowStep.DOCTORS) {
                     ReportDoctorSummary(
                         doctors = state.doctors, showRosterDetails = showRosterDetails,
@@ -321,6 +318,16 @@ internal fun ReportWorkspace(
                         }
                     }
 
+                }
+                if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
+                    Text(uiText(R.string.ui_report_preview_screen_063) + state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
+                    if (generalSelected) Text(generalDestinationLabel + " • " +
+                        (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
+                    selectedTargets.forEach { target ->
+                        Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
+                    }
+                    Text(uiText(R.string.ui_report_preview_screen_066),
+                        style = MaterialTheme.typography.bodySmall)
                 }
                 ReportRecoverySection(state = state, busy = busy,
                     onDeliveryLog = { showDeliveryLog = true }, onBack = onBack,
@@ -386,16 +393,6 @@ internal fun ReportWorkspace(
                         onAppearanceChange = viewModel::setPdfAppearance)
                 }
 
-                if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
-                    Text(uiText(R.string.ui_report_preview_screen_063) + state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
-                    if (generalSelected) Text(generalDestinationLabel + " • " +
-                        (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
-                    selectedTargets.forEach { target ->
-                        Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
-                    }
-                    Text(uiText(R.string.ui_report_preview_screen_066),
-                        style = MaterialTheme.typography.bodySmall)
-                }
                 if (step == ReportFlowStep.PREVIEW) {
                     if (pdfSelected && state.summary != null) AppCheckRow(
                         label = uiText(R.string.report_optional_normal_export), checked = exportPdf,
@@ -406,6 +403,9 @@ internal fun ReportWorkspace(
                 }
                 AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
                     modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_076)) }
+                if (step == ReportFlowStep.PREVIEW) {
+                    ReportPreviewList(previews, enabled = !busy && destinationReady, onPreview = ::preview)
+                }
 
             }
         }
