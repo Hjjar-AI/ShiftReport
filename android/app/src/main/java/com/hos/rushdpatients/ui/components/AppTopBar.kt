@@ -25,7 +25,8 @@ fun AppCompactTopBar(title: @Composable () -> Unit, navigation: @Composable () -
 }
 
 @Composable
-fun AppTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
+fun AppTopBar(title: String, onBack: () -> Unit, backEnabled: Boolean = true,
+    actions: @Composable RowScope.() -> Unit = {}) {
     val uiText = rememberUiStrings()
     AppCompactTopBar(title = {
         Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -33,6 +34,7 @@ fun AppTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScope.(
         AppIconButton(label = uiText(R.string.ui_back),
             icon = AppIcons.ArrowBack,
             onClick = onBack,
+            enabled = backEnabled,
             iconModifier = Modifier,
             directional = true)
     }, actions = actions)

@@ -102,7 +102,6 @@ internal fun ReportWorkspace(
     val context = LocalContext.current
     var generalSelected by rememberSaveable { mutableStateOf(true) }
     var exportPdf by rememberSaveable { mutableStateOf(true) }
-    var showRosterDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showTextPreview by remember { mutableStateOf(false) }
     var reviewedText by remember { mutableStateOf<String?>(null) }
     var selectedSupervisorIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
@@ -117,6 +116,9 @@ internal fun ReportWorkspace(
     val pdfSelected = supervisorMode || state.reportAsPdf
     val flowGate = reportFlowGate(state, step, supervisorMode, selectedTargets, reviewedText, state.openedPdfUris, generalSelected)
     val busy = flowGate.busy
+    // A read-only load can be left; operations that save or deliver keep their navigation guard.
+    val navigationBlocked = state.savingDoctors || state.fetchingDoctors || state.sending ||
+        state.previewingPdf || state.exportingLocalPdf || state.sharingPdf || state.savingPdfOptions
     val previewReady = flowGate.previewReady
     val destinationReady = flowGate.destinationReady
     val nextDisabledReason = flowGate.nextDisabledReason?.let { uiText(it) }
@@ -131,7 +133,7 @@ internal fun ReportWorkspace(
         else { reviewedText = state.previewMarkdown; showTextPreview = true }
     }
     fun previousStep() {
-        if (!busy) {
+        if (!navigationBlocked) {
             if (step == ReportFlowStep.DOCTORS) onBack() else step = step.previous()
         }
     }
@@ -153,7 +155,7 @@ internal fun ReportWorkspace(
             showSendingReview = true
         }
     }
-    BackHandler(enabled = busy || step != ReportFlowStep.DOCTORS) { previousStep() }
+    BackHandler { previousStep() }
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
             snackbar.showSnackbar(it)
@@ -220,7 +222,8 @@ internal fun ReportWorkspace(
     Scaffold(
         topBar = {
             Column {
-                AppTopBar(title = uiText(R.string.ui_report_preview_screen_013, step.arabicLabel(uiText)), onBack = ::previousStep)
+                AppTopBar(title = uiText(R.string.ui_report_preview_screen_013, step.arabicLabel(uiText)),
+                    onBack = ::previousStep, backEnabled = !navigationBlocked)
                 if (viewModel.simulation) AppNotice(uiText(R.string.demo_simulation_notice))
                 ReportFlowProgress(step)
             }
@@ -282,9 +285,8 @@ internal fun ReportWorkspace(
             ) {
                 if (step == ReportFlowStep.DOCTORS) {
                     ReportDoctorSummary(
-                        doctors = state.doctors, showRosterDetails = showRosterDetails,
+                        doctors = state.doctors,
                         enabled = !state.isBusy && state.shift != null,
-                        onToggleDetails = { showRosterDetails = !showRosterDetails },
                         onSelectDoctors = { pendingDelivery = null; showShiftDoctors = true })
                 }
                 if (step == ReportFlowStep.DOCTORS) {

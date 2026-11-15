@@ -21,22 +21,14 @@ import com.hos.rushdpatients.ui.components.*
 /** Presentation only; selection, review state and artifact invalidation stay with the workspace/controller. */
 @Composable
 internal fun ReportDoctorSummary(
-    doctors: List<Doctor>, showRosterDetails: Boolean, enabled: Boolean,
-    onToggleDetails: () -> Unit, onSelectDoctors: () -> Unit
+    doctors: List<Doctor>, enabled: Boolean, onSelectDoctors: () -> Unit
 ) {
     val uiText = rememberUiStrings()
     AppSection(title = uiText(R.string.ui_shift_doctor_picker_001), colors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.primaryContainer
     ), titleColor = MaterialTheme.colorScheme.onPrimaryContainer) {
         if (doctors.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_019))
-        else {
-            Text(doctors.take(2).joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName } +
-                if (doctors.size > 2) " • +${uiNumber(doctors.size - 2)}" else "")
-            if (doctors.size > 2) AppTextButton(onClick = onToggleDetails) {
-                Text(if (showRosterDetails) uiText(R.string.ui_report_preview_screen_020) else uiText(R.string.ui_report_preview_screen_021, uiNumber(doctors.size)))
-            }
-            if (showRosterDetails) doctors.forEach { Text("• ${it.fullName}") }
-        }
+        else doctors.forEach { Text(it.fullName, style = MaterialTheme.typography.bodyMedium) }
         AppOutlinedButton(
             onClick = onSelectDoctors,
             enabled = enabled,
