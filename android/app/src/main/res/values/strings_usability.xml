@@ -128,4 +128,7 @@
     <string name="demo_loading_appearance">جارٍ فتح التجربة…</string>
     <string name="demo_appearance_read_failed">تعذر قراءة مظهر التجربة المحفوظ؛ استُخدم المظهر الافتراضي.</string>
     <string name="demo_appearance_save_failed">تعذر حفظ مظهر التجربة على هذا الجهاز.</string>
+    <string name="report_full_preview_title">معاينة التقرير الكامل — دون إرسال</string>
+    <string name="report_full_preview_action">معاينة التقرير الكامل</string>
+    <string name="report_full_preview_description">تفتح المعاينة التقرير الكامل دون إرساله أو تغيير الوجهات المختارة.</string>
 </resources>

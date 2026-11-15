@@ -26,6 +26,8 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppSection
+import com.hos.rushdpatients.ui.components.AppCard
+import com.hos.rushdpatients.ui.components.AppSectionHeader
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.saveable.rememberSaveable
 import android.content.ActivityNotFoundException
@@ -108,6 +110,7 @@ internal fun ReportWorkspace(
     var showDeliveryLog by remember { mutableStateOf(false) }
     var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
     var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var showSendingReview by rememberSaveable { mutableStateOf(false) }
     var pendingDelivery by remember { mutableStateOf<ReportDestinationReview?>(null) }
     val selectedTargets = state.supervisorTargets.filter { it.doctorId in selectedSupervisorIds && it.chatId != null }
     val supervisorMode = selectedTargets.isNotEmpty()
@@ -119,27 +122,35 @@ internal fun ReportWorkspace(
     val nextDisabledReason = flowGate.nextDisabledReason?.let { uiText(it) }
     val sendDisabledReason = flowGate.sendDisabledReason?.let { uiText(it) }
     val generalDestinationLabel = uiText(if (state.reportsToResidents) R.string.residents_report_label else R.string.project_report_label)
-    val previews = buildList {
-        if (generalSelected) add(ReportPreviewItem("general", generalDestinationLabel,
-            flowGate.previewReadiness.getValue("general")))
-        selectedTargets.forEach { target ->
-            val key = "supervisor:${target.doctorId}"
-            add(ReportPreviewItem(key, target.doctorName, flowGate.previewReadiness.getValue(key)))
-        }
-    }
-    val nextPreview = previews.firstOrNull { !it.reviewed }
-    fun preview(item: ReportPreviewItem) {
-        if (busy || !destinationReady) return
-        if (item.key != "general") viewModel.previewSupervisorPdf(item.key.removePrefix("supervisor:"))
-        else if (state.reportAsPdf) viewModel.previewPdf()
-        else { reviewedText = state.previewMarkdown; showTextPreview = true }
-    }
+    val fullReportPreviewed = if (state.reportAsPdf) {
+        state.pdfReviewUris["general"]?.let { it in state.openedPdfUris } == true
+    } else reviewedText == state.previewMarkdown
     fun openPreview() {
-        (nextPreview ?: previews.firstOrNull())?.let(::preview)
+        if (busy || state.summary == null) return
+        if (state.reportAsPdf) viewModel.previewPdf()
+        else { reviewedText = state.previewMarkdown; showTextPreview = true }
     }
     fun previousStep() {
         if (!busy) {
             if (step == ReportFlowStep.DOCTORS) onBack() else step = step.previous()
+        }
+    }
+    val recoveryContent: @Composable () -> Unit = {
+        ReportRecoverySection(state = state, busy = busy,
+            onDeliveryLog = { showDeliveryLog = true }, onBack = onBack,
+            onRetry = {
+                if (state.retryAction == ReportRetryAction.SEND) {
+                    step = ReportFlowStep.PREVIEW
+                } else if (state.retryAction == ReportRetryAction.PREVIEW) openPreview()
+                else viewModel.retryLastAction { step = ReportFlowStep.PREVIEW }
+            },
+            onFetchDoctors = viewModel::fetchDoctorsForReport, onOpenDoctors = onOpenDoctors,
+            onReload = { viewModel.load() }, onResolveDelivery = viewModel::resolveDelivery)
+    }
+    LaunchedEffect(state.error, state.publicationOutcome, state.deliveryOutcome) {
+        if (step == ReportFlowStep.PREVIEW &&
+            (state.error != null || state.publicationOutcome != null || state.deliveryOutcome != null)) {
+            showSendingReview = true
         }
     }
     BackHandler(enabled = busy || step != ReportFlowStep.DOCTORS) { previousStep() }
@@ -236,9 +247,8 @@ internal fun ReportWorkspace(
                         ) { Text(uiText(R.string.ui_report_preview_screen_017, step.next().arabicLabel(uiText))) }
                         previewNeeded -> LoadingButton(
                             text = if (state.previewingPdf) uiText(R.string.ui_progress_prepare_preview)
-                                else nextPreview?.let { uiText(R.string.report_preview_destination, it.label) }
-                                    ?: uiText(R.string.ui_report_preview_screen_058),
-                            loading = state.previewingPdf, enabled = !busy && destinationReady && nextPreview != null,
+                                else uiText(R.string.report_full_preview_action),
+                            loading = state.previewingPdf, enabled = !busy && destinationReady,
                             modifier = Modifier.fillMaxWidth(), onClick = ::openPreview)
                         else -> LoadingButton(text = UiAction.SEND_REPORT.label(uiText), loading = state.sending,
                             modifier = Modifier.fillMaxWidth(), enabled = sendDisabledReason == null,
@@ -310,84 +320,81 @@ internal fun ReportWorkspace(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                             Text(uiText(R.string.report_escorts_and_date, uiNumber(summary.escortCount), uiNumber(summary.shiftDate)),
                                 style = MaterialTheme.typography.bodySmall)
+                            Text(uiText(R.string.ui_report_preview_screen_063) +
+                                state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName },
+                                style = MaterialTheme.typography.bodyMedium)
                         }
                     }
 
                 }
-                if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
-                    Text(uiText(R.string.ui_report_preview_screen_063) + state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
-                    if (generalSelected) Text(generalDestinationLabel + " • " +
-                        (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
-                    selectedTargets.forEach { target ->
-                        Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
-                    }
-                    Text(uiText(R.string.ui_report_preview_screen_066),
-                        style = MaterialTheme.typography.bodySmall)
-                }
-                ReportRecoverySection(state = state, busy = busy,
-                    onDeliveryLog = { showDeliveryLog = true }, onBack = onBack,
-                    onRetry = {
-                        if (state.retryAction == ReportRetryAction.SEND) {
-                            step = ReportFlowStep.PREVIEW
-                        } else if (state.retryAction == ReportRetryAction.PREVIEW) openPreview()
-                        else viewModel.retryLastAction { step = ReportFlowStep.PREVIEW }
-                    },
-                    onFetchDoctors = viewModel::fetchDoctorsForReport, onOpenDoctors = onOpenDoctors,
-                    onReload = { viewModel.load() }, onResolveDelivery = viewModel::resolveDelivery)
-
+                if (step == ReportFlowStep.DOCTORS) recoveryContent()
                 if (step == ReportFlowStep.PREVIEW) {
-                    state.registryChangeSummary?.let { summary ->
-                        AppSection(title = uiText(R.string.sync_publish_all)) {
-                            Text(summary)
-                            if (!state.isAdmin) Text(uiText(R.string.sync_doctors_stay_pending))
-                        }
-                    }
-                    if (state.incompletePatientIds.isEmpty()) AppNotice(uiText(R.string.report_readiness_ready), kind = NoticeKind.SUCCESS)
-                    if (state.incompletePatientIds.isNotEmpty()) {
-                        AppSection(
-                            title = uiText(R.string.ui_report_preview_screen_046),
-                            titleColor = noticeColors(NoticeKind.WARNING).content,
-                            colors = CardDefaults.cardColors(
-                                containerColor = noticeColors(NoticeKind.WARNING).container
-                            )
-                        ) {
-                            AppTextButton(onClick = { state.shift?.id?.let { onReviewPatients(it, state.incompletePatientIds) } }, enabled = !busy) {
-                                Text(uiText(R.string.readiness_incomplete_patients, uiNumber(state.incompletePatientIds.size)), color = noticeColors(NoticeKind.WARNING).content)
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
+                            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                            AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_062),
+                                expanded = showSendingReview, onToggle = { showSendingReview = !showSendingReview })
+                            if (showSendingReview) {
+                                if (generalSelected) Text(generalDestinationLabel + " • " +
+                                    (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
+                                selectedTargets.forEach { target ->
+                                    Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
+                                }
+                                Text(uiText(R.string.ui_report_preview_screen_066),
+                                    style = MaterialTheme.typography.bodySmall)
+                                recoveryContent()
+                                state.registryChangeSummary?.let { summary ->
+                                    AppSection(title = uiText(R.string.sync_publish_all)) {
+                                        Text(summary)
+                                        if (!state.isAdmin) Text(uiText(R.string.sync_doctors_stay_pending))
+                                    }
+                                }
+                                if (state.incompletePatientIds.isEmpty()) AppNotice(uiText(R.string.report_readiness_ready), kind = NoticeKind.SUCCESS)
+                                if (state.incompletePatientIds.isNotEmpty()) {
+                                    AppSection(
+                                        title = uiText(R.string.ui_report_preview_screen_046),
+                                        titleColor = noticeColors(NoticeKind.WARNING).content,
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = noticeColors(NoticeKind.WARNING).container
+                                        )
+                                    ) {
+                                        AppTextButton(onClick = { state.shift?.id?.let { onReviewPatients(it, state.incompletePatientIds) } }, enabled = !busy) {
+                                            Text(uiText(R.string.readiness_incomplete_patients, uiNumber(state.incompletePatientIds.size)), color = noticeColors(NoticeKind.WARNING).content)
+                                        }
+                                        Text(
+                                            uiText(R.string.ui_report_preview_screen_047),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = noticeColors(NoticeKind.WARNING).content
+                                        )
+                                    }
+                                }
+
+                                AppSection(
+                                    title = uiText(R.string.ui_report_preview_screen_048),
+                                    titleColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                    )
+                                ) {
+                                    if (state.changeBriefing.isEmpty()) {
+                                        Text(uiText(R.string.ui_report_preview_screen_049))
+                                    } else {
+                                        AppTextButton(onClick = { showChanges = !showChanges }) {
+                                            Text(uiText(R.string.ui_report_preview_screen_050, uiNumber(state.changeBriefing.size)) + if (showChanges) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_ward_view_options_dialog_009))
+                                        }
+                                        if (showChanges) state.changeBriefing.forEach { Text("• $it") }
+                                    }
+                                }
+                                if (pdfSelected && state.summary != null) AppCheckRow(
+                                    label = uiText(R.string.report_optional_normal_export), checked = exportPdf,
+                                    enabled = !busy, onCheckedChange = { exportPdf = it })
                             }
-                            Text(
-                                uiText(R.string.ui_report_preview_screen_047),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = noticeColors(NoticeKind.WARNING).content
-                            )
                         }
                     }
-
-                    AppSection(
-                        title = uiText(R.string.ui_report_preview_screen_048),
-                        titleColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
-                    ) {
-                        if (state.changeBriefing.isEmpty()) {
-                            Text(uiText(R.string.ui_report_preview_screen_049))
-                        } else {
-                            AppTextButton(onClick = { showChanges = !showChanges }) {
-                                Text(uiText(R.string.ui_report_preview_screen_050, uiNumber(state.changeBriefing.size)) + if (showChanges) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_ward_view_options_dialog_009))
-                            }
-                            if (showChanges) state.changeBriefing.forEach { Text("• $it") }
-                        }
-                    }
-
-
                 }
                 if (step == ReportFlowStep.PREVIEW) {
-                    if (pdfSelected && state.summary != null) AppCheckRow(
-                        label = uiText(R.string.report_optional_normal_export), checked = exportPdf,
-                        enabled = !busy, onCheckedChange = { exportPdf = it })
-                }
-                if (step == ReportFlowStep.PREVIEW) {
-                    ReportPreviewList(previews, enabled = !busy && destinationReady, onPreview = ::preview)
+                    ReportFullPreview(reviewed = fullReportPreviewed,
+                        enabled = !busy && state.summary != null, onPreview = ::openPreview)
                 }
 
             }
