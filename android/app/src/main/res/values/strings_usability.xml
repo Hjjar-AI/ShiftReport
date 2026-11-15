@@ -95,7 +95,7 @@
     <string name="login_private_code_incorrect">الرمز غير صحيح؛ راجع رسالة البوت.</string>
     <string name="login_private_code_expired">انتهت صلاحية الرمز أو محاولاته. انتظر انتهاءه ثم اطلب رمزاً جديداً.</string>
     <string name="login_private_code_send_failed">تعذر تأكيد إرسال الرمز. افتح محادثة البوت واضغط Start؛ إن وصل رمز فإعادة المحاولة تتيح إدخاله دون إرساله مجدداً.</string>
-    <string name="sort_preset_supervisor">حسب فريق الاختصاصي ثم الاسم</string>
+    <string name="sort_preset_supervisor">حسب فريق الاختصاصي ثم الجنس ثم الاسم</string>
     <string name="sort_custom">ترتيب مخصص حسب الأولوية</string>
     <string name="sort_level_number">المستوى %1$d</string>
     <string name="sort_move_earlier">تقديم هذا المستوى</string>

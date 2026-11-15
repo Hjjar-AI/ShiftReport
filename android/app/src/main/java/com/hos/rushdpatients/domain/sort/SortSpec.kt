@@ -37,7 +37,7 @@ data class SortSpec(
             SortLevel(SortField.NAME)
         ))
         val DEFAULT: SortSpec = SortSpec(
-            listOf(SortLevel(SortField.NAME, SortDirection.ASC))
+            listOf(SortLevel(SortField.SUPERVISOR), SortLevel(SortField.GENDER), SortLevel(SortField.NAME))
         )
 
         val EMPTY: SortSpec = SortSpec(emptyList())

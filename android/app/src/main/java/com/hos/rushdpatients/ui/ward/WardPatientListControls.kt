@@ -87,7 +87,6 @@ internal fun WardPatientListControls(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
                     listOf(DashboardFilter.MINE to uiText(R.string.ui_handover_dashboard_011),
-                        DashboardFilter.URGENT to uiText(R.string.ui_ward_patient_list_controls_007),
                         DashboardFilter.UNASSIGNED to uiText(R.string.ui_ward_screen_010), DashboardFilter.TASK_PENDING to uiText(R.string.ui_ward_screen_011)
                     ).forEach { (preset, label) -> AppFilterChip(
                         selected = selectedPreset == preset, onClick = { onPreset(preset) },
@@ -95,13 +94,13 @@ internal fun WardPatientListControls(
                         size = UiControlSize.COMPACT) }
                 }
             }
+            AppIconButton(label = uiText(R.string.ui_ward_patient_list_controls_005),
+                icon = AppIcons.RestartAlt, enabled = activeFilters.isNotEmpty(), onClick = onReset)
             BadgedBox(badge = { if (activeFilters.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer) { Text(uiNumber(activeFilters.size)) } }) {
                 AppIconButton(label = description,
-                    icon = AppIcons.FilterList, onClick = onOptions)
+                    icon = AppIcons.Sort, onClick = onOptions)
             }
-            AppIconButton(label = uiText(R.string.ui_ward_patient_list_controls_005),
-                icon = AppIcons.RestartAlt, enabled = activeFilters.isNotEmpty(), onClick = onReset)
         }
 
     }

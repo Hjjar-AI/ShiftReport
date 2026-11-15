@@ -38,7 +38,7 @@ internal data class DemoWardState(
     val patients: List<Patient> = DemoData.patients(doctors),
     val deleted: List<Patient> = emptyList(),
     val shiftDoctorIds: List<String> = doctors.take(2).map { it.id },
-    val sort: SortSpec = SortSpec(),
+    val sort: SortSpec = SortSpec.DEFAULT,
     val date: LocalDate = com.hos.rushdpatients.util.ShiftDate.current(),
     val actorId: String = doctors.first().id,
     val message: String? = null,

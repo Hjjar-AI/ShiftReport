@@ -245,8 +245,8 @@
     <string name="ui_sort_sheet_008" formatted="false">"إضافة مستوى"</string>
     <string name="ui_sort_sheet_009" formatted="false">"حفظ الترتيب"</string>
     <string name="ui_sort_sheet_010" formatted="false">"افتراضي"</string>
-    <string name="ui_sort_sheet_011" formatted="false">"الترتيب الأصلي"</string>
-    <string name="ui_sort_sheet_012" formatted="false">"الترتيب الافتراضي: الجنس ← التشخيص ← أيام الدخول ← الاسم"</string>
+    <string name="ui_sort_sheet_011" formatted="false">"الترتيب اليدوي"</string>
+    <string name="ui_sort_sheet_012" formatted="false">"الجنس ← نوع التشخيص ← أيام الدخول ← الاسم"</string>
     <string name="ui_sort_sheet_013" formatted="false">"تصاعدي"</string>
     <string name="ui_sort_sheet_014" formatted="false">"تنازلي"</string>
     <string name="ui_group_by_sheet_001" formatted="false">"تجميع المرضى"</string>

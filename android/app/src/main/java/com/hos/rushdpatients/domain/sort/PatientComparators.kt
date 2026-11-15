@@ -68,9 +68,8 @@ object PatientComparators {
     ): Int {
         val ra = customOrder.diagnosisRank(a.diagnosisType.arabicLabel)
         val rb = customOrder.diagnosisRank(b.diagnosisType.arabicLabel)
-        val byRank = ra.compareTo(rb)
-        if (byRank != 0) return byRank
-        return a.initialDiagnosis.lowercase().compareTo(b.initialDiagnosis.lowercase())
+        // Equal diagnosis types defer to the next configured level, not clinical text.
+        return ra.compareTo(rb)
     }
 
     private fun compareDays(a: Patient, b: Patient, today: LocalDate): Int {

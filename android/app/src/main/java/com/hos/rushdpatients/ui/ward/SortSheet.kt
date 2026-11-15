@@ -66,13 +66,11 @@ internal fun PatientSortOptions(
 ) {
     val uiText = rememberUiStrings()
     val presets = listOf(
-        R.string.ui_sort_sheet_011 to SortSpec.EMPTY,
-        R.string.sort_preset_name to SortSpec.DEFAULT,
-        R.string.sort_preset_supervisor to SortSpec(listOf(
-            SortLevel(SortField.SUPERVISOR), SortLevel(SortField.NAME))),
+        R.string.sort_preset_supervisor to SortSpec.DEFAULT,
+        R.string.ui_sort_sheet_012 to SortSpec.WORKBOOK,
+        R.string.sort_preset_name to SortSpec(listOf(SortLevel(SortField.NAME))),
         R.string.sort_preset_admission to SortSpec(listOf(
-            SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.DESC), SortLevel(SortField.NAME))),
-        R.string.ui_sort_sheet_012 to SortSpec.WORKBOOK
+            SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.DESC), SortLevel(SortField.NAME)))
     )
     var levels by remember(initial) { mutableStateOf(initial.levels) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
@@ -114,7 +112,7 @@ internal fun PatientSortOptions(
 internal fun fieldLabel(uiText: UiStrings, f: SortField): String = when (f) {
     SortField.NAME -> uiText(R.string.ui_edit_patient_dialog_009)
     SortField.GENDER -> uiText(R.string.ui_patient_demographic_fields_010)
-    SortField.DIAGNOSIS -> uiText(R.string.ui_patient_card_024)
+    SortField.DIAGNOSIS -> uiText(R.string.ui_patient_form_dialog_005)
     SortField.DAYS_OF_ADMITTANCE -> uiText(R.string.ui_sort_sheet_015)
     SortField.SUPERVISOR -> uiText(R.string.ui_patient_form_dialog_017)
 }

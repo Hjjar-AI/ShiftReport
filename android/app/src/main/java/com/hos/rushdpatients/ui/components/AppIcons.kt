@@ -118,6 +118,7 @@ object AppIcons {
     val Search get() = Icons.Filled.Search
     val Send get() = Icons.Filled.Send
     val Settings get() = Icons.Filled.Settings
+    val Sort get() = ArabicSortIcon
     val Star get() = Icons.Filled.Star
     val StarBorder get() = Icons.Filled.StarBorder
     val Sync get() = Icons.Filled.Sync
