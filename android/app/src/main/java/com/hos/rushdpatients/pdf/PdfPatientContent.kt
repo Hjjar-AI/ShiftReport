@@ -39,7 +39,8 @@ internal object PdfPatientContent {
     fun buildAdmitCell(
         patient: Patient,
         reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current(),
-        includeNumber: Boolean = true
+        includeNumber: Boolean = true,
+        dayLabel: String = "يوم"
     ): String {
         val sb = StringBuilder()
         if (includeNumber) {
@@ -49,7 +50,7 @@ internal object PdfPatientContent {
             sb.append('\n')
         }
         patient.admittanceDate?.let { date ->
-            sb.append("يوم ")
+            sb.append(dayLabel).append(' ')
             sb.append(patient.admittanceDaysOn(reportDate) ?: 0)
             sb.append('\n')
             sb.append(date)

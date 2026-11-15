@@ -32,7 +32,8 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val sectionColumnGap = 8f
     private val left = margin + padding
     private val right = width - margin - padding
-    private val cardBottom = height - bottomMargin
+    private val cardBottom: Float get() = height - if (isIndexPage) bottomMargin else
+        maxOf(bottomMargin, PdfTextWrapper.lineHeight(navigation) + 2 * navigationPadding + 2 * navigationInset)
     private val bidi = BidiFormatter.getInstance()
     private val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = 14f
@@ -47,8 +48,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val navigation = Paint(heading).apply { textSize = 12f; textAlign = Paint.Align.CENTER }
     private val urgentHeading = Paint(heading)
     private val footer = Paint(body).apply { textSize = 8.5f; textAlign = Paint.Align.CENTER }
-    private val bottom: Float get() = if (isIndexPage) cardBottom - padding else
-        cardBottom - navigationInset - PdfTextWrapper.lineHeight(navigation) - 2 * navigationPadding - gap
+    private val bottom: Float get() = cardBottom - padding
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -62,6 +62,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private var pageTotal = 0
     private var generatedLabel = ""
     private var shiftDateLabel = ""
+    private var indexSummaryLabel = ""
     private var y = margin
     private val canvas: Canvas get() = checkNotNull(page).canvas
 
@@ -91,6 +92,9 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         pageTotal = totalPages
         generatedLabel = PdfReportContext.createdAt(options)
         shiftDateLabel = summary.shiftDate.toString()
+        // Nonbreaking padding keeps the totals' bullet spacing when wrapped.
+        indexSummaryLabel = "المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})" +
+            " \u00a0•\u00a0 مرافقون: ${summary.escortCount}"
         // A5 portrait is enforced here for every caller, independently of saved table options.
         palette = PdfPalette.resolve(options)
         body.color = palette.text
@@ -105,12 +109,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         val cardPages = mutableListOf<CardPage>()
         try {
             newPage(documentLabel, index = true)
-            val metadataPaint = Paint(body).apply { textSize = 11.5f }
-            // Index totals keep their original size independently of patient-card headings.
-            val indexHeading = Paint(heading).apply { textSize = 13f }
-            // Nonbreaking padding survives the wrapper's ordinary-space normalization.
-            indexText("المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})" +
-                " \u00a0•\u00a0 المرافقون: ${summary.escortCount}", indexHeading, documentLabel)
+            val metadataPaint = Paint(body).apply { textSize = 13f }
             if (doctors.isNotEmpty()) ReportRosterLabel.linesForDoctors(doctors, " / ").forEach { line ->
                 indexText(line, metadataPaint, documentLabel)
             }
@@ -201,7 +200,8 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 val introColumns = listOf(
                     Triple("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames, roleSeparator = "\n"), left + columnWidth),
                     Triple("القبول",
-                        PdfPatientContent.buildAdmitCell(patient, summary.shiftDate, includeNumber = false), left + 2 * columnWidth + columnGap),
+                        PdfPatientContent.buildAdmitCell(patient, summary.shiftDate, includeNumber = false,
+                            dayLabel = "يوم إقامة"), left + 2 * columnWidth + columnGap),
                     Triple("بيانات المريض", PdfPatientContent.buildPatientCell(patient, includeName = false, reportDate = summary.shiftDate), right)
                 )
                 val introLines = introColumns.map { PdfTextWrapper.wrap(it.second, body, columnWidth) }
@@ -331,7 +331,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     val panelGap = 3f
                     val columnY = floatArrayOf(y, y)
                     var column = 0
-                    val panelRule = Paint(outline).apply { color = palette.ruleColor; strokeWidth = .5f }
+                    val panelRule = Paint(outline).apply { color = 0xFF7E8B9C.toInt(); strokeWidth = .5f }
                     panels.forEach { section ->
                         val lines = if (section.text.isBlank()) emptyList() else PdfTextWrapper.wrap(section.text, body, cellWidth)
                         var offset = 0
@@ -424,20 +424,22 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         fill.color = palette.pageBackground
         var pageTop = if (index) 10f * 72f / 25.4f else topMargin
         if (index) {
-            val titlePaint = Paint(heading).apply { textSize = 15f }
-            val datePaint = Paint(titlePaint).apply { textAlign = Paint.Align.LEFT }
-            val headerColumnWidth = (right - left - gap) / 2f
-            val titleLines = PdfTextWrapper.wrap("فهرس المرضى", titlePaint, headerColumnWidth)
-            val dateLines = PdfTextWrapper.wrap(shiftDateLabel, datePaint, headerColumnWidth)
-            val lineHeight = PdfTextWrapper.lineHeight(titlePaint)
-            val headerHeight = maxOf(titleLines.size, dateLines.size) * lineHeight
+            val totalsPaint = Paint(heading).apply { textSize = 13f }
+            val datePaint = Paint(heading).apply { textSize = 15f; textAlign = Paint.Align.LEFT }
+            val dateColumnWidth = (right - left - gap) / 3f
+            val totalsColumnWidth = right - left - gap - dateColumnWidth
+            val totalsLines = PdfTextWrapper.wrap(indexSummaryLabel, totalsPaint, totalsColumnWidth)
+            val dateLines = PdfTextWrapper.wrap(shiftDateLabel, datePaint, dateColumnWidth)
+            val totalsLineHeight = PdfTextWrapper.lineHeight(totalsPaint)
+            val dateLineHeight = PdfTextWrapper.lineHeight(datePaint)
+            val headerHeight = maxOf(totalsLines.size * totalsLineHeight, dateLines.size * dateLineHeight)
             pageTop = maxOf(pageTop, headerHeight + 2 * titlePadding)
-            val firstBaseline = (pageTop - headerHeight) / 2f - titlePaint.fontMetrics.top
-            titleLines.forEachIndexed { line, value ->
-                canvas.drawText(directed(value), right, firstBaseline + line * lineHeight, titlePaint)
+            val headerTop = (pageTop - headerHeight) / 2f
+            totalsLines.forEachIndexed { line, value ->
+                canvas.drawText(directed(value), right, headerTop - totalsPaint.fontMetrics.top + line * totalsLineHeight, totalsPaint)
             }
             dateLines.forEachIndexed { line, value ->
-                canvas.drawText(directed(value), left, firstBaseline + line * lineHeight, datePaint)
+                canvas.drawText(directed(value), left, headerTop - datePaint.fontMetrics.top + line * dateLineHeight, datePaint)
             }
         }
         val card = RectF(margin, pageTop, width - margin, cardBottom)
@@ -459,19 +461,30 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         }
     }
 
-    /** Same patient-to-patient destinations on the first and every continuation page. */
+    /** Compact footer buttons keep the same destinations on every patient/continuation page. */
     private fun drawNavigation(patientIndex: Int, total: Int): List<RectF> {
-        val navBottom = cardBottom - navigationInset
-        val navTop = navBottom - PdfTextWrapper.lineHeight(navigation) - 2 * navigationPadding
-        val cellWidth = (right - left) / 3f
         val labels = listOf("السابق", "الفهرس", "التالي")
+        val buttonHeight = PdfTextWrapper.lineHeight(navigation) + 2 * navigationPadding
+        val centerY = (cardBottom + height) / 2f
+        val navTop = centerY - buttonHeight / 2f
+        val navBottom = centerY + buttonHeight / 2f
+        val buttonWidth = labels.maxOf { navigation.measureText(directed(it)) } + 12f
+        val buttonGap = 6f
+        val groupRight = width / 2f + (3 * buttonWidth + 2 * buttonGap) / 2f
         return labels.mapIndexed { index, label ->
-            val end = right - index * cellWidth
-            val rect = RectF(end - cellWidth, navTop, end, navBottom)
+            val end = groupRight - index * (buttonWidth + buttonGap)
+            val rect = RectF(end - buttonWidth, navTop, end, navBottom)
             val active = when (index) { 0 -> patientIndex > 0; 2 -> patientIndex < total - 1; else -> true }
-            val paint = Paint(navigation).apply { isUnderlineText = active }
+            val background = Paint(fill).apply { color = if (active) palette.summary else palette.pageBackground }
+            val border = Paint(outline).apply { color = if (active) palette.ruleColor else palette.border }
+            val paint = Paint(navigation).apply {
+                isUnderlineText = false
+                color = if (active) palette.text else palette.ruleColor
+            }
+            canvas.drawRoundRect(rect, 5f, 5f, background)
+            canvas.drawRoundRect(rect, 5f, 5f, border)
             canvas.drawText(directed(if (active) label else "—"), rect.centerX(),
-                navTop + navigationPadding - paint.fontMetrics.top, paint)
+                centerY - (paint.fontMetrics.top + paint.fontMetrics.bottom) / 2f, paint)
             rect
         }
     }
