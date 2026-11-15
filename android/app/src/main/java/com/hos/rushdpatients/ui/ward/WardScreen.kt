@@ -465,7 +465,7 @@ private fun WardWorkspaceContent(
                                 }
                             }, onWorkflow = {
                                 when (state.workflowAction) {
-                                    WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(onOpenReport)
+                                    WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
                                     WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
                                     WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
                                 }

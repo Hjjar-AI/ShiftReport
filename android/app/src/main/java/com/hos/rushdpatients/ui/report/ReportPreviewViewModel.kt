@@ -119,7 +119,8 @@ class ReportPreviewViewModel @Inject constructor(
                 }
             }.collect { isAdmin -> _state.update { it.copy(isAdmin = isAdmin) } }
         }
-        load()
+        // The delivery-history route only observes receipts; it does not prepare a report.
+        if (savedStateHandle.get<Boolean>("deliveryHistoryOnly") != true) load()
     }
 
     override fun onCleared() {

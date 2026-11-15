@@ -50,7 +50,7 @@ import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal enum class WardDrawerAction {
-    REPORT, ASSIGNMENTS, SETTINGS, DATA_MANAGEMENT,
+    REPORT, DELIVERY_HISTORY, ASSIGNMENTS, SETTINGS, DATA_MANAGEMENT,
     RECYCLE_BIN, ADMIN, PROJECT, ABOUT, GUIDE,
     FILES, BACKUP, INVITATIONS, DESTINATIONS, RESET, DIAGNOSTICS
 }
@@ -143,6 +143,8 @@ internal fun WardDrawer(
                     DrawerToolGroup(uiText(R.string.drawer_data_files), AppIcons.FolderOpen, dataFilesMenuExpanded,
                         onToggle = { dataFilesMenuExpanded = !dataFilesMenuExpanded }) {
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
+                        WardDrawerRow(uiText(R.string.ui_ward_synchronization_006), AppIcons.History,
+                            enabled = state.shift != null) { onAction(WardDrawerAction.DELIVERY_HISTORY) }
                         WardDrawerRow(uiText(R.string.drawer_exports_imports), AppIcons.FolderOpen) { onAction(WardDrawerAction.FILES) }
                         WardDrawerRow(uiText(R.string.ui_settings_section_layout_031), AppIcons.Backup) { onAction(WardDrawerAction.BACKUP) }
                         WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }

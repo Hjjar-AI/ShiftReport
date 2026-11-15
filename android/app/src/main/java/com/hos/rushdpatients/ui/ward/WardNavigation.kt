@@ -5,6 +5,7 @@ import com.hos.rushdpatients.ui.settings.SettingsWorkspace
 /** Explicit destinations; none silently redirects to a different settings page. */
 class WardNavigation(
     val onOpenReport: (String) -> Unit,
+    val onOpenDeliveryHistory: (String) -> Unit,
     val onOpenAdmin: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenAbout: () -> Unit,
@@ -22,6 +23,7 @@ internal fun WardNavigation.openDrawerAction(
 ) {
     when (action) {
         WardDrawerAction.REPORT -> shiftId?.let(onOpenReport)
+        WardDrawerAction.DELIVERY_HISTORY -> shiftId?.let(onOpenDeliveryHistory)
         WardDrawerAction.ASSIGNMENTS -> if (isAdmin) shiftId?.let(onOpenAssignments) else Unit
         WardDrawerAction.SETTINGS -> onOpenSettings()
         WardDrawerAction.FILES -> onOpenWorkspace(SettingsWorkspace.FILES)

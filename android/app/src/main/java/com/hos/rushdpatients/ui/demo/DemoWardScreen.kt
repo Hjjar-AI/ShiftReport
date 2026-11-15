@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.*
 import com.hos.rushdpatients.ui.doctors.DoctorsWorkspace
+import com.hos.rushdpatients.ui.report.ReportDeliveryHistoryWorkspace
 import com.hos.rushdpatients.ui.report.ReportWorkspace
 import com.hos.rushdpatients.ui.report.AssignmentsExportWorkspace
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
@@ -63,6 +64,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     fun openReport() { viewModel.report.load(); tab = DemoDestination.REPORT }
     val navigation = WardNavigation(
         onOpenReport = { openReport() },
+        onOpenDeliveryHistory = { tab = DemoDestination.DELIVERY_HISTORY },
         onOpenAssignments = { viewModel.report.load(); tab = DemoDestination.ASSIGNMENTS },
         onOpenAdmin = { tab = DemoDestination.TEAM },
         onOpenDoctors = { tab = DemoDestination.TEAM },
@@ -122,6 +124,9 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                     ReportWorkspace(onBack = { tab = DemoDestination.PATIENTS },
                         onOpenDoctors = { tab = DemoDestination.TEAM }, viewModel = viewModel.report,
                         onReviewPatients = { _, ids -> reviewPatientIds = ids; tab = DemoDestination.PATIENTS })
+                }
+                tab == DemoDestination.DELIVERY_HISTORY -> {
+                    ReportDeliveryHistoryWorkspace(onBack = { tab = DemoDestination.PATIENTS }, controller = viewModel.report)
                 }
                 tab == DemoDestination.ASSIGNMENTS -> pages.SaveableStateProvider("assignments-${state.shiftId}") {
                     AssignmentsExportWorkspace(onBack = { tab = DemoDestination.PATIENTS }, controller = viewModel.report)

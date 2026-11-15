@@ -16,8 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.data.model.Doctor
-import com.hos.rushdpatients.pdf.PdfExportOptions
-import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.ui.components.*
 
 /** Presentation only; selection, review state and artifact invalidation stay with the workspace/controller. */
@@ -100,24 +98,3 @@ internal fun ReportDestinationSelection(
     }
 }
 
-@Composable
-internal fun ReportPdfCustomization(
-    style: PdfStyle, options: PdfExportOptions, busy: Boolean, expanded: Boolean,
-    onToggleExpanded: () -> Unit, onAppearanceChange: (PdfStyle, PdfExportOptions) -> Unit
-) {
-    val uiText = rememberUiStrings()
-    AppTextButton(onClick = onToggleExpanded, enabled = !busy,
-        modifier = Modifier.fillMaxWidth()) {
-        Text(if (expanded) uiText(R.string.ui_report_preview_screen_051) else uiText(R.string.ui_report_preview_screen_052))
-    }
-    if (expanded) AppSection(title = uiText(R.string.ui_report_preview_screen_053)) {
-        AppPdfStylePicker(selected = style,
-            onSelected = { onAppearanceChange(it, options) }, enabled = !busy)
-        if (style == PdfStyle.CARDS) {
-            Text(uiText(R.string.pdf_two_column_sections_hint), style = MaterialTheme.typography.bodySmall)
-        }
-        Text(uiText(R.string.pdf_uses_app_theme, options.appTheme.arabicLabel(uiText)),
-            style = MaterialTheme.typography.bodySmall)
-        Text(uiText(R.string.ui_report_preview_screen_055), style = MaterialTheme.typography.bodySmall)
-    }
-}

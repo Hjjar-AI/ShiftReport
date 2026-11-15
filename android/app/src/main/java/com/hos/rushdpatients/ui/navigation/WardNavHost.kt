@@ -21,6 +21,7 @@ import com.hos.rushdpatients.ui.admin.AdminScreen
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import com.hos.rushdpatients.ui.guide.GuideScreen
 import com.hos.rushdpatients.ui.doctors.DoctorsScreen
+import com.hos.rushdpatients.ui.report.ReportDeliveryHistoryScreen
 import com.hos.rushdpatients.ui.report.ReportPreviewScreen
 import com.hos.rushdpatients.ui.report.AssignmentsExportScreen
 import com.hos.rushdpatients.ui.settings.SettingsScreen
@@ -50,6 +51,7 @@ fun WardNavHost(
                 navigation = WardNavigation(onOpenReport = { shiftId ->
                     navController.navigate(Routes.reportPreview(shiftId))
                 },
+                onOpenDeliveryHistory = { shiftId -> navController.navigate(Routes.deliveryHistory(shiftId)) },
                 onOpenAssignments = { shiftId -> if (session.isAdmin) navController.navigate(Routes.assignments(shiftId)) },
                 onOpenAdmin = { navController.navigate(Routes.ADMIN) },
                 onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
@@ -60,6 +62,13 @@ fun WardNavHost(
                 onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
                 onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) })
             )
+        }
+
+        composable(Routes.DELIVERY_HISTORY, arguments = listOf(
+            navArgument("shiftId") { type = NavType.StringType },
+            navArgument("deliveryHistoryOnly") { type = NavType.BoolType; defaultValue = true }
+        )) {
+            ReportDeliveryHistoryScreen(onBack = { navController.popBackStack() })
         }
 
         composable(
@@ -86,7 +95,8 @@ fun WardNavHost(
                 patientFilterIds = entry.arguments?.getString("ids").orEmpty().split(',').filter(String::isNotBlank).toSet(),
                 reviewShiftId = entry.arguments?.getString("shiftId"), onBackToPreview = ::back,
                 navigation = WardNavigation(onOpenReport = { back() },
-                    onOpenAssignments = { shiftId -> if (session.isAdmin) navController.navigate(Routes.assignments(shiftId)) },
+                    onOpenDeliveryHistory = { shiftId -> navController.navigate(Routes.deliveryHistory(shiftId)) },
+                onOpenAssignments = { shiftId -> if (session.isAdmin) navController.navigate(Routes.assignments(shiftId)) },
                     onOpenAdmin = { navController.navigate(Routes.ADMIN) },
                     onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },

@@ -25,6 +25,19 @@ internal fun ReportDeliveryLogDialog(
     val uiText = rememberUiStrings()
     AppAlertDialog(onDismissRequest = onDismiss, title = { Text(uiText(R.string.ui_report_preview_screen_081)) }, text = {
         Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            ReportDeliveryLogContent(records, busy, onResolveDelivery, onAllowCopy)
+        }
+    }, confirmButton = { AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_close)) } })
+}
+
+/** Shared by the side-menu history page and contextual recovery dialogs. */
+@Composable
+internal fun ReportDeliveryLogContent(
+    records: List<ReportDeliveryRecord>, busy: Boolean,
+    onResolveDelivery: (ReportDeliveryRecord, DeliveryResolution) -> Unit,
+    onAllowCopy: (ReportDeliveryRecord) -> Unit
+) {
+    val uiText = rememberUiStrings()
             Text(uiText(R.string.ui_report_preview_screen_082))
             if (records.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_083))
             records.asReversed().forEach { row ->
@@ -42,8 +55,6 @@ internal fun ReportDeliveryLogDialog(
                     }
                 }
             }
-        }
-    }, confirmButton = { AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_close)) } })
 }
 
 @Composable

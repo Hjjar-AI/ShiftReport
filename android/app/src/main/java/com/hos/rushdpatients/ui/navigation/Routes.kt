@@ -5,6 +5,7 @@ object Routes {
     const val WARD = "ward"
     const val ASSIGNMENTS = "assignments/{shiftId}"
     const val REPORT_PREVIEW = "report/{shiftId}"
+    const val DELIVERY_HISTORY = "deliveryHistory/{shiftId}"
     const val ADMIN = "admin"
     const val DOCTORS = "doctors"
     const val SETTINGS = "settings"
@@ -21,4 +22,6 @@ object Routes {
     fun assignments(shiftId: String) = "assignments/$shiftId"
 
     fun reportPreview(shiftId: String) = "report/$shiftId"
+
+    fun deliveryHistory(shiftId: String) = "deliveryHistory/$shiftId"
 }
