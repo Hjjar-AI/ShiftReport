@@ -35,15 +35,15 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val cardBottom = height - bottomMargin
     private val bidi = BidiFormatter.getInstance()
     private val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = 12.5f
+        textSize = 13.5f
         typeface = fonts.regular
         textAlign = Paint.Align.RIGHT
     }
     private val heading = Paint(body).apply {
         typeface = fonts.bold
-        textSize = 13f
+        textSize = 14f
     }
-    private val name = Paint(heading).apply { textSize = 16f; textAlign = Paint.Align.CENTER }
+    private val name = Paint(heading).apply { textSize = 17f; textAlign = Paint.Align.CENTER }
     private val navigation = Paint(heading).apply { textSize = 12f; textAlign = Paint.Align.CENTER }
     private val urgentHeading = Paint(heading)
     private val footer = Paint(body).apply { textSize = 8.5f; textAlign = Paint.Align.CENTER }
@@ -106,9 +106,11 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         try {
             newPage(documentLabel, index = true)
             val metadataPaint = Paint(body).apply { textSize = 11.5f }
+            // Index totals keep their original size independently of patient-card headings.
+            val indexHeading = Paint(heading).apply { textSize = 13f }
             // Nonbreaking padding survives the wrapper's ordinary-space normalization.
             indexText("المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})" +
-                " \u00a0•\u00a0 المرافقون: ${summary.escortCount}", heading, documentLabel)
+                " \u00a0•\u00a0 المرافقون: ${summary.escortCount}", indexHeading, documentLabel)
             if (doctors.isNotEmpty()) ReportRosterLabel.linesForDoctors(doctors, " / ").forEach { line ->
                 indexText(line, metadataPaint, documentLabel)
             }
@@ -443,12 +445,18 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         canvas.drawRoundRect(card, 4f, 4f, outline)
         y = pageTop + padding
         footer.color = palette.text
-        val label = listOfNotNull(documentLabel, "ShiftReport", "${pageIndex + 1}/$pageTotal", generatedLabel).joinToString(" • ")
-        val footerPaint = Paint(footer)
-        val textWidth = footerPaint.measureText(directed(label))
-        if (textWidth > width - 2 * margin) footerPaint.textSize *= (width - 2 * margin) / textWidth
-        val baseline = height - bottomMargin / 2f - (footerPaint.fontMetrics.top + footerPaint.fontMetrics.bottom) / 2f
-        canvas.drawText(directed(label), width / 2f, baseline, footerPaint)
+        // Patient pages omit footer metadata; DEMO/DRAFT labels stay above every card.
+        val label = if (index) {
+            listOfNotNull(documentLabel, "ShiftReport", "${pageIndex + 1}/$pageTotal", generatedLabel).joinToString(" • ")
+        } else documentLabel?.takeIf { it.isNotBlank() }
+        if (label != null) {
+            val labelPaint = Paint(footer)
+            val textWidth = labelPaint.measureText(directed(label))
+            if (textWidth > width - 2 * margin) labelPaint.textSize *= (width - 2 * margin) / textWidth
+            val centerY = if (index) height - bottomMargin / 2f else pageTop / 2f
+            val baseline = centerY - (labelPaint.fontMetrics.top + labelPaint.fontMetrics.bottom) / 2f
+            canvas.drawText(directed(label), width / 2f, baseline, labelPaint)
+        }
     }
 
     /** Same patient-to-patient destinations on the first and every continuation page. */
