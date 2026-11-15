@@ -58,7 +58,7 @@ Artifact names include source commit, run and attempt; retention is one day. Exp
 
 ## Emulator selections and evidence
 
-Workflow 07 uses only owned ephemeral AVDs at `emulator-5554`. It verifies hosted runner, AVD/API/QEMU/user identity, absence of existing packages, APK signer/package and installed bytes. Cleanup rechecks installation identity; ambiguous outcomes fail and never justify clearing another installation.
+Workflow 07 uses only owned ephemeral AVDs at `emulator-5554`. It verifies hosted runner, AVD/API/QEMU/user identity, absence of existing packages, APK signer/package and installed bytes. Android6 uses its supported user-list command and requires user0 as the sole registered/running user; newer APIs query the current user directly. Installation identity handles the documented `userId`/`appId` dump fields without relaxing UID, code-path or timestamp checks. Safe `ownership.json` and `phase-errors.json` diagnostics retain failures that occur before a phase can produce results. Cleanup rechecks installation identity; ambiguous outcomes fail and never justify clearing another installation.
 
 Capture follows the actual fresh-install setup screen's default demo choice and visible start button. It records startup/demo/large-text PNGs, a short video and provenance. It does not inject a new navigation shortcut or alter production UI. Release startup additionally observes process survival for 30 seconds; this is not update acceptance.
 
