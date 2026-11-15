@@ -1,7 +1,8 @@
 # Apply to future edits; do not mass-renormalize the existing checkout.
 * text=auto eol=lf
 *.bat text eol=crlf
-gradlew.bat whitespace=cr-at-eol
+# Preserve the existing CRLF Git blob without implicit renormalization.
+android/gradlew.bat -text whitespace=cr-at-eol
 
 *.jar binary
 *.png binary
