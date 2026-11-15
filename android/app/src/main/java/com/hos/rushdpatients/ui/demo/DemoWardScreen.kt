@@ -64,7 +64,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     fun openReport() { viewModel.report.load(); tab = DemoDestination.REPORT }
     val navigation = WardNavigation(
         onOpenReport = { openReport() },
-        onOpenDeliveryHistory = { tab = DemoDestination.DELIVERY_HISTORY },
+        onOpenDeliveryHistory = { viewModel.report.load(); tab = DemoDestination.DELIVERY_HISTORY },
         onOpenAssignments = { viewModel.report.load(); tab = DemoDestination.ASSIGNMENTS },
         onOpenAdmin = { tab = DemoDestination.TEAM },
         onOpenDoctors = { tab = DemoDestination.TEAM },

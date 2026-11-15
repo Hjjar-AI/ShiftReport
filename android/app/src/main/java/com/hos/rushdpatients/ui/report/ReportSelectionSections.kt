@@ -71,28 +71,28 @@ internal fun ReportDestinationSelection(
                 style = MaterialTheme.typography.bodySmall)
             selectedLabels.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
             if (expanded) {
-        AppCheckRow(label = generalDestinationLabel,
-            checked = generalSelected, enabled = !busy,
-            onCheckedChange = onGeneralSelected)
-        val selectableIds = targets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
-        AppCheckRow(label = uiText(R.string.ui_report_select_all_destinations),
-            checked = generalSelected && selectableIds.all { it in selectedSupervisorIds },
-            enabled = !busy,
-            onCheckedChange = { checked ->
-                onSelectAll(checked, selectableIds)
-            })
-        Text(uiText(R.string.ui_report_destination_checklist_hint), style = MaterialTheme.typography.bodySmall)
-        targets.forEach { target ->
-            AppCheckRow(label = uiText(R.string.ui_report_preview_screen_028, target.doctorName, uiNumber(target.patientCount)) +
-                if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "\n" + target.destinationLabel(uiText),
-                checked = target.doctorId in selectedSupervisorIds && target.chatId != null,
-                enabled = !busy && target.chatId != null,
-                onCheckedChange = { checked -> onSupervisorSelected(target.doctorId, checked) })
-        }
-        if (targets.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_027),
-            style = MaterialTheme.typography.bodySmall)
-        if (generalSelected) AppToggleRow(title = uiText(R.string.ui_report_preview_screen_031), checked = reportAsPdf,
-            onCheckedChange = onReportAsPdf, enabled = canChangeReportFormat && !busy)
+                AppCheckRow(label = generalDestinationLabel,
+                    checked = generalSelected, enabled = !busy,
+                    onCheckedChange = onGeneralSelected)
+                val selectableIds = targets.filter { it.chatId != null }.mapTo(linkedSetOf()) { it.doctorId }
+                AppCheckRow(label = uiText(R.string.ui_report_select_all_destinations),
+                    checked = generalSelected && selectableIds.all { it in selectedSupervisorIds },
+                    enabled = !busy,
+                    onCheckedChange = { checked ->
+                        onSelectAll(checked, selectableIds)
+                    })
+                Text(uiText(R.string.ui_report_destination_checklist_hint), style = MaterialTheme.typography.bodySmall)
+                targets.forEach { target ->
+                    AppCheckRow(label = uiText(R.string.ui_report_preview_screen_028, target.doctorName, uiNumber(target.patientCount)) +
+                        if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "\n" + target.destinationLabel(uiText),
+                        checked = target.doctorId in selectedSupervisorIds && target.chatId != null,
+                        enabled = !busy && target.chatId != null,
+                        onCheckedChange = { checked -> onSupervisorSelected(target.doctorId, checked) })
+                }
+                if (targets.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_027),
+                    style = MaterialTheme.typography.bodySmall)
+                if (generalSelected) AppToggleRow(title = uiText(R.string.ui_report_preview_screen_031), checked = reportAsPdf,
+                    onCheckedChange = onReportAsPdf, enabled = canChangeReportFormat && !busy)
             }
         }
     }

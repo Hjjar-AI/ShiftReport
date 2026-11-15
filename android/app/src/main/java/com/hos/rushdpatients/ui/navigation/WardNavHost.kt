@@ -96,7 +96,7 @@ fun WardNavHost(
                 reviewShiftId = entry.arguments?.getString("shiftId"), onBackToPreview = ::back,
                 navigation = WardNavigation(onOpenReport = { back() },
                     onOpenDeliveryHistory = { shiftId -> navController.navigate(Routes.deliveryHistory(shiftId)) },
-                onOpenAssignments = { shiftId -> if (session.isAdmin) navController.navigate(Routes.assignments(shiftId)) },
+                    onOpenAssignments = { shiftId -> if (session.isAdmin) navController.navigate(Routes.assignments(shiftId)) },
                     onOpenAdmin = { navController.navigate(Routes.ADMIN) },
                     onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
