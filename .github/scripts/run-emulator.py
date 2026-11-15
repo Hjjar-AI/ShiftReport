@@ -35,11 +35,11 @@ def instrument(capture):
         'com.hos.rushdpatients.ui.report.ReportSelectionInteractionTest',
     }
     if not isinstance(selection, dict) or set(selection) != allowed:
-        raise ValueError('Only the reviewed offline demo/crypto/report-selection classes are selectable')
+        raise capture.EvidenceError('Only the reviewed offline demo/crypto/report-selection classes are selectable')
     if any(not isinstance(methods, list) or not methods or len(set(methods)) != len(methods)
            or any(not isinstance(method, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', method)
                   for method in methods) for methods in selection.values()):
-        raise ValueError('A nonempty explicit method inventory is required')
+        raise capture.EvidenceError('A nonempty explicit method inventory is required')
     expected = {(cls, method) for cls, methods in selection.items() for method in methods}
     tools = Path(os.environ['ANDROID_HOME']) / 'build-tools/34.0.0'
     analyzer = Path(os.environ['ANDROID_HOME']) / 'cmdline-tools/latest/bin/apkanalyzer'
@@ -52,7 +52,7 @@ def instrument(capture):
         application = list((ROOT / 'ci-output/debug-apk').glob('*.apk'))
         tests = list((ROOT / 'ci-output/instrumentation-apk').glob('*.apk'))
         if len(application) != 1 or len(tests) != 1:
-            raise ValueError('One fresh application and instrumentation APK required')
+            raise capture.EvidenceError('One fresh application and instrumentation APK required')
         manifest = subprocess.run([str(analyzer), 'manifest', 'print', str(tests[0])],
                                   capture_output=True, text=True, check=True, timeout=60).stdout
         tree = ET.fromstring(manifest)
@@ -62,49 +62,49 @@ def instrument(capture):
         if (test_package != capture.PACKAGE + '.test' or runner is None
                 or runner.get(ns + 'targetPackage') != capture.PACKAGE
                 or runner.get(ns + 'name') != 'androidx.test.runner.AndroidJUnitRunner'):
-            raise ValueError('Unexpected instrumentation identity/target/runner')
+            raise capture.EvidenceError('Unexpected instrumentation identity/target/runner')
         certificates = []
         report['artifacts'] = []
         for apk, package in ((application[0], capture.PACKAGE), (tests[0], test_package)):
             if apk.is_symlink():
-                raise ValueError('APK symlink refused')
+                raise capture.EvidenceError('APK symlink refused')
             manifest_sum = (apk.parent / 'SHA256SUMS.txt').read_text().splitlines()
             digest = hashlib.sha256(apk.read_bytes()).hexdigest()
             if manifest_sum != [f'{digest}  {apk.name}']:
-                raise ValueError('Build checksum mismatch')
+                raise capture.EvidenceError('Build checksum mismatch')
             badging = subprocess.run([str(tools / 'aapt'), 'dump', 'badging', str(apk)],
                                      capture_output=True, text=True, check=True, timeout=30).stdout
             if not badging.startswith(f"package: name='{package}' "):
-                raise ValueError('Unexpected APK identity')
+                raise capture.EvidenceError('Unexpected APK identity')
             inspection = subprocess.run([str(tools / 'apksigner'), 'verify', '--print-certs', str(apk)],
                                         capture_output=True, text=True, check=True, timeout=30).stdout
             fingerprints = re.findall(r'certificate SHA-256 digest: ([a-fA-F0-9]+)', inspection)
             if len(fingerprints) != 1:
-                raise ValueError('Ambiguous APK signer')
+                raise capture.EvidenceError('Ambiguous APK signer')
             certificates.append(fingerprints)
             report['artifacts'].append(dict(package=package, sha256=digest, certificate=fingerprints[0]))
         if certificates[0] != certificates[1]:
-            raise ValueError('App/instrumentation signer mismatch')
+            raise capture.EvidenceError('App/instrumentation signer mismatch')
         for apk, package in ((application[0], capture.PACKAGE), (tests[0], test_package)):
             probe = capture.adb('shell', 'pm', 'path', package, check=False)
             if probe.returncode not in (0, 1) or probe.stdout.strip() or probe.stderr.strip():
-                raise ValueError('Existing package or ambiguous probe; refusing replacement')
+                raise capture.EvidenceError('Existing package or ambiguous probe; refusing replacement')
             started = package
             capture.adb('install', '-t', str(apk), timeout=90)
             installed[package] = capture.identity(package)
             path = capture.adb('shell', 'pm', 'path', package).stdout.decode().strip()
             if not path.startswith('package:/data/app/') or '\n' in path:
-                raise ValueError('Unexpected installed APK path')
+                raise capture.EvidenceError('Unexpected installed APK path')
             copy = Path(os.environ['RUNNER_TEMP']) / (package + '.installed.apk')
             capture.adb('pull', path.removeprefix('package:'), str(copy))
             if hashlib.sha256(copy.read_bytes()).digest() != hashlib.sha256(apk.read_bytes()).digest():
-                raise ValueError('Installed APK bytes differ')
+                raise capture.EvidenceError('Installed APK bytes differ')
             started = None
         capture.adb('shell', 'svc', 'wifi', 'disable')
         capture.adb('shell', 'svc', 'data', 'disable')
         for key in ('wifi_on', 'mobile_data'):
             if capture.adb('shell', 'settings', 'get', 'global', key).stdout.strip() != b'0':
-                raise ValueError('Network radios not confirmed off')
+                raise capture.EvidenceError('Network radios not confirmed off')
         # No UiAutomator process competes with this instrumentation invocation.
         result = capture.adb('shell', 'am', 'instrument', '-w', '-r', '-e', 'class',
                              ','.join(f'{cls}#{method}' for cls, methods in selection.items() for method in methods), test_package + '/' + runner.get(ns + 'name'),
@@ -123,15 +123,15 @@ def instrument(capture):
                 if code in (0, -1, -2, -3, -4) and 'class' in current and 'test' in current:
                     case = (current['class'], current['test'])
                     if case in outcomes:
-                        raise ValueError('Duplicate instrumentation result')
+                        raise capture.EvidenceError('Duplicate instrumentation result')
                     outcomes[case] = code
                 current = {}
         report['results'] = [dict(className=c, method=m, status=code) for (c, m), code in sorted(outcomes.items())]
         if (result.returncode or set(outcomes) != expected or any(code != 0 for code in outcomes.values())
                 or 'INSTRUMENTATION_CODE: -1' not in raw or 'INSTRUMENTATION_FAILED' in raw):
-            raise ValueError('Instrumentation failed/skipped/incomplete; no pass claimed')
-    except Exception:
-        report['failure'] = 'Offline instrumentation incomplete; inspect retained dummy-device results.'
+            raise capture.EvidenceError('Instrumentation failed/skipped/incomplete; no pass claimed')
+    except Exception as error:
+        report['failure'] = capture.failure_reason(error)
         # Screenshot/logcat do not use UiAutomator while instrumentation may still be active.
         try:
             (OUTPUT / 'failure.png').write_bytes(capture.adb('exec-out', 'screencap', '-p').stdout)
@@ -146,11 +146,11 @@ def instrument(capture):
             try:
                 capture.owned_device()
                 if capture.identity(package) != installation:
-                    raise ValueError('Install identity changed')
+                    raise capture.EvidenceError('Install identity changed')
                 capture.adb('shell', 'am', 'force-stop', package)
                 capture.adb('uninstall', package)
                 if capture.adb('shell', 'pm', 'path', package, check=False).stdout.strip():
-                    raise ValueError('Owned package absence unconfirmed')
+                    raise capture.EvidenceError('Owned package absence unconfirmed')
             except Exception:
                 report['cleanupErrors'].append('Owned package cleanup unconfirmed: ' + package)
         (OUTPUT / 'results.json').write_text(json.dumps(report, indent=2) + '\n')
@@ -161,27 +161,32 @@ def instrument(capture):
         with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as stream:
             stream.write(text)
     if report['cleanupErrors']:
-        raise ValueError('Instrumentation cleanup incomplete')
+        raise capture.EvidenceError('Instrumentation cleanup incomplete')
 
 
 def main():
     capture = load_capture()
     mode = os.environ['CI_EMULATOR_OPERATION']
     if mode not in ('capture', 'instrumentation', 'both'):
-        raise ValueError('Unknown emulator operation')
+        raise capture.EvidenceError('Unknown emulator operation')
     failures = []
+    reasons = {}
     if mode in ('capture', 'both'):
         try:
             capture.main()
-        except Exception:
+        except Exception as error:
             failures.append('capture')
+            reasons['capture'] = capture.failure_reason(error)
     if mode in ('instrumentation', 'both'):
         try:
             instrument(capture)
-        except Exception:
+        except Exception as error:
             failures.append('instrumentation')
+            reasons['instrumentation'] = capture.failure_reason(error)
+    capture.OUTPUT.mkdir(parents=True, exist_ok=True)
+    (capture.OUTPUT / 'phase-errors.json').write_text(json.dumps(reasons, indent=2) + '\n')
     if failures:
-        raise ValueError('Incomplete selected phases: ' + ', '.join(failures))
+        raise capture.EvidenceError('Incomplete selected phases: ' + ', '.join(failures))
 
 
 if __name__ == '__main__':

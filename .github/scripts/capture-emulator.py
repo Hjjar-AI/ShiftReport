@@ -22,34 +22,83 @@ def adb(*arguments, check=True, timeout=30):
                           timeout=timeout, check=check)
 
 
+class EvidenceError(RuntimeError):
+    """A reviewed diagnostic reason safe for the dummy hosted-device report."""
+
+
+def failure_reason(error):
+    return str(error) if isinstance(error, EvidenceError) else type(error).__name__ + ': details withheld'
+
+
+def sole_running_owner(details):
+    # Android 6 Am.java has no get-current-user. Pm.java lists every user and
+    # its running state; exactly one registered/running user proves user 0.
+    # https://android.googlesource.com/platform/frameworks/base/+/android-6.0.1_r1/cmds/pm/src/com/android/commands/pm/Pm.java
+    users = re.findall(r'^[ \t]*UserInfo\{(\d+):[^\r\n]*\}([^\r\n]*)$', details, re.M)
+    if len(users) != 1 or users[0][0] != '0' or users[0][1].strip() != 'running':
+        raise EvidenceError('Android 6 requires user 0 as the sole registered running user')
+    return '0'
+
+
 def owned_device():
     if (os.environ.get('GITHUB_ACTIONS') != 'true'
             or os.environ.get('RUNNER_ENVIRONMENT') != 'github-hosted'):
-        raise RuntimeError('Refusing a local or non-hosted device')
-    if (adb('shell', 'getprop', 'ro.kernel.qemu').stdout.strip() != b'1'
-            or adb('shell', 'am', 'get-current-user').stdout.strip() != b'0'
-            or adb('shell', 'getprop', 'ro.build.version.sdk').stdout.decode().strip() != os.environ['CI_EXPECTED_API']
-            or adb('emu', 'avd', 'name').stdout.decode().splitlines()[0].strip() != os.environ['CI_AVD_NAME']):
-        raise RuntimeError('Owned AVD identity mismatch')
+        raise EvidenceError('Refusing a local or non-hosted device')
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    observations = dict(serial=SERIAL, expectedApi=os.environ['CI_EXPECTED_API'],
+                        expectedAvd=os.environ['CI_AVD_NAME'])
+    try:
+        observations['qemu'] = adb('shell', 'getprop', 'ro.kernel.qemu').stdout.decode().strip()
+        observations['api'] = adb('shell', 'getprop', 'ro.build.version.sdk').stdout.decode().strip()
+        avd = adb('emu', 'avd', 'name').stdout.decode().splitlines()
+        observations['avd'] = avd[0].strip() if avd else ''
+        if observations['api'] == '23':
+            observations['userProof'] = 'sole-registered-running-user'
+            observations['user'] = sole_running_owner(adb('shell', 'pm', 'list', 'users').stdout.decode())
+        else:
+            observations['userProof'] = 'activity-manager-current-user'
+            observations['user'] = adb('shell', 'am', 'get-current-user').stdout.decode().strip()
+        if (observations['qemu'] != '1' or observations['user'] != '0'
+                or observations['api'] != observations['expectedApi']
+                or observations['avd'] != observations['expectedAvd']):
+            raise EvidenceError('Owned AVD identity mismatch')
+        observations['verified'] = True
+    except Exception as error:
+        observations['verified'] = False
+        observations['failure'] = failure_reason(error)
+        raise
+    finally:
+        (OUTPUT / 'ownership.json').write_text(json.dumps(observations, indent=2) + '\n')
+
+
+def installation_identity(details):
+    values = {}
+    # Android 15 Settings.dumpPackageLPr prints appId; older releases print userId.
+    # User 0 is independently proved above, so both describe that user's app UID.
+    # https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/services/core/java/com/android/server/pm/Settings.java
+    fields = {'userId': r'(?:userId|appId)', 'codePath': 'codePath',
+              'firstInstallTime': 'firstInstallTime', 'lastUpdateTime': 'lastUpdateTime'}
+    for key, expression in fields.items():
+        matches = set(value.strip() for value in re.findall(
+            r'^[ \t]*' + expression + r'=([^\r\n]+)', details, re.M))
+        if len(matches) != 1:
+            raise EvidenceError('Missing/ambiguous installed package identity field: ' + key)
+        values[key] = matches.pop()
+    if (not values['userId'].isdigit() or not 10000 <= int(values['userId']) < 100000
+            or not values['codePath'].startswith('/data/app/')):
+        raise EvidenceError('Unexpected installed identity')
+    return values
 
 
 def identity(package=PACKAGE):
     details = adb('shell', 'dumpsys', 'package', package).stdout.decode()
-    values = {}
-    for key in ('userId', 'codePath', 'firstInstallTime', 'lastUpdateTime'):
-        matches = set(re.findall(r'^\s*' + key + r'=([^\r\n]+)', details, re.M))
-        if len(matches) != 1:
-            raise RuntimeError('Missing/ambiguous installed package identity')
-        values[key] = matches.pop().strip()
-    if not values['userId'].isdigit() or int(values['userId']) < 10000 or not values['codePath'].startswith('/data/app/'):
-        raise RuntimeError('Unexpected installed identity')
-    return values
+    return installation_identity(details)
 
 
 def screenshot(name):
     data = adb('exec-out', 'screencap', '-p').stdout
     if not data.startswith(b'\x89PNG\r\n\x1a\n'):
-        raise RuntimeError('Missing/invalid PNG evidence')
+        raise EvidenceError('Missing/invalid PNG evidence')
     (OUTPUT / f'{name}.png').write_bytes(data)
 
 
@@ -67,7 +116,7 @@ def labels(key):
             if node.get('name') == key:
                 found.add(''.join(node.itertext()).strip('"'))
     if not found:
-        raise RuntimeError('Missing current resource label')
+        raise EvidenceError('Missing current resource label')
     return found
 
 
@@ -81,14 +130,14 @@ def wait_for(label_values, contains=False):
                     (label in text if contains else label == text) for label in label_values):
                 return raw, node
         time.sleep(1)
-    raise RuntimeError('Expected startup/demo content not observed; no pass claimed')
+    raise EvidenceError('Expected startup/demo content not observed; no pass claimed')
 
 
 def main():
     owned_device()
     kind = os.environ.get('CI_CAPTURE_KIND', 'debug')
     if kind not in ('debug', 'release'):
-        raise RuntimeError('Unknown capture build type')
+        raise EvidenceError('Unknown capture build type')
     OUTPUT.mkdir(parents=True, exist_ok=True)
     report = dict(api=os.environ['CI_EXPECTED_API'], avd=os.environ['CI_AVD_NAME'], serial=SERIAL,
                   package=PACKAGE, sourceCommit=os.environ['GITHUB_SHA'], run=os.environ['GITHUB_RUN_ID'],
@@ -102,17 +151,17 @@ def main():
     try:
         probe = adb('shell', 'pm', 'path', PACKAGE, check=False)
         if probe.returncode not in (0, 1) or probe.stdout.strip() or probe.stderr.strip():
-            raise RuntimeError('Existing package found; refusing replacement or data clearing')
+            raise EvidenceError('Existing package found; refusing replacement or data clearing')
         paths = list((ROOT / f'ci-output/{kind}-apk').glob('*.apk'))
         if len(paths) != 1:
-            raise RuntimeError('Expected one fresh application APK')
+            raise EvidenceError('Expected one fresh application APK')
         apk = paths[0]
         tools = Path(os.environ['ANDROID_HOME']) / 'build-tools/34.0.0'
         if kind == 'release':
             source_hash = hashlib.sha256(apk.read_bytes()).hexdigest()
             inspection = json.loads((ROOT / 'ci-output/release-apk/inspection.json').read_text())
             if inspection['apkSha256'] != source_hash or inspection['sourceCommit'] != os.environ['GITHUB_SHA']:
-                raise RuntimeError('Inspected release provenance mismatch')
+                raise EvidenceError('Inspected release provenance mismatch')
             report['unsignedSourceSha256'] = source_hash
             # This throwaway signer is used only on this fresh hosted AVD. It is
             # never exported as a production distribution or a permanent identity.
@@ -140,20 +189,20 @@ def main():
                                     text=True, check=True, timeout=30).stdout
             (OUTPUT / f'apk-{executable}.txt').write_text(result)
             if executable == 'aapt' and not result.startswith(f"package: name='{PACKAGE}' "):
-                raise RuntimeError('Unexpected application package')
+                raise EvidenceError('Unexpected application package')
             if executable == 'aapt' and ('application-debuggable' in result) != (kind == 'debug'):
-                raise RuntimeError('Unexpected packaged build type')
+                raise EvidenceError('Unexpected packaged build type')
         installation_started = True
         adb('install', '-t', str(apk), timeout=90)
         installed = identity()
         report['installation'] = installed
         installed_path = adb('shell', 'pm', 'path', PACKAGE).stdout.decode().strip()
         if not installed_path.startswith('package:/data/app/') or '\n' in installed_path:
-            raise RuntimeError('Unexpected installed APK path')
+            raise EvidenceError('Unexpected installed APK path')
         copy = Path(os.environ['RUNNER_TEMP']) / 'shiftreport-installed.apk'
         adb('pull', installed_path.removeprefix('package:'), str(copy))
         if hashlib.sha256(copy.read_bytes()).hexdigest() != report['apkSha256']:
-            raise RuntimeError('Installed APK differs from verified artifact')
+            raise EvidenceError('Installed APK differs from verified artifact')
         report['installedBytesMatch'] = True
         report['phase'] = 'disable network radios'
         adb('shell', 'svc', 'wifi', 'disable')
@@ -162,7 +211,7 @@ def main():
             name: adb('shell', 'settings', 'get', 'global', name).stdout.decode().strip()
             for name in ('wifi_on', 'mobile_data')}
         if any(value != '0' for value in report['network'].values()):
-            raise RuntimeError('Network-radio disablement was not confirmed')
+            raise EvidenceError('Network-radio disablement was not confirmed')
         recorder_log = (OUTPUT / 'recorder.log').open('wb')
         recorder = subprocess.Popen(['adb', '-s', SERIAL, 'shell', 'screenrecord', '--size', '360x640',
                                      '--bit-rate', '1000000', '--time-limit', '45', remote],
@@ -176,10 +225,10 @@ def main():
         report['captures'].append('startup')
         bounds = re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.get('bounds', ''))
         if not bounds or node.get('enabled') != 'true':
-            raise RuntimeError('Demo entry has no usable visible bounds')
+            raise EvidenceError('Demo entry has no usable visible bounds')
         left, top, right, bottom = map(int, bounds.groups())
         if right <= left or bottom <= top:
-            raise RuntimeError('Empty demo entry bounds')
+            raise EvidenceError('Empty demo entry bounds')
         # One explicit navigation through the real visible control; never retry a tap.
         adb('shell', 'input', 'tap', str((left + right) // 2), str((top + bottom) // 2))
         report['phase'] = 'demo'
@@ -189,22 +238,22 @@ def main():
         report['captures'].append('demo')
         adb('shell', 'settings', 'put', 'system', 'font_scale', '1.3')
         if adb('shell', 'settings', 'get', 'system', 'font_scale').stdout.strip() != b'1.3':
-            raise RuntimeError('Large-text setting did not apply')
+            raise EvidenceError('Large-text setting did not apply')
         wait_for(labels('ui_demo_navigation_001'), contains=True)
         screenshot('demo-large-text')
         report['captures'].append('demo-large-text')
         if kind == 'release':
             pid = adb('shell', 'pidof', PACKAGE).stdout.strip()
             if not re.fullmatch(rb'\d+', pid):
-                raise RuntimeError('Expected one release application process')
+                raise EvidenceError('Expected one release application process')
             for _ in range(3):
                 time.sleep(10)
                 if adb('shell', 'pidof', PACKAGE).stdout.strip() != pid:
-                    raise RuntimeError('Minified release process exited/restarted during observation')
+                    raise EvidenceError('Minified release process exited/restarted during observation')
             report['releaseProcessSurvivalSeconds'] = 30
         report['phase'] = 'capture completed'
     except Exception as error:
-        report['failure'] = type(error).__name__ + ': capture incomplete; inspect dummy-device diagnostics'
+        report['failure'] = failure_reason(error)
         try:
             screenshot('failure')
             log = adb('logcat', '-d', '-t', '1500', check=False)
@@ -224,7 +273,7 @@ def main():
                 recorder.wait(timeout=10)
                 adb('pull', remote, str(OUTPUT / 'startup-demo.mp4'))
                 if (OUTPUT / 'startup-demo.mp4').stat().st_size == 0:
-                    raise RuntimeError('Empty recording')
+                    raise EvidenceError('Empty recording')
                 adb('shell', 'rm', '-f', remote)
             except Exception:
                 report['cleanupErrors'].append('Recording missing/incomplete or recorder cleanup failed')
@@ -241,12 +290,12 @@ def main():
             try:
                 owned_device()
                 if identity() != installed:
-                    raise RuntimeError('Installation identity changed; refusing cleanup')
+                    raise EvidenceError('Installation identity changed; refusing cleanup')
                 adb('shell', 'am', 'force-stop', PACKAGE)
                 adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0')
                 adb('uninstall', PACKAGE)
                 if adb('shell', 'pm', 'path', PACKAGE, check=False).stdout.strip():
-                    raise RuntimeError('Owned package cleanup not confirmed')
+                    raise EvidenceError('Owned package cleanup not confirmed')
                 report['ownedPackageCleanup'] = 'absent'
             except Exception:
                 report['cleanupErrors'].append('Owned package cleanup unconfirmed')
@@ -266,7 +315,7 @@ def main():
         with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
             summary.write(text)
     if report['cleanupErrors']:
-        raise RuntimeError('Evidence/cleanup incomplete; inspect the retained report')
+        raise EvidenceError('Evidence/cleanup incomplete; inspect the retained report')
 
 
 if __name__ == '__main__':
