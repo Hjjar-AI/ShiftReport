@@ -214,7 +214,7 @@ class LoginViewModel @Inject constructor(
         verifyJob?.cancel()
         verifyJob = viewModelScope.launch {
             try {
-                val current = if (authorization != null) pinRecovery.beginVerification(authorization) else {
+                val current = if (authorization != null) pinRecovery.beginVerification(authorization, doctor.id) else {
                     requireNotNull(doctorRepository.getActiveById(doctor.id)).also {
                         require(it.telegramId == doctor.telegramId)
                         loginManager.beginVerification(it.id, checkNotNull(it.telegramId))
@@ -252,7 +252,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val authorization = recoveryAuthorization
-                when (val result = if (authorization != null) pinRecovery.verify(authorization, code)
+                when (val result = if (authorization != null) pinRecovery.verify(authorization, step.doctor.id, telegramId, code)
                     else loginManager.verify(step.doctor.id, telegramId, code)) {
                     is LoginVerificationResult.Success -> {
                         verifyJob?.cancel()
@@ -327,7 +327,7 @@ class LoginViewModel @Inject constructor(
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             try {
-                val updated = recoveryAuthorization?.let { pinRecovery.replacePin(it, pin) }
+                val updated = recoveryAuthorization?.let { pinRecovery.replacePin(it, doctor.id, pin) }
                     ?: localPinLogin.enrollVerified(doctor.id, telegramId, pin)
                 startSession(updated, telegramId)
                 recoveryAuthorization = null

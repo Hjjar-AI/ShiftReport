@@ -85,9 +85,10 @@ class PinRecoveryManager @Inject constructor(
         return doctor
     }
 
-    suspend fun beginVerification(handle: PinRecoveryAuthorization): Doctor = withContext(dispatchers.io) {
+    suspend fun beginVerification(handle: PinRecoveryAuthorization, doctorId: String): Doctor = withContext(dispatchers.io) {
         mutex.withLock {
             val grant = requireGrant(handle)
+            require(grant.doctor.id == doctorId) { uiText(R.string.pin_recovery_identity_changed) }
             val doctor = currentDoctor(grant)
             grant.verified = false
             telegramLogin.beginVerification(doctor.id, checkNotNull(doctor.telegramId))
@@ -96,9 +97,13 @@ class PinRecoveryManager @Inject constructor(
         }
     }
 
-    suspend fun verify(handle: PinRecoveryAuthorization, code: String): LoginVerificationResult = withContext(dispatchers.io) {
+    suspend fun verify(handle: PinRecoveryAuthorization, doctorId: String, telegramId: Long,
+        code: String): LoginVerificationResult = withContext(dispatchers.io) {
         mutex.withLock {
             val grant = requireGrant(handle)
+            require(grant.doctor.id == doctorId && grant.doctor.telegramId == telegramId) {
+                uiText(R.string.pin_recovery_identity_changed)
+            }
             val doctor = currentDoctor(grant)
             val result = telegramLogin.verify(doctor.id, checkNotNull(doctor.telegramId), code)
             requireGrant(handle)
@@ -118,9 +123,10 @@ class PinRecoveryManager @Inject constructor(
         }
     }
 
-    suspend fun replacePin(handle: PinRecoveryAuthorization, pin: String): Doctor = withContext(dispatchers.io) {
+    suspend fun replacePin(handle: PinRecoveryAuthorization, doctorId: String, pin: String): Doctor = withContext(dispatchers.io) {
         mutex.withLock {
             val grant = requireGrant(handle)
+            require(grant.doctor.id == doctorId) { uiText(R.string.pin_recovery_identity_changed) }
             require(grant.verified) { uiText(R.string.pin_recovery_verification_required) }
             val doctor = currentDoctor(grant)
             val updated = localPins.enrollVerified(doctor.id, checkNotNull(doctor.telegramId), pin) { current ->

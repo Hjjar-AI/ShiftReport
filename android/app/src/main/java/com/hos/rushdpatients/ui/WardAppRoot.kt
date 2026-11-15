@@ -74,12 +74,11 @@ class RootViewModel @Inject constructor(
     private val _pinRecoveryDoctorId = MutableStateFlow<String?>(null)
     val pinRecoveryDoctorId: StateFlow<String?> = _pinRecoveryDoctorId.asStateFlow()
 
-    fun requestPinRecovery(): Boolean {
-        if (_unlocking.value) return false
-        val doctorId = sessionManager.current()?.doctorId ?: return false
+    fun requestPinRecovery() {
+        if (_unlocking.value) return
+        val doctorId = sessionManager.current()?.doctorId ?: return
         signOut()
         _pinRecoveryDoctorId.value = doctorId
-        return true
     }
 
     fun consumePinRecovery() { _pinRecoveryDoctorId.value = null }
@@ -292,9 +291,7 @@ fun WardAppRoot(
                 viewModel.signOut()
                 needsUnlock = false
             },
-            onForgotPin = {
-                if (viewModel.requestPinRecovery()) needsUnlock = false
-            }
+            onForgotPin = viewModel::requestPinRecovery
         )
         else -> checkNotNull(clinicalScreenState).SaveableStateProvider("clinical-navigation") {
             WardNavHost(
