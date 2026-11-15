@@ -25,6 +25,19 @@ def instrument(capture):
     capture.owned_device()
     OUTPUT.mkdir(parents=True, exist_ok=True)
     selection = json.loads((ROOT / '.github/instrumentation-selection.json').read_text())
+    allowed = {
+        'com.hos.rushdpatients.config.ProjectDataCipherTest',
+        'com.hos.rushdpatients.config.ProjectProvisioningManagerTest',
+        'com.hos.rushdpatients.domain.auth.PasswordHasherTest',
+        'com.hos.rushdpatients.ui.demo.DemoWorkspaceInteractionTest',
+        'com.hos.rushdpatients.ui.demo.DemoWorkflowDeviceTest',
+    }
+    if not isinstance(selection, dict) or set(selection) != allowed:
+        raise ValueError('Only the reviewed offline demo/crypto classes are selectable')
+    if any(not isinstance(methods, list) or not methods or len(set(methods)) != len(methods)
+           or any(not isinstance(method, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', method)
+                  for method in methods) for methods in selection.values()):
+        raise ValueError('A nonempty explicit method inventory is required')
     expected = {(cls, method) for cls, methods in selection.items() for method in methods}
     tools = Path(os.environ['ANDROID_HOME']) / 'build-tools/34.0.0'
     analyzer = Path(os.environ['ANDROID_HOME']) / 'cmdline-tools/latest/bin/apkanalyzer'
@@ -92,7 +105,7 @@ def instrument(capture):
                 raise ValueError('Network radios not confirmed off')
         # No UiAutomator process competes with this instrumentation invocation.
         result = capture.adb('shell', 'am', 'instrument', '-w', '-r', '-e', 'class',
-                             ','.join(selection), test_package + '/' + runner.get(ns + 'name'),
+                             ','.join(f'{cls}#{method}' for cls, methods in selection.items() for method in methods), test_package + '/' + runner.get(ns + 'name'),
                              check=False, timeout=1800)
         raw = (result.stdout + result.stderr).decode('utf-8', errors='replace')
         (OUTPUT / 'instrumentation.txt').write_text(raw)

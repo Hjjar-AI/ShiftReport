@@ -4,7 +4,7 @@ ShiftReport adapts the repository tools and manual workflow infrastructure from 
 
 ## Local Git tools
 
-`.gitattributes` defines LF text, CRLF Windows scripts and binary assets; `.editorconfig` guides future edits. Existing files were not mass-renormalized. CODEOWNERS routes review to the current remote owner; it does not configure required reviews or branch protection.
+`.gitattributes` defines LF text, CRLF Windows scripts and binary assets; `.editorconfig` guides future edits. Existing files were not mass-renormalized; an explicit attribute preserves the Windows wrapper’s existing CRLF Git blob byte-for-byte. CODEOWNERS routes review to the current remote owner; it does not configure required reviews or branch protection.
 
 The source checker reads current tracked and unignored working-tree Android production files, shared documentation and repository configuration. It checks selected credential patterns, XML/JSON/TOML/Python syntax, repository-local Markdown links, the wrapper checksum and existing POSIX version-helper integration. Other clients, suites, migrations, schemas, private files, generated output and binary assets are excluded. Absolute workstation/sibling links are counted as external dependencies rather than checked. Findings redact credential values; detection is not a guarantee against arbitrary passwords or every secret format.
 
