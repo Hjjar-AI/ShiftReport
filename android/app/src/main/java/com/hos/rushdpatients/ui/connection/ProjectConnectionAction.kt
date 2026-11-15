@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import com.hos.rushdpatients.domain.auth.PinRecoveryAuthorization
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -38,13 +39,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun ProjectConnectionAction(
     isAdmin: Boolean = false,
     onApplied: () -> Unit = {},
-    viewModel: ProjectConnectionViewModel = hiltViewModel()
+    viewModel: ProjectConnectionViewModel = hiltViewModel(),
+    recoveryDoctorId: String? = null,
+    onRecoveryReady: (PinRecoveryAuthorization) -> Unit = {},
+    onRecoveryCancelled: () -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     // Drop the open credential form and its secret when admin access changes.
-    var open by remember(isAdmin) { mutableStateOf(false) }
+    var open by remember(isAdmin, recoveryDoctorId) { mutableStateOf(recoveryDoctorId != null) }
     var manual by remember(isAdmin) { mutableStateOf(false) }
     var selectedFile by remember(isAdmin) { mutableStateOf<Uri?>(null) }
     var selectedFileName by remember(selectedFile) { mutableStateOf<String?>(null) }
@@ -56,19 +60,28 @@ fun ProjectConnectionAction(
             secret = ""
         }
     }
-    LaunchedEffect(state.applied) { if (state.applied) onApplied() }
+    LaunchedEffect(recoveryDoctorId) { viewModel.reset(recoveryDoctorId) }
+    LaunchedEffect(state.applied) {
+        if (state.applied) {
+            if (recoveryDoctorId != null) {
+                viewModel.consumeRecoveryAuthorization()?.let(onRecoveryReady)
+            } else onApplied()
+        }
+    }
     LaunchedEffect(selectedFile) {
         selectedFileName = selectedFile?.let { viewModel.readDisplayName(it) }
     }
 
     AppOutlinedButton(onClick = {
-        viewModel.reset()
+        viewModel.reset(recoveryDoctorId)
         manual = false
         selectedFile = null
         secret = ""
         pickerError = null
         open = true
-    }, modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_project_connection_action_001)) }
+    }, modifier = Modifier.fillMaxWidth()) {
+        Text(uiText(if (recoveryDoctorId != null) R.string.pin_recovery_file_required else R.string.ui_project_connection_action_001))
+    }
 
     if (open) {
         val dismiss = {
@@ -77,6 +90,7 @@ fun ProjectConnectionAction(
                 selectedFile = null
                 secret = ""
                 viewModel.reset()
+                if (recoveryDoctorId != null) onRecoveryCancelled()
             }
         }
         AppAlertDialog(
@@ -128,7 +142,7 @@ fun ProjectConnectionAction(
                                 enabled = !state.busy,
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            if (isAdmin) AppTextButton(onClick = {
+                            if (isAdmin && recoveryDoctorId == null) AppTextButton(onClick = {
                                 manual = !manual
                                 selectedFile = null
                                 secret = ""

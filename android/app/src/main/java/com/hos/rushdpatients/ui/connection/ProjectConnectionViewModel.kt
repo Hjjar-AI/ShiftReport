@@ -11,6 +11,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.config.ConnectionChange
 import com.hos.rushdpatients.config.ProjectConnectionManager
+import com.hos.rushdpatients.domain.auth.PinRecoveryAuthorization
+import com.hos.rushdpatients.domain.auth.PinRecoveryManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.hos.rushdpatients.util.DispatcherProvider
@@ -26,13 +28,15 @@ data class ProjectConnectionUiState(
     val busy: Boolean = false,
     val reviewProject: String? = null,
     val message: String? = null,
-    val applied: Boolean = false
+    val applied: Boolean = false,
+    val recoveryAuthorization: PinRecoveryAuthorization? = null
 )
 
 @HiltViewModel
 class ProjectConnectionViewModel @Inject constructor(
     private val uiText: UiStrings,
     private val connections: ProjectConnectionManager,
+    private val pinRecovery: PinRecoveryManager,
     @ApplicationContext private val context: Context,
     private val dispatchers: DispatcherProvider
 ) : ViewModel() {
@@ -40,6 +44,7 @@ class ProjectConnectionViewModel @Inject constructor(
     val state = _state.asStateFlow()
     // In memory only; neither tokens nor passphrases enter SavedStateHandle.
     private var pending: ConnectionChange? = null
+    private var recoveryDoctorId: String? = null
 
     /** Optional provider metadata only; do not expose URI paths or read connection contents. */
     suspend fun readDisplayName(uri: Uri): String? = withContext(dispatchers.io) {
@@ -61,7 +66,10 @@ class ProjectConnectionViewModel @Inject constructor(
         connections.prepareFile(uri, password.toCharArray())
     }
 
-    fun replaceToken(token: String) = prepare { connections.prepareToken(token) }
+    fun replaceToken(token: String) {
+        if (recoveryDoctorId != null) return
+        prepare { connections.prepareToken(token) }
+    }
 
     private fun prepare(action: suspend () -> ConnectionChange) {
         if (_state.value.busy) return
@@ -88,10 +96,12 @@ class ProjectConnectionViewModel @Inject constructor(
         _state.update { it.copy(busy = true, message = null) }
         viewModelScope.launch {
             try {
-                connections.apply(change)
+                val authorization = recoveryDoctorId?.let { pinRecovery.confirmRejoin(change, it) }
+                if (authorization == null) connections.apply(change)
                 pending = null
                 _state.update {
                     it.copy(reviewProject = null, applied = true,
+                        recoveryAuthorization = authorization,
                         message = uiText(R.string.ui_project_connection_view_model_001))
                 }
             } catch (e: CancellationException) {
@@ -105,10 +115,24 @@ class ProjectConnectionViewModel @Inject constructor(
         }
     }
 
-    fun reset() {
+    fun reset(recoveryDoctorId: String? = null) {
         if (_state.value.busy) return
+        _state.value.recoveryAuthorization?.let(pinRecovery::cancel)
+        this.recoveryDoctorId = recoveryDoctorId
         pending = null
         _state.value = ProjectConnectionUiState()
+    }
+
+    /** Transfer ownership of the opaque handle to the login flow exactly once. */
+    fun consumeRecoveryAuthorization(): PinRecoveryAuthorization? {
+        val handle = _state.value.recoveryAuthorization ?: return null
+        _state.update { it.copy(applied = false, recoveryAuthorization = null) }
+        return handle
+    }
+
+    override fun onCleared() {
+        _state.value.recoveryAuthorization?.let(pinRecovery::cancel)
+        super.onCleared()
     }
 
     private fun safeMessage(error: Exception): String = when (error) {
