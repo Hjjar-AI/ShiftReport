@@ -105,7 +105,7 @@ def instrument(capture):
                     current[key] = value
             elif line.startswith('INSTRUMENTATION_STATUS_CODE: '):
                 code = int(line.split(': ', 1)[1])
-                if code != 1 and 'class' in current and 'test' in current:
+                if code in (0, -1, -2, -3, -4) and 'class' in current and 'test' in current:
                     case = (current['class'], current['test'])
                     if case in outcomes:
                         raise ValueError('Duplicate instrumentation result')

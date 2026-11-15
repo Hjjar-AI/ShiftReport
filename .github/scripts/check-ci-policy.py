@@ -53,6 +53,9 @@ def main():
             if name == 'actions/upload-artifact':
                 need(type(inputs.get('retention-days')) is int and inputs['retention-days'] == 1,
                      f'{context}: one-day retention required')
+                artifact_name = inputs.get('name', '')
+                need(all(marker in artifact_name for marker in ('github.run_id', 'github.run_attempt', 'github.sha')),
+                     f'{context}: artifact source/run/attempt identity required')
             if name == 'gradle/actions/setup-gradle':
                 need(inputs.get('cache-provider') == 'basic', f'{context}: basic cache required')
                 need(inputs.get('cache-read-only') == '${{ github.ref_name != github.event.repository.default_branch }}',
@@ -72,6 +75,12 @@ def main():
             confirm = data['on']['workflow_dispatch']['inputs']['confirm']
             need(confirm['type'] == 'boolean' and confirm['default'] is False,
                  f'{name}: explicit opt-in default false required')
+        for input_name, spec in (data['on'].get('workflow_dispatch') or {}).get('inputs', {}).items():
+            description = spec.get('description', '')
+            values = spec.get('options', []) if spec.get('type') == 'choice' else ['true', 'false'] if spec.get('type') == 'boolean' else []
+            need(all(f'{value} =' in description for value in values), f'{name}/{input_name}: explain each exact option')
+            need(f'Default: {str(spec.get("default", "blank")).lower()}' in description,
+                 f'{name}/{input_name}: describe default explicitly')
         for job_id, job in data['jobs'].items():
             dependencies = job.get('needs', [])
             dependencies = [dependencies] if isinstance(dependencies, str) else dependencies

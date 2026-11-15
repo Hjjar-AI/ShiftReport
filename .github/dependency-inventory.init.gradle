@@ -16,7 +16,7 @@ gradle.projectsEvaluated {
                 scopes.add([name: ":app:runtime:$name", configuration: configuration])
             }
             def processors = application.configurations.findAll {
-                it.canBeResolved && it.name.toLowerCase().startsWith('ksp')
+                it.canBeResolved && it.name.toLowerCase().startsWith('ksp') && !it.name.toLowerCase().contains('test')
             }
             if (processors.isEmpty()) throw new GradleException('Missing KSP processor graph')
             processors.each { configuration ->
@@ -51,7 +51,7 @@ gradle.projectsEvaluated {
                 if (count > 0) populated.add(scope.name.toString())
             }
             if (!populated.containsAll([':app:runtime:debugRuntimeClasspath', ':app:runtime:releaseRuntimeClasspath']) ||
-                    !populated.any { it.contains(':buildscript:') }) {
+                    !populated.any { it.contains(':buildscript:') } || !populated.any { it.contains(':processor:') }) {
                 throw new GradleException('Production runtime/build-plugin inventory incomplete')
             }
             def destination = new File(gradle.rootProject.projectDir.parentFile, 'ci-output/dependencies/inventory.json')

@@ -3,8 +3,7 @@ name: 12 - Checks - Build tooling
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize two Gradle help invocations and an assembleDebug dry-run,
-          with configuration/dependency downloads and preserved versions. Default: false.'
+        description: 'Options: false = skip; true = authorize two Gradle help invocations and an assembleDebug dry-run, with configuration/dependency downloads and preserved versions. Default: false.'
         type: boolean
         default: false
 permissions:
@@ -14,8 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   tooling:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

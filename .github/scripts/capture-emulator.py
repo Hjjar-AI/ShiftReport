@@ -182,14 +182,14 @@ def main():
         # One explicit navigation through the real visible control; never retry a tap.
         adb('shell', 'input', 'tap', str((left + right) // 2), str((top + bottom) // 2))
         report['phase'] = 'demo'
-        raw, _ = wait_for(labels('ui_demo_ward_screen_005'), contains=True)
+        raw, _ = wait_for(labels('ui_demo_navigation_001'), contains=True)
         (OUTPUT / 'demo.xml').write_bytes(raw)
         screenshot('demo')
         report['captures'].append('demo')
         adb('shell', 'settings', 'put', 'system', 'font_scale', '1.3')
         if adb('shell', 'settings', 'get', 'system', 'font_scale').stdout.strip() != b'1.3':
             raise RuntimeError('Large-text setting did not apply')
-        wait_for(labels('ui_demo_ward_screen_005'), contains=True)
+        wait_for(labels('ui_demo_navigation_001'), contains=True)
         screenshot('demo-large-text')
         report['captures'].append('demo-large-text')
         if kind == 'release':

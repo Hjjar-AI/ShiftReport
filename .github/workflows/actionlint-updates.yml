@@ -3,8 +3,7 @@ name: 15 - Maintenance - Actionlint updates
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = query stable upstream release metadata and write a proposed
-          actionlint pin patch for review, without applying or executing it. Default: false.'
+        description: 'Options: false = skip; true = query stable upstream release metadata and write a proposed actionlint pin patch for review, without applying or executing it. Default: false.'
         type: boolean
         default: false
 permissions:
@@ -14,8 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   updates:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

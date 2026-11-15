@@ -3,8 +3,7 @@ name: 02 - Checks - Dependency vulnerabilities
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize Gradle production/plugin dependency resolution and
-          public Maven queries to OSV, without upgrades or compilation. Default: false.'
+        description: 'Options: false = skip; true = authorize Gradle production/plugin dependency resolution and public Maven queries to OSV, without upgrades or compilation. Default: false.'
         type: boolean
         default: false
 permissions:
@@ -14,8 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   check:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

@@ -3,9 +3,7 @@ name: 08 - Verify - Release output and startup
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize release build/inspection and fresh API 35 emulator
-          startup/demo capture with a throwaway signer. Default: false. Stored version preserved; no production
-          signing or publication.'
+        description: 'Options: false = skip; true = authorize release build/inspection and fresh API 35 emulator startup/demo capture with a throwaway signer. Default: false. Stored version preserved; no production signing or publication.'
         type: boolean
         default: false
 permissions:
@@ -15,8 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   check:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -40,8 +37,7 @@ jobs:
         if-no-files-found: warn
   startup:
     needs: check
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -63,19 +59,14 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-      run: gh run download "$GITHUB_RUN_ID" --name "release-apk-unsigned-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA"
-        --dir ci-output/release-apk
+      run: gh run download "$GITHUB_RUN_ID" --name "release-apk-unsigned-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA" --dir ci-output/release-apk
     - name: Enable hosted KVM
       shell: bash
-      run: 'set -euo pipefail
-
-        echo ''KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"'' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-
+      run: |
+        set -euo pipefail
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
-
         sudo udevadm trigger --name-match=kvm
-
-        '
     - name: Capture inspected minified release startup on the owned AVD
       uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
       env:
@@ -90,8 +81,7 @@ jobs:
         avd-name: shiftreport-release-ci-api35
         emulator-port: 5554
         disable-animations: true
-        emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back
-          none -camera-front none
+        emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
         script: python3 .github/scripts/capture-emulator.py
     - name: Retain release startup evidence
       if: ${{ !cancelled() }}

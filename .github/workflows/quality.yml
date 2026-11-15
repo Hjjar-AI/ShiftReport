@@ -3,8 +3,7 @@ name: 04 - Checks - Production Android lint
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize production lintDebug and dependency downloads, excluding
-          test sources. Default: false.'
+        description: 'Options: false = skip; true = authorize production lintDebug and dependency downloads, excluding test sources. Default: false.'
         type: boolean
         default: false
 permissions:
@@ -14,8 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   check:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

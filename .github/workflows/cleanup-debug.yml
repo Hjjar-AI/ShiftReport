@@ -3,13 +3,11 @@ name: 14 - Maintenance - Debug release cleanup
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize selected debug Release/tag cleanup preview or deletion.
-          Default: false.'
+        description: 'Options: false = skip; true = authorize selected debug Release/tag cleanup preview or deletion. Default: false.'
         type: boolean
         default: false
       preview:
-        description: 'Options: true = preview only; false = delete eligible owned published debug Releases/assets
-          and matching lightweight tags. Default: true.'
+        description: 'Options: true = preview only; false = delete eligible owned published debug Releases/assets and matching lightweight tags. Default: true.'
         type: boolean
         default: true
       older_than_days:
@@ -17,8 +15,7 @@ name: 14 - Maintenance - Debug release cleanup
         type: number
         default: 30
       keep:
-        description: 'Integer 5 or greater; retain at least this many newest owned published debug Releases, plus
-          all drafts and production Releases. Default: 5.'
+        description: 'Integer 5 or greater; retain at least this many newest owned published debug Releases, plus all drafts and production Releases. Default: 5.'
         type: number
         default: 5
 permissions:
@@ -28,8 +25,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   cleanup:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

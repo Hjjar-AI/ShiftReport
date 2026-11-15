@@ -3,14 +3,11 @@ name: 03 - Checks - Compilation and JVM
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize selected compilation or JVM test operation and dependency
-          downloads. Default: false.'
+        description: 'Options: false = skip; true = authorize selected compilation or JVM test operation and dependency downloads. Default: false.'
         type: boolean
         default: false
       operation:
-        description: 'Options: compile-debug = production debug compilation; compile-release = production release
-          compilation; jvm = existing offline JVM suite excluding live bootstrap; all = both production variants
-          and offline JVM suite. Default: compile-debug.'
+        description: 'Options: compile-debug = production debug compilation; compile-release = production release compilation; jvm = existing offline JVM suite excluding live bootstrap; all = both production variants and offline JVM suite. Default: compile-debug.'
         type: choice
         options:
         - compile-debug
@@ -25,8 +22,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   check:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

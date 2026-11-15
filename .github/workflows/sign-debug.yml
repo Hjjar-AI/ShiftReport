@@ -3,13 +3,11 @@ name: 10 - Delivery - Signed debug APK
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize fresh debug APK build, configured signing and selected
-          publication, preserving stored version. Default: false. Keys must be configured first.'
+        description: 'Options: false = skip; true = authorize fresh debug APK build, configured signing and selected publication, preserving stored version. Default: false. Keys must be configured first.'
         type: boolean
         default: false
       publication:
-        description: 'Options: artifact = retain signed bundle for one day; draft = create an unpublished GitHub
-          Release; prerelease = publish a prerelease; release = publish a regular release. Default: artifact.'
+        description: 'Options: artifact = retain signed bundle for one day; draft = create an unpublished GitHub Release; prerelease = publish a prerelease; release = publish a regular release. Default: artifact.'
         type: choice
         options:
         - artifact
@@ -24,8 +22,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -58,8 +55,7 @@ jobs:
         if-no-files-found: warn
   sign:
     needs: build
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: debug-signing
@@ -82,8 +78,7 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-      run: gh run download "$GITHUB_RUN_ID" --name "signing-input-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA"
-        --dir ci-output/signing-input
+      run: gh run download "$GITHUB_RUN_ID" --name "signing-input-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA" --dir ci-output/signing-input
     - name: Sign and verify expected identity
       env:
         CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -102,8 +97,7 @@ jobs:
         if-no-files-found: error
   publish:
     needs: sign
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}',
-      github.event.repository.default_branch) && inputs.publication != 'artifact' }}
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && inputs.publication != 'artifact' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -118,8 +112,7 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-      run: gh run download "$GITHUB_RUN_ID" --name "signed-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA"
-        --dir ci-output/signed-debug
+      run: gh run download "$GITHUB_RUN_ID" --name "signed-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA" --dir ci-output/signed-debug
     - name: Create the selected Release without overwriting existing releases
       env:
         GH_TOKEN: ${{ github.token }}
