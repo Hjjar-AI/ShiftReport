@@ -73,12 +73,22 @@ class Pbkdf2Sha256Test {
     @Test fun missingKeyFactoryUsesFallback() {
         // Remove only providers of this factory, then restore them at their original positions.
         val providers = java.security.Security.getProviders().toList()
+        val macService = providers.firstNotNullOf { it.getService("Mac", "HmacSHA256") }
+        val macOnly = object : java.security.Provider("Pbkdf2FallbackCheck", 1.0, "MAC only") {
+            init {
+                putService(object : Service(this, "Mac", "HmacSHA256", macService.className, emptyList(), emptyMap()) {
+                    override fun newInstance(constructorParameter: Any?): Any = macService.newInstance(constructorParameter)
+                })
+            }
+        }
         try {
             providers.filter { it.getService("SecretKeyFactory", "PBKDF2WithHmacSHA256") != null }
                 .forEach { java.security.Security.removeProvider(it.name) }
+            java.security.Security.addProvider(macOnly)
             val expected = fallback("dummy password", salt, 2)
             assertArrayEquals(expected, Pbkdf2Sha256.derive("dummy password".toCharArray(), salt, 2, 256))
         } finally {
+            java.security.Security.removeProvider(macOnly.name)
             providers.forEachIndexed { index, provider ->
                 java.security.Security.insertProviderAt(provider, index + 1)
             }
