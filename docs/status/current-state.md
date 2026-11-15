@@ -8,6 +8,10 @@ Active clients are `android/` and `web/`; `iphone/` contains an initial dummy-on
 
 3 November organization checks confirmed matching file inventories immediately after each move and an unchanged SHA-256 for the fictional patient CSV. Markdown targets, source paths and whitespace were checked. Test edits only update paths; no tests, builds, generators or PDF renderers were run. Private move proof: `local/maintenance/2026-11-03-structure.json`.
 
+## Git and hosted Android tooling
+
+15 November 2026: adopted root-level repository tools and 16 manual workflow definitions for the nested Android project, based on Mukhtabir/Aqaqeer. Added source-only integrity/pre-push checks, formatting/review/security guidance, weekly Actions-only update proposals, shared hosted setup, explicit compile/offline-test/lint/scanner/build selections, demo/crypto emulator selections, isolated signing/publication and preview-first cleanup. Local hook is activated. Existing configured debug alias/store/private-key credentials verified using Android defaults without exporting/modifying the key or uploading secrets. Source versions, wrapper, application/test files and shared workstation configuration are unchanged. [Operations and configuration](../guides/android/git-and-github.md) owns usage; [handoff](testing-handoff.md) owns remaining execution. Source/YAML/policy/shell/whitespace checks are distinct from unexecuted hosted builds/tests/scanners/signing/device behavior.
+
 ## Data and synchronization
 
 Arabic offline-first Android/desktop handover: Compose/Hilt with encrypted Room; Python/CustomTkinter with encrypted SQLite. Current formats only: protected join, registry/index and single-ward CSV8/24-column bundle, including ordered dated lab groups. Existing fields/rows remain. Android initial database schema1 includes lab-group JSON and non-unique ward-date/doctor-name indexes; IDs remain identity and Telegram accounts stay unique. On4November the owner confirmed no older projects exist and authorized resetting the schema baseline/removing historical migrations. Future schema changes can introduce migrations from1; no destructive fallback is enabled.

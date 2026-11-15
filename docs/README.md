@@ -18,6 +18,7 @@ Start with the [project README](../README.md). Guides are grouped by platform; s
 | Completed work | [Changelog](status/changelog.md) |
 | Shared architecture / data formats | [Architecture](reference/architecture.md), [Telegram protocol](reference/telegram-protocol.md) |
 | Telegram setup | [Arabic setup guide](guides/telegram-setup.md) |
+| Git / GitHub workflows | [Repository tools, workflows and signing setup](guides/android/git-and-github.md) |
 | Android build / diagnose | [Build and signing](guides/android/build.md), [troubleshooting](guides/android/troubleshooting.md) |
 | Android UI / demo / credits | [Maintenance](guides/android/ui.md), [design catalog](reference/design-catalog.md), [demo](guides/android/demo.md), [About and splash](guides/android/about-and-splash.md) |
 | Android verification procedures | [Execution guide](guides/android/testing.md), [device checks](guides/android/device-checks.md) |
