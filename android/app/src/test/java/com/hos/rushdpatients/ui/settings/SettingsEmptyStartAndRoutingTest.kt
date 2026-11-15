@@ -73,49 +73,49 @@ class SettingsEmptyStartAndRoutingTest : SettingsProjectFixture() {
     }
     @Test fun nonAdminSessionCannotChangeSupervisorDestination() = runTest {
         every { sessions.current() } returns null
-        operations(this).setSupervisorGroupChatId(actor, "-100"); runCurrent()
+        operations(this).setSupervisorGroupChatId(actor, "-100", ""); runCurrent()
         assertNotNull(state.value.snackbar)
-        coVerify(exactly = 0) { mutations.setSupervisorGroup(any(), any()) }
+        coVerify(exactly = 0) { mutations.setSupervisorGroup(any(), any(), any()) }
     }
     @Test fun malformedPositiveAndOverflowDestinationsAreRejected() = runTest {
         val operations = operations(this)
         for (raw in listOf("0", "100", "not a number", "-" + "9".repeat(30))) {
-            operations.setSupervisorGroupChatId(actor, raw); runCurrent()
+            operations.setSupervisorGroupChatId(actor, raw, ""); runCurrent()
             assertNull(state.value.savingSupervisorGroupId)
         }
-        coVerify(exactly = 0) { mutations.setSupervisorGroup(any(), any()) }
+        coVerify(exactly = 0) { mutations.setSupervisorGroup(any(), any(), any()) }
     }
     @Test fun negativeDestinationUsesExactExpectedDoctorAndTrimmedId() = runTest {
-        coEvery { mutations.setSupervisorGroup(actor, -100) } returns Unit
-        operations(this).setSupervisorGroupChatId(actor, "  -100  "); runCurrent()
-        coVerify(exactly = 1) { mutations.setSupervisorGroup(actor, -100) }
+        coEvery { mutations.setSupervisorGroup(actor, -100, null) } returns Unit
+        operations(this).setSupervisorGroupChatId(actor, "  -100  ", ""); runCurrent()
+        coVerify(exactly = 1) { mutations.setSupervisorGroup(actor, -100, null) }
         assertNull(state.value.savingSupervisorGroupId)
     }
     @Test fun blankDestinationExplicitlyClearsSupervisorRouting() = runTest {
-        coEvery { mutations.setSupervisorGroup(actor, null) } returns Unit
-        operations(this).setSupervisorGroupChatId(actor, "  "); runCurrent()
-        coVerify(exactly = 1) { mutations.setSupervisorGroup(actor, null) }
+        coEvery { mutations.setSupervisorGroup(actor, null, null) } returns Unit
+        operations(this).setSupervisorGroupChatId(actor, "  ", ""); runCurrent()
+        coVerify(exactly = 1) { mutations.setSupervisorGroup(actor, null, null) }
     }
     @Test fun staleRoutingFailureIsVisibleAndAllowsRetry() = runTest {
-        coEvery { mutations.setSupervisorGroup(actor, -100) } throws IllegalStateException("synthetic stale doctor")
-        val operations = operations(this); operations.setSupervisorGroupChatId(actor, "-100"); runCurrent()
+        coEvery { mutations.setSupervisorGroup(actor, -100, null) } throws IllegalStateException("synthetic stale doctor")
+        val operations = operations(this); operations.setSupervisorGroupChatId(actor, "-100", ""); runCurrent()
         assertEquals("synthetic stale doctor", state.value.snackbar)
         assertNull(state.value.savingSupervisorGroupId)
-        coEvery { mutations.setSupervisorGroup(actor, -100) } returns Unit
-        operations.setSupervisorGroupChatId(actor, "-100"); runCurrent()
-        coVerify(exactly = 2) { mutations.setSupervisorGroup(actor, -100) }
+        coEvery { mutations.setSupervisorGroup(actor, -100, null) } returns Unit
+        operations.setSupervisorGroupChatId(actor, "-100", ""); runCurrent()
+        coVerify(exactly = 2) { mutations.setSupervisorGroup(actor, -100, null) }
     }
     @Test fun concurrentSupervisorRoutingChangesAreBlocked() = runTest {
-        coEvery { mutations.setSupervisorGroup(any(), any()) } coAnswers { awaitCancellation() }
+        coEvery { mutations.setSupervisorGroup(any(), any(), any()) } coAnswers { awaitCancellation() }
         val operations = operations(backgroundScope)
-        operations.setSupervisorGroupChatId(actor, "-100"); runCurrent()
-        operations.setSupervisorGroupChatId(actor.copy(id = "other"), "-200"); runCurrent()
+        operations.setSupervisorGroupChatId(actor, "-100", ""); runCurrent()
+        operations.setSupervisorGroupChatId(actor.copy(id = "other"), "-200", ""); runCurrent()
         assertEquals(actor.id, state.value.savingSupervisorGroupId)
-        coVerify(exactly = 1) { mutations.setSupervisorGroup(any(), any()) }
+        coVerify(exactly = 1) { mutations.setSupervisorGroup(any(), any(), any()) }
     }
     @Test fun routingCancellationClearsBusyWithoutSuccessMessage() = runTest {
-        coEvery { mutations.setSupervisorGroup(any(), any()) } throws CancellationException("synthetic cancel")
-        operations(this).setSupervisorGroupChatId(actor, "-100"); runCurrent()
+        coEvery { mutations.setSupervisorGroup(any(), any(), any()) } throws CancellationException("synthetic cancel")
+        operations(this).setSupervisorGroupChatId(actor, "-100", ""); runCurrent()
         assertNull(state.value.savingSupervisorGroupId); assertNull(state.value.snackbar)
     }
 }

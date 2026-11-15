@@ -33,7 +33,7 @@ class ReportSenderTest : DeliveryFixture() {
     private val shifts = mockk<ShiftRepository>(relaxed = true)
     private val audit = mockk<AuditRepository>(relaxed = true)
     private val shift = Fixtures.shift()
-    private fun sender() = ReportSender(context, cipher, telegram, topics, shifts, audit, ledger())
+    private fun sender() = ReportSender(context, cipher, telegram, topics, shifts, audit, doctors, ledger())
     @Before fun setup() {
         coEvery { telegram.sendMessage(any(), any(), any(), any(), any(), any(), any()) } returns TgMessage(10)
         coEvery { telegram.deleteMessage(any(), any()) } returns true

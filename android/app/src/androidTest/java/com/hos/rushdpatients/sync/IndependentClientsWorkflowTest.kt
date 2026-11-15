@@ -131,7 +131,7 @@ class IndependentClientsWorkflowTest {
         first.seedPatient()
         val ledger = ReportDeliveryLedger(first.settings, first.sessions, first.doctors)
         val sender = ReportSender(first.context, ProjectDataCipher(first.projects, first.dispatchers), first.telegram,
-            first.topics, first.shifts, first.audit, ledger)
+            first.topics, first.shifts, first.audit, first.doctors, ledger)
         val shift = requireNotNull(first.shifts.getById("today"))
         server.fault = { _, method, phase -> if (method == "sendMessage" && phase == "after")
             throw IOException("synthetic lost delivery response") }

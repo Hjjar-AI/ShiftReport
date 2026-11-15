@@ -102,7 +102,7 @@ abstract class ProductionUiFixture {
             telegramLogin, localPins, client.dispatchers, text)
         ledger = ReportDeliveryLedger(client.settings, client.sessions, client.doctors)
         sender = ReportSender(client.context, ProjectDataCipher(client.projects, client.dispatchers), client.telegram,
-            client.topics, client.shifts, client.audit, ledger)
+            client.topics, client.shifts, client.audit, client.doctors, ledger)
         csv = PatientCsvExporter(client.context, client.shifts, client.patients, client.doctors, MediaStoreSaver(), client.dispatchers)
         bootstrap = BootstrapManager(client.context, client.telegram, client.topics, server.json, client.doctors)
     }

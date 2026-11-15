@@ -20,7 +20,8 @@ class PinUnlockInteractionTest {
     private fun label(id: Int) = ApplicationProvider.getApplicationContext<Context>().getString(id)
     @Test fun pinFiltersNonDigitsSubmitsWithImeAndClearsImmediately() {
         var received: String? = null
-        compose.setContent { MaterialTheme { PinUnlockScreen("أرز", null, false, { received = it }, null, {}) } }
+        compose.setContent { MaterialTheme { PinUnlockScreen("أرز", null, false, { received = it }, null, {},
+            onForgotPin = { fail("Unexpected recovery during PIN submission") }) } }
         compose.onNode(hasSetTextAction()).performTextInput("2a468")
         compose.onNode(hasSetTextAction()).performImeAction()
         compose.runOnIdle { assertEquals("2468", received) }
@@ -31,7 +32,8 @@ class PinUnlockInteractionTest {
         var biometric = 0
         var signedOut = false
         compose.setContent { MaterialTheme { PinUnlockScreen("أرز", "خطأ تجريبي", false, {},
-            { biometric++ }, { signedOut = true }) } }
+            { biometric++ }, { signedOut = true },
+            onForgotPin = { fail("Unexpected recovery during biometric/sign-out interaction") }) } }
         compose.runOnIdle { assertEquals(1, biometric); assertFalse(signedOut) }
         compose.onNodeWithText(label(R.string.ui_pin_unlock_screen_003)).performClick()
         compose.onNodeWithText(label(R.string.ui_settings_preference_sections_019)).performClick()
