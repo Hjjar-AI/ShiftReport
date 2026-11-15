@@ -42,6 +42,7 @@ import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientBadge
 import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.uiListGap
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
@@ -266,7 +267,7 @@ internal fun PatientFormDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(formScrollState),
-                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+                    verticalArrangement = Arrangement.spacedBy(uiListGap())
                 ) {
                     draftWarning?.let { warning ->
                         com.hos.rushdpatients.ui.components.AppNotice(warning,
