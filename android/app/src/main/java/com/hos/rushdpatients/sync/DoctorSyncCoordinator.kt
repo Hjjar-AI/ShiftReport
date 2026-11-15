@@ -297,8 +297,17 @@ class DoctorSyncCoordinator @Inject constructor(
         fetchAndApplyLatestDoctorsInternal()
     }
 
-    private suspend fun fetchAndApplyLatestDoctorsInternal(): Result<Int> = withContext(dispatchers.io) {
+    /** Login refresh never replaces unpublished local roster edits. */
+    suspend fun refreshDoctorsForLogin(): Result<Int> = doctorSyncMutex.withLock {
+        fetchAndApplyLatestDoctorsInternal(preservePending = true)
+    }
+
+    private suspend fun fetchAndApplyLatestDoctorsInternal(preservePending: Boolean = false): Result<Int> = withContext(dispatchers.io) {
         try {
+            val connectionUnchanged = topics.connectionUnchangedCheck()
+            if (preservePending) require(!doctorRepository.hasPendingSharedChanges()) {
+                context.getString(R.string.login_refresh_pending_registry)
+            }
             val local = doctorRepository.getAllIncludingDeleted()
             val state = remoteState.readState()
                 ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.doctors_registry_absent)))
@@ -308,6 +317,10 @@ class DoctorSyncCoordinator @Inject constructor(
                 context.getString(R.string.doctors_registry_changed_download)
             }
             database.withTransaction {
+                check(connectionUnchanged()) { context.getString(R.string.login_connection_changed) }
+                if (preservePending) require(!doctorRepository.hasPendingSharedChanges()) {
+                    context.getString(R.string.login_refresh_pending_registry)
+                }
                 check(doctorRepository.getAllIncludingDeleted() == local) {
                     context.getString(R.string.doctors_local_changed_download)
                 }

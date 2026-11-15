@@ -16,7 +16,8 @@ internal data class ConnectionChange(
     val token: String,
     val adminActorId: String? = null,
     val residentsChatId: Long = expected.residentsChatId,
-    val residentsTopicId: Long = expected.residentsTopicId
+    val residentsTopicId: Long = expected.residentsTopicId,
+    val fromProtectedFile: Boolean = false
 )
 
 @Singleton
@@ -49,7 +50,8 @@ class ProjectConnectionManager @Inject constructor(
             "أقسام الملف مختلفة عن المشروع المحلي؛ تم منع تغيير وجهات البيانات"
         }
         ResidentsDestination.validate(telegram, imported.residentsChatId, imported.residentsTopicId, imported.botToken)
-        return prepare(current, imported.botToken).copy(residentsChatId = imported.residentsChatId, residentsTopicId = imported.residentsTopicId)
+        return prepare(current, imported.botToken).copy(fromProtectedFile = true,
+            residentsChatId = imported.residentsChatId, residentsTopicId = imported.residentsTopicId)
     }
 
     internal suspend fun prepareToken(token: String): ConnectionChange {

@@ -40,13 +40,15 @@ class LocalPinLoginManager @Inject constructor(
     }
 
     /** Called after Telegram proof; administrators' preset PINs never enroll another identity. */
-    suspend fun enrollVerified(doctorId: String, telegramId: Long, pin: String): Doctor = withContext(dispatchers.io) {
+    suspend fun enrollVerified(doctorId: String, telegramId: Long, pin: String,
+        beforeWrite: (Doctor) -> Unit = {}): Doctor = withContext(dispatchers.io) {
         require(pin.length in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH && pin.all(Char::isDigit))
         val hash = hasher.hash(pin)
         mutex.withLock {
             database.withTransaction {
                 val doctor = requireNotNull(doctors.getActiveById(doctorId)) { "الطبيب غير متاح" }
                 require(doctor.telegramId == telegramId) { "تغيرت هوية الطبيب؛ أعد التحقق عبر تليجرام" }
+                beforeWrite(doctor)
                 val updated = doctor.copy(extraOptions = doctor.options.withPinHash(hash))
                 doctors.upsert(updated)
                 settings.put(enrollmentKey(doctorId), enrollmentIdentity(updated))

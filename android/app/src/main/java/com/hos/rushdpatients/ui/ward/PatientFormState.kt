@@ -12,7 +12,12 @@ import java.time.LocalDate
 
 /** Editable clinical values only. Retained in memory by the ward ViewModel, never in a Bundle. */
 internal class PatientFormState(initial: Patient?, draft: PatientDraft?) {
-    var extrasExpanded by mutableStateOf(initial != null)
+    var extrasExpanded by mutableStateOf(
+        initial?.let { it.tasks.isNotEmpty() || it.badges.isNotEmpty() || it.isPriority }
+            ?: draft?.let { it.tasks.isNotEmpty() || it.badges.isNotEmpty() ||
+                it.isPriority || it.badgeDraftText.isNotBlank() }
+            ?: false
+    )
     var taskEntry by mutableStateOf<com.hos.rushdpatients.data.model.PatientTask?>(null)
     var tasks by mutableStateOf(initial?.tasks ?: draft?.tasks.orEmpty())
     var admittanceNumber by mutableStateOf(initial?.admittanceNumber ?: draft?.admittanceNumber.orEmpty())
@@ -56,7 +61,7 @@ internal class PatientFormStateStore {
     }
     fun restore(initial: Patient, draft: PatientDraft) {
         seed = initial
-        values = PatientFormState(null, draft).also { it.extrasExpanded = true }
+        values = PatientFormState(null, draft)
     }
     fun clear() { seed = null; values = null }
 }
