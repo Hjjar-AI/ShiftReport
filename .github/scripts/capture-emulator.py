@@ -30,12 +30,24 @@ def failure_reason(error):
     return str(error) if isinstance(error, EvidenceError) else type(error).__name__ + ': details withheld'
 
 
+def listed_users(details):
+    # Legacy ADB shell (API <=23) converts LF to CRLF. Parse logical lines so
+    # carriage returns cannot make a valid owner record disappear at `$`.
+    users = []
+    for line in details.splitlines():
+        match = re.fullmatch(r'UserInfo\{(\d+):[^\r\n]*\}([^\r\n]*)', line.strip())
+        if match:
+            users.append({'id': match[1], 'running': match[2].strip() == 'running'})
+    return users
+
+
 def sole_running_owner(details):
     # Android 6 Am.java has no get-current-user. Pm.java lists every user and
     # its running state; exactly one registered/running user proves user 0.
     # https://android.googlesource.com/platform/frameworks/base/+/android-6.0.1_r1/cmds/pm/src/com/android/commands/pm/Pm.java
-    users = re.findall(r'^[ \t]*UserInfo\{(\d+):[^\r\n]*\}([^\r\n]*)$', details, re.M)
-    if len(users) != 1 or users[0][0] != '0' or users[0][1].strip() != 'running':
+    users = listed_users(details)
+    lines = [line.strip() for line in details.splitlines() if line.strip()]
+    if len(lines) != 2 or lines[0] != 'Users:' or users != [{'id': '0', 'running': True}]:
         raise EvidenceError('Android 6 requires user 0 as the sole registered running user')
     return '0'
 
@@ -54,7 +66,11 @@ def owned_device():
         observations['avd'] = avd[0].strip() if avd else ''
         if observations['api'] == '23':
             observations['userProof'] = 'sole-registered-running-user'
-            observations['user'] = sole_running_owner(adb('shell', 'pm', 'list', 'users').stdout.decode())
+            user_text = adb('shell', 'pm', 'list', 'users').stdout.decode()
+            observations['registeredUsers'] = listed_users(user_text)
+            observations['userOutputLines'] = len([line for line in user_text.splitlines() if line.strip()])
+            observations['legacyCarriageReturns'] = '\r' in user_text
+            observations['user'] = sole_running_owner(user_text)
         else:
             observations['userProof'] = 'activity-manager-current-user'
             observations['user'] = adb('shell', 'am', 'get-current-user').stdout.decode().strip()

@@ -14,6 +14,14 @@ name: 07 - Verify - Emulator with visual evidence
         - instrumentation
         - both
         default: capture
+      api:
+        description: 'Options: both = run API 23 and 35 serially; 23 = run Android 6 only; 35 = run Android 15 only. Default: both. Choose only the affected API when retaining an unchanged successful job.'
+        type: choice
+        options:
+        - both
+        - '23'
+        - '35'
+        default: both
 permissions:
   contents: read
 concurrency:
@@ -28,9 +36,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        api:
-        - 23
-        - 35
+        api: ${{ fromJSON(inputs.api == 'both' && '[23,35]' || inputs.api == '23' && '[23]' || inputs.api == '35' && '[35]' || 'invalid-api-selection') }}
     steps:
     - name: Check out repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

@@ -126,8 +126,12 @@ def main():
             if name == 'emulator.yml':
                 strategy = job.get('strategy', {})
                 need(strategy.get('max-parallel') == 1 and strategy.get('fail-fast') is False
-                     and strategy.get('matrix') == {'api': [23, 35]},
+                     and strategy.get('matrix') == {'api': "${{ fromJSON(inputs.api == 'both' && '[23,35]' || inputs.api == '23' && '[23]' || inputs.api == '35' && '[35]' || 'invalid-api-selection') }}"},
                      f'{name}: explicit serial API matrix required')
+                api_input = data['on']['workflow_dispatch']['inputs']['api']
+                need(api_input['type'] == 'choice' and api_input['options'] == ['both', '23', '35']
+                     and api_input['default'] == 'both',
+                     f'{name}: explicit API selection must preserve the default full matrix')
                 runners = [step for step in job['steps'] if step.get('uses', '').startswith('reactivecircus/android-emulator-runner@')]
                 need(len(runners) == 1 and runners[0].get('with', {}).get('emulator-port') == 5554
                      and runners[0].get('with', {}).get('script') == 'python3 .github/scripts/run-emulator.py',
