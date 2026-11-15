@@ -83,4 +83,47 @@ class ProjectConnectionManagerTest {
         }
         coVerify(exactly = 0) { admins.requireAdmin() }
     }
+    @Test fun protectedFilePreparationExplicitlyMarksRecoveryEligibleOrigin() = runBlocking<Unit> {
+        coEvery { provisioning.importConfig(uri, any()) } returns current.copy(botToken = replacement)
+        val change = manager.prepareFile(uri, "synthetic-password".toCharArray())
+        assertTrue(change.fromProtectedFile)
+        assertNull(change.adminActorId)
+        verify(exactly = 0) { projects.replaceBotToken(any(), any(), any(), any()) }
+    }
+    @Test fun manualPreparationNeverMarksProtectedFileOrigin() = runBlocking<Unit> {
+        val change = manager.prepareToken("  $replacement  ")
+        assertFalse(change.fromProtectedFile)
+        assertEquals(replacement, change.token)
+        assertEquals(Fixtures.doctor(rank = 1).id, change.adminActorId)
+    }
+    @Test fun importFailureStillWipesCallerPasswordWithoutNetworkValidation() = runBlocking<Unit> {
+        coEvery { provisioning.importConfig(uri, any()) } throws java.io.IOException("synthetic unreadable file")
+        val pass = "synthetic-password".toCharArray()
+        assertThrows(java.io.IOException::class.java) { runBlocking { manager.prepareFile(uri, pass) } }
+        assertTrue(pass.all { it == '\u0000' })
+        coVerify(exactly = 0) { telegram.validateReplacementToken(any(), any(), any()) }
+    }
+    @Test fun cancelledImportWipesCallerPasswordAndDoesNotBecomeChange() = runBlocking<Unit> {
+        coEvery { provisioning.importConfig(uri, any()) } throws kotlinx.coroutines.CancellationException("synthetic cancellation")
+        val pass = "synthetic-password".toCharArray()
+        assertThrows(kotlinx.coroutines.CancellationException::class.java) { runBlocking { manager.prepareFile(uri, pass) } }
+        assertTrue(pass.all { it == '\u0000' })
+        verify(exactly = 0) { projects.replaceBotToken(any(), any(), any(), any()) }
+    }
+    @Test fun authorityChangedDuringNetworkValidationCannotApplyReplacement() = runBlocking<Unit> {
+        val admin = Fixtures.doctor(rank = 1)
+        coEvery { admins.requireAdmin() } returnsMany listOf(admin, admin, admin.copy(id = "another-admin"))
+        val change = manager.prepareToken(replacement)
+        assertThrows(IllegalStateException::class.java) { runBlocking { manager.apply(change) } }
+        coVerify(exactly = 2) { telegram.validateReplacementToken(replacement, -100, 12345) }
+        verify(exactly = 0) { projects.replaceBotToken(any(), any(), any(), any()) }
+    }
+    @Test fun projectChangedDuringTokenPreparationInvalidatesReview() = runBlocking<Unit> {
+        coEvery { telegram.validateReplacementToken(replacement, -100, 12345) } coAnswers {
+            every { projects.current() } returns current.copy(doctorsTopicId = 88)
+            Unit
+        }
+        assertThrows(IllegalStateException::class.java) { runBlocking { manager.prepareToken(replacement) } }
+        verify(exactly = 0) { projects.replaceBotToken(any(), any(), any(), any()) }
+    }
 }

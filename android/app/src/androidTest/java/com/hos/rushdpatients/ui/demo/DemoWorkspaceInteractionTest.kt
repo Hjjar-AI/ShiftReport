@@ -63,12 +63,13 @@ class DemoWorkspaceInteractionTest {
         drawer()
         drawerButton(text(R.string.ui_send_report)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.ui_shift_doctor_picker_001)).assertExists()
+        compose.onNodeWithText(text(R.string.ui_report_preview_screen_024)).performScrollTo().performClick()
         compose.onNode(hasText(text(R.string.ui_report_preview_screen_031)) and isToggleable())
             .performScrollTo().performClick()
         compose.waitUntil(10000) { !vm.report.state.value.reportAsPdf }
         compose.onNodeWithText(text(R.string.ui_report_preview_screen_017, text(R.string.ui_report_review_send_step))).performClick()
-        val preview = hasText(text(R.string.report_preview_destination, text(R.string.project_report_label))) and
-            hasClickAction()
+        val preview = hasText(text(R.string.report_full_preview_action)) and
+            hasClickAction() and hasAnyAncestor(hasScrollAction())
         compose.onAllNodes(preview).onFirst().performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.ui_close)).performClick()
         compose.onNode(hasText(text(R.string.ui_send_report)) and hasClickAction()).performClick()

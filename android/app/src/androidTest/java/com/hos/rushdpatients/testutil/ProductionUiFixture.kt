@@ -149,8 +149,7 @@ abstract class ProductionUiFixture {
                                     Routes.DOCTORS -> doctorVm = get(store) { doctorsModel() }
                                     Routes.SETTINGS, Routes.SETTINGS_DETAIL, Routes.PROJECT_SETTINGS, Routes.DATA_MANAGEMENT, Routes.DIAGNOSTICS -> {
                                         settingsVm = get(store) { settingsModel() }
-                                        get(store) { ProjectConnectionViewModel(text, ProjectConnectionManager(client.projects,
-                                            ProjectProvisioningManager(client.context, client.dispatchers), client.telegram, client.authorizer, client.dispatchers), client.context, client.dispatchers) }
+                                        get(store) { ProjectConnectionViewModel(text, connections, pinRecovery, client.context, client.dispatchers) }
                                     }
                                     Routes.ADMIN -> get(store) { AdminViewModel(text, client.doctors, client.sessions,
                                         PromoteAdminUseCase(client.doctorMutations), DemoteAdminUseCase(client.doctorMutations), client.sync) }

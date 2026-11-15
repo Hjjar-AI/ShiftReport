@@ -2,6 +2,8 @@
 
 [Results](../../status/current-state.md#verification-and-limits) · [Remaining checks](../../status/testing-handoff.md) · [Device procedures](device-checks.md) · [Desktop/live](../desktop/testing-and-interop.md)
 
+For the owner-run hosted expansion, use workflow **03** with `confirm=true`, `operation=jvm` (or `all` to include production compilation), then workflow **07** with `confirm=true`, `operation=instrumentation` (or `both` to add separate visual capture). [Git/GitHub operations](git-and-github.md) owns dispatch/signing details. Source counts and evidence live in Current state; pending execution stays in the handoff. No local execution accompanies test authoring.
+
 Inventory/results/limits belong in Current state; handoff alone lists remaining checks. Separate source inventory, focused passes and device runtime. Record opt-ins/owner skips; overlapping runs add no unique coverage. This guide grants no test/build permission.
 
 ## Coverage map

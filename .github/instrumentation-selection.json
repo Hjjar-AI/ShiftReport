@@ -3,16 +3,37 @@
     "encryptedTextRoundTripUsesFreshNonces",
     "tamperedPayloadAndWrongKeyFailExplicitly",
     "encryptedFilesRoundTripButPdfRemainsReadable",
-    "unencryptedProjectPassesThroughAndGeneratedKeysAreIndependent"
+    "unencryptedProjectPassesThroughAndGeneratedKeysAreIndependent",
+    "emptyEncryptedTextRemainsAnAuthenticatedEnvelope",
+    "unicodeTabsNulAndLineEndingsSurviveEncryptedText",
+    "missingProjectKeyCannotReadExistingEncryptedText",
+    "requiredEncryptionRejectsPlainTextWhenProjectIsProtected",
+    "unprotectedProjectRetainsPlainTextEvenWithRequiredFlag",
+    "repeatedDocumentEncryptionUsesFreshNoncesAndRetainsSourceBytes",
+    "damagedDocumentNeverOverwritesCiphertextWithPartialPlaintext",
+    "wrongDocumentKeyPreservesEncryptedFileForRecovery",
+    "textEnvelopeCannotBeSubstitutedForEncryptedDocument",
+    "pdfDetectionUsesReadableHeaderRatherThanFileExtension",
+    "compressedMultilineTextRetainsCompleteLongContent"
   ],
   "com.hos.rushdpatients.config.ProjectProvisioningManagerTest": [
     "protectedJsonRoundTripPreservesConnectionAndKeyOnly",
     "wrongPasswordTamperingAndEmptyFilesAreRejectedAndWiped",
     "stagingSurvivesManagerRecreationAndDiscardRemovesOnlyThatExport",
-    "invalidProjectAndShortPasswordsAreRejectedWithoutRetainingPassword"
+    "invalidProjectAndShortPasswordsAreRejectedWithoutRetainingPassword",
+    "unicodePasswordRoundTripWipesBothCallerBuffers",
+    "repeatedExportsUseFreshSaltAndNonce",
+    "discardedStagingDoesNotDeleteAnotherPendingExport",
+    "unencryptedProjectJoinRemainsPasswordProtectedWithoutInventingDataKey",
+    "failedPasswordAttemptLeavesProtectedFileAvailableForCorrectPassword"
   ],
   "com.hos.rushdpatients.domain.auth.PasswordHasherTest": [
-    "randomSaltRetainsVerificationAndRejectsWrongPassword"
+    "randomSaltRetainsVerificationAndRejectsWrongPassword",
+    "arabicAndSupplementaryPasswordRetainsVerification",
+    "surroundingWhitespaceRemainsSignificant",
+    "changedDerivedHashCannotAuthenticateOriginalPassword",
+    "unexpectedStoredComponentCountIsRejected",
+    "storedSaltAndHashHaveCurrentCryptographicLengths"
   ],
   "com.hos.rushdpatients.ui.demo.DemoWorkspaceInteractionTest": [
     "sharedBulkFoldAndUnfoldRepeatAndRetainCollapsedStateAfterRecreation",
@@ -25,5 +46,30 @@
     "generalAndSupervisorPreviewShareExactBytesAndRejectLaterClinicalChanges",
     "simulatedSelectedDeliveryCreatesOnlyMemoryReceiptsAndResetDiscardsThem",
     "demoClassicCardsAndEmptyRosterAssignmentsProduceRenderableMarkedArtifacts"
+  ],
+  "com.hos.rushdpatients.util.Pbkdf2CompatibilityTest": [
+    "sha256VectorOneIteration",
+    "sha256VectorTwoIterations",
+    "sha256Vector4096Iterations",
+    "zeroIterationsAreRejected",
+    "negativeIterationsAreRejected",
+    "emptySaltIsRejected",
+    "unsupportedKeyLengthIsRejected",
+    "suppliedPasswordAndSaltRemainOwnedByCaller",
+    "returnedKeysDoNotShareMutableStorage",
+    "embeddedNulIsNotSilentlyDiscarded",
+    "unicodeDerivedKeyAuthenticatesCiphertextAndRejectsWrongPassword"
+  ],
+  "com.hos.rushdpatients.ui.report.ReportSelectionInteractionTest": [
+    "summaryContainsEveryDoctorWithoutTwoNameCollapse",
+    "longRosterRemainsReachableAtLargeFont",
+    "emptyRosterStillOffersActionableDoctorSelection",
+    "busyRosterDisablesSelectionWithoutHidingNames",
+    "destinationControlsInitiallyCollapseWithoutChangingFormat",
+    "expandingAndCollapsingDestinationsDoesNotChangeSelections",
+    "selectAllExcludesUnconfiguredSupervisorDestination",
+    "reportFormatChangesOnlyAfterExplicitExpandedToggle",
+    "lockedReportFormatCannotBeChangedFromExpandedControls",
+    "busyDestinationHeaderCannotExposeMutationControls"
   ]
 }

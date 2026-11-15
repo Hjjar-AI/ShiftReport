@@ -1,12 +1,18 @@
 # Current implementation
 
-Updated 5 November 2026. [Architecture](../reference/architecture.md) · [Protocol](../reference/telegram-protocol.md) · [Remaining checks](testing-handoff.md) · [Roadmap](roadmap.md).
+Updated 15 November 2026. [Architecture](../reference/architecture.md) · [Protocol](../reference/telegram-protocol.md) · [Remaining checks](testing-handoff.md) · [Roadmap](roadmap.md).
 
 ## Repository layout
 
 Active clients are `android/` and `web/`; `iphone/` contains an initial dummy-only Pyto host under development. Archived clients are `old/desktop/` and `old/excel/`. Guides are grouped under `docs/guides/android/` and `docs/guides/desktop/`; shared reference, status and decisions remain central. Samples use `samples/data/`, `samples/generators/` and `samples/previews/`. Private originals and notes live under ignored `local/`; existing evidence and toolchain paths are unchanged. The [documentation index](../README.md) and [sample index](../../samples/README.md) map the current homes.
 
 3 November organization checks confirmed matching file inventories immediately after each move and an unchanged SHA-256 for the fictional patient CSV. Markdown targets, source paths and whitespace were checked. Test edits only update paths; no tests, builds, generators or PDF renderers were run. Private move proof: `local/maintenance/2026-11-03-structure.json`.
+
+## Focused Android test expansion
+
+15 November 2026: owner requested test creation/enhancement and selected deeper coverage of recent changes, with execution reserved for their GitHub Actions runs. Source inventory grew from759 to856 JVM declarations and348 to390 device declarations:139 added declarations, no production-code/version/migration changes. Three new JVM parameterized methods define404 rows (252 report destination/review/busy/step/summary combinations,120 report-day/admission combinations and32 independent JCE/fallback password/work-factor combinations); row expansions are not additional method declarations or executed passes.
+
+New coverage includes protected-rejoin provenance/password wiping; recovery handle/project/identity/PIN binding, cancellation/expiry/consumption and write-boundary checks; login roster refresh/cache/error/enrollment/duplicate-submit behavior; optional-section draft retention; Unicode/authenticated document and protected-join integrity; real Android PBKDF2 vectors; and uncapped/large-font/empty/busy report selection. Repaired stale09:30, inclusive admission-day and optional-PDF-viewing expectations, current login/connection fixture constructors and shared recovery-manager ownership, plus the demo report interaction's collapsed format/full-preview route. Workflow03 discovers the existing/new offline JVM files; workflow07 selects59 explicit methods in seven offline classes on API23/35 (118 invocations,59 unique methods), retaining separate visual/test outcomes. Live bootstrap, physical/provider opt-ins and database/migration selections remain excluded from the hosted device selection. Source/interface/resource/inventory/YAML/policy/whitespace checks only; no local/hosted compilation, Gradle, suite, device, scanner or dispatch execution. [Pending execution](testing-handoff.md) is canonical.
 
 ## Git and hosted Android tooling
 

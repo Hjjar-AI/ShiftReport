@@ -36,7 +36,7 @@ class Pbkdf2CompatibilityTest {
     @Test fun emptySaltIsRejected() {
         assertThrows(IllegalArgumentException::class.java) { Pbkdf2Sha256.derive("synthetic".toCharArray(), byteArrayOf(), 1, 256) }
     }
-    @Test fun UnsupportedKeyLengthIsRejected() {
+    @Test fun unsupportedKeyLengthIsRejected() {
         assertThrows(IllegalArgumentException::class.java) { Pbkdf2Sha256.derive("synthetic".toCharArray(), salt, 1, 128) }
     }
     @Test fun suppliedPasswordAndSaltRemainOwnedByCaller() {

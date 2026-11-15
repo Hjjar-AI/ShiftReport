@@ -7,7 +7,7 @@ name: 07 - Verify - Emulator with visual evidence
         type: boolean
         default: false
       operation:
-        description: 'Options: capture = startup/demo PNGs and short video; instrumentation = selected existing offline demo and crypto tests; both = run both phases separately. Default: capture.'
+        description: 'Options: capture = startup/demo PNGs and short video; instrumentation = selected offline demo, crypto and report-selection tests; both = run both phases separately. Default: capture.'
         type: choice
         options:
         - capture

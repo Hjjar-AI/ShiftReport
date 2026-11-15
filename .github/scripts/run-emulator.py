@@ -31,9 +31,11 @@ def instrument(capture):
         'com.hos.rushdpatients.domain.auth.PasswordHasherTest',
         'com.hos.rushdpatients.ui.demo.DemoWorkspaceInteractionTest',
         'com.hos.rushdpatients.ui.demo.DemoWorkflowDeviceTest',
+        'com.hos.rushdpatients.util.Pbkdf2CompatibilityTest',
+        'com.hos.rushdpatients.ui.report.ReportSelectionInteractionTest',
     }
     if not isinstance(selection, dict) or set(selection) != allowed:
-        raise ValueError('Only the reviewed offline demo/crypto classes are selectable')
+        raise ValueError('Only the reviewed offline demo/crypto/report-selection classes are selectable')
     if any(not isinstance(methods, list) or not methods or len(set(methods)) != len(methods)
            or any(not isinstance(method, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', method)
                   for method in methods) for methods in selection.values()):
