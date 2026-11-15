@@ -12,7 +12,7 @@ Publication and Fetch require the current single-ward CSV bundle; old multi-list
 
 Android selects its current section through an existing-settings ID, independent of the stored shift date. Fetch, restore and Empty Start select their result; Undo restores the previous selection. Date lookup is permitted only when no explicit incoming ward ID was supplied; an explicit ID never aliases another ward of the same date. Stored legacy rows remain; multi-section product support is a [separate design](../decisions/multiple-sections.md).
 
-08:30 only labels the work day: no automatic new ward/rollover or date-based edit/publish/send gate. Existing ward identities/rows continue across days; captured report dates remain immutable after review.
+Android09:30 (other clients08:30) only labels the work day: no automatic new ward/rollover or date-based edit/publish/send gate. Existing ward identities/rows continue across days; captured report dates remain immutable after review.
 
 Screens own presentation/navigation; ViewModels own state/mutations and delegate. Repositories atomically commit clinical changes; `KnownShiftSnapshot`/`PatientPublicationStatus` derive current-ward pending/count/briefing from the same normalized content/order, excluding retired tracking/task metadata; historical wards remain stored without blocking current fetch, and a missing baseline alone does not make an empty roster-free ward pending; new audit recording and clinical-history UI/loads are disabled, with old records retained; patient/doctor sync share singleton store/mutex. Extraction must not duplicate sessions/reviews/artifacts/drafts/locks; desktop facades preserve imports and defer optional cyclic imports. Blocking work off-main; cancellation separate.
 

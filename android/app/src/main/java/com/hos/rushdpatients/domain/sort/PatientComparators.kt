@@ -74,8 +74,8 @@ object PatientComparators {
     }
 
     private fun compareDays(a: Patient, b: Patient, today: LocalDate): Int {
-        val da = a.admittanceDaysOn(today) ?: 0
-        val db = b.admittanceDaysOn(today) ?: 0
+        val da = a.admittanceDaysOn(today) ?: 1
+        val db = b.admittanceDaysOn(today) ?: 1
         return da.compareTo(db)
     }
 

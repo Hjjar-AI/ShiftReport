@@ -14,7 +14,7 @@ object PatientPredicates {
     fun warnings(patient: Patient): Boolean = patient.badges.isNotEmpty()
     fun unassigned(patient: Patient): Boolean =
         patient.responsibleResidentId == null || patient.responsibleSpecialistId == null
-    fun newAdmission(patient: Patient, dayLabel: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): Boolean = patient.admittanceDaysOn(dayLabel) == 0
+    fun newAdmission(patient: Patient, dayLabel: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): Boolean = patient.admittanceDaysOn(dayLabel) == 1
 }
 
 data class WardSummary(

@@ -128,7 +128,7 @@
     <string name="ui_patient_task_editor_017" formatted="false">"موعد المهمة"</string>
     <string name="ui_patient_task_editor_018" formatted="false">"تاريخ المناوبة"</string>
     <string name="ui_patient_task_editor_019" formatted="false">"تاريخ الاستحقاق"</string>
-    <string name="ui_patient_task_editor_020" formatted="false">"نهاية المناوبة الساعة 08:30 في اليوم التالي"</string>
+    <string name="ui_patient_task_editor_020" formatted="false">"نهاية المناوبة الساعة 09:30 في اليوم التالي"</string>
     <string name="ui_patient_task_editor_021" formatted="false">"وقت الاستحقاق"</string>
     <string name="ui_patient_task_editor_022" formatted="false">"تفاصيل إضافية"</string>
     <string name="ui_patient_task_editor_023" formatted="false">"مسؤول المهمة (اختياري)"</string>

@@ -45,7 +45,7 @@ data class Patient(
     }
 
     fun admittanceDaysOn(date: LocalDate): Int? = admittanceDate?.let {
-        ChronoUnit.DAYS.between(it, date).coerceAtLeast(0).toInt()
+        ChronoUnit.DAYS.between(it, date).coerceAtLeast(0).toInt() + 1
     }
 
     val age: Int? get() = ageOn(com.hos.rushdpatients.util.ShiftDate.current())

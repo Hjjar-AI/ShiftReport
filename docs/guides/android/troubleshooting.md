@@ -157,7 +157,7 @@ CSV UTF-8 (BOM optional), exact header/schema1; no ANSI/UTF16/XLSX. Preserve num
 
 ## Tasks and reports
 
-Tasks are explicit text/done records; pending excludes completed. Stored ownership/deadlines/stamps remain storage-only. No parsed notes/overdue counters/minute refresh/rollover; 08:30 labels the continuing ward.
+Tasks are explicit text/done records; pending excludes completed. Stored ownership/deadlines/stamps remain storage-only. No parsed notes/overdue counters/minute refresh/rollover; 09:30 labels the continuing ward.
 
 Use dummy DEMO PDFs: Arabic/Latin, long text/tasks/badges, order/continuations/headings/footer. Android A5 cards always place two clinical columns below demographics/badges. In Acrobat/browser inspect search/copy/selection/index/name/Previous/Next/print. A5≈420×595pt; `pdfinfo`/`pdftotext -enc UTF-8` cannot establish viewer behavior. [Remaining checks](../../status/testing-handoff.md).
 

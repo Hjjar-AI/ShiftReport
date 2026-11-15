@@ -20,7 +20,7 @@ Ward/report/doctors identify demo mode; reports label simulated delivery. Shared
 
 `DemoWardViewModel` uses `InMemoryDemoWardRepository`, pure text/PDF builders and an explicit PDF saver; never production clinical/settings/session/Telegram services. `WardController`/`ReportController`/`DoctorsController` choose operations below shared UI; live authorization/durable delivery stay in production ViewModels/services.
 
-Fifty food/drink patients come from `samples/data/patients.csv`. Tree doctors, actor/roster/teams, drafts, remote snapshot and receipts are memory-only; entered doctor PIN/Telegram identities are discarded. Fetch uses the fake snapshot and production replacement/review dialogs with local Undo. Reset/exit/process death discards the session. Only `DemoAppearanceStore` persists accent/appearance enums in private, unencrypted `demo_appearance` preferences, off-main and loaded before rendering; these survive reset/exit. No clinical/credential/live settings enter that file. The day label refreshes at 08:30/foreground; review captures its own day.
+Fifty food/drink patients come from `samples/data/patients.csv`. Tree doctors, actor/roster/teams, drafts, remote snapshot and receipts are memory-only; entered doctor PIN/Telegram identities are discarded. Fetch uses the fake snapshot and production replacement/review dialogs with local Undo. Reset/exit/process death discards the session. Only `DemoAppearanceStore` persists accent/appearance enums in private, unencrypted `demo_appearance` preferences, off-main and loaded before rendering; these survive reset/exit. No clinical/credential/live settings enter that file. The day label refreshes at 09:30/foreground; review captures its own day.
 
 ## Explicit local files
 
