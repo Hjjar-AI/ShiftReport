@@ -126,6 +126,7 @@ class ProjectConnectionViewModel @Inject constructor(
     /** Transfer ownership of the opaque handle to the login flow exactly once. */
     fun consumeRecoveryAuthorization(): PinRecoveryAuthorization? {
         val handle = _state.value.recoveryAuthorization ?: return null
+        recoveryDoctorId = null
         _state.update { it.copy(applied = false, recoveryAuthorization = null) }
         return handle
     }

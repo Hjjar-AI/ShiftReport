@@ -326,6 +326,7 @@ class DoctorSyncCoordinator @Inject constructor(
                 }
                 downloadUndo.recordRegistry(local, remote)
                 applyFetchedRegistry(state, remote)
+                check(connectionUnchanged()) { context.getString(R.string.login_connection_changed) }
                 auditRepository.record(null, null, AppConstants.AUDIT_DOCTORS_SYNCED,
                     "full_download:${remote.size}")
             }

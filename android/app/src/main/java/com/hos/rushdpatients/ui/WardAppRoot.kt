@@ -71,6 +71,18 @@ class RootViewModel @Inject constructor(
 ) : ViewModel() {
 
     val projectConfig = projectConfigStore.config
+    private val _pinRecoveryDoctorId = MutableStateFlow<String?>(null)
+    val pinRecoveryDoctorId: StateFlow<String?> = _pinRecoveryDoctorId.asStateFlow()
+
+    fun requestPinRecovery(): Boolean {
+        if (_unlocking.value) return false
+        val doctorId = sessionManager.current()?.doctorId ?: return false
+        signOut()
+        _pinRecoveryDoctorId.value = doctorId
+        return true
+    }
+
+    fun consumePinRecovery() { _pinRecoveryDoctorId.value = null }
 
     val session: StateFlow<Session?> = sessionManager.sessionFlow.stateIn(
         scope = viewModelScope,
@@ -171,6 +183,7 @@ class RootViewModel @Inject constructor(
     fun biometricHelper(): BiometricHelper = biometricHelper
 
     fun signOut() {
+        _pinRecoveryDoctorId.value = null
         unlockRequired = false
         val actor = sessionManager.current()
         sessionManager.clear()
@@ -202,6 +215,7 @@ fun WardAppRoot(
     val unlocking by viewModel.unlocking.collectAsStateWithLifecycle()
     val biometricAvailable by viewModel.biometricAvailable.collectAsStateWithLifecycle()
     val projectConfig by viewModel.projectConfig.collectAsStateWithLifecycle()
+    val pinRecoveryDoctorId by viewModel.pinRecoveryDoctorId.collectAsStateWithLifecycle()
 
     var needsUnlock by remember { mutableStateOf(false) }
     var unlockDecisionReady by remember { mutableStateOf(false) }
@@ -249,7 +263,8 @@ fun WardAppRoot(
     when {
         !projectConfig.initialized -> ProjectSetupScreen()
         projectConfig.demoMode -> DemoWardScreen(onExit = viewModel::exitDemo)
-        current == null -> LoginScreen()
+        current == null -> LoginScreen(recoveryDoctorId = pinRecoveryDoctorId,
+            onRecoveryConsumed = viewModel::consumePinRecovery)
         !unlockDecisionReady -> Column(Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             AppBrandMark(modifier = Modifier.padding(com.hos.rushdpatients.ui.theme.UiSpace.xxxl))
@@ -276,6 +291,9 @@ fun WardAppRoot(
             onSignOut = {
                 viewModel.signOut()
                 needsUnlock = false
+            },
+            onForgotPin = {
+                if (viewModel.requestPinRecovery()) needsUnlock = false
             }
         )
         else -> checkNotNull(clinicalScreenState).SaveableStateProvider("clinical-navigation") {

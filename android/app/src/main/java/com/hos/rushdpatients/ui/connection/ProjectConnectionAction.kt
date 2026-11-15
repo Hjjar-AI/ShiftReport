@@ -42,7 +42,8 @@ fun ProjectConnectionAction(
     viewModel: ProjectConnectionViewModel = hiltViewModel(),
     recoveryDoctorId: String? = null,
     onRecoveryReady: (PinRecoveryAuthorization) -> Unit = {},
-    onRecoveryCancelled: () -> Unit = {}
+    onRecoveryCancelled: () -> Unit = {},
+    enabled: Boolean = true
 ) {
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -64,7 +65,12 @@ fun ProjectConnectionAction(
     LaunchedEffect(state.applied) {
         if (state.applied) {
             if (recoveryDoctorId != null) {
-                viewModel.consumeRecoveryAuthorization()?.let(onRecoveryReady)
+                viewModel.consumeRecoveryAuthorization()?.let { authorization ->
+                    open = false
+                    selectedFile = null
+                    secret = ""
+                    onRecoveryReady(authorization)
+                }
             } else onApplied()
         }
     }
@@ -79,7 +85,7 @@ fun ProjectConnectionAction(
         secret = ""
         pickerError = null
         open = true
-    }, modifier = Modifier.fillMaxWidth()) {
+    }, enabled = enabled && !state.busy, modifier = Modifier.fillMaxWidth()) {
         Text(uiText(if (recoveryDoctorId != null) R.string.pin_recovery_file_required else R.string.ui_project_connection_action_001))
     }
 

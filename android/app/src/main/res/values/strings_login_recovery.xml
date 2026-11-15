@@ -1,0 +1,16 @@
+<resources>
+    <string name="login_refresh_action">تحديث قائمة الأطباء</string>
+    <string name="login_pull_refresh_hint">اسحب للأسفل لتحديث قائمة الأطباء بعد نشر المدير للتغييرات.</string>
+    <string name="login_refresh_success">تم تحديث قائمة الأطباء</string>
+    <string name="login_refresh_failed">تعذر تحديث قائمة الأطباء؛ بقيت القائمة المحفوظة متاحة.</string>
+    <string name="login_refresh_pending_registry">توجد تعديلات محلية غير منشورة على سجل الأطباء؛ ادخل وانشرها قبل تحديث القائمة.</string>
+    <string name="login_connection_changed">تغير اتصال المشروع؛ أعد المحاولة.</string>
+    <string name="pin_forgot_action">نسيت الرقم السري؟</string>
+    <string name="pin_recovery_file_required">استعادة الرقم السري بملف الانضمام</string>
+    <string name="pin_recovery_instructions">افتح ملف انضمام المشروع وأدخل عبارة مروره، ثم أكّد الاتصال وتحقق عبر رمز تليجرام لاختيار رقم سري محلي جديد. لن تُمسح بيانات التطبيق.</string>
+    <string name="pin_recovery_expired">انتهت صلاحية الاستعادة أو تغير الحساب أو الاتصال؛ أعد التحقق بملف الانضمام.</string>
+    <string name="pin_recovery_identity_changed">تغير حساب الطبيب أو رقمه السري؛ أعد التحقق بملف الانضمام.</string>
+    <string name="pin_recovery_doctor_unavailable">الطبيب غير متاح في السجل؛ عُد إلى قائمة الأطباء وحدّثها.</string>
+    <string name="pin_recovery_verification_required">تحقق من رمز تليجرام قبل تغيير الرقم السري.</string>
+    <string name="pin_recovery_failed">تعذرت استعادة الرقم السري؛ أعد المحاولة بملف الانضمام.</string>
+</resources>

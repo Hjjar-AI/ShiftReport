@@ -29,6 +29,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.Role
 import com.hos.rushdpatients.ui.components.uiNumber
@@ -49,9 +57,16 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.connection.ProjectConnectionAction
 
 @Composable
-fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
+fun LoginScreen(viewModel: LoginViewModel = hiltViewModel(), recoveryDoctorId: String? = null,
+    onRecoveryConsumed: () -> Unit = {}) {
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(recoveryDoctorId, state.step) {
+        if (recoveryDoctorId != null && state.step is LoginStep.PickDoctor && !state.busy) {
+            onRecoveryConsumed()
+            viewModel.startPinRecovery(recoveryDoctorId)
+        }
+    }
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         Box(Modifier.weight(1f)) {
             when (val step = state.step) {
@@ -65,6 +80,8 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                     doctors = step.doctors,
                     enrolledDoctorIds = state.enrolledDoctorIds,
                     error = state.error,
+                    notice = state.notice, busy = state.busy, refreshing = state.refreshingDoctors,
+                    onRefresh = viewModel::refreshDoctors,
                     onPick = viewModel::pickDoctor
                 )
                 is LoginStep.EnterPin -> LocalPinLoginScreen(
@@ -74,8 +91,17 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                     error = state.error,
                     onLogin = viewModel::loginWithPin,
                     onTelegram = { viewModel.verifyViaTelegram(step.doctor) },
+                    onForgotPin = { viewModel.startPinRecovery(step.doctor.id) },
                     onBack = viewModel::backToDoctors
                 )
+                is LoginStep.RecoverPin -> AppCenteredContent {
+                    Text(step.doctor.fullName, style = MaterialTheme.typography.titleLarge)
+                    Text(uiText(R.string.pin_recovery_instructions))
+                    state.error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
+                    ProjectConnectionAction(recoveryDoctorId = step.doctor.id,
+                        onRecoveryReady = viewModel::onRecoveryRejoined,
+                        onRecoveryCancelled = viewModel::backToDoctors, enabled = !state.busy)
+                }
                 is LoginStep.Verifying -> VerifyingView(step, state.busy, state.error,
                     viewModel::verifyTelegramCode, viewModel::cancelVerification)
                 is LoginStep.VerifyFailed -> VerifyFailedView(
@@ -96,7 +122,9 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
         }
         // Recovery must remain reachable when a revoked token prevents login/bootstrap.
         Column(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screen)) {
-            ProjectConnectionAction(onApplied = viewModel::boot)
+            if (state.step !is LoginStep.RecoverPin) {
+                ProjectConnectionAction(onApplied = viewModel::boot, enabled = !state.busy)
+            }
         }
     }
 }
@@ -106,13 +134,14 @@ private fun Centered(content: @Composable () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 private fun PickDoctorList(
     projectName: String,
     doctors: List<Doctor>,
     enrolledDoctorIds: Set<String>,
     error: String?,
+    notice: String?, busy: Boolean, refreshing: Boolean, onRefresh: () -> Unit,
     onPick: (Doctor) -> Unit
 ) {
     val uiText = rememberUiStrings()
@@ -120,54 +149,67 @@ private fun PickDoctorList(
     val matchingDoctors = remember(doctors, query) {
         doctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
     }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(UiSpacing.screen),
-        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (projectName.isNotBlank()) {
-                    Text(projectName, style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary)
-                }
-                Text(uiText(R.string.ui_login_screen_003), style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    uiText(R.string.ui_login_screen_004),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_shift_doctor_picker_003))
-                error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
-            }
-        }
-        if (matchingDoctors.isEmpty()) {
+    val refreshState = rememberPullRefreshState(refreshing, onRefresh)
+    val refreshLabel = uiText(R.string.login_refresh_action)
+    Box(Modifier.fillMaxSize().pullRefresh(refreshState, enabled = !busy).semantics {
+        customActions = listOf(CustomAccessibilityAction(refreshLabel) {
+            if (busy) false else { onRefresh(); true }
+        })
+    }) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(UiSpacing.screen),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+        ) {
             item {
-                Text(if (doctors.isEmpty()) uiText(R.string.ui_login_screen_005) else uiText(R.string.ui_shift_doctor_picker_006))
-            }
-        }
-        items(matchingDoctors, key = { it.id }) { doctor ->
-            val enabled = doctor.telegramId != null
-            val hasPin = doctor.id in enrolledDoctorIds
-            AppCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(UiOpacity.content(enabled))
-                    .clickable(enabled = enabled, role = Role.Button) { onPick(doctor) }
-            ) {
-                Column(modifier = Modifier.padding(UiSpacing.screen)) {
-                    Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    if (projectName.isNotBlank()) {
+                        Text(projectName, style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                    }
+                    Text(uiText(R.string.ui_login_screen_003), style = MaterialTheme.typography.headlineSmall)
                     Text(
-                        text = when {
-                            !enabled -> uiText(R.string.ui_login_screen_006)
-                            hasPin -> uiText(R.string.ui_login_screen_007)
-                            else -> uiText(R.string.ui_login_screen_008)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (enabled) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.error
+                        uiText(R.string.ui_login_screen_004),
+                        style = MaterialTheme.typography.bodySmall
                     )
+                    Text(uiText(R.string.login_pull_refresh_hint), style = MaterialTheme.typography.bodySmall)
+                    AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_shift_doctor_picker_003))
+                    error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
+                    notice?.let { AppNotice(it, kind = NoticeKind.SUCCESS) }
+                }
+            }
+            if (matchingDoctors.isEmpty()) {
+                item {
+                    Text(if (doctors.isEmpty()) uiText(R.string.ui_login_screen_005) else uiText(R.string.ui_shift_doctor_picker_006))
+                }
+            }
+            items(matchingDoctors, key = { it.id }) { doctor ->
+                val linked = doctor.telegramId != null
+                val enabled = linked && !busy
+                val hasPin = doctor.id in enrolledDoctorIds
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(UiOpacity.content(enabled))
+                        .clickable(enabled = enabled, role = Role.Button) { onPick(doctor) }
+                ) {
+                    Column(modifier = Modifier.padding(UiSpacing.screen)) {
+                        Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = when {
+                                !linked -> uiText(R.string.ui_login_screen_006)
+                                hasPin -> uiText(R.string.ui_login_screen_007)
+                                else -> uiText(R.string.ui_login_screen_008)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (linked) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }
+        PullRefreshIndicator(refreshing, refreshState, modifier = Modifier.align(Alignment.TopCenter),
+            backgroundColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.primary)
     }
 }
 

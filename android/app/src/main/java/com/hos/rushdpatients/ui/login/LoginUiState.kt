@@ -7,6 +7,7 @@ sealed interface LoginStep {
     data class BootstrapFailed(val message: String) : LoginStep
     data class PickDoctor(val doctors: List<Doctor>) : LoginStep
     data class EnterPin(val doctor: Doctor) : LoginStep
+    data class RecoverPin(val doctor: Doctor) : LoginStep
     data class Verifying(
         val doctor: Doctor,
         val remainingSeconds: Int
@@ -20,5 +21,7 @@ data class LoginUiState(
     val enrolledDoctorIds: Set<String> = emptySet(),
     val step: LoginStep = LoginStep.Bootstrapping,
     val busy: Boolean = false,
+    val refreshingDoctors: Boolean = false,
+    val notice: String? = null,
     val error: String? = null
 )

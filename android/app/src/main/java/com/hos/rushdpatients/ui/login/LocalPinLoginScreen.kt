@@ -33,6 +33,7 @@ fun LocalPinLoginScreen(
     error: String?,
     onLogin: (String) -> Unit,
     onTelegram: () -> Unit,
+    onForgotPin: () -> Unit,
     onBack: () -> Unit
 ) {
     val uiText = rememberUiStrings()
@@ -74,6 +75,11 @@ fun LocalPinLoginScreen(
             onClick = { pin = ""; onTelegram() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
         ) { Text(uiText(R.string.ui_local_pin_login_screen_005)) }
+        AppTextButton(
+            enabled = !busy,
+            onClick = { pin = ""; onForgotPin() },
+            modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
+        ) { Text(uiText(R.string.pin_forgot_action)) }
         AppTextButton(
             enabled = !busy,
             onClick = { pin = ""; onBack() },

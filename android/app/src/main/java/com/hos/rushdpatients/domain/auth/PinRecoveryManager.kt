@@ -64,17 +64,23 @@ class PinRecoveryManager @Inject constructor(
 
     private fun requireGrant(handle: PinRecoveryAuthorization): Grant {
         val grant = active.get()
-        require(grant != null && grant.handle === handle &&
-            SystemClock.elapsedRealtime() < grant.expiresAt && projects.current() == grant.project) {
-            uiText(R.string.pin_recovery_expired)
+        require(grant != null && grant.handle === handle) { uiText(R.string.pin_recovery_expired) }
+        if (SystemClock.elapsedRealtime() >= grant.expiresAt || projects.current() != grant.project) {
+            active.compareAndSet(grant, null)
+            error(uiText(R.string.pin_recovery_expired))
         }
         return grant
     }
 
+    private fun invalidate(grant: Grant): Nothing {
+        active.compareAndSet(grant, null)
+        error(uiText(R.string.pin_recovery_identity_changed))
+    }
+
     private suspend fun currentDoctor(grant: Grant): Doctor {
-        val doctor = requireNotNull(doctors.getActiveById(grant.doctor.id)) { uiText(R.string.pin_recovery_doctor_unavailable) }
-        require(doctor.telegramId == grant.doctor.telegramId && doctor.options.pinHash == grant.doctor.options.pinHash) {
-            uiText(R.string.pin_recovery_identity_changed)
+        val doctor = doctors.getActiveById(grant.doctor.id) ?: invalidate(grant)
+        if (doctor.telegramId != grant.doctor.telegramId || doctor.options.pinHash != grant.doctor.options.pinHash) {
+            invalidate(grant)
         }
         return doctor
     }
@@ -83,6 +89,7 @@ class PinRecoveryManager @Inject constructor(
         mutex.withLock {
             val grant = requireGrant(handle)
             val doctor = currentDoctor(grant)
+            grant.verified = false
             telegramLogin.beginVerification(doctor.id, checkNotNull(doctor.telegramId))
             requireGrant(handle)
             doctor
@@ -96,6 +103,9 @@ class PinRecoveryManager @Inject constructor(
             val result = telegramLogin.verify(doctor.id, checkNotNull(doctor.telegramId), code)
             requireGrant(handle)
             if (result is LoginVerificationResult.Success) grant.verified = true
+            if (result == LoginVerificationResult.Timeout || result == LoginVerificationResult.Exhausted) {
+                active.compareAndSet(grant, null)
+            }
             result
         }
     }

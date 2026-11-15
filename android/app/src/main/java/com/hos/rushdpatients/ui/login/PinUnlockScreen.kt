@@ -36,7 +36,8 @@ fun PinUnlockScreen(
     busy: Boolean,
     onUnlock: (String) -> Unit,
     onBiometric: (() -> Unit)?,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onForgotPin: () -> Unit
 ) {
     val uiText = rememberUiStrings()
     var pin by remember(doctorName) { mutableStateOf("") }
@@ -91,6 +92,7 @@ fun PinUnlockScreen(
         onBiometric?.let { bio ->
             AppTextButton(onClick = bio, enabled = !busy) { Text(uiText(R.string.ui_pin_unlock_screen_003)) }
         }
+        AppTextButton(onClick = { pin = ""; onForgotPin() }, enabled = !busy) { Text(uiText(R.string.pin_forgot_action)) }
         AppTextButton(onClick = onSignOut, enabled = !busy) { Text(uiText(R.string.ui_settings_preference_sections_019)) }
     }
 }
