@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -106,9 +107,17 @@ def instrument(capture):
             if capture.adb('shell', 'settings', 'get', 'global', key).stdout.strip() != b'0':
                 raise capture.EvidenceError('Network radios not confirmed off')
         # No UiAutomator process competes with this instrumentation invocation.
-        result = capture.adb('shell', 'am', 'instrument', '-w', '-r', '-e', 'class',
-                             ','.join(f'{cls}#{method}' for cls, methods in selection.items() for method in methods), test_package + '/' + runner.get(ns + 'name'),
-                             check=False, timeout=1800)
+        command = ['am', 'instrument', '-w', '-r', '-e', 'class',
+                   ','.join(f'{cls}#{method}' for cls, methods in selection.items() for method in methods),
+                   test_package + '/' + runner.get(ns + 'name')]
+        if os.environ['CI_EXPECTED_API'] == '23':
+            # Legacy adbd rejects the full explicit selection as a shell service
+            # command. Send it to sh through stdin, retaining one invocation and
+            # the same exact selection/result checks as newer devices.
+            result = capture.adb('shell', 'sh', input=(shlex.join(command) + '\n').encode(),
+                                 check=False, timeout=1800)
+        else:
+            result = capture.adb('shell', *command, check=False, timeout=1800)
         raw = (result.stdout + result.stderr).decode('utf-8', errors='replace')
         (OUTPUT / 'instrumentation.txt').write_text(raw)
         current = {}

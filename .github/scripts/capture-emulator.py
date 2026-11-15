@@ -17,9 +17,9 @@ SERIAL = 'emulator-5554'
 PACKAGE = 'com.hos.rushdpatients'
 
 
-def adb(*arguments, check=True, timeout=30):
+def adb(*arguments, check=True, timeout=30, input=None):
     return subprocess.run(['adb', '-s', SERIAL, *arguments], capture_output=True,
-                          timeout=timeout, check=check)
+                          timeout=timeout, check=check, input=input)
 
 
 class EvidenceError(RuntimeError):
