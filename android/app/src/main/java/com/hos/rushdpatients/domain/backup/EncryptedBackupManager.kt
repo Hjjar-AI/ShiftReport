@@ -14,14 +14,13 @@ import com.hos.rushdpatients.domain.patient.PatientValidator
 import com.hos.rushdpatients.domain.patient.PatientDoctorAssignments
 import com.hos.rushdpatients.sync.CsvCodec
 import com.hos.rushdpatients.util.DispatcherProvider
+import com.hos.rushdpatients.util.Pbkdf2Sha256
 import com.hos.rushdpatients.util.ShiftDate
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.withContext
 import java.security.SecureRandom
 import javax.crypto.Cipher
-import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -124,13 +123,10 @@ class EncryptedBackupManager @Inject constructor(
     }
 
     private fun deriveKey(password: CharArray, salt: ByteArray): SecretKeySpec {
-        val spec = PBEKeySpec(password, salt, 210_000, 256)
         return try {
-            val bytes = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-                .generateSecret(spec).encoded
-            SecretKeySpec(bytes, "AES")
+            val bytes = Pbkdf2Sha256.derive(password, salt, 210_000, 256)
+            try { SecretKeySpec(bytes, "AES") } finally { bytes.fill(0) }
         } finally {
-            spec.clearPassword()
             password.fill('\u0000')
         }
     }

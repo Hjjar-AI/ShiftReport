@@ -24,13 +24,13 @@ Before every build, follow [AGENTS preflight](../../../AGENTS.md#authorization-a
 
 ## What is shared, and what is private
 
-Inspect daemon-path access with `namei -l`/`getfacl`; shared-root writability is insufficient. Select private caches instead of repairing others' permissions. Custom `GRADLE_USER_HOME="$HOME/.gradle-shiftreport"` bypasses sharing and needs its pinned distribution. No sudo. Project/output paths are per-account: isolate parallel checkouts; preserve old shared caches/output.
+The mhmmd workstation uses the registered common Gradle home and per-checkout output directory below. Old cache homes and generated outputs remain untouched. On other machines the wrapper retains its per-account defaults; explicit cache/build-root arguments remain supported. Inspect effective ownership/ACLs before repair; no broad sudo or cache deletion.
 
 | State/control | POSIX launcher default / override |
 |---|---|
-| Distribution/dependencies/daemons: `GRADLE_USER_HOME` | `/opt/android-shared/.gradle` only when unset or `$HOME/.gradle` and root/existing daemon directories allow read/write/traverse; otherwise normal/custom selection |
-| Project/configuration cache: `--project-cache-dir /path` | `$HOME/.gradle/shiftreport-project-cache`; explicit option wins |
-| Generated output: `-Pshiftreport.buildRoot=/path` | `$HOME/.gradle/shiftreport-project-cache/build-output`; projects map to `root`, `app`, etc. |
+| Distribution/dependencies/daemons: `GRADLE_USER_HOME` | `/opt/android-shared/gradle/user-homes/mhmmd` on this workstation; ordinary environment/wrapper selection elsewhere |
+| Project/configuration cache: `--project-cache-dir /path` | `/opt/android-shared/gradle/projects/shiftreport/17cf4930468dcc70/project-cache` locally; per-account fallback elsewhere; explicit option wins |
+| Generated output: `-Pshiftreport.buildRoot=/path` | `/opt/android-shared/gradle/projects/shiftreport/17cf4930468dcc70/build` locally; modules map to `root`, `app`, etc.; explicit property wins |
 | APK copies: `-Pshiftreport.apkExportDir=/path` | XDG Desktop (`xdg-user-dir DESKTOP`), otherwise `$HOME/Desktop`, plus `/ShiftReport`; each variant has a subfolder |
 | Debug identity | Selected shared key, independently of caches; see [debug signing](#shared-debug-signing) |
 
@@ -38,14 +38,14 @@ Inspect daemon-path access with `namei -l`/`getfacl`; shared-root writability is
 
 For quiescent publication, ACLs/account checks/recovery, use the [workstation shared-cache procedure](/home/mhmmd/Desktop/%D8%AA%D9%82%D9%86%D9%8A%D8%A9/Programming/Android/Gradle%20Caches%20Across%20Linux%20Accounts.md). Keep writes account-local; never repair others' permissions or copy live metadata.
 
-Standard `GRADLE_RO_DEP_CACHE` points to the parent of `modules-2`; no `gradle.readOnlyCache` alias. Gradle 8.7 needs compatible artifacts/`metadata-2.106`. Optional seed: `/opt/android-shared/dependency-seeds/shiftreport-v1`, with private `GRADLE_USER_HOME="$HOME/.gradle-shiftreport"` and pinned wrapper. Switch between builds only; missing artifacts need an approved persistent fill. This differs from the conditional shared-home default above.
+Standard `GRADLE_RO_DEP_CACHE` points to the parent of `modules-2`; no `gradle.readOnlyCache` alias. Gradle 8.7 needs compatible artifacts/`metadata-2.106`. Optional seed: `/opt/android-shared/gradle/dependency-seeds/shiftreport-v1`, with private `GRADLE_USER_HOME="$HOME/.gradle-shiftreport"` and pinned wrapper. Switch between builds only; missing artifacts need an approved persistent fill. The optional ShiftReport seed is not currently installed; it is not required by the common-home selection.
 
 ## Find the APK
 
 Assemble exports `Desktop/ShiftReport/<variant>/ShiftReport-v<version>-<variant>.apk`; split/unsigned suffixes remain, matching copies may be replaced. Release: same build root, `app/outputs/apk/release/`. Compile-only creates no APK; stale exports prove nothing. Debug/release share app ID, not necessarily signer. Open fallback: `xdg-open "$HOME/Desktop/ShiftReport"`; redirect: `-Pshiftreport.apkExportDir=/your/Desktop/ShiftReport`.
 
 ```text
-$HOME/.gradle/shiftreport-project-cache/build-output/app/outputs/apk/debug/app-debug.apk
+/opt/android-shared/gradle/projects/shiftreport/17cf4930468dcc70/build/app/outputs/apk/debug/app-debug.apk
 ```
 
 ## Shared debug signing
@@ -109,3 +109,9 @@ Adapt using the workstation [tooling map](/home/mhmmd/Desktop/%D8%AA%D9%82%D9%86
 | Signature mismatch | Compare installed/new certificates; use the original matching key |
 
 Historical permission/import/Material opt-in/export failures were corrected. [Current state](../../status/current-state.md#verification-and-limits) owns successful-build evidence and later unverified changes.
+
+## Shared workstation paths — 2026-11-14
+
+[The shared Android guide](/opt/android-shared/AGENTS.md) and [current layout](/opt/android-shared/README.md) own workstation paths. All five projects select their pinned wrappers, common Gradle home, JDK 21 and registered future work directories; helpers retain portable CI defaults. Project-local `.gradle`/`.kotlin` caches and two stale old-account JDK configuration files were removed after retention/verification; `.idea`, current project build outputs, exports, credentials, signing and version counters remain unchanged. Aqaqeer's pinned 9.8.2 distribution was downloaded with authorization, verified against the official/project SHA-256 and prepared without invoking Gradle.
+
+The separately authorized retained-data consolidation verified 4,977 dependency files and four extracted distribution trees as byte-identical to their canonical active-cache copies, then removed redundant copies and regeneratable caches (97,856 readable files, 11,478,857,070 bytes). No artifacts were missing and no identity conflicts were found; binary resolver/cache metadata was never merged. Keystores, configuration and original verification/APK outputs are preserved privately under `maintenance/organization-20261114/retained-consolidation/preserved`. The current result/administrator receipt there records the remaining old-account daemon cleanup status. Public dependency hashes, wrapper/cache paths, distribution availability, document references and whitespace are checked separately from runtime. No Gradle/build/test/lint/device command accompanied this maintenance; compilation, IDE sync, cache reuse and runtime behavior remain unverified. Earlier stage inventories are historical; removed regeneratable caches are no longer available for byte-for-byte rollback.

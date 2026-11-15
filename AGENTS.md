@@ -49,3 +49,7 @@ Repository-wide; owner instructions prevail. Read nested rules, plan/status and 
 - [Current state](docs/status/current-state.md): behavior/security/persistence/sync/navigation/evidence/limits; [Handoff](docs/status/testing-handoff.md): sole remaining-check list. Architecture: rationale; troubleshooting: diagnostics; README: intact build commands. Plans: remaining work; logs: completion/limits.
 - Retain useful results/XML/receipts/scripts/guides/current visuals, unresolved failures/unique live receipts/configs/originals. Prune redundant successes/generated noise/superseded visuals; failed evidence only after a resolving pass. Record replacement/pruning proof locally; never delete unrelated private/phone files.
 - Always `git diff --check`; also `git diff --cached --check` when staged. Claim only performed verification.
+
+## Shared Android workstation
+
+For Android toolchain/build-path work, read [the shared workstation guide](/opt/android-shared/AGENTS.md) and its README before changing configuration. Project rules and explicit session authorization still apply; the guide does not authorize execution. Use the registered common Gradle home and separate per-checkout work directories. Preserve `.idea`, useful downloads, keys and original evidence. Inspect any recreated `.gradle`/`.kotlin` contents before cleanup; their names alone do not establish that everything inside is disposable. Consult current shared records before using historical paths; no automatic cleanup or additional execution authorization is granted.

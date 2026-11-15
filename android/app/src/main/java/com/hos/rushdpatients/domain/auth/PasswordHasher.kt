@@ -2,9 +2,8 @@ package com.hos.rushdpatients.domain.auth
 
 import android.util.Base64
 import com.hos.rushdpatients.config.AppConstants
+import com.hos.rushdpatients.util.Pbkdf2Sha256
 import java.security.SecureRandom
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,18 +30,11 @@ class PasswordHasher @Inject constructor() {
     }
 
     private fun pbkdf2(password: String, salt: ByteArray): ByteArray {
-        val spec = PBEKeySpec(
-            password.toCharArray(),
-            salt,
-            AppConstants.PBKDF2_ITERATIONS,
-            AppConstants.PBKDF2_KEY_LENGTH_BITS
-        )
+        val chars = password.toCharArray()
         return try {
-            SecretKeyFactory.getInstance(AppConstants.PBKDF2_ALGORITHM)
-                .generateSecret(spec)
-                .encoded
+            Pbkdf2Sha256.derive(chars, salt, AppConstants.PBKDF2_ITERATIONS, AppConstants.PBKDF2_KEY_LENGTH_BITS)
         } finally {
-            spec.clearPassword()
+            chars.fill('\u0000')
         }
     }
 

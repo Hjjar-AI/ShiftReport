@@ -10,6 +10,7 @@ import android.os.Environment
 import android.util.Base64
 import androidx.core.content.FileProvider
 import com.hos.rushdpatients.util.DispatcherProvider
+import com.hos.rushdpatients.util.Pbkdf2Sha256
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -17,9 +18,7 @@ import java.io.File
 import java.security.SecureRandom
 import java.util.UUID
 import javax.crypto.Cipher
-import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -274,14 +273,10 @@ class ProjectProvisioningManager @Inject constructor(
     }
 
     private fun deriveKey(password: CharArray, salt: ByteArray): SecretKeySpec {
-        val spec = PBEKeySpec(password, salt, 210_000, 256)
         return try {
-            SecretKeySpec(
-                SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded,
-                "AES"
-            )
+            val bytes = Pbkdf2Sha256.derive(password, salt, 210_000, 256)
+            try { SecretKeySpec(bytes, "AES") } finally { bytes.fill(0) }
         } finally {
-            spec.clearPassword()
             password.fill('\u0000')
         }
     }

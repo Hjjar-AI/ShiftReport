@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# Shared workstation setup; other machines keep ordinary wrapper behavior.
+if [ "${GITHUB_ACTIONS:-}" != true ] && [ "${ANDROID_SHARED_DISABLE:-}" != 1 ] &&
+    [ -r /opt/android-shared/environment.sh ]; then
+    . /opt/android-shared/environment.sh
+fi
+
 #
 # Copyright © 2015 the original authors.
 #
@@ -17,54 +23,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-
-# Reuse the shared cache only when its daemon registries are accessible too.
-# Gradle creates version-specific daemon directories with owner-only permissions;
-# a writable cache root alone does not make another account's registry usable.
-# Preserve genuinely custom cache locations, and otherwise fall back to the
-# ordinary personal cache (which may already contain the pinned distribution).
-if { [ -z "${GRADLE_USER_HOME:-}" ] || [ "$GRADLE_USER_HOME" = "$HOME/.gradle" ]; } &&
-    [ -d /opt/android-shared/.gradle ] && [ -r /opt/android-shared/.gradle ] &&
-    [ -w /opt/android-shared/.gradle ] && [ -x /opt/android-shared/.gradle ]; then
-    shiftreport_shared_cache_usable=true
-    for shiftreport_daemon_dir in /opt/android-shared/.gradle/daemon /opt/android-shared/.gradle/daemon/*; do
-        if [ -d "$shiftreport_daemon_dir" ] &&
-            { [ ! -r "$shiftreport_daemon_dir" ] || [ ! -w "$shiftreport_daemon_dir" ] || [ ! -x "$shiftreport_daemon_dir" ]; }; then
-            shiftreport_shared_cache_usable=false
-            break
-        fi
-    done
-    if [ "$shiftreport_shared_cache_usable" = true ]; then
-        GRADLE_USER_HOME=/opt/android-shared/.gradle
-        export GRADLE_USER_HOME
-    fi
-    unset shiftreport_shared_cache_usable shiftreport_daemon_dir
-fi
-
-# Keep account-specific project caches separate when users share this checkout.
-# An explicit project-cache option still takes precedence.
-shiftreport_project_cache_explicit=false
-for shiftreport_arg in "$@"; do
-    case "$shiftreport_arg" in
-        --project-cache-dir|--project-cache-dir=*) shiftreport_project_cache_explicit=true ;;
-    esac
-done
-if [ "$shiftreport_project_cache_explicit" = false ]; then
-    set -- --project-cache-dir "$HOME/.gradle/shiftreport-project-cache" "$@"
-fi
-unset shiftreport_project_cache_explicit shiftreport_arg
-
-# Resource/Kotlin outputs must also be account-local when sharing this checkout.
-shiftreport_build_root_explicit=false
-for shiftreport_arg in "$@"; do
-    case "$shiftreport_arg" in
-        -Pshiftreport.buildRoot|-Pshiftreport.buildRoot=*) shiftreport_build_root_explicit=true ;;
-    esac
-done
-if [ "$shiftreport_build_root_explicit" = false ]; then
-    set -- "-Pshiftreport.buildRoot=$HOME/.gradle/shiftreport-project-cache/build-output" "$@"
-fi
-unset shiftreport_build_root_explicit shiftreport_arg
 
 # Put clearly named APK copies on this account's Desktop after successful builds.
 shiftreport_apk_export_explicit=false
@@ -154,6 +112,39 @@ done
 APP_BASE_NAME=${0##*/}
 # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
 APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
+# Select the registered project cache before Gradle starts; explicit CLI selection wins.
+if [ "${GITHUB_ACTIONS:-}" != true ] && [ "${ANDROID_SHARED_DISABLE:-}" != 1 ] &&
+    [ -r /opt/android-shared/tools/paths.py ]; then
+    shared_cache_explicit=false
+    for shared_arg in "$@"; do
+        case "$shared_arg" in --project-cache-dir|--project-cache-dir=*) shared_cache_explicit=true ;; esac
+    done
+    if [ "$shared_cache_explicit" = false ]; then
+        shared_project_cache=$(python3 /opt/android-shared/tools/paths.py "$APP_HOME" project-cache "$@") || exit 1
+        if [ -n "$shared_project_cache" ]; then set -- --project-cache-dir "$shared_project_cache" "$@"; fi
+    fi
+    unset shared_cache_explicit shared_arg shared_project_cache
+fi
+
+# Preserve the project's ordinary per-account defaults outside this workstation.
+shiftreport_managed_work=
+if [ "${GITHUB_ACTIONS:-}" != true ] && [ "${ANDROID_SHARED_DISABLE:-}" != 1 ] && [ -r /opt/android-shared/tools/paths.py ]; then
+    shiftreport_managed_work=$(python3 /opt/android-shared/tools/paths.py "$APP_HOME" build "$@") || exit 1
+fi
+if [ -z "$shiftreport_managed_work" ]; then
+    shiftreport_cache_explicit=false
+    shiftreport_output_explicit=false
+    for shiftreport_arg in "$@"; do
+        case "$shiftreport_arg" in --project-cache-dir|--project-cache-dir=*) shiftreport_cache_explicit=true ;; esac
+        case "$shiftreport_arg" in -Pshiftreport.buildRoot|-Pshiftreport.buildRoot=*) shiftreport_output_explicit=true ;; esac
+    done
+    shiftreport_private_cache="${GRADLE_USER_HOME:-$HOME/.gradle}/shiftreport-project-cache"
+    if [ "$shiftreport_cache_explicit" = false ]; then set -- --project-cache-dir "$shiftreport_private_cache" "$@"; fi
+    if [ "$shiftreport_output_explicit" = false ]; then set -- "-Pshiftreport.buildRoot=$shiftreport_private_cache/build-output" "$@"; fi
+fi
+unset shiftreport_managed_work shiftreport_cache_explicit shiftreport_output_explicit shiftreport_arg shiftreport_private_cache
+
+
 
 # Reserve a fresh app patch/code for packaging requests, never for help or dry runs.
 shiftreport_packaging=false
