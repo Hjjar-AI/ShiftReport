@@ -35,13 +35,13 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val cardBottom = height - bottomMargin
     private val bidi = BidiFormatter.getInstance()
     private val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = 13.5f
+        textSize = 14f
         typeface = fonts.regular
         textAlign = Paint.Align.RIGHT
     }
     private val heading = Paint(body).apply {
         typeface = fonts.bold
-        textSize = 14f
+        textSize = 14.5f
     }
     private val name = Paint(heading).apply { textSize = 17f; textAlign = Paint.Align.CENTER }
     private val navigation = Paint(heading).apply { textSize = 12f; textAlign = Paint.Align.CENTER }
