@@ -44,7 +44,7 @@ SECRET_PATTERNS = {
 
 
 def excluded(path):
-    return bool(set(path.parts) & EXCLUDED_PARTS)
+    return bool(set(path.parts) & EXCLUDED_PARTS) or any(re.match(r'migrat', part, re.I) for part in path.parts)
 
 
 def private(path):

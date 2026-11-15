@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import tempfile
 import time
@@ -120,7 +121,7 @@ def main():
             work.chmod(0o700)
             key = work / 'throwaway.keystore'
             signed = work / 'release-smoke.apk'
-            environment = dict(os.environ, CI_SMOKE_PASSWORD='throwaway-hosted-smoke-only')
+            environment = dict(os.environ, CI_SMOKE_PASSWORD=secrets.token_urlsafe(32))
             subprocess.run(['keytool', '-genkeypair', '-keystore', str(key), '-alias', 'smoke',
                             '-storepass:env', 'CI_SMOKE_PASSWORD', '-keypass:env', 'CI_SMOKE_PASSWORD',
                             '-keyalg', 'RSA', '-keysize', '2048', '-validity', '2', '-dname', 'CN=ShiftReport CI smoke'],

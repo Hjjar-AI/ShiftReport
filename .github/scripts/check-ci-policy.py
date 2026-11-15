@@ -31,6 +31,8 @@ def main():
                          and variable.startswith('SHIFTREPORT_SIGN_')
                          and step.get('run', '').startswith('python3 .github/scripts/sign-apk.py '),
                          f'{context}: secrets restricted to isolated signing step')
+            need('secrets.' not in str({key: value for key, value in step.items() if key != 'env'}),
+                 f'{context}: secrets may only enter the approved signing-step environment')
             if 'run' in step:
                 need('${{' not in step['run'], f'{context}: pass expressions through env')
                 continue
@@ -68,6 +70,7 @@ def main():
     for path in paths:
         data = load_yaml(path)
         name = path.name
+        need('secrets.' not in str(data.get('env', {})), f'{name}: workflow environment secrets prohibited')
         need(set(data['on']) == {'workflow_dispatch'}, f'{name}: only manual dispatch allowed')
         need(data['permissions'] == {'contents': 'read'}, f'{name}: read-only workflow token required')
         need(data['concurrency']['cancel-in-progress'] is False, f'{name}: non-cancelling concurrency required')
@@ -82,6 +85,7 @@ def main():
             need(f'Default: {str(spec.get("default", "blank")).lower()}' in description,
                  f'{name}/{input_name}: describe default explicitly')
         for job_id, job in data['jobs'].items():
+            need('secrets.' not in str(job.get('env', {})), f'{name}/{job_id}: job environment secrets prohibited')
             dependencies = job.get('needs', [])
             dependencies = [dependencies] if isinstance(dependencies, str) else dependencies
             need(all(dependency in data['jobs'] for dependency in dependencies),
@@ -162,4 +166,7 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        sys.exit('Workflow policy incomplete; YAML/source details withheld. No pass claimed.')
