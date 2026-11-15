@@ -1,0 +1,16 @@
+name: 'اقتراح ميزة / Feature request'
+description: 'اقترح تحسيناً / Suggest an improvement'
+body:
+  - type: markdown
+    attributes:
+      value: |
+        لا ترفق كلمات مرور أو رموز دخول أو ملفات اتصال أو بيانات حساب خاصة.
+        Never attach passwords, session tokens, connection files or private clinical data.
+        For suspected vulnerabilities, follow [private reporting](https://github.com/Hjjar-AI/ShiftReport/blob/main/SECURITY.md).
+  - type: textarea
+    id: description
+    attributes:
+      label: 'الاقتراح / Feature request'
+      description: 'اشرح الحاجة والسلوك المطلوب. / Describe the need and proposed behavior.'
+    validations:
+      required: true

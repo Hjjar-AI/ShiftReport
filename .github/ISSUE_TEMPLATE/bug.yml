@@ -1,0 +1,16 @@
+name: 'بلاغ خطأ / Bug report'
+description: 'صف المشكلة وخطوات تكرارها / Describe the problem and reproduction steps'
+body:
+  - type: markdown
+    attributes:
+      value: |
+        لا ترفق كلمات مرور أو رموز دخول أو ملفات اتصال أو مفاتيح توقيع أو بيانات حساب خاصة. أخفِ البيانات الخاصة في الصور والسجلات.
+        Never attach passwords, session tokens, connection files, signing keys or private clinical data. Sanitize screenshots and logs.
+        For suspected vulnerabilities, follow [private reporting](https://github.com/Hjjar-AI/ShiftReport/blob/main/SECURITY.md).
+  - type: textarea
+    id: description
+    attributes:
+      label: 'وصف المشكلة / Bug description'
+      description: 'اذكر الخطوات والمتوقع والنتيجة وإصدار التطبيق وأندرويد، ولغة الواجهة، والعمل دون اتصال إن كان متعلقاً. / Include steps, expected/actual behavior, app/Android versions, interface language and offline state when relevant.'
+    validations:
+      required: true

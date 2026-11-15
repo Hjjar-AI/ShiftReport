@@ -1,0 +1,17 @@
+name: ShiftReport production and repository tooling
+paths:
+  - android
+  - .github
+  - .githooks
+paths-ignore:
+  - '**/test/**'
+  - '**/tests/**'
+  - '**/androidTest/**'
+  - '**/sharedTest/**'
+  - '**/testFixtures/**'
+  - '**/migrations/**'
+  - '**/schemas/**'
+  - local/**
+  - ci-output/**
+# For manual Java/Kotlin extraction, the selected production compilation task
+# defines the analyzed code; path filters apply to non-compiled languages.

@@ -1,0 +1,29 @@
+{
+  "com.hos.rushdpatients.config.ProjectDataCipherTest": [
+    "encryptedTextRoundTripUsesFreshNonces",
+    "tamperedPayloadAndWrongKeyFailExplicitly",
+    "encryptedFilesRoundTripButPdfRemainsReadable",
+    "unencryptedProjectPassesThroughAndGeneratedKeysAreIndependent"
+  ],
+  "com.hos.rushdpatients.config.ProjectProvisioningManagerTest": [
+    "protectedJsonRoundTripPreservesConnectionAndKeyOnly",
+    "wrongPasswordTamperingAndEmptyFilesAreRejectedAndWiped",
+    "stagingSurvivesManagerRecreationAndDiscardRemovesOnlyThatExport",
+    "invalidProjectAndShortPasswordsAreRejectedWithoutRetainingPassword"
+  ],
+  "com.hos.rushdpatients.domain.auth.PasswordHasherTest": [
+    "randomSaltRetainsVerificationAndRejectsWrongPassword"
+  ],
+  "com.hos.rushdpatients.ui.demo.DemoWorkspaceInteractionTest": [
+    "sharedBulkFoldAndUnfoldRepeatAndRetainCollapsedStateAfterRecreation",
+    "sharedTwoStepReportReviewSurvivesRecreationWithoutSending",
+    "sharedAssignmentsDrawerRouteOpensLocalPreviewWithoutReportRoster"
+  ],
+  "com.hos.rushdpatients.ui.demo.DemoWorkflowDeviceTest": [
+    "clinicalFetchUndoResetNeverWriteSettingsOrSessionFiles",
+    "doctorEntryDiscardsPinTelegramAndCustomTitleWhileRetainingClinicalRole",
+    "generalAndSupervisorPreviewShareExactBytesAndRejectLaterClinicalChanges",
+    "simulatedSelectedDeliveryCreatesOnlyMemoryReceiptsAndResetDiscardsThem",
+    "demoClassicCardsAndEmptyRosterAssignmentsProduceRenderableMarkedArtifacts"
+  ]
+}

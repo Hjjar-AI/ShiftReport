@@ -1,0 +1,39 @@
+name: 12 - Checks - Build tooling
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Options: false = skip; true = authorize two Gradle help invocations and an assembleDebug dry-run, with configuration/dependency downloads and preserved versions. Default: false.'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shiftreport-hosted-android
+  cancel-in-progress: false
+
+jobs:
+  tooling:
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Android tooling
+        uses: ./.github/actions/setup-android
+      - name: Check configuration-cache reuse and stored version preservation
+        run: python3 .github/scripts/check-build-tooling.py
+      - name: Retain tooling diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: build-tooling-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-output/build-tooling/
+          retention-days: 1
+          if-no-files-found: warn

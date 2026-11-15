@@ -1,0 +1,124 @@
+name: 10 - Delivery - Signed debug APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'false = skip; true = authorize fresh debug APK build, configured signing and selected publication, preserving stored version. Default false. Keys must be configured first.'
+        type: boolean
+        default: false
+      publication:
+        description: 'Options: artifact = retain signed bundle for one day; draft = create an unpublished GitHub Release; prerelease = publish a prerelease; release = publish a regular release. Default: artifact.'
+        type: choice
+        options: [artifact, draft, prerelease, release]
+        default: artifact
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shiftreport-hosted-android
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require declared signing readiness before building
+        env:
+          CI_SIGNING_READY: ${{ vars.SHIFTREPORT_DEBUG_SIGNING_READY }}
+        run: test "$CI_SIGNING_READY" = true
+      - name: Set up build tooling without signing secrets
+        uses: ./.github/actions/setup-android
+      - name: Build using the stored version
+        run: python3 .github/scripts/hosted-android.py debug-apk
+      - name: Retain this run's signing input
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: signing-input-debug-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-output/debug-apk/
+          retention-days: 1
+          if-no-files-found: error
+      - name: Retain build diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: signing-build-log-debug-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-output/debug-apk/gradle.log
+          retention-days: 1
+          if-no-files-found: warn
+
+  sign:
+    needs: build
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: debug-signing
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out signing tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Select JDK 21 without Gradle caches
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Ensure pinned signing tools
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;34.0.0"'
+      - name: Download signing input from this run and attempt only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh run download "$GITHUB_RUN_ID" --name "signing-input-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" --dir ci-output/signing-input
+      - name: Sign and verify expected identity
+        env:
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          SHIFTREPORT_SIGN_KEYSTORE_BASE64: ${{ secrets.SHIFTREPORT_SIGN_KEYSTORE_BASE64 }}
+          SHIFTREPORT_SIGN_KEY_ALIAS: ${{ secrets.SHIFTREPORT_SIGN_KEY_ALIAS }}
+          SHIFTREPORT_SIGN_STORE_PASSWORD: ${{ secrets.SHIFTREPORT_SIGN_STORE_PASSWORD }}
+          SHIFTREPORT_SIGN_KEY_PASSWORD: ${{ secrets.SHIFTREPORT_SIGN_KEY_PASSWORD }}
+          SHIFTREPORT_SIGN_CERT_SHA256: ${{ vars.SHIFTREPORT_SIGN_CERT_SHA256 }}
+        run: python3 .github/scripts/sign-apk.py debug
+      - name: Retain verified public bundle only
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: signed-debug-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-output/signed-debug/
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    needs: sign
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && inputs.publication != 'artifact' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out publication helper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Download this run's verified signed bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh run download "$GITHUB_RUN_ID" --name "signed-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" --dir ci-output/signed-debug
+      - name: Create the selected Release without overwriting existing releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_PUBLICATION_MODE: ${{ inputs.publication }}
+        run: python3 .github/scripts/draft-release.py debug

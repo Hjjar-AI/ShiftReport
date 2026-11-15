@@ -1,0 +1,14 @@
+# Review routing only; required reviews need a separately configured GitHub rule.
+/.github/ @Hjjar-AI
+/.githooks/ @Hjjar-AI
+/.gitignore @Hjjar-AI
+/.gitattributes @Hjjar-AI
+/.editorconfig @Hjjar-AI
+/SECURITY.md @Hjjar-AI
+/android/gradle/ @Hjjar-AI
+/android/gradlew* @Hjjar-AI
+/android/*gradle* @Hjjar-AI
+/android/app/build.gradle.kts @Hjjar-AI
+/android/app/src/main/AndroidManifest.xml @Hjjar-AI
+/android/app/src/main/java/com/hos/rushdpatients/config/ @Hjjar-AI
+/android/app/src/main/java/com/hos/rushdpatients/sync/ @Hjjar-AI

@@ -114,3 +114,6 @@ Thumbs.db
 # Synthetic cross-client fixtures
 !/android/app/src/androidTest/assets/interop/desktop.rpb
 !/android/app/src/androidTest/assets/interop/desktop.srjoin.json
+
+# Hosted CI diagnostics and signing intermediates
+/ci-output/

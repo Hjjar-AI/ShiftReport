@@ -1,0 +1,13 @@
+// Host-only overrides: preserve application source, versions and offline test boundaries.
+gradle.beforeProject { project ->
+    project.tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        exclude '**/LiveBootstrapOverrideTest*'
+        environment 'SHIFTREPORT_LIVE_BOOTSTRAP_CONFIG', ''
+    }
+    project.pluginManager.withPlugin('com.android.application') {
+        project.extensions.getByName('androidComponents').finalizeDsl { androidDsl ->
+            // Shipping release inputs stay unsigned until the isolated signing job.
+            androidDsl.buildTypes.getByName('release').signingConfig = null
+        }
+    }
+}

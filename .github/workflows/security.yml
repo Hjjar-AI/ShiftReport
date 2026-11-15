@@ -1,0 +1,70 @@
+name: 05 - Checks - Security analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'false = skip; true = authorize CodeQL downloads, production Kotlin compilation and uploading Java/Kotlin, Python and Actions security results. Default false.'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shiftreport-hosted-android
+  cancel-in-progress: false
+
+jobs:
+  codeql:
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+            queries: security-extended
+          - language: python
+            build-mode: none
+            queries: security-extended
+          - language: actions
+            build-mode: none
+            queries: ''
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Android tooling
+        if: ${{ matrix.language == 'java-kotlin' }}
+        uses: ./.github/actions/setup-android
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/config.yml
+          queries: ${{ matrix.queries }}
+      - name: Compile production sources for extraction
+        if: ${{ matrix.language == 'java-kotlin' }}
+        run: python3 .github/scripts/hosted-android.py codeql
+      - name: Analyze and upload security results
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}
+          output: ci-output/codeql/sarif
+      - name: Retain diagnostics for one day
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: codeql-${{ matrix.language }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-output/codeql/
+          retention-days: 1
+          if-no-files-found: warn

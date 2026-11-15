@@ -1,0 +1,11 @@
+// Production-only lint; no suite inspection is implied by this workflow.
+gradle.beforeProject { project ->
+    project.pluginManager.withPlugin('com.android.application') {
+        project.extensions.getByName('androidComponents').finalizeDsl { androidDsl ->
+            androidDsl.lint.checkTestSources = false
+            androidDsl.lint.ignoreTestSources = true
+            androidDsl.lint.htmlReport = true
+            androidDsl.lint.xmlReport = true
+        }
+    }
+}

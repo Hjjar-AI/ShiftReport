@@ -1,0 +1,100 @@
+name: 08 - Verify - Release output and startup
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Options: false = skip; true = authorize release build/inspection and fresh API 35 emulator startup/demo capture with a throwaway signer. Default: false. Stored version preserved; no production signing or publication."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Serialize Android work across all hosted workflow files, without cancellation.
+concurrency:
+  group: shiftreport-hosted-android
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Android tooling
+        uses: ./.github/actions/setup-android
+      - name: Run selected operation
+        env:
+          CI_OPERATION: release-apk
+        run: python3 .github/scripts/hosted-android.py "$CI_OPERATION"
+
+      - name: Retain reports and diagnostics for one day
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-apk-unsigned-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-output/release-apk/
+          retention-days: 1
+          if-no-files-found: warn
+
+  startup:
+    needs: check
+    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out capture tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Select JDK 21 without Gradle caches
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Ensure signing/inspection tools
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;34.0.0"'
+      - name: Download this run and attempt inspection artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh run download "$GITHUB_RUN_ID" --name "release-apk-unsigned-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" --dir ci-output/release-apk
+      - name: Enable hosted KVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Capture inspected minified release startup on the owned AVD
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        env:
+          CI_EXPECTED_API: '35'
+          CI_AVD_NAME: shiftreport-release-ci-api35
+          CI_CAPTURE_KIND: release
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          avd-name: shiftreport-release-ci-api35
+          emulator-port: 5554
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: python3 .github/scripts/capture-emulator.py
+      - name: Retain release startup evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: release-startup-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ci-output/emulator/
+          retention-days: 1
+          if-no-files-found: warn
