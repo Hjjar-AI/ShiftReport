@@ -7,12 +7,12 @@ import com.hos.rushdpatients.domain.task.PatientTasks
 internal object PdfPatientContent {
     fun buildPatientCell(patient: Patient, includeName: Boolean = true, reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): String {
         if (!includeName) return buildList {
-            add(if (patient.gender == com.hos.rushdpatients.data.model.Gender.MALE) "ذكر" else "أنثى")
+            val gender = if (patient.gender == com.hos.rushdpatients.data.model.Gender.MALE) "ذكر" else "أنثى"
+            add(gender + if (patient.hasCompanion) " (مع مرافق)" else "")
             patient.ageOn(reportDate)?.let { age ->
                 add(listOfNotNull(patient.birthDate?.year?.toString(), "$age ${PdfStrings.YEAR_SUFFIX}").joinToString(" • "))
             }
             if (patient.isPriority) add("[أولوية]")
-            if (patient.hasCompanion) add("(${PdfStrings.ESCORT_LABEL})")
         }.joinToString("\n")
         val sb = StringBuilder()
         if (patient.isPriority) sb.append("[أولوية] ")
