@@ -1,6 +1,14 @@
 package com.hos.rushdpatients.ui.report
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,7 +56,23 @@ internal fun ReportDestinationSelection(
     onSupervisorSelected: (String, Boolean) -> Unit, onReportAsPdf: (Boolean) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    AppSection(title = uiText(R.string.ui_report_preview_screen_024)) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val selectedLabels = buildList {
+        if (generalSelected) add(generalDestinationLabel + " • " +
+            if (reportAsPdf) uiText(R.string.ui_report_preview_screen_031) else uiText(R.string.ui_report_preview_screen_015))
+        targets.filter { it.chatId != null && it.doctorId in selectedSupervisorIds }.forEach {
+            add(it.doctorName + " • PDF")
+        }
+    }
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
+            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+            AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_024), expanded = expanded,
+                onToggle = { if (!busy) expanded = !expanded })
+            if (selectedLabels.isEmpty()) Text(uiText(R.string.report_no_destination_selected),
+                style = MaterialTheme.typography.bodySmall)
+            selectedLabels.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+            if (expanded) {
         AppCheckRow(label = generalDestinationLabel,
             checked = generalSelected, enabled = !busy,
             onCheckedChange = onGeneralSelected)
@@ -71,6 +95,8 @@ internal fun ReportDestinationSelection(
             style = MaterialTheme.typography.bodySmall)
         if (generalSelected) AppToggleRow(title = uiText(R.string.ui_report_preview_screen_031), checked = reportAsPdf,
             onCheckedChange = onReportAsPdf, enabled = canChangeReportFormat && !busy)
+            }
+        }
     }
 }
 

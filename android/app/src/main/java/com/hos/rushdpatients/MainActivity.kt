@@ -31,7 +31,6 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {

@@ -107,9 +107,7 @@ internal fun ReportWorkspace(
     var showShiftDoctors by remember { mutableStateOf(false) }
     var showDeliveryLog by remember { mutableStateOf(false) }
     var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
-    var showExportMenu by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    var customizeReport by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var pendingDelivery by remember { mutableStateOf<ReportDestinationReview?>(null) }
     val selectedTargets = state.supervisorTargets.filter { it.doctorId in selectedSupervisorIds && it.chatId != null }
     val supervisorMode = selectedTargets.isNotEmpty()
@@ -248,9 +246,6 @@ internal fun ReportWorkspace(
                                 pendingDelivery = ReportDestinationReview(generalSelected, selectedTargets.toList(), state.reportAsPdf, exportPdf && pdfSelected)
                             })
                     }
-                    AppTextButton(onClick = ::previousStep, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (step == ReportFlowStep.DOCTORS) uiText(R.string.ui_cancel) else uiText(R.string.ui_previous))
-                    }
                 }
             }
         },
@@ -386,23 +381,11 @@ internal fun ReportWorkspace(
 
 
                 }
-                if (step == ReportFlowStep.PREVIEW && pdfSelected) {
-                    ReportPdfCustomization(
-                        style = state.pdfStyle, options = state.pdfOptions, busy = busy,
-                        expanded = customizeReport, onToggleExpanded = { customizeReport = !customizeReport },
-                        onAppearanceChange = viewModel::setPdfAppearance)
-                }
-
                 if (step == ReportFlowStep.PREVIEW) {
                     if (pdfSelected && state.summary != null) AppCheckRow(
                         label = uiText(R.string.report_optional_normal_export), checked = exportPdf,
                         enabled = !busy, onCheckedChange = { exportPdf = it })
-                    AppOutlinedButton(onClick = { showExportMenu = true },
-                        enabled = !busy && state.summary != null,
-                        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.report_export_draft_action)) }
                 }
-                AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
-                    modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_076)) }
                 if (step == ReportFlowStep.PREVIEW) {
                     ReportPreviewList(previews, enabled = !busy && destinationReady, onPreview = ::preview)
                 }
@@ -410,8 +393,6 @@ internal fun ReportWorkspace(
             }
         }
     }
-
-    if (showExportMenu) ReportExportDialog(state, viewModel, onDismiss = { showExportMenu = false })
 
     if (showTextPreview) {
         AppAlertDialog(onDismissRequest = { showTextPreview = false }, title = { Text(uiText(R.string.ui_report_preview_screen_077)) },
