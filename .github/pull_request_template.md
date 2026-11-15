@@ -1,16 +1,15 @@
 ## What and why
 
-Describe the problem and resulting behavior, including affected client/server contracts.
+Describe the problem and resulting behavior.
 
 ## Review
 
-- [ ] Credentials, private connection data and signing material excluded
-- [ ] Matching backend/Vue contracts checked where affected; drafts/recovery preserved
-- [ ] Arabic/English, RTL and accessibility considered where affected
-- [ ] Workflow/build guidance and current work records updated where affected
-- [ ] Any test, build, migration or version work had the required authorization
+- [ ] No patient data, tokens, destination identifiers, PINs, joins or signing material in changes/evidence
+- [ ] Existing encryption, drafts, recovery and publication guards preserved where affected
+- [ ] Arabic, RTL and accessibility considered where affected
+- [ ] Test/build/migration/version work stayed within explicit authorization
+- [ ] Workflow/build guidance and current records updated where affected
 
 ## Evidence
 
-List checks actually run and remaining limits. Distinguish source checks, compilation,
-automated tests, device/accessibility and live HTTP/concurrency verification.
+List checks actually performed and remaining limits. Separate source checks, compilation, automated results, device/visual acceptance and live Telegram behavior.
