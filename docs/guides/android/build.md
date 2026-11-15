@@ -58,6 +58,8 @@ Privately back up the original; never regenerate/overwrite it for updates. Recor
 debug.keystore=.signing/debug.keystore
 ```
 
+15 November read-only verification: `android/tempe/مناوب_1.0.2-debug.apk` verifies with APK signature schemes v1/v2 and the same certificate as the selected local debug key. Certificate SHA-256: `1AAD9C88EA9B640A12DFC3D380586F7EFF365B02EA02DECC1BBA738A65929CE2`. Future updates must retain this signer and `com.hos.rushdpatients`, with a same-or-higher version code; another release key cannot directly update this Android7 installation. Preserve the private keystore independently of caches. This is certificate verification, not a phone installation check.
+
 ```bash
 namei -l .signing/debug.keystore
 getfacl -cp .signing .signing/debug.keystore
