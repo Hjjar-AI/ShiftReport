@@ -20,6 +20,7 @@ internal interface ReportController {
     fun onPdfShareUnavailable()
     fun consumePdfShare()
     fun setShiftDoctors(ids: List<String>, onSuccess: () -> Unit)
+    fun setPatientSort(spec: com.hos.rushdpatients.domain.sort.SortSpec, onSuccess: () -> Unit)
     fun setReportAsPdf(value: Boolean)
     fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions)
     fun retryLastAction(onReviewSend: () -> Unit)
@@ -46,6 +47,7 @@ internal class LiveReportController(private val viewModel: ReportPreviewViewMode
     override fun onPdfShareUnavailable() { viewModel.onPdfShareUnavailable() }
     override fun consumePdfShare() { viewModel.consumePdfShare() }
     override fun setShiftDoctors(ids: List<String>, onSuccess: () -> Unit) { viewModel.setShiftDoctors(ids, onSuccess) }
+    override fun setPatientSort(spec: com.hos.rushdpatients.domain.sort.SortSpec, onSuccess: () -> Unit) { viewModel.setPatientSort(spec, onSuccess) }
     override fun setReportAsPdf(value: Boolean) { viewModel.setReportAsPdf(value) }
     override fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions) { viewModel.setPdfAppearance(style, requested) }
     override fun retryLastAction(onReviewSend: () -> Unit) { viewModel.retryLastAction(onReviewSend) }

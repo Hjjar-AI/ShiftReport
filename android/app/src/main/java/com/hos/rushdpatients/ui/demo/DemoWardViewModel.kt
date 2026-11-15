@@ -82,7 +82,7 @@ class DemoWardViewModel @Inject constructor(
     private val appearanceWrites = kotlinx.coroutines.sync.Mutex()
 
     internal val report = DemoReportController(context, uiText, viewModelScope, repository,
-        pdfExporter, assignmentRenderer, mediaStoreSaver, textReportBuilder, ::selectDoctors)
+        pdfExporter, assignmentRenderer, mediaStoreSaver, textReportBuilder, ::selectDoctors, ::sort)
     internal val doctors = DemoDoctorsController(repository, viewModelScope, uiText)
     internal val busy get() = report.busy && !report.state.value.loading
     private var pendingPublication: DemoWardState? = null

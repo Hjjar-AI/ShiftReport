@@ -106,6 +106,7 @@ internal fun ReportWorkspace(
     var reviewedText by remember { mutableStateOf<String?>(null) }
     var selectedSupervisorIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var showShiftDoctors by remember { mutableStateOf(false) }
+    var showPatientSort by remember { mutableStateOf(false) }
     var showDeliveryLog by remember { mutableStateOf(false) }
     var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
     var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
@@ -117,7 +118,7 @@ internal fun ReportWorkspace(
     val flowGate = reportFlowGate(state, step, supervisorMode, selectedTargets, reviewedText, state.openedPdfUris, generalSelected)
     val busy = flowGate.busy
     // A read-only load can be left; operations that save or deliver keep their navigation guard.
-    val navigationBlocked = state.savingDoctors || state.fetchingDoctors || state.sending ||
+    val navigationBlocked = state.savingDoctors || state.savingSort || state.fetchingDoctors || state.sending ||
         state.previewingPdf || state.exportingLocalPdf || state.sharingPdf || state.savingPdfOptions
     val previewReady = flowGate.previewReady
     val destinationReady = flowGate.destinationReady
@@ -211,6 +212,19 @@ internal fun ReportWorkspace(
                 viewModel.setShiftDoctors(ids) { showShiftDoctors = false }
             },
             onDismiss = { showShiftDoctors = false }
+        )
+    }
+
+    if (showPatientSort) {
+        com.hos.rushdpatients.ui.ward.SortSheet(
+            initial = com.hos.rushdpatients.domain.sort.SortSpecCodec.decode(state.shift?.sortSpecJson),
+            saving = busy,
+            onApply = { spec ->
+                pendingDelivery = null
+                reviewedText = null
+                viewModel.setPatientSort(spec) { showPatientSort = false }
+            },
+            onDismiss = { if (!busy) showPatientSort = false }
         )
     }
 
@@ -396,7 +410,8 @@ internal fun ReportWorkspace(
                 }
                 if (step == ReportFlowStep.PREVIEW) {
                     ReportFullPreview(reviewed = fullReportPreviewed,
-                        enabled = !busy && state.summary != null, onPreview = ::openPreview)
+                        enabled = !busy && state.summary != null, onPreview = ::openPreview,
+                        onSortPatients = { pendingDelivery = null; showPatientSort = true })
                 }
 
             }

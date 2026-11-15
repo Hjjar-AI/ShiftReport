@@ -28,7 +28,8 @@ internal class DemoReportController(
     private val assignmentRenderer: PdfAssignmentRenderer,
     private val saver: MediaStoreSaver,
     private val textBuilder: TextReportBuilder,
-    private val selectDoctors: (List<String>) -> Unit
+    private val selectDoctors: (List<String>) -> Unit,
+    private val sortPatients: (com.hos.rushdpatients.domain.sort.SortSpec) -> Unit
 ) : ReportController {
     private val _state = MutableStateFlow(ReportUiState())
     override val state = _state.asStateFlow()
@@ -76,6 +77,12 @@ internal class DemoReportController(
     override fun setShiftDoctors(ids: List<String>, onSuccess: () -> Unit) {
         if (busy) return
         selectDoctors(ids)
+        onSuccess()
+        load()
+    }
+    override fun setPatientSort(spec: com.hos.rushdpatients.domain.sort.SortSpec, onSuccess: () -> Unit) {
+        if (busy) return
+        sortPatients(spec)
         onSuccess()
         load()
     }

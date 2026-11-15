@@ -256,6 +256,30 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
+    fun setPatientSort(spec: com.hos.rushdpatients.domain.sort.SortSpec, onSuccess: () -> Unit) {
+        val current = _state.value
+        if (current.isBusy || current.shift == null) return
+        _state.update { it.copy(savingSort = true, error = null) }
+        viewModelScope.launch {
+            try {
+                activeSendingActor()
+                wardMutations.setShiftSort(shiftId,
+                    com.hos.rushdpatients.domain.sort.SortSpecCodec.encode(spec), sessionManager.current())
+                reviewedReport = null
+                _state.update { it.copy(savingSort = false) }
+                onSuccess()
+                // Reload clears old PDF reviews and rebuilds the captured report in stored order.
+                load()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(snackbar = failureText(uiText, e) ?: uiText(R.string.report_sort_save_failed)) }
+            } finally {
+                _state.update { it.copy(savingSort = false) }
+            }
+        }
+    }
+
     fun setReportAsPdf(value: Boolean) {
         val current = _state.value
         if (current.isBusy) return
