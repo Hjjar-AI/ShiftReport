@@ -69,4 +69,72 @@ class ProjectDataCipherTest {
         assertNotEquals(a, ProjectDataCipher.generateKey())
         assertFalse(ProjectDataCipher.validKey("invalid"))
     }
+    @Test fun emptyEncryptedTextRemainsAnAuthenticatedEnvelope() = runBlocking<Unit> {
+        enable()
+        val encrypted = cipher.encodeText("")
+        assertTrue(encrypted.startsWith("SRMSG1:"))
+        assertNotEquals("", encrypted)
+        assertEquals("", cipher.decodeText(encrypted, true))
+    }
+    @Test fun unicodeTabsNulAndLineEndingsSurviveEncryptedText() = runBlocking<Unit> {
+        enable()
+        val plain = "عربي-🔐\tقهوة\u0000\r\nسطر\nنهاية"
+        assertEquals(plain, cipher.decodeText(cipher.encodeText(plain), true))
+    }
+    @Test fun missingProjectKeyCannotReadExistingEncryptedText() = runBlocking<Unit> {
+        enable(); val encrypted = cipher.encodeText("synthetic")
+        projects.saveDraft(ProjectConfig())
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { cipher.decodeText(encrypted, true) } }
+    }
+    @Test fun requiredEncryptionRejectsPlainTextWhenProjectIsProtected() = runBlocking<Unit> {
+        enable()
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { cipher.decodeText("plain synthetic", true) } }
+    }
+    @Test fun unprotectedProjectRetainsPlainTextEvenWithRequiredFlag() = runBlocking<Unit> {
+        assertEquals("plain synthetic", cipher.decodeText("plain synthetic", true))
+    }
+    @Test fun repeatedDocumentEncryptionUsesFreshNoncesAndRetainsSourceBytes() = runBlocking<Unit> {
+        enable(); val bytes = "synthetic CSV\nشاي".toByteArray(); val source = file(bytes)
+        val first = requireNotNull(cipher.encryptedDocument(source)).also { files += it }
+        val second = requireNotNull(cipher.encryptedDocument(source)).also { files += it }
+        assertFalse(first.readBytes().contentEquals(second.readBytes()))
+        assertArrayEquals(bytes, source.readBytes())
+        cipher.decryptDocument(first); cipher.decryptDocument(second)
+        assertArrayEquals(bytes, first.readBytes()); assertArrayEquals(bytes, second.readBytes())
+    }
+    @Test fun damagedDocumentNeverOverwritesCiphertextWithPartialPlaintext() = runBlocking<Unit> {
+        enable(); val source = file("synthetic".toByteArray())
+        val encrypted = requireNotNull(cipher.encryptedDocument(source)).also { files += it }
+        val damaged = encrypted.readBytes().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }
+        encrypted.writeBytes(damaged)
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { cipher.decryptDocument(encrypted) } }
+        assertArrayEquals(damaged, encrypted.readBytes())
+        assertEquals("synthetic", source.readText())
+    }
+    @Test fun wrongDocumentKeyPreservesEncryptedFileForRecovery() = runBlocking<Unit> {
+        enable(); val source = file("synthetic".toByteArray())
+        val encrypted = requireNotNull(cipher.encryptedDocument(source)).also { files += it }
+        val before = encrypted.readBytes(); enable()
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { cipher.decryptDocument(encrypted) } }
+        assertArrayEquals(before, encrypted.readBytes())
+    }
+    @Test fun textEnvelopeCannotBeSubstitutedForEncryptedDocument() = runBlocking<Unit> {
+        enable()
+        val payload = Base64.decode(cipher.encodeText("synthetic").removePrefix("SRMSG1:"), Base64.NO_WRAP)
+        val substituted = file(payload)
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { cipher.decryptDocument(substituted) } }
+        assertArrayEquals(payload, substituted.readBytes())
+    }
+    @Test fun pdfDetectionUsesReadableHeaderRatherThanFileExtension() = runBlocking<Unit> {
+        enable(); val bytes = "%PDF-1.4 synthetic readable report".toByteArray(); val pdf = file(bytes)
+        assertTrue(pdf.name.endsWith(".bin"))
+        assertNull(cipher.encryptedDocument(pdf)); cipher.decryptDocument(pdf)
+        assertArrayEquals(bytes, pdf.readBytes())
+    }
+    @Test fun compressedMultilineTextRetainsCompleteLongContent() = runBlocking<Unit> {
+        enable(); val plain = "نتيجة تجريبية\n".repeat(2000)
+        val encrypted = cipher.encodeText(plain)
+        assertTrue(encrypted.length <= 4096)
+        assertEquals(plain, cipher.decodeText(encrypted, true))
+    }
 }

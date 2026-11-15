@@ -11,14 +11,14 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 class ShiftDateTest {
-    @Test fun `shift date switches exactly at 0830 including year boundary`() {
-        assertEquals(LocalDate.of(2025, 12, 31), ShiftDate.current(LocalDateTime.of(2026, 1, 1, 8, 29, 59)))
-        assertEquals(LocalDate.of(2026, 1, 1), ShiftDate.current(LocalDateTime.of(2026, 1, 1, 8, 30)))
+    @Test fun `shift date switches exactly at 0930 including year boundary`() {
+        assertEquals(LocalDate.of(2025, 12, 31), ShiftDate.current(LocalDateTime.of(2026, 1, 1, 9, 29, 59)))
+        assertEquals(LocalDate.of(2026, 1, 1), ShiftDate.current(LocalDateTime.of(2026, 1, 1, 9, 30)))
         assertEquals(LocalDate.of(2026, 1, 1), ShiftDate.current(LocalDateTime.of(2026, 1, 1, 23, 59)))
     }
-    @Test fun `display day boundary is next calendar day at 0830`() {
+    @Test fun `display day boundary is next calendar day at 0930`() {
         val date = LocalDate.of(2024, 2, 29)
-        assertEquals(LocalDateTime.of(2024, 3, 1, 8, 30), ShiftDate.endOf(date).atZone(ZoneId.systemDefault()).toLocalDateTime())
+        assertEquals(LocalDateTime.of(2024, 3, 1, 9, 30), ShiftDate.endOf(date).atZone(ZoneId.systemDefault()).toLocalDateTime())
     }
     @Test fun `display day boundary uses local calendar rollover across spring and autumn offset changes`() {
         val original = java.util.TimeZone.getDefault()
@@ -28,7 +28,7 @@ class ShiftDateTest {
                 val end = ShiftDate.endOf(date)
                 val local = end.atZone(ZoneId.of("Europe/Berlin"))
                 assertEquals(date.plusDays(1), local.toLocalDate())
-                assertEquals(java.time.LocalTime.of(8, 30), local.toLocalTime())
+                assertEquals(java.time.LocalTime.of(9, 30), local.toLocalTime())
             }
         } finally { java.util.TimeZone.setDefault(original) }
     }
@@ -41,7 +41,7 @@ class ShiftDateTest {
             java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"))
             val utc = ShiftDate.endOf(date)
             assertNotEquals(damascus, utc)
-            assertEquals(date.plusDays(1).atTime(8, 30).toInstant(java.time.ZoneOffset.UTC), utc)
+            assertEquals(date.plusDays(1).atTime(9, 30).toInstant(java.time.ZoneOffset.UTC), utc)
         } finally { java.util.TimeZone.setDefault(original) }
     }
 }

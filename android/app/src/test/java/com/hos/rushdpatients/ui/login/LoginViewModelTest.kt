@@ -25,6 +25,8 @@ class LoginViewModelTest {
     private val bootstrap = mockk<BootstrapManager>()
     private val telegram = mockk<TelegramLoginManager>()
     private val pins = mockk<LocalPinLoginManager>()
+    private val doctorSync = mockk<com.hos.rushdpatients.sync.DoctorSyncCoordinator>()
+    private val recovery = mockk<PinRecoveryManager>(relaxed = true)
     private val projects = mockk<ProjectConfigStore> { every { current() } returns ProjectConfig(hospitalName = "تجريبي") }
     private val actor = Fixtures.doctor(telegramId = 123).copy(extraOptions = setOf("pin:synthetic-hash"))
     @Before fun setup() {
@@ -35,7 +37,7 @@ class LoginViewModelTest {
     }
     @After fun cleanup() { store.clear(); Dispatchers.resetMain() }
     private fun vm() = LoginViewModel(text, mockk<Context>(), doctors, sessions, bootstrap, telegram,
-        pins, mockk(relaxed = true), projects).also { store.put("login", it) }
+        pins, mockk(relaxed = true), doctorSync, recovery, projects).also { store.put("login", it) }
 
     @Test fun `local registry loads without network bootstrap`() {
         val vm = vm()
@@ -104,5 +106,197 @@ class LoginViewModelTest {
         vm.cancelVerification()
         assertTrue(vm.state.value.step is LoginStep.PickDoctor)
         verify(exactly = 0) { sessions.start(any()) }
+    }
+    @Test fun refreshSuccessReplacesRosterAndRecomputesEnrollment() {
+        val vm = vm()
+        val newer = actor.copy(fullName = "د. بلوط", telegramId = 456)
+        coEvery { doctorSync.refreshDoctorsForLogin() } returns Result.success(1)
+        coEvery { doctors.getAll() } returns listOf(newer)
+        coEvery { pins.isEnrolled(newer) } returns false
+        vm.refreshDoctors()
+        assertEquals(LoginStep.PickDoctor(listOf(newer)), vm.state.value.step)
+        assertTrue(vm.state.value.enrolledDoctorIds.isEmpty())
+        assertNotNull(vm.state.value.notice)
+        assertNull(vm.state.value.error)
+        assertFalse(vm.state.value.busy)
+        assertFalse(vm.state.value.refreshingDoctors)
+        verify(exactly = 0) { sessions.start(any()) }
+    }
+    @Test fun refreshFailureRetainsCachedRosterAndEnrollment() {
+        val vm = vm(); val before = vm.state.value
+        coEvery { doctorSync.refreshDoctorsForLogin() } returns Result.failure(java.io.IOException("synthetic offline"))
+        vm.refreshDoctors()
+        assertEquals(before.step, vm.state.value.step)
+        assertEquals(before.enrolledDoctorIds, vm.state.value.enrolledDoctorIds)
+        assertNotNull(vm.state.value.error)
+        assertFalse(vm.state.value.refreshingDoctors)
+        assertFalse(vm.state.value.busy)
+        verify(exactly = 0) { sessions.start(any()) }
+    }
+    @Test fun duplicateRefreshCannotStartSecondRegistryFetch() {
+        coEvery { doctorSync.refreshDoctorsForLogin() } coAnswers { awaitCancellation() }
+        val vm = vm(); vm.refreshDoctors(); vm.refreshDoctors()
+        assertTrue(vm.state.value.busy)
+        assertTrue(vm.state.value.refreshingDoctors)
+        coVerify(exactly = 1) { doctorSync.refreshDoctorsForLogin() }
+    }
+    @Test fun clearingViewModelCancelsRefreshAndClearsProgress() {
+        coEvery { doctorSync.refreshDoctorsForLogin() } coAnswers { awaitCancellation() }
+        val vm = vm(); val before = vm.state.value.step; vm.refreshDoctors(); store.clear()
+        assertFalse(vm.state.value.busy)
+        assertFalse(vm.state.value.refreshingDoctors)
+        assertNull(vm.state.value.error)
+        assertEquals(before, vm.state.value.step)
+    }
+    @Test fun refreshIsIgnoredOnPinEntry() {
+        val vm = vm(); vm.pickDoctor(actor); vm.refreshDoctors()
+        assertTrue(vm.state.value.step is LoginStep.EnterPin)
+        coVerify(exactly = 0) { doctorSync.refreshDoctorsForLogin() }
+    }
+    @Test fun refreshIsIgnoredDuringRecoveryRejoinStep() {
+        val vm = vm(); vm.startPinRecovery(actor.id); vm.refreshDoctors()
+        assertEquals(LoginStep.RecoverPin(actor), vm.state.value.step)
+        coVerify(exactly = 0) { doctorSync.refreshDoctorsForLogin() }
+    }
+    @Test fun successfulEmptyRefreshShowsEmptyChooserWithoutBootstrap() {
+        val vm = vm()
+        coEvery { doctorSync.refreshDoctorsForLogin() } returns Result.success(0)
+        coEvery { doctors.getAll() } returns emptyList()
+        vm.refreshDoctors()
+        assertEquals(LoginStep.PickDoctor(emptyList()), vm.state.value.step)
+        assertTrue(vm.state.value.enrolledDoctorIds.isEmpty())
+        coVerify(exactly = 0) { bootstrap.bootstrap() }
+    }
+    @Test fun failedPostRefreshRosterReadRetainsVisibleCachedDoctors() {
+        val vm = vm()
+        coEvery { doctorSync.refreshDoctorsForLogin() } returns Result.success(1)
+        coEvery { doctors.getAll() } throws java.io.IOException("synthetic unreadable registry")
+        vm.refreshDoctors()
+        assertEquals(LoginStep.PickDoctor(listOf(actor)), vm.state.value.step)
+        assertNotNull(vm.state.value.error)
+        assertFalse(vm.state.value.busy)
+    }
+    @Test fun chooserRetainsAllFortyDoctorsWithoutCap() {
+        val roster = (1..40).map { actor.copy(id = "tree-$it", fullName = "شجرة $it") }
+        coEvery { doctors.getAll() } returns roster
+        val vm = vm()
+        assertEquals(roster, (vm.state.value.step as LoginStep.PickDoctor).doctors)
+        assertEquals(roster.map { it.id }.toSet(), vm.state.value.enrolledDoctorIds)
+    }
+    @Test fun recoveryRequiresActiveDoctorBeforeOpeningRejoin() {
+        coEvery { doctors.getActiveById(actor.id) } returns null
+        val vm = vm(); vm.startPinRecovery(actor.id)
+        assertTrue(vm.state.value.step is LoginStep.PickDoctor)
+        assertNotNull(vm.state.value.error)
+        assertFalse(vm.state.value.busy)
+        coVerify(exactly = 0) { recovery.beginVerification(any(), any()) }
+    }
+    @Test fun recoveryStepUsesLiveRenamedDoctor() {
+        val renamed = actor.copy(fullName = "د. بلوط")
+        coEvery { doctors.getActiveById(actor.id) } returns renamed
+        val vm = vm(); vm.startPinRecovery(actor.id)
+        assertEquals(LoginStep.RecoverPin(renamed), vm.state.value.step)
+        coVerify(exactly = 0) { telegram.beginVerification(any(), any()) }
+    }
+    @Test fun unsolicitedRecoveryHandleIsCancelledWithoutVerification() {
+        val handle = PinRecoveryAuthorization()
+        val vm = vm(); vm.onRecoveryRejoined(handle)
+        verify(exactly = 1) { recovery.cancel(handle) }
+        coVerify(exactly = 0) { recovery.beginVerification(any(), any()) }
+        assertTrue(vm.state.value.step is LoginStep.PickDoctor)
+    }
+    @Test fun confirmedRecoveryStartsOnlyManagerGuardedVerification() {
+        val handle = PinRecoveryAuthorization()
+        coEvery { recovery.beginVerification(handle, actor.id) } returns actor
+        coEvery { telegram.remainingSeconds(actor.id) } returns 300
+        val vm = vm(); vm.startPinRecovery(actor.id); vm.onRecoveryRejoined(handle)
+        assertEquals(LoginStep.Verifying(actor, 300), vm.state.value.step)
+        coVerify(exactly = 1) { recovery.beginVerification(handle, actor.id) }
+        coVerify(exactly = 0) { telegram.beginVerification(any(), any()) }
+    }
+    private fun recovering(): Pair<LoginViewModel, PinRecoveryAuthorization> {
+        val handle = PinRecoveryAuthorization()
+        coEvery { recovery.beginVerification(handle, actor.id) } returns actor
+        coEvery { telegram.remainingSeconds(actor.id) } returns 300
+        val vm = vm(); vm.startPinRecovery(actor.id); vm.onRecoveryRejoined(handle)
+        return vm to handle
+    }
+    @Test fun leavingRecoveryCancelsAuthorityAndReturnsToRoster() {
+        val (vm, handle) = recovering(); vm.cancelVerification()
+        verify(exactly = 1) { recovery.cancel(handle) }
+        assertTrue(vm.state.value.step is LoginStep.PickDoctor)
+        verify(exactly = 0) { sessions.start(any()) }
+    }
+    @Test fun clearingViewModelRevokesRetainedRecoveryAuthority() {
+        val (_, handle) = recovering(); store.clear()
+        verify(exactly = 1) { recovery.cancel(handle) }
+    }
+    @Test fun incorrectRecoveryCodeRetainsVerificationWithoutOpeningPinEditor() {
+        val (vm, handle) = recovering()
+        coEvery { recovery.verify(handle, actor.id, 123, "synthetic code") } returns LoginVerificationResult.Incorrect
+        vm.verifyTelegramCode("synthetic code")
+        assertTrue(vm.state.value.step is LoginStep.Verifying)
+        assertNotNull(vm.state.value.error)
+        assertFalse(vm.state.value.busy)
+        coVerify(exactly = 0) { pins.enrollVerified(any(), any(), any(), any()) }
+        verify(exactly = 0) { sessions.start(any()) }
+    }
+    @Test fun exhaustedRecoveryCodeReturnsRetryFailureWithoutEnrollment() {
+        val (vm, handle) = recovering()
+        coEvery { recovery.verify(handle, actor.id, 123, "synthetic code") } returns LoginVerificationResult.Exhausted
+        vm.verifyTelegramCode("synthetic code")
+        assertTrue(vm.state.value.step is LoginStep.VerifyFailed)
+        assertFalse(vm.state.value.busy)
+        coVerify(exactly = 0) { recovery.replacePin(any(), any(), any()) }
+    }
+    @Test fun successfulRecoveryProofOpensPinEditorEvenWhenAlreadyEnrolled() {
+        val (vm, handle) = recovering()
+        coEvery { recovery.verify(handle, actor.id, 123, "synthetic code") } returns LoginVerificationResult.Success(123)
+        coEvery { recovery.verifiedDoctor(handle) } returns actor
+        vm.verifyTelegramCode("synthetic code")
+        assertEquals(LoginStep.SetPin(actor, 123), vm.state.value.step)
+        verify(exactly = 0) { sessions.start(any()) }
+    }
+    private fun recoveryPinEditor(): Pair<LoginViewModel, PinRecoveryAuthorization> {
+        val (vm, handle) = recovering()
+        coEvery { recovery.verify(handle, actor.id, 123, "synthetic code") } returns LoginVerificationResult.Success(123)
+        coEvery { recovery.verifiedDoctor(handle) } returns actor
+        vm.verifyTelegramCode("synthetic code")
+        return vm to handle
+    }
+    @Test fun mismatchedPinConfirmationCannotReplaceOrEnroll() {
+        val (vm, _) = recoveryPinEditor(); vm.setPin(actor, 123, "2468", "1357")
+        assertNotNull(vm.state.value.error)
+        coVerify(exactly = 0) { recovery.replacePin(any(), any(), any()) }
+        coVerify(exactly = 0) { pins.enrollVerified(any(), any(), any(), any()) }
+    }
+    @Test fun nonNumericPinCannotReplaceRecoveryPin() {
+        val (vm, _) = recoveryPinEditor(); vm.setPin(actor, 123, "tree", "tree")
+        assertNotNull(vm.state.value.error)
+        coVerify(exactly = 0) { recovery.replacePin(any(), any(), any()) }
+    }
+    @Test fun anotherDoctorCannotUseOpenRecoveryPinEditor() {
+        val (vm, _) = recoveryPinEditor(); vm.setPin(actor.copy(id = "other"), 123, "2468", "2468")
+        coVerify(exactly = 0) { recovery.replacePin(any(), any(), any()) }
+    }
+    @Test fun anotherTelegramIdentityCannotUseOpenRecoveryPinEditor() {
+        val (vm, _) = recoveryPinEditor(); vm.setPin(actor, 456, "2468", "2468")
+        coVerify(exactly = 0) { recovery.replacePin(any(), any(), any()) }
+    }
+    @Test fun failedRecoveryReplacementDoesNotFallBackToOrdinaryEnrollment() {
+        val (vm, handle) = recoveryPinEditor()
+        coEvery { recovery.replacePin(handle, actor.id, "2468") } throws IllegalStateException("synthetic expired authority")
+        vm.setPin(actor, 123, "2468", "2468")
+        assertNotNull(vm.state.value.error)
+        assertFalse(vm.state.value.busy)
+        coVerify(exactly = 0) { pins.enrollVerified(any(), any(), any(), any()) }
+        verify(exactly = 0) { sessions.start(any()) }
+    }
+    @Test fun duplicateRecoveryReplacementCannotSubmitTwice() {
+        val (vm, handle) = recoveryPinEditor()
+        coEvery { recovery.replacePin(handle, actor.id, "2468") } coAnswers { awaitCancellation() }
+        vm.setPin(actor, 123, "2468", "2468"); vm.setPin(actor, 123, "2468", "2468")
+        assertTrue(vm.state.value.busy)
+        coVerify(exactly = 1) { recovery.replacePin(handle, actor.id, "2468") }
     }
 }

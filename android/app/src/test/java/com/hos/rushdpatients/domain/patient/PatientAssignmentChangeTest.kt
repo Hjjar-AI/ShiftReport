@@ -39,9 +39,9 @@ class PatientAssignmentChangeTest {
         assertNull(PatientAssignmentChange.onSave(legacy.copy(labs = "نتيجة"), legacy, day).assignmentChangedOn)
         assertFalse(PatientAssignmentChange.highlighted(legacy, day))
     }
-    @Test fun `0830 changes marking day while an already reviewed day stays stable`() {
-        val before = ShiftDate.current(LocalDateTime.of(2026, 10, 27, 8, 29, 59))
-        val after = ShiftDate.current(LocalDateTime.of(2026, 10, 27, 8, 30))
+    @Test fun `0930 changes marking day while an already reviewed day stays stable`() {
+        val before = ShiftDate.current(LocalDateTime.of(2026, 10, 27, 9, 29, 59))
+        val after = ShiftDate.current(LocalDateTime.of(2026, 10, 27, 9, 30))
         val captured = PatientAssignmentChange.onSave(old.copy(responsibleSpecialistId = "oak"), old, before)
         assertTrue(PatientAssignmentChange.highlighted(captured, before))
         assertFalse(PatientAssignmentChange.highlighted(captured, after))

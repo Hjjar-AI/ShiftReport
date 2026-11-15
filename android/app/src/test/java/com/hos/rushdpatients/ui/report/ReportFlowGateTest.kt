@@ -21,16 +21,20 @@ class ReportFlowGateTest {
         assertNotNull(gate(text = null).sendDisabledReason)
         assertNotNull(gate(ready.copy(summary = null)).sendDisabledReason)
     }
-    @Test fun `PDF must be opened for the current artifact uri`() {
+    @Test fun `PDF viewing is optional while current artifact readiness remains visible`() {
         val pdf = ready.copy(reportAsPdf = true, pdfReviewUris = mapOf("general" to "current"))
-        assertFalse(gate(pdf, opened = setOf("old")).previewReady)
+        assertTrue(gate(pdf, opened = setOf("old")).previewReady)
+        assertEquals(false, gate(pdf, opened = setOf("old")).previewReadiness["general"])
+        assertEquals(true, gate(pdf, opened = setOf("current")).previewReadiness["general"])
         assertNull(gate(pdf, opened = setOf("current")).sendDisabledReason)
     }
-    @Test fun `every supervisor target requires its own opened artifact`() {
+    @Test fun `supervisor PDF viewing is optional and each opened artifact is tracked separately`() {
         val targets = listOf(SupervisorReportTarget("a", "أرز", -100, 1), SupervisorReportTarget("b", "بلوط", -200, 1))
         val state = ready.copy(pdfReviewUris = mapOf("supervisor:a" to "a.pdf", "supervisor:b" to "b.pdf"))
         assertNotNull(gate(state, supervisor = true).sendDisabledReason)
-        assertFalse(gate(state, supervisor = true, targets = targets, opened = setOf("a.pdf")).previewReady)
+        assertTrue(gate(state, supervisor = true, targets = targets, opened = setOf("a.pdf")).previewReady)
+        assertEquals(mapOf("supervisor:a" to true, "supervisor:b" to false),
+            gate(state, supervisor = true, targets = targets, opened = setOf("a.pdf")).previewReadiness)
         assertNull(gate(state, supervisor = true, targets = targets, opened = setOf("a.pdf", "b.pdf")).sendDisabledReason)
     }
     @Test fun `all in-progress operations prevent send and progression`() {

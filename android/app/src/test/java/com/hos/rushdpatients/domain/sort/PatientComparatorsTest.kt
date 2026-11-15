@@ -79,25 +79,25 @@ class PatientComparatorsTest {
     @Test
     fun `days ascending puts shorter stays first`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", admittanceDate = java.time.LocalDate.now().minusDays(10)),
-            Fixtures.patient(id = "2", admittanceDate = java.time.LocalDate.now().minusDays(3)),
-            Fixtures.patient(id = "3", admittanceDate = java.time.LocalDate.now().minusDays(7))
+            Fixtures.patient(id = "1", admittanceDate = com.hos.rushdpatients.util.ShiftDate.current().minusDays(10)),
+            Fixtures.patient(id = "2", admittanceDate = com.hos.rushdpatients.util.ShiftDate.current().minusDays(3)),
+            Fixtures.patient(id = "3", admittanceDate = com.hos.rushdpatients.util.ShiftDate.current().minusDays(7))
         )
         val spec = SortSpec(listOf(SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.ASC)))
         val sorted = patients.sortedWith(PatientComparators.forSpec(spec, doctors))
-        assertEquals(listOf(3, 7, 10), sorted.map { it.admittanceDays })
+        assertEquals(listOf(4, 8, 11), sorted.map { it.admittanceDays })
     }
 
     @Test
     fun `days descending puts longer stays first`() {
         val patients = listOf(
-            Fixtures.patient(id = "1", admittanceDate = java.time.LocalDate.now().minusDays(10)),
-            Fixtures.patient(id = "2", admittanceDate = java.time.LocalDate.now().minusDays(3)),
-            Fixtures.patient(id = "3", admittanceDate = java.time.LocalDate.now().minusDays(7))
+            Fixtures.patient(id = "1", admittanceDate = com.hos.rushdpatients.util.ShiftDate.current().minusDays(10)),
+            Fixtures.patient(id = "2", admittanceDate = com.hos.rushdpatients.util.ShiftDate.current().minusDays(3)),
+            Fixtures.patient(id = "3", admittanceDate = com.hos.rushdpatients.util.ShiftDate.current().minusDays(7))
         )
         val spec = SortSpec(listOf(SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.DESC)))
         val sorted = patients.sortedWith(PatientComparators.forSpec(spec, doctors))
-        assertEquals(listOf(10, 7, 3), sorted.map { it.admittanceDays })
+        assertEquals(listOf(11, 8, 4), sorted.map { it.admittanceDays })
     }
 
     @Test

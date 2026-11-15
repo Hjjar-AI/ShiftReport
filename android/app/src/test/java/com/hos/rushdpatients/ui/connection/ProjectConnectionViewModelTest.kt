@@ -20,11 +20,12 @@ import java.io.IOException
 
 class ProjectConnectionViewModelTest : ViewModelFixture() {
     private val connections = mockk<ProjectConnectionManager>()
+    private val recovery = mockk<com.hos.rushdpatients.domain.auth.PinRecoveryManager>(relaxed = true)
     private val dispatchers = mockk<DispatcherProvider> { every { io } returns Dispatchers.Unconfined }
     private val uri = mockk<Uri>()
     private val change = ConnectionChange(ProjectConfig(hospitalName = "مشروع تجريبي"), "synthetic-replacement")
     private val context = mockk<Context>()
-    private fun vm() = keep(ProjectConnectionViewModel(text, connections, context, dispatchers))
+    private fun vm() = keep(ProjectConnectionViewModel(text, connections, recovery, context, dispatchers))
     private fun prepare() { coEvery { connections.prepareToken(any()) } returns change }
 
     @Test fun initialStateContainsNoPendingReview() {
@@ -163,5 +164,86 @@ class ProjectConnectionViewModelTest : ViewModelFixture() {
         every { resolver.query(uri, any(), null, null, null) } throws CancellationException("synthetic cancel")
         try { vm().readDisplayName(uri); fail("Cancellation swallowed") }
         catch (_: CancellationException) { }
+    }
+    private val recoveryHandle = com.hos.rushdpatients.domain.auth.PinRecoveryAuthorization()
+    private val protectedChange = change.copy(fromProtectedFile = true)
+    private fun recoveryReview(): ProjectConnectionViewModel {
+        coEvery { connections.prepareFile(uri, any()) } returns protectedChange
+        coEvery { recovery.confirmRejoin(protectedChange, "cedar") } returns recoveryHandle
+        return vm().also { it.reset("cedar"); it.importFile(uri, "synthetic password") }
+    }
+    @Test fun manualTokenReplacementIsUnavailableDuringRecovery() {
+        val vm = vm(); vm.reset("cedar"); vm.replaceToken("synthetic")
+        coVerify(exactly = 0) { connections.prepareToken(any()) }
+        assertEquals(ProjectConnectionUiState(), vm.state.value)
+    }
+    @Test fun leavingRecoveryRestoresOrdinaryTokenReview() {
+        prepare()
+        val vm = vm(); vm.reset("cedar"); vm.reset(); vm.replaceToken("synthetic")
+        assertEquals(change.expected.hospitalName, vm.state.value.reviewProject)
+        coVerify(exactly = 1) { connections.prepareToken("synthetic") }
+    }
+    @Test fun protectedRecoveryConfirmationUsesRecoveryManagerWithoutDirectApply() {
+        val vm = recoveryReview(); vm.confirm()
+        coVerify(exactly = 1) { recovery.confirmRejoin(protectedChange, "cedar") }
+        coVerify(exactly = 0) { connections.apply(any()) }
+        assertSame(recoveryHandle, vm.state.value.recoveryAuthorization)
+        assertTrue(vm.state.value.applied)
+        assertNull(vm.state.value.reviewProject)
+    }
+    @Test fun recoveryHandleCanBeConsumedOnlyOnce() {
+        val vm = recoveryReview(); vm.confirm()
+        assertSame(recoveryHandle, vm.consumeRecoveryAuthorization())
+        assertNull(vm.consumeRecoveryAuthorization())
+        assertFalse(vm.state.value.applied)
+        assertNull(vm.state.value.recoveryAuthorization)
+        verify(exactly = 0) { recovery.cancel(any()) }
+    }
+    @Test fun resetRevokesUnconsumedRecoveryHandle() {
+        val vm = recoveryReview(); vm.confirm(); vm.reset()
+        verify(exactly = 1) { recovery.cancel(recoveryHandle) }
+        assertNull(vm.consumeRecoveryAuthorization())
+        assertEquals(ProjectConnectionUiState(), vm.state.value)
+    }
+    @Test fun resetDoesNotRevokeTransferredRecoveryHandle() {
+        val vm = recoveryReview(); vm.confirm(); vm.consumeRecoveryAuthorization(); vm.reset()
+        verify(exactly = 0) { recovery.cancel(any()) }
+    }
+    @Test fun clearingViewModelRevokesUnconsumedRecoveryHandle() {
+        val vm = recoveryReview(); vm.confirm(); clearViewModels()
+        verify(exactly = 1) { recovery.cancel(recoveryHandle) }
+    }
+    @Test fun clearingViewModelDoesNotRevokeTransferredHandle() {
+        val vm = recoveryReview(); vm.confirm(); vm.consumeRecoveryAuthorization(); clearViewModels()
+        verify(exactly = 0) { recovery.cancel(any()) }
+    }
+    @Test fun failedRecoveryCannotFallBackToUnprotectedApply() {
+        val vm = recoveryReview()
+        coEvery { recovery.confirmRejoin(any(), any()) } throws IllegalStateException("synthetic expired project")
+        vm.confirm(); vm.confirm()
+        assertFalse(vm.state.value.applied)
+        assertNull(vm.state.value.reviewProject)
+        assertNull(vm.state.value.recoveryAuthorization)
+        coVerify(exactly = 1) { recovery.confirmRejoin(protectedChange, "cedar") }
+        coVerify(exactly = 0) { connections.apply(any()) }
+    }
+    @Test fun duplicateRecoveryConfirmationCannotCreateMultipleGrants() {
+        val vm = recoveryReview()
+        coEvery { recovery.confirmRejoin(any(), any()) } coAnswers { awaitCancellation() }
+        vm.confirm(); vm.confirm(); vm.reset()
+        assertTrue(vm.state.value.busy)
+        coVerify(exactly = 1) { recovery.confirmRejoin(protectedChange, "cedar") }
+    }
+    @Test fun switchingRecoveryDoctorDiscardsEarlierFileReview() {
+        val vm = recoveryReview(); vm.reset("oak"); vm.confirm()
+        coVerify(exactly = 0) { recovery.confirmRejoin(any(), any()) }
+        assertNull(vm.state.value.reviewProject)
+    }
+    @Test fun ordinaryConfirmationCannotProduceRecoveryAuthority() {
+        prepare(); coEvery { connections.apply(change) } just Runs
+        val vm = vm(); vm.replaceToken("synthetic"); vm.confirm()
+        assertTrue(vm.state.value.applied)
+        assertNull(vm.consumeRecoveryAuthorization())
+        coVerify(exactly = 0) { recovery.confirmRejoin(any(), any()) }
     }
 }

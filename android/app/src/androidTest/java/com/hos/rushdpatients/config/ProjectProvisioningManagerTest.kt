@@ -77,4 +77,50 @@ class ProjectProvisioningManagerTest {
         assertTrue(pass.all { it == '\u0000' })
         rejected { manager().writeStagedExport(destination(), "../outside") }
     }
+    @Test fun unicodePasswordRoundTripWipesBothCallerBuffers() = runBlocking<Unit> {
+        val pass = "عبارة تجريبية 🔐 طويلة".toCharArray()
+        val encrypted = manager().prepareExport(config, pass)
+        assertTrue(pass.all { it == '\u0000' })
+        manager().writeExport(destination(), encrypted)
+        val importedPass = "عبارة تجريبية 🔐 طويلة".toCharArray()
+        assertEquals(config.copy(initialized = false), manager().importConfig(destination(), importedPass))
+        assertTrue(importedPass.all { it == '\u0000' })
+    }
+    @Test fun repeatedExportsUseFreshSaltAndNonce() = runBlocking<Unit> {
+        val first = manager().prepareExport(config, password)
+        val second = manager().prepareExport(config, password)
+        assertFalse(first.contentEquals(second))
+        manager().writeExport(destination(), first)
+        assertEquals(config.chatId, manager().importConfig(destination(), password).chatId)
+        manager().writeExport(destination(), second)
+        assertEquals(config.chatId, manager().importConfig(destination(), password).chatId)
+    }
+    @Test fun discardedStagingDoesNotDeleteAnotherPendingExport() = runBlocking<Unit> {
+        val encrypted = manager().prepareExport(config, password)
+        val first = manager().stageExport(encrypted); val second = manager().stageExport(encrypted)
+        assertNotEquals(first, second)
+        manager().discardStagedExport(first)
+        rejected { manager().writeStagedExport(destination(), first) }
+        manager().writeStagedExport(destination(), second)
+        assertEquals(config.chatId, manager().importConfig(destination(), password).chatId)
+        manager().discardStagedExport(second)
+    }
+    @Test fun unencryptedProjectJoinRemainsPasswordProtectedWithoutInventingDataKey() = runBlocking<Unit> {
+        val plainProject = config.copy(telegramDataKey = "")
+        val encrypted = manager().prepareExport(plainProject, password)
+        manager().writeExport(destination(), encrypted)
+        assertFalse(File(requireNotNull(destination().path)).readText().contains(config.botToken))
+        val imported = manager().importConfig(destination(), password)
+        assertEquals("", imported.telegramDataKey)
+        assertEquals(plainProject.copy(initialized = false), imported)
+    }
+    @Test fun failedPasswordAttemptLeavesProtectedFileAvailableForCorrectPassword() = runBlocking<Unit> {
+        manager().writeExport(destination(), manager().prepareExport(config, password))
+        val target = File(requireNotNull(destination().path)); val before = target.readBytes()
+        val wrong = "synthetic wrong password".toCharArray()
+        rejected { manager().importConfig(destination(), wrong) }
+        assertTrue(wrong.all { it == '\u0000' })
+        assertArrayEquals(before, target.readBytes())
+        assertEquals(config.chatId, manager().importConfig(destination(), password).chatId)
+    }
 }

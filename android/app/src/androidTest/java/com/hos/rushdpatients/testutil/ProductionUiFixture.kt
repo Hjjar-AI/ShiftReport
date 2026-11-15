@@ -72,6 +72,10 @@ abstract class ProductionUiFixture {
     private lateinit var sender: ReportSender
     private lateinit var csv: PatientCsvExporter
     private lateinit var bootstrap: BootstrapManager
+    private lateinit var connections: ProjectConnectionManager
+    private lateinit var localPins: LocalPinLoginManager
+    private lateinit var telegramLogin: TelegramLoginManager
+    private lateinit var pinRecovery: PinRecoveryManager
     private fun key(type: Class<*>) = "androidx.lifecycle.ViewModelProvider.DefaultKey:${type.name}"
     private inline fun <reified T : ViewModel> get(store: ViewModelStore, create: () -> T): T {
         val key = key(T::class.java)
@@ -90,6 +94,12 @@ abstract class ProductionUiFixture {
         server.state = SyncState(doctorsFileId = "registry", doctorsMessageId = 2)
         client.settings.put(AppConstants.SETTING_DOCTORS_BASE_REGISTRY, registry)
         text = UiStrings(client.context)
+        connections = ProjectConnectionManager(client.projects, ProjectProvisioningManager(client.context, client.dispatchers),
+            client.telegram, client.authorizer, client.dispatchers)
+        localPins = LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers, client.db)
+        telegramLogin = TelegramLoginManager(client.telegram, client.topics)
+        pinRecovery = PinRecoveryManager(connections, client.projects, client.doctors, client.doctorSync,
+            telegramLogin, localPins, client.dispatchers, text)
         ledger = ReportDeliveryLedger(client.settings, client.sessions, client.doctors)
         sender = ReportSender(client.context, ProjectDataCipher(client.projects, client.dispatchers), client.telegram,
             client.topics, client.shifts, client.audit, ledger)
@@ -106,17 +116,14 @@ abstract class ProductionUiFixture {
         if (joinSetup) client.projects.saveDraft(client.projects.current())
         IsolatedWorkflowActivity.install = { activity ->
             val store = activity.viewModelStore
-            get(store) { ProjectConnectionViewModel(text, ProjectConnectionManager(client.projects,
-                ProjectProvisioningManager(client.context, client.dispatchers), client.telegram, client.authorizer, client.dispatchers),
-                client.context, client.dispatchers) }
+            get(store) { ProjectConnectionViewModel(text, connections, pinRecovery, client.context, client.dispatchers) }
             root = get(store) { RootViewModel(text, client.sessions, client.settings, BiometricHelper(client.context),
                 client.audit, client.doctors, LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers, client.db), client.projects) }
             setup = get(store) { ProjectSetupViewModel(text, client.context, client.projects, client.telegram, bootstrap,
                 BootstrapSeeder(client.telegram, client.topics, server.json, client.projects), client.sessions, client.settings,
                 ProjectProvisioningManager(client.context, client.dispatchers)) }
             login = get(store) { LoginViewModel(text, client.context, client.doctors, client.sessions, bootstrap,
-                TelegramLoginManager(client.telegram, client.topics), LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers, client.db),
-                client.audit, client.projects) }
+                telegramLogin, localPins, client.audit, client.doctorSync, pinRecovery, client.projects) }
         }
         IsolatedWorkflowActivity.content = { activity ->
             val density = LocalDensity.current

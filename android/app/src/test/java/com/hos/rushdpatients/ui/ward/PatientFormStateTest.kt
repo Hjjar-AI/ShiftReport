@@ -61,4 +61,113 @@ class PatientFormStateTest {
             PatientDraft(badgeDraftText = "تنبيه"), PatientDraft(badges = listOf(PatientBadgeDraft("تنبيه"))))
             .forEach { assertFalse(it.isEmpty) }
     }
+    @Test fun emptyAddFormStartsWithOptionalSectionCollapsed() {
+        assertFalse(PatientFormState(null, null).extrasExpanded)
+    }
+    @Test fun clinicalTextAloneDoesNotExpandOptionalSection() {
+        assertFalse(PatientFormState(Fixtures.patient(labs = "نتيجة"), null).extrasExpanded)
+    }
+    @Test fun pendingTaskExpandsOptionalSectionOnEdit() {
+        val task = Fixtures.task()
+        val form = PatientFormState(Fixtures.patient().copy(tasks = listOf(task)), null)
+        assertTrue(form.extrasExpanded)
+        assertEquals(listOf(task), form.tasks)
+    }
+    @Test fun completedTaskExpandsWithoutLosingStoredCompletionMetadata() {
+        val task = Fixtures.task(done = true)
+        val form = PatientFormState(Fixtures.patient().copy(tasks = listOf(task)), null)
+        assertTrue(form.extrasExpanded)
+        assertEquals(task, form.tasks.single())
+    }
+    @Test fun badgeWithoutSeverityStillExpandsOptionalSection() {
+        val badge = com.hos.rushdpatients.data.model.PatientBadge("مرافق")
+        val form = PatientFormState(Fixtures.patient().copy(badges = listOf(badge)), null)
+        assertTrue(form.extrasExpanded)
+        assertEquals(listOf(badge), form.badges)
+    }
+    @Test fun priorityWithoutTasksOrBadgesExpandsOptionalSection() {
+        val form = PatientFormState(Fixtures.patient().copy(isPriority = true), null)
+        assertTrue(form.extrasExpanded)
+        assertTrue(form.isPriority)
+    }
+    @Test fun unfinishedRestoredBadgeTextExpandsOptionalSection() {
+        val form = PatientFormState(null, PatientDraft(badgeDraftText = "تنبيه غير محفوظ"))
+        assertTrue(form.extrasExpanded)
+        assertEquals("تنبيه غير محفوظ", form.badgeDraftText)
+    }
+    @Test fun blankRestoredBadgeEntryDoesNotExpandOptionalSection() {
+        assertFalse(PatientFormState(null, PatientDraft(badgeDraftText = " \n\t")).extrasExpanded)
+    }
+    @Test fun restoredClinicalOnlyDraftKeepsOptionalSectionCollapsed() {
+        val form = PatientFormState(null, PatientDraft(name = "شاي", treatmentDraft = "خطة", labDraft = "نتيجة"))
+        assertFalse(form.extrasExpanded)
+        assertEquals("خطة", form.treatmentText)
+        assertEquals("نتيجة", com.hos.rushdpatients.data.model.PatientLabGroups.text(form.labGroups))
+    }
+    @Test fun restoredPriorityStartsExpanded() {
+        assertTrue(PatientFormState(null, PatientDraft(isPriority = true)).extrasExpanded)
+    }
+    @Test fun restoredCompletedTasksStartExpanded() {
+        val task = Fixtures.task(done = true)
+        val form = PatientFormState(null, PatientDraft(tasks = listOf(task)))
+        assertTrue(form.extrasExpanded)
+        assertEquals(listOf(task), form.tasks)
+    }
+    @Test fun collapsingOptionalSectionRetainsUnfinishedTaskAndBadge() {
+        val form = PatientFormState(null, PatientDraft(badgeDraftText = "ملاحظة"))
+        val pending = Fixtures.task().copy(description = "مهمة لم تضف")
+        form.taskEntry = pending
+        form.extrasExpanded = false
+        assertEquals(pending, form.taskEntry)
+        assertEquals("ملاحظة", form.badgeDraftText)
+        form.extrasExpanded = true
+        assertEquals(pending, form.taskEntry)
+    }
+    @Test fun draftCallbacksDoNotResetManualExpansionOrPendingTask() {
+        val store = PatientFormStateStore()
+        val form = store.obtain(null, PatientDraft())
+        form.extrasExpanded = true
+        form.taskEntry = Fixtures.task()
+        val updated = store.obtain(null, PatientDraft(name = "مسودة أحدث"))
+        assertSame(form, updated)
+        assertTrue(updated.extrasExpanded)
+        assertEquals(form.taskEntry, updated.taskEntry)
+    }
+    @Test fun explicitlyRestoredEditDraftRetainsItsFieldsAndExpansion() {
+        val patient = Fixtures.patient()
+        val store = PatientFormStateStore()
+        store.obtain(patient, null)
+        val draft = PatientDraft(name = "قهوة", tasks = listOf(Fixtures.task()), badgeDraftText = "تنبيه")
+        store.restore(patient, draft)
+        val restored = store.obtain(patient, null)
+        assertEquals("قهوة", restored.name)
+        assertEquals(draft.tasks, restored.tasks)
+        assertEquals("تنبيه", restored.badgeDraftText)
+        assertTrue(restored.extrasExpanded)
+    }
+    @Test fun movingToAnotherPatientDoesNotCarryUnfinishedTask() {
+        val store = PatientFormStateStore()
+        val first = Fixtures.patient()
+        store.obtain(first, null).taskEntry = Fixtures.task()
+        val next = store.obtain(first.copy(id = "other", name = "قهوة"), null)
+        assertNull(next.taskEntry)
+        assertEquals("قهوة", next.name)
+    }
+    @Test fun invalidRestoredAdmissionDateStaysMissing() {
+        val form = PatientFormState(null, PatientDraft(admittanceDate = "2026-02-30"))
+        assertNull(form.admittanceDate)
+    }
+    @Test fun collapsingExtrasDoesNotChangeClinicalTextAssignmentsOrPriority() {
+        val patient = Fixtures.patient().copy(isPriority = true, responsibleResidentId = "cedar",
+            responsibleSpecialistId = "oak", tasks = listOf(Fixtures.task()))
+        val form = PatientFormState(patient, null)
+        form.extrasExpanded = false
+        assertEquals(patient.initialDiagnosis, form.initialDiagnosis)
+        assertEquals(patient.treatmentPlan, form.treatmentText)
+        assertEquals(patient.followUp, form.followUpText)
+        assertEquals(patient.tasks, form.tasks)
+        assertEquals(patient.responsibleResidentId, form.residentId)
+        assertEquals(patient.responsibleSpecialistId, form.specialistId)
+        assertTrue(form.isPriority)
+    }
 }
