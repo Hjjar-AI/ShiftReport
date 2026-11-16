@@ -18,6 +18,7 @@ import com.hos.rushdpatients.data.model.SyncChannel
 import com.hos.rushdpatients.data.repository.DoctorMutationRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
+import com.hos.rushdpatients.data.repository.DisplayPreferencesStore
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
@@ -57,6 +58,7 @@ class SettingsViewModel @Inject constructor(
     private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
+    private val displayPreferences: DisplayPreferencesStore,
     private val doctorRepository: DoctorRepository,
     private val doctorMutations: DoctorMutationRepository,
     private val shiftRepository: ShiftRepository,
@@ -85,7 +87,7 @@ class SettingsViewModel @Inject constructor(
 
     private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
 
-    private val preferences = SettingsPreferences(uiText, _state, viewModelScope, settingsRepository)
+    private val preferences = SettingsPreferences(uiText, _state, viewModelScope, settingsRepository, displayPreferences)
     private val dataOperations = SettingsDataOperations(uiText, _state, viewModelScope, context,
         syncService, shiftRepository, csvExporter, ::format)
     private val backupOperations = SettingsBackupOperations(uiText, _state, viewModelScope,
@@ -156,6 +158,7 @@ class SettingsViewModel @Inject constructor(
                 val session = sessionManager.current()
                 val bioAvailable = biometricHelper.isAvailable()
                 val bioEnabled = settingsRepository.getBoolean(AppConstants.SETTING_BIOMETRIC_ENABLED, true)
+                val display = displayPreferences.get()
                 _state.update {
                     it.copy(
                         doctorName = session?.doctorName ?: "",
@@ -177,14 +180,10 @@ class SettingsViewModel @Inject constructor(
                             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
                         ),
                         pdfRowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
-                        uiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences.decode(settingsRepository.get(AppConstants.SETTING_UI_PREFERENCES)),
-                        appearance = AppAppearance.fromSetting(settingsRepository.get(AppConstants.SETTING_APP_APPEARANCE)),
-                        appTheme = AppThemePreset.fromSetting(
-                            settingsRepository.get(AppConstants.SETTING_APP_THEME)
-                        ),
-                        fontScale = AppFontScale.fromSetting(
-                            settingsRepository.get(AppConstants.SETTING_FONT_SCALE)
-                        ),
+                        uiPreferences = display.uiPreferences,
+                        appearance = display.appearance,
+                        appTheme = display.preset,
+                        fontScale = display.fontScale,
                         patientDetailsExpanded = settingsRepository.getBoolean(
                             AppConstants.SETTING_PATIENT_DETAILS_EXPANDED,
                             false

@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.repository.SettingsRepository
+import com.hos.rushdpatients.data.repository.DisplayPreferencesStore
 import com.hos.rushdpatients.domain.report.BuiltReport
 import com.hos.rushdpatients.domain.report.ReportReview
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
@@ -35,7 +36,8 @@ internal class ReportPdfWorkspace(
     private val uiText: UiStrings,
     private val context: Context, private val settingsRepository: SettingsRepository,
     private val projectConfigStore: ProjectConfigStore, private val classicPdfExporter: PdfReportExporter,
-    private val cardsPdfExporter: PdfCardsExporter, private val mediaStoreSaver: MediaStoreSaver
+    private val cardsPdfExporter: PdfCardsExporter, private val mediaStoreSaver: MediaStoreSaver,
+    private val displayPreferences: DisplayPreferencesStore
 ) {
     private val reviewedPdfs = java.util.concurrent.ConcurrentHashMap<String, ReviewedPdf>()
 
@@ -96,9 +98,7 @@ internal class ReportPdfWorkspace(
         hospitalName = projectConfigStore.current().hospitalName,
         wardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
         paperSize = PdfPaperSize.A5,
-        appTheme = com.hos.rushdpatients.ui.theme.AppThemePreset.fromSetting(
-            settingsRepository.get(AppConstants.SETTING_APP_THEME)
-        ),
+        appTheme = displayPreferences.get().preset,
         ruleWeight = PdfRuleWeight.MEDIUM,
         ruleContrast = PdfRuleContrast.MEDIUM,
         rowShading = PdfRowShading.ZEBRA,

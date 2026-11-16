@@ -21,6 +21,7 @@ import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.WardMutationRepository
 import com.hos.rushdpatients.data.repository.DoctorRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
+import com.hos.rushdpatients.data.repository.DisplayPreferencesStore
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.report.BuiltReport
@@ -72,6 +73,7 @@ class ReportPreviewViewModel @Inject constructor(
     private val assignmentPdfExporter: PdfAssignmentExporter,
     private val mediaStoreSaver: MediaStoreSaver,
     private val settingsRepository: SettingsRepository,
+    private val displayPreferences: DisplayPreferencesStore,
     private val doctorRepository: DoctorRepository,
     private val shiftRepository: ShiftRepository,
     private val wardMutations: WardMutationRepository,
@@ -98,7 +100,7 @@ class ReportPreviewViewModel @Inject constructor(
     private var reviewedReport: BuiltReport? = null
     private var reviewedActor: com.hos.rushdpatients.domain.auth.Session? = null
     private val pdfWorkspace = ReportPdfWorkspace(uiText, context, settingsRepository, projectConfigStore,
-        classicPdfExporter, cardsPdfExporter, mediaStoreSaver)
+        classicPdfExporter, cardsPdfExporter, mediaStoreSaver, displayPreferences)
 
     private val localActions = ReportLocalActions(uiText, _state, viewModelScope,
         context, settingsRepository, assignmentPdfExporter, mediaStoreSaver,

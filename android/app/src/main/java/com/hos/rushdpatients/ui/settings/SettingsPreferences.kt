@@ -6,6 +6,7 @@ import com.hos.rushdpatients.R
 
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.repository.SettingsRepository
+import com.hos.rushdpatients.data.repository.DisplayPreferencesStore
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfRowShading
@@ -26,7 +27,8 @@ internal class SettingsPreferences(
     private val uiText: UiStrings,
     private val _state: MutableStateFlow<SettingsUiState>,
     private val viewModelScope: kotlinx.coroutines.CoroutineScope,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val displayPreferences: DisplayPreferencesStore
 ) {
 
     private val uiPreferencesWrites = Mutex()
@@ -83,7 +85,7 @@ internal class SettingsPreferences(
         viewModelScope.launch {
             try {
                 uiPreferencesWrites.withLock {
-                    settingsRepository.put(AppConstants.SETTING_UI_PREFERENCES, requested.encode())
+                    displayPreferences.update { it.copy(uiPreferences = requested) }
                     _state.update { it.copy(uiPreferences = requested) }
                 }
             } catch (error: CancellationException) {
@@ -94,11 +96,14 @@ internal class SettingsPreferences(
         }
     }
 
-    private fun saveAppearanceSetting(key: String, value: String, onSaved: (SettingsUiState) -> SettingsUiState) {
+    private fun saveAppearanceSetting(
+        change: (com.hos.rushdpatients.ui.theme.ThemePreferences) -> com.hos.rushdpatients.ui.theme.ThemePreferences,
+        onSaved: (SettingsUiState) -> SettingsUiState
+    ) {
         viewModelScope.launch {
             try {
                 uiPreferencesWrites.withLock {
-                    settingsRepository.put(key, value)
+                    displayPreferences.update(change)
                     _state.update(onSaved)
                 }
             } catch (cancelled: CancellationException) {
@@ -110,13 +115,13 @@ internal class SettingsPreferences(
     }
 
     fun setAppearance(value: AppAppearance) =
-        saveAppearanceSetting(AppConstants.SETTING_APP_APPEARANCE, value.name) { it.copy(appearance = value) }
+        saveAppearanceSetting({ it.copy(appearance = value) }) { it.copy(appearance = value) }
 
     fun setAppTheme(value: AppThemePreset) =
-        saveAppearanceSetting(AppConstants.SETTING_APP_THEME, value.name) { it.copy(appTheme = value) }
+        saveAppearanceSetting({ it.copy(preset = value) }) { it.copy(appTheme = value) }
 
     fun setFontScale(value: AppFontScale) =
-        saveAppearanceSetting(AppConstants.SETTING_FONT_SCALE, value.name) { it.copy(fontScale = value) }
+        saveAppearanceSetting({ it.copy(fontScale = value) }) { it.copy(fontScale = value) }
 
     fun setReportWardName(value: String) {
         viewModelScope.launch {
