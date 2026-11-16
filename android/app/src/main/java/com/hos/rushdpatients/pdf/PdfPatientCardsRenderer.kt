@@ -92,9 +92,9 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         pageTotal = totalPages
         generatedLabel = PdfReportContext.createdAt(options)
         shiftDateLabel = summary.shiftDate.toString()
-        // Nonbreaking padding keeps the totals' bullet spacing when wrapped.
+        // Preserve the totals' bullet spacing in the single-line header.
         indexSummaryLabel = "المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})" +
-            " \u00a0•\u00a0 مرافقون: ${summary.escortCount}"
+            " \u00a0•\u00a0مرافقون: ${summary.escortCount}"
         // A5 portrait is enforced here for every caller, independently of saved table options.
         palette = PdfPalette.resolve(options)
         body.color = palette.text
@@ -109,9 +109,10 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         val cardPages = mutableListOf<CardPage>()
         try {
             newPage(documentLabel, index = true)
-            val metadataPaint = Paint(body).apply { textSize = 14f; color = Color.BLACK }
-            if (doctors.isNotEmpty()) ReportRosterLabel.linesForDoctors(doctors, " / ").forEach { line ->
-                indexText(line, metadataPaint, documentLabel)
+            if (doctors.isNotEmpty()) {
+                val roster = ReportRosterLabel.linesForDoctors(doctors, " / ")
+                    .joinToString(" • ").replace('\n', ' ').replace('\r', ' ')
+                indexRoster(roster, documentLabel)
             }
             val indexGap = 5f
             val tilePadding = 2f
@@ -425,20 +426,18 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         fill.color = palette.pageBackground
         var pageTop = if (index) 10f * 72f / 25.4f else topMargin
         if (index) {
-            val totalsPaint = Paint(heading).apply { textSize = 14f }
+            val totalsBasePaint = Paint(heading).apply { textSize = 14f }
             val datePaint = Paint(heading).apply { textSize = 16f; textAlign = Paint.Align.LEFT }
             val dateColumnWidth = (right - left - gap) / 3f
             val totalsColumnWidth = right - left - gap - dateColumnWidth
-            val totalsLines = PdfTextWrapper.wrap(indexSummaryLabel, totalsPaint, totalsColumnWidth)
+            val totalsPaint = singleLinePaint(indexSummaryLabel, totalsBasePaint, totalsColumnWidth)
             val dateLines = PdfTextWrapper.wrap(shiftDateLabel, datePaint, dateColumnWidth)
             val totalsLineHeight = PdfTextWrapper.lineHeight(totalsPaint)
             val dateLineHeight = PdfTextWrapper.lineHeight(datePaint)
-            val headerHeight = maxOf(totalsLines.size * totalsLineHeight, dateLines.size * dateLineHeight)
+            val headerHeight = maxOf(totalsLineHeight, dateLines.size * dateLineHeight)
             pageTop = maxOf(pageTop, headerHeight + 2 * titlePadding)
             val headerTop = (pageTop - headerHeight) / 2f
-            totalsLines.forEachIndexed { line, value ->
-                canvas.drawText(directed(value), right, headerTop - totalsPaint.fontMetrics.top + line * totalsLineHeight, totalsPaint)
-            }
+            canvas.drawText(directed(indexSummaryLabel), right, headerTop - totalsPaint.fontMetrics.top, totalsPaint)
             dateLines.forEachIndexed { line, value ->
                 canvas.drawText(directed(value), left, headerTop - datePaint.fontMetrics.top + line * dateLineHeight, datePaint)
             }
@@ -490,17 +489,27 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         }
     }
 
-    private suspend fun indexText(text: String, paint: Paint, documentLabel: String?) {
-        PdfTextWrapper.wrap(text, paint, right - left).forEach { line ->
-            if (y + PdfTextWrapper.lineHeight(paint) > bottom) newPage(documentLabel, index = true)
-            drawLine(line, paint)
+    /** Keep the complete header text on one line, reducing the current size by 1% per step. */
+    private fun singleLinePaint(text: String, source: Paint, availableWidth: Float): Paint {
+        val paint = Paint(source)
+        val value = directed(text)
+        while (paint.measureText(value) > availableWidth) {
+            paint.textSize *= 0.99f
         }
-        y += 2f
+        return paint
     }
 
-    private fun drawLine(text: String, paint: Paint) {
-        canvas.drawText(directed(text), right, y - paint.fontMetrics.top, paint)
-        y += PdfTextWrapper.lineHeight(paint)
+    private suspend fun indexRoster(text: String, documentLabel: String?) {
+        val basePaint = Paint(body).apply {
+            textSize = 14f
+            color = Color.BLACK
+            textAlign = Paint.Align.CENTER
+        }
+        val paint = singleLinePaint(text, basePaint, right - left)
+        val lineHeight = PdfTextWrapper.lineHeight(paint)
+        if (y + lineHeight > bottom) newPage(documentLabel, index = true)
+        canvas.drawText(directed(text), (left + right) / 2f, y - paint.fontMetrics.top, paint)
+        y += lineHeight + 2f
     }
 
     private fun directed(text: String): String = bidi.unicodeWrap(text, TextDirectionHeuristics.FIRSTSTRONG_LTR)
