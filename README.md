@@ -37,7 +37,7 @@ Token replacement: admin → [BotFather](https://t.me/BotFather) revoke/regenera
 
 ## Security and data handling
 
-Credentials/topics/key live in encrypted preferences, outside APK/Room/backups. Optional topics: blank means General. SQLCipher protects clinical Room; Android backup disabled. Join/backup files are password encrypted; share passwords separately.
+Credentials/topics/key live in encrypted preferences, outside APK/Room/backups. Optional topics: blank means General. SQLCipher protects clinical Room; Android backup disabled. Cosmetic display preferences use a separate app-private unencrypted store for startup styling. Join/backup files are password encrypted; share passwords separately.
 
 Optional AES-256-GCM protects Telegram bundles/tasks, doctors, pinned state and text documents; PDFs/captions/Telegram metadata deliberately readable. Keep protected join/password for key recovery; existing unencrypted projects retain their mode. Conversion/key rotation are not implemented.
 
