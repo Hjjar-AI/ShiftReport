@@ -70,7 +70,7 @@ Desktop fingerprint-bound AES-GCM before SQLite, DPAPI/Linux-passphrase keys and
 
 Design basis: Android adaptive/Compose accessibility, I-PASS,NHS warnings,WCAG2.2; rationale, not verification. Voice/templates remain deferred in Roadmap; unselected UI stays in [decisions](../decisions/android-ui-options.md).
 
-Startup renders the intro as `StorageAccessGate` loading content while encrypted access runs on IO. Only successful access constructs repository-backed content; failure remains explicit and never resets stored data. A remembered movable intro is reused under the saved theme after readiness, retaining entrance state and the original monotonic deadline. Tap skip cannot bypass the gate; if storage is still pending the intro remains until access resolves.
+Startup starts the retained monotonic splash deadline before `StorageAccessGate` runs encrypted access on IO. Only successful access constructs repository-backed content. ThemeViewModel then combines the first saved accent/appearance/text-size/UI-preference emissions before rendering the full intro; loading keeps only the launch background, avoiding a visible system/default-preference frame and later text reflow. Its eager retained bundle avoids a new loading phase on background/resume. Storage/preference failures stay explicit and retryable without resetting data. The splash deadline is never restarted or extended for loading: expiration before readiness proceeds directly to the app; visible-intro tap/hold/release and recreation behavior retain the existing owner.
 
 ### Permanent-admin handover
 
