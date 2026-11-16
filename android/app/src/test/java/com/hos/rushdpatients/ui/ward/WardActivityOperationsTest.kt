@@ -28,6 +28,9 @@ class WardActivityOperationsTest : ViewModelFixture() {
     private val context = mockk<Context>(relaxed = true)
     private val admin = mockk<AdminAuthorizer>()
     private val sync = mockk<SyncService>()
+    private val display = mockk<com.hos.rushdpatients.data.repository.DisplayPreferencesStore> {
+        coEvery { get() } returns com.hos.rushdpatients.ui.theme.ThemePreferences()
+    }
     private val settings = mockk<SettingsRepository>(relaxed = true)
     private val doctors = mockk<DoctorRepository>(relaxed = true)
     private val sessions = mockk<SessionManager>()
@@ -49,7 +52,7 @@ class WardActivityOperationsTest : ViewModelFixture() {
         coEvery { sync.getPublicationJournal() } returns listOf(entry)
     }
     @After fun releaseHistoryNetwork() { unmockkObject(NetworkStatus) }
-    private fun model() = keep(SettingsViewModel(text, context, settings, doctors, mockk(), mockk(relaxed = true),
+    private fun model() = keep(SettingsViewModel(text, context, settings, display, doctors, mockk(), mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), sessions, sync, publication, mockk(), mockk(),
         mockk(relaxed = true), mockk(), projects, mockk(), mockk(), admin, mockk(), SavedStateHandle()))
     private suspend fun settled(vm: SettingsViewModel) = withTimeout(5_000) {

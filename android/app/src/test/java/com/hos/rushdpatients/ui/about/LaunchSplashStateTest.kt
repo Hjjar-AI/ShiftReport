@@ -26,4 +26,34 @@ class LaunchSplashStateTest {
         val recreated = LaunchSplashState(showing, state.deadline)
         recreated.tick(); assertFalse(recreated.visible)
     }
+    @Test fun preferenceLoadingConsumesOriginalDeadlineWithoutGrantingExtraIntroTime() {
+        val state = LaunchSplashState(mutableStateOf(true), now + 3000L)
+        val deadline = state.deadline
+        // No intro text is composed while preferences are pending; the launch clock still advances.
+        now += 3500L
+        assertEquals(0L, state.tick())
+        assertFalse(state.visible)
+        assertEquals(deadline, state.deadline)
+    }
+    @Test fun releaseBeforeDeadlineKeepsIntroUntilOriginalExpiry() {
+        val state = LaunchSplashState(mutableStateOf(true), now + 3000L)
+        state.press(); now += 500L; state.release()
+        assertTrue(state.visible)
+        assertEquals(2500L, state.tick())
+        now += 2500L
+        state.tick()
+        assertFalse(state.visible)
+    }
+    @Test fun skippedIntroCannotReappearWhenPreferencesBecomeReady() {
+        val showing = mutableStateOf(true)
+        val state = LaunchSplashState(showing, now + 3000L)
+        state.skip()
+        now += 1000L
+        // Storage readiness/recreation reuses launch visibility and deadline.
+        val ready = LaunchSplashState(showing, state.deadline)
+        ready.tick(); ready.release()
+        assertFalse(ready.visible)
+        assertEquals(state.deadline, ready.deadline)
+    }
+
 }

@@ -2,6 +2,8 @@ package com.hos.rushdpatients.ui.report
 
 import com.hos.rushdpatients.config.*
 import com.hos.rushdpatients.data.repository.SettingsRepository
+import com.hos.rushdpatients.data.repository.DisplayPreferencesStore
+import com.hos.rushdpatients.ui.theme.*
 import com.hos.rushdpatients.domain.report.*
 import com.hos.rushdpatients.pdf.*
 import com.hos.rushdpatients.testutil.Fixtures
@@ -22,7 +24,9 @@ class ReportPdfWorkspaceTest {
         coEvery { getBoolean(any(), any()) } returns false
     }
     private val projects = mockk<ProjectConfigStore> { every { current() } returns ProjectConfig() }
-    private val workspace = ReportPdfWorkspace(text, mockk(), settings, projects, mockk(), mockk(), mockk())
+    private var selectedDisplay = ThemePreferences()
+    private val display = mockk<DisplayPreferencesStore> { coEvery { get() } answers { selectedDisplay } }
+    private val workspace = ReportPdfWorkspace(text, mockk(), settings, projects, mockk(), mockk(), mockk(), display)
     private val shift = Fixtures.shift()
     private val actor = Fixtures.doctor()
     private val built = BuiltReport(shift, listOf(Fixtures.patient()), listOf(actor), mapOf(actor.id to actor.fullName),
@@ -46,11 +50,11 @@ class ReportPdfWorkspaceTest {
         file.appendText("changed bytes")
         assertThrows(PdfReviewRequiredException::class.java) { runBlocking { workspace.checkedPdf(built) } }
     }
-    @Test fun `appearance or clinical changes invalidate the reviewed artifact`() = runBlocking<Unit> {
+    @Test fun `accent or clinical changes invalidate the reviewed artifact`() = runBlocking<Unit> {
         reviewed()
-        coEvery { settings.get(AppConstants.SETTING_APP_THEME) } returns com.hos.rushdpatients.ui.theme.AppThemePreset.SYSTEM.name
+        selectedDisplay = selectedDisplay.copy(preset = AppThemePreset.SYSTEM)
         assertThrows(PdfReviewRequiredException::class.java) { runBlocking { workspace.checkedPdf(built) } }
-        coEvery { settings.get(AppConstants.SETTING_APP_THEME) } returns null
+        selectedDisplay = ThemePreferences()
         assertThrows(ReportChangedSinceReviewException::class.java) { runBlocking {
             workspace.checkedPdf(built.copy(patients = listOf(built.patients.single().copy(labs = "new result"))))
         } }
@@ -63,6 +67,27 @@ class ReportPdfWorkspaceTest {
         val file = reviewed()
         coEvery { settings.get(AppConstants.SETTING_PDF_PAPER_SIZE) } returns PdfPaperSize.A4.name
         assertEquals(PdfPaperSize.A5, workspace.loadPdfOptions().paperSize)
+        assertEquals(file, workspace.checkedPdf(built))
+    }
+
+    @Test fun `PDF accent follows local choices rather than retained encrypted rows`() = runBlocking<Unit> {
+        selectedDisplay = ThemePreferences(preset = AppThemePreset.COASTAL)
+        coEvery { settings.get(AppConstants.SETTING_APP_THEME) } returns AppThemePreset.SYSTEM.name
+        assertEquals(AppThemePreset.COASTAL, workspace.loadPdfOptions().appTheme)
+        coVerify(exactly = 0) { settings.get(AppConstants.SETTING_APP_THEME) }
+    }
+    @Test fun `screen appearance font and spacing do not invalidate readable reviewed PDF`() = runBlocking<Unit> {
+        val file = reviewed()
+        selectedDisplay = selectedDisplay.copy(appearance = AppAppearance.AMOLED, fontScale = AppFontScale.EXTRA_LARGE,
+            uiPreferences = UiPreferences(density = UiDensity.RELAXED, reducedMotion = true))
+        assertEquals(file, workspace.checkedPdf(built))
+    }
+    @Test fun `local preference failure blocks delivery until saved choices are readable`() = runBlocking<Unit> {
+        val file = reviewed()
+        coEvery { display.get() } throws java.io.IOException("synthetic preferences unavailable")
+        assertThrows(java.io.IOException::class.java) { runBlocking { workspace.checkedPdf(built) } }
+        assertTrue(file.isFile)
+        coEvery { display.get() } answers { selectedDisplay }
         assertEquals(file, workspace.checkedPdf(built))
     }
 

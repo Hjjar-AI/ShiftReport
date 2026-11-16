@@ -43,6 +43,9 @@ class ReportPreviewViewModelTest {
     private var registry = emptyList<com.hos.rushdpatients.data.model.Doctor>()
     private val reports = mockk<ReportBuilder>()
     private val sender = mockk<ReportSender>(relaxed = true)
+    private val display = mockk<DisplayPreferencesStore> {
+        coEvery { get() } returns com.hos.rushdpatients.ui.theme.ThemePreferences()
+    }
     private val settings = mockk<SettingsRepository>()
     private val doctors = mockk<DoctorRepository>()
     private val shifts = mockk<ShiftRepository>()
@@ -83,7 +86,7 @@ class ReportPreviewViewModelTest {
         coEvery { sender.sendTextReport(any(), any(), any(), any()) } returns SendResult(listOf(20), 20, Fixtures.timestamp)
     }
     private fun viewModel() = ReportPreviewViewModel(text, SavedStateHandle(mapOf("shiftId" to shift.id)), context,
-        reports, TextReportBuilder(), sender, mockk(), cards, mockk(), saver, settings, doctors, shifts,
+        reports, TextReportBuilder(), sender, mockk(), cards, mockk(), saver, settings, display, doctors, shifts,
         mockk(), sessions, mockk(), sync, projects, ledger).also {
             modelJobs += requireNotNull(it.viewModelScope.coroutineContext[Job])
             store.put("report", it)

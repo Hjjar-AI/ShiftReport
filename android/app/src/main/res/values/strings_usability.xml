@@ -5,7 +5,7 @@
     <string name="sync_upload_data_only_hint">يحفظ بيانات المناوبة على الشبكة بعد المراجعة، دون إنشاء تقرير PDF أو إرساله.</string>
     <string name="delivery_exact_copy_required">الإذن المتاح يخص نسخة إضافية من التقرير نفسه فقط. راجع التقرير المأذون به أو احسم نتيجة تسليمه قبل إرسال محتوى مختلف.</string>
     <string name="sync_review_publish">مراجعة ونشر التعديلات</string>
-    <string name="sync_replace_fetch">استبدال نسختي بالنسخة المنشورة</string>
+    <string name="sync_replace_fetch">استبدل النسخة المنشورة بنسختي الحالية</string>
     <string name="sync_publish_confirm">نشر التعديلات</string>
     <string name="sync_older_admin_title">تأكيد المدير: جلب نسخة أقدم</string>
     <string name="sync_older_admin_confirm">استبدال مع الاحتفاظ بالتراجع</string>

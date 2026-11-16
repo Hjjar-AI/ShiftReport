@@ -67,6 +67,7 @@ abstract class ProductionUiFixture {
     protected var widthDp by mutableStateOf(360)
     protected var heightDp by mutableStateOf(900)
     protected var nativeWindow = false
+    private lateinit var display: com.hos.rushdpatients.data.repository.DisplayPreferencesStore
     private lateinit var text: UiStrings
     private lateinit var ledger: ReportDeliveryLedger
     private lateinit var sender: ReportSender
@@ -85,6 +86,9 @@ abstract class ProductionUiFixture {
     }
     @Before fun openIsolatedUi() = runBlocking<Unit> {
         client = IndependentClient("ui", server); client.initialize(); client.seedPatient()
+        display = com.hos.rushdpatients.data.repository.DisplayPreferencesStore(client.context)
+        display.initialize { com.hos.rushdpatients.ui.theme.ThemePreferences() }
+        check(display.state.value.preferences != null) { "Synthetic display preferences failed to initialize" }
         val enrolled = client.actor.copy(extraOptions = setOf("pin:" + PasswordHasher().hash("2468")))
         client.doctors.upsert(enrolled)
         LocalPinLoginManager(client.doctors, client.settings, PasswordHasher(), client.dispatchers, client.db)
@@ -173,13 +177,13 @@ abstract class ProductionUiFixture {
         val classic = PdfReportExporter(client.context)
         return ReportPreviewViewModel(text, SavedStateHandle(mapOf("shiftId" to id)), client.context, client.reports,
             TextReportBuilder(), sender, classic, PdfCardsExporter(classic), PdfAssignmentExporter(client.authorizer, PdfAssignmentRenderer(client.context)),
-            MediaStoreSaver(), client.settings, client.doctors, client.shifts, client.wardMutations, client.sessions,
+            MediaStoreSaver(), client.settings, display, client.doctors, client.shifts, client.wardMutations, client.sessions,
             client.authorizer, client.sync, client.projects, ledger)
     }
     private fun doctorsModel() = DoctorsViewModel(text, client.context, client.doctors, client.settings,
         client.doctorMutations, client.audit, client.sync, client.authorizer,
         PendingExportStore(client.context, client.dispatchers), SavedStateHandle())
-    private fun settingsModel() = SettingsViewModel(text, client.context, client.settings, client.doctors, client.doctorMutations,
+    private fun settingsModel() = SettingsViewModel(text, client.context, client.settings, display, client.doctors, client.doctorMutations,
         client.shifts, client.patients, client.cursors, client.sessions, client.sync,
         PatientPublicationStatus(client.shifts, client.patients, client.doctors, client.settings, client.dispatchers),
         EmptyStartCoordinator(client.context, client.db, client.settings, client.shifts, client.cursors, client.audit,

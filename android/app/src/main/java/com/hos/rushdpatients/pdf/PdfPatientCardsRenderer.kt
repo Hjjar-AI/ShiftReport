@@ -26,7 +26,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
     private val bottomMargin = 8f * 72f / 25.4f
     private val padding = 5f
     private val titlePadding = 2f
-    private val navigationPadding = 2f
+    private val navigationPadding = 5f
     private val navigationInset = 2f
     private val gap = 4f
     private val sectionColumnGap = 8f
@@ -469,7 +469,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         val centerY = (cardBottom + height) / 2f
         val navTop = centerY - buttonHeight / 2f
         val navBottom = centerY + buttonHeight / 2f
-        val buttonWidth = labels.maxOf { navigation.measureText(directed(it)) } + 24f
+        val buttonWidth = labels.maxOf { navigation.measureText(directed(it)) } + 40f
         val buttonGap = 20f
         val groupRight = width / 2f + (3 * buttonWidth + 2 * buttonGap) / 2f
         return labels.mapIndexed { index, label ->

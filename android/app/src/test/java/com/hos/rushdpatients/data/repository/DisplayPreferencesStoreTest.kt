@@ -140,10 +140,14 @@ class DisplayPreferencesStoreTest {
                 store.initialize { reads.incrementAndGet(); entered.complete(Unit); release.await(); selected }
             }
             entered.await()
+            val secondStarted = CompletableDeferred<Unit>()
             val second = async {
+                secondStarted.complete(Unit)
                 store.initialize { reads.incrementAndGet(); ThemePreferences() }
             }
             try {
+                secondStarted.await()
+                assertNull(store.state.value.preferences)
                 release.complete(Unit)
                 awaitAll(first, second)
                 assertEquals(1, reads.get())
