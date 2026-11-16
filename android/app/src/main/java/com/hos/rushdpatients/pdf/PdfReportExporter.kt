@@ -452,12 +452,7 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
         maxWidth: Float
     ) {
         val directed = autoDirection(text)
-        val originalSize = paint.textSize
-        val measuredWidth = paint.measureText(directed)
-        if (measuredWidth > maxWidth && measuredWidth > 0f) {
-            paint.textSize = (originalSize * maxWidth / measuredWidth).coerceAtLeast(5.5f)
-        }
-        canvas.drawText(directed, centerX, baseline, paint)
-        paint.textSize = originalSize
+        val fittedPaint = PdfTextFitter.singleLine(directed, paint, maxWidth, minimumSize = 5.5f)
+        canvas.drawText(directed, centerX, baseline, fittedPaint)
     }
 }

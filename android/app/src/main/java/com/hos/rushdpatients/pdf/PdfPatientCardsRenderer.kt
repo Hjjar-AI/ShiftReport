@@ -130,22 +130,15 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 // Fill each RTL column downward before advancing to the next column.
                 repeat(count) { offset ->
                     val patient = patients[firstPatient + offset]
-                    val text = "${patient.sortOrder} • ${patient.displayName}"
-                    val paint = Paint(heading).apply { textSize = 15f }
+                    // RTL mirrors this separator to the selected visible opening parenthesis.
+                    val text = "${patient.sortOrder}) ${patient.displayName}"
+                    val basePaint = Paint(heading).apply { textSize = 15f }
                     val availableWidth = tileWidth - 2 * tilePadding
                     val availableHeight = rowHeight - 2 * tilePadding
-                    fun fits(): Boolean = PdfTextWrapper.wrap(text, paint, availableWidth).size *
+                    fun fits(paint: Paint): Boolean = PdfTextWrapper.wrap(text, paint, availableWidth).size *
                         PdfTextWrapper.lineHeight(paint) <= availableHeight
-                    if (!fits()) {
-                        var low = 1f
-                        var high = 15f
-                        repeat(18) {
-                            paint.textSize = (low + high) / 2f
-                            if (fits()) low = paint.textSize else high = paint.textSize
-                        }
-                        paint.textSize = low
-                    }
-                    check(fits()) { "اسم المريض أطول من مساحة خلية الفهرس" }
+                    val paint = PdfTextFitter.fit(basePaint, minimumSize = 1f, fits = ::fits)
+                    check(fits(paint)) { "اسم المريض أطول من مساحة خلية الفهرس" }
                     val wrapped = PdfTextWrapper.wrap(text, paint, availableWidth)
                     val column = offset / rows
                     val top = gridTop + (offset % rows) * (rowHeight + 1f)
@@ -198,14 +191,21 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 // RTL introduction: patient identity, admission, responsible team.
                 val columnGap = 6f
                 val columnWidth = (right - left - 2 * columnGap) / 3f
+                val teamNames = listOfNotNull(
+                    patient.responsibleSpecialistId?.let(supervisorNames::get)?.takeIf(String::isNotBlank),
+                    patient.responsibleResidentId?.let(residentNames::get)?.takeIf(String::isNotBlank)
+                ).map { it.replace('\n', ' ').replace('\r', ' ') }
                 val introColumns = listOf(
-                    Triple("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames, roleSeparator = "\n"), left + columnWidth),
+                    Triple("الفريق المسؤول", teamNames.joinToString("\n"), left + columnWidth),
                     Triple("القبول",
                         PdfPatientContent.buildAdmitCell(patient, summary.shiftDate, includeNumber = false,
                             dayLabel = "يوم إقامة"), left + 2 * columnWidth + columnGap),
                     Triple("بيانات المريض", PdfPatientContent.buildPatientCell(patient, includeName = false, reportDate = summary.shiftDate), right)
                 )
-                val introLines = introColumns.map { PdfTextWrapper.wrap(it.second, body, columnWidth) }
+                val introLines = introColumns.mapIndexed { column, value ->
+                    if (column == 0) teamNames else PdfTextWrapper.wrap(value.second, body, columnWidth)
+                }
+                val teamPaints = teamNames.map { PdfTextFitter.singleLine(directed(it), body, columnWidth) }
                 val admissionPaint = Paint(heading).apply { color = body.color }
                 val admissionNumber = patient.admittanceNumber
                 val admissionOffset = heading.measureText(directed("القبول")) + heading.measureText(" ")
@@ -242,7 +242,8 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     }
                     introLines.forEachIndexed { column, lines ->
                         lines.getOrNull(lineIndex)?.let { line ->
-                            canvas.drawText(directed(line), introColumns[column].third, y - body.fontMetrics.top, body)
+                            val paint = if (column == 0) teamPaints[lineIndex] else body
+                            canvas.drawText(directed(line), introColumns[column].third, y - paint.fontMetrics.top, paint)
                         }
                     }
                     y += lineHeight
@@ -430,7 +431,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             val datePaint = Paint(heading).apply { textSize = 16f; textAlign = Paint.Align.LEFT }
             val dateColumnWidth = (right - left - gap) / 3f
             val totalsColumnWidth = right - left - gap - dateColumnWidth
-            val totalsPaint = singleLinePaint(indexSummaryLabel, totalsBasePaint, totalsColumnWidth)
+            val totalsPaint = PdfTextFitter.singleLine(directed(indexSummaryLabel), totalsBasePaint, totalsColumnWidth)
             val dateLines = PdfTextWrapper.wrap(shiftDateLabel, datePaint, dateColumnWidth)
             val totalsLineHeight = PdfTextWrapper.lineHeight(totalsPaint)
             val dateLineHeight = PdfTextWrapper.lineHeight(datePaint)
@@ -452,9 +453,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             listOfNotNull(documentLabel, "ShiftReport", "${pageIndex + 1}/$pageTotal", generatedLabel).joinToString(" • ")
         } else documentLabel?.takeIf { it.isNotBlank() }
         if (label != null) {
-            val labelPaint = Paint(footer)
-            val textWidth = labelPaint.measureText(directed(label))
-            if (textWidth > width - 2 * margin) labelPaint.textSize *= (width - 2 * margin) / textWidth
+            val labelPaint = PdfTextFitter.singleLine(directed(label), footer, width - 2 * margin)
             val centerY = if (index) height - bottomMargin / 2f else pageTop / 2f
             val baseline = centerY - (labelPaint.fontMetrics.top + labelPaint.fontMetrics.bottom) / 2f
             canvas.drawText(directed(label), width / 2f, baseline, labelPaint)
@@ -489,23 +488,13 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         }
     }
 
-    /** Keep the complete header text on one line, reducing the current size by 1% per step. */
-    private fun singleLinePaint(text: String, source: Paint, availableWidth: Float): Paint {
-        val paint = Paint(source)
-        val value = directed(text)
-        while (paint.measureText(value) > availableWidth) {
-            paint.textSize *= 0.99f
-        }
-        return paint
-    }
-
     private suspend fun indexRoster(text: String, documentLabel: String?) {
         val basePaint = Paint(body).apply {
             textSize = 14f
             color = Color.BLACK
             textAlign = Paint.Align.CENTER
         }
-        val paint = singleLinePaint(text, basePaint, right - left)
+        val paint = PdfTextFitter.singleLine(directed(text), basePaint, right - left)
         val lineHeight = PdfTextWrapper.lineHeight(paint)
         if (y + lineHeight > bottom) newPage(documentLabel, index = true)
         canvas.drawText(directed(text), (left + right) / 2f, y - paint.fontMetrics.top, paint)
