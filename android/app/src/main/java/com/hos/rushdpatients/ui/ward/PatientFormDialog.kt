@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +35,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDirection
 import com.hos.rushdpatients.data.model.DiagnosisType
@@ -66,6 +70,7 @@ internal fun PatientFormDialog(
     saving: Boolean,
     draftWarning: String? = null,
     reviewAction: @Composable () -> Unit = {},
+    saveHint: String? = null,
     entryOptions: @Composable () -> Unit = {},
     entryOptionsSummary: String? = null,
     onDraftChanged: (PatientDraft) -> Unit = {},
@@ -243,22 +248,24 @@ internal fun PatientFormDialog(
     CompositionLocalProvider(LocalFieldEnabled provides !saving) {
         WardFormDialog(
             onDismissRequest = requestDismiss,
+            containerColor = MaterialTheme.colorScheme.background,
             title = {
-                Column {
-                    Text(text = title, style = MaterialTheme.typography.titleSmall)
+                Column(Modifier.fillMaxWidth().padding(vertical = UiSpacing.screen),
+                    verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                    FlowRow(Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                        Text(text = title, style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.semantics { heading() })
+                        Column(Modifier.padding(top = UiSpacing.small), horizontalAlignment = Alignment.End) {
+                            reviewAction()
+                        }
+                    }
                     val patientHeading = savedBaseline?.name?.takeIf(String::isNotBlank)
                         ?: name.takeIf(String::isNotBlank)
                     patientHeading?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium,
+                        Text(it, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium,
                             fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
-                    }
-                    reviewAction()
-                    if (hasUnsavedChanges) {
-                        Text(
-                            uiText(R.string.ui_patient_form_dialog_002),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
                     }
                 }
             },
@@ -382,6 +389,7 @@ internal fun PatientFormDialog(
                     if (advance) onConfirmAndNext?.invoke(patient) else onConfirm(patient)
                 }
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                    saveHint?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     Text(if (saving) uiText(R.string.ui_patient_form_dialog_033) else if (hasUnsavedChanges)
                         uiText(R.string.ui_patient_form_dialog_034) else uiText(R.string.ui_patient_form_dialog_035),
                         style = MaterialTheme.typography.labelSmall,

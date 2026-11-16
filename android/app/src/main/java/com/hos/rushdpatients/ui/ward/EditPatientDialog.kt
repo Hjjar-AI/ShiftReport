@@ -60,11 +60,10 @@ internal fun EditPatientDialog(
             roundsNavigation?.let { navigation ->
                 Text(uiText(R.string.ui_patient_rounds_navigation_002, com.hos.rushdpatients.ui.components.uiNumber(navigation.index + 1), com.hos.rushdpatients.ui.components.uiNumber(navigation.total)),
                     style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-                if (navigation.nextId == null) Text(uiText(R.string.ui_edit_patient_dialog_003),
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
             }
 
         },
+        saveHint = roundsNavigation?.takeIf { it.nextId == null }?.let { uiText(R.string.ui_edit_patient_dialog_003) },
         onDraftChanged = { onDraftChanged(patient.id, it) },
         onConfirm = { submit(it, false) },
         onConfirmAndNext = if (onConfirmAndNext == null) null else { draft -> submit(draft, true) },

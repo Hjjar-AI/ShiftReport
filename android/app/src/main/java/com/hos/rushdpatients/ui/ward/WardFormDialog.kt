@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.ui.window.DialogProperties
 
@@ -27,11 +29,13 @@ internal fun WardFormDialog(
     title: @Composable () -> Unit,
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit,
-    dismissButton: @Composable () -> Unit
+    dismissButton: @Composable () -> Unit,
+    containerColor: Color = MaterialTheme.colorScheme.surface
 ) {
     val uiText = rememberUiStrings()
     WardFullscreenDialog(
         title = uiText(R.string.ui_ward_form_dialog_001), onDismissRequest = onDismissRequest,
+        containerColor = containerColor,
         properties = DialogProperties(usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false, dismissOnClickOutside = false)
     ) {

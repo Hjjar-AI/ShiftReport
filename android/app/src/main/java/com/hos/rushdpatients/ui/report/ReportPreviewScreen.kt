@@ -23,6 +23,7 @@ import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiSpacing
+import com.hos.rushdpatients.ui.theme.uiListGap
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppSection
@@ -295,7 +296,7 @@ internal fun ReportWorkspace(
                     .padding(UiSpacing.screen)
                     .appContentEntrance(step, ContentEntrance.REPORT_STEP, step.ordinal)
                     .verticalScroll(contentScroll),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+                verticalArrangement = Arrangement.spacedBy(uiListGap())
             ) {
                 if (step == ReportFlowStep.DOCTORS) {
                     ReportDoctorSummary(
