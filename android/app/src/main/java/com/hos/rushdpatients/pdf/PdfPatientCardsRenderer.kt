@@ -109,7 +109,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         val cardPages = mutableListOf<CardPage>()
         try {
             newPage(documentLabel, index = true)
-            val metadataPaint = Paint(body).apply { textSize = 13f }
+            val metadataPaint = Paint(body).apply { textSize = 14f; color = Color.BLACK }
             if (doctors.isNotEmpty()) ReportRosterLabel.linesForDoctors(doctors, " / ").forEach { line ->
                 indexText(line, metadataPaint, documentLabel)
             }
@@ -327,13 +327,14 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 val visibleSections = orderedSections.filter { it.alwaysShow || it.text.isNotBlank() }
                 suspend fun drawPanelColumns(panels: List<Section>) {
                     val cellWidth = (right - left - sectionColumnGap) / 2f
-                    val panelLineHeight = PdfTextWrapper.lineHeight(body)
+                    val panelBody = Paint(body).apply { color = Color.BLACK }
+                    val panelLineHeight = PdfTextWrapper.lineHeight(panelBody)
                     val panelGap = 3f
                     val columnY = floatArrayOf(y, y)
                     var column = 0
                     val panelRule = Paint(outline).apply { color = 0xFF7E8B9C.toInt(); strokeWidth = .5f }
                     panels.forEach { section ->
-                        val lines = if (section.text.isBlank()) emptyList() else PdfTextWrapper.wrap(section.text, body, cellWidth)
+                        val lines = if (section.text.isBlank()) emptyList() else PdfTextWrapper.wrap(section.text, panelBody, cellWidth)
                         var offset = 0
                         var first = true
                         while (first || offset < lines.size) {
@@ -370,7 +371,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                             check(offset == lines.size || take > 0) { "لا توجد مساحة لعرض المحتوى" }
                             repeat(take) { index ->
                                 canvas.drawText(directed(lines[offset + index]), end,
-                                    top + labelHeight + index * panelLineHeight - body.fontMetrics.top, body)
+                                    top + labelHeight + index * panelLineHeight - panelBody.fontMetrics.top, panelBody)
                             }
                             offset += take
                             columnY[column] = top + labelHeight + take * panelLineHeight + panelGap
@@ -424,8 +425,8 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         fill.color = palette.pageBackground
         var pageTop = if (index) 10f * 72f / 25.4f else topMargin
         if (index) {
-            val totalsPaint = Paint(heading).apply { textSize = 13f }
-            val datePaint = Paint(heading).apply { textSize = 15f; textAlign = Paint.Align.LEFT }
+            val totalsPaint = Paint(heading).apply { textSize = 14f }
+            val datePaint = Paint(heading).apply { textSize = 16f; textAlign = Paint.Align.LEFT }
             val dateColumnWidth = (right - left - gap) / 3f
             val totalsColumnWidth = right - left - gap - dateColumnWidth
             val totalsLines = PdfTextWrapper.wrap(indexSummaryLabel, totalsPaint, totalsColumnWidth)
@@ -468,8 +469,8 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         val centerY = (cardBottom + height) / 2f
         val navTop = centerY - buttonHeight / 2f
         val navBottom = centerY + buttonHeight / 2f
-        val buttonWidth = labels.maxOf { navigation.measureText(directed(it)) } + 12f
-        val buttonGap = 6f
+        val buttonWidth = labels.maxOf { navigation.measureText(directed(it)) } + 24f
+        val buttonGap = 20f
         val groupRight = width / 2f + (3 * buttonWidth + 2 * buttonGap) / 2f
         return labels.mapIndexed { index, label ->
             val end = groupRight - index * (buttonWidth + buttonGap)
