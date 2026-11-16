@@ -8,7 +8,11 @@ import java.time.Instant
 import java.time.LocalDate
 
 class PatientValidatorTest {
-    private fun errors(patient: Patient) = (PatientValidator.validate(patient) as PatientValidationResult.Invalid).errors
+    private fun errors(patient: Patient): List<PatientValidationError> {
+        val result = PatientValidator.validate(patient)
+        assertTrue("Expected invalid patient, got $result", result is PatientValidationResult.Invalid)
+        return (result as PatientValidationResult.Invalid).errors
+    }
     @Test fun `complete unassigned patient and unassigned task are valid`() {
         assertEquals(PatientValidationResult.Valid,
             PatientValidator.validate(Fixtures.patient().copy(tasks = listOf(Fixtures.task()))))
@@ -18,11 +22,13 @@ class PatientValidatorTest {
             admittanceNumber = "", initialDiagnosis = "", treatmentPlan = "", followUp = "")))
     }
     @Test fun `optional birth date is accepted but future and overage dates fail`() {
-        listOf(LocalDate.now().plusDays(1), LocalDate.now().minusYears(121)).forEach {
+        val today = LocalDate.now()
+        listOf(today.plusDays(1), today.minusYears(121)).forEach {
             assertTrue(errors(Fixtures.patient().copy(birthDate = it)).contains(PatientValidationError.BIRTH_DATE_INVALID))
         }
         assertEquals(PatientValidationResult.Valid, PatientValidator.validate(Fixtures.patient().copy(birthDate = null)))
-        assertEquals(PatientValidationResult.Valid, PatientValidator.validate(Fixtures.patient().copy(birthDate = LocalDate.now())))
+        assertEquals(PatientValidationResult.Valid, PatientValidator.validate(Fixtures.patient().copy(birthDate = today)))
+        assertEquals(PatientValidationResult.Valid, PatientValidator.validate(Fixtures.patient().copy(birthDate = today.minusYears(120))))
     }
     @Test fun `future admission equal team and malformed tasks fail`() {
         val patient = Fixtures.patient(admittanceDate = LocalDate.now().plusDays(1),

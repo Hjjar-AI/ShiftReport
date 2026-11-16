@@ -26,7 +26,7 @@ object PatientValidator {
             errors += PatientValidationError.ADMITTANCE_DATE_INVALID
         }
 
-        val age = patient.age
+        val age = patient.ageOn(today)
         if (patient.birthDate != null && (patient.birthDate.isAfter(today) || age == null || age !in 0..120)) {
             errors += PatientValidationError.BIRTH_DATE_INVALID
         }
