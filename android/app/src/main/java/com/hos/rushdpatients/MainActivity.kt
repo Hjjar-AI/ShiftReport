@@ -9,8 +9,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -34,15 +37,7 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             val splash = com.hos.rushdpatients.ui.about.rememberLaunchSplashState()
-            // The deadline starts now, but the full intro waits for encrypted display preferences.
-            RushdPatientsTheme(appearance = AppAppearance.SYSTEM) {
-                AppSystemBars()
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        com.hos.rushdpatients.ui.StorageAccessGate(loading = {}) { AppContent(splash) }
-                    }
-                }
-            }
+            AppContent(splash)
         }
     }
 }
@@ -54,20 +49,8 @@ private fun MainActivity.AppContent(
     val themeViewModel: ThemeViewModel = hiltViewModel()
     val themeState by themeViewModel.state.collectAsStateWithLifecycle()
     val preferences = themeState.preferences
-    if (preferences == null) {
-        if (themeState.loadFailed) {
-            val uiText = com.hos.rushdpatients.ui.components.rememberUiStrings()
-            com.hos.rushdpatients.ui.components.AppCenteredContent {
-                com.hos.rushdpatients.ui.components.AppNotice(uiText(R.string.startup_display_preferences_failed),
-                    kind = com.hos.rushdpatients.ui.components.NoticeKind.ERROR)
-                com.hos.rushdpatients.ui.components.AppButton(onClick = themeViewModel::retry) {
-                    androidx.compose.material3.Text(uiText(R.string.ui_retry))
-                }
-            }
-        }
-        return
-    }
-    val fontScale = preferences.fontScale
+    val intro = remember(splash) { movableContentOf { LaunchIntro(splash) } }
+    val fontScale = preferences?.fontScale ?: com.hos.rushdpatients.ui.theme.AppFontScale.NORMAL
 
     val baseDensity = LocalDensity.current
     // Only fontScale changes; density (px per dp) stays as the system set it.
@@ -80,8 +63,9 @@ private fun MainActivity.AppContent(
         )
     }
 
-    RushdPatientsTheme(preset = preferences.preset, appearance = preferences.appearance,
-        uiPreferences = preferences.uiPreferences) {
+    RushdPatientsTheme(preset = preferences?.preset ?: com.hos.rushdpatients.ui.theme.AppThemePreset.VANILLA,
+        appearance = preferences?.appearance ?: AppAppearance.SYSTEM,
+        uiPreferences = preferences?.uiPreferences ?: com.hos.rushdpatients.ui.theme.UiPreferences()) {
         AppSystemBars()
         CompositionLocalProvider(
             LocalLayoutDirection provides LayoutDirection.Rtl,
@@ -91,8 +75,34 @@ private fun MainActivity.AppContent(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                if (splash.visible) LaunchIntro(splash) else WardAppRoot(activity = this@AppContent)
+                com.hos.rushdpatients.ui.StorageAccessGate(loading = {
+                    if (preferences != null && splash.visible) intro()
+                }) {
+                    val application = LocalContext.current.applicationContext
+                    LaunchedEffect(themeState.needsInitialization) {
+                        if (themeState.needsInitialization) {
+                            val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                                application, com.hos.rushdpatients.ui.StorageAccessEntryPoint::class.java)
+                            themeViewModel.initializeFrom(entryPoint.settingsRepository())
+                        }
+                    }
+                    if (preferences != null) {
+                        if (splash.visible) intro() else WardAppRoot(activity = this@AppContent)
+                    } else if (themeState.loadFailed) DisplayPreferencesFailure(themeViewModel::retry)
+                }
             }
+        }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun DisplayPreferencesFailure(onRetry: () -> Unit) {
+    val uiText = com.hos.rushdpatients.ui.components.rememberUiStrings()
+    com.hos.rushdpatients.ui.components.AppCenteredContent {
+        com.hos.rushdpatients.ui.components.AppNotice(uiText(R.string.startup_display_preferences_failed),
+            kind = com.hos.rushdpatients.ui.components.NoticeKind.ERROR)
+        com.hos.rushdpatients.ui.components.AppButton(onClick = onRetry) {
+            androidx.compose.material3.Text(uiText(R.string.ui_retry))
         }
     }
 }

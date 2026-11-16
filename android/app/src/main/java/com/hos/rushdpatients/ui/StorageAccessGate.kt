@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 internal interface StorageAccessEntryPoint {
     fun projectConfigStore(): ProjectConfigStore
     fun sessionManager(): SessionManager
+    fun settingsRepository(): com.hos.rushdpatients.data.repository.SettingsRepository
 }
 
 /** Resolve encrypted storage before any repository-backed ViewModel is constructed. */
