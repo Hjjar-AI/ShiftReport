@@ -10,10 +10,11 @@ Active clients are `android/` and `web/`; `iphone/` contains an initial dummy-on
 
 ## Hosted Android Actions evidence
 
-Owner-run evidence on15November2026; repeated API/build executions add no unique case coverage:
+Owner-run evidence on15–16November2026; repeated API/build executions add no unique case coverage:
 
 | Run / source | Confirmed result / limit |
 |---|---|
+| [03 /43813849526](https://github.com/Hjjar-AI/ShiftReport/actions/runs/43813849526), `aa6e0e8` | `jvm`:99 XML suites,1,278 cases; zero failures/errors/skips. Includes the22 added cosmetic-preference JVM cases and all five `PatientValidatorTest` cases; confirms the calendar-age validation repair. Live bootstrap excluded; no device/instrumentation or live acceptance. Evidence: `local/verification/github-run-43813849526/`; original failed run43812683453 retained. |
 | [03 /43736353455](https://github.com/Hjjar-AI/ShiftReport/actions/runs/43736353455), `a227ab8` | `jvm`:97 XML suites,1,256 unique cases; zero failures/errors/skips. Includes404 parameter rows; live bootstrap excluded. Android production/test sources are unchanged by the subsequent helper repairs, so this pass remains valid. |
 | [07 /43738878831](https://github.com/Hjjar-AI/ShiftReport/actions/runs/43738878831), `98b94fc`, API35 |59/59 selected methods passed, zero skips; exact selection matched the result records. Startup/demo/large-text PNGs and short video produced; installed APK bytes matched and owned package cleanup confirmed without errors. This is automated evidence, not human visual/accessibility or installed-update acceptance. |
 | Same07 run, API23 | App/instrumentation builds and emulator boot passed; sole-user ownership verification rejected the user-list output before capture or any selected case. Safe ownership/phase diagnostics are retained; no API23 device pass. Original raw user-list output was not retained. |
