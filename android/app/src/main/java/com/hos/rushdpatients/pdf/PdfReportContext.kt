@@ -17,6 +17,6 @@ internal object PdfReportContext {
         if (includeShiftDate) listOf("تاريخ المناوبة: ${summary.shiftDate}") else emptyList()
 
     fun createdAt(options: PdfExportOptions): String =
-        "أُنشئ في: " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z", Locale("ar"))
+        "أُنشئ في: " + DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a", Locale.ENGLISH)
             .format(Instant.ofEpochMilli(options.generatedAtEpochMillis).atZone(ZoneId.systemDefault()))
 }

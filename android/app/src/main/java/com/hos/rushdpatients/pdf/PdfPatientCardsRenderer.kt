@@ -437,7 +437,9 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             val dateLineHeight = PdfTextWrapper.lineHeight(datePaint)
             val headerHeight = maxOf(totalsLineHeight, dateLines.size * dateLineHeight)
             pageTop = maxOf(pageTop, headerHeight + 2 * titlePadding)
-            val headerTop = (pageTop - headerHeight) / 2f
+            val headerTopGap = topMargin * 2f / 3f
+            val headerTop = (pageTop - headerHeight) / 2f + headerTopGap
+            pageTop += headerTopGap
             canvas.drawText(directed(indexSummaryLabel), right, headerTop - totalsPaint.fontMetrics.top, totalsPaint)
             dateLines.forEachIndexed { line, value ->
                 canvas.drawText(directed(value), left, headerTop - datePaint.fontMetrics.top + line * dateLineHeight, datePaint)
@@ -450,7 +452,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         footer.color = palette.text
         // Patient pages omit footer metadata; DEMO/DRAFT labels stay above every card.
         val label = if (index) {
-            listOfNotNull(documentLabel, "ShiftReport", "${pageIndex + 1}/$pageTotal", generatedLabel).joinToString(" • ")
+            listOfNotNull(documentLabel, generatedLabel).joinToString(" • ")
         } else documentLabel?.takeIf { it.isNotBlank() }
         if (label != null) {
             val labelPaint = PdfTextFitter.singleLine(directed(label), footer, width - 2 * margin)
