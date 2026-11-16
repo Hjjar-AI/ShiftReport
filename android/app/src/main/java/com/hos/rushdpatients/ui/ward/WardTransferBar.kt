@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.hos.rushdpatients.ui.components.AppIcons
+import com.hos.rushdpatients.ui.components.ButtonEmblem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -58,8 +58,7 @@ private fun TransferAction(label: String, icon: ImageVector, enabled: Boolean, o
                 onOpen()
             }).heightIn(min = UiSpacing.touchTarget).padding(UiSpacing.small),
             contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null,
-                modifier = Modifier.matchParentSize(),
+            ButtonEmblem(icon,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = if (enabled) 0.10f else 0.06f))
             Text(label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium)

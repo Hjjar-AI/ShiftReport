@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.hos.rushdpatients.ui.theme.UiBorder
 import com.hos.rushdpatients.ui.theme.UiLayout
-import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 data class AppTabItem(
@@ -57,9 +56,9 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                         .padding(vertical = UiSpacing.tiny, horizontal = UiSpacing.small),
                         contentAlignment = Alignment.Center) {
                         (if (selected) item.selectedIcon else item.icon)?.let { icon ->
-                            Icon(icon, contentDescription = null,
+                            ButtonEmblem(icon,
                                 tint = color.copy(alpha = if (selected) 0.10f else 0.07f),
-                                modifier = Modifier.size(UiSize.iconXl).graphicsLayer { scaleX = iconScale; scaleY = iconScale })
+                                modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale })
                         }
                         Text(item.label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = color,
                             style = MaterialTheme.typography.labelMedium,

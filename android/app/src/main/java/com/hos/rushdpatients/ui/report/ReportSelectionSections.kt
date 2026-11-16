@@ -33,7 +33,11 @@ internal fun ReportDoctorSummary(
             onClick = onSelectDoctors,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_022) else uiText(R.string.ui_report_preview_screen_023)) }
+        ) {
+            ButtonEmblemContent(AppIcons.Groups, enabled) {
+                Text(if (doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_022) else uiText(R.string.ui_report_preview_screen_023))
+            }
+        }
     }
 }
 

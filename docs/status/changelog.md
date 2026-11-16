@@ -4,6 +4,7 @@
 
 | Date | Changes |
 |---|---|
+| 16 Nov 2026 | Moved all faded button/tab emblems to physical bottom-left through a shared24dp decorative component: report Sort, Home transfer actions and bottom navigation; centered labels, tint/disabled states, navigation animations and actions retained. Owner cancelled the in-flight APK build during Kotlin compilation; exit130, no remaining Java processes, unchanged version/no new export. Retained cancellation evidence. Source integrity/whitespace checks only after emblem edits; no build restart/tests/device run. |
 | 16 Nov 2026 | Increased Android A5 index header/shift-doctor text by1pt: totals14pt, date16pt and roster14pt; roster values also explicitly use pure black. Existing measured wrapping/header height and roster pagination follow the new metrics; index patient-name tiles unchanged. Source integrity/whitespace checks only; no build/tests/PDF rendering. |
 | 16 Nov 2026 | Widened Android A5 patient-card footer buttons by12pt each and increased gaps from6pt to20pt, keeping the group centered, existing height/12pt labels, rounded styling and full-button links on patient/continuation pages. Source integrity/whitespace checks only; no build/tests/PDF rendering. |
 | 16 Nov 2026 | Made Android A5 clinical-panel values pure black below patient-card demographics: diagnosis, treatment, follow-up, labs and tasks. Previous value color was dark blue-gray, so regular weight/14pt metrics remain. Demographics/badges/headings/index paints unchanged. Source integrity/whitespace checks only; no build/tests/PDF rendering. |
