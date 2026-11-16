@@ -437,7 +437,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
             val dateLineHeight = PdfTextWrapper.lineHeight(datePaint)
             val headerHeight = maxOf(totalsLineHeight, dateLines.size * dateLineHeight)
             pageTop = maxOf(pageTop, headerHeight + 2 * titlePadding)
-            val headerTopGap = topMargin * 2f / 3f
+            val headerTopGap = topMargin
             val headerTop = (pageTop - headerHeight) / 2f + headerTopGap
             pageTop += headerTopGap
             canvas.drawText(directed(indexSummaryLabel), right, headerTop - totalsPaint.fontMetrics.top, totalsPaint)
