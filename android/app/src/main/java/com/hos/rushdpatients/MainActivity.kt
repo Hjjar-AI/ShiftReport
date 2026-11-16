@@ -9,7 +9,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.movableContentOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -35,14 +34,12 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             val splash = com.hos.rushdpatients.ui.about.rememberLaunchSplashState()
-            // Keep one intro composition as storage becomes ready and saved appearance is applied.
-            val intro = remember(splash) { movableContentOf { LaunchIntro(splash) } }
-            // Encrypted appearance preferences become readable only after this gate succeeds.
+            // The deadline starts now, but the full intro waits for encrypted display preferences.
             RushdPatientsTheme(appearance = AppAppearance.SYSTEM) {
                 AppSystemBars()
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        com.hos.rushdpatients.ui.StorageAccessGate(loading = intro) { AppContent(splash, intro) }
+                        com.hos.rushdpatients.ui.StorageAccessGate(loading = {}) { AppContent(splash) }
                     }
                 }
             }
@@ -52,14 +49,25 @@ class MainActivity : FragmentActivity() {
 
 @androidx.compose.runtime.Composable
 private fun MainActivity.AppContent(
-    splash: com.hos.rushdpatients.ui.about.LaunchSplashState,
-    intro: @androidx.compose.runtime.Composable () -> Unit
+    splash: com.hos.rushdpatients.ui.about.LaunchSplashState
 ) {
     val themeViewModel: ThemeViewModel = hiltViewModel()
-    val themePreset by themeViewModel.preset.collectAsStateWithLifecycle()
-    val appearance by themeViewModel.appearance.collectAsStateWithLifecycle()
-    val fontScale by themeViewModel.fontScale.collectAsStateWithLifecycle()
-    val uiPreferences by themeViewModel.uiPreferences.collectAsStateWithLifecycle()
+    val themeState by themeViewModel.state.collectAsStateWithLifecycle()
+    val preferences = themeState.preferences
+    if (preferences == null) {
+        if (themeState.loadFailed) {
+            val uiText = com.hos.rushdpatients.ui.components.rememberUiStrings()
+            com.hos.rushdpatients.ui.components.AppCenteredContent {
+                com.hos.rushdpatients.ui.components.AppNotice(uiText(R.string.startup_display_preferences_failed),
+                    kind = com.hos.rushdpatients.ui.components.NoticeKind.ERROR)
+                com.hos.rushdpatients.ui.components.AppButton(onClick = themeViewModel::retry) {
+                    androidx.compose.material3.Text(uiText(R.string.ui_retry))
+                }
+            }
+        }
+        return
+    }
+    val fontScale = preferences.fontScale
 
     val baseDensity = LocalDensity.current
     // Only fontScale changes; density (px per dp) stays as the system set it.
@@ -72,7 +80,8 @@ private fun MainActivity.AppContent(
         )
     }
 
-    RushdPatientsTheme(preset = themePreset, appearance = appearance, uiPreferences = uiPreferences) {
+    RushdPatientsTheme(preset = preferences.preset, appearance = preferences.appearance,
+        uiPreferences = preferences.uiPreferences) {
         AppSystemBars()
         CompositionLocalProvider(
             LocalLayoutDirection provides LayoutDirection.Rtl,
@@ -82,7 +91,7 @@ private fun MainActivity.AppContent(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                if (splash.visible) intro() else WardAppRoot(activity = this@AppContent)
+                if (splash.visible) LaunchIntro(splash) else WardAppRoot(activity = this@AppContent)
             }
         }
     }

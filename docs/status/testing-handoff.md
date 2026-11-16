@@ -1,6 +1,6 @@
 # Remaining verification
 
-Updated 16 November 2026. Completed checks: [Current state](current-state.md#verification-and-limits). Commands/prerequisites: [Android](../guides/android/testing.md), [device](../guides/android/device-checks.md), [desktop/live](../guides/desktop/testing-and-interop.md).
+Updated 16 November 2026. Latest1.0.4-debug/code5 was installed as an owner-requested matching-signer update on Huawei PPA-LX2/API29; installed bytes/UID/first-install time verified, with no app launch or runtime acceptance. Completed checks: [Current state](current-state.md#verification-and-limits). Commands/prerequisites: [Android](../guides/android/testing.md), [device](../guides/android/device-checks.md), [desktop/live](../guides/desktop/testing-and-interop.md).
 
 4 November automated evidence is complete per current method:755unique JVM passes,346device passes/two private-file opt-in skips. Owner-assisted fingerprint and native synthetic-provider checks passed. Existing plain/encrypted Telegram transport and bootstrap passes are recorded in Current state. These results do not establish broader acceptance below.
 

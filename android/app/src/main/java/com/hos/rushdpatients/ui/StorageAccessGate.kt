@@ -60,7 +60,7 @@ internal fun StorageAccessGate(
             Text(uiText(R.string.ui_storage_access_gate_002))
             AppButton(onClick = { attempt++ }) { Text(uiText(R.string.ui_retry)) }
         }
-        // Show the intro immediately while IO continues; tapping never bypasses this gate.
+        // The caller owns loading presentation; it cannot bypass the storage check.
         else -> loading()
     }
 }
