@@ -269,7 +269,7 @@ internal fun ReportWorkspace(
                             loading = state.previewingPdf, enabled = !busy && destinationReady,
                             modifier = Modifier.fillMaxWidth(), onClick = ::openPreview)
                         else -> LoadingButton(text = UiAction.SEND_REPORT.label(uiText), loading = state.sending,
-                            emblem = com.hos.rushdpatients.ui.components.AppIcons.PictureAsPdf,
+                            emblem = UiAction.SEND_REPORT.icon,
                             modifier = Modifier.fillMaxWidth(), enabled = sendDisabledReason == null,
                             onClick = {
                                 pendingDelivery = ReportDestinationReview(generalSelected, selectedTargets.toList(), state.reportAsPdf, exportPdf && pdfSelected)

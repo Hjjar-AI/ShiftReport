@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.ButtonEmblem
+import com.hos.rushdpatients.ui.components.UiAction
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,7 +40,7 @@ internal fun WardTransferBar(fetchEnabled: Boolean, reportEnabled: Boolean,
         val actionModifier = Modifier.weight(1f).fillMaxHeight()
         TransferAction(uiText(R.string.ui_patient_fetch_reminder_003), AppIcons.CloudDownload, fetchEnabled, onFetch, actionModifier)
         TransferAction(uiText(R.string.sync_upload_data_only), AppIcons.CloudUpload, uploadEnabled, onUpload, actionModifier)
-        TransferAction(uiText(R.string.ui_report_send_confirmation_001), AppIcons.PictureAsPdf, reportEnabled, onReport, actionModifier)
+        TransferAction(uiText(R.string.ui_report_send_confirmation_001), UiAction.SEND_REPORT.icon, reportEnabled, onReport, actionModifier)
     }
 }
 
