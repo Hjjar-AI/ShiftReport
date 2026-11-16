@@ -112,6 +112,10 @@ class A5FooterNavigationTest {
                     minOf(Color.red(color), Color.green(color), Color.blue(color)) < 245
                 } }
             }
+            val cardBottom = pageHeight - maxOf(8f * 72f / 25.4f, slots[0].height() + 4f)
+            assertTrue("Footer needs clearance below the card", slots[0].top - cardBottom >= 1.9f)
+            assertTrue("Patient card bottom intrudes into the footer or is missing", inkNear(pageWidth / 2f, cardBottom))
+            assertFalse("Card and footer controls overlap", inkNear(pageWidth / 2f, (cardBottom + slots[0].top) / 2f))
             slots.forEach { rect ->
                 assertTrue("Missing left button border", inkNear(rect.left, rect.centerY()))
                 assertTrue("Missing right button border", inkNear(rect.right, rect.centerY()))
