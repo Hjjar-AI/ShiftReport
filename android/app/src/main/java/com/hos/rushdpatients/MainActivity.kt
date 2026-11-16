@@ -77,6 +77,7 @@ private fun MainActivity.AppContent(
             ) {
                 com.hos.rushdpatients.ui.StorageAccessGate(loading = {
                     if (preferences != null && splash.visible) intro()
+                    else if (themeState.loadFailed) DisplayPreferencesFailure(themeViewModel::retry)
                 }) {
                     val application = LocalContext.current.applicationContext
                     LaunchedEffect(themeState.needsInitialization) {
