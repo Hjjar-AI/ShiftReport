@@ -24,7 +24,11 @@ data class ClinicalColors(
     val conflict: Color,
     val success: Color,
     val successContainer: Color,
-    val onSuccessContainer: Color
+    val onSuccessContainer: Color,
+    val onSuccess: Color = onNormal,
+    val conflictContainer: Color = normalContainer,
+    val onConflictContainer: Color = onNormalContainer,
+    val onConflict: Color = onNormal
 )
 
 internal val LightClinicalColors = ClinicalColors(
@@ -47,7 +51,11 @@ internal val LightClinicalColors = ClinicalColors(
     conflict = Color(0xFF7B3F95),
     success = Color(0xFF146C43),
     successContainer = Color(0xFFD5F2E2),
-    onSuccessContainer = Color(0xFF073821)
+    onSuccessContainer = Color(0xFF073821),
+    onSuccess = Color.White,
+    conflictContainer = Color(0xFFF1DAFA),
+    onConflictContainer = Color(0xFF30113E),
+    onConflict = Color.White
 )
 
 internal val DarkClinicalColors = ClinicalColors(
@@ -70,7 +78,11 @@ internal val DarkClinicalColors = ClinicalColors(
     conflict = Color(0xFFE4B5F5),
     success = Color(0xFF79D6A3),
     successContainer = Color(0xFF155333),
-    onSuccessContainer = Color(0xFFC0F0D2)
+    onSuccessContainer = Color(0xFFC0F0D2),
+    onSuccess = Color(0xFF00391F),
+    conflictContainer = Color(0xFF5D2873),
+    onConflictContainer = Color(0xFFF1DAFA),
+    onConflict = Color(0xFF48105E)
 )
 
 val LocalClinicalColors = staticCompositionLocalOf { LightClinicalColors }

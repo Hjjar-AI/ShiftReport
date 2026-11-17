@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.annotation.StringRes
 
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -10,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.animation.core.animateFloatAsState
@@ -41,7 +42,7 @@ internal fun ReportFlowProgress(current: ReportFlowStep) {
         androidx.compose.material3.LinearProgressIndicator(
             progress = progress,
             modifier = Modifier.weight(1f))
-        Text("${uiNumber(current.ordinal + 1)}/${uiNumber(ReportFlowStep.entries.size)}",
+        AppText("${uiNumber(current.ordinal + 1)}/${uiNumber(ReportFlowStep.entries.size)}",
             style = MaterialTheme.typography.labelMedium)
     }
 }

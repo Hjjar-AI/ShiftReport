@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.connection
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -21,7 +23,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -86,7 +87,7 @@ fun ProjectConnectionAction(
         pickerError = null
         open = true
     }, enabled = enabled && !state.busy, modifier = Modifier.fillMaxWidth()) {
-        Text(uiText(if (recoveryDoctorId != null) R.string.pin_recovery_file_required else R.string.ui_project_connection_action_001))
+        AppText(uiText(if (recoveryDoctorId != null) R.string.pin_recovery_file_required else R.string.ui_project_connection_action_001))
     }
 
     if (open) {
@@ -101,7 +102,7 @@ fun ProjectConnectionAction(
         }
         AppAlertDialog(
             onDismissRequest = dismiss,
-            title = { Text(if (manual) uiText(R.string.ui_project_connection_action_002) else uiText(R.string.ui_project_connection_action_001)) },
+            title = { AppText(if (manual) uiText(R.string.ui_project_connection_action_002) else uiText(R.string.ui_project_connection_action_001)) },
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -109,21 +110,21 @@ fun ProjectConnectionAction(
                 ) {
                     when {
                         state.reviewProject != null -> {
-                            Text(uiText(R.string.ui_project_connection_action_003, state.reviewProject))
-                            Text(uiText(R.string.ui_project_connection_action_004))
+                            AppText(uiText(R.string.ui_project_connection_action_003, state.reviewProject))
+                            AppText(uiText(R.string.ui_project_connection_action_004))
                         }
                         state.applied -> Unit
                         else -> {
-                            Text(uiText(R.string.ui_project_connection_action_005))
+                            AppText(uiText(R.string.ui_project_connection_action_005))
                             if (manual) {
-                                Text(uiText(R.string.ui_project_connection_action_006))
+                                AppText(uiText(R.string.ui_project_connection_action_006))
                                 AppTextButton(onClick = {
                                     try {
                                         uriHandler.openUri("https://t.me/BotFather")
                                     } catch (_: Exception) {
                                         pickerError = uiText(R.string.ui_project_connection_action_007)
                                     }
-                                }, enabled = !state.busy) { Text(uiText(R.string.ui_project_connection_action_008)) }
+                                }, enabled = !state.busy) { AppText(uiText(R.string.ui_project_connection_action_008)) }
                             } else {
                                 AppOutlinedButton(onClick = {
                                     pickerError = null
@@ -133,9 +134,9 @@ fun ProjectConnectionAction(
                                         pickerError = uiText(R.string.ui_project_connection_action_009)
                                     }
                                 }, enabled = !state.busy) {
-                                    Text(if (selectedFile == null) uiText(R.string.ui_project_connection_action_010) else uiText(R.string.ui_project_connection_action_011))
+                                    AppText(if (selectedFile == null) uiText(R.string.ui_project_connection_action_010) else uiText(R.string.ui_project_connection_action_011))
                                 }
-                                if (selectedFile != null) Text(
+                                if (selectedFile != null) AppText(
                                     uiText(R.string.ui_project_connection_action_013, selectedFileName ?: uiText(R.string.ui_project_connection_action_012)),
                                     modifier = Modifier.fillMaxWidth(),
                                     style = MaterialTheme.typography.bodySmall
@@ -155,7 +156,7 @@ fun ProjectConnectionAction(
                                 pickerError = null
                                 viewModel.reset()
                             }, enabled = !state.busy) {
-                                Text(if (manual) uiText(R.string.ui_project_connection_action_016) else uiText(R.string.ui_project_connection_action_017))
+                                AppText(if (manual) uiText(R.string.ui_project_connection_action_016) else uiText(R.string.ui_project_connection_action_017))
                             }
                         }
                     }
@@ -179,7 +180,7 @@ fun ProjectConnectionAction(
                         }
                     }
                 ) {
-                    Text(when {
+                    AppText(when {
                         state.applied -> uiText(R.string.ui_done)
                         state.reviewProject != null -> uiText(R.string.ui_project_connection_action_018)
                         else -> uiText(R.string.ui_project_connection_action_019)
@@ -187,7 +188,7 @@ fun ProjectConnectionAction(
                 }
             },
             dismissButton = {
-                if (!state.applied) AppTextButton(onClick = dismiss, enabled = !state.busy) { Text(uiText(R.string.ui_cancel)) }
+                if (!state.applied) AppTextButton(onClick = dismiss, enabled = !state.busy) { AppText(uiText(R.string.ui_cancel)) }
             }
         )
     }

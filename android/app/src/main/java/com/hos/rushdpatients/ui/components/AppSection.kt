@@ -16,7 +16,6 @@ import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -65,11 +64,11 @@ fun AppSectionHeader(
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
                 AppText(title, role = AppTextRole.HEADING, color = titleColor)
-                Text(summary, style = MaterialTheme.typography.bodySmall,
+                AppText(summary, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        count?.let { Text(uiNumber(it), style = MaterialTheme.typography.labelMedium,
+        count?.let { AppText(uiNumber(it), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (complete == true) Icon(AppIcons.Check, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary)

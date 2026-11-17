@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -23,7 +22,7 @@ fun ConfirmDialog(
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { AppDialogHeader(title) },
-        text = { Text(message,
+        text = { AppText(message,
             modifier = Modifier.fillMaxWidth().appDialogBody().verticalScroll(rememberScrollState()),
             textAlign = TextAlign.Start) },
         confirmButton = {

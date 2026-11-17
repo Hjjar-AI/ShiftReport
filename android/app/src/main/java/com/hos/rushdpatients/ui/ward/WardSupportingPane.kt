@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -17,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -40,12 +41,12 @@ internal fun WardSupportingPane(
     val warnings = com.hos.rushdpatients.ui.components.readinessWarnings(uiText, state.patients)
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)) {
-        Text(uiText(R.string.ui_ward_supporting_pane_001), style = MaterialTheme.typography.headlineSmall,
+        AppText(uiText(R.string.ui_ward_supporting_pane_001), style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() })
-        Text(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)))
+        AppText(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)))
         if (showSynchronization) PatientSyncNotice(state.syncStatus, freshnessLabel, online, onDetails = onOpenSyncCenter)
-        if (warnings.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_002))
+        if (warnings.isEmpty()) AppText(uiText(R.string.ui_ward_supporting_pane_002))
         warnings.forEach { AppNotice(it, kind = NoticeKind.WARNING) }
-        Text(uiText(R.string.ui_ward_supporting_pane_007), style = MaterialTheme.typography.bodySmall)
+        AppText(uiText(R.string.ui_ward_supporting_pane_007), style = MaterialTheme.typography.bodySmall)
     }
 }

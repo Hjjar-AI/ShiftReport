@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppIconButton
@@ -38,7 +40,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -140,7 +141,7 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
                 onClick = { showAdd = true },
                 modifier = actionSpace.measure,
                 icon = { Icon(AppIcons.Add, contentDescription = null) },
-                text = { Text(uiText(R.string.ui_add_edit_doctor_dialog_001)) }
+                text = { AppText(uiText(R.string.ui_add_edit_doctor_dialog_001)) }
             )
         },
         snackbarHost = { AppSnackbarHost(snackbar) }
@@ -181,9 +182,9 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
                                 onAction = { registryReview = state.doctors.toList(); registryAction = "publish" },
                                 actionEnabled = !busy)
                             AppTextButton(onClick = { pendingDetails = !pendingDetails }) {
-                                Text(uiText(if (pendingDetails) R.string.ui_doctors_screen_008 else R.string.ui_doctors_screen_009))
+                                AppText(uiText(if (pendingDetails) R.string.ui_doctors_screen_008 else R.string.ui_doctors_screen_009))
                             }
-                            if (pendingDetails) Text(summary, style = MaterialTheme.typography.bodySmall)
+                            if (pendingDetails) AppText(summary, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     item {
@@ -199,25 +200,25 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
                                 modifier = Modifier.padding(UiPadding.content),
                                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                             ) {
-                                Text(uiText(R.string.ui_doctor_registry_tools), style = MaterialTheme.typography.titleMedium)
-                                Text(uiText(R.string.ui_doctors_screen_014),
+                                AppText(uiText(R.string.ui_doctor_registry_tools), style = MaterialTheme.typography.titleMedium)
+                                AppText(uiText(R.string.ui_doctors_screen_014),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 AppOutlinedButton(
                                     onClick = { registryReview = state.doctors.toList(); registryAction = "publish" },
                                     enabled = !busy, modifier = Modifier.fillMaxWidth()
-                                ) { Text(uiText(R.string.ui_doctors_screen_006)) }
+                                ) { AppText(uiText(R.string.ui_doctors_screen_006)) }
                                 AppOutlinedButton(
                                     onClick = { importLauncher.launch(arrayOf("*/*")) },
                                     enabled = !busy && viewModel.fileTransfers, modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(AppIcons.FolderOpen, contentDescription = null)
-                                    Text(uiText(R.string.ui_doctors_screen_015), Modifier.padding(start = UiSpacing.small))
+                                    AppText(uiText(R.string.ui_doctors_screen_015), Modifier.padding(start = UiSpacing.small))
                                 }
                                 AppOutlinedButton(onClick = { registryAction = "fetch" },
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = !busy) {
-                                    Text(uiText(R.string.ui_doctors_screen_005))
+                                    AppText(uiText(R.string.ui_doctors_screen_005))
                                 }
                                 com.hos.rushdpatients.ui.components.AppSectionHeader(
                                     title = uiText(R.string.ui_doctors_secondary_tools), expanded = transferExpanded,
@@ -225,11 +226,11 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
                                 if (transferExpanded) {
                                     AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy,
                                         modifier = Modifier.fillMaxWidth()) {
-                                        Text(uiText(R.string.ui_team_management_dialog_002))
+                                        AppText(uiText(R.string.ui_team_management_dialog_002))
                                     }
                                     AppOutlinedButton(onClick = viewModel::prepareDoctorExport,
                                         enabled = !busy && viewModel.fileTransfers, modifier = Modifier.fillMaxWidth()) {
-                                        Text(uiText(R.string.ui_doctors_screen_016))
+                                        AppText(uiText(R.string.ui_doctors_screen_016))
                                     }
                                 }
                             }
@@ -342,23 +343,23 @@ private fun DoctorCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(doctor.fullName, style = MaterialTheme.typography.bodyLarge)
+                AppText(doctor.fullName, style = MaterialTheme.typography.bodyLarge)
                 val accessText = when {
                     doctor.isPermanentAdmin -> uiText(R.string.ui_doctors_screen_044)
                     doctor.isAdmin -> uiText(R.string.ui_ward_drawer_004)
                     else -> uiText(R.string.ui_doctors_screen_045)
                 }
-                Text(
+                AppText(
                     doctor.clinicalRole.uiLabel(uiText),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
                 if (doctor.clinicalRole == com.hos.rushdpatients.data.model.ClinicalRole.RESIDENT) {
-                    Text(uiText(R.string.ui_doctors_screen_046) + (teamSupervisorName ?: uiText(R.string.ui_team_management_dialog_001)), style = MaterialTheme.typography.bodySmall)
+                    AppText(uiText(R.string.ui_doctors_screen_046) + (teamSupervisorName ?: uiText(R.string.ui_team_management_dialog_001)), style = MaterialTheme.typography.bodySmall)
                 }
-                Text(uiText(R.string.ui_doctors_screen_047, accessText), style = MaterialTheme.typography.bodySmall)
+                AppText(uiText(R.string.ui_doctors_screen_047, accessText), style = MaterialTheme.typography.bodySmall)
                 doctor.telegramId?.let {
-                    Text(uiText(R.string.ui_doctors_screen_048, it), style = MaterialTheme.typography.bodySmall)
+                    AppText(uiText(R.string.ui_doctors_screen_048, it), style = MaterialTheme.typography.bodySmall)
                 }
             }
             AppIconButton(label = uiText(R.string.ui_doctors_screen_050, doctor.fullName),

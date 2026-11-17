@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.R
@@ -17,7 +19,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -68,14 +69,14 @@ internal fun DateField(
                         onValueChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
                     }
                     open = false
-                }) { Text(uiText(R.string.ui_patient_form_fields_002)) }
+                }) { AppText(uiText(R.string.ui_patient_form_fields_002)) }
             },
             dismissButton = {
                 Row {
                     if (onClear != null && value != null) AppTextButton(onClick = {
                         onClear(); open = false
-                    }) { Text(uiText(R.string.ui_patient_clear_date)) }
-                    AppTextButton(onClick = { open = false }) { Text(uiText(R.string.ui_cancel)) }
+                    }) { AppText(uiText(R.string.ui_patient_clear_date)) }
+                    AppTextButton(onClick = { open = false }) { AppText(uiText(R.string.ui_cancel)) }
                 }
             }
         ) { DatePicker(state = state) }
@@ -96,8 +97,8 @@ internal fun MultilineField(
     AppTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
-        placeholder = { if (placeholder != null) Text(placeholder) },
+        label = { AppText(label) },
+        placeholder = { if (placeholder != null) AppText(placeholder) },
         modifier = modifier.fillMaxWidth(),
         minLines = 1,
         maxLines = 4,
@@ -128,7 +129,7 @@ internal fun DoctorDropdown(
         onClick = { query = ""; expanded = true }, modifier = modifier.fillMaxWidth(),
         enabled = enabled, isError = isError, errorMessage = errorMessage, supportingText = supportingText)
     if (expanded && enabled) AppAlertDialog(onDismissRequest = { expanded = false },
-        title = { Text(label) }, text = {
+        title = { AppText(label) }, text = {
             val matching = doctors.filter { !it.isDeleted && ArabicSearchNormalizer.matches(query, it.fullName) }
             DoctorSelectionList(
                 query = query, onQueryChange = { query = it },
@@ -146,5 +147,5 @@ internal fun DoctorDropdown(
                         onClick = { onSelected(null); expanded = false })
                 }
             )
-        }, confirmButton = { AppTextButton(onClick = { expanded = false }) { Text(uiText(R.string.ui_back)) } })
+        }, confirmButton = { AppTextButton(onClick = { expanded = false }) { AppText(uiText(R.string.ui_back)) } })
 }

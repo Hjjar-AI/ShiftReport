@@ -1,9 +1,10 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.components.AppSection
@@ -34,13 +35,13 @@ internal fun ReportAttemptStatus(publication: ReportStepOutcome, delivery: Repor
             else -> delivery.arabicLabel(uiText)
         }, kind = kind(delivery), compact = true)
         if (publication == ReportStepOutcome.CONFIRMED && delivery == ReportStepOutcome.NOT_STARTED) {
-            Text(uiText(R.string.ui_report_attempt_status_010))
+            AppText(uiText(R.string.ui_report_attempt_status_010))
         }
         if (publication == ReportStepOutcome.UNCERTAIN || delivery == ReportStepOutcome.UNCERTAIN ||
             delivery == ReportStepOutcome.PARTIAL) {
-            AppTextButton(onClick = onHistory, enabled = !busy) { Text(uiText(R.string.ui_report_attempt_status_011)) }
+            AppTextButton(onClick = onHistory, enabled = !busy) { AppText(uiText(R.string.ui_report_attempt_status_011)) }
         } else if (publication == ReportStepOutcome.CONFIRMED && delivery == ReportStepOutcome.CONFIRMED) {
-            AppTextButton(onClick = onBack, enabled = !busy) { Text(uiText(R.string.ui_report_attempt_status_012)) }
+            AppTextButton(onClick = onBack, enabled = !busy) { AppText(uiText(R.string.ui_report_attempt_status_012)) }
         }
     }
 }

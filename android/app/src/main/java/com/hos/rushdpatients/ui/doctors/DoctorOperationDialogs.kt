@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
@@ -32,18 +31,18 @@ internal fun DoctorRegistryReviewDialog(
         title = { AppDialogHeader(if (action == "publish") uiText(R.string.ui_doctors_screen_006) else uiText(R.string.ui_doctors_screen_005)) },
         text = { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            Text(if (action == "publish") uiText(R.string.ui_doctors_screen_027)
+            AppText(if (action == "publish") uiText(R.string.ui_doctors_screen_027)
                 else uiText(R.string.ui_doctors_screen_028))
             if (action == "publish") {
-                pendingSummary?.let { Text(it) }
-                Text(registryReview.joinToString("\n") { it.fullName })
-                if (!reviewCurrent) Text(uiText(R.string.ui_doctors_screen_029))
+                pendingSummary?.let { AppText(it) }
+                AppText(registryReview.joinToString("\n") { it.fullName })
+                if (!reviewCurrent) AppText(uiText(R.string.ui_doctors_screen_029))
             }
         } }, confirmButton = { AppDialogConfirmAction(
             text = if (action == "publish") uiText(R.string.ui_doctors_screen_030) else uiText(R.string.ui_doctors_screen_031),
             modifier = Modifier.fillMaxWidth(),
             enabled = !busy && (action != "publish" || reviewCurrent), onClick = onConfirm) },
-        dismissButton = { AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_cancel)) } })
+        dismissButton = { AppTextButton(onClick = onDismiss) { AppText(uiText(R.string.ui_cancel)) } })
 }
 
 @Composable
@@ -56,14 +55,14 @@ internal fun DoctorImportDialogs(
 ) {
     val uiText = rememberUiStrings()
     if (state.importing) {
-        AppAlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_doctors_screen_024)) },
+        AppAlertDialog(onDismissRequest = {}, title = { AppText(uiText(R.string.ui_doctors_screen_024)) },
             text = { AppLoadingState(uiText(R.string.ui_doctors_screen_025), size = com.hos.rushdpatients.ui.components.AppLoadingSize.SECTION) },
             confirmButton = {})
     }
     state.importError?.let { message ->
         AppAlertDialog(onDismissRequest = onDismissImportError,
-            title = { Text(uiText(R.string.ui_doctors_screen_026)) }, text = { Text(message) },
-            confirmButton = { AppTextButton(onClick = onDismissImportError) { Text(uiText(R.string.ui_settings_screen_006)) } })
+            title = { AppText(uiText(R.string.ui_doctors_screen_026)) }, text = { AppText(message) },
+            confirmButton = { AppTextButton(onClick = onDismissImportError) { AppText(uiText(R.string.ui_settings_screen_006)) } })
     }
 
     state.importPreview?.takeUnless { state.importing }?.let { preview ->
@@ -73,21 +72,21 @@ internal fun DoctorImportDialogs(
             text = {
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    Text(uiText(R.string.ui_doctors_screen_033, preview.activeCount))
+                    AppText(uiText(R.string.ui_doctors_screen_033, preview.activeCount))
                     listOf(uiText(R.string.ui_doctors_screen_034) to preview.added, uiText(R.string.ui_doctors_screen_035) to preview.changed,
                         uiText(R.string.ui_doctors_screen_036) to preview.unchanged,
                         uiText(R.string.ui_doctors_screen_037) to preview.retained).forEach { (label, names) ->
-                        Text("$label (${names.size}): " + names.joinToString(uiText(R.string.ui_patient_card_002)).ifBlank { uiText(R.string.ui_doctors_screen_038) })
+                        AppText("$label (${names.size}): " + names.joinToString(uiText(R.string.ui_patient_card_002)).ifBlank { uiText(R.string.ui_doctors_screen_038) })
                     }
-                    Text(uiText(R.string.ui_doctors_screen_039, preview.adminCount))
-                    Text(uiText(R.string.ui_doctors_screen_040, preview.deletedCount))
+                    AppText(uiText(R.string.ui_doctors_screen_039, preview.adminCount))
+                    AppText(uiText(R.string.ui_doctors_screen_040, preview.deletedCount))
                     if (preview.newWithoutPinCount > 0) {
-                        Text(
+                        AppText(
                             uiText(R.string.ui_doctors_screen_041, preview.newWithoutPinCount),
                             color = MaterialTheme.colorScheme.tertiary
                         )
                     }
-                    Text(
+                    AppText(
                         uiText(R.string.ui_doctors_screen_042),
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -98,7 +97,7 @@ internal fun DoctorImportDialogs(
                     onClick = onConfirmDoctorImport, enabled = !busy, modifier = Modifier.fillMaxWidth())
             },
             dismissButton = {
-                AppTextButton(onClick = onDismissDoctorImport, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
+                AppTextButton(onClick = onDismissDoctorImport, enabled = !busy) { AppText(uiText(R.string.ui_cancel)) }
             }
         )
     }

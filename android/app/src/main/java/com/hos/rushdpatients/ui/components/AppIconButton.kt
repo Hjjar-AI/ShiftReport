@@ -28,7 +28,7 @@ fun AppIconButton(
     directional: Boolean = false,
     size: com.hos.rushdpatients.ui.theme.UiControlSize = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current.controlSize
 ) {
-    PlainTooltipBox(tooltip = { Text(label) }) {
+    PlainTooltipBox(tooltip = { AppText(label) }) {
         val sizedIcon = iconModifier.size(size.iconSize)
         IconButton(onClick = onClick, enabled = enabled,
             modifier = modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget).tooltipAnchor()) {

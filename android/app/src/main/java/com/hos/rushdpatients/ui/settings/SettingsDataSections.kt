@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -11,7 +13,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.components.LoadingButton
@@ -47,10 +48,10 @@ internal fun SettingsSyncOverview(
             }, actionEnabled = idle
         )
         if (state.syncRecovery != null) AppTextButton(onClick = onRetry, enabled = idle && state.online) {
-            Text(uiText(R.string.ui_sync_center_retry))
+            AppText(uiText(R.string.ui_sync_center_retry))
         }
     }
-    state.lastOperation?.let { Text(it, style = MaterialTheme.typography.bodySmall,
+    state.lastOperation?.let { AppText(it, style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant) }
 }
 
@@ -61,22 +62,22 @@ internal fun SettingsSyncContent(
 ) {
     val uiText = rememberUiStrings()
     val idle = !state.syncing && !state.backupBusy && !state.exportingCsv
-    Text(uiText(R.string.ui_sync_center_current_shift, com.hos.rushdpatients.util.ShiftDate.current().toString()),
+    AppText(uiText(R.string.ui_sync_center_current_shift, com.hos.rushdpatients.util.ShiftDate.current().toString()),
         style = MaterialTheme.typography.bodySmall)
-    Text(uiText(when (state.patientsPending) {
+    AppText(uiText(when (state.patientsPending) {
         true -> R.string.ui_sync_center_patients_pending
         false -> R.string.ui_sync_center_no_pending
         null -> R.string.ui_sync_center_loading
     }))
-    Text(uiText(R.string.ui_settings_data_sections_002, state.lastCsvSync ?: uiText(R.string.ui_unknown)),
+    AppText(uiText(R.string.ui_settings_data_sections_002, state.lastCsvSync ?: uiText(R.string.ui_unknown)),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Text(uiText(R.string.ui_settings_data_sections_001), style = MaterialTheme.typography.bodySmall)
+    AppText(uiText(R.string.ui_settings_data_sections_001), style = MaterialTheme.typography.bodySmall)
     LoadingButton(
         text = uiText(R.string.ui_settings_data_sections_003), outlined = true,
         loading = state.syncing, enabled = idle && state.online,
         onClick = onFetchRequested, modifier = Modifier.fillMaxWidth()
     )
-    Text(uiText(R.string.sync_upload_data_only_hint), style = MaterialTheme.typography.bodySmall)
+    AppText(uiText(R.string.sync_upload_data_only_hint), style = MaterialTheme.typography.bodySmall)
     LoadingButton(
         text = uiText(R.string.sync_upload_data_only), outlined = true,
         loading = state.syncing, enabled = idle && state.online,
@@ -84,12 +85,12 @@ internal fun SettingsSyncContent(
     )
     if (state.canUndoDownload) {
         AppTextButton(onClick = onToggleRecovery, enabled = idle) {
-            Text(if (showRecovery) uiText(R.string.ui_settings_data_sections_005) else uiText(R.string.ui_settings_data_sections_006))
+            AppText(if (showRecovery) uiText(R.string.ui_settings_data_sections_005) else uiText(R.string.ui_settings_data_sections_006))
         }
         if (showRecovery) {
-            Text(uiText(R.string.ui_settings_data_sections_007), style = MaterialTheme.typography.bodySmall)
+            AppText(uiText(R.string.ui_settings_data_sections_007), style = MaterialTheme.typography.bodySmall)
             AppOutlinedButton(onClick = onUndoRequested, enabled = idle,
-                modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_data_sections_008)) }
+                modifier = Modifier.fillMaxWidth()) { AppText(uiText(R.string.ui_settings_data_sections_008)) }
         }
     }
     SettingsPublicationHistory(state, onLoadHistory)
@@ -99,17 +100,17 @@ internal fun SettingsSyncContent(
 internal fun SettingsDoctorSyncContent(state: SettingsUiState, canManageDoctors: Boolean, onOpenDoctors: () -> Unit) {
     val uiText = rememberUiStrings()
     val idle = !state.syncing && !state.backupBusy && !state.exportingCsv
-    Text(uiText(when (state.doctorsPending) {
+    AppText(uiText(when (state.doctorsPending) {
         true -> R.string.ui_sync_center_doctors_pending
         false -> R.string.ui_sync_center_no_pending
         null -> R.string.ui_sync_center_loading
     }))
-    Text(uiText(R.string.ui_sync_center_doctors_last, state.lastDoctorsSync ?: uiText(R.string.ui_unknown)),
+    AppText(uiText(R.string.ui_sync_center_doctors_last, state.lastDoctorsSync ?: uiText(R.string.ui_unknown)),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Text(uiText(R.string.ui_sync_center_doctors_help), style = MaterialTheme.typography.bodySmall)
+    AppText(uiText(R.string.ui_sync_center_doctors_help), style = MaterialTheme.typography.bodySmall)
     if (canManageDoctors) AppOutlinedButton(onClick = onOpenDoctors, enabled = idle,
-        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_recovery_open_doctors)) }
-    else if (state.doctorsPending == true) Text(uiText(R.string.ui_recovery_ask_admin),
+        modifier = Modifier.fillMaxWidth()) { AppText(uiText(R.string.ui_recovery_open_doctors)) }
+    else if (state.doctorsPending == true) AppText(uiText(R.string.ui_recovery_ask_admin),
         style = MaterialTheme.typography.bodySmall)
 }
 
@@ -118,7 +119,7 @@ internal fun SettingsDoctorSyncContent(state: SettingsUiState, canManageDoctors:
 internal fun SettingsFilesContent(state: SettingsUiState, onExportCsv: () -> Unit, canManageProject: Boolean, onOpenVbaImport: () -> Unit, showHeading: Boolean = true) {
     val uiText = rememberUiStrings()
     if (showHeading) SettingsSubheading(uiText(R.string.ui_ward_drawer_014))
-    Text(uiText(R.string.ui_settings_data_sections_009), style = MaterialTheme.typography.bodySmall)
+    AppText(uiText(R.string.ui_settings_data_sections_009), style = MaterialTheme.typography.bodySmall)
     LoadingButton(
         text = uiText(R.string.ui_settings_data_sections_010),
         outlined = true,
@@ -132,7 +133,7 @@ internal fun SettingsFilesContent(state: SettingsUiState, onExportCsv: () -> Uni
             onClick = onOpenVbaImport,
             enabled = !state.syncing && !state.backupBusy && !state.exportingCsv,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(uiText(R.string.ui_settings_data_sections_011)) }
+        ) { AppText(uiText(R.string.ui_settings_data_sections_011)) }
     }
 }
 
@@ -141,12 +142,12 @@ internal fun SettingsFilesContent(state: SettingsUiState, onExportCsv: () -> Uni
 internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () -> Unit, onRestoreBackup: () -> Unit, showHeading: Boolean = true) {
     val uiText = rememberUiStrings()
     if (showHeading) SettingsSubheading(uiText(R.string.ui_ward_drawer_015))
-    Text(
+    AppText(
         uiText(R.string.ui_settings_data_sections_012),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    Text(uiText(R.string.ui_settings_data_sections_024, state.lastEncryptedBackup ?: uiText(R.string.ui_unknown)),
+    AppText(uiText(R.string.ui_settings_data_sections_024, state.lastEncryptedBackup ?: uiText(R.string.ui_unknown)),
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     LoadingButton(
         text = uiText(R.string.ui_settings_data_sections_013),
@@ -160,10 +161,10 @@ internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () ->
         onClick = onRestoreBackup,
         enabled = !state.backupBusy && !state.syncing && !state.exportingCsv,
         modifier = Modifier.fillMaxWidth()
-    ) { Text(uiText(R.string.ui_settings_data_sections_014)) }
+    ) { AppText(uiText(R.string.ui_settings_data_sections_014)) }
     AppDivider()
     SettingsSubheading(uiText(R.string.ui_settings_data_sections_015))
-    Text(
+    AppText(
         uiText(R.string.ui_settings_data_sections_016),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.error
@@ -174,14 +175,14 @@ internal fun SettingsBackupContent(state: SettingsUiState, onCreateBackup: () ->
 @Composable
 internal fun SettingsStorageContent(state: SettingsUiState) {
     val uiText = rememberUiStrings()
-    Text(uiText(R.string.diagnostics_screenshots_private))
-    Text(uiText(R.string.ui_settings_data_sections_017, state.databaseSize))
-    Text(uiText(R.string.ui_settings_data_sections_018, CsvSchema.CURRENT_VERSION))
-    Text(uiText(R.string.ui_settings_data_sections_019, state.storedShifts))
-    Text(uiText(R.string.ui_settings_data_sections_020, state.totalStoredPatients))
-    Text(uiText(R.string.ui_settings_data_sections_021, state.deletedPatients))
-    Text(uiText(R.string.ui_settings_data_sections_022, state.deviceId), style = MaterialTheme.typography.bodySmall)
-    Text(
+    AppText(uiText(R.string.diagnostics_screenshots_private))
+    AppText(uiText(R.string.ui_settings_data_sections_017, state.databaseSize))
+    AppText(uiText(R.string.ui_settings_data_sections_018, CsvSchema.CURRENT_VERSION))
+    AppText(uiText(R.string.ui_settings_data_sections_019, state.storedShifts))
+    AppText(uiText(R.string.ui_settings_data_sections_020, state.totalStoredPatients))
+    AppText(uiText(R.string.ui_settings_data_sections_021, state.deletedPatients))
+    AppText(uiText(R.string.ui_settings_data_sections_022, state.deviceId), style = MaterialTheme.typography.bodySmall)
+    AppText(
         uiText(R.string.ui_settings_data_sections_024, state.lastEncryptedBackup ?: uiText(R.string.ui_settings_data_sections_023)),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.bodySmall

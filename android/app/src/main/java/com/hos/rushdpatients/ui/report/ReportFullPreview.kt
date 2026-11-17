@@ -1,11 +1,12 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
@@ -27,13 +28,13 @@ internal fun ReportFullPreview(reviewed: Boolean, enabled: Boolean, onPreview: (
             verticalArrangement = Arrangement.spacedBy(uiContentGap())) {
             AppOutlinedButton(onClick = onSortPatients, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
                 ButtonEmblemContent(AppIcons.Sort, enabled) {
-                    Text(uiText(R.string.report_sort_patients))
+                    AppText(uiText(R.string.report_sort_patients))
                 }
             }
             AppOutlinedButton(onClick = onPreview, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-                Text(uiText(R.string.report_full_preview_action))
+                AppText(uiText(R.string.report_full_preview_action))
             }
-            if (reviewed) Text(uiText(R.string.report_preview_opened), style = MaterialTheme.typography.labelSmall)
+            if (reviewed) AppText(uiText(R.string.report_preview_opened), style = MaterialTheme.typography.labelSmall)
         }
     }
 }

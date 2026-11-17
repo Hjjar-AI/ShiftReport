@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppSheet
 import com.hos.rushdpatients.ui.components.UiStrings
 
@@ -18,7 +20,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -78,11 +79,11 @@ internal fun PatientSortOptions(
             com.hos.rushdpatients.ui.components.AppFilterChip(
                 selected = initial == spec, enabled = !saving,
                 onClick = { onApply(spec) },
-                label = { Text(uiText(label)) })
+                label = { AppText(uiText(label)) })
         }
-        Text(uiText(R.string.sort_custom), style = MaterialTheme.typography.titleSmall)
+        AppText(uiText(R.string.sort_custom), style = MaterialTheme.typography.titleSmall)
         levels.forEachIndexed { index, level ->
-            Text(uiText(R.string.sort_level_number, index + 1), style = MaterialTheme.typography.labelLarge)
+            AppText(uiText(R.string.sort_level_number, index + 1), style = MaterialTheme.typography.labelLarge)
             AppChoiceChips(
                 options = SortField.entries.filter { field -> field == level.field || levels.none { it.field == field } },
                 selected = level.field, enabled = !saving,
@@ -93,18 +94,18 @@ internal fun PatientSortOptions(
                 label = { uiText(if (it == SortDirection.ASC) R.string.ui_sort_sheet_013 else R.string.ui_sort_sheet_014) })
             if (index > 0) AppTextButton(enabled = !saving, onClick = {
                 levels = levels.toMutableList().apply { add(index - 1, removeAt(index)) }
-            }) { Text(uiText(R.string.sort_move_earlier)) }
+            }) { AppText(uiText(R.string.sort_move_earlier)) }
             AppTextButton(enabled = !saving, onClick = { levels = levels.filterIndexed { i, _ -> i != index } }) {
-                Text(uiText(R.string.sort_remove_level))
+                AppText(uiText(R.string.sort_remove_level))
             }
         }
         SortField.entries.firstOrNull { field -> levels.none { it.field == field } }?.let { next ->
             AppTextButton(enabled = !saving, onClick = { levels = levels + SortLevel(next) }) {
-                Text(uiText(R.string.ui_sort_sheet_008))
+                AppText(uiText(R.string.ui_sort_sheet_008))
             }
         }
         AppButton(enabled = !saving && SortSpec(levels) != initial, onClick = { onApply(SortSpec(levels)) }) {
-            Text(uiText(R.string.ui_sort_sheet_009))
+            AppText(uiText(R.string.ui_sort_sheet_009))
         }
     }
 }

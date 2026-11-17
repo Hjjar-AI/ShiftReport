@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppChoiceChips
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.components.AppPalettePicker
@@ -30,7 +31,7 @@ internal fun SettingsAppearanceSection(
         AppChoiceChips(options = AppAppearance.entries.toList(), selected = state.appearance,
             onSelect = onAppearance, label = { it.arabicLabel(uiText) },
             title = uiText(R.string.ui_settings_appearance_section_001))
-        Text(uiText(R.string.ui_settings_appearance_section_002), style = MaterialTheme.typography.labelMedium)
+        AppText(uiText(R.string.ui_settings_appearance_section_002), style = MaterialTheme.typography.labelMedium)
         AppPalettePicker(selected = state.appTheme, onSelected = onTheme)
         AppChoiceChips(options = AppFontScale.entries.toList(), selected = state.fontScale,
             onSelect = onFont, label = { it.arabicLabel(uiText) },

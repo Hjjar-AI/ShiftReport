@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppMenuItem
 import com.hos.rushdpatients.ui.components.AppMenu
 import com.hos.rushdpatients.ui.components.AppIcons
@@ -48,7 +50,6 @@ import androidx.compose.foundation.layout.size
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.uiPlural
 import androidx.compose.runtime.Composable
@@ -236,7 +237,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
             }
 
             if (supervisorName != null || residentName != null) {
-                Text(patientFieldText(listOfNotNull(supervisorName?.let { uiText(R.string.ui_patient_card_022, it) }, residentName?.let { uiText(R.string.ui_patient_card_023, it) })
+                AppText(patientFieldText(listOfNotNull(supervisorName?.let { uiText(R.string.ui_patient_card_022, it) }, residentName?.let { uiText(R.string.ui_patient_card_023, it) })
                     .joinToString(" • ")), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -256,10 +257,10 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                         PatientTasks.summary(patient.tasks))
                 }
             }
-            if (!showIdentity) Text(patientFieldText(PatientIdentityText.details(uiText, patient, dayLabel)),
+            if (!showIdentity) AppText(patientFieldText(PatientIdentityText.details(uiText, patient, dayLabel)),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (expanded && showViewControls && !readOnly) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
+                com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { AppText(uiText(R.string.ui_ward_form_dialog_001)) }
             }
 
         }
@@ -335,14 +336,14 @@ private fun PatientMenu(priority: Boolean, onPriorityChange: (Boolean) -> Unit,
             modifier = Modifier.size(UiSpacing.touchTarget),
             iconModifier = Modifier.size(UiSize.iconMedium))
         AppMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            AppMenuItem(text = { Text(if (pinned) uiText(R.string.ui_patient_card_031) else uiText(R.string.ui_patient_card_032)) },
+            AppMenuItem(text = { AppText(if (pinned) uiText(R.string.ui_patient_card_031) else uiText(R.string.ui_patient_card_032)) },
                 leadingIcon = { Icon(if (pinned) AppIcons.Bookmark else AppIcons.BookmarkBorder, contentDescription = null) },
                 onClick = { menu = false; onPinToggle() }, enabled = !readOnly)
             if (!readOnly) {
-                AppMenuItem(text = { Text(if (priority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) },
+                AppMenuItem(text = { AppText(if (priority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018)) },
                     onClick = { menu = false; onPriorityChange(!priority) })
-                AppMenuItem(text = { Text(uiText(R.string.ui_patient_card_019)) }, onClick = { menu = false; onCopy() })
-                AppMenuItem(text = { Text(uiText(R.string.ui_ward_patient_dialogs_001)) }, onClick = { menu = false; onDelete() })
+                AppMenuItem(text = { AppText(uiText(R.string.ui_patient_card_019)) }, onClick = { menu = false; onCopy() })
+                AppMenuItem(text = { AppText(uiText(R.string.ui_ward_patient_dialogs_001)) }, onClick = { menu = false; onDelete() })
             }
         }
     }

@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
@@ -63,13 +62,13 @@ fun <T> AppSectionIndex(sections: List<T>, selected: T, label: (T) -> String,
                             color = if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                             contentColor = (if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
                                 .copy(alpha = UiOpacity.content(enabled))) {
-                            Text(label(section), modifier = Modifier.padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
+                            AppText(label(section), modifier = Modifier.padding(horizontal = UiSpacing.screen, vertical = UiSpacing.tiny),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (active) UiTypography.emphasizedWeight else FontWeight.Normal, maxLines = 1)
                         }
                     }
                 } else AppFilterChip(selected = section == selected, enabled = enabled, onClick = { onSelect(section) },
-                    label = { Text(label(section)) }, modifier = anchor)
+                    label = { AppText(label(section)) }, modifier = anchor)
             }
         }
     }

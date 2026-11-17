@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.R
@@ -20,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,7 +54,7 @@ internal fun PatientDemographicFields(
         AppTextField(
             value = name,
             onValueChange = onNameChanged,
-            label = { Text(uiText(R.string.ui_patient_demographic_fields_006)) },
+            label = { AppText(uiText(R.string.ui_patient_demographic_fields_006)) },
             modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.NAME)),
             singleLine = true,
             textStyle = autoStyle,
@@ -77,7 +78,7 @@ internal fun PatientDemographicFields(
                             .orEmpty()
                         onAgeAndYearChanged(nextAge, nextYear)
                     },
-                    label = { Text(uiText(R.string.ui_patient_demographic_fields_008)) },
+                    label = { AppText(uiText(R.string.ui_patient_demographic_fields_008)) },
                     modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.AGE)),
                     singleLine = true,
                     textStyle = autoStyle,
@@ -102,7 +103,7 @@ internal fun PatientDemographicFields(
                             .orEmpty()
                         onAgeAndYearChanged(nextAge, nextYear)
                     },
-                    label = { Text(uiText(R.string.ui_patient_demographic_fields_009)) },
+                    label = { AppText(uiText(R.string.ui_patient_demographic_fields_009)) },
                     modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.BIRTH_YEAR)),
                     singleLine = true,
                     textStyle = autoStyle,
@@ -118,19 +119,19 @@ internal fun PatientDemographicFields(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             FlowRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(uiText(R.string.ui_patient_demographic_fields_010),
+                AppText(uiText(R.string.ui_patient_demographic_fields_010),
                     modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium)
                 AppFilterChip(
                     enabled = !saving,
                     selected = gender == Gender.MALE,
                     onClick = { onGenderChanged(Gender.MALE) },
-                    label = { Text(uiText(R.string.ui_male)) }
+                    label = { AppText(uiText(R.string.ui_male)) }
                 )
                 AppFilterChip(
                     enabled = !saving,
                     selected = gender == Gender.FEMALE,
                     onClick = { onGenderChanged(Gender.FEMALE) },
-                    label = { Text(uiText(R.string.ui_female)) }
+                    label = { AppText(uiText(R.string.ui_female)) }
                 )
             }
             AppToggleRow(title = uiText(R.string.ui_patient_demographic_fields_013), checked = hasCompanion,
@@ -148,7 +149,7 @@ internal fun PatientDemographicFields(
                 AppTextField(
                     value = admittanceNumber,
                     onValueChange = onAdmissionNumberChanged,
-                    label = { Text(uiText(R.string.ui_patient_demographic_fields_002)) },
+                    label = { AppText(uiText(R.string.ui_patient_demographic_fields_002)) },
                     modifier = fieldModifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.ADMISSION_NUMBER)),
                     singleLine = true,
                     textStyle = autoStyle,
@@ -171,7 +172,7 @@ internal fun PatientDemographicFields(
             }
         )
         admissionDays?.let {
-            Text(uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)),
+            AppText(uiText(R.string.ui_patient_demographic_fields_004, uiNumber(it)),
                 modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -11,7 +13,6 @@ import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -41,13 +42,13 @@ fun SetPinScreen(
     var confirm by remember { mutableStateOf("") }
 
     AppCenteredContent() {
-        Text(doctor.fullName, style = MaterialTheme.typography.titleLarge)
-        Text(
+        AppText(doctor.fullName, style = MaterialTheme.typography.titleLarge)
+        AppText(
             uiText(R.string.ui_set_pin_screen_001),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(top = UiSpacing.small)
         )
-        Text(
+        AppText(
             uiText(R.string.ui_set_pin_screen_002),
             modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section),
             textAlign = TextAlign.Center
@@ -76,6 +77,6 @@ fun SetPinScreen(
             onClick = { onConfirm(pin, confirm) },
             modifier = Modifier.fillMaxWidth().padding(top = UiSpacing.screen)
         )
-        AppTextButton(onClick = onCancel, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
+        AppTextButton(onClick = onCancel, enabled = !busy) { AppText(uiText(R.string.ui_cancel)) }
     }
 }

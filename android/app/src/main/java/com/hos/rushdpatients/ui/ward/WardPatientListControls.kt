@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -31,7 +33,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.hos.rushdpatients.ui.theme.UiSpace
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.components.uiNumber
@@ -90,14 +91,14 @@ internal fun WardPatientListControls(
                         DashboardFilter.UNASSIGNED to uiText(R.string.ui_ward_screen_010), DashboardFilter.TASK_PENDING to uiText(R.string.ui_ward_screen_011)
                     ).forEach { (preset, label) -> AppFilterChip(
                         selected = selectedPreset == preset, onClick = { onPreset(preset) },
-                        label = { Text("$label ${uiNumber(presetCounts[preset] ?: 0)}") },
+                        label = { AppText("$label ${uiNumber(presetCounts[preset] ?: 0)}") },
                         size = UiControlSize.COMPACT) }
                 }
             }
             AppIconButton(label = uiText(R.string.ui_ward_patient_list_controls_005),
                 icon = AppIcons.RestartAlt, enabled = activeFilters.isNotEmpty(), onClick = onReset)
             BadgedBox(badge = { if (activeFilters.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer) { Text(uiNumber(activeFilters.size)) } }) {
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer) { AppText(uiNumber(activeFilters.size)) } }) {
                 AppIconButton(label = description,
                     icon = AppIcons.Sort, onClick = onOptions)
             }

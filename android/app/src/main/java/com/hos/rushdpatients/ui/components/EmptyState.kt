@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,14 +48,14 @@ fun EmptyState(
                 }
             }
         }
-        Text(
+        AppText(
             text = title,
             modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
         subtitle?.let {
-            Text(
+            AppText(
                 text = it,
                 modifier = Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.emptyWardMaxWidth),
                 style = MaterialTheme.typography.bodyMedium,
@@ -65,7 +64,7 @@ fun EmptyState(
             )
         }
         if (actionLabel != null && onAction != null) {
-            AppButton(onClick = onAction, enabled = actionEnabled) { Text(actionLabel) }
+            AppButton(onClick = onAction, enabled = actionEnabled) { AppText(actionLabel) }
         }
         secondaryActions()
     }

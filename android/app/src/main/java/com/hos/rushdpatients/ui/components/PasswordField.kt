@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.components
 import com.hos.rushdpatients.R
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -34,7 +33,7 @@ fun PasswordField(
     AppTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = { AppText(label) },
         modifier = modifier.fillMaxWidth(),
         enabled = enabled && LocalFieldEnabled.current,
         singleLine = true,

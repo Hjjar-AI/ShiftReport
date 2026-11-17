@@ -157,15 +157,15 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 onConfirm = { viewModel.reset(); reviewPatientIds = null; tab = DemoDestination.PATIENTS; showReset = false },
                 onDismiss = { showReset = false })
             if (showActor) AppAlertDialog(onDismissRequest = { showActor = false },
-                title = { Text(uiText(R.string.ui_demo_secondary_screens_011)) }, text = {
+                title = { AppText(uiText(R.string.ui_demo_secondary_screens_011)) }, text = {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
-                        Text(uiText(R.string.ui_demo_secondary_screens_012))
+                        AppText(uiText(R.string.ui_demo_secondary_screens_012))
                         state.doctors.forEach { doctor ->
                             AppChoiceRow(label = doctor.fullName, selected = state.actorId == doctor.id,
                                 onClick = { viewModel.selectActor(doctor.id); showActor = false })
                         }
                     }
-                }, confirmButton = { AppTextButton(onClick = { showActor = false }) { Text(uiText(R.string.ui_close)) } })
+                }, confirmButton = { AppTextButton(onClick = { showActor = false }) { AppText(uiText(R.string.ui_close)) } })
             if (showRecycle) PatientRecycleBinDialog(state.deleted, readOnly = busy, automaticCleanup = false,
                 onRestore = viewModel.controller::restorePatient, onDismiss = { showRecycle = false })
         }

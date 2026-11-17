@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.R
@@ -21,7 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -76,7 +77,7 @@ private fun AdminDoctorSelectionDialog(
 
     AppAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(title) },
+        title = { AppText(title) },
         text = {
             Column(
                 modifier = Modifier
@@ -86,7 +87,7 @@ private fun AdminDoctorSelectionDialog(
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
                 if (candidates.isEmpty()) {
-                    Text(emptyText)
+                    AppText(emptyText)
                 } else {
                     candidates.forEach { doctor ->
                         val isSelected = selected?.id == doctor.id
@@ -116,10 +117,10 @@ private fun AdminDoctorSelectionDialog(
             AppButton(
                 onClick = { selected?.let { onConfirm(it) } },
                 enabled = selected != null && !saving
-            ) { Text(confirmText) }
+            ) { AppText(confirmText) }
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !saving) { Text(uiText(R.string.ui_cancel)) }
+            AppTextButton(onClick = onDismiss, enabled = !saving) { AppText(uiText(R.string.ui_cancel)) }
         }
     )
 }

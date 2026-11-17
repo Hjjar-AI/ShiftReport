@@ -4,7 +4,6 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import android.content.Context
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.hos.rushdpatients.config.ProjectConfigStore
@@ -58,8 +57,8 @@ internal fun StorageAccessGate(
                 uiText(R.string.ui_storage_access_gate_001),
                 kind = NoticeKind.ERROR
             )
-            Text(uiText(R.string.ui_storage_access_gate_002))
-            AppButton(onClick = { attempt++ }) { Text(uiText(R.string.ui_retry)) }
+            AppText(uiText(R.string.ui_storage_access_gate_002))
+            AppButton(onClick = { attempt++ }) { AppText(uiText(R.string.ui_retry)) }
         }
         // The caller owns loading presentation; it cannot bypass the storage check.
         else -> loading()

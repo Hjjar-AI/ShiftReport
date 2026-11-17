@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.ward
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
@@ -51,10 +50,10 @@ internal fun WardStatusHeader(
                 }, actionEnabled = !state.syncing && !state.saving)
             if (recovery != null) AppTextButton(onClick = onRetry,
                 enabled = !state.syncing && !state.saving) {
-                Text(uiText(R.string.ui_recovery_retry_after_fix))
+                AppText(uiText(R.string.ui_recovery_retry_after_fix))
             }
         }
-        onBackToPreview?.let { back -> AppTextButton(onClick = back) { Text(uiText(R.string.report_readiness_return)) } }
+        onBackToPreview?.let { back -> AppTextButton(onClick = back) { AppText(uiText(R.string.report_readiness_return)) } }
         if (liveProject && showBackOnline) AppNotice(
             uiText(R.string.back_online_fetch), actionLabel = uiText(R.string.ui_patient_fetch_reminder_003),
             onAction = onFetch,

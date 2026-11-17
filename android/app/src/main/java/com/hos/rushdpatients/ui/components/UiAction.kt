@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +30,6 @@ fun AppActionLabel(action: UiAction) {
     val uiText = rememberUiStrings()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         Icon(action.icon, contentDescription = null, modifier = if (action == UiAction.SEND_REPORT) Modifier.size(UiSize.iconMedium).directionalIcon() else Modifier.size(UiSize.iconMedium))
-        Text(action.label(uiText))
+        AppText(action.label(uiText))
     }
 }

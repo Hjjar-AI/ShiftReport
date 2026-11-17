@@ -55,7 +55,7 @@ internal fun AssignmentsExportWorkspace(onBack: () -> Unit, controller: ReportCo
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.section)) {
             if (controller.simulation) AppNotice(text(R.string.demo_simulation_notice))
-            Text(text(R.string.assignments_export_help))
+            AppText(text(R.string.assignments_export_help))
             LoadingButton(
                 text = text(if (reviewed) R.string.ui_save else R.string.assignments_export_preview),
                 loading = state.loading || state.previewingPdf || state.exportingLocalPdf,
@@ -68,7 +68,7 @@ internal fun AssignmentsExportWorkspace(onBack: () -> Unit, controller: ReportCo
             state.error?.let {
                 AppNotice(it, kind = NoticeKind.ERROR)
                 AppTextButton(onClick = { controller.load() }, enabled = !state.isBusy) {
-                    Text(text(R.string.ui_recovery_reload_report))
+                    AppText(text(R.string.ui_recovery_reload_report))
                 }
             }
         }

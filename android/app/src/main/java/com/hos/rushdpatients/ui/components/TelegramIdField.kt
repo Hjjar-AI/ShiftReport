@@ -2,7 +2,6 @@ package com.hos.rushdpatients.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -21,8 +20,8 @@ fun TelegramIdField(
     AppTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
-        supportingText = hint?.let { text -> { Text(text) } },
+        label = { AppText(label) },
+        supportingText = hint?.let { text -> { AppText(text) } },
         singleLine = true,
         enabled = enabled,
         keyboardOptions = KeyboardOptions(

@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.annotation.StringRes
@@ -24,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,7 +72,7 @@ internal fun PrimaryNavigationRail(
             val selected = destination.selected(viewMode)
             NavigationRailItem(selected = selected, onClick = actions[destination.ordinal],
                 icon = { Icon(if (selected) destination.filled else destination.outlined, contentDescription = null) },
-                label = { Text(uiText(destination.label)) })
+                label = { AppText(uiText(destination.label)) })
         }
     }
 }
@@ -91,7 +92,7 @@ internal fun DrawerSubmenuHeader(
 ) {
     val uiText = rememberUiStrings()
     CompactDrawerItem(
-        label = { Text(label, fontWeight = UiTypography.emphasizedWeight) },
+        label = { AppText(label, fontWeight = UiTypography.emphasizedWeight) },
         selected = false,
         onClick = onClick,
         badge = {

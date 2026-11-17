@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -35,15 +34,15 @@ internal fun ReportExportDialog(state: ReportUiState, controller: ReportControll
     val nextPreview = routes.firstOrNull { !opened(it) }
     val reviewed = routes.isNotEmpty() && nextPreview == null
     AppAlertDialog(onDismissRequest = { if (!state.isBusy) onDismiss() },
-        title = { Text(text(R.string.report_export_draft_action)) },
+        title = { AppText(text(R.string.report_export_draft_action)) },
         text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(text(R.string.report_export_draft_help))
+                AppText(text(R.string.report_export_draft_help))
                 if (controller.simulation) AppNotice(text(R.string.demo_simulation_notice))
-                Text(choices[active].orEmpty())
+                AppText(choices[active].orEmpty())
                 if (choices.size > 1) AppTextButton(onClick = { changeReport = !changeReport }, enabled = !state.isBusy) {
-                    Text(text(R.string.report_draft_change_report))
+                    AppText(text(R.string.report_draft_change_report))
                 }
                 if (changeReport) Column(Modifier.selectableGroup()) {
                     choices.forEach { (key, label) ->
@@ -53,12 +52,12 @@ internal fun ReportExportDialog(state: ReportUiState, controller: ReportControll
                 }
                 if (reviewed && routes.size == 1) AppTextButton(
                     onClick = { controller.shareExportPdf(routes.single(), draft = true) }, enabled = !state.isBusy) {
-                    Text(text(R.string.report_export_share_draft))
+                    AppText(text(R.string.report_export_share_draft))
                 }
                 state.error?.let {
                     AppNotice(it, kind = NoticeKind.ERROR)
                     AppTextButton(onClick = { controller.load() }, enabled = !state.isBusy) {
-                        Text(text(R.string.ui_recovery_reload_report))
+                        AppText(text(R.string.ui_recovery_reload_report))
                     }
                 }
             }
@@ -73,6 +72,6 @@ internal fun ReportExportDialog(state: ReportUiState, controller: ReportControll
                     else controller.saveExportPdfs(routes, draft = true)
                 })
         }, dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !state.isBusy) { Text(text(R.string.ui_close)) }
+            AppTextButton(onClick = onDismiss, enabled = !state.isBusy) { AppText(text(R.string.ui_close)) }
         })
 }

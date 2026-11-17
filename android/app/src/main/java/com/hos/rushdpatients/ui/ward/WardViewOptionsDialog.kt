@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -23,7 +25,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.domain.sort.GroupByMode
@@ -51,7 +52,7 @@ internal fun WardViewOptionsDialog(
         onDismissRequest = { if (!state.saving) onClose() },
         title = {
             Column {
-                Text(uiText(R.string.ui_ward_patient_list_controls_004))
+                AppText(uiText(R.string.ui_ward_patient_list_controls_004))
                 AppSectionIndex(sections = WardViewOption.entries.toList(), selected = selectedViewOption,
                     label = { it.label(uiText) }, enabled = !state.saving, onSelect = onSelectOption)
             }
@@ -59,17 +60,17 @@ internal fun WardViewOptionsDialog(
         text = {
             Column(Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight)
                 .verticalScroll(viewOptionsScroll), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(resultSummary, style = MaterialTheme.typography.labelMedium)
-                if (activeFilterLabels.isNotEmpty()) Text(
+                AppText(resultSummary, style = MaterialTheme.typography.labelMedium)
+                if (activeFilterLabels.isNotEmpty()) AppText(
                     uiText(R.string.ui_ward_patient_list_controls_002, activeFilterLabels.distinct().joinToString(" • ")),
                     style = MaterialTheme.typography.bodySmall)
-                Text(uiText(R.string.ui_ward_view_options_dialog_001), style = MaterialTheme.typography.bodySmall)
+                AppText(uiText(R.string.ui_ward_view_options_dialog_001), style = MaterialTheme.typography.bodySmall)
                 if (selectedViewOption == WardViewOption.FILTERS) {
                     AppSearchField(query = filters.searchQuery, onQueryChange = { query -> onFiltersChanged { it.copy(searchQuery = query) } }, label = uiText(R.string.ui_search))
-                    Text(uiText(R.string.ui_ward_view_options_dialog_003), style = MaterialTheme.typography.titleSmall)
+                    AppText(uiText(R.string.ui_ward_view_options_dialog_003), style = MaterialTheme.typography.titleSmall)
                     AppOutlinedButton(onClick = onShowTasks,
                         enabled = state.patients.isNotEmpty() && !state.loading && !state.saving && !state.syncing,
-                        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_ward_view_options_dialog_004)) }
+                        modifier = Modifier.fillMaxWidth()) { AppText(uiText(R.string.ui_ward_view_options_dialog_004)) }
                     AppFilterChip(filters.viewMode == WardViewMode.MINE,
                         { onFiltersChanged { it.copy(viewMode = if (it.viewMode == WardViewMode.MINE) WardViewMode.ALL else WardViewMode.MINE) } },
                         uiText(R.string.ui_ward_view_options_dialog_005))
@@ -86,7 +87,7 @@ internal fun WardViewOptionsDialog(
                     }
                 }
                 if (selectedViewOption == WardViewOption.GROUPING) {
-                    Text(uiText(R.string.ui_ward_view_options_dialog_007), style = MaterialTheme.typography.titleSmall)
+                    AppText(uiText(R.string.ui_ward_view_options_dialog_007), style = MaterialTheme.typography.titleSmall)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         com.hos.rushdpatients.domain.sort.GroupByMode.entries.forEach { mode ->
                             AppFilterChip(state.groupByMode == mode,
@@ -95,13 +96,13 @@ internal fun WardViewOptionsDialog(
                     }
                 }
                 if (selectedViewOption == WardViewOption.CARDS) {
-                    Text(uiText(R.string.ui_ward_view_options_dialog_008), style = MaterialTheme.typography.titleSmall)
+                    AppText(uiText(R.string.ui_ward_view_options_dialog_008), style = MaterialTheme.typography.titleSmall)
                     AppToggleRow(title = uiText(R.string.ui_ward_view_options_dialog_009), checked = cardsExpanded,
                         onCheckedChange = onSetAllExpanded)
                 }
                 if (selectedViewOption == WardViewOption.SORT) {
-                    Text(uiText(R.string.ui_ward_view_options_dialog_012), style = MaterialTheme.typography.titleSmall)
-                    Text(sortReviewLabel(uiText, state.sortSpec), style = MaterialTheme.typography.bodySmall)
+                    AppText(uiText(R.string.ui_ward_view_options_dialog_012), style = MaterialTheme.typography.titleSmall)
+                    AppText(sortReviewLabel(uiText, state.sortSpec), style = MaterialTheme.typography.bodySmall)
                     if (!state.isReadOnly) {
                         PatientSortOptions(
                             initial = state.sortSpec,
@@ -115,9 +116,9 @@ internal fun WardViewOptionsDialog(
             }
         },
         confirmButton = { AppTextButton(onClick = onClose,
-            enabled = !state.saving) { Text(uiText(R.string.ui_done)) } },
+            enabled = !state.saving) { AppText(uiText(R.string.ui_done)) } },
         dismissButton = {
-            AppTextButton(onClick = onResetFilters) { Text(uiText(R.string.ui_ward_view_options_dialog_016)) }
+            AppTextButton(onClick = onResetFilters) { AppText(uiText(R.string.ui_ward_view_options_dialog_016)) }
         }
     )
 }

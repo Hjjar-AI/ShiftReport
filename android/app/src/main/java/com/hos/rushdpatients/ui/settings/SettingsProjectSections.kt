@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -9,7 +11,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.connection.ProjectConnectionAction
@@ -19,7 +20,7 @@ import com.hos.rushdpatients.ui.components.LoadingButton
 @Composable
 internal fun SettingsConnectionContent(canManageProject: Boolean) {
     val uiText = rememberUiStrings()
-    Text(
+    AppText(
         uiText(R.string.ui_settings_project_sections_001),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -33,11 +34,11 @@ internal fun SettingsResetContent(state: SettingsUiState, onPrepareEmptyStart: (
     val uiText = rememberUiStrings()
     if (state.isPermanentAdmin) {
         SettingsSubheading(uiText(R.string.ui_settings_project_sections_002))
-        Text(uiText(R.string.ui_settings_project_sections_003),
+        AppText(uiText(R.string.ui_settings_project_sections_003),
             style = MaterialTheme.typography.bodySmall)
         AppOutlinedButton(onClick = onPrepareEmptyStart,
             enabled = !state.emptyStartBusy && !state.syncing && !state.backupBusy && !state.provisioningBusy,
-            modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_project_sections_004), color = MaterialTheme.colorScheme.error) }
+            modifier = Modifier.fillMaxWidth()) { AppText(uiText(R.string.ui_settings_project_sections_004), color = MaterialTheme.colorScheme.error) }
         AppDivider()
     }
 }
@@ -46,8 +47,8 @@ internal fun SettingsResetContent(state: SettingsUiState, onPrepareEmptyStart: (
 @Composable
 internal fun SettingsInvitationsContent(state: SettingsUiState, onCreateInvitation: () -> Unit) {
     val uiText = rememberUiStrings()
-    Text(uiText(R.string.ui_settings_project_sections_005), style = MaterialTheme.typography.labelMedium)
-    Text(
+    AppText(uiText(R.string.ui_settings_project_sections_005), style = MaterialTheme.typography.labelMedium)
+    AppText(
         uiText(R.string.ui_settings_project_sections_006),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -71,15 +72,15 @@ internal fun SettingsDestinationsContent(
     val uiText = rememberUiStrings()
     residentsEditor()
     AppDivider()
-    AppOutlinedButton(onClick = onOpenDoctors) { Text(uiText(R.string.ui_settings_project_sections_008)) }
-    Text(uiText(R.string.ui_settings_project_sections_009), style = MaterialTheme.typography.labelMedium)
-    Text(
+    AppOutlinedButton(onClick = onOpenDoctors) { AppText(uiText(R.string.ui_settings_project_sections_008)) }
+    AppText(uiText(R.string.ui_settings_project_sections_009), style = MaterialTheme.typography.labelMedium)
+    AppText(
         uiText(R.string.ui_settings_project_sections_010),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     if (supervisors.isEmpty()) {
-        Text(
+        AppText(
             uiText(R.string.ui_settings_project_sections_011),
             style = MaterialTheme.typography.bodySmall
         )

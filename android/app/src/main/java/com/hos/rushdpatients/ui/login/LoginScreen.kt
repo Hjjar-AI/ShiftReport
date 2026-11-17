@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -27,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.ExperimentalMaterialApi
@@ -95,8 +96,8 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel(), recoveryDoctorId: S
                     onBack = viewModel::backToDoctors
                 )
                 is LoginStep.RecoverPin -> AppCenteredContent {
-                    Text(step.doctor.fullName, style = MaterialTheme.typography.titleLarge)
-                    Text(uiText(R.string.pin_recovery_instructions))
+                    AppText(step.doctor.fullName, style = MaterialTheme.typography.titleLarge)
+                    AppText(uiText(R.string.pin_recovery_instructions))
                     state.error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
                     ProjectConnectionAction(recoveryDoctorId = step.doctor.id,
                         onRecoveryReady = viewModel::onRecoveryRejoined,
@@ -163,15 +164,15 @@ private fun PickDoctorList(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     if (projectName.isNotBlank()) {
-                        Text(projectName, style = MaterialTheme.typography.titleMedium,
+                        AppText(projectName, style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary)
                     }
-                    Text(uiText(R.string.ui_login_screen_003), style = MaterialTheme.typography.headlineSmall)
-                    Text(
+                    AppText(uiText(R.string.ui_login_screen_003), style = MaterialTheme.typography.headlineSmall)
+                    AppText(
                         uiText(R.string.ui_login_screen_004),
                         style = MaterialTheme.typography.bodySmall
                     )
-                    Text(uiText(R.string.login_pull_refresh_hint), style = MaterialTheme.typography.bodySmall)
+                    AppText(uiText(R.string.login_pull_refresh_hint), style = MaterialTheme.typography.bodySmall)
                     AppSearchField(query = query, onQueryChange = { query = it }, label = uiText(R.string.ui_shift_doctor_picker_003))
                     error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
                     notice?.let { AppNotice(it, kind = NoticeKind.SUCCESS) }
@@ -179,7 +180,7 @@ private fun PickDoctorList(
             }
             if (matchingDoctors.isEmpty()) {
                 item {
-                    Text(if (doctors.isEmpty()) uiText(R.string.ui_login_screen_005) else uiText(R.string.ui_shift_doctor_picker_006))
+                    AppText(if (doctors.isEmpty()) uiText(R.string.ui_login_screen_005) else uiText(R.string.ui_shift_doctor_picker_006))
                 }
             }
             items(matchingDoctors, key = { it.id }) { doctor ->
@@ -193,8 +194,8 @@ private fun PickDoctorList(
                         .clickable(enabled = enabled, role = Role.Button) { onPick(doctor) }
                 ) {
                     Column(modifier = Modifier.padding(UiSpacing.screen)) {
-                        Text(doctor.fullName, style = MaterialTheme.typography.titleMedium)
-                        Text(
+                        AppText(doctor.fullName, style = MaterialTheme.typography.titleMedium)
+                        AppText(
                             text = when {
                                 !linked -> uiText(R.string.ui_login_screen_006)
                                 hasPin -> uiText(R.string.ui_login_screen_007)
@@ -220,21 +221,21 @@ internal fun VerifyingView(step: LoginStep.Verifying, busy: Boolean, error: Stri
     // Never save a submitted login code in a Bundle or clipboard.
     var code by remember(step.doctor.id) { mutableStateOf("") }
     AppCenteredContent(modifier = Modifier.imePadding()) {
-        Text(uiText(R.string.ui_login_screen_009), style = MaterialTheme.typography.headlineSmall)
-        Text(uiText(R.string.login_private_code_instructions), textAlign = TextAlign.Center)
+        AppText(uiText(R.string.ui_login_screen_009), style = MaterialTheme.typography.headlineSmall)
+        AppText(uiText(R.string.login_private_code_instructions), textAlign = TextAlign.Center)
         com.hos.rushdpatients.ui.components.AppTextField(
             value = code, onValueChange = { code = it.filter(Char::isDigit).take(6) },
-            label = { Text(uiText(R.string.login_private_code_label)) },
+            label = { AppText(uiText(R.string.login_private_code_label)) },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
             singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth())
         error?.let { AppNotice(it, kind = NoticeKind.ERROR) }
-        Text(uiText(R.string.ui_login_screen_011, uiNumber(step.remainingSeconds)), style = MaterialTheme.typography.bodySmall)
+        AppText(uiText(R.string.ui_login_screen_011, uiNumber(step.remainingSeconds)), style = MaterialTheme.typography.bodySmall)
         AppButton(enabled = !busy && code.length == 6 && step.remainingSeconds > 0,
             onClick = { val submitted = code; code = ""; onVerify(submitted) }) {
-            Text(uiText(R.string.login_private_code_confirm))
+            AppText(uiText(R.string.login_private_code_confirm))
         }
-        AppTextButton(onClick = onCancel, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
+        AppTextButton(onClick = onCancel, enabled = !busy) { AppText(uiText(R.string.ui_cancel)) }
     }
 }
 
@@ -246,9 +247,9 @@ private fun VerifyFailedView(
 ) {
     val uiText = rememberUiStrings()
     AppCenteredContent() {
-        Text(uiText(R.string.ui_login_screen_012), style = MaterialTheme.typography.headlineSmall)
+        AppText(uiText(R.string.ui_login_screen_012), style = MaterialTheme.typography.headlineSmall)
         AppNotice(step.message, kind = NoticeKind.ERROR)
-        AppButton(onClick = { onRetry(step.doctor) }) { Text(uiText(R.string.ui_retry)) }
-        AppTextButton(onClick = onBack) { Text(uiText(R.string.ui_back)) }
+        AppButton(onClick = { onRetry(step.doctor) }) { AppText(uiText(R.string.ui_retry)) }
+        AppTextButton(onClick = onBack) { AppText(uiText(R.string.ui_back)) }
     }
 }

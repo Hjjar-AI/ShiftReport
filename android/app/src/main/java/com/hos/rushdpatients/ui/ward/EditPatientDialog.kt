@@ -1,10 +1,11 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.hos.rushdpatients.data.model.Doctor
@@ -58,7 +59,7 @@ internal fun EditPatientDialog(
         draftWarning = draftWarning,
         reviewAction = {
             roundsNavigation?.let { navigation ->
-                Text(uiText(R.string.ui_patient_rounds_navigation_002, com.hos.rushdpatients.ui.components.uiNumber(navigation.index + 1), com.hos.rushdpatients.ui.components.uiNumber(navigation.total)),
+                AppText(uiText(R.string.ui_patient_rounds_navigation_002, com.hos.rushdpatients.ui.components.uiNumber(navigation.index + 1), com.hos.rushdpatients.ui.components.uiNumber(navigation.total)),
                     style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
             }
 
@@ -77,8 +78,8 @@ internal fun PatientDraftLoadDialog(failed: Boolean, onRetry: () -> Unit, onDism
     val uiText = rememberUiStrings()
     com.hos.rushdpatients.ui.components.AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(uiText(R.string.patient_draft_recovery_title)) },
-        text = { Text(uiText(if (failed) R.string.patient_draft_recovery_failed else R.string.patient_draft_loading)) },
+        title = { AppText(uiText(R.string.patient_draft_recovery_title)) },
+        text = { AppText(uiText(if (failed) R.string.patient_draft_recovery_failed else R.string.patient_draft_loading)) },
         confirmButton = {
             if (failed) com.hos.rushdpatients.ui.components.AppDialogConfirmAction(
                 text = uiText(R.string.ui_retry), onClick = onRetry)

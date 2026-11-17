@@ -2,7 +2,6 @@ package com.hos.rushdpatients.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,9 +21,9 @@ fun AppClinicalCard(title: String, content: String, emptyText: String = androidx
 fun AppActionCard(title: String, description: String, actionLabel: String,
     onClick: () -> Unit, primary: Boolean = false) {
     AppSection(title) {
-        Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AppText(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         AppButton(onClick, Modifier.fillMaxWidth(), style = if (primary) AppButtonStyle.PRIMARY else AppButtonStyle.OUTLINED) {
-            Text(actionLabel)
+            AppText(actionLabel)
         }
     }
 }

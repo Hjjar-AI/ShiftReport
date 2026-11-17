@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.components
 import com.hos.rushdpatients.ui.theme.UiLayout
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,7 +19,7 @@ fun AppFieldPair(modifier: Modifier = Modifier, separator: String? = null, stack
         if (stackWhenNarrow && maxWidth < minimumRowWidth * fontScale) {
             Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 first(Modifier.fillMaxWidth())
-                separator?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
+                separator?.let { AppText(it, style = MaterialTheme.typography.labelMedium) }
                 second(Modifier.fillMaxWidth())
             }
         } else {
@@ -31,7 +30,7 @@ fun AppFieldPair(modifier: Modifier = Modifier, separator: String? = null, stack
                 Box(Modifier.weight(1f).then(cellHeight), propagateMinConstraints = true) {
                     first(Modifier.fillMaxWidth())
                 }
-                separator?.let { Text(it, Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium) }
+                separator?.let { AppText(it, Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium) }
                 Box(Modifier.weight(1f).then(cellHeight), propagateMinConstraints = true) {
                     second(Modifier.fillMaxWidth())
                 }

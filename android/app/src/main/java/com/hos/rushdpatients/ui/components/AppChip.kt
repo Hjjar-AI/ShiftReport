@@ -7,7 +7,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -18,7 +17,7 @@ import com.hos.rushdpatients.ui.theme.*
 fun AppChip(text: String, colors: ContainerColors = toneColors(Tone.NEUTRAL), outlined: Boolean = false) {
     Surface(color = colors.container, contentColor = colors.content,
         border = if (outlined) UiBorder.stroke() else null, shape = MaterialTheme.shapes.small) {
-        Text(text, Modifier.padding(UiPadding.chip), style = MaterialTheme.typography.labelMedium,
+        AppText(text, Modifier.padding(UiPadding.chip), style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center)
     }
 }
@@ -28,7 +27,7 @@ fun AppChip(text: String, colors: ContainerColors = toneColors(Tone.NEUTRAL), ou
 fun AppFilterChip(selected: Boolean, onClick: () -> Unit, label: String,
     modifier: Modifier = Modifier, enabled: Boolean = true) {
     AppFilterChip(selected = selected, onClick = onClick, modifier = modifier, enabled = enabled,
-        label = { Text(label) })
+        label = { AppText(label) })
 }
 
 /** M3's compact visual grows for text; the measured interactive area remains at least 48dp. */

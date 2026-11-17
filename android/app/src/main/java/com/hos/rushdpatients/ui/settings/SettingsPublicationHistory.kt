@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.hos.rushdpatients.R
@@ -20,17 +19,17 @@ internal fun SettingsPublicationHistory(state: SettingsUiState, onLoadHistory: (
     AppTextButton(onClick = {
         expanded = !expanded
         if (expanded) onLoadHistory()
-    }) { Text(text(R.string.publication_history_title)) }
+    }) { AppText(text(R.string.publication_history_title)) }
     if (expanded) Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        if (state.publicationHistoryLoading) Text(text(R.string.ui_ward_activity_screen_004))
+        if (state.publicationHistoryLoading) AppText(text(R.string.ui_ward_activity_screen_004))
         state.publicationHistoryError?.let { error ->
             AppNotice(error, kind = NoticeKind.ERROR, actionLabel = text(R.string.ui_retry),
                 onAction = onLoadHistory, actionEnabled = !state.publicationHistoryLoading)
         }
         if (!state.publicationHistoryLoading && state.publicationHistoryError == null && state.publicationHistory.isEmpty())
-            Text(text(R.string.ui_ward_activity_screen_007))
+            AppText(text(R.string.ui_ward_activity_screen_007))
         state.publicationHistory.forEach { publication ->
-            Text(text(if (publication.forced) R.string.ui_ward_activity_screen_001 else R.string.ui_ward_activity_screen_002) +
+            AppText(text(if (publication.forced) R.string.ui_ward_activity_screen_001 else R.string.ui_ward_activity_screen_002) +
                 " • " + uiDateTime(Instant.ofEpochMilli(publication.at)), style = MaterialTheme.typography.bodySmall)
         }
     }

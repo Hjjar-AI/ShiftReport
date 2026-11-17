@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -12,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,10 +67,10 @@ private fun SetupChoice(
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 RadioButton(selected = selected, onClick = null, enabled = enabled)
-                Text(title, style = MaterialTheme.typography.titleMedium,
+                AppText(title, style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center)
             }
-            Text(description, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+            AppText(description, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         }
     }
 }

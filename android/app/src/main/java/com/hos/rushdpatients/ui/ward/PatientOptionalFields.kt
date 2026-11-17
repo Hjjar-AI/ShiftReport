@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppDivider
 
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -71,7 +72,7 @@ internal fun PatientOptionalFields(
                 Row(modifier = Modifier.fillMaxWidth()
                     .padding(start = UiSpacing.small, top = UiSpacing.micro, bottom = UiSpacing.micro),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text(buildString {
+                    AppText(buildString {
                         append(badge.text)
                         badge.priority?.let { append(" • ").append(it.uiLabel(uiText)) }
                     }, modifier = Modifier.weight(1f))
@@ -84,18 +85,18 @@ internal fun PatientOptionalFields(
         }
         AppTextField(
             value = badgeDraftText, onValueChange = { badgeDraftText = it.take(80) },
-            label = { Text(uiText(R.string.ui_patient_form_dialog_028)) },
-            supportingText = { Text(uiText(R.string.ui_patient_form_dialog_029)) },
+            label = { AppText(uiText(R.string.ui_patient_form_dialog_028)) },
+            supportingText = { AppText(uiText(R.string.ui_patient_form_dialog_029)) },
             modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = autoStyle
         )
-        Text(uiText(R.string.ui_patient_form_dialog_030), style = MaterialTheme.typography.labelMedium)
+        AppText(uiText(R.string.ui_patient_form_dialog_030), style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
             AppFilterChip(enabled = !saving, selected = badgeDraftPriority == null,
                 onClick = { badgeDraftPriority = null },
-                label = { Text(uiText(R.string.ui_patient_form_dialog_031)) })
+                label = { AppText(uiText(R.string.ui_patient_form_dialog_031)) })
             PatientBadgePriority.entries.forEach { level ->
                 AppFilterChip(enabled = !saving, selected = badgeDraftPriority == level,
-                    onClick = { badgeDraftPriority = level }, label = { Text(level.uiLabel(uiText)) })
+                    onClick = { badgeDraftPriority = level }, label = { AppText(level.uiLabel(uiText)) })
             }
         }
         AppOutlinedButton(
@@ -107,7 +108,7 @@ internal fun PatientOptionalFields(
                     badgeDraftPriority = null
                 }
             }, enabled = !saving && badgeDraftText.isNotBlank(), modifier = Modifier.fillMaxWidth()
-        ) { Text(uiText(R.string.ui_patient_form_dialog_032)) }
+        ) { AppText(uiText(R.string.ui_patient_form_dialog_032)) }
 
         entryOptions()
     }

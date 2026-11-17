@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppText
+
 
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.ui.theme.AppThemePreset
@@ -11,7 +13,6 @@ import com.hos.rushdpatients.ui.components.AppToggleRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -30,6 +31,6 @@ internal fun SettingsReportContent(
     )
 
     AppPdfStylePicker(selected = pdfStyle, onSelected = onPdfStyle)
-    Text(uiText(R.string.pdf_uses_app_theme, appTheme.arabicLabel(uiText)),
+    AppText(uiText(R.string.pdf_uses_app_theme, appTheme.arabicLabel(uiText)),
         style = MaterialTheme.typography.bodySmall)
 }

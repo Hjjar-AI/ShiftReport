@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppChoiceChips
 import com.hos.rushdpatients.ui.components.UiStrings
@@ -29,7 +31,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -108,21 +109,21 @@ fun AddEditDoctorDialog(
                     }
                     if (rejectedInput != null) {
                         AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                            Text(uiText(R.string.ui_edit_patient_dialog_004))
+                            AppText(uiText(R.string.ui_edit_patient_dialog_004))
                         }
                     }
                     AppSectionHeader(title = uiText(R.string.ui_patient_demographic_fields_005))
                     AppTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
-                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_003)) },
+                        label = { AppText(uiText(R.string.ui_add_edit_doctor_dialog_003)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     AppTextField(
                         value = lastName,
                         onValueChange = { lastName = it },
-                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_004)) },
+                        label = { AppText(uiText(R.string.ui_add_edit_doctor_dialog_004)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -140,7 +141,7 @@ fun AddEditDoctorDialog(
                             supportingText = uiText(R.string.ui_add_edit_doctor_dialog_008))
                     }
                     AppSectionHeader(title = uiText(R.string.ui_add_edit_doctor_dialog_009))
-                    Text(uiText(R.string.ui_add_edit_doctor_dialog_010))
+                    AppText(uiText(R.string.ui_add_edit_doctor_dialog_010))
                     PinField(
                         imeAction = ImeAction.Next,
                         value = pin,
@@ -151,12 +152,12 @@ fun AddEditDoctorDialog(
                     AppTextField(
                         value = telegramIdText,
                         onValueChange = { telegramIdText = it; telegramIdError = false },
-                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_012)) },
+                        label = { AppText(uiText(R.string.ui_add_edit_doctor_dialog_012)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Ltr),
                         isError = telegramIdError,
                         errorMessage = uiText(R.string.ui_add_edit_doctor_dialog_013),
-                        supportingText = { if (telegramIdError) Text(uiText(R.string.ui_add_edit_doctor_dialog_013)) },
+                        supportingText = { if (telegramIdError) AppText(uiText(R.string.ui_add_edit_doctor_dialog_013)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )

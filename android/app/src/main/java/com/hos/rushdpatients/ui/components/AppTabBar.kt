@@ -60,7 +60,7 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                                 tint = color.copy(alpha = if (selected) 0.10f else 0.07f),
                                 modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale })
                         }
-                        Text(item.label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = color,
+                        AppText(item.label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = color,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (selected) UiTypography.emphasizedWeight else FontWeight.Medium)
                     }

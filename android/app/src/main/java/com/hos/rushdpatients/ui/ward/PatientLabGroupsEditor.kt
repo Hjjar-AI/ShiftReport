@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -50,7 +51,7 @@ internal fun PatientLabGroupsEditor(
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     val groupLabel = uiText(R.string.lab_group_number, index + 1)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(groupLabel, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                        AppText(groupLabel, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                         AppIconButton(label = uiText(R.string.lab_group_up) + " • " + groupLabel,
                             icon = AppIcons.ArrowUpward, enabled = enabled && index > 0,
                             onClick = { move(index, index - 1) })
@@ -71,7 +72,7 @@ internal fun PatientLabGroupsEditor(
                         },
                         second = { fieldModifier ->
                             AppTextField(value = group.title, onValueChange = { update(group.copy(title = it)) },
-                                label = { Text(uiText(R.string.lab_group_title)) }, enabled = enabled,
+                                label = { AppText(uiText(R.string.lab_group_title)) }, enabled = enabled,
                                 modifier = fieldModifier, textStyle = textStyle)
                         }
                     )
@@ -80,7 +81,7 @@ internal fun PatientLabGroupsEditor(
             }
         } }
         AppOutlinedButton(enabled = enabled, onClick = { onChange(groups + PatientLabGroup(id = java.util.UUID.randomUUID().toString())) }) {
-            Text(uiText(R.string.lab_groups_add))
+            AppText(uiText(R.string.lab_groups_add))
         }
     }
     if (removing != null) ConfirmDialog(title = uiText(R.string.lab_group_remove),

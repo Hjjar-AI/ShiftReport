@@ -26,6 +26,8 @@ object UiSpacing {
     val section = UiSpace.l
     val largeSection = UiSpace.xl
     val pageSection = UiSpace.xxl
+    val rowGap = screen
+    val iconGap = small
     val screenGutter = screen
     val cardPadding = screen
     val blockGap = section

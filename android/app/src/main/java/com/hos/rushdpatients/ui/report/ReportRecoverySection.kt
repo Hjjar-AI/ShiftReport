@@ -1,7 +1,6 @@
 package com.hos.rushdpatients.ui.report
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
@@ -51,17 +50,17 @@ internal fun ReportRecoverySection(
             when (state.doctorRegistryAction) {
                 com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.FETCH ->
                     AppOutlinedButton(onClick = onFetchDoctors, enabled = !busy,
-                        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_042)) }
+                        modifier = Modifier.fillMaxWidth()) { AppText(uiText(R.string.ui_report_preview_screen_042)) }
                 com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH -> {
                     if (state.isAdmin) AppOutlinedButton(onClick = onOpenDoctors,
-                        enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_043)) }
+                        enabled = !busy, modifier = Modifier.fillMaxWidth()) { AppText(uiText(R.string.ui_report_preview_screen_043)) }
                     else AppNotice(uiText(R.string.ui_report_preview_screen_044))
                 }
                 null -> Unit
             }
             if (state.doctorRegistryAction == com.hos.rushdpatients.domain.doctor.DoctorRegistryAction.PUBLISH) {
                 AppOutlinedButton(onClick = onReload, enabled = !busy,
-                    modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_recovery_reload_report)) }
+                    modifier = Modifier.fillMaxWidth()) { AppText(uiText(R.string.ui_recovery_reload_report)) }
             }
         }
     }

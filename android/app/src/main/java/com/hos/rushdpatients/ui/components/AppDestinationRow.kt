@@ -21,8 +21,8 @@ fun AppDestinationRow(title: String, summary: String, icon: ImageVector,
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(UiSize.icon))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(summary, style = MaterialTheme.typography.bodySmall,
+                AppText(title, style = MaterialTheme.typography.titleSmall)
+                AppText(summary, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(AppIcons.ChevronRight, modifier = Modifier.directionalIcon(),

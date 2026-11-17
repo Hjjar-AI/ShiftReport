@@ -67,12 +67,12 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>,
     WardFullscreenDialog(title = uiText(R.string.ui_ward_view_options_dialog_004), onDismissRequest = onDismiss) {
         Scaffold(snackbarHost = { AppSnackbarHost(snackbarHost) }) { insets ->
             Column(Modifier.fillMaxSize().padding(insets)) {
-                AppCompactTopBar(title = { Text(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
+                AppCompactTopBar(title = { AppText(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },
                     navigation = { AppIconButton(label = uiText(R.string.ui_ward_task_board_001),
                         icon = AppIcons.Close,
                         onClick = onDismiss) })
                 Column(Modifier.padding(horizontal = UiSpacing.screen)) {
-                    Text(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
+                    AppText(uiPlural(R.plurals.ward_task_count, rows.size) + uiText(R.string.ui_ward_task_board_002),
                         style = MaterialTheme.typography.bodySmall)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         TaskDoctorFilter(uiText(R.string.ui_ward_task_board_003), supervisors, supervisor) { supervisor = it }
@@ -86,7 +86,7 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>,
                     items(groups, key = { it.first.id }) { (patient, entries) ->
                         AppCard(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                AppTextButton(onClick = { onPatient(patient.id) }) { Text(patient.displayName) }
+                                AppTextButton(onClick = { onPatient(patient.id) }) { AppText(patient.displayName) }
                                 entries.sortedBy { task -> patient.tasks.indexOfFirst { it.id == task.task.id } }.forEach { entry ->
                                     key(entry.task.id) { WardTaskRow(entry, editable, onComplete) }
                                 }
@@ -106,11 +106,11 @@ private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: Str
     var expanded by remember { mutableStateOf(false) }
     Box {
         AppFilterChip(selected = selected != null, onClick = { expanded = true },
-            label = { Text(label + ": " + (doctors.firstOrNull { it.id == selected }?.fullName ?: if (selected == null) uiText(R.string.ui_all) else uiText(R.string.ui_ward_task_board_011))) })
+            label = { AppText(label + ": " + (doctors.firstOrNull { it.id == selected }?.fullName ?: if (selected == null) uiText(R.string.ui_all) else uiText(R.string.ui_ward_task_board_011))) })
         AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            AppMenuItem(text = { Text(uiText(R.string.ui_all)) }, onClick = { onSelect(null); expanded = false })
+            AppMenuItem(text = { AppText(uiText(R.string.ui_all)) }, onClick = { onSelect(null); expanded = false })
             doctors.sortedBy { it.fullName }.forEach { doctor ->
-                AppMenuItem(text = { Text(doctor.fullName) }, onClick = { onSelect(doctor.id); expanded = false })
+                AppMenuItem(text = { AppText(doctor.fullName) }, onClick = { onSelect(doctor.id); expanded = false })
             }
         }
     }
@@ -123,7 +123,7 @@ internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
         PatientTaskCheckbox(checked = entry.task.done, description = entry.task.description,
             enabled = editable && !entry.task.done,
             onCheckedChange = { onComplete(entry) })
-        Text(entry.task.description, Modifier.weight(1f),
+        AppText(entry.task.description, Modifier.weight(1f),
             textDecoration = if (entry.task.done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null)
     }
 }

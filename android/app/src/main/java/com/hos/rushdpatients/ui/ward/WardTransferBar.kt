@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +20,6 @@ import com.hos.rushdpatients.ui.components.ButtonEmblem
 import com.hos.rushdpatients.ui.components.UiAction
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -61,7 +62,7 @@ private fun TransferAction(label: String, icon: ImageVector, enabled: Boolean, o
             contentAlignment = Alignment.Center) {
             ButtonEmblem(icon,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = if (enabled) 0.10f else 0.06f))
-            Text(label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+            AppText(label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium)
         }
     }

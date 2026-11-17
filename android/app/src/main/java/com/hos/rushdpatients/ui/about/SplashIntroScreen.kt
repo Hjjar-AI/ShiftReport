@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.about
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -14,7 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -81,7 +82,7 @@ internal fun SplashIntroScreen(
                 AppBrandMark(modifier = Modifier.width(wordmarkWidth)
                     .then(splashEntrance(entered, order = 0, horizontal = true)).semantics { heading() })
                 val subtitle = stringResource(R.string.about_splash_subtitle)
-                if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.titleMedium,
+                if (subtitle.isNotBlank()) AppText(subtitle, style = MaterialTheme.typography.titleMedium,
                     color = colors.onSurfaceVariant, textAlign = TextAlign.Center,
                     modifier = splashEntrance(entered, order = 2))
             }
@@ -137,9 +138,9 @@ private fun SplashCreditSection(role: String, names: List<String>, order: Int, e
         .background(if (order == 0) colors.primary.copy(alpha = 0.06f) else Color.Transparent)
         .padding(uiContentPadding(PaddingValues(horizontal = UiSpacing.largeSection, vertical = UiSpacing.section))),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(uiContentGap())) {
-        Text(role, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)
+        AppText(role, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)
         names.forEach { name ->
-            Text(name, style = if (order == 0) MaterialTheme.typography.titleMedium
+            AppText(name, style = if (order == 0) MaterialTheme.typography.titleMedium
                 else MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
         }
     }

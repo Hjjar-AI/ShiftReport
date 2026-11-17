@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -20,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import com.hos.rushdpatients.domain.patient.WardSummary
 import androidx.compose.runtime.Composable
@@ -69,16 +70,16 @@ internal fun HandoverDashboard(
             verticalArrangement = Arrangement.spacedBy(UiSpacing.section)
         ) {
             reportStatus?.let { status ->
-                AppTextButton(onClick = onReportStatus) { Text(status, style = MaterialTheme.typography.titleSmall) }
+                AppTextButton(onClick = onReportStatus) { AppText(status, style = MaterialTheme.typography.titleSmall) }
             }
-            Text(
+            AppText(
                 if (showSynchronization) uiText(R.string.ui_handover_dashboard_001)
                 else uiText(R.string.ui_handover_dashboard_002),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (showSynchronization) AppTextButton(onClick = onSync) { Text(uiText(R.string.ui_ward_drawer_013)) }
-                AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text(uiText(R.string.ui_handover_dashboard_004)) }
+                if (showSynchronization) AppTextButton(onClick = onSync) { AppText(uiText(R.string.ui_ward_drawer_013)) }
+                AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { AppText(uiText(R.string.ui_handover_dashboard_004)) }
             }
             val attention = buildList {
                 if (mine > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_011), mine) { onFilter(DashboardFilter.MINE) })
@@ -103,11 +104,11 @@ internal fun HandoverDashboard(
             if (showSynchronization) AppSection(title = uiText(R.string.ui_handover_dashboard_017)) {
                 PatientSyncNotice(syncStatus, freshnessLabel, online, onDetails = onSync)
                 if (pendingCount != null && pendingCount > 0) {
-                    Text(uiText(R.string.dashboard_pending_changes,
+                    AppText(uiText(R.string.dashboard_pending_changes,
                         com.hos.rushdpatients.ui.components.uiNumber(pendingCount)),
                         style = MaterialTheme.typography.bodyMedium)
                 }
-                Text(uiText(R.string.ui_handover_dashboard_018), style = MaterialTheme.typography.bodySmall,
+                AppText(uiText(R.string.ui_handover_dashboard_018), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

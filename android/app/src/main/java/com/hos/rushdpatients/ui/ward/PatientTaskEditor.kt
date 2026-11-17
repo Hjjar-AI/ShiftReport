@@ -1,10 +1,11 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -40,7 +41,7 @@ internal fun PatientTaskEditor(
                     })
                     AppTextField(value = task.description, enabled = enabled,
                         onValueChange = { text -> onChange(tasks.map { if (it.id == task.id) it.copy(description = text) else it }) },
-                        label = { Text(uiText(R.string.ui_patient_task_editor_016)) }, modifier = Modifier.weight(1f))
+                        label = { AppText(uiText(R.string.ui_patient_task_editor_016)) }, modifier = Modifier.weight(1f))
                     AppIconButton(label = uiText(R.string.task_remove_named, task.description), icon = AppIcons.Delete,
                         enabled = enabled, onClick = { onChange(tasks.filterNot { it.id == task.id }) })
                 }
@@ -50,12 +51,12 @@ internal fun PatientTaskEditor(
             onValueChange = { text ->
                 formState.taskEntry = if (text.isEmpty()) null else
                     (formState.taskEntry ?: PatientTask(UUID.randomUUID().toString(), text)).copy(description = text)
-            }, label = { Text(uiText(R.string.ui_patient_task_editor_014)) }, modifier = Modifier.fillMaxWidth())
+            }, label = { AppText(uiText(R.string.ui_patient_task_editor_014)) }, modifier = Modifier.fillMaxWidth())
         AppOutlinedButton(enabled = enabled && formState.taskEntry?.description?.isNotBlank() == true,
             onClick = {
                 formState.taskEntry?.takeIf { it.description.isNotBlank() }?.let { onChange(tasks + it) }
                 formState.taskEntry = null
-            }) { Text(uiText(R.string.ui_patient_task_editor_002)) }
-        Text(uiText(R.string.ui_patient_task_editor_026))
+            }) { AppText(uiText(R.string.ui_patient_task_editor_002)) }
+        AppText(uiText(R.string.ui_patient_task_editor_026))
     }
 }

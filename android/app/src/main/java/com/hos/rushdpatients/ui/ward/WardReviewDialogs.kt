@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -15,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,20 +39,20 @@ internal fun PatientRecycleBinDialog(
     AppAlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxWidth(),
-        title = { Text(uiText(R.string.ui_ward_review_dialogs_009),
+        title = { AppText(uiText(R.string.ui_ward_review_dialogs_009),
             modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start) },
         text = {
             Column(Modifier.fillMaxWidth().appDialogBody(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                if (automaticCleanup) Text(uiText(R.string.recycle_bin_retention),
+                if (automaticCleanup) AppText(uiText(R.string.recycle_bin_retention),
                     style = MaterialTheme.typography.bodySmall)
                 if (loading) {
-                    Text(uiText(R.string.recycle_bin_loading))
+                    AppText(uiText(R.string.recycle_bin_loading))
                 } else if (loadFailed) {
-                    Text(uiText(R.string.recycle_bin_load_failed))
-                    if (onRetry != null) AppTextButton(onClick = onRetry) { Text(uiText(R.string.ui_retry)) }
+                    AppText(uiText(R.string.recycle_bin_load_failed))
+                    if (onRetry != null) AppTextButton(onClick = onRetry) { AppText(uiText(R.string.ui_retry)) }
                 } else if (patients.isEmpty()) {
-                    Text(uiText(R.string.ui_ward_review_dialogs_010),
+                    AppText(uiText(R.string.ui_ward_review_dialogs_010),
                         modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
@@ -62,8 +63,8 @@ internal fun PatientRecycleBinDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(patient.displayName, style = MaterialTheme.typography.bodyMedium)
-                                    Text(
+                                    AppText(patient.displayName, style = MaterialTheme.typography.bodyMedium)
+                                    AppText(
                                         patient.admittanceNumber,
                                         style = MaterialTheme.typography.labelSmall
                                     )
@@ -80,7 +81,7 @@ internal fun PatientRecycleBinDialog(
             }
         },
         confirmButton = {
-            AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_close)) }
+            AppTextButton(onClick = onDismiss) { AppText(uiText(R.string.ui_close)) }
         }
     )
 }

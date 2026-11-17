@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.theme.UiTypography
 import androidx.annotation.StringRes
 
@@ -22,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import com.hos.rushdpatients.ui.components.AppDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -62,7 +63,7 @@ internal fun SettingsSection(
 
 @Composable
 internal fun SettingsSubheading(text: String) {
-    Text(
+    AppText(
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -89,7 +90,7 @@ internal fun SupervisorGroupEditor(
             .padding(vertical = UiSpacing.micro),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
     ) {
-        Text(supervisor.fullName, style = MaterialTheme.typography.bodyMedium)
+        AppText(supervisor.fullName, style = MaterialTheme.typography.bodyMedium)
         TelegramIdField(
             value = chatId,
             onValueChange = { value ->
@@ -109,14 +110,14 @@ internal fun SupervisorGroupEditor(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         )
-        Text(uiText(R.string.supervisor_destination_hint), style = MaterialTheme.typography.bodySmall)
+        AppText(uiText(R.string.supervisor_destination_hint), style = MaterialTheme.typography.bodySmall)
         if (supervisor != baseline) {
             AppNotice(uiText(R.string.ui_settings_section_layout_002), kind = com.hos.rushdpatients.ui.components.NoticeKind.WARNING)
             AppTextButton(onClick = {
                 baseline = supervisor
                 chatId = supervisor.supervisorGroupChatId?.toString().orEmpty()
                 topicId = supervisor.supervisorTopicId?.toString().orEmpty()
-            }, enabled = enabled) { Text(uiText(R.string.ui_settings_section_layout_003)) }
+            }, enabled = enabled) { AppText(uiText(R.string.ui_settings_section_layout_003)) }
         }
         LoadingButton(
             outlined = true,

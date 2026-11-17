@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.AppReadingPane
 import com.hos.rushdpatients.ui.components.AppIcons
@@ -37,7 +39,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
@@ -124,17 +125,17 @@ fun SettingsScreen(
     val settingsScope = rememberCoroutineScope()
     state.emptyStartReview?.takeIf { canManageProject && state.isPermanentAdmin }?.let { review ->
         AppAlertDialog(onDismissRequest = viewModel::dismissEmptyStart,
-            title = { Text(uiText(R.string.ui_settings_screen_001)) },
-            text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(review) } },
+            title = { AppText(uiText(R.string.ui_settings_screen_001)) },
+            text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { AppText(review) } },
             confirmButton = { AppTextButton(onClick = viewModel::confirmEmptyStart, enabled = !state.emptyStartBusy) {
-                Text(uiText(R.string.ui_settings_screen_002), color = MaterialTheme.colorScheme.error)
-            } }, dismissButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text(uiText(R.string.ui_cancel)) } })
+                AppText(uiText(R.string.ui_settings_screen_002), color = MaterialTheme.colorScheme.error)
+            } }, dismissButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { AppText(uiText(R.string.ui_cancel)) } })
     }
-    if (state.emptyStartBusy) AppAlertDialog(onDismissRequest = {}, title = { Text(uiText(R.string.ui_settings_screen_003)) },
+    if (state.emptyStartBusy) AppAlertDialog(onDismissRequest = {}, title = { AppText(uiText(R.string.ui_settings_screen_003)) },
         text = { com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_settings_screen_004), size = com.hos.rushdpatients.ui.components.AppLoadingSize.SECTION) }, confirmButton = {})
     state.emptyStartResult?.let { result ->
-        AppAlertDialog(onDismissRequest = viewModel::dismissEmptyStart, title = { Text(uiText(R.string.ui_settings_screen_005)) },
-            text = { Text(result) }, confirmButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { Text(uiText(R.string.ui_settings_screen_006)) } })
+        AppAlertDialog(onDismissRequest = viewModel::dismissEmptyStart, title = { AppText(uiText(R.string.ui_settings_screen_005)) },
+            text = { AppText(result) }, confirmButton = { AppTextButton(onClick = viewModel::dismissEmptyStart) { AppText(uiText(R.string.ui_settings_screen_006)) } })
     }
     var showRecovery by rememberSaveable { mutableStateOf(false) }
     var confirmFetch by rememberSaveable { mutableStateOf(false) }
@@ -292,19 +293,19 @@ fun SettingsScreen(
                             .padding(UiPadding.content),
                         verticalArrangement = Arrangement.spacedBy(UiSpacing.micro)
                     ) {
-                        Text(
+                        AppText(
                             text = state.doctorName.ifBlank { "—" },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = UiTypography.emphasizedWeight
                         )
-                        Text(
+                        AppText(
                             text = uiText(R.string.ui_settings_screen_012, state.role.ifBlank { "—" }),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
 
-                Text(
+                AppText(
                     selectedWorkspace.description(uiText),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -317,7 +318,7 @@ fun SettingsScreen(
 
                 if (selectedWorkspace == SettingsWorkspace.DATA && canManageProject) AppTextButton(
                     onClick = viewModel::prepareRollback, enabled = !state.syncing && state.online) {
-                    Text(uiText(R.string.sync_rollback_action))
+                    AppText(uiText(R.string.sync_rollback_action))
                 }
                 sections.forEach { section ->
                     SettingsSection(

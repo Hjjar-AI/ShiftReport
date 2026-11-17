@@ -2,7 +2,6 @@ package com.hos.rushdpatients.ui.setup
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
@@ -18,7 +17,7 @@ internal fun ProjectJoinSections(
 ) {
     val uiText = rememberUiStrings()
     AppSection(uiText(R.string.ui_project_setup_screen_006)) {
-        Text(
+        AppText(
             uiText(R.string.ui_project_setup_screen_007),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -27,8 +26,8 @@ internal fun ProjectJoinSections(
             onClick = onSelectProvisioning,
             enabled = !state.busy,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (state.joinFileSelected) uiText(R.string.ui_project_setup_screen_009) else uiText(R.string.ui_project_setup_screen_010)) }
-        if (state.joinFileSelected && !state.importedProvisioning) Text(uiText(R.string.setup_join_file_selected),
+        ) { AppText(if (state.joinFileSelected) uiText(R.string.ui_project_setup_screen_009) else uiText(R.string.ui_project_setup_screen_010)) }
+        if (state.joinFileSelected && !state.importedProvisioning) AppText(uiText(R.string.setup_join_file_selected),
             style = MaterialTheme.typography.bodySmall)
         PasswordField(
             value = state.provisioningPassphrase,
@@ -41,15 +40,15 @@ internal fun ProjectJoinSections(
             enabled = !state.busy && state.joinFileSelected &&
                 state.provisioningPassphrase.length >= com.hos.rushdpatients.config.ProjectProvisioningManager.MIN_PASSWORD_LENGTH,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(uiText(R.string.setup_unlock_join_file)) }
-        else Text(uiText(R.string.setup_join_file_unlocked), style = MaterialTheme.typography.bodySmall)
+        ) { AppText(uiText(R.string.setup_unlock_join_file)) }
+        else AppText(uiText(R.string.setup_join_file_unlocked), style = MaterialTheme.typography.bodySmall)
     }
     if (state.importedProvisioning) {
         AppSection(uiText(R.string.ui_project_setup_screen_011)) {
-            Text(state.hospitalName, fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
-            Text(uiText(R.string.ui_project_setup_screen_012, com.hos.rushdpatients.ui.components.uiNumber(state.chatId)))
-            Text(if (state.encryptTelegram) uiText(R.string.ui_project_setup_screen_013) else uiText(R.string.ui_project_setup_screen_014))
-            Text(uiText(R.string.ui_project_setup_screen_015),
+            AppText(state.hospitalName, fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
+            AppText(uiText(R.string.ui_project_setup_screen_012, com.hos.rushdpatients.ui.components.uiNumber(state.chatId)))
+            AppText(if (state.encryptTelegram) uiText(R.string.ui_project_setup_screen_013) else uiText(R.string.ui_project_setup_screen_014))
+            AppText(uiText(R.string.ui_project_setup_screen_015),
                 style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -80,12 +79,12 @@ internal fun ProjectCreateSections(
         AppTextField(
             value = state.hospitalName,
             onValueChange = onSetHospitalName,
-            label = { Text(uiText(R.string.ui_project_setup_screen_017)) },
+            label = { AppText(uiText(R.string.ui_project_setup_screen_017)) },
             singleLine = true,
             enabled = !state.busy,
             modifier = Modifier.fillMaxWidth()
         )
-        Text(uiText(R.string.setup_prepare_bot), style = MaterialTheme.typography.bodySmall)
+        AppText(uiText(R.string.setup_prepare_bot), style = MaterialTheme.typography.bodySmall)
         PasswordField(
             value = state.botToken,
             onValueChange = onSetBotToken,
@@ -94,7 +93,7 @@ internal fun ProjectCreateSections(
         )
     }
     AppSection(uiText(R.string.ui_project_setup_screen_016)) {
-        Text(uiText(R.string.setup_prepare_group), style = MaterialTheme.typography.bodySmall)
+        AppText(uiText(R.string.setup_prepare_group), style = MaterialTheme.typography.bodySmall)
         TelegramIdField(
             value = state.chatId,
             onValueChange = onSetChatId,
@@ -103,15 +102,15 @@ internal fun ProjectCreateSections(
             enabled = !state.busy,
             hint = uiText(R.string.setup_group_id_help)
         )
-        Text(uiText(R.string.setup_group_topic_explanation),
+        AppText(uiText(R.string.setup_group_topic_explanation),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         AppTextButton(onClick = onToggleTopics, enabled = !state.busy) {
-            Text(if (showTopics) uiText(R.string.ui_project_setup_screen_020) else uiText(R.string.ui_project_setup_screen_021))
+            AppText(if (showTopics) uiText(R.string.ui_project_setup_screen_020) else uiText(R.string.ui_project_setup_screen_021))
         }
         if (showTopics) {
-            Text(
+            AppText(
                 uiText(R.string.ui_project_setup_screen_022),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -122,11 +121,11 @@ internal fun ProjectCreateSections(
                 hint = uiText(R.string.setup_doctors_topic_help))
         }
         if (!showTopics && listOf(state.csvTopicId, state.doctorsTopicId).any { it.isNotBlank() }) {
-            Text(uiText(R.string.setup_topics_retained), style = MaterialTheme.typography.bodySmall)
+            AppText(uiText(R.string.setup_topics_retained), style = MaterialTheme.typography.bodySmall)
         }
     }
     AppSection(uiText(R.string.setup_residents_section)) {
-        Text(uiText(R.string.setup_residents_purpose), style = MaterialTheme.typography.bodySmall)
+        AppText(uiText(R.string.setup_residents_purpose), style = MaterialTheme.typography.bodySmall)
         TelegramIdField(state.residentsChatId, onSetResidentsChatId,
             uiText(R.string.residents_group_optional), signed = true, enabled = !state.busy,
             hint = uiText(R.string.setup_residents_group_help))
@@ -139,14 +138,14 @@ internal fun ProjectCreateSections(
             TelegramIdField(state.reportsTopicId, onSetReportsTopicId, uiText(R.string.ui_project_setup_screen_023),
                 enabled = !state.busy, hint = uiText(R.string.setup_report_topic_help))
         }
-        Text(uiText(R.string.setup_supervisors_later), style = MaterialTheme.typography.bodySmall,
+        AppText(uiText(R.string.setup_supervisors_later), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     AppSection(uiText(R.string.ui_project_setup_screen_031)) {
         AppTextField(
             value = state.adminName,
             onValueChange = onSetAdminName,
-            label = { Text(uiText(R.string.ui_project_setup_screen_032)) },
+            label = { AppText(uiText(R.string.ui_project_setup_screen_032)) },
             singleLine = true,
             enabled = !state.busy,
             modifier = Modifier.fillMaxWidth()
@@ -170,9 +169,9 @@ internal fun ProjectCreateSections(
     AppSection(uiText(R.string.ui_project_setup_screen_027)) {
         AppToggleRow(title = uiText(R.string.ui_project_setup_screen_028), checked = state.encryptTelegram,
             onCheckedChange = onSetEncryptTelegram, enabled = !state.busy)
-        Text(uiText(R.string.ui_project_setup_screen_029),
+        AppText(uiText(R.string.ui_project_setup_screen_029),
             style = MaterialTheme.typography.bodySmall)
-        Text(uiText(R.string.ui_project_setup_screen_030),
+        AppText(uiText(R.string.ui_project_setup_screen_030),
             style = MaterialTheme.typography.bodySmall)
     }
 }

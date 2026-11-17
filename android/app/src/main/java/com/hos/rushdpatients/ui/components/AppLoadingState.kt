@@ -2,7 +2,6 @@ package com.hos.rushdpatients.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,13 +32,13 @@ fun AppLoadingState(message: String, modifier: Modifier = Modifier, size: AppLoa
         Row(container, verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
             indicator()
-            Text(message, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            AppText(message, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
         }
     } else {
         Column(container, horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             indicator()
-            Text(message, style = MaterialTheme.typography.bodyMedium)
+            AppText(message, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

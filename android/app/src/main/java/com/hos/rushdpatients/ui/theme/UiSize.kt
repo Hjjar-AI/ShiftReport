@@ -4,6 +4,10 @@ import androidx.compose.ui.unit.dp
 
 /** Control dimensions are minimums so Arabic labels and larger fonts can grow. */
 object UiSize {
+    val controlCompact = 32.dp
+    val controlStandard = 40.dp
+    val controlComfortable = 48.dp
+    val splashMarkMin = 96.dp
     val pdfAppearancePreview = 72.dp
     val appWordmark = 320.dp
     val statusEdge = 8.dp

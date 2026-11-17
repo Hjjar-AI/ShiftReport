@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.AppActionCard
 import com.hos.rushdpatients.R
@@ -23,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -77,9 +78,9 @@ fun AdminScreen(
                     )
                 ) {
                     Column(modifier = Modifier.padding(UiPadding.content)) {
-                        Text(uiText(R.string.ui_admin_screen_002, actor.fullName))
-                        Text(uiText(R.string.ui_admin_screen_003, actor.rank))
-                        Text(
+                        AppText(uiText(R.string.ui_admin_screen_002, actor.fullName))
+                        AppText(uiText(R.string.ui_admin_screen_003, actor.rank))
+                        AppText(
                             uiText(R.string.ui_admin_screen_004),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -89,7 +90,7 @@ fun AdminScreen(
             }
 
             AppSection(title = uiText(R.string.ui_admin_screen_005)) {
-                Text(uiText(R.string.ui_admin_screen_006, uiNumber(state.admins.size), uiNumber(state.nonAdmins.size)))
+                AppText(uiText(R.string.ui_admin_screen_006, uiNumber(state.admins.size), uiNumber(state.nonAdmins.size)))
             }
 
             AppActionCard(
@@ -101,7 +102,7 @@ fun AdminScreen(
             )
 
             AppSection(title = uiText(R.string.ui_admin_screen_010)) {
-                Text(
+                AppText(
                     uiText(R.string.ui_admin_screen_011),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -110,19 +111,19 @@ fun AdminScreen(
                     onClick = { showAssignAdmin = true },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text(uiText(R.string.ui_admin_screen_012)) }
+                ) { AppText(uiText(R.string.ui_admin_screen_012)) }
                 if (state.currentActor?.isPermanentAdmin == true) {
                     AppOutlinedButton(
                         onClick = { showTransfer = true },
                         enabled = !state.saving,
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(uiText(R.string.admin_transfer_title)) }
+                    ) { AppText(uiText(R.string.admin_transfer_title)) }
                 }
                 AppOutlinedButton(
                     onClick = { showRemoveAdmin = true },
                     enabled = !state.saving,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text(uiText(R.string.ui_admin_screen_013)) }
+                ) { AppText(uiText(R.string.ui_admin_screen_013)) }
             }
         }
     }

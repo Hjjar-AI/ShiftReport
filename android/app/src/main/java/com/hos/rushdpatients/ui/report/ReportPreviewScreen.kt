@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import com.hos.rushdpatients.ui.components.appContentEntrance
 import com.hos.rushdpatients.ui.components.ContentEntrance
@@ -54,7 +56,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -249,7 +250,7 @@ internal fun ReportWorkspace(
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     val targetSummary = uiText(R.string.ui_report_selected_destinations,
                         uiNumber(selectedTargets.size + if (generalSelected) 1 else 0))
-                    Text(targetSummary, style = MaterialTheme.typography.bodySmall)
+                    AppText(targetSummary, style = MaterialTheme.typography.bodySmall)
                     val previewNeeded = step == ReportFlowStep.PREVIEW && !previewReady
                     val disabledReason = when {
                         step == ReportFlowStep.DOCTORS -> nextDisabledReason
@@ -257,12 +258,12 @@ internal fun ReportWorkspace(
                         previewNeeded -> null // Only a selected general text report requires opening its preview.
                         else -> sendDisabledReason
                     }
-                    disabledReason?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    disabledReason?.let { AppText(it, style = MaterialTheme.typography.bodySmall) }
                     when {
                         step == ReportFlowStep.DOCTORS -> AppButton(
                             onClick = { step = step.next() }, enabled = nextDisabledReason == null,
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text(uiText(R.string.ui_report_preview_screen_017, step.next().arabicLabel(uiText))) }
+                        ) { AppText(uiText(R.string.ui_report_preview_screen_017, step.next().arabicLabel(uiText))) }
                         previewNeeded -> LoadingButton(
                             text = if (state.previewingPdf) uiText(R.string.ui_progress_prepare_preview)
                                 else uiText(R.string.report_full_preview_action),
@@ -328,7 +329,7 @@ internal fun ReportWorkspace(
                                 fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(androidx.compose.ui.text.buildAnnotatedString {
+                            AppText(androidx.compose.ui.text.buildAnnotatedString {
                                 append(uiText(R.string.report_total_patients, uiNumber(summary.patientCount)))
                                 append(" ")
                                 pushStyle(subtotalStyle)
@@ -336,9 +337,9 @@ internal fun ReportWorkspace(
                                 pop()
                             }, style = MaterialTheme.typography.titleLarge,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                            Text(uiText(R.string.report_escorts_and_date, uiNumber(summary.escortCount), uiNumber(summary.shiftDate)),
+                            AppText(uiText(R.string.report_escorts_and_date, uiNumber(summary.escortCount), uiNumber(summary.shiftDate)),
                                 style = MaterialTheme.typography.bodySmall)
-                            Text(uiText(R.string.ui_report_preview_screen_063) +
+                            AppText(uiText(R.string.ui_report_preview_screen_063) +
                                 state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName },
                                 style = MaterialTheme.typography.bodyMedium)
                         }
@@ -353,18 +354,18 @@ internal fun ReportWorkspace(
                             AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_062),
                                 expanded = showSendingReview, onToggle = { showSendingReview = !showSendingReview })
                             if (showSendingReview) {
-                                if (generalSelected) Text(generalDestinationLabel + " • " +
+                                if (generalSelected) AppText(generalDestinationLabel + " • " +
                                     (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
                                 selectedTargets.forEach { target ->
-                                    Text(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
+                                    AppText(uiText(R.string.ui_report_preview_screen_064, target.doctorName, uiNumber(target.patientCount)))
                                 }
-                                Text(uiText(R.string.ui_report_preview_screen_066),
+                                AppText(uiText(R.string.ui_report_preview_screen_066),
                                     style = MaterialTheme.typography.bodySmall)
                                 recoveryContent()
                                 state.registryChangeSummary?.let { summary ->
                                     AppSection(title = uiText(R.string.sync_publish_all)) {
-                                        Text(summary)
-                                        if (!state.isAdmin) Text(uiText(R.string.sync_doctors_stay_pending))
+                                        AppText(summary)
+                                        if (!state.isAdmin) AppText(uiText(R.string.sync_doctors_stay_pending))
                                     }
                                 }
                                 if (state.incompletePatientIds.isEmpty()) AppNotice(uiText(R.string.report_readiness_ready), kind = NoticeKind.SUCCESS)
@@ -377,9 +378,9 @@ internal fun ReportWorkspace(
                                         )
                                     ) {
                                         AppTextButton(onClick = { state.shift?.id?.let { onReviewPatients(it, state.incompletePatientIds) } }, enabled = !busy) {
-                                            Text(uiText(R.string.readiness_incomplete_patients, uiNumber(state.incompletePatientIds.size)), color = noticeColors(NoticeKind.WARNING).content)
+                                            AppText(uiText(R.string.readiness_incomplete_patients, uiNumber(state.incompletePatientIds.size)), color = noticeColors(NoticeKind.WARNING).content)
                                         }
-                                        Text(
+                                        AppText(
                                             uiText(R.string.ui_report_preview_screen_047),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = noticeColors(NoticeKind.WARNING).content
@@ -395,12 +396,12 @@ internal fun ReportWorkspace(
                                     )
                                 ) {
                                     if (state.changeBriefing.isEmpty()) {
-                                        Text(uiText(R.string.ui_report_preview_screen_049))
+                                        AppText(uiText(R.string.ui_report_preview_screen_049))
                                     } else {
                                         AppTextButton(onClick = { showChanges = !showChanges }) {
-                                            Text(uiText(R.string.ui_report_preview_screen_050, uiNumber(state.changeBriefing.size)) + if (showChanges) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_ward_view_options_dialog_009))
+                                            AppText(uiText(R.string.ui_report_preview_screen_050, uiNumber(state.changeBriefing.size)) + if (showChanges) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_ward_view_options_dialog_009))
                                         }
-                                        if (showChanges) state.changeBriefing.forEach { Text("• $it") }
+                                        if (showChanges) state.changeBriefing.forEach { AppText("• $it") }
                                     }
                                 }
                                 if (pdfSelected && state.summary != null) AppCheckRow(
@@ -421,9 +422,9 @@ internal fun ReportWorkspace(
     }
 
     if (showTextPreview) {
-        AppAlertDialog(onDismissRequest = { showTextPreview = false }, title = { Text(uiText(R.string.ui_report_preview_screen_077)) },
-            text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(state.previewMarkdown) } },
-            confirmButton = { AppTextButton(onClick = { showTextPreview = false }) { Text(uiText(R.string.ui_close)) } })
+        AppAlertDialog(onDismissRequest = { showTextPreview = false }, title = { AppText(uiText(R.string.ui_report_preview_screen_077)) },
+            text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { AppText(state.previewMarkdown) } },
+            confirmButton = { AppTextButton(onClick = { showTextPreview = false }) { AppText(uiText(R.string.ui_close)) } })
     }
     if (showDeliveryLog) ReportDeliveryLogDialog(
         records = state.deliveryRecords, busy = busy, onResolveDelivery = viewModel::resolveDelivery,

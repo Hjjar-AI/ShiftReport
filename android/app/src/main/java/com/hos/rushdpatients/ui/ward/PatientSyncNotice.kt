@@ -1,12 +1,13 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -49,10 +50,10 @@ internal fun PatientSyncNotice(
                 else -> null
             })
         if (expanded) {
-            Text(freshnessLabel, style = MaterialTheme.typography.bodySmall,
+            AppText(freshnessLabel, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (onDetails != null) AppTextButton(onClick = onDetails) {
-                Text(uiText(R.string.ui_patient_sync_notice_002))
+                AppText(uiText(R.string.ui_patient_sync_notice_002))
             }
         }
     }

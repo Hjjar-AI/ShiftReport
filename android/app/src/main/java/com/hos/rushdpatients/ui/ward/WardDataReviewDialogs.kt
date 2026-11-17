@@ -22,14 +22,14 @@ internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController
     state.publicationReviewText?.let { text ->
         com.hos.rushdpatients.ui.components.AppAlertDialog(
             onDismissRequest = viewModel::dismissPublicationReview,
-            title = { androidx.compose.material3.Text(uiText(R.string.sync_upload_data_only)) },
-            text = { androidx.compose.material3.Text(uiText(R.string.sync_upload_data_only_hint) + "\n\n" + text,
+            title = { com.hos.rushdpatients.ui.components.AppText(uiText(R.string.sync_upload_data_only)) },
+            text = { com.hos.rushdpatients.ui.components.AppText(uiText(R.string.sync_upload_data_only_hint) + "\n\n" + text,
                 androidx.compose.ui.Modifier.appDialogBody().verticalScroll(rememberScrollState())) },
             confirmButton = { com.hos.rushdpatients.ui.components.AppButton(onClick = viewModel::confirmPendingPublication) {
-                androidx.compose.material3.Text(uiText(R.string.sync_publish_confirm))
+                com.hos.rushdpatients.ui.components.AppText(uiText(R.string.sync_publish_confirm))
             } },
             dismissButton = { com.hos.rushdpatients.ui.components.AppTextButton(onClick = viewModel::dismissPublicationReview) {
-                androidx.compose.material3.Text(uiText(R.string.ui_cancel))
+                com.hos.rushdpatients.ui.components.AppText(uiText(R.string.ui_cancel))
             } })
     }
 

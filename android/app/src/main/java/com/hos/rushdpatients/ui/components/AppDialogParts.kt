@@ -11,8 +11,8 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @Composable
 fun AppDialogHeader(title: String, supportingText: String? = null, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-        Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-        supportingText?.let { Text(it, style = MaterialTheme.typography.bodySmall,
+        AppText(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+        supportingText?.let { AppText(it, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
@@ -29,5 +29,5 @@ fun AppDialogConfirmAction(text: String, onClick: () -> Unit, modifier: Modifier
 
 @Composable
 fun AppDialogDismissAction(onClick: () -> Unit, text: String = androidx.compose.ui.res.stringResource(com.hos.rushdpatients.R.string.ui_cancel), enabled: Boolean = true) {
-    AppTextButton(onClick = onClick, enabled = enabled) { Text(text) }
+    AppTextButton(onClick = onClick, enabled = enabled) { AppText(text) }
 }

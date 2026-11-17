@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -11,7 +13,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -49,9 +50,9 @@ fun LocalPinLoginScreen(
     AppCenteredContent(
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small, Alignment.CenterVertically)
     ) {
-        Text(doctorName, style = MaterialTheme.typography.titleLarge)
-        Text(uiText(R.string.ui_local_pin_login_screen_001), style = MaterialTheme.typography.titleMedium)
-        Text(
+        AppText(doctorName, style = MaterialTheme.typography.titleLarge)
+        AppText(uiText(R.string.ui_local_pin_login_screen_001), style = MaterialTheme.typography.titleMedium)
+        AppText(
             uiText(R.string.ui_local_pin_login_screen_002),
             style = MaterialTheme.typography.bodySmall
         )
@@ -74,16 +75,16 @@ fun LocalPinLoginScreen(
             enabled = !busy,
             onClick = { pin = ""; onTelegram() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
-        ) { Text(uiText(R.string.ui_local_pin_login_screen_005)) }
+        ) { AppText(uiText(R.string.ui_local_pin_login_screen_005)) }
         AppTextButton(
             enabled = !busy,
             onClick = { pin = ""; onForgotPin() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
-        ) { Text(uiText(R.string.pin_forgot_action)) }
+        ) { AppText(uiText(R.string.pin_forgot_action)) }
         AppTextButton(
             enabled = !busy,
             onClick = { pin = ""; onBack() },
             modifier = Modifier.heightIn(min = UiSpacing.touchTarget)
-        ) { Text(uiText(R.string.ui_local_pin_login_screen_006)) }
+        ) { AppText(uiText(R.string.ui_local_pin_login_screen_006)) }
     }
 }

@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.login
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -11,7 +13,6 @@ import com.hos.rushdpatients.ui.components.AppTextButton
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -70,8 +71,8 @@ fun PinUnlockScreen(
     }
 
     AppCenteredContent() {
-        Text(doctorName, style = MaterialTheme.typography.titleLarge)
-        Text(uiText(R.string.ui_pin_unlock_screen_001), modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section))
+        AppText(doctorName, style = MaterialTheme.typography.titleLarge)
+        AppText(uiText(R.string.ui_pin_unlock_screen_001), modifier = Modifier.padding(top = UiSpacing.small, bottom = UiSpacing.section))
         PinField(
             value = pin,
             onValueChange = { pin = it },
@@ -90,9 +91,9 @@ fun PinUnlockScreen(
             modifier = Modifier.fillMaxWidth().padding(top = UiSpacing.screen)
         )
         onBiometric?.let { bio ->
-            AppTextButton(onClick = bio, enabled = !busy) { Text(uiText(R.string.ui_pin_unlock_screen_003)) }
+            AppTextButton(onClick = bio, enabled = !busy) { AppText(uiText(R.string.ui_pin_unlock_screen_003)) }
         }
-        AppTextButton(onClick = { pin = ""; onForgotPin() }, enabled = !busy) { Text(uiText(R.string.pin_forgot_action)) }
-        AppTextButton(onClick = onSignOut, enabled = !busy) { Text(uiText(R.string.ui_settings_preference_sections_019)) }
+        AppTextButton(onClick = { pin = ""; onForgotPin() }, enabled = !busy) { AppText(uiText(R.string.pin_forgot_action)) }
+        AppTextButton(onClick = onSignOut, enabled = !busy) { AppText(uiText(R.string.ui_settings_preference_sections_019)) }
     }
 }

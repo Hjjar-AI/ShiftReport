@@ -3,7 +3,6 @@ package com.hos.rushdpatients.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.theme.*
@@ -24,8 +23,8 @@ fun AppMetricGrid(metrics: List<AppMetric>) {
                         Surface(onClick = metric.onClick, modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = UiSpacing.touchTarget),
                             color = colors.container, contentColor = colors.content, shape = MaterialTheme.shapes.medium) {
                             Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                Text(uiNumber(metric.count), style = MaterialTheme.typography.headlineSmall)
-                                Text(metric.label, style = MaterialTheme.typography.labelLarge)
+                                AppText(uiNumber(metric.count), style = MaterialTheme.typography.headlineSmall)
+                                AppText(metric.label, style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }

@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.about
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,9 +63,9 @@ fun IntroAboutScreen(
 private fun AppVersion() {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.UiSpacing.tiny)) {
-        Text(stringResource(R.string.about_version_label), style = MaterialTheme.typography.labelLarge,
+        AppText(stringResource(R.string.about_version_label), style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(BuildConfig.VERSION_NAME, modifier = Modifier.fillMaxWidth(),
+        AppText(BuildConfig.VERSION_NAME, modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.labelLarge.copy(textDirection = TextDirection.Ltr),
             textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -74,7 +75,7 @@ private fun AppVersion() {
 private fun IntroCredits() {
     AppBrandMark(modifier = Modifier.semantics { heading() })
     val subtitle = stringResource(R.string.about_subtitle)
-    if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.titleMedium,
+    if (subtitle.isNotBlank()) AppText(subtitle, style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     CreditBlock(stringResource(R.string.about_supervisor_role), stringResource(R.string.about_supervisor_name), prominent = true)
     CreditBlock(stringResource(R.string.about_technical_role),
@@ -88,9 +89,9 @@ private fun IntroCredits() {
 @Composable
 private fun CreditBlock(title: String, name: String, prominent: Boolean = false) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.UiSpacing.small)) {
-        Text(title, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,
+        AppText(title, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(name, style = if (prominent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+        AppText(name, style = if (prominent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
     }
 }

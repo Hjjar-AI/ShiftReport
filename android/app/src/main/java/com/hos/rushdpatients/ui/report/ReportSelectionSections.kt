@@ -11,7 +11,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
@@ -27,15 +26,15 @@ internal fun ReportDoctorSummary(
     AppSection(title = uiText(R.string.ui_shift_doctor_picker_001), colors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.primaryContainer
     ), titleColor = MaterialTheme.colorScheme.onPrimaryContainer) {
-        if (doctors.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_019))
-        else doctors.forEach { Text(it.fullName, style = MaterialTheme.typography.bodyMedium) }
+        if (doctors.isEmpty()) AppText(uiText(R.string.ui_report_preview_screen_019))
+        else doctors.forEach { AppText(it.fullName, style = MaterialTheme.typography.bodyMedium) }
         AppOutlinedButton(
             onClick = onSelectDoctors,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         ) {
             ButtonEmblemContent(AppIcons.Groups, enabled) {
-                Text(if (doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_022) else uiText(R.string.ui_report_preview_screen_023))
+                AppText(if (doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_022) else uiText(R.string.ui_report_preview_screen_023))
             }
         }
     }
@@ -63,9 +62,9 @@ internal fun ReportDestinationSelection(
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_024), expanded = expanded,
                 onToggle = { if (!busy) expanded = !expanded })
-            if (selectedLabels.isEmpty()) Text(uiText(R.string.report_no_destination_selected),
+            if (selectedLabels.isEmpty()) AppText(uiText(R.string.report_no_destination_selected),
                 style = MaterialTheme.typography.bodySmall)
-            selectedLabels.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+            selectedLabels.forEach { AppText(it, style = MaterialTheme.typography.bodySmall) }
             if (expanded) {
                 AppCheckRow(label = generalDestinationLabel,
                     checked = generalSelected, enabled = !busy,
@@ -77,7 +76,7 @@ internal fun ReportDestinationSelection(
                     onCheckedChange = { checked ->
                         onSelectAll(checked, selectableIds)
                     })
-                Text(uiText(R.string.ui_report_destination_checklist_hint), style = MaterialTheme.typography.bodySmall)
+                AppText(uiText(R.string.ui_report_destination_checklist_hint), style = MaterialTheme.typography.bodySmall)
                 targets.forEach { target ->
                     AppCheckRow(label = uiText(R.string.ui_report_preview_screen_028, target.doctorName, uiNumber(target.patientCount)) +
                         if (target.chatId == null) uiText(R.string.ui_report_preview_screen_029) else "\n" + target.destinationLabel(uiText),
@@ -85,7 +84,7 @@ internal fun ReportDestinationSelection(
                         enabled = !busy && target.chatId != null,
                         onCheckedChange = { checked -> onSupervisorSelected(target.doctorId, checked) })
                 }
-                if (targets.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_027),
+                if (targets.isEmpty()) AppText(uiText(R.string.ui_report_preview_screen_027),
                     style = MaterialTheme.typography.bodySmall)
                 if (generalSelected) AppToggleRow(title = uiText(R.string.ui_report_preview_screen_031), checked = reportAsPdf,
                     onCheckedChange = onReportAsPdf, enabled = canChangeReportFormat && !busy)

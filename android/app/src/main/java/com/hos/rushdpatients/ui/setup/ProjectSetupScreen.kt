@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.setup
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -29,7 +31,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -63,14 +64,14 @@ fun ProjectSetupScreen(
                 .padding(horizontal = UiSpacing.screen, vertical = UiSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)
         ) {
-            Text(
+            AppText(
                 uiText(R.string.ui_project_setup_screen_001),
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight,
                 textAlign = TextAlign.Center
             )
-            Text(
+            AppText(
                 uiText(R.string.ui_project_setup_screen_002),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
@@ -81,8 +82,8 @@ fun ProjectSetupScreen(
 
             if (state.mode == ProjectSetupMode.DEMO) {
                 AppSection(uiText(R.string.ui_project_setup_screen_003)) {
-                    Text(uiText(R.string.ui_project_setup_screen_004))
-                    Text(uiText(R.string.ui_project_setup_screen_005),
+                    AppText(uiText(R.string.ui_project_setup_screen_004))
+                    AppText(uiText(R.string.ui_project_setup_screen_005),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -118,7 +119,7 @@ fun ProjectSetupScreen(
             }
             AppTextButton(onClick = { showInstructions = !showInstructions },
                 enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                Text(if (showInstructions) uiText(R.string.ui_project_setup_screen_036) else uiText(R.string.ui_project_setup_screen_037))
+                AppText(if (showInstructions) uiText(R.string.ui_project_setup_screen_036) else uiText(R.string.ui_project_setup_screen_037))
             }
             if (showInstructions) InstructionCard(state.mode)
         }
@@ -151,7 +152,7 @@ fun ProjectSetupScreen(
             title = { AppDialogHeader(uiText(R.string.ui_setup_replace_pin_title)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    Text(uiText(R.string.ui_setup_replace_pin_message))
+                    AppText(uiText(R.string.ui_setup_replace_pin_message))
                 }
             },
             confirmButton = {

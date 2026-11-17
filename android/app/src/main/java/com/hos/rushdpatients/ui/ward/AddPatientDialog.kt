@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppDivider
 
 import com.hos.rushdpatients.R
@@ -12,7 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.Text
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.uiNumber
@@ -54,12 +55,12 @@ internal fun AddPatientDialog(
                     title = uiText(R.string.ui_add_patient_dialog_002) + if (position.isBlank()) uiText(R.string.ui_add_patient_dialog_003) else uiNumber(position))
                 com.hos.rushdpatients.ui.components.AppTextField(
                     value = position, onValueChange = onPositionChange,
-                    label = { Text(uiText(R.string.ui_add_patient_dialog_004, uiNumber(1), uiNumber(positionLimit))) },
-                    supportingText = { Text(uiText(R.string.ui_add_patient_dialog_005)) },
+                    label = { AppText(uiText(R.string.ui_add_patient_dialog_004, uiNumber(1), uiNumber(positionLimit))) },
+                    supportingText = { AppText(uiText(R.string.ui_add_patient_dialog_005)) },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                     enabled = !saving, singleLine = true)
                 if (position.isNotBlank()) AppTextButton(onClick = { onPositionChange("") }, enabled = !saving) {
-                    Text(uiText(R.string.ui_add_patient_dialog_006))
+                    AppText(uiText(R.string.ui_add_patient_dialog_006))
                 }
             }
         },

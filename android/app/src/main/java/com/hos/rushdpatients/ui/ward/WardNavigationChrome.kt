@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.AppIconButton
 import com.hos.rushdpatients.R
@@ -11,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -32,13 +33,13 @@ internal fun WardHeader(
     Column {
     WardToolbarLayout(foldingFeature) {
         AppCompactTopBar(title = {
-            Text(when (viewMode) {
+            AppText(when (viewMode) {
                 WardViewMode.ALL, WardViewMode.MINE, WardViewMode.ACTIVITY -> uiText(R.string.ui_ward_navigation_chrome_001, uiNumber(state.patients.size))
                 WardViewMode.DASHBOARD -> uiText(R.string.ui_ward_navigation_chrome_002)
             }, style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.semantics { heading() }, maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            state.shift?.date?.let { Text(uiNumber(dayLabel), style = MaterialTheme.typography.labelSmall,
+            state.shift?.date?.let { AppText(uiNumber(dayLabel), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
         }, navigation = {
             AppIconButton(label = uiText(R.string.ui_ward_navigation_chrome_004),

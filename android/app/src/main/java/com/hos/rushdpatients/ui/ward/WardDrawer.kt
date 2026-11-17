@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.theme.UiTypography
 import com.hos.rushdpatients.ui.components.rememberUiStrings
@@ -21,7 +23,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.animation.animateContentSize
@@ -88,29 +89,29 @@ internal fun WardDrawer(
                             Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.section),
                                 verticalAlignment = Alignment.Top) {
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.labelMedium,
+                                    AppText(stringResource(R.string.app_name), style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary)
-                                    Text(state.hospitalName.ifBlank { uiText(R.string.ui_ward_drawer_001) },
+                                    AppText(state.hospitalName.ifBlank { uiText(R.string.ui_ward_drawer_001) },
                                         style = MaterialTheme.typography.titleMedium, maxLines = 2,
                                         overflow = TextOverflow.Ellipsis)
-                                    Text(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)),
+                                    AppText(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.End,
                                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                                    Text(if (isPermanentAdmin) uiText(R.string.ui_ward_drawer_003) else if (isAdmin) uiText(R.string.ui_ward_drawer_004) else uiText(R.string.ui_ward_drawer_005),
+                                    AppText(if (isPermanentAdmin) uiText(R.string.ui_ward_drawer_003) else if (isAdmin) uiText(R.string.ui_ward_drawer_004) else uiText(R.string.ui_ward_drawer_005),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(currentDoctorName ?: uiText(R.string.ui_ward_drawer_006),
+                                    AppText(currentDoctorName ?: uiText(R.string.ui_ward_drawer_006),
                                         style = MaterialTheme.typography.bodyMedium, maxLines = 2,
                                         textAlign = TextAlign.End, overflow = TextOverflow.Ellipsis)
-                                    Text(uiNumber(dayLabel),
+                                    AppText(uiNumber(dayLabel),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
-                            Text(if (online) state.syncStatus.arabicLabel(uiText) else uiText(R.string.ui_ward_drawer_007),
+                            AppText(if (online) state.syncStatus.arabicLabel(uiText) else uiText(R.string.ui_ward_drawer_007),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -130,13 +131,13 @@ internal fun WardDrawer(
                         onClick = onPublishData,
                         enabled = state.shift != null && uploadAvailable && !state.loading && !state.saving && !state.syncing,
                         modifier = Modifier.fillMaxWidth()) {
-                        Text(uiText(R.string.sync_upload_data_only))
+                        AppText(uiText(R.string.sync_upload_data_only))
                     }
 
                     if (isAdmin) com.hos.rushdpatients.ui.components.AppOutlinedButton(
                         onClick = { onAction(WardDrawerAction.ASSIGNMENTS) }, enabled = state.shift != null,
                         modifier = Modifier.fillMaxWidth()) {
-                        Text(uiText(R.string.assignments_export_title))
+                        AppText(uiText(R.string.assignments_export_title))
                     }
 
                     com.hos.rushdpatients.ui.components.AppDivider()
@@ -173,7 +174,7 @@ internal fun WardDrawer(
 
 @Composable
 private fun DrawerSectionLabel(label: String) {
-    Text(label, modifier = Modifier.padding(horizontal = UiSpacing.screen).semantics { heading() },
+    AppText(label, modifier = Modifier.padding(horizontal = UiSpacing.screen).semantics { heading() },
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
@@ -208,7 +209,7 @@ private fun WardDrawerRow(label: String, icon: ImageVector,
             Icon(icon, contentDescription = null, modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium),
                 tint = if (selected) LocalContentColor.current
                     else colors.onSurfaceVariant.copy(alpha = if (enabled) 1f else UiOpacity.disabledContent))
-            Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+            AppText(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (selected) UiTypography.emphasizedWeight else FontWeight.Normal)
         }
     }

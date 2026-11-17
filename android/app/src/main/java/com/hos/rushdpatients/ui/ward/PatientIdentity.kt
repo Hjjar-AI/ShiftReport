@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppIcons
 import com.hos.rushdpatients.ui.components.UiStrings
 
@@ -54,7 +56,7 @@ internal fun patientFieldText(text: String) = buildAnnotatedString {
 @Composable
 internal fun PatientName(name: String, modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.titleMedium) {
-    Text(name, modifier = modifier.semantics { heading() }, style = style, fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight,
+    AppText(name, modifier = modifier.semantics { heading() }, style = style, fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight,
         maxLines = 2, overflow = TextOverflow.Ellipsis)
 }
 
@@ -80,14 +82,14 @@ internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modif
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 Icon(AppIcons.Star, contentDescription = null,
                     tint = com.hos.rushdpatients.ui.theme.LocalClinicalColors.current.warning, modifier = Modifier.size(UiSize.iconSmall))
-                Text(uiText(R.string.ui_patient_identity_002), style = MaterialTheme.typography.labelMedium,
+                AppText(uiText(R.string.ui_patient_identity_002), style = MaterialTheme.typography.labelMedium,
                     color = com.hos.rushdpatients.ui.theme.LocalClinicalColors.current.warning)
             }
             val metadata = if (showPersonal) PatientIdentityText.details(uiText, patient, dayLabel) else listOfNotNull(
                 PatientIdentityText.admission(uiText, patient),
                 PatientIdentityText.personal(uiText, patient, dayLabel).takeIf { showDemographics }
             ).filter(String::isNotBlank).joinToString(" • ")
-            Text(patientFieldText(metadata),
+            AppText(patientFieldText(metadata),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

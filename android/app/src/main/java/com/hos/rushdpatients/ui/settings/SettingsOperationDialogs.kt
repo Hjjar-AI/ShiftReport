@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,7 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.R
@@ -29,7 +30,7 @@ internal fun SettingsBackupPasswordDialog(
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (exporting) uiText(R.string.ui_settings_screen_014) else uiText(R.string.ui_settings_screen_015))
+            AppText(if (exporting) uiText(R.string.ui_settings_screen_014) else uiText(R.string.ui_settings_screen_015))
         },
         text = {
             PasswordField(
@@ -42,10 +43,10 @@ internal fun SettingsBackupPasswordDialog(
             AppTextButton(
                 enabled = backupPassword.length >= 8,
                 onClick = onConfirm
-            ) { Text(if (exporting) uiText(R.string.ui_settings_screen_017) else uiText(R.string.ui_restore)) }
+            ) { AppText(if (exporting) uiText(R.string.ui_settings_screen_017) else uiText(R.string.ui_restore)) }
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_cancel)) }
+            AppTextButton(onClick = onDismiss) { AppText(uiText(R.string.ui_cancel)) }
         }
     )
 }
@@ -59,38 +60,38 @@ internal fun SettingsProvisioningDialog(
     val uiText = rememberUiStrings()
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(uiText(R.string.ui_settings_screen_019)) },
+        title = { AppText(uiText(R.string.ui_settings_screen_019)) },
         text = {
             Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(uiText(R.string.ui_settings_screen_020))
+                AppText(uiText(R.string.ui_settings_screen_020))
                 PasswordField(
                     value = provisioningPassphrase,
                     onValueChange = onPassphraseChange,
                     label = uiText(R.string.ui_settings_screen_021)
                 )
-                Text(if (directDownloads) uiText(R.string.ui_settings_screen_022)
+                AppText(if (directDownloads) uiText(R.string.ui_settings_screen_022)
                     else uiText(R.string.ui_settings_screen_023),
                     style = MaterialTheme.typography.bodySmall)
                 if (directDownloads) AppTextButton(
                     enabled = provisioningPassphrase.length >= 10 && !busy,
                     onClick = onShare, modifier = Modifier.fillMaxWidth()
-                ) { Text(uiText(R.string.ui_settings_screen_024)) }
+                ) { AppText(uiText(R.string.ui_settings_screen_024)) }
                 AppTextButton(
                     enabled = provisioningPassphrase.length >= 10 && !busy,
                     onClick = onSave,
                     modifier = Modifier.fillMaxWidth().heightIn(min = UiSpacing.touchTarget)
-                ) { Text(uiText(R.string.ui_settings_screen_025)) }
+                ) { AppText(uiText(R.string.ui_settings_screen_025)) }
             }
         },
         confirmButton = {
             AppTextButton(
                 enabled = provisioningPassphrase.length >= 10 && !busy,
                 onClick = onConfirm
-            ) { Text(if (directDownloads) uiText(R.string.ui_settings_screen_026) else uiText(R.string.ui_settings_screen_027)) }
+            ) { AppText(if (directDownloads) uiText(R.string.ui_settings_screen_026) else uiText(R.string.ui_settings_screen_027)) }
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_cancel)) }
+            AppTextButton(onClick = onDismiss) { AppText(uiText(R.string.ui_cancel)) }
         }
     )
 }
@@ -102,21 +103,21 @@ internal fun SettingsPublicationReviewDialog(
     val uiText = rememberUiStrings()
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(uiText(R.string.ui_settings_screen_028)) },
+        title = { AppText(uiText(R.string.ui_settings_screen_028)) },
         text = {
             Column(Modifier.appDialogBody(UiDialog.reviewBodyMaxHeight).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                Text(reviewText)
-                Text(uiText(R.string.ui_settings_screen_029))
+                AppText(reviewText)
+                AppText(uiText(R.string.ui_settings_screen_029))
             }
         },
         confirmButton = {
             AppTextButton(onClick = onConfirm, enabled = !busy) {
-                Text(uiText(R.string.ui_settings_screen_030))
+                AppText(uiText(R.string.ui_settings_screen_030))
             }
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
+            AppTextButton(onClick = onDismiss, enabled = !busy) { AppText(uiText(R.string.ui_cancel)) }
         }
     )
 }
@@ -126,15 +127,15 @@ internal fun SettingsBackupRestoreDialog(onConfirm: () -> Unit, onDismiss: () ->
     val uiText = rememberUiStrings()
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(uiText(R.string.ui_settings_screen_031)) },
+        title = { AppText(uiText(R.string.ui_settings_screen_031)) },
         text = {
-            Text(uiText(R.string.ui_settings_screen_032))
+            AppText(uiText(R.string.ui_settings_screen_032))
         },
         confirmButton = {
-            AppTextButton(onClick = onConfirm) { Text(uiText(R.string.ui_settings_screen_033)) }
+            AppTextButton(onClick = onConfirm) { AppText(uiText(R.string.ui_settings_screen_033)) }
         },
         dismissButton = {
-            AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_cancel)) }
+            AppTextButton(onClick = onDismiss) { AppText(uiText(R.string.ui_cancel)) }
         }
     )
 }

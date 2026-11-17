@@ -32,7 +32,7 @@ fun AppActionContent(text: String, loading: Boolean, color: Color = LocalContent
         Box(Modifier.size(UiSize.iconSmall), contentAlignment = Alignment.Center) {
             if (loading) AppBusyIndicator(color = color)
         }
-        Text(text, modifier = Modifier.weight(1f, fill = false), color = color, style = style,
+        AppText(text, modifier = Modifier.weight(1f, fill = false), color = color, style = style,
             textAlign = TextAlign.Center)
         Box(Modifier.size(UiSize.iconSmall))
     }

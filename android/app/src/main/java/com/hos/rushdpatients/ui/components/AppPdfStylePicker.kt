@@ -14,7 +14,7 @@ fun AppPdfStylePicker(selected: PdfStyle, onSelected: (PdfStyle) -> Unit, enable
     val uiText = rememberUiStrings()
     AppChoiceChips(PdfStyle.entries.toList(), selected, onSelected, { it.uiLabel(uiText) },
         title = uiText(R.string.ui_app_pdf_style_picker_001), enabled = enabled)
-    Text(when (selected) {
+    AppText(when (selected) {
         PdfStyle.CARDS -> uiText(R.string.ui_app_pdf_style_picker_002)
         PdfStyle.CLASSIC -> uiText(R.string.ui_app_pdf_style_picker_003)
     },

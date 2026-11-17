@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppMenuItem
 import com.hos.rushdpatients.ui.components.AppMenu
 import com.hos.rushdpatients.ui.ward.WardFormDialog
@@ -33,11 +35,11 @@ internal fun TeamManagementDialog(doctors: List<Doctor>, busy: Boolean, onDismis
     WardFullscreenDialog(title = uiText(R.string.ui_team_management_dialog_002),
         onDismissRequest = { if (!busy) onDismiss() }) {
         Column(Modifier.fillMaxSize().padding(UiSpacing.medium)) {
-            Text(uiText(R.string.ui_team_management_dialog_002), style = MaterialTheme.typography.titleLarge)
-            Text(uiText(R.string.ui_team_management_dialog_003))
+            AppText(uiText(R.string.ui_team_management_dialog_002), style = MaterialTheme.typography.titleLarge)
+            AppText(uiText(R.string.ui_team_management_dialog_003))
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 (supervisors.map { it.id } + listOf<String?>(null)).forEach { id ->
-                    Text(name(id) + ": " + residents.filter { assignments[it.id] == id }.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName }.ifBlank { uiText(R.string.ui_team_management_dialog_004) },
+                    AppText(name(id) + ": " + residents.filter { assignments[it.id] == id }.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName }.ifBlank { uiText(R.string.ui_team_management_dialog_004) },
                         style = MaterialTheme.typography.bodyMedium)
                 }
                 residents.forEach { resident ->
@@ -45,12 +47,12 @@ internal fun TeamManagementDialog(doctors: List<Doctor>, busy: Boolean, onDismis
                         var expanded by remember { mutableStateOf(false) }
                         Box {
                             AppTextButton(onClick = { expanded = true }, enabled = !busy) {
-                                Text(resident.fullName + " ← " + name(assignments[resident.id]))
+                                AppText(resident.fullName + " ← " + name(assignments[resident.id]))
                             }
                             AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                AppMenuItem(text = { Text(uiText(R.string.ui_team_management_dialog_001)) }, onClick = { assignments = assignments + (resident.id to null); expanded = false }, enabled = !busy)
+                                AppMenuItem(text = { AppText(uiText(R.string.ui_team_management_dialog_001)) }, onClick = { assignments = assignments + (resident.id to null); expanded = false }, enabled = !busy)
                                 supervisors.forEach { supervisor ->
-                                    AppMenuItem(text = { Text(supervisor.fullName) }, onClick = {
+                                    AppMenuItem(text = { AppText(supervisor.fullName) }, onClick = {
                                         assignments = assignments + (resident.id to supervisor.id); expanded = false
                                     }, enabled = !busy)
                                 }
@@ -58,15 +60,15 @@ internal fun TeamManagementDialog(doctors: List<Doctor>, busy: Boolean, onDismis
                         }
                     }
                 }
-                if (residents.isEmpty()) Text(uiText(R.string.ui_team_management_dialog_005))
+                if (residents.isEmpty()) AppText(uiText(R.string.ui_team_management_dialog_005))
             }
-            AppButton(onClick = { reviewing = true }, enabled = !busy && changes.isNotEmpty()) { Text(uiText(R.string.ui_team_management_dialog_006, changes.size)) }
-            AppTextButton(onClick = onDismiss, enabled = !busy) { Text(uiText(R.string.ui_cancel)) }
+            AppButton(onClick = { reviewing = true }, enabled = !busy && changes.isNotEmpty()) { AppText(uiText(R.string.ui_team_management_dialog_006, changes.size)) }
+            AppTextButton(onClick = onDismiss, enabled = !busy) { AppText(uiText(R.string.ui_cancel)) }
         }
     }
-    if (reviewing) WardFormDialog(onDismissRequest = { if (!busy) reviewing = false }, title = { Text(uiText(R.string.ui_team_management_dialog_007)) },
+    if (reviewing) WardFormDialog(onDismissRequest = { if (!busy) reviewing = false }, title = { AppText(uiText(R.string.ui_team_management_dialog_007)) },
         text = { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            changes.forEach { (id, next) -> Text(name(id) + "\n" + name(expected.first { it.id == id }.teamSupervisorId) + " ← " + name(next)) }
-        } }, confirmButton = { AppButton(onClick = { onSave(expected, changes) }, enabled = !busy) { Text(uiText(R.string.ui_team_management_dialog_008)) } },
-        dismissButton = { AppTextButton(onClick = { reviewing = false }, enabled = !busy) { Text(uiText(R.string.ui_team_management_dialog_009)) } })
+            changes.forEach { (id, next) -> AppText(name(id) + "\n" + name(expected.first { it.id == id }.teamSupervisorId) + " ← " + name(next)) }
+        } }, confirmButton = { AppButton(onClick = { onSave(expected, changes) }, enabled = !busy) { AppText(uiText(R.string.ui_team_management_dialog_008)) } },
+        dismissButton = { AppTextButton(onClick = { reviewing = false }, enabled = !busy) { AppText(uiText(R.string.ui_team_management_dialog_009)) } })
 }

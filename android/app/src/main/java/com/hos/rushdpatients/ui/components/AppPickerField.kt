@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -43,12 +42,12 @@ fun AppPickerField(
     ) {
         AppFieldDecoration(
             value = value, enabled = active, isError = isError, interactionSource = interactionSource,
-            label = { Text(label) },
-            placeholder = if (placeholder == null) null else { { Text(placeholder) } },
+            label = { AppText(label) },
+            placeholder = if (placeholder == null) null else { { AppText(placeholder) } },
             trailingIcon = { Icon(icon, contentDescription = null) },
-            supportingText = if (supportingText == null) null else { { Text(supportingText) } },
+            supportingText = if (supportingText == null) null else { { AppText(supportingText) } },
             innerTextField = {
-                Text(value, modifier = Modifier.fillMaxWidth(), softWrap = true,
+                AppText(value, modifier = Modifier.fillMaxWidth(), softWrap = true,
                     style = MaterialTheme.typography.bodyLarge.copy(textDirection = valueTextDirection,
                         lineBreak = LineBreak.Paragraph, hyphens = Hyphens.None),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))

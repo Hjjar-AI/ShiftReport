@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppText
+
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.AppSectionHeader
 import com.hos.rushdpatients.ui.components.uiLabel
@@ -24,7 +26,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.hos.rushdpatients.ui.components.LocalFieldEnabled
@@ -193,11 +194,11 @@ internal fun PatientFormDialog(
                 )
             }
 
-            Text(uiText(R.string.ui_patient_form_dialog_019),
+            AppText(uiText(R.string.ui_patient_form_dialog_019),
                 style = MaterialTheme.typography.bodySmall)
             if (com.hos.rushdpatients.domain.doctor.DoctorTeams.isCrossTeamCover(
                     activeDoctors.firstOrNull { it.id == residentId }, specialistId)) {
-                Text(uiText(R.string.ui_patient_form_dialog_020), style = MaterialTheme.typography.labelLarge,
+                AppText(uiText(R.string.ui_patient_form_dialog_020), style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.tertiary)
             }
         }
@@ -255,7 +256,7 @@ internal fun PatientFormDialog(
                     FlowRow(Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        Text(text = title, style = MaterialTheme.typography.titleLarge,
+                        AppText(text = title, style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.semantics { heading() })
                         Column(Modifier.padding(top = UiSpacing.small), horizontalAlignment = Alignment.End) {
                             reviewAction()
@@ -264,7 +265,7 @@ internal fun PatientFormDialog(
                     val patientHeading = savedBaseline?.name?.takeIf(String::isNotBlank)
                         ?: name.takeIf(String::isNotBlank)
                     patientHeading?.let {
-                        Text(it, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium,
+                        AppText(it, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium,
                             fontWeight = com.hos.rushdpatients.ui.theme.UiTypography.emphasizedWeight)
                     }
                 }
@@ -289,7 +290,7 @@ internal fun PatientFormDialog(
                                     AppTextButton(onClick = {
                                         formScope.launch { fieldRequests.getValue(error.field).bringIntoView() }
                                     }, modifier = Modifier.fillMaxWidth()) {
-                                        Text(error.message, modifier = Modifier.fillMaxWidth(),
+                                        AppText(error.message, modifier = Modifier.fillMaxWidth(),
                                             color = com.hos.rushdpatients.ui.theme.LocalClinicalColors.current.onUrgentContainer)
                                     }
                                 }
@@ -304,14 +305,14 @@ internal fun PatientFormDialog(
                         AppSectionHeader(
                             uiText(R.string.ui_patient_form_dialog_004)
                         )
-                        Text(uiText(R.string.ui_patient_form_dialog_005), style = MaterialTheme.typography.labelMedium)
+                        AppText(uiText(R.string.ui_patient_form_dialog_005), style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                             DiagnosisType.entries.forEach { type ->
                                 AppFilterChip(
                                     enabled = !saving,
                                     selected = diagnosisType == type,
                                     onClick = { diagnosisType = type },
-                                    label = { Text(type.uiLabel(uiText)) }
+                                    label = { AppText(type.uiLabel(uiText)) }
                                 )
                             }
                         }
@@ -389,8 +390,8 @@ internal fun PatientFormDialog(
                     if (advance) onConfirmAndNext?.invoke(patient) else onConfirm(patient)
                 }
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                    saveHint?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                    Text(if (saving) uiText(R.string.ui_patient_form_dialog_033) else if (hasUnsavedChanges)
+                    saveHint?.let { AppText(it, style = MaterialTheme.typography.bodySmall) }
+                    AppText(if (saving) uiText(R.string.ui_patient_form_dialog_033) else if (hasUnsavedChanges)
                         uiText(R.string.ui_patient_form_dialog_034) else uiText(R.string.ui_patient_form_dialog_035),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (hasUnsavedChanges) MaterialTheme.colorScheme.tertiary
@@ -398,17 +399,17 @@ internal fun PatientFormDialog(
                     if (onConfirmAndNext != null) {
                         AppFieldPair(first = { buttonModifier ->
                             AppButton(modifier = buttonModifier, enabled = !saving,
-                                onClick = { submit(false) }) { Text(if (saving) uiText(R.string.ui_patient_form_dialog_036) else uiText(R.string.ui_save)) }
+                                onClick = { submit(false) }) { AppText(if (saving) uiText(R.string.ui_patient_form_dialog_036) else uiText(R.string.ui_save)) }
                         }, second = { buttonModifier ->
                             AppOutlinedButton(modifier = buttonModifier, enabled = !saving,
-                                onClick = { submit(true) }) { Text(uiText(R.string.ui_patient_form_dialog_038)) }
+                                onClick = { submit(true) }) { AppText(uiText(R.string.ui_patient_form_dialog_038)) }
                         })
                     } else AppButton(modifier = Modifier.fillMaxWidth(), enabled = !saving,
-                        onClick = { submit(false) }) { Text(if (saving) uiText(R.string.ui_patient_form_dialog_036) else uiText(R.string.ui_save)) }
+                        onClick = { submit(false) }) { AppText(if (saving) uiText(R.string.ui_patient_form_dialog_036) else uiText(R.string.ui_save)) }
                 }
             },
             dismissButton = {
-                AppTextButton(onClick = requestDismiss, enabled = !saving) { Text(uiText(R.string.ui_cancel)) }
+                AppTextButton(onClick = requestDismiss, enabled = !saving) { AppText(uiText(R.string.ui_cancel)) }
             }
         )
     }
