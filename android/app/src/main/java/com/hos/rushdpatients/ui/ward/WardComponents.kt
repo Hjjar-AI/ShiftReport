@@ -90,7 +90,6 @@ internal fun DrawerSubmenuHeader(
     expanded: Boolean,
     onClick: () -> Unit
 ) {
-    val uiText = rememberUiStrings()
     CompactDrawerItem(
         label = { AppText(label, fontWeight = UiTypography.emphasizedWeight) },
         selected = false,

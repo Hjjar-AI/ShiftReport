@@ -23,7 +23,6 @@ import com.hos.rushdpatients.ui.theme.UiLayout
 /** Shared popup direction, safe viewport and hinge avoidance; callers own content and dismissal. */
 @Composable
 internal fun WardFullscreenDialog(
-    title: String,
     onDismissRequest: () -> Unit,
     properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
     foldingFeature: FoldingFeature? = rememberWardFoldingFeature(),
@@ -37,7 +36,7 @@ internal fun WardFullscreenDialog(
                     WardAdaptivePanes(
                         enableSplit = false, foldingFeature = foldingFeature,
                         listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
-                        modifier = Modifier.fillMaxSize(), primaryTitle = title,
+                        modifier = Modifier.fillMaxSize(),
                         primary = {
                             Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) { content() }
                         }

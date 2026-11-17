@@ -64,7 +64,7 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>,
     }
     val visible = (rows + completed.values).groupBy { it.patient.id }
     val groups = patients.mapNotNull { patient -> visible[patient.id]?.let { patient to it } }
-    WardFullscreenDialog(title = uiText(R.string.ui_ward_view_options_dialog_004), onDismissRequest = onDismiss) {
+    WardFullscreenDialog(onDismissRequest = onDismiss) {
         Scaffold(snackbarHost = { AppSnackbarHost(snackbarHost) }) { insets ->
             Column(Modifier.fillMaxSize().padding(insets)) {
                 AppCompactTopBar(title = { AppText(uiText(R.string.ui_ward_view_options_dialog_004), style = MaterialTheme.typography.titleLarge) },

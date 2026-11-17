@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.ui.components
 
-import com.hos.rushdpatients.R
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -25,7 +24,6 @@ fun AppBusyIndicator(modifier: Modifier = Modifier, size: Dp = UiSize.iconSmall,
 @Composable
 fun AppActionContent(text: String, loading: Boolean, color: Color = LocalContentColor.current,
     style: TextStyle = MaterialTheme.typography.labelLarge) {
-    val uiText = rememberUiStrings()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
         modifier = Modifier) {
         Box(Modifier.size(UiSize.iconSmall), contentAlignment = Alignment.Center) {

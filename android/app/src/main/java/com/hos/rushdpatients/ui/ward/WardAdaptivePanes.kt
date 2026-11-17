@@ -92,7 +92,6 @@ internal fun WardAdaptivePanes(
     listFraction: Float,
     onListFractionChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
-    primaryTitle: String = androidx.compose.ui.res.stringResource(R.string.ui_ward_adaptive_panes_001),
     supportingTitle: String = androidx.compose.ui.res.stringResource(R.string.ui_ward_adaptive_panes_002),
     primary: @Composable (Boolean) -> Unit,
     supporting: @Composable () -> Unit = {},
@@ -145,9 +144,9 @@ internal fun WardAdaptivePanes(
             mediumSupport -> PaneRegion(0f, height - (UiLayout.mediumSupportHeight.value * scale), width, (UiLayout.mediumSupportHeight.value * scale))
             else -> full
         }
-        PaneRegionBox(primaryRegion, primaryTitle, 0f) { primary(split) }
+        PaneRegionBox(primaryRegion, 0f) { primary(split) }
         if (split) {
-            PaneRegionBox(supportingRegion, supportingTitle, 1f) {
+            PaneRegionBox(supportingRegion, 1f) {
                 Box(Modifier.appContentEntrance(supportingTitle)) { supporting() }
             }
             if (regularSplit) {
@@ -187,7 +186,7 @@ internal fun WardAdaptivePanes(
 }
 
 @Composable
-private fun PaneRegionBox(region: PaneRegion, title: String, order: Float, content: @Composable () -> Unit) {
+private fun PaneRegionBox(region: PaneRegion, order: Float, content: @Composable () -> Unit) {
     Box(
         Modifier.absoluteOffset(region.x.dp, region.y.dp)
             .width(region.width.dp).height(region.height.dp).clipToBounds()

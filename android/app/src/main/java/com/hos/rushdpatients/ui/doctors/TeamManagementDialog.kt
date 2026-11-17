@@ -32,8 +32,7 @@ internal fun TeamManagementDialog(doctors: List<Doctor>, busy: Boolean, onDismis
     var reviewing by remember { mutableStateOf(false) }
     val changes = assignments.filter { (id, supervisor) -> expected.first { it.id == id }.teamSupervisorId != supervisor }
     fun name(id: String?) = expected.firstOrNull { it.id == id }?.fullName ?: uiText(R.string.ui_team_management_dialog_001)
-    WardFullscreenDialog(title = uiText(R.string.ui_team_management_dialog_002),
-        onDismissRequest = { if (!busy) onDismiss() }) {
+    WardFullscreenDialog(onDismissRequest = { if (!busy) onDismiss() }) {
         Column(Modifier.fillMaxSize().padding(UiSpacing.medium)) {
             AppText(uiText(R.string.ui_team_management_dialog_002), style = MaterialTheme.typography.titleLarge)
             AppText(uiText(R.string.ui_team_management_dialog_003))

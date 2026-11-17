@@ -61,7 +61,6 @@ fun GuideScreen(onBack: () -> Unit) {
                 enableSplit = false, foldingFeature = foldingFeature,
                 listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                 modifier = Modifier.fillMaxSize().padding(padding),
-                primaryTitle = text(R.string.guide_title),
                 primary = {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                         Column(

@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.ui.components
 
-import com.hos.rushdpatients.R
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,14 +40,12 @@ fun AppSectionHeader(
     summary: String? = null,
     icon: ImageVector? = null
 ) {
-    val uiText = rememberUiStrings()
     val interaction = if (onToggle != null) Modifier.heightIn(min = UiSpacing.touchTarget)
         .clickable(role = Role.Button, onClick = onToggle) else Modifier
     Row(
         modifier = modifier.fillMaxWidth().then(interaction).padding(UiPadding.compact)
             .semantics(mergeDescendants = true) {
                 heading()
-
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.rowGap)

@@ -459,7 +459,7 @@ private fun WardWorkspaceContent(
                     if (expandedWindow) {
                         WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
                             listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
-                            modifier = Modifier.width(UiLayout.navigationRailWidth).fillMaxHeight(), primaryTitle = uiText(R.string.ui_ward_screen_002), primary = {
+                            modifier = Modifier.width(UiLayout.navigationRailWidth).fillMaxHeight(), primary = {
                             PrimaryNavigationRail(
                                 viewMode = viewMode,
                                 isAdmin = isAdmin,
@@ -478,7 +478,6 @@ private fun WardWorkspaceContent(
                         listFraction = listFraction,
                         onListFractionChange = { listFraction = it },
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                        primaryTitle = if (patientDestination) uiText(R.string.ui_handover_dashboard_004) else if (viewMode == WardViewMode.ACTIVITY) uiText(R.string.ui_ward_activity_screen_003) else uiText(R.string.ui_ward_screen_003),
                         supportingTitle = uiText(R.string.ui_ward_screen_004),
                         supporting = {
                             Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {

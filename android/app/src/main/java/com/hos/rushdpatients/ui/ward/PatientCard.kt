@@ -74,7 +74,6 @@ import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.ui.theme.patientBadgeColors
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -105,9 +104,6 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val cardDensity = UiPatientCard.density()
     val sectionGap = cardDensity.sectionGap
     val taskCounts = remember(patient.tasks) { PatientTasks.counts(patient.tasks) }
-    val badgesLabel = uiPlural(R.plurals.patient_badges, patient.badges.size)
-    val pendingTasksLabel = uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending)
-    val clinicalColors = LocalClinicalColors.current
     val visibleBadges = remember(patient.badges, expanded) {
         if (expanded) patient.badges else patient.badges.filter { it.priority != PatientBadgePriority.LOW }
     }
