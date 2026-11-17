@@ -180,7 +180,7 @@ internal fun PatientFormDialog(
             AppText(uiText(R.string.ui_patient_form_dialog_019),
                 style = MaterialTheme.typography.bodySmall)
             if (com.hos.rushdpatients.domain.doctor.DoctorTeams.isCrossTeamCover(
-                    activeDoctors.firstOrNull { it.id == residentId }, specialistId)) {
+                    formDoctors.active.firstOrNull { it.id == residentId }, specialistId)) {
                 AppText(uiText(R.string.ui_patient_form_dialog_020), style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.tertiary)
             }

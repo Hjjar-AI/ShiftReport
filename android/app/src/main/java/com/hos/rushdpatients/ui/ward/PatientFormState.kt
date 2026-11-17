@@ -102,7 +102,7 @@ internal data class PatientFormSnapshot(
 )
 
 internal class PatientFormDoctors(doctors: List<Doctor>) {
-    private val active = doctors.filterNot { it.isDeleted }
+    val active = doctors.filterNot { it.isDeleted }
     val residents = active.filter { it.clinicalRole.canBeResident() }
     val supervisors = active.filter { it.clinicalRole.canBeSupervisor() }
 }

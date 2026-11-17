@@ -1,6 +1,7 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.components.AppText
+import com.hos.rushdpatients.ui.theme.UiOpacity
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
