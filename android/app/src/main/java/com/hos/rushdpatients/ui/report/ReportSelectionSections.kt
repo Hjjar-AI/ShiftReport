@@ -64,9 +64,9 @@ internal fun ReportDestinationSelection(
                 header = { AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_024),
                     expanded = expanded, onToggle = { if (!busy) expanded = !expanded }) },
                 summary = {
-            if (selectedLabels.isEmpty()) AppText(uiText(R.string.report_no_destination_selected),
-                style = MaterialTheme.typography.bodySmall)
-            selectedLabels.forEach { AppText(it, style = MaterialTheme.typography.bodySmall) }
+                    if (selectedLabels.isEmpty()) AppText(uiText(R.string.report_no_destination_selected),
+                        style = MaterialTheme.typography.bodySmall)
+                    selectedLabels.forEach { AppText(it, style = MaterialTheme.typography.bodySmall) }
                 }) {
                 AppCheckRow(label = generalDestinationLabel,
                     checked = generalSelected, enabled = !busy,

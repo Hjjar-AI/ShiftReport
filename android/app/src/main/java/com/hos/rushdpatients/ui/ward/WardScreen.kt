@@ -155,7 +155,6 @@ private fun WardWorkspaceContent(
     val snackbarHost = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val haptics = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     val foldingFeature = rememberWardFoldingFeature()
     val workspace = rememberWardWorkspaceState()
@@ -186,7 +185,6 @@ private fun WardWorkspaceContent(
     var expandedPatientIds by workspace::expandedPatientIds
     var collapsedPatientIds by workspace::collapsedPatientIds
     var showWardTasks by overlays::showWardTasks
-    var animatedPatientId by workspace::animatedPatientId
 
     val filters = filtersState.options()
     val searchIndex = remember(state.patients) { wardSearchIndex(state.patients) }
@@ -345,227 +343,214 @@ private fun WardWorkspaceContent(
 
     val patientCardContent: @Composable (Patient, Modifier) -> Unit = { patient, cardModifier ->
         WardPatientItem(patient, cardModifier, state, viewModel, workspace, allCardsExpanded,
-            expandedIds, collapsedIds, doctorNames, snackbarHost)
+            expandedIds, collapsedIds, doctorNames, snackbarHost, scope)
     }
 
     val wardHeader: @Composable () -> Unit = {
-
-                        WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
-                            onMenu = { scope.launch { drawerState.open() } },
-                            onToggleCards = { workspace.setAllPatientsExpanded(!anyCardsExpanded, viewModel::setPatientDetailsExpanded) },
-                            showAddAction = !showAddFloatingAction, showDeliveryNotice = false,
-                            onAdd = { editor.openAdd(state.patients) }, onSearch = {
-                                if (patientDestination && showSearch && searchQuery.isBlank()) {
-                                    showSearch = false
-                                    requestSearchFocus = false
-                                    focusManager.clearFocus()
-                                } else {
-                                    if (!patientDestination) viewMode = WardViewMode.ALL
-                                    showSearch = true
-                                    requestSearchFocus = true
-                                }
-                            }, onWorkflow = {
-                                when (state.workflowAction) {
-                                    WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
-                                    WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
-                                    WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
-                                }
-                            })
+        WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
+            onMenu = { scope.launch { drawerState.open() } },
+            onToggleCards = { workspace.setAllPatientsExpanded(!anyCardsExpanded, viewModel::setPatientDetailsExpanded) },
+            showAddAction = !showAddFloatingAction, showDeliveryNotice = false,
+            onAdd = { editor.openAdd(state.patients) }, onSearch = {
+                if (patientDestination && showSearch && searchQuery.isBlank()) {
+                    showSearch = false
+                    requestSearchFocus = false
+                    focusManager.clearFocus()
+                } else {
+                    if (!patientDestination) viewMode = WardViewMode.ALL
+                    showSearch = true
+                    requestSearchFocus = true
+                }
+            }, onWorkflow = {
+                when (state.workflowAction) {
+                    WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
+                    WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
+                    WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
+                }
+            })
     }
     val wardStatus: @Composable () -> Unit = {
-                WardStatusHeader(
-                    state = state, isAdmin = isAdmin, liveProject = viewModel.liveProject,
-                    showBackOnline = showBackOnline,
-                    fetchReminderEnabled = !state.loading && state.canInteract &&
-                        !state.isReadOnly && editor.dialog == null,
-                    onOpenDoctors = navigation.onOpenDoctors,
-                    onReviewPatients = { state.shift?.id?.let(onOpenReport) },
-                    onRetry = viewModel::retryLastAction, onReload = viewModel::reloadWard,
-                    onFetch = { showBackOnline = false; confirmLatest = true },
-                    onBackToPreview = onBackToPreview,
-                    onWorkflow = {
-                        when (state.workflowAction) {
-                            WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
-                            WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
-                            WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
-                        }
-                    },
-                    header = {},
-                    transferActions = {
-                        if (viewModel.synchronizationAvailable && (patientDestination || viewMode == WardViewMode.DASHBOARD)) WardTransferBar(
-                            fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
-                                editor.dialog == null && !confirmLatest,
-                            reportEnabled = state.shift != null && !state.isReadOnly && !state.loading && !state.syncing && !state.saving &&
-                                editor.dialog == null,
-                            onFetch = { confirmLatest = true },
-                            uploadEnabled = state.shift != null && (!viewModel.liveProject || online) &&
-                                !state.loading && state.canMutate &&
-                                editor.dialog == null && !confirmLatest,
-                            onUpload = viewModel::reviewPendingPublication,
-                            onReport = { state.shift?.id?.let(onOpenReport) })
-                    })
+        WardStatusHeader(
+            state = state, isAdmin = isAdmin, liveProject = viewModel.liveProject,
+            showBackOnline = showBackOnline,
+            fetchReminderEnabled = !state.loading && state.canStartEdit(editor),
+            onOpenDoctors = navigation.onOpenDoctors,
+            onReviewPatients = { state.shift?.id?.let(onOpenReport) },
+            onRetry = viewModel::retryLastAction, onReload = viewModel::reloadWard,
+            onFetch = { showBackOnline = false; confirmLatest = true },
+            onBackToPreview = onBackToPreview,
+            onWorkflow = {
+                when (state.workflowAction) {
+                    WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
+                    WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
+                    WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
+                }
+            },
+            header = {},
+            transferActions = {
+                if (viewModel.synchronizationAvailable && (patientDestination || viewMode == WardViewMode.DASHBOARD)) WardTransferBar(
+                    fetchEnabled = !state.loading && state.canStartEdit(editor) && !confirmLatest,
+                    reportEnabled = state.shift != null && !state.loading && state.canStartEdit(editor),
+                    onFetch = { confirmLatest = true },
+                    uploadEnabled = state.shift != null && (!viewModel.liveProject || online) &&
+                        !state.loading && state.canStartEdit(editor) && !confirmLatest,
+                    onUpload = viewModel::reviewPendingPublication,
+                    onReport = { state.shift?.id?.let(onOpenReport) })
+            })
     }
 
+
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-    val shortWindow = maxHeight < UiLayout.shortWindowHeight * com.hos.rushdpatients.ui.theme.uiLayoutScale()
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            if (drawerContent != null) drawerContent(::closeDrawer) else WardDrawer(
-                state = state,
-                currentDoctorName = doctorNames[currentDoctorId],
-                isAdmin = isAdmin,
-                isPermanentAdmin = isAdmin && state.doctors.any { it.id == currentDoctorId && it.isPermanentAdmin && !it.isDeleted },
-                online = online,
-                onPublishData = { closeDrawer { viewModel.reviewPendingPublication() } },
-                onAction = { action -> closeDrawer {
-                    navigation.openDrawerAction(action, state.shift?.id, isAdmin,
-                        onRecycleBin = { showRecycleBin = true })
-                } }
-            )
-        }
-    ) {
-        Scaffold(
-            topBar = {
-                androidx.compose.foundation.layout.Column {
-                    wardHeader()
-                    if (!shortWindow) wardStatus()
-                }
-            },
-            floatingActionButton = {
-                if (showAddFloatingAction) {
-                    com.hos.rushdpatients.ui.components.AppFloatingAction(
-                        icon = AppIcons.Add, label = uiText(R.string.ui_add_patient),
-                        onClick = { editor.openAdd(state.patients) },
-                        enabled = !state.loading && state.canInteract &&
-                            !editor.showAdd && editor.editTarget == null && editor.copyTarget == null,
-                        colors = floatingActionColors, modifier = addActionSpace.measure)
-                }
-            },
-            bottomBar = {
-                WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
-                    onDestination = { viewMode = it })
-            },
-            snackbarHost = { if (!showWardTasks) AppSnackbarHost(snackbarHost) }
-        ) { padding ->
-            val layoutDirection = LocalLayoutDirection.current
-            // Draw behind the transparent pill gutters; reserve its height in scroll content instead.
-            val navigationClearance = if (expandedWindow) com.hos.rushdpatients.ui.theme.UiSpace.none else padding.calculateBottomPadding()
-            val scrollBottomClearance = maxOf(addActionSpace.bottomPadding, backToTopActionSpace.bottomPadding) + navigationClearance
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(PaddingValues(
-                        start = padding.calculateStartPadding(layoutDirection),
-                        top = padding.calculateTopPadding(),
-                        end = padding.calculateEndPadding(layoutDirection),
-                        bottom = if (expandedWindow) padding.calculateBottomPadding() else com.hos.rushdpatients.ui.theme.UiSpace.none
-                    ))
-            ) {
-                if (expandedWindow) {
-                    WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
-                        listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
-                        modifier = Modifier.width(UiLayout.navigationRailWidth).fillMaxHeight(), primaryTitle = uiText(R.string.ui_ward_screen_002), primary = {
-                        PrimaryNavigationRail(
-                            viewMode = viewMode,
-                            isAdmin = isAdmin,
-                            onPatients = { viewMode = WardViewMode.ALL },
-                            onDashboard = { viewMode = WardViewMode.DASHBOARD },
-                            onActivity = {
-                                viewMode = WardViewMode.ACTIVITY
+        val shortWindow = maxHeight < UiLayout.shortWindowHeight * com.hos.rushdpatients.ui.theme.uiLayoutScale()
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                if (drawerContent != null) drawerContent(::closeDrawer) else WardDrawer(
+                    state = state,
+                    currentDoctorName = doctorNames[currentDoctorId],
+                    isAdmin = isAdmin,
+                    isPermanentAdmin = isAdmin && state.doctors.any { it.id == currentDoctorId && it.isPermanentAdmin && !it.isDeleted },
+                    online = online,
+                    onPublishData = { closeDrawer { viewModel.reviewPendingPublication() } },
+                    onAction = { action -> closeDrawer {
+                        navigation.openDrawerAction(action, state.shift?.id, isAdmin,
+                            onRecycleBin = { showRecycleBin = true })
+                    } }
+                )
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    androidx.compose.foundation.layout.Column {
+                        wardHeader()
+                        if (!shortWindow) wardStatus()
+                    }
+                },
+                floatingActionButton = {
+                    if (showAddFloatingAction) {
+                        com.hos.rushdpatients.ui.components.AppFloatingAction(
+                            icon = AppIcons.Add, label = uiText(R.string.ui_add_patient),
+                            onClick = { editor.openAdd(state.patients) },
+                            enabled = !state.loading && state.canInteract &&
+                                !editor.showAdd && editor.editTarget == null && editor.copyTarget == null,
+                            colors = floatingActionColors, modifier = addActionSpace.measure)
+                    }
+                },
+                bottomBar = {
+                    WardBottomNavigation(expandedWindow, foldingFeature, viewMode, isAdmin,
+                        onDestination = { viewMode = it })
+                },
+                snackbarHost = { if (!showWardTasks) AppSnackbarHost(snackbarHost) }
+            ) { padding ->
+                val layoutDirection = LocalLayoutDirection.current
+                // Draw behind the transparent pill gutters; reserve its height in scroll content instead.
+                val navigationClearance = if (expandedWindow) com.hos.rushdpatients.ui.theme.UiSpace.none else padding.calculateBottomPadding()
+                val scrollBottomClearance = maxOf(addActionSpace.bottomPadding, backToTopActionSpace.bottomPadding) + navigationClearance
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(PaddingValues(
+                            start = padding.calculateStartPadding(layoutDirection),
+                            top = padding.calculateTopPadding(),
+                            end = padding.calculateEndPadding(layoutDirection),
+                            bottom = if (expandedWindow) padding.calculateBottomPadding() else com.hos.rushdpatients.ui.theme.UiSpace.none
+                        ))
+                ) {
+                    if (expandedWindow) {
+                        WardAdaptivePanes(enableSplit = false, foldingFeature = foldingFeature,
+                            listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
+                            modifier = Modifier.width(UiLayout.navigationRailWidth).fillMaxHeight(), primaryTitle = uiText(R.string.ui_ward_screen_002), primary = {
+                            PrimaryNavigationRail(
+                                viewMode = viewMode,
+                                isAdmin = isAdmin,
+                                onPatients = { viewMode = WardViewMode.ALL },
+                                onDashboard = { viewMode = WardViewMode.DASHBOARD },
+                                onActivity = {
+                                    viewMode = WardViewMode.ACTIVITY
+                                }
+                            )
+                        })
+                    }
+                    WardAdaptivePanes(
+                        enableSplit = patientDestination,
+                        allowMediumSupport = true,
+                        foldingFeature = foldingFeature,
+                        listFraction = listFraction,
+                        onListFractionChange = { listFraction = it },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        primaryTitle = if (patientDestination) uiText(R.string.ui_handover_dashboard_004) else if (viewMode == WardViewMode.ACTIVITY) uiText(R.string.ui_ward_activity_screen_003) else uiText(R.string.ui_ward_screen_003),
+                        supportingTitle = uiText(R.string.ui_ward_screen_004),
+                        supporting = {
+                            Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
+                                WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
+                                    showSynchronization = viewModel.synchronizationAvailable, onOpenSyncCenter = onOpenDataManagement,
+                                    onActivity = { viewMode = WardViewMode.ACTIVITY })
                             }
-                        )
-                    })
-                }
-                WardAdaptivePanes(
-                    enableSplit = patientDestination,
-                    allowMediumSupport = true,
-                    foldingFeature = foldingFeature,
-                    listFraction = listFraction,
-                    onListFractionChange = { listFraction = it },
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    primaryTitle = if (patientDestination) uiText(R.string.ui_handover_dashboard_004) else if (viewMode == WardViewMode.ACTIVITY) uiText(R.string.ui_ward_activity_screen_003) else uiText(R.string.ui_ward_screen_003),
-                    supportingTitle = uiText(R.string.ui_ward_screen_004),
-                    supporting = {
-                        Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
-                            WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                                showSynchronization = viewModel.synchronizationAvailable, onOpenSyncCenter = onOpenDataManagement,
-                                onActivity = { viewMode = WardViewMode.ACTIVITY })
-                        }
-                    },
-                    primary = { dualPane ->
-                        Box(Modifier.fillMaxSize().appContentEntrance(viewMode)) {
-                            if (state.loading && state.shift == null) {
-                                com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_ward_screen_006), Modifier.align(Alignment.Center))
-                            } else if (state.error != null && state.shift == null) {
-                                AppNotice(
-                                    message = uiText(R.string.ui_ward_screen_007, state.error.orEmpty()),
-                                    kind = NoticeKind.ERROR,
-                                    modifier = Modifier.align(Alignment.Center).padding(UiPadding.content),
-                                    actionLabel = uiText(R.string.ui_retry),
-                                    onAction = viewModel::reloadWard,
-                                    actionEnabled = !state.syncing && !state.saving
-                                )
-                            } else if (viewMode == WardViewMode.DASHBOARD) {
-                                HandoverDashboard(
-                                    isAdmin = isAdmin,
-                                    onReportStatus = { state.shift?.id?.let(onOpenReport) },
-                                    reportStatus = if (!viewModel.synchronizationAvailable) null else when {
-                                        state.deliveryLogUnavailable -> uiText(R.string.dashboard_report_unknown)
-                                        state.unresolvedDeliveries > 0 -> uiText(R.string.dashboard_report_uncertain)
-                                        state.synchronization.lastReportAt != null -> uiText(R.string.dashboard_report_sent,
-                                            com.hos.rushdpatients.ui.components.uiDateTime(java.time.Instant.ofEpochMilli(
-                                                requireNotNull(state.synchronization.lastReportAt))))
-                                        else -> uiText(R.string.dashboard_report_not_sent)
-                                    },
-                                    patients = state.patients,
-                                    currentDoctorId = currentDoctorId,
-                                    syncStatus = state.syncStatus,
-                                    pendingCount = state.synchronization.pendingCount,
-                                    online = online, freshnessLabel = freshnessLabel,
-                                    dayLabel = dayLabel,
-                                    bottomClearance = scrollBottomClearance,
-                                    topContent = { if (shortWindow) wardStatus() },
-                                    onFilter = ::applyDashboardFilter,
-                                    onSync = onOpenDataManagement,
-                                    onActivity = {
-                                        viewMode = WardViewMode.ACTIVITY
-                                    },
-                                    modifier = Modifier.padding(UiPadding.screen), showSynchronization = viewModel.synchronizationAvailable
-                                )
-                            } else if (state.patients.isEmpty()) {
-                                EmptyWardPatients(isReadOnly = state.isReadOnly,
-                                    busy = state.syncing || state.saving,
-                                    bottomClearance = scrollBottomClearance,
-                                    onAdd = { editor.openAdd(state.patients) },
-                                    topContent = { if (shortWindow) wardStatus() })
-                            } else {
-                                WardPatientListSection(state, visiblePatients, dualPane, patientGridState,
-                                    scrollBottomClearance, collapsedGroups, filtersState, presetCounts,
-                                    showSearch = showSearch, requestSearchFocus = requestSearchFocus,
-                                    shortWindow = shortWindow, topContent = { if (shortWindow) wardStatus() },
-                                    onToggleGroup = { key ->
-                                        collapsedGroups = if (key in collapsedGroups) collapsedGroups - key else collapsedGroups + key
-                                    }, onResetFilters = ::resetPatientFilters,
-                                    onPreset = ::applyDashboardFilter, onOptions = { showFilters = true },
-                                    onQueryChange = { searchQuery = it }, onFocusRequested = { requestSearchFocus = false },
-                                    patientCard = patientCardContent)
-                                if (showBackToTop) Box(
-                                    Modifier.align(Alignment.BottomStart)
-                                        .padding(start = UiSpacing.largeSection, bottom = navigationClearance + UiSpacing.largeSection)
-                                ) {
-                                    com.hos.rushdpatients.ui.components.AppFloatingAction(
-                                        icon = AppIcons.ArrowUpward, label = uiText(R.string.ui_back_to_top),
-                                        onClick = { scope.launch { patientGridState.scrollToItem(0) } },
-                                        colors = floatingActionColors, modifier = backToTopActionSpace.measure)
+                        },
+                        primary = { dualPane ->
+                            WardContentHost(state, onReload = viewModel::reloadWard, shortWindow = shortWindow,
+                                leadingContent = { if (shortWindow) wardStatus() },
+                                modifier = Modifier.fillMaxSize().appContentEntrance(viewMode)) {
+                                if (viewMode == WardViewMode.DASHBOARD) {
+                                    HandoverDashboard(
+                                        isAdmin = isAdmin,
+                                        onReportStatus = { state.shift?.id?.let(onOpenReport) },
+                                        reportStatus = if (!viewModel.synchronizationAvailable) null else when {
+                                            state.deliveryLogUnavailable -> uiText(R.string.dashboard_report_unknown)
+                                            state.unresolvedDeliveries > 0 -> uiText(R.string.dashboard_report_uncertain)
+                                            state.synchronization.lastReportAt != null -> uiText(R.string.dashboard_report_sent,
+                                                com.hos.rushdpatients.ui.components.uiDateTime(java.time.Instant.ofEpochMilli(
+                                                    requireNotNull(state.synchronization.lastReportAt))))
+                                            else -> uiText(R.string.dashboard_report_not_sent)
+                                        },
+                                        patients = state.patients,
+                                        currentDoctorId = currentDoctorId,
+                                        syncStatus = state.syncStatus,
+                                        pendingCount = state.synchronization.pendingCount,
+                                        online = online, freshnessLabel = freshnessLabel,
+                                        dayLabel = dayLabel,
+                                        bottomClearance = scrollBottomClearance,
+                                        topContent = { if (shortWindow) wardStatus() },
+                                        onFilter = ::applyDashboardFilter,
+                                        onSync = onOpenDataManagement,
+                                        onActivity = {
+                                            viewMode = WardViewMode.ACTIVITY
+                                        },
+                                        modifier = Modifier.padding(UiPadding.screen), showSynchronization = viewModel.synchronizationAvailable
+                                    )
+                                } else if (state.patients.isEmpty()) {
+                                    EmptyWardPatients(isReadOnly = state.isReadOnly,
+                                        busy = state.syncing || state.saving,
+                                        bottomClearance = scrollBottomClearance,
+                                        onAdd = { editor.openAdd(state.patients) },
+                                        topContent = { if (shortWindow) wardStatus() })
+                                } else {
+                                    WardPatientListSection(state, visiblePatients, dualPane, patientGridState,
+                                        scrollBottomClearance, collapsedGroups, filtersState, presetCounts,
+                                        showSearch = showSearch, requestSearchFocus = requestSearchFocus,
+                                        shortWindow = shortWindow, topContent = { if (shortWindow) wardStatus() },
+                                        onToggleGroup = { key ->
+                                            collapsedGroups = if (key in collapsedGroups) collapsedGroups - key else collapsedGroups + key
+                                        }, onResetFilters = ::resetPatientFilters,
+                                        onPreset = ::applyDashboardFilter, onOptions = { showFilters = true },
+                                        onQueryChange = { searchQuery = it }, onFocusRequested = { requestSearchFocus = false },
+                                        patientCard = patientCardContent)
+                                    if (showBackToTop) Box(
+                                        Modifier.align(Alignment.BottomStart)
+                                            .padding(start = UiSpacing.largeSection, bottom = navigationClearance + UiSpacing.largeSection)
+                                    ) {
+                                        com.hos.rushdpatients.ui.components.AppFloatingAction(
+                                            icon = AppIcons.ArrowUpward, label = uiText(R.string.ui_back_to_top),
+                                            onClick = { scope.launch { patientGridState.scrollToItem(0) } },
+                                            colors = floatingActionColors, modifier = backToTopActionSpace.measure)
+                                    }
                                 }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
-    }
 
     }
 

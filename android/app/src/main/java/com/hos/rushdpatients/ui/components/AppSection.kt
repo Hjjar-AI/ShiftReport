@@ -51,7 +51,7 @@ fun AppSectionHeader(
 
             },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)
+        horizontalArrangement = Arrangement.spacedBy(UiSpacing.rowGap)
     ) {
         icon?.let { Icon(it, contentDescription = null,
             modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium), tint = titleColor) }
@@ -60,7 +60,7 @@ fun AppSectionHeader(
         } else {
             FlowRow(modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.rowGap)) {
                 AppText(title, role = AppTextRole.HEADING, color = titleColor)
                 AppText(summary, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)

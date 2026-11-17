@@ -43,7 +43,7 @@ fun AppButton(
     content: @Composable RowScope.() -> Unit
 ) {
     val active = enabled && LocalFieldEnabled.current
-    val shape = com.hos.rushdpatients.ui.theme.UiShape.field
+    val shape = com.hos.rushdpatients.ui.theme.UiShape.button
     val target = modifier.minimumInteractiveComponentSize().heightIn(min = size.visualHeight(UiSpacing.touchTarget))
     val centeredContent: @Composable RowScope.() -> Unit = {
         ProvideTextStyle(LocalTextStyle.current.copy(textAlign = TextAlign.Center)) { content() }

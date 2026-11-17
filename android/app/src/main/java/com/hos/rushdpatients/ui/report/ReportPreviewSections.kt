@@ -1,77 +1,31 @@
 package com.hos.rushdpatients.ui.report
 
-import com.hos.rushdpatients.ui.components.readingPaneWidth
+import com.hos.rushdpatients.ui.components.AppCollapsibleSection
 import com.hos.rushdpatients.ui.components.AppText
-
-import com.hos.rushdpatients.ui.components.AppSnackbarHost
-import com.hos.rushdpatients.ui.components.appContentEntrance
-import com.hos.rushdpatients.ui.components.ContentEntrance
-import com.hos.rushdpatients.ui.components.AppAlertDialog
-import com.hos.rushdpatients.ui.components.AppFilterChip
-import com.hos.rushdpatients.ui.components.uiLabel
 
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import com.hos.rushdpatients.ui.components.UiAction
-import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.components.noticeColors
 import com.hos.rushdpatients.ui.components.AppCheckRow
-import com.hos.rushdpatients.ui.components.AppButton
-import com.hos.rushdpatients.ui.components.ReportSendConfirmation
-import com.hos.rushdpatients.ui.components.AppLoadingState
-import com.hos.rushdpatients.ui.components.EmptyState
 import com.hos.rushdpatients.ui.components.uiNumber
-import com.hos.rushdpatients.ui.components.AppTopBar
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import com.hos.rushdpatients.ui.theme.uiListGap
 import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppSection
 import com.hos.rushdpatients.ui.components.AppCard
 import com.hos.rushdpatients.ui.components.AppSectionHeader
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.saveable.rememberSaveable
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.hos.rushdpatients.pdf.*
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Surface
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hos.rushdpatients.ui.ward.ShiftDoctorPicker
-import com.hos.rushdpatients.ui.components.LoadingButton
-import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
-import com.hos.rushdpatients.domain.report.DeliveryResolution
 
 /** Summary and review presentation; artifact selection and final confirmation remain screen-owned. */
 @Composable
@@ -110,9 +64,9 @@ internal fun ReportSendingReview(state: ReportUiState, generalSelected: Boolean,
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_062),
-                expanded = showSendingReview, onToggle = { onToggleReview() })
-            if (showSendingReview) {
+            AppCollapsibleSection(expanded = showSendingReview,
+                header = { AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_062),
+                    expanded = showSendingReview, onToggle = onToggleReview) }) {
                 if (generalSelected) AppText(generalDestinationLabel + " • " +
                     (if (state.reportAsPdf) "PDF" else uiText(R.string.ui_report_preview_screen_015)))
                 selectedTargets.forEach { target ->

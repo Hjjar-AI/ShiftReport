@@ -16,13 +16,13 @@ fun AppMetricGrid(metrics: List<AppMetric>) {
         maxColumns = 2, matchHeights = true, rowGap = UiSpacing.controlGap,
         columnGap = UiSpacing.controlGap) { index, cellModifier ->
         val metric = metrics[index]
-                        val colors = toneColors(metric.tone)
-                        Surface(onClick = metric.onClick, modifier = cellModifier.heightIn(min = UiSpacing.touchTarget),
-                            color = colors.container, contentColor = colors.content, shape = MaterialTheme.shapes.medium) {
-                            Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                AppText(uiNumber(metric.count), style = MaterialTheme.typography.headlineSmall)
-                                AppText(metric.label, style = MaterialTheme.typography.labelLarge)
-                            }
-                        }
+        val colors = toneColors(metric.tone)
+        Surface(onClick = metric.onClick, modifier = cellModifier.heightIn(min = UiSpacing.touchTarget),
+            color = colors.container, contentColor = colors.content, shape = MaterialTheme.shapes.medium) {
+            Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                AppText(uiNumber(metric.count), style = MaterialTheme.typography.headlineSmall)
+                AppText(metric.label, style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
 }

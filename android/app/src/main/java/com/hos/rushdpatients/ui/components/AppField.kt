@@ -137,7 +137,7 @@ internal fun AppFieldDecoration(
     val surface = MaterialTheme.colorScheme.surface
     val variant = MaterialTheme.colorScheme.surfaceVariant
     val fill = remember(surface, variant) { lerp(surface, variant, .85f) }
-    val shape = MaterialTheme.shapes.small
+    val shape = com.hos.rushdpatients.ui.theme.UiShape.field
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val colors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.Transparent,

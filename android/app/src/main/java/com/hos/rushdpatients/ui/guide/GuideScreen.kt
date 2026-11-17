@@ -84,18 +84,18 @@ fun GuideScreen(onBack: () -> Unit) {
                                     Icon(AppIcons.HelpOutline, contentDescription = null,
                                         modifier = Modifier.size(UiSize.icon))
                                     AppText(text(R.string.guide_intro), modifier = Modifier.weight(1f),
-                                        color = colors.onPrimaryContainer)
+                                        color = colors.onPrimaryContainer, role = AppTextRole.BODY)
                                 }
                             }
                             AppSection(text(R.string.guide_card_stripe_title)) {
-                                AppText(text(R.string.guide_card_stripe_intro))
+                                AppText(text(R.string.guide_card_stripe_intro), role = AppTextRole.BODY)
                                 CardColorMeaning(text(R.string.guide_card_red),
                                     text(R.string.guide_card_red_meaning), clinical.urgent)
                                 CardColorMeaning(text(R.string.guide_card_amber),
                                     text(R.string.guide_card_amber_meaning), clinical.warning)
                                 CardColorMeaning(text(R.string.guide_card_purple),
                                     text(R.string.guide_card_purple_meaning), clinical.pending)
-                                AppText(text(R.string.guide_card_no_stripe))
+                                AppText(text(R.string.guide_card_no_stripe), role = AppTextRole.BODY)
                                 AppText(text(R.string.guide_card_stripe_precedence), role = AppTextRole.BODY_STRONG)
                                 AppText(text(R.string.guide_card_theme_shades), role = AppTextRole.SUPPORTING)
                             }
@@ -107,11 +107,11 @@ fun GuideScreen(onBack: () -> Unit) {
                                 ) {
                                     Icon(AppIcons.Star, contentDescription = null,
                                         tint = clinical.warning, modifier = Modifier.size(UiSize.icon))
-                                    AppText(text(R.string.guide_card_star_meaning), modifier = Modifier.weight(1f))
+                                    AppText(text(R.string.guide_card_star_meaning), modifier = Modifier.weight(1f), role = AppTextRole.BODY)
                                 }
                             }
                             AppSection(text(R.string.guide_card_outline_title)) {
-                                AppText(text(R.string.guide_card_outline_normal))
+                                AppText(text(R.string.guide_card_outline_normal), role = AppTextRole.BODY)
                                 AppCard(
                                     modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
                                     border = UiBorder.stroke(selected = true),
@@ -125,7 +125,7 @@ fun GuideScreen(onBack: () -> Unit) {
                                         AppText(text(R.string.guide_card_outline_highlight),
                                             role = AppTextRole.BODY_STRONG, color = colors.onPrimaryContainer)
                                         AppText(text(R.string.guide_card_outline_highlight_meaning),
-                                            color = colors.onPrimaryContainer)
+                                            color = colors.onPrimaryContainer, role = AppTextRole.BODY)
                                     }
                                 }
                             }
@@ -149,7 +149,7 @@ private fun CardColorMeaning(label: String, description: String, color: Color) {
             Column(Modifier.weight(1f).padding(UiSpacing.screen),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 AppText(label, role = AppTextRole.BODY_STRONG)
-                AppText(description)
+                AppText(description, role = AppTextRole.BODY)
             }
         }
     }

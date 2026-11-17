@@ -32,6 +32,39 @@ BINARY_SUFFIXES = frozenset((
     '.jar', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.ico', '.ttf', '.otf',
     '.woff', '.woff2', '.zip', '.pdf',
 ))
+UI_SOURCE = 'android/app/src/main/java/com/hos/rushdpatients/ui/'
+UI_TOKEN_RULES = {
+    'dp': re.compile(r'\b[0-9]+(?:\.[0-9]+)?\.dp\b'),
+    'color': re.compile(r'\bColor\s*\(\s*0x[0-9a-fA-F]+'),
+    'opacity': re.compile(r'\balpha\s*=\s*(?:if\s*\([^)]*\)\s*)?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)f?\b'),
+    'delay': re.compile(r'\bdelay\(\s*[0-9][0-9_]*L?\s*\)'),
+}
+# Exact existing transport pacing, not a presentation delay. A second occurrence
+# or a different value still fails; do not exempt entire files or directories.
+UI_TOKEN_EXCEPTIONS = {
+    ('login/LoginViewModel.kt', 'delay', 'delay(1000)'): 1,
+}
+
+
+def ui_token_problems(name, text):
+    if not name.startswith(UI_SOURCE) or not name.endswith('.kt'):
+        return []
+    relative = name[len(UI_SOURCE):]
+    if relative.startswith('theme/'):
+        return []
+    problems = []
+    seen = {}
+    for rule, pattern in UI_TOKEN_RULES.items():
+        for match in pattern.finditer(text):
+            key = (relative, rule, match.group())
+            seen[key] = seen.get(key, 0) + 1
+            if seen[key] <= UI_TOKEN_EXCEPTIONS.get(key, 0):
+                continue
+            line = text.count('\n', 0, match.start()) + 1
+            problems.append(f'{name}:{line}: hardcoded UI {rule}; use its theme owner')
+    return problems
+
+
 SECRET_PATTERNS = {
     'private-key': re.compile(r'-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----'),
     'github-token': re.compile(r'\b(?:gh[pousr]_[A-Za-z0-9]{36,255}|github_pat_[A-Za-z0-9_]{50,255})\b'),
@@ -110,6 +143,7 @@ def main():
             continue
         files += 1
         texts[path] = text
+        problems.extend(ui_token_problems(name, text))
         for rule, pattern in SECRET_PATTERNS.items():
             for match in pattern.finditer(text):
                 line = text.count('\n', 0, match.start()) + 1

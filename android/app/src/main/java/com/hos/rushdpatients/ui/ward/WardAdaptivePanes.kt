@@ -99,6 +99,7 @@ internal fun WardAdaptivePanes(
     compactOverlay: @Composable () -> Unit = {}
 ) {
     val scale = com.hos.rushdpatients.ui.theme.uiLayoutScale()
+    val dividerLabel = androidx.compose.ui.res.stringResource(R.string.ui_ward_adaptive_panes_003)
     val density = LocalDensity.current.density
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     var origin by remember { mutableStateOf<Offset?>(null) }
@@ -161,6 +162,7 @@ internal fun WardAdaptivePanes(
                                 Offset(size.width / 2, size.height), UiBorder.hairline.toPx())
                         }
                         .then(if (dividerFocused) Modifier.border(UiBorder.stroke(focused = true)) else Modifier)
+                        .semantics { contentDescription = dividerLabel }
                         .onKeyEvent { event ->
                             if (event.type != KeyEventType.KeyDown) false else when (event.key) {
                                 Key.DirectionRight -> { adjust(fraction + direction * UiLayout.paneAdjustmentFraction); true }

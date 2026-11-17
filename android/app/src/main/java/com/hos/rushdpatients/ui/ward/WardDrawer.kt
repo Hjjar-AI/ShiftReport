@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.AppCollapsibleSection
 import com.hos.rushdpatients.ui.components.AppText
 
 import com.hos.rushdpatients.ui.components.AppIcons
@@ -184,12 +185,15 @@ private fun DrawerToolGroup(label: String, icon: ImageVector, expanded: Boolean,
     com.hos.rushdpatients.ui.components.AppInsetSurface(com.hos.rushdpatients.ui.components.InsetLevel.SOFT,
         shape = MaterialTheme.shapes.large) {
         Column(Modifier.animateContentSize(tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis))) {
-            com.hos.rushdpatients.ui.components.AppSectionHeader(label, icon = icon,
-                expanded = expanded, onToggle = onToggle,
-                titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = UiSpacing.screen))
-            if (expanded) Column(Modifier.padding(start = UiSpacing.section, end = UiSpacing.small,
-                bottom = UiSpacing.small)) { content() }
+            AppCollapsibleSection(expanded = expanded, header = {
+                com.hos.rushdpatients.ui.components.AppSectionHeader(label, icon = icon,
+                    expanded = expanded, onToggle = onToggle,
+                    titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = UiSpacing.screen))
+            }) {
+                Column(Modifier.padding(start = UiSpacing.section, end = UiSpacing.small,
+                    bottom = UiSpacing.small)) { content() }
+            }
         }
     }
 }
@@ -206,7 +210,7 @@ private fun WardDrawerRow(label: String, icon: ImageVector,
             verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium),
                 tint = if (selected) LocalContentColor.current
-                    else colors.onSurfaceVariant.copy(alpha = if (enabled) 1f else UiOpacity.disabledContent))
+                    else colors.onSurfaceVariant.copy(alpha = if (enabled) UiOpacity.enabled else UiOpacity.disabledContent))
             AppText(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (selected) UiTypography.emphasizedWeight else FontWeight.Normal)
         }

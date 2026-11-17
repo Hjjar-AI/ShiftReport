@@ -1,6 +1,18 @@
 # Current implementation
 
-Updated 16 November 2026. [Architecture](../reference/architecture.md) · [Protocol](../reference/telegram-protocol.md) · [Remaining checks](testing-handoff.md) · [Roadmap](roadmap.md).
+Updated 17 November 2026. [Architecture](../reference/architecture.md) · [Protocol](../reference/telegram-protocol.md) · [Remaining checks](testing-handoff.md) · [Roadmap](roadmap.md).
+
+## Android UI cleanup and adaptive layouts
+
+17 November source implementation: patient-column and pane minimums scale with effective text size, with both pane minimums plus the existing divider gutter required for a regular split. Navigation, panes and grids retain independent local layout decisions. Shared hinge calculations use window pixels, independently of font scale. Text-heavy Doctors, Administration, report controls, Assignments Export and Delivery History content uses the existing720dp reading limit; document viewers and ward grids retain their own space.
+
+Below480dp multiplied by the effective layout scale, ward notices, transfer actions and filter chips scroll above patients; the compact top bar, navigation and open search remain fixed. Search uses movable content across arrangement changes; existing lazy-item keys and patient-return indices remain. Empty/dashboard/loading/error views also retain the secondary status content. Ordinary patient-card borders blend10% toward the stronger outline, retaining widths and selected/focused emphasis.
+
+Normal is the sole active spacing style, retaining the shipped compact patient-card geometry. Existing serialized density values remain readable and become inert without resetting reduced motion/control-size preferences; no database migration. Theme, splash and clinical palette values remain; tokens are grouped by purpose with small spare roles. Ordinary UI text uses `AppText`, preserving inherited/explicit styles and specialized clinical/numeric/lab roles. Custom TalkBack actions, composed narration and live announcements are removed; standard text/control labels, roles, selection/check states and heading/traversal semantics remain.
+
+Ward state/cards/editor orchestration, named in-memory form snapshots, Settings-owned file pickers/dialogs and Reports/Doctors sections retain their state and security owners. Common presentation helpers cover adaptive cells, snackbars, floating actions, sections, tinted surfaces, RTL dialogs and status edges. Functional delays remain independent of reduced motion. Clinical storage, encrypted drafts/backups/keys, wire formats, PDF rendering, versions, splash timing and reviewed publication/UNKNOWN guards are unchanged by this work.
+
+Production-source/resource, exact palette-value, lexical delimiter and whitespace checks only; no test inspection/change/execution, compile/build/install, runtime/device or live transport. The production integrity checker now flags hardcoded UI sizes/colors/opacities/delays outside theme owners, with one exact bounded exception for existing login transport polling. Earlier compiled/runtime results below predate this refactor; the [handoff](testing-handoff.md) owns remaining acceptance.
 
 ## Repository layout
 

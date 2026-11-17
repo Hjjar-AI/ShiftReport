@@ -74,8 +74,9 @@ private fun SelectedWardPreview(preferences: UiPreferences, appearance: AppAppea
                                         activeFilters = if (search) listOf("بحث: شاي") else emptyList(),
                                         selectedPreset = if (search) null else DashboardFilter.ALL,
                                         onPreset = {}, onOptions = {}, onReset = {},
-                                        showSearch = search, query = if (search) "شاي" else "", onQueryChange = {},
-                                        requestFocus = false, onFocusRequested = {})
+                                        searchContent = {
+                                            if (search) WardPatientSearchField("شاي", {}, false, {})
+                                        })
                                 }
                             }, headerContent = {}, patientCard = { patient, modifier ->
                                 PatientCard(PatientCardState(patient = patient, doctorNames = names),

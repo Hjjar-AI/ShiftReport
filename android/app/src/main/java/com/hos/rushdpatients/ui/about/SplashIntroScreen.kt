@@ -126,7 +126,7 @@ private fun splashEntrance(entered: Boolean, order: Int, horizontal: Boolean = f
 
     return Modifier.graphicsLayer {
         val fraction = if (reducedMotion) 1f else progress
-        alpha = if (reducedMotion) 1f else opacity
+        alpha = if (reducedMotion) UiOpacity.enabled else opacity
         translationX = if (horizontal) direction * travel * (1f - fraction) else 0f
         translationY = if (horizontal) 0f else travel * (1f - fraction)
     }
@@ -136,7 +136,7 @@ private fun splashEntrance(entered: Boolean, order: Int, horizontal: Boolean = f
 private fun SplashCreditSection(role: String, names: List<String>, order: Int, entered: Boolean) {
     val colors = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth().then(splashEntrance(entered, order = order + 3)).semantics(mergeDescendants = true) {}
-        .background(if (order == 0) colors.primary.copy(alpha = UiOpacity.amoledLift) else Color.Transparent)
+        .background(if (order == 0) colors.primary.copy(alpha = UiOpacity.splashCreditTint) else Color.Transparent)
         .padding(uiContentPadding(PaddingValues(horizontal = UiSpacing.largeSection, vertical = UiSpacing.section))),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(uiContentGap())) {
         AppText(role, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)

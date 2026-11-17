@@ -103,7 +103,6 @@ fun SettingsScreen(
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val canManageProject = isAdmin && state.isAdmin
-    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val settingsScroll = rememberSaveable(workspace.canonical(), saver = androidx.compose.foundation.ScrollState.Saver) {
         androidx.compose.foundation.ScrollState(0)
@@ -167,9 +166,6 @@ fun SettingsScreen(
     val provisioningState = remember(canManageProject) { SettingsProvisioningState() }
     var backupDialogMode by fileState::backupDialogMode
     var backupPassword by fileState::backupPassword
-    var pendingImportUri by fileState::pendingImportUri
-    var pendingRestorePassword by fileState::pendingRestorePassword
-    var confirmBackupRestore by fileState::confirmBackupRestore
     var advancedAdministration by rememberSaveable(workspace.canonical()) { mutableStateOf(false) }
     var provisioningDialog by provisioningState::visible
     var provisioningPassphrase by provisioningState::passphrase

@@ -6,6 +6,7 @@ object UiOpacity {
     const val emblem = .10f
     const val emblemFaint = .06f
     const val emblemIdle = .07f
+    const val splashCreditTint = .06f
     const val amoledLift = .06f
     const val containerSubtle = .35f
     const val containerStrong = .45f

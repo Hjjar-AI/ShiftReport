@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.ui.components
 
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,11 +37,11 @@ fun AppText(
     textAlign: TextAlign? = null, lineHeight: TextUnit = TextUnit.Unspecified,
     overflow: TextOverflow = TextOverflow.Clip, softWrap: Boolean = true,
     maxLines: Int = Int.MAX_VALUE, minLines: Int = 1,
-    onTextLayout: (TextLayoutResult) -> Unit = {}, style: TextStyle = TextStyle.Default
+    onTextLayout: (TextLayoutResult) -> Unit = {}, style: TextStyle? = null
 ) {
     val typography = MaterialTheme.typography
     val base = when (role) {
-        AppTextRole.DEFAULT -> LocalTextStyle.current
+        AppTextRole.DEFAULT -> style ?: LocalTextStyle.current
         AppTextRole.CAPTION -> typography.labelSmall
         AppTextRole.SUPPORTING -> typography.bodySmall
         AppTextRole.HEADING -> typography.titleSmall
@@ -73,7 +72,7 @@ fun AppText(
         color = foreground, fontSize = fontSize, fontStyle = fontStyle, fontWeight = fontWeight,
         fontFamily = fontFamily, letterSpacing = letterSpacing, textDecoration = textDecoration,
         textAlign = textAlign, lineHeight = lineHeight, overflow = overflow, softWrap = softWrap,
-        maxLines = maxLines, minLines = minLines, onTextLayout = onTextLayout, style = directed.merge(style))
+        maxLines = maxLines, minLines = minLines, onTextLayout = onTextLayout, style = if (role == AppTextRole.DEFAULT || style == null) directed else directed.merge(style))
 }
 
 /** Styled spans and inline content retain their exact caller-provided presentation. */
@@ -89,7 +88,9 @@ fun AppText(
     inlineContent: Map<String, androidx.compose.foundation.text.InlineTextContent> = mapOf(),
     onTextLayout: (TextLayoutResult) -> Unit = {}, style: TextStyle = LocalTextStyle.current
 ) {
-    Text(text, modifier, color, fontSize, fontStyle, fontWeight, fontFamily, letterSpacing,
-        textDecoration, textAlign, lineHeight, overflow, softWrap, maxLines, minLines,
-        inlineContent, onTextLayout, style)
+    Text(text = text, modifier = modifier, color = color, fontSize = fontSize,
+        fontStyle = fontStyle, fontWeight = fontWeight, fontFamily = fontFamily,
+        letterSpacing = letterSpacing, textDecoration = textDecoration, textAlign = textAlign,
+        lineHeight = lineHeight, overflow = overflow, softWrap = softWrap, maxLines = maxLines,
+        minLines = minLines, inlineContent = inlineContent, onTextLayout = onTextLayout, style = style)
 }
