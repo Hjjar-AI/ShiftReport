@@ -3,11 +3,11 @@ package com.hos.rushdpatients.ui
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.R
+import com.hos.rushdpatients.testutil.openPatientEditor
 import com.hos.rushdpatients.testutil.ensureLabGroup
 import com.hos.rushdpatients.testutil.ProductionUiFixture
 import com.hos.rushdpatients.ui.navigation.Routes
@@ -63,10 +63,7 @@ class NativeDeviceLayoutTest : ProductionUiFixture() {
     @Test fun nativeWindowEditorKeepsFocusedDraftAndFooterAfterRecreation() = runBlocking<Unit> {
         start()
         val before = client.patients.getById("tea")
-        val card = SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions) and
-            hasAnyDescendant(hasText("شاي", substring = true))
-        val actions = compose.onNode(card, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.CustomActions]
-        compose.runOnIdle { assertTrue(actions.first { it.label == label(R.string.ui_edit_patient_dialog_001) }.action()) }
+        compose.openPatientEditor("شاي")
         compose.ensureLabGroup()
         val labs = hasSetTextAction() and hasText(label(R.string.lab_group_results), substring = true)
         compose.onNode(labs).performScrollTo().performClick().performTextInput("مسودة إعدادات الجهاز")
@@ -83,9 +80,7 @@ class NativeDeviceLayoutTest : ProductionUiFixture() {
     @Test fun unfinishedInlineTaskAndMultilineDraftSurviveBackgroundAndRecreationThenSaveOnce() = runBlocking<Unit> {
         start()
         val before = requireNotNull(client.patients.getById("tea"))
-        val card = SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions) and hasAnyDescendant(hasText("شاي", substring = true))
-        val actions = compose.onNode(card, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.CustomActions]
-        compose.runOnIdle { assertTrue(actions.first { it.label == label(R.string.ui_edit_patient_dialog_001) }.action()) }
+        compose.openPatientEditor("شاي")
         compose.ensureLabGroup()
         val labs = hasSetTextAction() and hasText(label(R.string.lab_group_results), substring = true)
         compose.onNode(labs).performScrollTo().performClick().performTextInput("Na=140\nK=4")

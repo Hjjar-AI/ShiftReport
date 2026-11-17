@@ -21,6 +21,8 @@ class DisplayPreferencesStoreTest {
     private val commits = AtomicInteger()
     private val selected = ThemePreferences(AppThemePreset.COASTAL, AppAppearance.AMOLED,
         AppFontScale.EXTRA_LARGE, UiPreferences(UiDensity.RELAXED, UiControlSize.STANDARD, true))
+    // Retired density remains readable; all other cosmetic choices survive a cold read.
+    private val restored = selected.copy(uiPreferences = selected.uiPreferences.copy(density = UiDensity.NORMAL))
     private lateinit var store: DisplayPreferencesStore
 
     @Before fun setup() {
@@ -71,10 +73,10 @@ class DisplayPreferencesStoreTest {
         assertEquals(true, disk["initialized"])
         val nextLaunch = DisplayPreferencesStore(context)
         nextLaunch.load()
-        assertEquals(selected, nextLaunch.get())
+        assertEquals(restored, nextLaunch.get())
         assertFalse(nextLaunch.state.value.needsInitialization)
         nextLaunch.initialize { error("Initialized choices must not read protected settings again") }
-        assertEquals(selected, nextLaunch.state.value.preferences)
+        assertEquals(restored, nextLaunch.state.value.preferences)
         assertEquals(1, commits.get())
     }
 
@@ -128,7 +130,7 @@ class DisplayPreferencesStoreTest {
         store.update { it.copy(appearance = AppAppearance.LIGHT) }
         val expected = selected.copy(appearance = AppAppearance.LIGHT)
         assertEquals(expected, store.get())
-        assertEquals(expected, DisplayPreferencesStore(context).get())
+        assertEquals(expected.copy(uiPreferences = restored.uiPreferences), DisplayPreferencesStore(context).get())
     }
 
     @Test fun simultaneousInitializersCopyProtectedChoicesOnlyOnce() = runBlocking {
@@ -152,7 +154,7 @@ class DisplayPreferencesStoreTest {
                 awaitAll(first, second)
                 assertEquals(1, reads.get())
                 assertEquals(1, commits.get())
-                assertEquals(selected, store.get())
+                assertEquals(restored, store.get())
             } finally { release.complete(Unit) }
         }
     }
@@ -171,7 +173,7 @@ class DisplayPreferencesStoreTest {
             changes.awaitAll()
         }
         assertEquals(selected, store.get())
-        assertEquals(selected, DisplayPreferencesStore(context).get())
+        assertEquals(restored, DisplayPreferencesStore(context).get())
         assertEquals(5, commits.get())
     }
 

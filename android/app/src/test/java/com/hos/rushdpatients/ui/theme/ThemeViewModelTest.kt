@@ -47,7 +47,8 @@ class ThemeViewModelTest : ViewModelFixture() {
         val model = keep(ThemeViewModel(display))
         model.initializeFrom(protectedSettings); runCurrent()
         assertEquals(ThemeUiState(preferences = ThemePreferences(
-            AppThemePreset.COASTAL, AppAppearance.AMOLED, AppFontScale.EXTRA_LARGE, ui)), model.state.value)
+            AppThemePreset.COASTAL, AppAppearance.AMOLED, AppFontScale.EXTRA_LARGE,
+            ui.copy(density = UiDensity.NORMAL))), model.state.value)
         coVerifySequence {
             protectedSettings.get(AppConstants.SETTING_APP_THEME)
             protectedSettings.get(AppConstants.SETTING_APP_APPEARANCE)

@@ -1,7 +1,6 @@
 package com.hos.rushdpatients.ui
 
 import android.net.Uri
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -10,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.config.ProjectProvisioningManager
 import com.hos.rushdpatients.sync.CsvBundleCodec
+import com.hos.rushdpatients.testutil.openPatientEditor
 import com.hos.rushdpatients.testutil.ensureLabGroup
 import com.hos.rushdpatients.testutil.ProductionUiFixture
 import com.hos.rushdpatients.ui.navigation.Routes
@@ -39,12 +39,7 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         awaitWard()
     }
     private fun openPatientEditor() {
-        val card = SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions) and
-            hasAnyDescendant(hasText("شاي", substring = true))
-        val actions = compose.onNode(card, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.CustomActions]
-        compose.runOnIdle {
-            assertTrue(actions.first { it.label == label(R.string.ui_edit_patient_dialog_001) }.action())
-        }
+        compose.openPatientEditor("شاي")
     }
     private fun editLabs(value: String, recreate: Boolean = false) {
         openPatientEditor()
@@ -67,11 +62,12 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
     private fun next(stepLabel: Int) = compose.onNodeWithText(label(R.string.ui_report_preview_screen_017, label(stepLabel)))
         .assertIsEnabled().performClick()
     private fun reviewAndOpenConfirmation() {
+        compose.onNodeWithText(label(R.string.ui_report_preview_screen_024)).performScrollTo().performClick()
         compose.onNode(hasText(label(R.string.ui_report_preview_screen_031)) and isToggleable())
             .performScrollTo().performClick()
         compose.waitUntil(10000) { !report.state.value.reportAsPdf && !report.state.value.isBusy }
         next(R.string.ui_report_review_send_step)
-        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.project_report_label))) and
+        compose.onAllNodes(hasText(label(R.string.report_full_preview_action)) and
             hasClickAction()).onFirst().performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText(label(R.string.ui_close)).performClick()
         compose.onNodeWithText(label(R.string.ui_send_report)).assertIsEnabled().performClick()
@@ -107,8 +103,8 @@ class ProductionNavigationJourneyTest : ProductionUiFixture() {
         compose.onNode(hasText(label(R.string.ui_report_send_confirmation_001)) and
             hasAnyAncestor(isDialog()) and hasClickAction().not()).assertDoesNotExist()
         compose.onNode(hasText(label(R.string.ui_send_report)) and hasClickAction()).assertDoesNotExist()
-        compose.onAllNodes(hasText(label(R.string.report_preview_destination, label(R.string.project_report_label))) and
-            hasClickAction()).onFirst().assertIsEnabled()
+        compose.onAllNodes(hasText(label(R.string.report_full_preview_action)) and
+            hasClickAction()).onFirst().performScrollTo().assertIsEnabled()
         assertTrue(server.deliveredTexts.isEmpty())
     }
     @Test fun backgroundAndResumeWhileEditingRetainsDraftWithoutSavingOrSending() = runBlocking<Unit> {

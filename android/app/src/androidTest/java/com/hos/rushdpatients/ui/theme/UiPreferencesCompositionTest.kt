@@ -15,17 +15,19 @@ class UiPreferencesCompositionTest {
     @get:Rule val compose = createComposeRule()
     @Test fun reducedMotionDisablesAllProfileAnimationsWithoutChangingSpacing() {
         var observed: UiStyleProfile? = null
+        var observedCard: PatientCardDensity? = null
         compose.setContent {
             ProvideUiPreferences(UiPreferences(reducedMotion = true)) {
                 val current = LocalUiStyle.current
-                SideEffect { observed = current }
+                val card = UiPatientCard.density()
+                SideEffect { observed = current; observedCard = card }
             }
         }
         compose.runOnIdle {
             val actual = requireNotNull(observed)
             assertEquals(listOf(0, 0, 0, 0, 0), listOf(actual.expandMillis, actual.collapseMillis,
                 actual.highlightMillis, actual.indicatorMillis, actual.placementMillis))
-            assertEquals(UiStyleCatalog.current.normalDensity, actual.normalDensity)
+            assertEquals(UiPatientCard.compact, observedCard)
             assertEquals(UiStyleCatalog.current.listGap, actual.listGap)
         }
     }
@@ -39,24 +41,24 @@ class UiPreferencesCompositionTest {
         compose.runOnIdle { preferences = preferences.copy(reducedMotion = false) }
         compose.runOnIdle { assertEquals(UiStyleCatalog.current, observed) }
     }
-    @Test fun currentStyleKeepsSuppliedPreferences() {
+    @Test fun currentStyleNormalizesRetiredDensityAndKeepsControlSize() {
         var observedStyle: UiStyleProfile? = null
         var observedPreferences: UiPreferences? = null
-        val selected = UiPreferences()
+        val selected = UiPreferences(density = UiDensity.RELAXED, controlSize = UiControlSize.STANDARD)
         compose.setContent { ProvideUiPreferences(selected) {
             val style = LocalUiStyle.current; val preferences = LocalUiPreferences.current
             SideEffect { observedStyle = style; observedPreferences = preferences }
         } }
         compose.runOnIdle {
             assertEquals(UiStyleCatalog.current, observedStyle)
-            assertEquals(selected, observedPreferences)
+            assertEquals(selected.copy(density = UiDensity.NORMAL), observedPreferences)
         }
     }
     @Test fun localControlOverridesKeepBehaviorAndDoNotLeakToSibling() {
-        val selected = UiPreferences(reducedMotion = true)
+        val selected = UiPreferences(controlSize = UiControlSize.STANDARD, reducedMotion = true)
         var inside: UiPreferences? = null; var outside: UiPreferences? = null
         compose.setContent { ProvideUiPreferences(selected) {
-            ProvideUiDefaults(density = UiDensity.COMPACT, size = UiControlSize.COMFORTABLE) {
+            ProvideUiPreferences(selected.copy(density = UiDensity.COMPACT, controlSize = UiControlSize.COMFORTABLE)) {
                 val current = LocalUiPreferences.current
                 SideEffect { inside = current }
             }
@@ -64,7 +66,7 @@ class UiPreferencesCompositionTest {
             SideEffect { outside = current }
         } }
         compose.runOnIdle {
-            assertEquals(selected.copy(density = UiDensity.COMPACT, controlSize = UiControlSize.COMFORTABLE), inside)
+            assertEquals(selected.copy(density = UiDensity.NORMAL, controlSize = UiControlSize.COMFORTABLE), inside)
             assertEquals(selected, outside)
         }
     }

@@ -42,7 +42,7 @@ class SettingsPreferencesTest {
     }
     @Test fun uiPreferenceWritesAreSerializedAndKeepLatestChoice() = runTest {
         val first = UiPreferences(reducedMotion = true)
-        val second = UiPreferences(density = UiDensity.RELAXED)
+        val second = UiPreferences(controlSize = UiControlSize.STANDARD)
         val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
         beforeCommit = { if (it.uiPreferences == first) { entered.complete(Unit); release.await() } }
         val preferences = preferences(this)
@@ -58,7 +58,7 @@ class SettingsPreferencesTest {
     }
     @Test fun olderFailedWriteCannotRollBackNewerChoice() = runTest {
         val first = UiPreferences(reducedMotion = true)
-        val second = UiPreferences(density = UiDensity.RELAXED)
+        val second = UiPreferences(controlSize = UiControlSize.STANDARD)
         val release = CompletableDeferred<Unit>()
         beforeCommit = { if (it.uiPreferences == first) {
             release.await(); throw IllegalStateException("synthetic old write failure")
@@ -168,7 +168,7 @@ class SettingsPreferencesTest {
     }
     @Test fun `two failed queued choices preserve the last committed preference`() = runTest {
         val first = UiPreferences(reducedMotion = true)
-        val second = UiPreferences(density = UiDensity.RELAXED)
+        val second = UiPreferences(controlSize = UiControlSize.STANDARD)
         val release = CompletableDeferred<Unit>()
         beforeCommit = { release.await(); throw IllegalStateException("synthetic storage failure") }
         val preferences = preferences(this)

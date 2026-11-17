@@ -21,12 +21,12 @@ class UiPreferencesTest {
         assertEquals(UiPreferences(), UiPreferences.decode("{\"futureOption\":17,\"reducedMotion\":true}"))
     }
     @Test fun partialCurrentPreferenceObjectsKeepDefaultsForMissingFields() {
-        assertEquals(UiPreferences(density = UiDensity.COMPACT), UiPreferences.decode("{\"density\":\"COMPACT\"}"))
+        assertEquals(UiPreferences(), UiPreferences.decode("{\"density\":\"COMPACT\"}"))
     }
-    @Test fun allDensityControlAndBehaviorCombinationsRoundTrip() {
+    @Test fun allRetiredDensitiesNormalizeWithoutLosingControlOrMotionChoices() {
         for (density in UiDensity.entries) for (size in UiControlSize.entries) for (motion in listOf(false, true)) {
             val preferences = UiPreferences(density = density, controlSize = size, reducedMotion = motion)
-            assertEquals(preferences, UiPreferences.decode(preferences.encode()))
+            assertEquals(preferences.copy(density = UiDensity.NORMAL), UiPreferences.decode(preferences.encode()))
         }
     }
     @Test fun knownAppearanceAccentAndFontIdsRestoreIndependently() {
