@@ -14,27 +14,11 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 fun AppFieldPair(modifier: Modifier = Modifier, separator: String? = null, stackWhenNarrow: Boolean = true,
     minimumRowWidth: Dp = UiLayout.fieldPairMinWidth, matchHeights: Boolean = false,
     first: @Composable (Modifier) -> Unit, second: @Composable (Modifier) -> Unit) {
-    val fontScale = com.hos.rushdpatients.ui.theme.uiLayoutScale()
-    BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (stackWhenNarrow && maxWidth < minimumRowWidth * fontScale) {
-            Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                first(Modifier.fillMaxWidth())
-                separator?.let { AppText(it, style = MaterialTheme.typography.labelMedium) }
-                second(Modifier.fillMaxWidth())
-            }
-        } else {
-            val rowHeight = if (matchHeights) Modifier.height(IntrinsicSize.Min) else Modifier
-            Row(Modifier.fillMaxWidth().then(rowHeight), verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                val cellHeight = if (matchHeights) Modifier.fillMaxHeight() else Modifier
-                Box(Modifier.weight(1f).then(cellHeight), propagateMinConstraints = true) {
-                    first(Modifier.fillMaxWidth())
-                }
-                separator?.let { AppText(it, Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium) }
-                Box(Modifier.weight(1f).then(cellHeight), propagateMinConstraints = true) {
-                    second(Modifier.fillMaxWidth())
-                }
-            }
-        }
+    AppAdaptiveRow(itemCount = 2, minimumRowWidth = minimumRowWidth, modifier = modifier,
+        stackWhenNarrow = stackWhenNarrow, matchHeights = matchHeights,
+        separator = separator?.let { label -> { cellModifier ->
+            AppText(label, modifier = cellModifier, style = MaterialTheme.typography.labelMedium)
+        } }) { index, cellModifier ->
+        if (index == 0) first(cellModifier) else second(cellModifier)
     }
 }

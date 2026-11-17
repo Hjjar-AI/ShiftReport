@@ -9,8 +9,8 @@ import androidx.compose.ui.unit.dp
 /** Stacked أ/ي from bundled Tajawal Bold; fixed orientation keeps Arabic glyphs unmirrored. */
 internal val ArabicSortIcon: ImageVector = ImageVector.Builder(
     name = "ArabicSort",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
+    defaultWidth = com.hos.rushdpatients.ui.theme.UiSize.icon,
+    defaultHeight = com.hos.rushdpatients.ui.theme.UiSize.icon,
     viewportWidth = 24f,
     viewportHeight = 24f
 ).apply {

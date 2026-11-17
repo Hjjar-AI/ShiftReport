@@ -5,8 +5,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -20,7 +18,7 @@ fun AppLoadingState(message: String, modifier: Modifier = Modifier, size: AppLoa
         AppLoadingSize.SECTION -> UiSpacing.small
         AppLoadingSize.PAGE -> UiSpacing.screen
     }
-    val container = modifier.fillMaxWidth().padding(padding).semantics { liveRegion = LiveRegionMode.Polite }
+    val container = modifier.fillMaxWidth().padding(padding)
     val indicator: @Composable () -> Unit = {
         AppBusyIndicator(size = when (size) {
             AppLoadingSize.INLINE -> UiSize.iconSmall

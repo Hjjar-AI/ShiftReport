@@ -24,7 +24,7 @@ import androidx.compose.ui.semantics.semantics
 internal fun WardHeader(
     state: WardUiState, viewMode: WardViewMode, patientDestination: Boolean,
     anyCardsExpanded: Boolean, foldingFeature: androidx.window.layout.FoldingFeature?,
-    showAddAction: Boolean,
+    showAddAction: Boolean, showDeliveryNotice: Boolean = true,
     onMenu: () -> Unit, onToggleCards: () -> Unit, onAdd: () -> Unit,
     onSearch: () -> Unit, onWorkflow: () -> Unit
 ) {
@@ -63,7 +63,7 @@ internal fun WardHeader(
             onClick = onSearch)
         })
     }
-    if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) WardDeliveryNotice(state, onNext = onWorkflow)
+    if (showDeliveryNotice && (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0)) WardDeliveryNotice(state, onNext = onWorkflow)
     }
 }
 

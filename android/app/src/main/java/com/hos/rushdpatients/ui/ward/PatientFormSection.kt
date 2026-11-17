@@ -14,11 +14,5 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 /** Match settings section cards while keeping the retained form state in its owner. */
 @Composable
 internal fun PatientFormSection(content: @Composable ColumnScope.() -> Unit) {
-    AppCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(UiPadding.card),
-            verticalArrangement = Arrangement.spacedBy(UiSpacing.small),
-            content = content
-        )
-    }
+    com.hos.rushdpatients.ui.components.AppSectionContainer(content = content)
 }

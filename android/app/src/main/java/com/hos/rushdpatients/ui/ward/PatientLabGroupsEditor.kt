@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.components.AppText
 
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +46,7 @@ internal fun PatientLabGroupsEditor(
     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         AppSectionHeader(uiText(R.string.ui_labs))
         groups.forEachIndexed { index, group -> key(group.id) {
-            Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .35f),
+            com.hos.rushdpatients.ui.components.AppInsetSurface(com.hos.rushdpatients.ui.components.InsetLevel.SUBTLE,
                 shape = MaterialTheme.shapes.medium) {
                 Column(Modifier.fillMaxWidth().padding(UiSpacing.small),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {

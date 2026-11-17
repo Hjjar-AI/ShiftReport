@@ -84,7 +84,7 @@ fun AppTextField(
     val ime = WindowInsets.ime
     LaunchedEffect(focused, density, ime) {
         if (focused) snapshotFlow { ime.getBottom(density) }.collectLatest {
-            delay(100L)
+            delay(com.hos.rushdpatients.ui.theme.UiTiming.focusRequestMillis)
             withFrameNanos { }
             fieldVisibility.bringIntoView()
         }

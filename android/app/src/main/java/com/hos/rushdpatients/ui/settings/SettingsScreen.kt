@@ -163,90 +163,25 @@ fun SettingsScreen(
         onConfirm = { confirmUndoDownload = false; viewModel.undoLastDownload() },
         onDismiss = { confirmUndoDownload = false })
 
-    var backupDialogMode by remember { mutableStateOf<String?>(null) }
-    var backupPassword by remember { mutableStateOf("") }
-    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingRestorePassword by remember { mutableStateOf("") }
-    var confirmBackupRestore by remember { mutableStateOf(false) }
+    val fileState = remember { SettingsFileState() }
+    val provisioningState = remember(canManageProject) { SettingsProvisioningState() }
+    var backupDialogMode by fileState::backupDialogMode
+    var backupPassword by fileState::backupPassword
+    var pendingImportUri by fileState::pendingImportUri
+    var pendingRestorePassword by fileState::pendingRestorePassword
+    var confirmBackupRestore by fileState::confirmBackupRestore
     var advancedAdministration by rememberSaveable(workspace.canonical()) { mutableStateOf(false) }
-    var provisioningDialog by remember(canManageProject) { mutableStateOf(false) }
-    var provisioningPassphrase by remember(canManageProject) { mutableStateOf("") }
+    var provisioningDialog by provisioningState::visible
+    var provisioningPassphrase by provisioningState::passphrase
 
-    val createBackup = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/octet-stream")
-    ) { uri -> viewModel.exportEncryptedBackup(uri) }
-    LaunchedEffect(state.backupReady) {
-        if (state.backupReady) {
-            viewModel.backupPickerLaunched()
-            try {
-                createBackup.launch("Rushd_Backup_${LocalDate.now()}.rpb")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                viewModel.backupPickerFailed()
-            }
-        }
-    }
-    val openBackup = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            pendingImportUri = uri
-            backupPassword = ""
-            backupDialogMode = "restore"
-        }
-    }
-    val createProvisioning = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(ProjectProvisioningManager.EXPORT_MIME_TYPE)
-    ) { uri ->
-        viewModel.exportProjectProvisioning(uri)
-    }
+    val fileActions = rememberSettingsFileActions(state, canManageProject, viewModel, fileState)
 
-    LaunchedEffect(state.provisioningReady, canManageProject) {
-        if (canManageProject && state.provisioningReady) {
-            viewModel.provisioningPickerLaunched()
-            try {
-                createProvisioning.launch("ShiftReport_Join_${LocalDate.now()}.${ProjectProvisioningManager.EXPORT_EXTENSION}")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                viewModel.provisioningPickerFailed()
-            }
-        }
-    }
-
-    LaunchedEffect(state.provisioningShareUri, canManageProject) {
-        if (!canManageProject) return@LaunchedEffect
-        val uri = state.provisioningShareUri ?: return@LaunchedEffect
-        try {
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = ProjectProvisioningManager.EXPORT_MIME_TYPE
-                putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newUri(context.contentResolver, uiText(R.string.ui_settings_screen_010), uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(Intent.createChooser(intent, uiText(R.string.ui_settings_screen_011)))
-            viewModel.provisioningShareHandled(failed = false)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            viewModel.provisioningShareHandled(failed = true)
-        }
-    }
-
-    LaunchedEffect(state.snackbar) {
-        state.snackbar?.let {
-            val result = snackbar.showSnackbar(
-                message = it,
-                actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null
-            )
-            viewModel.dismissSnackbar()
-            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                if (state.retryAction == SettingsRetryAction.FETCH) confirmFetch = true
+    com.hos.rushdpatients.ui.components.AppSnackbarEffect(state.snackbar, snackbar, viewModel::dismissSnackbar,
+        actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null,
+        onAction = {
+            if (state.retryAction == SettingsRetryAction.FETCH) confirmFetch = true
                 else viewModel.retryLastAction()
-            }
-        }
-    }
+        })
 
     Scaffold(
         topBar = {
@@ -349,7 +284,7 @@ fun SettingsScreen(
                             SettingsSectionId.FILES -> SettingsFilesContent(
                                 state = state, onExportCsv = viewModel::exportCsv, canManageProject = canManageProject,
                                 onOpenVbaImport = onOpenVbaImport, showHeading = false)
-                            SettingsSectionId.BACKUP -> SettingsBackupContent(state, { backupPassword = ""; backupDialogMode = "export" }, { openBackup.launch(arrayOf("application/octet-stream", "*/*")) }, showHeading = false)
+                            SettingsSectionId.BACKUP -> SettingsBackupContent(state, { backupPassword = ""; backupDialogMode = "export" }, { fileActions.openBackup() }, showHeading = false)
                             SettingsSectionId.CONNECTION -> SettingsConnectionContent(canManageProject)
                             SettingsSectionId.RESET -> SettingsResetContent(state, onPrepareEmptyStart = viewModel::prepareEmptyStart)
                             SettingsSectionId.INVITATIONS -> SettingsInvitationsContent(state, { provisioningPassphrase = ""; provisioningDialog = true })
@@ -397,75 +332,5 @@ fun SettingsScreen(
         }
     }
 
-    backupDialogMode?.let { mode ->
-        SettingsBackupPasswordDialog(
-            exporting = mode == "export", backupPassword = backupPassword,
-            onPasswordChange = { backupPassword = it },
-            onConfirm = {
-                if (mode == "export") {
-                    viewModel.prepareEncryptedBackup(backupPassword)
-                } else {
-                    pendingRestorePassword = backupPassword
-                    confirmBackupRestore = true
-                }
-                backupPassword = ""
-                backupDialogMode = null
-            },
-            onDismiss = {
-                backupDialogMode = null
-                backupPassword = ""
-                if (mode == "restore") pendingImportUri = null
-            }
-        )
-    }
-
-    if (canManageProject && provisioningDialog) {
-        val directDownloads = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
-        fun dismissProvisioning() {
-            provisioningDialog = false
-            provisioningPassphrase = ""
-        }
-        SettingsProvisioningDialog(
-            provisioningPassphrase = provisioningPassphrase,
-            busy = state.provisioningBusy, directDownloads = directDownloads,
-            onPassphraseChange = { provisioningPassphrase = it },
-            onShare = {
-                viewModel.prepareProjectProvisioning(provisioningPassphrase, share = true)
-                dismissProvisioning()
-            },
-            onSave = {
-                viewModel.prepareProjectProvisioning(provisioningPassphrase)
-                dismissProvisioning()
-            },
-            onConfirm = {
-                viewModel.prepareProjectProvisioning(provisioningPassphrase,
-                    share = !directDownloads, saveToDownloads = directDownloads)
-                dismissProvisioning()
-            },
-            onDismiss = { dismissProvisioning() }
-        )
-    }
-
-    state.publicationReviewText?.let { reviewText ->
-        SettingsPublicationReviewDialog(reviewText = reviewText, busy = state.syncing,
-            onConfirm = viewModel::confirmPublication, onDismiss = viewModel::cancelPublicationReview)
-    }
-
-    if (confirmBackupRestore) {
-        SettingsBackupRestoreDialog(
-            onConfirm = {
-                val uri = pendingImportUri
-                val password = pendingRestorePassword
-                confirmBackupRestore = false
-                pendingImportUri = null
-                pendingRestorePassword = ""
-                if (uri != null) viewModel.restoreEncryptedBackup(uri, password)
-            },
-            onDismiss = {
-                confirmBackupRestore = false
-                pendingRestorePassword = ""
-                pendingImportUri = null
-            }
-        )
-    }
+    SettingsFileDialogs(state, canManageProject, viewModel, fileState, provisioningState)
 }

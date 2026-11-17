@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.readingPaneWidth
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
@@ -44,15 +45,13 @@ internal fun AssignmentsExportWorkspace(onBack: () -> Unit, controller: ReportCo
             controller.onPdfViewerUnavailable()
         }
     }
-    LaunchedEffect(state.snackbar) {
-        state.snackbar?.let { snackbar.showSnackbar(it); controller.dismissSnackbar() }
-    }
+    com.hos.rushdpatients.ui.components.AppSnackbarEffect(state.snackbar, snackbar, controller::dismissSnackbar)
     Scaffold(
         topBar = { AppTopBar(title = text(R.string.assignments_export_title),
             onBack = { if (!state.isBusy) onBack() }) },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
+        Column(Modifier.fillMaxSize().padding(padding).readingPaneWidth().verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.section)) {
             if (controller.simulation) AppNotice(text(R.string.demo_simulation_notice))
             AppText(text(R.string.assignments_export_help))

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.components.revealHeight
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -77,7 +78,7 @@ internal fun WardPatientGrid(
     Column(Modifier.fillMaxSize()) {
         controlsContent()
         LazyVerticalGrid(
-            columns = if (dualPane) GridCells.Fixed(1) else GridCells.Adaptive(minSize = UiLayout.patientGridMinWidth),
+            columns = if (dualPane) GridCells.Fixed(1) else GridCells.Adaptive(minSize = UiLayout.patientGridMinWidth * com.hos.rushdpatients.ui.theme.uiLayoutScale()),
             state = patientGridState,
             contentPadding = PaddingValues(bottom = scrollBottomClearance),
             modifier = Modifier
@@ -122,7 +123,7 @@ internal fun WardPatientGrid(
                         // Retain ordinary reordering, without a competing animator during group resizing.
                         val placement = if (animatePlacement && !collapsed && groupHeight == 1f)
                             Modifier.animateItemPlacement(placementSpec) else Modifier
-                        patientCard(patient, placement.groupRevealHeight(groupHeight, collapsed))
+                        patientCard(patient, placement.revealHeight(groupHeight, collapsed))
                     }
                 }
             } else {
@@ -133,21 +134,3 @@ internal fun WardPatientGrid(
         }
     }
 }
-
-/** Clip the existing card rather than scaling its text or recreating its local state. */
-private fun Modifier.groupRevealHeight(fraction: Float, collapsed: Boolean): Modifier =
-    clipToBounds()
-        .layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, (placeable.height * fraction).roundToInt()) {
-                placeable.placeRelative(0, 0)
-            }
-        }
-        .then(if (collapsed) Modifier.clearAndSetSemantics {}.onPreviewKeyEvent { true }.pointerInput(Unit) {
-            // A closing card must not accept a last-moment clinical action.
-            awaitPointerEventScope {
-                while (true) {
-                    awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
-                }
-            }
-        } else Modifier)

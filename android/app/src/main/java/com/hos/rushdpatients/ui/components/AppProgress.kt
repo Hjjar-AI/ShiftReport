@@ -9,7 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -28,7 +27,7 @@ fun AppActionContent(text: String, loading: Boolean, color: Color = LocalContent
     style: TextStyle = MaterialTheme.typography.labelLarge) {
     val uiText = rememberUiStrings()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small),
-        modifier = Modifier.semantics { if (loading) stateDescription = uiText(R.string.ui_app_progress_001) }) {
+        modifier = Modifier) {
         Box(Modifier.size(UiSize.iconSmall), contentAlignment = Alignment.Center) {
             if (loading) AppBusyIndicator(color = color)
         }

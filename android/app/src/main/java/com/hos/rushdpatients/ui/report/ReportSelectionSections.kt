@@ -60,12 +60,14 @@ internal fun ReportDestinationSelection(
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_024), expanded = expanded,
-                onToggle = { if (!busy) expanded = !expanded })
+            AppCollapsibleSection(expanded = expanded,
+                header = { AppSectionHeader(title = uiText(R.string.ui_report_preview_screen_024),
+                    expanded = expanded, onToggle = { if (!busy) expanded = !expanded }) },
+                summary = {
             if (selectedLabels.isEmpty()) AppText(uiText(R.string.report_no_destination_selected),
                 style = MaterialTheme.typography.bodySmall)
             selectedLabels.forEach { AppText(it, style = MaterialTheme.typography.bodySmall) }
-            if (expanded) {
+                }) {
                 AppCheckRow(label = generalDestinationLabel,
                     checked = generalSelected, enabled = !busy,
                     onCheckedChange = onGeneralSelected)

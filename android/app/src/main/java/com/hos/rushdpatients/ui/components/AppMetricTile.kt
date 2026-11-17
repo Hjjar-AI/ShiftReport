@@ -12,25 +12,17 @@ class AppMetric(val label: String, val count: Int, val tone: Tone = Tone.NEUTRAL
 /** Two equal tiles when each label has room; large text/narrow panes stack without truncation. */
 @Composable
 fun AppMetricGrid(metrics: List<AppMetric>) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val scale = com.hos.rushdpatients.ui.theme.uiLayoutScale()
-        val columns = if (maxWidth >= UiLayout.metricPairMinWidth * scale) 2 else 1
-        Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
-            metrics.chunked(columns).forEach { row ->
-                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(UiSpacing.controlGap)) {
-                    row.forEach { metric ->
+    AppAdaptiveRow(itemCount = metrics.size, minimumRowWidth = UiLayout.metricPairMinWidth,
+        maxColumns = 2, matchHeights = true, rowGap = UiSpacing.controlGap,
+        columnGap = UiSpacing.controlGap) { index, cellModifier ->
+        val metric = metrics[index]
                         val colors = toneColors(metric.tone)
-                        Surface(onClick = metric.onClick, modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = UiSpacing.touchTarget),
+                        Surface(onClick = metric.onClick, modifier = cellModifier.heightIn(min = UiSpacing.touchTarget),
                             color = colors.container, contentColor = colors.content, shape = MaterialTheme.shapes.medium) {
                             Column(Modifier.padding(com.hos.rushdpatients.ui.theme.uiContentPadding()), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                                 AppText(uiNumber(metric.count), style = MaterialTheme.typography.headlineSmall)
                                 AppText(metric.label, style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                    }
-                    if (columns == 2 && row.size == 1) Spacer(Modifier.weight(1f))
-                }
-            }
-        }
     }
 }

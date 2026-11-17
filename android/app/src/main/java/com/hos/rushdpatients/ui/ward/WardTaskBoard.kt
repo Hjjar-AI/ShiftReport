@@ -59,7 +59,7 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>,
     }
     completed.keys.toList().forEach { taskKey ->
         key(taskKey) {
-            LaunchedEffect(Unit) { kotlinx.coroutines.delay(2_000L); completed.remove(taskKey) }
+            LaunchedEffect(Unit) { kotlinx.coroutines.delay(com.hos.rushdpatients.ui.theme.UiTiming.completedTaskLingerMillis); completed.remove(taskKey) }
         }
     }
     val visible = (rows + completed.values).groupBy { it.patient.id }

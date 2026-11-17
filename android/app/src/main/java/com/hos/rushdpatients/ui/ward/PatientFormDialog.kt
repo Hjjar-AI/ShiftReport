@@ -110,40 +110,23 @@ internal fun PatientFormDialog(
         PatientFormField.entries.associateWith { BringIntoViewRequester() }
     }
 
-    val birthYear = birthYearText.trim().toIntOrNull()
-    val age = birthYear?.let { (currentYear - it).takeIf { a -> a in 0..120 } }
+    val birthYear = formState.birthYear
+    val age = formState.age(currentYear)
     val admissionDays = admittanceDate?.takeUnless { it.isAfter(today) }
         ?.let { ChronoUnit.DAYS.between(it, today).toInt() }
-    val activeDoctors = doctors.filterNot { it.isDeleted }
-    val residentDoctors = activeDoctors.filter { it.clinicalRole.canBeResident() }
-    val specialistDoctors = activeDoctors.filter { it.clinicalRole.canBeSupervisor() }
+    val formDoctors = remember(doctors) { PatientFormDoctors(doctors) }
+    val residentDoctors = formDoctors.residents
+    val specialistDoctors = formDoctors.supervisors
     val autoStyle = autoDirTextStyle()
     val formScrollState = rememberScrollState()
     val scrollFormTo = com.hos.rushdpatients.ui.components.rememberUiScrollTo(formScrollState)
     val formScope = rememberCoroutineScope()
     val taskEntry = formState.taskEntry
-    val resolvedTasks = tasks + listOfNotNull(taskEntry?.takeIf { it.description.isNotBlank() })
-    // Compare the complete editable form, including the inline new task.
-    val formValues = listOf(
-        admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
-        hasCompanion, diagnosisType, initialDiagnosis, treatmentText,
-        followUpText, labGroups, residentId, specialistId,
-        badges, resolvedTasks, badgeDraftText, badgeDraftPriority, isPriority
-    )
+    val resolvedTasks = formState.resolvedTasks
     val savedValues = remember(savedBaseline) {
-        listOf(
-            savedBaseline?.admittanceNumber.orEmpty(), savedBaseline?.admittanceDate ?: today,
-            savedBaseline?.gender ?: Gender.fromCode(""), savedBaseline?.name.orEmpty(),
-            savedBaseline?.birthDate?.year?.toString().orEmpty(), savedBaseline?.age?.toString().orEmpty(),
-            savedBaseline?.hasCompanion ?: false, savedBaseline?.diagnosisType ?: DiagnosisType.fromCode(""),
-            savedBaseline?.initialDiagnosis.orEmpty(), savedBaseline?.treatmentPlan.orEmpty(),
-            savedBaseline?.followUp.orEmpty(), savedBaseline?.effectiveLabGroups.orEmpty(),
-            savedBaseline?.responsibleResidentId, savedBaseline?.responsibleSpecialistId,
-            savedBaseline?.badges.orEmpty(), savedBaseline?.tasks.orEmpty(), "", null,
-            savedBaseline?.isPriority ?: false
-        )
+        PatientFormState(savedBaseline, null).snapshot().copy(admittanceDate = savedBaseline?.admittanceDate ?: today)
     }
-    val hasUnsavedChanges = formValues != savedValues
+    val hasUnsavedChanges = formState.snapshot() != savedValues
     var confirmDiscard by remember(initial) { mutableStateOf(false) }
     val requestDismiss = {
         if (!saving) {

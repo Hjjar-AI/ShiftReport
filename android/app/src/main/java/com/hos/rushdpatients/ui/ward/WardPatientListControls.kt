@@ -52,17 +52,11 @@ internal fun WardPatientListControls(
     onPreset: (DashboardFilter) -> Unit,
     onOptions: () -> Unit,
     onReset: () -> Unit,
-    showSearch: Boolean,
-    query: String,
-    onQueryChange: (String) -> Unit,
-    requestFocus: Boolean,
-    onFocusRequested: () -> Unit
+    searchContent: @Composable () -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
     Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        if (showSearch || query.isNotBlank()) {
-            WardPatientSearchField(query, onQueryChange, requestFocus, onFocusRequested)
-        }
+        searchContent()
 
         val description = listOfNotNull(
             uiText(R.string.ui_ward_patient_list_controls_004),

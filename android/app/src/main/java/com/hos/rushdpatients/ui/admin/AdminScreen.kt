@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.admin
 
+import com.hos.rushdpatients.ui.components.readingPaneWidth
 import com.hos.rushdpatients.ui.components.AppText
 
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
@@ -65,7 +66,7 @@ fun AdminScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding).readingPaneWidth()
                 .padding(UiSpacing.screen)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)

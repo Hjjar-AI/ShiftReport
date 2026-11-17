@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.appContentEntrance
 
@@ -157,7 +158,8 @@ private fun WardWorkspaceContent(
     val haptics = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     val foldingFeature = rememberWardFoldingFeature()
-    var listFraction by rememberSaveable { mutableStateOf(UiLayout.defaultListFraction) }
+    val workspace = rememberWardWorkspaceState()
+    var listFraction by workspace::listFraction
     var showSupportingSheet by overlays::showSupportingSheet
     val configuration = LocalConfiguration.current
     val expandedWindow = configuration.screenWidthDp >= UiLayout.expandedWindowWidthDp &&
@@ -168,38 +170,23 @@ private fun WardWorkspaceContent(
     }
     val patientGridState = rememberLazyGridState()
     val editor = viewModel.editor
-    var returnTarget by remember { mutableStateOf<PatientReturnTarget?>(null) }
-    var recentlyEditedId by remember { mutableStateOf<String?>(null) }
+    var returnTarget by workspace::returnTarget
+    var recentlyEditedId by workspace::recentlyEditedId
     var confirmLatest by overlays::confirmLatest
-    var showSearch by rememberSaveable { mutableStateOf(false) }
-    var requestSearchFocus by remember { mutableStateOf(false) }
+    var showSearch by workspace::showSearch
+    var requestSearchFocus by workspace::requestSearchFocus
     var showRecycleBin by overlays::showRecycleBin
-    var collapsedGroups by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var collapsedGroups by workspace::collapsedGroups
     var showFilters by overlays::showFilters
-    var selectedViewOption by rememberSaveable { mutableStateOf(WardViewOption.SORT) }
+    var selectedViewOption by workspace::selectedViewOption
     val viewOptionsScroll = rememberScrollState()
     // A bulk click owns the displayed mode immediately; preference IO only persists it.
-    var bulkExpansionOverride by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    var bulkExpansionOverride by workspace::bulkExpansionOverride
     val allCardsExpanded = bulkExpansionOverride ?: state.patientDetailsExpanded
-    var expandedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
-    var collapsedPatientIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var expandedPatientIds by workspace::expandedPatientIds
+    var collapsedPatientIds by workspace::collapsedPatientIds
     var showWardTasks by overlays::showWardTasks
-    var animatedPatientId by remember { mutableStateOf<String?>(null) }
-    fun setAllPatientsExpanded(expand: Boolean) {
-        animatedPatientId = null
-        bulkExpansionOverride = expand
-        expandedPatientIds = emptyList()
-        collapsedPatientIds = emptyList()
-        viewModel.setPatientDetailsExpanded(expand)
-    }
-    fun toggleCard(id: String) {
-        animatedPatientId = id
-        if (allCardsExpanded) {
-            collapsedPatientIds = if (id in collapsedPatientIds) collapsedPatientIds - id else collapsedPatientIds + id
-        } else {
-            expandedPatientIds = if (id in expandedPatientIds) expandedPatientIds - id else expandedPatientIds + id
-        }
-    }
+    var animatedPatientId by workspace::animatedPatientId
 
     val filters = filtersState.options()
     val searchIndex = remember(state.patients) { wardSearchIndex(state.patients) }
@@ -243,13 +230,13 @@ private fun WardWorkspaceContent(
         derivedStateOf {
             val firstPatientId = patientGridState.layoutInfo.visibleItemsInfo
                 .firstOrNull { it.contentType == "patient" }?.key as? String
-            (firstPatientId?.let { patientScrollPositions[it] } ?: -1) >= 6
+            (firstPatientId?.let { patientScrollPositions[it] } ?: -1) >= UiLayout.backToTopPatientThreshold
         }
     }
     val showBackToTop = patientDestination && state.patients.isNotEmpty() && listScrolledDown
     val backToTopActionSpace = rememberFloatingActionSpace(showBackToTop)
     val floatingActionColors = ButtonDefaults.buttonColors(
-        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = UiOpacity.floatingContainer),
         contentColor = MaterialTheme.colorScheme.onPrimary)
     val roundsPatients = remember(state.groupByMode, state.groupedPatients, visiblePatients, visibleIds) {
         if (state.groupByMode != GroupByMode.NONE && state.groupedPatients.isNotEmpty()) {
@@ -288,13 +275,13 @@ private fun WardWorkspaceContent(
     }
     LaunchedEffect(recentlyEditedId) {
         if (recentlyEditedId != null) {
-            delay(1800)
+            delay(com.hos.rushdpatients.ui.theme.UiTiming.patientHighlightMillis)
             recentlyEditedId = null
         }
     }
     if (showWardTasks) WardTaskBoard(state.patients, state.doctors,
         snackbarHost = snackbarHost,
-        editable = !state.isReadOnly && !state.saving && !state.syncing,
+        editable = state.canMutate,
         onComplete = { entry ->
             viewModel.setTaskDone(entry.patient, entry.task.id, true) { saved ->
                 scope.launch {
@@ -308,7 +295,7 @@ private fun WardWorkspaceContent(
             }
         },
         onDismiss = { showWardTasks = false }, onPatient = { id ->
-            if (!state.saving && !state.syncing && editor.dialog == null && state.patients.any { it.id == id }) {
+            if (state.canInteract && editor.dialog == null && state.patients.any { it.id == id }) {
                 showWardTasks = false
                 filtersState.applyPreset(DashboardFilter.ALL)
                 val patient = state.patients.first { it.id == id }
@@ -335,18 +322,11 @@ private fun WardWorkspaceContent(
         focusManager.clearFocus()
     }
 
-    LaunchedEffect(state.snackbar) {
-        state.snackbar?.let {
-            val result = snackbarHost.showSnackbar(
-                message = it,
-                actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null
-            )
-            viewModel.dismissSnackbar()
-            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                viewModel.retryLastAction()
-            }
-        }
-    }
+    com.hos.rushdpatients.ui.components.AppSnackbarEffect(state.snackbar, snackbarHost, viewModel::dismissSnackbar,
+        actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null,
+        onAction = {
+            viewModel.retryLastAction()
+        })
 
     LaunchedEffect(state.isReadOnly) {
         if (state.isReadOnly) {
@@ -364,61 +344,70 @@ private fun WardWorkspaceContent(
     }
 
     val patientCardContent: @Composable (Patient, Modifier) -> Unit = { patient, cardModifier ->
-        PatientCard(
-            modifier = cardModifier,
-            state = PatientCardState(patient = patient,
-                expanded = if (allCardsExpanded) patient.id !in collapsedIds else patient.id in expandedIds,
-                animateExpansion = animatedPatientId == patient.id,
-                doctorNames = doctorNames,
-                readOnly = state.isReadOnly || state.saving || state.syncing,
-                recentlyEdited = recentlyEditedId == patient.id,
-                pinned = false,
-                compact = state.compactCards),
-            actions = remember(patient, allCardsExpanded, state.isReadOnly, state.saving, state.syncing, viewModel, editor, haptics) {
-                PatientCardActions(
-                    onOpen = {
-                        if (!state.saving && !state.syncing && editor.dialog == null) {
-                            if (state.isReadOnly) toggleCard(patient.id)
-                            else editor.editTarget = patient
-                        }
-                    },
-                    onLongPress = {
-                        if (!state.isReadOnly && !state.saving && !state.syncing && editor.dialog == null) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            editor.editTarget = patient
-                        }
-                    },
-                    onEdit = {
-                        if (!state.isReadOnly && !state.saving && !state.syncing && editor.dialog == null) {
-                            editor.editTarget = patient
-                        }
-                    },
-                    onDelete = { editor.deleteTarget = patient },
-                    onCopy = { editor.copyTarget = patient },
-                    onPriorityChange = { priority ->
-                        viewModel.setPriority(patient, priority) {
-                            scope.launch {
-                                snackbarHost.currentSnackbarData?.dismiss()
-                                if (snackbarHost.showSnackbar(uiText(R.string.priority_changed),
-                                        actionLabel = uiText(R.string.ui_task_undo),
-                                        withDismissAction = true,
-                                        duration = androidx.compose.material3.SnackbarDuration.Short) == androidx.compose.material3.SnackbarResult.ActionPerformed)
-                                    viewModel.setPriority(patient, patient.isPriority)
-                            }
-                        }
-                    },
-                    onPinToggle = {
-                        if (!state.isReadOnly && !state.saving && !state.syncing && editor.dialog == null) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.movePatientToTop(patient)
-                        }
-                    },
-                    onExpandToggle = { toggleCard(patient.id) }
-                )
-            }
-        )
+        WardPatientItem(patient, cardModifier, state, viewModel, workspace, allCardsExpanded,
+            expandedIds, collapsedIds, doctorNames, snackbarHost)
     }
 
+    val wardHeader: @Composable () -> Unit = {
+
+                        WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
+                            onMenu = { scope.launch { drawerState.open() } },
+                            onToggleCards = { workspace.setAllPatientsExpanded(!anyCardsExpanded, viewModel::setPatientDetailsExpanded) },
+                            showAddAction = !showAddFloatingAction, showDeliveryNotice = false,
+                            onAdd = { editor.openAdd(state.patients) }, onSearch = {
+                                if (patientDestination && showSearch && searchQuery.isBlank()) {
+                                    showSearch = false
+                                    requestSearchFocus = false
+                                    focusManager.clearFocus()
+                                } else {
+                                    if (!patientDestination) viewMode = WardViewMode.ALL
+                                    showSearch = true
+                                    requestSearchFocus = true
+                                }
+                            }, onWorkflow = {
+                                when (state.workflowAction) {
+                                    WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
+                                    WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
+                                    WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
+                                }
+                            })
+    }
+    val wardStatus: @Composable () -> Unit = {
+                WardStatusHeader(
+                    state = state, isAdmin = isAdmin, liveProject = viewModel.liveProject,
+                    showBackOnline = showBackOnline,
+                    fetchReminderEnabled = !state.loading && state.canInteract &&
+                        !state.isReadOnly && editor.dialog == null,
+                    onOpenDoctors = navigation.onOpenDoctors,
+                    onReviewPatients = { state.shift?.id?.let(onOpenReport) },
+                    onRetry = viewModel::retryLastAction, onReload = viewModel::reloadWard,
+                    onFetch = { showBackOnline = false; confirmLatest = true },
+                    onBackToPreview = onBackToPreview,
+                    onWorkflow = {
+                        when (state.workflowAction) {
+                            WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
+                            WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
+                            WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
+                        }
+                    },
+                    header = {},
+                    transferActions = {
+                        if (viewModel.synchronizationAvailable && (patientDestination || viewMode == WardViewMode.DASHBOARD)) WardTransferBar(
+                            fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
+                                editor.dialog == null && !confirmLatest,
+                            reportEnabled = state.shift != null && !state.isReadOnly && !state.loading && !state.syncing && !state.saving &&
+                                editor.dialog == null,
+                            onFetch = { confirmLatest = true },
+                            uploadEnabled = state.shift != null && (!viewModel.liveProject || online) &&
+                                !state.loading && state.canMutate &&
+                                editor.dialog == null && !confirmLatest,
+                            onUpload = viewModel::reviewPendingPublication,
+                            onReport = { state.shift?.id?.let(onOpenReport) })
+                    })
+    }
+
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+    val shortWindow = maxHeight < UiLayout.shortWindowHeight * com.hos.rushdpatients.ui.theme.uiLayoutScale()
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -438,67 +427,19 @@ private fun WardWorkspaceContent(
     ) {
         Scaffold(
             topBar = {
-                WardStatusHeader(
-                    state = state, isAdmin = isAdmin, liveProject = viewModel.liveProject,
-                    showBackOnline = showBackOnline,
-                    fetchReminderEnabled = !state.loading && !state.saving && !state.syncing &&
-                        !state.isReadOnly && editor.dialog == null,
-                    onOpenDoctors = navigation.onOpenDoctors,
-                    onReviewPatients = { state.shift?.id?.let(onOpenReport) },
-                    onRetry = viewModel::retryLastAction, onReload = viewModel::reloadWard,
-                    onFetch = { showBackOnline = false; confirmLatest = true },
-                    onBackToPreview = onBackToPreview,
-                    header = {
-                        WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
-                            onMenu = { scope.launch { drawerState.open() } },
-                            onToggleCards = { setAllPatientsExpanded(!anyCardsExpanded) },
-                            showAddAction = !showAddFloatingAction,
-                            onAdd = { editor.openAdd(state.patients) }, onSearch = {
-                                if (patientDestination && showSearch && searchQuery.isBlank()) {
-                                    showSearch = false
-                                    requestSearchFocus = false
-                                    focusManager.clearFocus()
-                                } else {
-                                    if (!patientDestination) viewMode = WardViewMode.ALL
-                                    showSearch = true
-                                    requestSearchFocus = true
-                                }
-                            }, onWorkflow = {
-                                when (state.workflowAction) {
-                                    WardWorkflowAction.DELIVERY_HISTORY -> state.shift?.id?.let(navigation.onOpenDeliveryHistory)
-                                    WardWorkflowAction.REVIEW_PUBLICATION -> state.shift?.id?.let(onOpenReport)
-                                    WardWorkflowAction.DOWNLOAD -> onOpenDataManagement()
-                                }
-                            })
-                    },
-                    transferActions = {
-                        if (viewModel.synchronizationAvailable && (patientDestination || viewMode == WardViewMode.DASHBOARD)) WardTransferBar(
-                            fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
-                                editor.dialog == null && !confirmLatest,
-                            reportEnabled = state.shift != null && !state.isReadOnly && !state.loading && !state.syncing && !state.saving &&
-                                editor.dialog == null,
-                            onFetch = { confirmLatest = true },
-                            uploadEnabled = state.shift != null && (!viewModel.liveProject || online) &&
-                                !state.loading && !state.isReadOnly && !state.saving && !state.syncing &&
-                                editor.dialog == null && !confirmLatest,
-                            onUpload = viewModel::reviewPendingPublication,
-                            onReport = { state.shift?.id?.let(onOpenReport) })
-                    })
+                androidx.compose.foundation.layout.Column {
+                    wardHeader()
+                    if (!shortWindow) wardStatus()
+                }
             },
             floatingActionButton = {
                 if (showAddFloatingAction) {
-                    AppButton(
+                    com.hos.rushdpatients.ui.components.AppFloatingAction(
+                        icon = AppIcons.Add, label = uiText(R.string.ui_add_patient),
                         onClick = { editor.openAdd(state.patients) },
-                        enabled = !state.loading && !state.saving && !state.syncing &&
+                        enabled = !state.loading && state.canInteract &&
                             !editor.showAdd && editor.editTarget == null && editor.copyTarget == null,
-                        contentPadding = UiPadding.content,
-                        colors = floatingActionColors,
-                        modifier = addActionSpace.measure
-                            .sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
-                            .semantics { contentDescription = uiText(R.string.ui_add_patient) }
-                    ) {
-                        Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(UiSize.iconMedium))
-                    }
+                        colors = floatingActionColors, modifier = addActionSpace.measure)
                 }
             },
             bottomBar = {
@@ -573,8 +514,8 @@ private fun WardWorkspaceContent(
                                         state.deliveryLogUnavailable -> uiText(R.string.dashboard_report_unknown)
                                         state.unresolvedDeliveries > 0 -> uiText(R.string.dashboard_report_uncertain)
                                         state.synchronization.lastReportAt != null -> uiText(R.string.dashboard_report_sent,
-                                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(java.time.Instant.ofEpochMilli(
-                                                requireNotNull(state.synchronization.lastReportAt)).atZone(java.time.ZoneId.systemDefault())))
+                                            com.hos.rushdpatients.ui.components.uiDateTime(java.time.Instant.ofEpochMilli(
+                                                requireNotNull(state.synchronization.lastReportAt))))
                                         else -> uiText(R.string.dashboard_report_not_sent)
                                     },
                                     patients = state.patients,
@@ -584,6 +525,7 @@ private fun WardWorkspaceContent(
                                     online = online, freshnessLabel = freshnessLabel,
                                     dayLabel = dayLabel,
                                     bottomClearance = scrollBottomClearance,
+                                    topContent = { if (shortWindow) wardStatus() },
                                     onFilter = ::applyDashboardFilter,
                                     onSync = onOpenDataManagement,
                                     onActivity = {
@@ -596,11 +538,12 @@ private fun WardWorkspaceContent(
                                     busy = state.syncing || state.saving,
                                     bottomClearance = scrollBottomClearance,
                                     onAdd = { editor.openAdd(state.patients) },
-                                    topContent = {})
+                                    topContent = { if (shortWindow) wardStatus() })
                             } else {
                                 WardPatientListSection(state, visiblePatients, dualPane, patientGridState,
                                     scrollBottomClearance, collapsedGroups, filtersState, presetCounts,
                                     showSearch = showSearch, requestSearchFocus = requestSearchFocus,
+                                    shortWindow = shortWindow, topContent = { if (shortWindow) wardStatus() },
                                     onToggleGroup = { key ->
                                         collapsedGroups = if (key in collapsedGroups) collapsedGroups - key else collapsedGroups + key
                                     }, onResetFilters = ::resetPatientFilters,
@@ -611,17 +554,10 @@ private fun WardWorkspaceContent(
                                     Modifier.align(Alignment.BottomStart)
                                         .padding(start = UiSpacing.largeSection, bottom = navigationClearance + UiSpacing.largeSection)
                                 ) {
-                                    AppButton(
+                                    com.hos.rushdpatients.ui.components.AppFloatingAction(
+                                        icon = AppIcons.ArrowUpward, label = uiText(R.string.ui_back_to_top),
                                         onClick = { scope.launch { patientGridState.scrollToItem(0) } },
-                                        contentPadding = UiPadding.content,
-                                        colors = floatingActionColors,
-                                        modifier = backToTopActionSpace.measure
-                                            .sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
-                                            .semantics { contentDescription = uiText(R.string.ui_back_to_top) }
-                                    ) {
-                                        Icon(AppIcons.ArrowUpward, contentDescription = null,
-                                            modifier = Modifier.size(UiSize.iconMedium))
-                                    }
+                                        colors = floatingActionColors, modifier = backToTopActionSpace.measure)
                                 }
                             }
                         }
@@ -629,6 +565,8 @@ private fun WardWorkspaceContent(
                 )
             }
         }
+    }
+
     }
 
     if (showSupportingSheet) {
@@ -644,72 +582,10 @@ private fun WardWorkspaceContent(
         }
     }
 
-    if (editor.showAdd && !state.patientDraftLoaded) {
-        PatientDraftLoadDialog(state.patientDraftLoadFailed,
-            onRetry = viewModel::retryLoadDraft, onDismiss = { editor.showAdd = false })
-    }
-    if (editor.showAdd && state.patientDraftLoaded) {
-        val insertionPatients = editor.insertionPatients
-        AddPatientDialog(
-            doctors = state.doctors,
-            draft = state.patientDraft,
-            stateStore = editor.addForm,
-            draftWarning = state.draftSaveIssue?.takeIf { it.patientId == null }?.message,
-            saving = state.saving,
-            position = editor.insertionPosition,
-            positionLimit = insertionPatients.size + 1,
-            onPositionChange = { value -> editor.insertionPosition = value.filter { it.isDigit() }.take(3) },
-            onDraftChanged = viewModel::saveDraft,
-            onConfirm = {
-                val requested = editor.insertionPosition.map { digit -> Character.digit(digit, 10) }.joinToString("").toIntOrNull()
-                if (editor.insertionPosition.isBlank() || requested != null) {
-                    viewModel.addPatient(it, requested) { editor.showAdd = false }
-                }
-            },
-            onDismiss = { editor.showAdd = false }
-        )
-    }
-
     if (viewModel.synchronizationAvailable) WardDataReviewDialogs(state, viewModel, confirmLatest,
         onDismissLatest = { confirmLatest = false })
 
-    fun saveEdited(p: Patient, draft: Patient, onUnavailable: (Patient?) -> Unit, advance: Boolean) {
-        // Capture the displayed successor before saving can change filters/order.
-        val nextId = if (advance) patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId else null
-        viewModel.updatePatient(draft, onUnavailable) {
-            val current = viewModel.state.value
-            val next = nextId?.takeIf { !current.isReadOnly && current.shift?.id == state.shift?.id }
-                ?.let { id -> current.patients.firstOrNull { it.id == id && !it.isDeleted } }
-            if (next != null) {
-                returnTarget = null
-                editor.editTarget = next
-            } else {
-                returnTarget = PatientReturnTarget(draft.id, draft.revision)
-                editor.editTarget = null
-            }
-        }
-    }
-    WardPatientDialogs(state, editor.editTarget, editor.copyTarget, editor.deleteTarget, roundsPatients.map { it.id },
-        onLoadEditDraft = viewModel::loadEditDraft, onEditDraftChanged = viewModel::saveEditDraft,
-        onDiscardEditDraft = viewModel::discardEditDraft,
-        editSession = editor.editSession, copyInitial = editor.copyInitial, copyForm = editor.copyForm,
-        onSaveEdited = ::saveEdited,
-        onDismissEdit = { editor.editTarget = null },
-        onCopyConfirmed = { patient -> viewModel.addPatient(patient) { editor.copyTarget = null } },
-        onDismissCopy = { editor.copyTarget = null }, onDeleteConfirmed = { p ->
-            viewModel.deletePatient(p) { deletedPatient ->
-                editor.deleteTarget = null
-                scope.launch {
-                    val result = snackbarHost.showSnackbar(
-                        message = uiText(R.string.ui_ward_screen_014, p.name),
-                        actionLabel = uiText(R.string.ui_ward_screen_015)
-                    )
-                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                        viewModel.restorePatient(deletedPatient)
-                    }
-                }
-            }
-        }, onDismissDelete = { editor.deleteTarget = null })
+    WardEditorDialogs(state, viewModel, workspace, roundsPatients, snackbarHost)
 
     if (showFilters) WardViewOptionsDialog(state, viewModel,
         resultSummary = listOfNotNull(uiText(R.string.ui_ward_patient_list_controls_001,
@@ -721,7 +597,7 @@ private fun WardWorkspaceContent(
         }, selectedViewOption = selectedViewOption, viewOptionsScroll = viewOptionsScroll,
         onSelectOption = { selectedViewOption = it; scope.launch { viewOptionsScroll.scrollTo(0) } },
         onShowTasks = { showFilters = false; showWardTasks = true },
-        onSetAllExpanded = ::setAllPatientsExpanded, cardsExpanded = anyCardsExpanded,
+        onSetAllExpanded = { workspace.setAllPatientsExpanded(it, viewModel::setPatientDetailsExpanded) }, cardsExpanded = anyCardsExpanded,
         onResetFilters = ::resetPatientFilters,
         onClose = { showFilters = false })
 

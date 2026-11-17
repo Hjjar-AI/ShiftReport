@@ -35,8 +35,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.Role
@@ -151,12 +149,7 @@ private fun PickDoctorList(
         doctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
     }
     val refreshState = rememberPullRefreshState(refreshing, onRefresh)
-    val refreshLabel = uiText(R.string.login_refresh_action)
-    Box(Modifier.fillMaxSize().pullRefresh(refreshState, enabled = !busy).semantics {
-        customActions = listOf(CustomAccessibilityAction(refreshLabel) {
-            if (busy) false else { onRefresh(); true }
-        })
-    }) {
+    Box(Modifier.fillMaxSize().pullRefresh(refreshState, enabled = !busy)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(UiSpacing.screen),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)

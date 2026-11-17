@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
@@ -49,8 +48,7 @@ fun AppSectionHeader(
         modifier = modifier.fillMaxWidth().then(interaction).padding(UiPadding.compact)
             .semantics(mergeDescendants = true) {
                 heading()
-                if (expanded != null) stateDescription = if (expanded) uiText(R.string.ui_patient_form_dialog_023) else uiText(R.string.ui_patient_form_dialog_024)
-                else if (complete == true) stateDescription = uiText(R.string.ui_app_section_001)
+
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)
@@ -85,11 +83,6 @@ fun AppSection(
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    AppCard(modifier = modifier.fillMaxWidth(), colors = colors) {
-        Column(Modifier.fillMaxWidth().padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
-            verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.uiContentGap())) {
-            AppSectionHeader(title, titleColor = titleColor)
-            content()
-        }
-    }
+    AppSectionContainer(modifier = modifier, colors = colors,
+        header = { AppSectionHeader(title, titleColor = titleColor) }, content = content)
 }

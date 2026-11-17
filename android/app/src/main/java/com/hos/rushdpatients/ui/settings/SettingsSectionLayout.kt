@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.settings
 
+import com.hos.rushdpatients.ui.components.AppCollapsibleSection
 import com.hos.rushdpatients.ui.components.AppText
 
 import com.hos.rushdpatients.ui.theme.UiTypography
@@ -48,16 +49,15 @@ internal fun SettingsSection(
     onPositioned: (Int) -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    AppCard(modifier = Modifier.fillMaxWidth().onGloballyPositioned { onPositioned(it.positionInParent().y.roundToInt()) }) {
-        Column(Modifier.fillMaxWidth().padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
-            verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.uiContentGap())) {
-            if (showHeader) com.hos.rushdpatients.ui.components.AppSectionHeader(title = title,
-                expanded = if (onToggle == null) null else expanded, onToggle = onToggle, summary = if (expanded) null else summary)
-            if (expanded) {
-                if (showHeader) AppDivider()
-                content()
-            }
-        }
+    com.hos.rushdpatients.ui.components.AppSectionContainer(
+        modifier = Modifier.onGloballyPositioned { onPositioned(it.positionInParent().y.roundToInt()) }
+    ) {
+        AppCollapsibleSection(expanded = expanded,
+            divider = showHeader, header = {
+                if (showHeader) com.hos.rushdpatients.ui.components.AppSectionHeader(title = title,
+                    expanded = if (onToggle == null) null else expanded, onToggle = onToggle,
+                    summary = if (expanded) null else summary)
+            }, content = content)
     }
 }
 

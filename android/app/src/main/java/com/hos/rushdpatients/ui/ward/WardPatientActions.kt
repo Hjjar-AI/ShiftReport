@@ -69,7 +69,7 @@ internal class WardPatientActions(
         editDraftJobs.remove(id)?.cancel()
         editDraftJobs[id] = viewModelScope.launch {
             try {
-                delay(350)
+                delay(com.hos.rushdpatients.ui.theme.UiTiming.settleMillis)
                 settingsRepository.put(AppConstants.SETTING_PATIENT_EDIT_DRAFT_PREFIX + id, json.encodeToString(PatientDraft.serializer(), draft))
                 clearDraftSaveIssue(id)
             } catch (cancelled: CancellationException) {
@@ -113,7 +113,7 @@ internal class WardPatientActions(
         draftSaveJob?.cancel()
         draftSaveJob = viewModelScope.launch {
             try {
-                delay(350)
+                delay(com.hos.rushdpatients.ui.theme.UiTiming.settleMillis)
                 settingsRepository.put(AppConstants.SETTING_PATIENT_DRAFT,
                     json.encodeToString(PatientDraft.serializer(), draft))
                 clearDraftSaveIssue(null)

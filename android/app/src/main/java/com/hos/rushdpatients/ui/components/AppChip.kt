@@ -16,7 +16,7 @@ import com.hos.rushdpatients.ui.theme.*
 @Composable
 fun AppChip(text: String, colors: ContainerColors = toneColors(Tone.NEUTRAL), outlined: Boolean = false) {
     Surface(color = colors.container, contentColor = colors.content,
-        border = if (outlined) UiBorder.stroke() else null, shape = MaterialTheme.shapes.small) {
+        border = if (outlined) UiBorder.stroke() else null, shape = com.hos.rushdpatients.ui.theme.UiShape.chip) {
         AppText(text, Modifier.padding(UiPadding.chip), style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center)
     }

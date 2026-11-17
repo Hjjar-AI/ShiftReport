@@ -28,19 +28,13 @@ internal fun ProjectSetupChoices(
     enabled: Boolean,
     onSelect: (ProjectSetupMode) -> Unit
 ) {
-    val fontScale = com.hos.rushdpatients.ui.theme.uiLayoutScale()
-    BoxWithConstraints(Modifier.fillMaxWidth().selectableGroup()) {
-        if (maxWidth >= UiLayout.splitMinWidth * fontScale) {
-            Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
-                ProjectSetupMode.entries.forEach { mode ->
-                    SetupChoice(mode, selected == mode, enabled, { onSelect(mode) }, Modifier.weight(1f))
-                }
-            }
-        } else Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            ProjectSetupMode.entries.forEach { mode ->
-                SetupChoice(mode, selected == mode, enabled, { onSelect(mode) }, Modifier.fillMaxWidth())
-            }
-        }
+    com.hos.rushdpatients.ui.components.AppAdaptiveRow(
+        itemCount = ProjectSetupMode.entries.size, minimumRowWidth = UiLayout.setupChoicesMinWidth,
+        modifier = Modifier.selectableGroup(), rowGap = UiSpacing.rowGap,
+        columnGap = UiSpacing.small
+    ) { index, cellModifier ->
+        val mode = ProjectSetupMode.entries[index]
+        SetupChoice(mode, selected == mode, enabled, { onSelect(mode) }, cellModifier)
     }
 }
 

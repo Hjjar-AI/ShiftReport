@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.report
 
+import com.hos.rushdpatients.ui.components.readingPaneWidth
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,15 +42,10 @@ internal fun ReportDeliveryHistoryWorkspace(onBack: () -> Unit, controller: Repo
     val snackbar = remember { SnackbarHostState() }
     var allowCopy by remember { mutableStateOf<ReportDeliveryRecord?>(null) }
     BackHandler(onBack = onBack)
-    LaunchedEffect(state.snackbar) {
-        state.snackbar?.let {
-            snackbar.showSnackbar(it)
-            controller.dismissSnackbar()
-        }
-    }
+    com.hos.rushdpatients.ui.components.AppSnackbarEffect(state.snackbar, snackbar, controller::dismissSnackbar)
     Scaffold(topBar = { AppTopBar(title = uiText(R.string.ui_report_preview_screen_081), onBack = onBack) },
         snackbarHost = { AppSnackbarHost(snackbar) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
+        Column(Modifier.fillMaxSize().padding(padding).readingPaneWidth().verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             if (controller.simulation) AppNotice(uiText(R.string.demo_simulation_notice))
             state.error?.let { AppNotice(it, kind = NoticeKind.WARNING) }

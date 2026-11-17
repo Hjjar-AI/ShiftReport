@@ -36,9 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
@@ -81,9 +79,9 @@ internal fun WardDrawer(
             val headerMaxHeight = maxHeight * 0.4f
             Column(Modifier.fillMaxHeight().padding(horizontal = UiSpacing.section, vertical = UiSpacing.screen)) {
                 Column(Modifier.heightIn(max = headerMaxHeight).verticalScroll(rememberScrollState())) {
-                    Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = com.hos.rushdpatients.ui.theme.UiOpacity.containerMuted),
+                    com.hos.rushdpatients.ui.components.AppInsetSurface(com.hos.rushdpatients.ui.components.InsetLevel.MUTED,
                         shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }) {
+                        modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(UiSpacing.section),
                             verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(UiSpacing.section),
@@ -183,8 +181,8 @@ private fun DrawerSectionLabel(label: String) {
 @Composable
 private fun DrawerToolGroup(label: String, icon: ImageVector, expanded: Boolean,
     onToggle: () -> Unit, content: @Composable () -> Unit) {
-    Surface(shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = com.hos.rushdpatients.ui.theme.UiOpacity.containerSoft)) {
+    com.hos.rushdpatients.ui.components.AppInsetSurface(com.hos.rushdpatients.ui.components.InsetLevel.SOFT,
+        shape = MaterialTheme.shapes.large) {
         Column(Modifier.animateContentSize(tween(com.hos.rushdpatients.ui.theme.LocalUiStyle.current.expandMillis))) {
             com.hos.rushdpatients.ui.components.AppSectionHeader(label, icon = icon,
                 expanded = expanded, onToggle = onToggle,

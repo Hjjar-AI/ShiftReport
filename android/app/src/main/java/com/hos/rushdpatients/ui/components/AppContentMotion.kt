@@ -32,9 +32,9 @@ fun Modifier.appContentEntrance(
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val distance = with(LocalDensity.current) {
         when (entrance) {
-            ContentEntrance.FADE -> 0.dp
-            ContentEntrance.DETAILS -> 8.dp
-            ContentEntrance.REPORT_STEP -> 24.dp
+            ContentEntrance.FADE -> UiMotion.contentOffsetNone
+            ContentEntrance.DETAILS -> UiMotion.contentOffsetSmall
+            ContentEntrance.REPORT_STEP -> UiMotion.contentOffsetLarge
         }.toPx()
     }
     LaunchedEffect(progress, reduced) {

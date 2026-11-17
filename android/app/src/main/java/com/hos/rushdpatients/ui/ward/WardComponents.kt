@@ -98,7 +98,7 @@ internal fun DrawerSubmenuHeader(
         badge = {
             Icon(
                 imageVector = if (expanded) AppIcons.ExpandLess else AppIcons.ExpandMore,
-                contentDescription = if (expanded) uiText(R.string.ui_ward_drawer_030, label) else uiText(R.string.ui_ward_drawer_031, label)
+                contentDescription = null
             )
         },
         modifier = Modifier.padding(horizontal = UiSpacing.small)

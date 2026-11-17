@@ -49,6 +49,7 @@ internal fun HandoverDashboard(
     bottomClearance: Dp = UiSpacing.screen,
     showSynchronization: Boolean = true,
     pendingCount: Int? = null,
+    topContent: @Composable () -> Unit = {},
     reportStatus: String? = null, onReportStatus: () -> Unit = onSync
 ) {
     val uiText = rememberUiStrings()
@@ -69,6 +70,7 @@ internal fun HandoverDashboard(
                 .verticalScroll(rememberScrollState()).padding(bottom = bottomClearance),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.section)
         ) {
+            topContent()
             reportStatus?.let { status ->
                 AppTextButton(onClick = onReportStatus) { AppText(status, style = MaterialTheme.typography.titleSmall) }
             }

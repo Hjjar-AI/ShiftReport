@@ -4,7 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import com.hos.rushdpatients.R
@@ -23,28 +24,39 @@ internal fun WardPatientListSection(
     gridState: LazyGridState, bottomClearance: Dp, collapsedGroups: List<String>,
     filters: WardFilters, presetCounts: Map<DashboardFilter, Int>,
     showSearch: Boolean, requestSearchFocus: Boolean,
+    shortWindow: Boolean = false, topContent: @Composable () -> Unit = {},
     onToggleGroup: (String) -> Unit, onResetFilters: () -> Unit,
     onPreset: (DashboardFilter) -> Unit, onOptions: () -> Unit,
     onQueryChange: (String) -> Unit, onFocusRequested: () -> Unit,
     patientCard: @Composable (Patient, Modifier) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    WardPatientGrid(state, visiblePatients, dualPane, gridState,
-        bottomClearance, emptyList(), collapsedGroups,
-        onToggleGroup = onToggleGroup, onResetFilters = onResetFilters,
-        controlsContent = {
-            if (state.isReadOnly) AppNotice(uiText(R.string.ui_ward_screen_013), icon = AppIcons.Lock, compact = true)
-            Surface {
-                Column(Modifier.padding(horizontal = UiSpacing.screenGutter)) {
-                    WardPatientListControls(
-                        visibleCount = visiblePatients.size, totalCount = state.patients.size,
-                        presetCounts = presetCounts,
-                        groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText),
-                        activeFilters = filters.labels(uiText), selectedPreset = filters.selectedPreset,
-                        onPreset = onPreset, onOptions = onOptions, onReset = onResetFilters,
-                        showSearch = showSearch, query = filters.searchQuery, onQueryChange = onQueryChange,
-                        requestFocus = requestSearchFocus, onFocusRequested = onFocusRequested)
-                }
+    val currentSearch = rememberUpdatedState<@Composable () -> Unit> {
+        if (showSearch || filters.searchQuery.isNotBlank()) {
+            WardPatientSearchField(filters.searchQuery, onQueryChange, requestSearchFocus, onFocusRequested)
+        }
+    }
+    val searchContent = remember { movableContentOf { currentSearch.value() } }
+    val listControls: @Composable () -> Unit = {
+        if (state.isReadOnly) AppNotice(uiText(R.string.ui_ward_screen_013), icon = AppIcons.Lock, compact = true)
+        Surface {
+            Column(Modifier.padding(horizontal = UiSpacing.screenGutter)) {
+                WardPatientListControls(
+                    visibleCount = visiblePatients.size, totalCount = state.patients.size,
+                    presetCounts = presetCounts,
+                    groupingLabel = state.groupByMode.takeUnless { it == GroupByMode.NONE }?.uiLabel(uiText),
+                    activeFilters = filters.labels(uiText), selectedPreset = filters.selectedPreset,
+                    onPreset = onPreset, onOptions = onOptions, onReset = onResetFilters,
+                    searchContent = { if (!shortWindow) searchContent() })
             }
-        }, headerContent = {}, patientCard = patientCard)
+        }
+    }
+    Column(Modifier.fillMaxSize()) {
+        if (shortWindow) searchContent()
+        WardPatientGrid(state, visiblePatients, dualPane, gridState,
+            bottomClearance, emptyList(), collapsedGroups,
+            onToggleGroup = onToggleGroup, onResetFilters = onResetFilters,
+            controlsContent = { if (!shortWindow) listControls() },
+            headerContent = { topContent(); if (shortWindow) listControls() }, patientCard = patientCard)
+    }
 }

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.doctors
 
+import com.hos.rushdpatients.ui.components.readingPaneWidth
 import com.hos.rushdpatients.ui.components.AppText
 
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
@@ -121,12 +122,7 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
 
     LaunchedEffect(showAdd, editTarget?.id, deleteTarget?.id) { viewModel.dismissOperationIssue() }
 
-    LaunchedEffect(state.snackbar) {
-        state.snackbar?.let {
-            snackbar.showSnackbar(it)
-            viewModel.dismissSnackbar()
-        }
-    }
+    com.hos.rushdpatients.ui.components.AppSnackbarEffect(state.snackbar, snackbar, viewModel::dismissSnackbar)
 
     if (showTeams) TeamManagementDialog(doctors = state.doctors, busy = busy,
         onDismiss = { showTeams = false },
@@ -156,7 +152,7 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = actionSpace.bottomPadding),
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxSize().readingPaneWidth()
                         .padding(horizontal = UiSpacing.medium),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
@@ -195,46 +191,12 @@ internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) 
                         }
                     }
                     item {
-                        AppCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(UiPadding.content),
-                                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                            ) {
-                                AppText(uiText(R.string.ui_doctor_registry_tools), style = MaterialTheme.typography.titleMedium)
-                                AppText(uiText(R.string.ui_doctors_screen_014),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                AppOutlinedButton(
-                                    onClick = { registryReview = state.doctors.toList(); registryAction = "publish" },
-                                    enabled = !busy, modifier = Modifier.fillMaxWidth()
-                                ) { AppText(uiText(R.string.ui_doctors_screen_006)) }
-                                AppOutlinedButton(
-                                    onClick = { importLauncher.launch(arrayOf("*/*")) },
-                                    enabled = !busy && viewModel.fileTransfers, modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(AppIcons.FolderOpen, contentDescription = null)
-                                    AppText(uiText(R.string.ui_doctors_screen_015), Modifier.padding(start = UiSpacing.small))
-                                }
-                                AppOutlinedButton(onClick = { registryAction = "fetch" },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = !busy) {
-                                    AppText(uiText(R.string.ui_doctors_screen_005))
-                                }
-                                com.hos.rushdpatients.ui.components.AppSectionHeader(
-                                    title = uiText(R.string.ui_doctors_secondary_tools), expanded = transferExpanded,
-                                    onToggle = { transferExpanded = !transferExpanded })
-                                if (transferExpanded) {
-                                    AppOutlinedButton(onClick = { showTeams = true }, enabled = !busy,
-                                        modifier = Modifier.fillMaxWidth()) {
-                                        AppText(uiText(R.string.ui_team_management_dialog_002))
-                                    }
-                                    AppOutlinedButton(onClick = viewModel::prepareDoctorExport,
-                                        enabled = !busy && viewModel.fileTransfers, modifier = Modifier.fillMaxWidth()) {
-                                        AppText(uiText(R.string.ui_doctors_screen_016))
-                                    }
-                                }
-                            }
-                        }
+                        DoctorRegistryTools(busy, viewModel.fileTransfers, transferExpanded,
+                            onReviewPublication = { registryReview = state.doctors.toList(); registryAction = "publish" },
+                            onImport = { importLauncher.launch(arrayOf("*/*")) },
+                            onFetch = { registryAction = "fetch" },
+                            onToggleTransfer = { transferExpanded = !transferExpanded },
+                            onTeams = { showTeams = true }, onExport = viewModel::prepareDoctorExport)
                     }
                     if (visibleDoctors.isEmpty()) {
                         item {

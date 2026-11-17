@@ -43,10 +43,10 @@ fun AppAlertDialog(
     Dialog(onDismissRequest = onDismissRequest, properties = properties) {
         // A Dialog has its own Android/Compose root. An activity-side provider alone
         // cannot pin the direction used by content inside that new root.
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        AppDialogRoot {
             Surface(
-                modifier = modifier.widthIn(min = 280.dp, max = 560.dp).fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
+                modifier = modifier.widthIn(min = com.hos.rushdpatients.ui.theme.UiDialog.minWidth, max = com.hos.rushdpatients.ui.theme.UiDialog.maxWidth).fillMaxWidth(),
+                shape = com.hos.rushdpatients.ui.theme.UiShape.dialog,
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 tonalElevation = UiElevation.overlay

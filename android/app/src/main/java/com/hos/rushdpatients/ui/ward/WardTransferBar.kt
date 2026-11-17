@@ -61,7 +61,7 @@ private fun TransferAction(label: String, icon: ImageVector, enabled: Boolean, o
             }).heightIn(min = UiSpacing.touchTarget).padding(UiSpacing.small),
             contentAlignment = Alignment.Center) {
             ButtonEmblem(icon,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = if (enabled) 0.10f else 0.06f))
+                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = if (enabled) UiOpacity.emblem else UiOpacity.emblemFaint))
             AppText(label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium)
         }

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.guide
 
+import com.hos.rushdpatients.ui.components.statusEdge
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -143,8 +144,8 @@ private fun CardColorMeaning(label: String, description: String, color: Color) {
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            Box(Modifier.width(UiSize.statusEdge).fillMaxHeight().background(color))
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+            .statusEdge(color).padding(start = UiSize.statusEdge)) {
             Column(Modifier.weight(1f).padding(UiSpacing.screen),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 AppText(label, role = AppTextRole.BODY_STRONG)

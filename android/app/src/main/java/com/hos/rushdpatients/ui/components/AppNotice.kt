@@ -15,8 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.hos.rushdpatients.ui.theme.ContainerColors
 import com.hos.rushdpatients.ui.theme.Tone
@@ -50,7 +48,7 @@ fun AppNotice(
         NoticeKind.WARNING -> AppIcons.Warning
         NoticeKind.ERROR -> AppIcons.ErrorOutline
     }
-    Surface(modifier = modifier.fillMaxWidth().semantics { liveRegion = if (kind == NoticeKind.ERROR) LiveRegionMode.Assertive else LiveRegionMode.Polite },
+    Surface(modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.small, color = colors.container, contentColor = colors.content) {
         Row(Modifier.fillMaxWidth().padding(if (compact) UiPadding.compact else com.hos.rushdpatients.ui.theme.uiContentPadding(UiPadding.content)),
             verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {

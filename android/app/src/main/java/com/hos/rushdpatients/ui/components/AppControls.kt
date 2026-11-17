@@ -43,7 +43,7 @@ fun AppButton(
     content: @Composable RowScope.() -> Unit
 ) {
     val active = enabled && LocalFieldEnabled.current
-    val shape = MaterialTheme.shapes.small
+    val shape = com.hos.rushdpatients.ui.theme.UiShape.field
     val target = modifier.minimumInteractiveComponentSize().heightIn(min = size.visualHeight(UiSpacing.touchTarget))
     val centeredContent: @Composable RowScope.() -> Unit = {
         ProvideTextStyle(LocalTextStyle.current.copy(textAlign = TextAlign.Center)) { content() }
@@ -86,7 +86,7 @@ fun AppCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        modifier = modifier, shape = MaterialTheme.shapes.medium,
+        modifier = modifier, shape = com.hos.rushdpatients.ui.theme.UiShape.card,
         colors = colors, elevation = elevation, border = border, content = content
     )
 }

@@ -7,6 +7,9 @@ import com.hos.rushdpatients.data.model.DiagnosisType
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.PatientBadge
+import com.hos.rushdpatients.data.model.PatientLabGroup
+import com.hos.rushdpatients.data.model.PatientTask
+import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import java.time.LocalDate
 
@@ -46,6 +49,62 @@ internal class PatientFormState(initial: Patient?, draft: PatientDraft?) {
             clinicalDraftText(draft?.labItems.orEmpty(), draft?.labDraft.orEmpty()), "draft-labs"))
     var residentId by mutableStateOf(initial?.responsibleResidentId ?: draft?.residentId)
     var specialistId by mutableStateOf(initial?.responsibleSpecialistId ?: draft?.specialistId)
+    val birthYear: Int? get() = birthYearText.trim().toIntOrNull()
+    fun age(currentYear: Int): Int? = birthYear?.let { (currentYear - it).takeIf { age -> age in 0..120 } }
+    val resolvedTasks: List<PatientTask>
+        get() = tasks + listOfNotNull(taskEntry?.takeIf { it.description.isNotBlank() })
+
+    fun snapshot(): PatientFormSnapshot = PatientFormSnapshot(
+        admittanceNumber = admittanceNumber,
+        admittanceDate = admittanceDate,
+        gender = gender,
+        name = name,
+        birthYearText = birthYearText,
+        ageText = ageText,
+        hasCompanion = hasCompanion,
+        diagnosisType = diagnosisType,
+        initialDiagnosis = initialDiagnosis,
+        treatmentText = treatmentText,
+        followUpText = followUpText,
+        labGroups = labGroups,
+        residentId = residentId,
+        specialistId = specialistId,
+        badges = badges,
+        tasks = resolvedTasks,
+        badgeDraftText = badgeDraftText,
+        badgeDraftPriority = badgeDraftPriority,
+        isPriority = isPriority
+    )
+
+}
+
+/** Named in-memory fields avoid two independently ordered dirty-check lists. */
+internal data class PatientFormSnapshot(
+    val admittanceNumber: String,
+    val admittanceDate: LocalDate?,
+    val gender: Gender,
+    val name: String,
+    val birthYearText: String,
+    val ageText: String,
+    val hasCompanion: Boolean,
+    val diagnosisType: DiagnosisType,
+    val initialDiagnosis: String,
+    val treatmentText: String,
+    val followUpText: String,
+    val labGroups: List<PatientLabGroup>,
+    val residentId: String?,
+    val specialistId: String?,
+    val badges: List<PatientBadge>,
+    val tasks: List<PatientTask>,
+    val badgeDraftText: String,
+    val badgeDraftPriority: PatientBadgePriority?,
+    val isPriority: Boolean
+)
+
+internal class PatientFormDoctors(doctors: List<Doctor>) {
+    private val active = doctors.filterNot { it.isDeleted }
+    val residents = active.filter { it.clinicalRole.canBeResident() }
+    val supervisors = active.filter { it.clinicalRole.canBeSupervisor() }
 }
 
 /** Reset only when the explicitly reviewed initial patient changes, not on each add-draft callback. */

@@ -57,7 +57,7 @@ fun AppTabBar(items: List<AppTabItem>, selectedIndex: Int, onSelect: (Int) -> Un
                         contentAlignment = Alignment.Center) {
                         (if (selected) item.selectedIcon else item.icon)?.let { icon ->
                             ButtonEmblem(icon,
-                                tint = color.copy(alpha = if (selected) 0.10f else 0.07f),
+                                tint = color.copy(alpha = if (selected) com.hos.rushdpatients.ui.theme.UiOpacity.emblem else com.hos.rushdpatients.ui.theme.UiOpacity.emblemIdle),
                                 modifier = Modifier.graphicsLayer { scaleX = iconScale; scaleY = iconScale })
                         }
                         AppText(item.label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = color,

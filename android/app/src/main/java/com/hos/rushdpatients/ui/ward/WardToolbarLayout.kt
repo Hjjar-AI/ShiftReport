@@ -25,26 +25,18 @@ internal fun WardToolbarLayout(foldingFeature: FoldingFeature?, content: @Compos
         val width = constraints.maxWidth
         var left = 0
         var safeWidth = width
-        if (fold != null && location != null && fold.orientation == FoldingFeature.Orientation.VERTICAL &&
-            fold.bounds.bottom > location.y && fold.bounds.top < location.y + constraints.maxHeight) {
-            val start = (fold.bounds.left - location.x).toInt().coerceIn(0, width)
-            val end = (fold.bounds.right - location.x).toInt().coerceIn(0, width)
-            if (end > 0 && start < width) {
-                val before = (start - gap).coerceAtLeast(0)
-                val after = (width - end - gap).coerceAtLeast(0)
-                if (after > before) { left = (end + gap).coerceAtMost(width); safeWidth = after }
-                else safeWidth = before
-            }
+        val regions = foldSafeRegions(fold, location, width.toFloat(), constraints.maxHeight.toFloat(), gap.toFloat())
+        if (fold?.orientation == FoldingFeature.Orientation.VERTICAL && regions.isNotEmpty()) {
+            val region = regions.maxBy { it.width }
+            left = region.x.toInt()
+            safeWidth = region.width.toInt()
         }
         val placeables = children.map { it.measure(constraints.copy(minWidth = safeWidth, maxWidth = safeWidth, minHeight = 0)) }
         val naturalHeight = placeables.maxOfOrNull { it.height } ?: 0
         var top = 0
-        if (fold != null && location != null && fold.orientation == FoldingFeature.Orientation.HORIZONTAL) {
-            val start = (fold.bounds.top - location.y).toInt()
-            val end = (fold.bounds.bottom - location.y).toInt()
-            if (end >= 0 && start < naturalHeight && naturalHeight > start - gap) {
-                top = (end + gap).coerceIn(0, (constraints.maxHeight - naturalHeight).coerceAtLeast(0))
-            }
+        if (fold?.orientation == FoldingFeature.Orientation.HORIZONTAL && regions.size == 2 &&
+            naturalHeight > regions[0].height) {
+            top = regions[1].y.toInt().coerceIn(0, (constraints.maxHeight - naturalHeight).coerceAtLeast(0))
         }
         layout(width, constraints.constrainHeight(naturalHeight + top)) {
             if (fold == null || location != null) placeables.forEach { it.place(left, top) }

@@ -18,11 +18,13 @@ internal fun WardStatusHeader(
     onOpenDoctors: () -> Unit, onReviewPatients: () -> Unit,
     onRetry: () -> Unit, onReload: () -> Unit, onFetch: () -> Unit,
     onBackToPreview: (() -> Unit)?,
+    onWorkflow: () -> Unit = {},
     header: @Composable () -> Unit, transferActions: @Composable () -> Unit
 ) {
     val uiText = rememberUiStrings()
     Column {
         header()
+        if (state.deliveryLogUnavailable || state.unresolvedDeliveries > 0) WardDeliveryNotice(state, onNext = onWorkflow)
         state.syncIssue?.let { issue ->
             val recovery = state.syncRecovery
             val doctorAction = recovery == WardSyncRecovery.PUBLISH_DOCTORS || recovery == WardSyncRecovery.FETCH_DOCTORS

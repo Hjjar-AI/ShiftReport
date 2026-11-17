@@ -48,16 +48,9 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.isTraversalGroup
-import androidx.compose.ui.semantics.paneTitle
-import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.setProgress
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -88,7 +81,7 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-private data class PaneRegion(val x: Float, val y: Float, val width: Float, val height: Float)
+private typealias PaneRegion = FoldSafeRegion
 
 /** Physical fold coordinates are translated from window pixels into this content's local dp. */
 @Composable
@@ -105,7 +98,7 @@ internal fun WardAdaptivePanes(
     supporting: @Composable () -> Unit = {},
     compactOverlay: @Composable () -> Unit = {}
 ) {
-    val uiText = rememberUiStrings()
+    val scale = com.hos.rushdpatients.ui.theme.uiLayoutScale()
     val density = LocalDensity.current.density
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     var origin by remember { mutableStateOf<Offset?>(null) }
@@ -118,50 +111,37 @@ internal fun WardAdaptivePanes(
         val offset = origin
         val fold = foldingFeature
         // Keep content/drafts mounted while the first measured origin becomes available.
-        val regions = if (fold != null && offset != null) {
-            val bounds = fold.bounds
-            if (fold.orientation == FoldingFeature.Orientation.VERTICAL) {
-                val start = (bounds.left - offset.x) / density
-                val end = (bounds.right - offset.x) / density
-                if (end >= 0f && start <= width) listOf(
-                    PaneRegion(0f, 0f, (start - UiLayout.foldClearance.value).coerceIn(0f, width), height),
-                    PaneRegion((end + UiLayout.foldClearance.value).coerceIn(0f, width), 0f, (width - end - UiLayout.foldClearance.value).coerceIn(0f, width), height)
-                ) else emptyList()
-            } else {
-                val start = (bounds.top - offset.y) / density
-                val end = (bounds.bottom - offset.y) / density
-                if (end >= 0f && start <= height) listOf(
-                    PaneRegion(0f, 0f, width, (start - UiLayout.foldClearance.value).coerceIn(0f, height)),
-                    PaneRegion(0f, (end + UiLayout.foldClearance.value).coerceIn(0f, height), width, (height - end - UiLayout.foldClearance.value).coerceIn(0f, height))
-                ) else emptyList()
-            }
-        } else emptyList()
-        val foldSplit = regions.size == 2 && enableSplit && regions.all {
-            it.width >= UiLayout.foldPaneMinWidth.value && it.height >= UiLayout.paneMinHeight.value
+        val regions = foldSafeRegions(fold, offset, width * density, height * density,
+            UiLayout.foldClearance.value * density).map {
+            PaneRegion(it.x / density, it.y / density, it.width / density, it.height / density)
         }
-        val regularSplit = enableSplit && regions.isEmpty() && width >= UiLayout.splitMinWidth.value && height >= UiLayout.paneMinHeight.value
+        val foldSplit = regions.size == 2 && enableSplit && regions.all {
+            it.width >= (UiLayout.foldPaneMinWidth.value * scale) && it.height >= (UiLayout.paneMinHeight.value * scale)
+        }
+        val regularSplit = enableSplit && regions.isEmpty() && width >= maxOf(UiLayout.splitMinWidth.value * scale,
+            (UiLayout.primaryPaneMinWidth.value + UiLayout.supportingPaneMinWidth.value) * scale + UiSpacing.touchTarget.value) && height >= (UiLayout.paneMinHeight.value * scale)
         val mediumSupport = enableSplit && allowMediumSupport && regions.isEmpty() &&
-            !regularSplit && width >= UiLayout.mediumSupportMinWidth.value && height >= UiLayout.mediumSupportMinHeight.value
+            !regularSplit && width >= (UiLayout.mediumSupportMinWidth.value * scale) && height >= (UiLayout.mediumSupportMinHeight.value * scale)
         val split = foldSplit || regularSplit || mediumSupport
         val total = (width - UiSpacing.touchTarget.value).coerceAtLeast(1f)
-        val minimum = (UiLayout.primaryPaneMinWidth.value / total).coerceIn(0f, 1f)
-        val maximum = (1f - UiLayout.supportingPaneMinWidth.value / total).coerceIn(minimum, 1f)
+        val minimum = ((UiLayout.primaryPaneMinWidth.value * scale) / total).coerceIn(0f, 1f)
+        val maximum = (1f - (UiLayout.supportingPaneMinWidth.value * scale) / total).coerceIn(minimum, 1f)
         val fraction = listFraction.coerceIn(minimum, maximum)
-        LaunchedEffect(width, height, regularSplit) {
+        LaunchedEffect(width, height, scale, regularSplit, fraction) {
             if (regularSplit && fraction != listFraction) onListFractionChange(fraction)
         }
         val listWidth = total * fraction
         val primaryRegion = when {
             foldSplit -> if (fold?.orientation == FoldingFeature.Orientation.VERTICAL && rtl) regions[1] else regions[0]
             regularSplit -> PaneRegion(if (rtl) width - listWidth else 0f, 0f, listWidth, height)
-            mediumSupport -> PaneRegion(0f, 0f, width, height - UiLayout.mediumSupportHeight.value)
+            mediumSupport -> PaneRegion(0f, 0f, width, height - (UiLayout.mediumSupportHeight.value * scale))
             regions.isNotEmpty() -> regions.maxBy { it.width * it.height }
             else -> full
         }
         val supportingRegion = when {
             foldSplit -> regions.first { it != primaryRegion }
             regularSplit -> PaneRegion(if (rtl) 0f else listWidth + UiSpacing.touchTarget.value, 0f, total - listWidth, height)
-            mediumSupport -> PaneRegion(0f, height - UiLayout.mediumSupportHeight.value, width, UiLayout.mediumSupportHeight.value)
+            mediumSupport -> PaneRegion(0f, height - (UiLayout.mediumSupportHeight.value * scale), width, (UiLayout.mediumSupportHeight.value * scale))
             else -> full
         }
         PaneRegionBox(primaryRegion, primaryTitle, 0f) { primary(split) }
@@ -181,17 +161,6 @@ internal fun WardAdaptivePanes(
                                 Offset(size.width / 2, size.height), UiBorder.hairline.toPx())
                         }
                         .then(if (dividerFocused) Modifier.border(UiBorder.stroke(focused = true)) else Modifier)
-                        .semantics {
-                            contentDescription = uiText(R.string.ui_ward_adaptive_panes_003)
-                            stateDescription = uiText(R.string.ui_ward_adaptive_panes_004, (fraction * 100).toInt())
-                            progressBarRangeInfo = ProgressBarRangeInfo(fraction, minimum..maximum)
-                            setProgress { adjust(it); true }
-                            customActions = listOf(
-                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_005)) { adjust(fraction + UiLayout.paneAdjustmentFraction); true },
-                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_006)) { adjust(fraction - UiLayout.paneAdjustmentFraction); true },
-                                CustomAccessibilityAction(uiText(R.string.ui_ward_adaptive_panes_007)) { adjust(UiLayout.defaultListFraction); true }
-                            )
-                        }
                         .onKeyEvent { event ->
                             if (event.type != KeyEventType.KeyDown) false else when (event.key) {
                                 Key.DirectionRight -> { adjust(fraction + direction * UiLayout.paneAdjustmentFraction); true }
@@ -220,6 +189,6 @@ private fun PaneRegionBox(region: PaneRegion, title: String, order: Float, conte
     Box(
         Modifier.absoluteOffset(region.x.dp, region.y.dp)
             .width(region.width.dp).height(region.height.dp).clipToBounds()
-            .semantics { paneTitle = title; isTraversalGroup = true; traversalIndex = order }
+            .semantics { isTraversalGroup = true; traversalIndex = order }
     ) { content() }
 }

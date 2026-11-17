@@ -32,13 +32,7 @@ internal fun WardFullscreenDialog(
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Dialog(onDismissRequest = onDismissRequest, properties = properties) {
-            val view = LocalView.current
-            DisposableEffect(view) {
-                view.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
-                (view.parent as? DialogWindowProvider)?.window?.decorView?.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
-                onDispose { }
-            }
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            com.hos.rushdpatients.ui.components.AppDialogRoot(nativeRtl = true) {
                 Surface(Modifier.fillMaxSize(), color = containerColor) {
                     WardAdaptivePanes(
                         enableSplit = false, foldingFeature = foldingFeature,

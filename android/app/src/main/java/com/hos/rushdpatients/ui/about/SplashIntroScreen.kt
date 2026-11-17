@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.about
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.components.AppText
 
 import androidx.compose.animation.core.CubicBezierEasing
@@ -72,7 +73,7 @@ internal fun SplashIntroScreen(
         .safeDrawingPadding().padding(UiSpacing.section), contentAlignment = Alignment.Center) {
         // Keep the credits reachable on short windows and with enlarged text.
         val wordmarkWidth = minOf(UiSize.appWordmark, maxWidth - UiSpacing.pageSection * 2, maxHeight * 0.5f)
-            .coerceAtLeast(96.dp)
+            .coerceAtLeast(UiSize.splashMarkMin)
         Column(Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.splashMaxWidth)
             .fillMaxWidth().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -135,7 +136,7 @@ private fun splashEntrance(entered: Boolean, order: Int, horizontal: Boolean = f
 private fun SplashCreditSection(role: String, names: List<String>, order: Int, entered: Boolean) {
     val colors = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth().then(splashEntrance(entered, order = order + 3)).semantics(mergeDescendants = true) {}
-        .background(if (order == 0) colors.primary.copy(alpha = 0.06f) else Color.Transparent)
+        .background(if (order == 0) colors.primary.copy(alpha = UiOpacity.amoledLift) else Color.Transparent)
         .padding(uiContentPadding(PaddingValues(horizontal = UiSpacing.largeSection, vertical = UiSpacing.section))),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(uiContentGap())) {
         AppText(role, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)

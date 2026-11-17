@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.ui.components
 
+import com.hos.rushdpatients.ui.theme.UiOpacity
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,7 +28,7 @@ internal fun BoxScope.ButtonEmblem(icon: ImageVector, tint: Color, modifier: Mod
 internal fun ButtonEmblemContent(icon: ImageVector, enabled: Boolean, content: @Composable () -> Unit) {
     Box(Modifier.fillMaxWidth().heightIn(min = UiSize.iconXl), contentAlignment = Alignment.Center) {
         val color = LocalContentColor.current
-        ButtonEmblem(icon, tint = color.copy(alpha = color.alpha * if (enabled) 0.10f else 0.06f))
+        ButtonEmblem(icon, tint = color.copy(alpha = color.alpha * if (enabled) UiOpacity.emblem else UiOpacity.emblemFaint))
         content()
     }
 }
