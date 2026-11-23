@@ -3,11 +3,11 @@ name: 07 - Verify - Emulator with visual evidence
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize debug build, required instrumentation build, emulator downloads and selected offline phases on API 23 and 35. Default: false. No physical devices or live Telegram.'
+        description: 'Options: false = skip; true = authorize application builds, any selected instrumentation build, emulator downloads and selected offline phases on API 23 and 35. Default: false. No physical devices or live Telegram.'
         type: boolean
         default: false
       operation:
-        description: 'Options: capture = startup/demo PNGs and short video; instrumentation = selected offline demo, crypto and report-selection tests; both = run both phases separately. Default: capture.'
+        description: 'Options: capture = separate clinical setup and standalone demo captures; instrumentation = existing offline method selection; both = run both phases separately. Default: capture.'
         type: choice
         options:
         - capture
@@ -48,6 +48,9 @@ jobs:
       uses: ./.github/actions/setup-android
     - name: Build the current application without reserving a version
       run: python3 .github/scripts/hosted-android.py debug-apk
+    - name: Build the standalone demo for visual capture
+      if: ${{ inputs.operation != 'instrumentation' }}
+      run: python3 .github/scripts/hosted-android.py demo-apk
     - name: Build existing instrumentation only when selected
       if: ${{ inputs.operation != 'capture' }}
       run: python3 .github/scripts/hosted-android.py instrumentation-apk
@@ -58,7 +61,7 @@ jobs:
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
-    - name: Capture the current startup and offline demo
+    - name: Run selected clinical and demo emulator phases
       uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
       env:
         CI_EXPECTED_API: ${{ matrix.api }}
@@ -83,6 +86,7 @@ jobs:
           ci-output/emulator/
           ci-output/instrumentation/
           ci-output/debug-apk/
+          ci-output/demo-apk/
           ci-output/instrumentation-apk/
         retention-days: 1
         if-no-files-found: error

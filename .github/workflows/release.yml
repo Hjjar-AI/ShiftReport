@@ -3,7 +3,7 @@ name: 08 - Verify - Release output and startup
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize release build/inspection and fresh API 35 emulator startup/demo capture with a throwaway signer. Default: false. Stored version preserved; no production signing or publication.'
+        description: 'Options: false = skip; true = authorize release build/inspection and fresh API 35 clinical setup capture with a throwaway signer. Default: false. Stored version preserved; no production signing or publication.'
         type: boolean
         default: false
 permissions:

@@ -767,7 +767,7 @@
     <string name="ui_demo_ward_screen_006" formatted="false">"لا يوجد مرضى"</string>
     <string name="ui_demo_ward_screen_007" formatted="false">"جلسة تجريبية مؤقتة"</string>
     <string name="ui_demo_ward_screen_008" formatted="false">"تعذر فتح مكان الحفظ"</string>
-    <string name="ui_demo_ward_screen_009" formatted="false">"ستُحذف التغييرات المؤقتة وتعود إلى صفحة البدء."</string>
+    <string name="ui_demo_ward_screen_009" formatted="false">"ستُحذف التغييرات المؤقتة عند إغلاق التطبيق التجريبي."</string>
     <string name="ui_demo_ward_screen_010">"سيُنقل %1$s إلى سلة المحذوفات التجريبية."</string>
     <string name="ui_demo_ward_screen_011" formatted="false">"إعادة ضبط التجربة"</string>
     <string name="ui_demo_ward_screen_012" formatted="false">"ستُستعاد أمثلة المرضى والأطباء وتُحذف التعديلات على البيانات."</string>

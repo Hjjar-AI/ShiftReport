@@ -80,16 +80,6 @@ class ProjectConfigStore @Inject constructor(
         write(_config.value.copy(initialized = true))
     }
 
-    fun enterDemo() {
-        write(
-            ProjectConfig(
-                initialized = true,
-                demoMode = true,
-                hospitalName = "مشروع تجريبي"
-            )
-        )
-    }
-
     fun clear() {
         prefs.edit().clear().apply()
         _config.value = ProjectConfig()
@@ -116,25 +106,29 @@ class ProjectConfigStore @Inject constructor(
         _config.value = config
     }
 
-    private fun read() = ProjectConfig(
-        initialized = prefs.getBoolean(KEY_INITIALIZED, false),
-        demoMode = prefs.getBoolean(KEY_DEMO_MODE, false),
-        hospitalName = prefs.getString(KEY_HOSPITAL_NAME, "").orEmpty(),
-        botToken = prefs.getString(KEY_BOT_TOKEN, "").orEmpty(),
-        telegramDataKey = prefs.getString(KEY_TELEGRAM_DATA_KEY, "").orEmpty(),
-        chatId = prefs.getLong(KEY_CHAT_ID, 0L),
-        residentsChatId = prefs.getLong(KEY_RESIDENTS_CHAT, 0L),
-        residentsTopicId = prefs.getLong(KEY_RESIDENTS_TOPIC, 0L),
-        reportsTopicId = prefs.getLong(KEY_REPORTS_TOPIC, 0L),
-        csvTopicId = prefs.getLong(KEY_CSV_TOPIC, 0L),
-        doctorsTopicId = prefs.getLong(KEY_DOCTORS_TOPIC, 0L),
-        initialAdmin = InitialAdminConfig(
-            fullName = prefs.getString(KEY_ADMIN_NAME, "").orEmpty(),
-            telegramId = prefs.getLong(KEY_ADMIN_TELEGRAM_ID, 0L),
-            genderCode = prefs.getString(KEY_ADMIN_GENDER, "M").orEmpty(),
-            clinicalRoleCode = prefs.getString(KEY_ADMIN_CLINICAL_ROLE, "RESIDENT").orEmpty()
+    private fun read(): ProjectConfig {
+        // Older builds stored Demo as a placeholder project. Leave its data in place
+        // and let the normal Join/Create flow replace the placeholder when confirmed.
+        if (prefs.getBoolean(KEY_DEMO_MODE, false)) return ProjectConfig()
+        return ProjectConfig(
+            initialized = prefs.getBoolean(KEY_INITIALIZED, false),
+            hospitalName = prefs.getString(KEY_HOSPITAL_NAME, "").orEmpty(),
+            botToken = prefs.getString(KEY_BOT_TOKEN, "").orEmpty(),
+            telegramDataKey = prefs.getString(KEY_TELEGRAM_DATA_KEY, "").orEmpty(),
+            chatId = prefs.getLong(KEY_CHAT_ID, 0L),
+            residentsChatId = prefs.getLong(KEY_RESIDENTS_CHAT, 0L),
+            residentsTopicId = prefs.getLong(KEY_RESIDENTS_TOPIC, 0L),
+            reportsTopicId = prefs.getLong(KEY_REPORTS_TOPIC, 0L),
+            csvTopicId = prefs.getLong(KEY_CSV_TOPIC, 0L),
+            doctorsTopicId = prefs.getLong(KEY_DOCTORS_TOPIC, 0L),
+            initialAdmin = InitialAdminConfig(
+                fullName = prefs.getString(KEY_ADMIN_NAME, "").orEmpty(),
+                telegramId = prefs.getLong(KEY_ADMIN_TELEGRAM_ID, 0L),
+                genderCode = prefs.getString(KEY_ADMIN_GENDER, "M").orEmpty(),
+                clinicalRoleCode = prefs.getString(KEY_ADMIN_CLINICAL_ROLE, "RESIDENT").orEmpty()
+            )
         )
-    )
+    }
 
     private companion object {
         const val FILE_NAME = "shift_report_project_encrypted"

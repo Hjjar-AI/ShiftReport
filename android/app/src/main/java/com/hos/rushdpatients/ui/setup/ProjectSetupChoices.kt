@@ -48,7 +48,6 @@ private fun SetupChoice(
 ) {
     val uiText = rememberUiStrings()
     val (title, description) = when (mode) {
-        ProjectSetupMode.DEMO -> uiText(R.string.ui_project_setup_choices_001) to uiText(R.string.ui_project_setup_choices_002)
         ProjectSetupMode.JOIN -> uiText(R.string.ui_project_setup_choices_003) to uiText(R.string.ui_project_setup_choices_004)
         ProjectSetupMode.CREATE -> uiText(R.string.ui_project_setup_choices_005) to uiText(R.string.ui_project_setup_choices_006)
     }

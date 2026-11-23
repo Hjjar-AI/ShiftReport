@@ -19,6 +19,7 @@ OPERATIONS = {
     'all': [':app:compileDebugSources', ':app:compileReleaseSources', ':app:testDebugUnitTest'],
     'lint': ['-I', str(ROOT / '.github/production-lint.init.gradle'), ':app:lintDebug'],
     'debug-apk': [':app:assembleDebug'],
+    'demo-apk': [':app:assembleDemo'],
     'instrumentation-apk': [':app:assembleDebugAndroidTest'],
     'release-apk': [':app:assembleRelease'],
     'dependencies': ['-I', str(ROOT / '.github/dependency-inventory.init.gradle'), ':app:ciDependencyInventory'],
@@ -123,8 +124,8 @@ def run(operation):
         results = sorted((build / 'test-results/testDebugUnitTest').glob('TEST-*.xml'))
         if not results or sum(int(ET.parse(path).getroot().get('tests', '0')) for path in results) == 0:
             raise ValueError('Missing/empty JVM results; no pass claimed')
-    if operation in ('debug-apk', 'release-apk', 'instrumentation-apk'):
-        variant = 'release' if operation == 'release-apk' else 'debug'
+    if operation in ('debug-apk', 'demo-apk', 'release-apk', 'instrumentation-apk'):
+        variant = operation.removesuffix('-apk')
         location = 'outputs/apk/androidTest/debug' if operation == 'instrumentation-apk' else f'outputs/apk/{variant}'
         packages = sorted((build / location).glob('*.apk'))
         if len(packages) != 1:
@@ -143,7 +144,7 @@ def run(operation):
             shutil.copytree(build / 'outputs/mapping/release', directory / 'mapping', dirs_exist_ok=True)
     text = (f'## {operation}\n\nGradle completed; stored version unchanged.\n\n'
             'Results establish this selected operation only; no physical device, production signing, publication or live Telegram acceptance.\n')
-    if operation == 'debug-apk':
+    if operation in ('debug-apk', 'demo-apk'):
         text += 'Preview uses an ephemeral runner signer and cannot update an existing differently signed installation.\n'
     if operation == 'release-apk':
         text += 'Unsigned release inspection artifact; not a production distribution.\n'

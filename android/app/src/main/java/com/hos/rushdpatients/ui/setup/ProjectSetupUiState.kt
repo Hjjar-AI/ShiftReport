@@ -1,9 +1,9 @@
 package com.hos.rushdpatients.ui.setup
 
-enum class ProjectSetupMode { DEMO, JOIN, CREATE }
+enum class ProjectSetupMode { JOIN, CREATE }
 
 data class ProjectSetupUiState(
-    val mode: ProjectSetupMode = ProjectSetupMode.DEMO,
+    val mode: ProjectSetupMode = ProjectSetupMode.JOIN,
     val hospitalName: String = "",
     val botToken: String = "",
     val chatId: String = "",

@@ -8,7 +8,6 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import com.hos.rushdpatients.ui.components.AppActionContent
 import com.hos.rushdpatients.ui.components.NoticeKind
 import com.hos.rushdpatients.ui.components.AppNotice
-import com.hos.rushdpatients.ui.components.AppSection
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppButton
@@ -80,15 +79,6 @@ fun ProjectSetupScreen(
             ProjectSetupChoices(selected = state.mode, enabled = !state.busy,
                 onSelect = viewModel::setMode)
 
-            if (state.mode == ProjectSetupMode.DEMO) {
-                AppSection(uiText(R.string.ui_project_setup_screen_003)) {
-                    AppText(uiText(R.string.ui_project_setup_screen_004))
-                    AppText(uiText(R.string.ui_project_setup_screen_005),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-
             if (state.mode == ProjectSetupMode.JOIN) {
                 ProjectJoinSections(
                     state = state,
@@ -139,7 +129,6 @@ fun ProjectSetupScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 AppActionContent(text = when (state.mode) {
-                    ProjectSetupMode.DEMO -> uiText(R.string.ui_project_setup_screen_038)
                     ProjectSetupMode.JOIN -> uiText(R.string.ui_project_setup_screen_039)
                     ProjectSetupMode.CREATE -> uiText(R.string.ui_project_setup_screen_040)
                 }, loading = state.busy)
@@ -173,8 +162,6 @@ fun ProjectSetupScreen(
 private fun InstructionCard(mode: ProjectSetupMode) {
     val uiText = rememberUiStrings()
     val text = when (mode) {
-        ProjectSetupMode.DEMO ->
-            uiText(R.string.ui_project_setup_screen_041)
         ProjectSetupMode.JOIN ->
             uiText(R.string.ui_project_setup_screen_042)
         ProjectSetupMode.CREATE ->

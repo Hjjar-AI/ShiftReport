@@ -110,7 +110,7 @@ private fun DisplayPreferencesFailure(onRetry: () -> Unit) {
 
 /** The launch deadline starts before storage loading; themed content shares that same state. */
 @androidx.compose.runtime.Composable
-private fun LaunchIntro(splash: com.hos.rushdpatients.ui.about.LaunchSplashState) {
+internal fun LaunchIntro(splash: com.hos.rushdpatients.ui.about.LaunchSplashState) {
     IntroAboutScreen(splash = true, onBack = splash::skip,
         onSplashPress = splash::press, onSplashRelease = splash::release)
 }

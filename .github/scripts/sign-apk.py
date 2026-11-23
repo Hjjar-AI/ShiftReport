@@ -24,7 +24,7 @@ def command(arguments, environment=None):
 
 
 def main(kind):
-    if kind not in ('debug', 'release') or os.environ.get('GITHUB_ACTIONS') != 'true':
+    if kind not in ('debug', 'demo', 'release') or os.environ.get('GITHUB_ACTIONS') != 'true':
         raise ValueError('Explicit hosted signing operation required')
     if os.environ['GITHUB_REF'] != 'refs/heads/' + os.environ['CI_DEFAULT_BRANCH']:
         raise ValueError('Default branch required')
@@ -34,7 +34,7 @@ def main(kind):
     expected = os.environ['SHIFTREPORT_SIGN_CERT_SHA256'].replace(':', '').strip().lower()
     if not re.fullmatch(r'[a-f0-9]{64}', expected):
         raise ValueError('Invalid public certificate fingerprint')
-    source = ROOT / 'ci-output/signing-input'
+    source = ROOT / ('ci-output/signing-input-demo' if kind == 'demo' else 'ci-output/signing-input')
     packages = list(source.glob('*.apk'))
     if len(packages) != 1 or packages[0].is_symlink():
         raise ValueError('Expected exactly one APK from this run')
@@ -48,6 +48,7 @@ def main(kind):
     version = dict(re.findall(r'^([^#\s=]+)=(.*)$', (ROOT / 'android/gradle/app-version.properties').read_text(), re.M))
     code, name = version['versionCode'], version['versionName']
     packaged_name = name + ('-debug' if kind == 'debug' else '')
+    application_id = 'com.hos.rushdpatients.demo' if kind == 'demo' else 'com.hos.rushdpatients'
     if not code.isdecimal() or not re.fullmatch(r'\d+\.\d+\.\d+(?:\.\d{8})?', name):
         raise ValueError('Invalid stored version')
     tools = Path(os.environ['ANDROID_HOME']) / 'build-tools/34.0.0'
@@ -55,13 +56,17 @@ def main(kind):
 
     def inspect(apk):
         badging = command([str(tools / 'aapt'), 'dump', 'badging', str(apk)], public_environment)
-        if not badging.startswith("package: name='com.hos.rushdpatients' "):
+        if not badging.startswith(f"package: name='{application_id}' "):
             raise ValueError('Unexpected package')
         if (f"versionCode='{code}'" not in badging or f"versionName='{packaged_name}'" not in badging
                 or "sdkVersion:'23'" not in badging or "targetSdkVersion:'34'" not in badging):
             raise ValueError('Packaged version/SDK differs from source')
         if ('application-debuggable' in badging) != (kind == 'debug'):
             raise ValueError('Unexpected build type')
+        if kind == 'demo' and (
+                "launchable-activity: name='com.hos.rushdpatients.DemoActivity'" not in badging
+                or re.search(r"^uses-permission(?:-sdk-\d+)?: name='android\.permission\.(?:INTERNET|ACCESS_NETWORK_STATE)'", badging, re.M)):
+            raise ValueError('Unexpected demo launcher or network permission')
         command([str(tools / 'zipalign'), '-c', '4', str(apk)], public_environment)
 
     inspect(package)
@@ -93,7 +98,7 @@ def main(kind):
         if not mapping.is_file() or mapping.is_symlink():
             raise ValueError('Missing release shrinker mapping')
         shutil.copyfile(mapping, destination / 'mapping.txt')
-    receipt = dict(kind=kind, package='com.hos.rushdpatients', versionCode=int(code), versionName=name,
+    receipt = dict(kind=kind, package=application_id, versionCode=int(code), versionName=name,
                    certificateSha256=expected, apk=signed.name, sourceCommit=os.environ['GITHUB_SHA'],
                    workflowRun=os.environ['GITHUB_RUN_ID'], workflowAttempt=os.environ['GITHUB_RUN_ATTEMPT'])
     (destination / 'signing-info.json').write_text(json.dumps(receipt, indent=2) + '\n')

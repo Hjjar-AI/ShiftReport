@@ -1,6 +1,6 @@
 # Android demo workspace
 
-Choose Demo on setup for shared app screens with isolated dummy data; no project join/create is needed.
+Install and open **مناوب تجريبي** (`com.hos.rushdpatients.demo`). It opens the sample ward after the splash, alongside any existing clinical app. The clinical launcher opens Join/Create or the configured project. [Build and signing](build.md#daily-commands).
 
 ## Shared screens
 
@@ -20,7 +20,7 @@ Ward/report/doctors identify demo mode; reports label simulated delivery. Shared
 
 `DemoWardViewModel` uses `InMemoryDemoWardRepository`, pure text/PDF builders and an explicit PDF saver; never production clinical/settings/session/Telegram services. `WardController`/`ReportController`/`DoctorsController` choose operations below shared UI; live authorization/durable delivery stay in production ViewModels/services.
 
-Fifty food/drink patients come from `samples/data/patients.csv`. Tree doctors, actor/roster/teams, drafts, remote snapshot and receipts are memory-only; entered doctor PIN/Telegram identities are discarded. Fetch uses the fake snapshot and production replacement/review dialogs with local Undo. Reset/exit/process death discards the session. Only `DemoAppearanceStore` persists accent/appearance enums in private, unencrypted `demo_appearance` preferences, off-main and loaded before rendering; these survive reset/exit. No clinical/credential/live settings enter that file. The day label refreshes at 09:30/foreground; review captures its own day.
+Fifty food/drink patients come from `samples/data/patients.csv`. Tree doctors, actor/roster/teams, drafts, remote snapshot and receipts are memory-only; entered doctor PIN/Telegram identities are discarded. Fetch uses the fake snapshot and production replacement/review dialogs with local Undo. Reset/exit/process death discards the session. The demo persists only accent and appearance in its own private `demo_appearance` preferences. The day label refreshes at 09:30/foreground; review captures its own day.
 
 ## Explicit local files
 

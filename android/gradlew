@@ -159,7 +159,7 @@ for shiftreport_arg in "$@"; do
         -*) ;;
         *)
             case "${shiftreport_arg##*:}" in
-                assemble|assembleDebug|assembleRelease|build|buildDebug|buildRelease|bundle|bundleDebug|bundleRelease|packageDebug|packageRelease|exportDebugApk|exportReleaseApk)
+                assemble|assembleDebug|assembleDemo|assembleRelease|build|buildDebug|buildDemo|buildRelease|bundle|bundleDebug|bundleDemo|bundleRelease|packageDebug|packageDemo|packageRelease|exportDebugApk|exportDemoApk|exportReleaseApk)
                     shiftreport_packaging=true ;;
             esac
             ;;

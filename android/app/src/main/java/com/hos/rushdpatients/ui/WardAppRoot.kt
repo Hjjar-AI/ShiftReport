@@ -44,7 +44,6 @@ import com.hos.rushdpatients.ui.login.LoginScreen
 import com.hos.rushdpatients.ui.login.PinUnlockScreen
 import com.hos.rushdpatients.ui.navigation.WardNavHost
 import com.hos.rushdpatients.ui.setup.ProjectSetupScreen
-import com.hos.rushdpatients.ui.demo.DemoWardScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -196,11 +195,6 @@ class RootViewModel @Inject constructor(
             }
         }
     }
-
-    fun exitDemo() {
-        sessionManager.clear()
-        projectConfigStore.clear()
-    }
 }
 
 @Composable
@@ -252,7 +246,7 @@ fun WardAppRoot(
     val current = session
     // A temporary privacy/PIN screen must not discard the back stack or editor ViewModels.
     // Clinical screens still leave composition while locked; sign-out discards this controller.
-    val clinicalNavigation = if (projectConfig.initialized && !projectConfig.demoMode && current != null) {
+    val clinicalNavigation = if (projectConfig.initialized && current != null) {
         navController()
     } else null
     // NavHost's screen state includes the saved ActivityResult registration keys.
@@ -261,7 +255,6 @@ fun WardAppRoot(
     val clinicalScreenState = if (clinicalNavigation != null) rememberSaveableStateHolder() else null
     when {
         !projectConfig.initialized -> ProjectSetupScreen()
-        projectConfig.demoMode -> DemoWardScreen(onExit = viewModel::exitDemo)
         current == null -> LoginScreen(recoveryDoctorId = pinRecoveryDoctorId,
             onRecoveryConsumed = viewModel::consumePinRecovery)
         !unlockDecisionReady -> Column(Modifier.fillMaxSize(),

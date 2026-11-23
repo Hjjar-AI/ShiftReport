@@ -181,11 +181,13 @@ def main():
     failures = []
     reasons = {}
     if mode in ('capture', 'both'):
-        try:
-            capture.main()
-        except Exception as error:
-            failures.append('capture')
-            reasons['capture'] = capture.failure_reason(error)
+        for kind in ('debug', 'demo'):
+            phase = kind + '-capture'
+            try:
+                capture.main(kind)
+            except Exception as error:
+                failures.append(phase)
+                reasons[phase] = capture.failure_reason(error)
     if mode in ('instrumentation', 'both'):
         try:
             instrument(capture)

@@ -102,6 +102,12 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
         }
+        create("demo") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".demo"
+            matchingFallbacks += listOf("release")
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
 
     compileOptions {

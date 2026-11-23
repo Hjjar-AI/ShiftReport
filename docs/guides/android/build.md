@@ -13,6 +13,14 @@ Prerequisites: pinned Gradle 8.7/checksum, Java 17 target, Python 3, SDK 34/buil
 ./gradlew assembleDebug assembleRelease
 ```
 
+For the paired direct-download rollout, select the [existing shared debug key](#shared-debug-signing) and use the stored version for both APKs:
+
+```bash
+./gradlew --offline -Pshiftreport.autoVersion=false :app:assembleDebug :app:assembleDemo
+```
+
+`debug` updates `com.hos.rushdpatients`. `demo` installs alongside it as `com.hos.rushdpatients.demo`. Both use the configured debug signing identity. Before sharing, use `aapt dump badging` and `apksigner verify --print-certs` on both outputs and a representative previously distributed clinical APK. Check that the clinical package and signer match, the two new APKs have the same signer, and the new clinical code exceeds every distributed clinical code.
+
 ## Cached verification without packaging
 
 Before every build, follow [AGENTS preflight](../../../AGENTS.md#authorization-and-execution): cross-account activity/RAM/swap, durable Java/Gradle/SDK/dependencies. Defer for active work/pressure/unreliable visibility; preserve others' work/caches. Install missing prerequisites once with approval. Keep full local logs and report task/path/result; compilation proves neither runtime nor test approval.

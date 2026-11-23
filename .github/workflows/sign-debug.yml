@@ -1,20 +1,11 @@
-name: 10 - Delivery - Signed debug APK
+name: 10 - Delivery - Signed clinical and demo APKs
 'on':
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Options: false = skip; true = authorize fresh debug APK build, configured signing and selected publication, preserving stored version. Default: false. Keys must be configured first.'
+        description: 'Options: false = skip; true = authorize fresh clinical debug and demo APK builds and artifact signing, preserving stored version. Default: false. Keys must be configured first.'
         type: boolean
         default: false
-      publication:
-        description: 'Options: artifact = retain signed bundle for one day; draft = create an unpublished GitHub Release; prerelease = publish a prerelease; release = publish a regular release. Default: artifact.'
-        type: choice
-        options:
-        - artifact
-        - draft
-        - prerelease
-        - release
-        default: artifact
 permissions:
   contents: read
 concurrency:
@@ -37,7 +28,9 @@ jobs:
     - name: Set up build tooling without signing secrets
       uses: ./.github/actions/setup-android
     - name: Build using the stored version
-      run: python3 .github/scripts/hosted-android.py debug-apk
+      run: |
+        python3 .github/scripts/hosted-android.py debug-apk
+        python3 .github/scripts/hosted-android.py demo-apk
     - name: Retain this run's signing input
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
@@ -45,12 +38,21 @@ jobs:
         path: ci-output/debug-apk/
         retention-days: 1
         if-no-files-found: error
+    - name: Retain this run's demo signing input
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: signing-input-demo-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+        path: ci-output/demo-apk/
+        retention-days: 1
+        if-no-files-found: error
     - name: Retain build diagnostics
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: signing-build-log-debug-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-        path: ci-output/debug-apk/gradle.log
+        path: |
+          ci-output/debug-apk/gradle.log
+          ci-output/demo-apk/gradle.log
         retention-days: 1
         if-no-files-found: warn
   sign:
@@ -78,7 +80,9 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-      run: gh run download "$GITHUB_RUN_ID" --name "signing-input-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA" --dir ci-output/signing-input
+      run: |
+        gh run download "$GITHUB_RUN_ID" --name "signing-input-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA" --dir ci-output/signing-input
+        gh run download "$GITHUB_RUN_ID" --name "signing-input-demo-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA" --dir ci-output/signing-input-demo
     - name: Sign and verify expected identity
       env:
         CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -87,7 +91,9 @@ jobs:
         SHIFTREPORT_SIGN_STORE_PASSWORD: ${{ secrets.SHIFTREPORT_SIGN_STORE_PASSWORD }}
         SHIFTREPORT_SIGN_KEY_PASSWORD: ${{ secrets.SHIFTREPORT_SIGN_KEY_PASSWORD }}
         SHIFTREPORT_SIGN_CERT_SHA256: ${{ vars.SHIFTREPORT_SIGN_CERT_SHA256 }}
-      run: python3 .github/scripts/sign-apk.py debug
+      run: |
+        python3 .github/scripts/sign-apk.py debug
+        python3 .github/scripts/sign-apk.py demo
     - name: Retain verified public bundle only
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
@@ -95,28 +101,10 @@ jobs:
         path: ci-output/signed-debug/
         retention-days: 1
         if-no-files-found: error
-  publish:
-    needs: sign
-    if: ${{ inputs.confirm && github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && inputs.publication != 'artifact' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-      actions: read
-    steps:
-    - name: Check out publication helper
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Retain verified demo bundle
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
-        persist-credentials: false
-    - name: Download this run's verified signed bundle
-      env:
-        GH_TOKEN: ${{ github.token }}
-        GH_REPO: ${{ github.repository }}
-      run: gh run download "$GITHUB_RUN_ID" --name "signed-debug-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$GITHUB_SHA" --dir ci-output/signed-debug
-    - name: Create the selected Release without overwriting existing releases
-      env:
-        GH_TOKEN: ${{ github.token }}
-        GH_REPO: ${{ github.repository }}
-        CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        CI_PUBLICATION_MODE: ${{ inputs.publication }}
-      run: python3 .github/scripts/draft-release.py debug
+        name: signed-demo-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+        path: ci-output/signed-demo/
+        retention-days: 1
+        if-no-files-found: error

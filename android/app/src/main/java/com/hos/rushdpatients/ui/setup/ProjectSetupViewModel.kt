@@ -156,11 +156,6 @@ class ProjectSetupViewModel @Inject constructor(
             return
         }
         val input = _state.value
-        if (input.mode == ProjectSetupMode.DEMO) {
-            sessionManager.clear()
-            projectConfigStore.enterDemo()
-            return
-        }
         if (input.mode == ProjectSetupMode.JOIN && !input.importedProvisioning) {
             _state.update { it.copy(error = uiText(R.string.ui_project_setup_view_model_005)) }
             return
