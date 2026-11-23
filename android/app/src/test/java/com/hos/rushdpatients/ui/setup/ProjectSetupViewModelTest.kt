@@ -2,6 +2,7 @@ package com.hos.rushdpatients.ui.setup
 
 import android.content.Context
 import android.net.Uri
+import com.hos.rushdpatients.R
 import com.hos.rushdpatients.config.*
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.auth.*
@@ -46,12 +47,20 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
         verify(exactly = 0) { projects.markInitialized() }
         verify(exactly = 0) { sessions.clear() }
     }
-    @Test fun demoEntryClearsSessionWithoutSeedingOrNetwork() {
-        vm().initialize()
-        verifyOrder { sessions.clear(); projects.enterDemo() }
-        coVerify(exactly = 0) { telegram.getMe() }
-        coVerify(exactly = 0) { seeder.seed(any()) }
-        verify(exactly = 0) { projects.saveDraft(any()) }
+    @Test fun defaultJoinWithoutProtectedFilePreservesLocalState() {
+        val missingFileMessage = "Protected join file required"
+        every { text(R.string.ui_project_setup_view_model_005) } returns missingFileMessage
+        val vm = vm()
+        assertEquals(listOf(ProjectSetupMode.JOIN, ProjectSetupMode.CREATE), ProjectSetupMode.entries)
+        assertEquals(ProjectSetupMode.JOIN, vm.state.value.mode)
+
+        vm.initialize()
+
+        assertEquals(missingFileMessage, vm.state.value.error)
+        assertFalse(vm.state.value.busy)
+        assertNoInitialization()
+        verify(exactly = 0) { projects.saveDraft(any()); projects.clear() }
+        coVerify(exactly = 0) { telegram.getMe(); seeder.seed(any()); bootstrap.bootstrap(any()) }
     }
     @Test fun joinRequiresProtectedFileRegardlessOfManualFields() {
         val vm = validCreate(); vm.setMode(ProjectSetupMode.JOIN); vm.initialize()
@@ -256,7 +265,10 @@ class ProjectSetupViewModelTest : ViewModelFixture() {
     }
     @Test fun duplicateInitializeCannotSeedTwiceWhileNetworkIsPending() {
         coEvery { telegram.getMe() } coAnswers { awaitCancellation() }
-        val vm = validCreate(); vm.initialize(); vm.initialize(); vm.setMode(ProjectSetupMode.DEMO)
+        val vm = validCreate()
+        vm.initialize()
+        vm.initialize()
+        vm.setMode(ProjectSetupMode.JOIN)
         assertTrue(vm.state.value.busy)
         assertEquals(ProjectSetupMode.CREATE, vm.state.value.mode)
         coVerify(exactly = 1) { telegram.getMe() }

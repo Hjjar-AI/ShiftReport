@@ -40,7 +40,7 @@ Jobs are restricted to public repositories and standard Ubuntu runners. Reposito
 | 04 Production lint | Production debug lint with test sources excluded. |
 | 05 Security analysis | Java/Kotlin production extraction, Python helpers and Actions. Compilation extraction disables build-cache/task reuse; code-scanning eligibility remains external. |
 | 06 Debug APK | Ephemeral-signer preview, checksums and source/run/attempt/version receipt. It cannot update a differently signed installed app. |
-| 07 Emulator | `capture` (default) checks clinical setup and the standalone demo separately. `instrumentation` and `both` select the existing suite, whose demo entry needs retargeting. `api` selects both serial AVDs (default), `23`, or `35`. |
+| 07 Emulator | `capture` (default) checks clinical setup and the standalone demo separately. `instrumentation` and `both` select the existing offline tests, including isolated demo workspace coverage. `api` selects both serial AVDs (default), `23`, or `35`. |
 | 08 Release output | Unsigned minified release inspection, followed by API 35 clinical setup capture using a throwaway signer on a disposable AVD. |
 | 09 Workflow-run cleanup | Manual preview-first cleanup of completed runs, default seven days; all workflows or emulator only. |
 | 10 Signed clinical and demo APKs | Uses the existing debug key in the isolated `debug-signing` job and retains two separately verified artifacts. |
